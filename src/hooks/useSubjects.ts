@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-
+import { useRealtimeSubscription } from "./useRealtimeSubscription";
 export type SubjectStatus = "aprobada" | "regular" | "cursable" | "bloqueada" | "recursar";
 
 export interface Subject {
@@ -97,6 +97,17 @@ export function useSubjects() {
       fetchData();
     }
   }, [user, fetchData]);
+
+  // Realtime subscription for user_subject_status changes
+  useRealtimeSubscription({
+    table: "user_subject_status",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
+    onChange: useCallback(() => {
+      console.log("📡 Realtime: user_subject_status changed, refetching...");
+      fetchData();
+    }, [fetchData]),
+    enabled: !!user,
+  });
 
   const getSubjectStatus = useCallback((subjectId: string): SubjectStatus => {
     const userStatus = userStatuses.find(s => s.subject_id === subjectId);

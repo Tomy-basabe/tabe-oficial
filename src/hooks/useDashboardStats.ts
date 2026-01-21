@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "./useSubjects";
-
+import { useRealtimeSubscription } from "./useRealtimeSubscription";
 interface StudySession {
   id: string;
   duracion_segundos: number;
@@ -68,6 +68,27 @@ export function useDashboardStats() {
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  // Realtime subscriptions
+  useRealtimeSubscription({
+    table: "user_stats",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
+    onChange: useCallback(() => {
+      console.log("📡 Realtime: user_stats changed, refetching...");
+      fetchStats();
+    }, [fetchStats]),
+    enabled: !!user,
+  });
+
+  useRealtimeSubscription({
+    table: "study_sessions",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
+    onChange: useCallback(() => {
+      console.log("📡 Realtime: study_sessions changed, refetching...");
+      fetchStats();
+    }, [fetchStats]),
+    enabled: !!user,
+  });
 
   // Calculate subject statistics
   const subjectStats = {

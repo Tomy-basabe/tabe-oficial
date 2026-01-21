@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSubscription } from "./useRealtimeSubscription";
 
 interface DeckStats {
   id: string;
@@ -41,13 +42,7 @@ export function useFlashcardStats(): FlashcardStatsData {
   const [sessionsThisWeek, setSessionsThisWeek] = useState<SessionStats[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      fetchStats();
-    }
-  }, [user]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
@@ -134,7 +129,34 @@ export function useFlashcardStats(): FlashcardStatsData {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchStats();
+    }
+  }, [user, fetchStats]);
+
+  // Realtime subscriptions
+  useRealtimeSubscription({
+    table: "flashcard_decks",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
+    onChange: useCallback(() => {
+      console.log("📡 Realtime: flashcard_decks changed, refetching...");
+      fetchStats();
+    }, [fetchStats]),
+    enabled: !!user,
+  });
+
+  useRealtimeSubscription({
+    table: "flashcards",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
+    onChange: useCallback(() => {
+      console.log("📡 Realtime: flashcards changed, refetching...");
+      fetchStats();
+    }, [fetchStats]),
+    enabled: !!user,
+  });
 
   // Calculate totals
   const totalCorrect = deckStats.reduce((acc, d) => acc + d.total_correct, 0);

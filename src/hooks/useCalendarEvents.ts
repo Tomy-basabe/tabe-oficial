@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-
+import { useRealtimeSubscription } from "./useRealtimeSubscription";
 export type EventType = "P1" | "P2" | "Global" | "Recuperatorio" | "Final" | "Estudio";
 
 export interface CalendarEvent {
@@ -85,6 +85,17 @@ export function useCalendarEvents() {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Realtime subscription for calendar events
+  useRealtimeSubscription({
+    table: "calendar_events",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
+    onChange: useCallback(() => {
+      console.log("📡 Realtime: calendar_events changed, refetching...");
+      fetchEvents();
+    }, [fetchEvents]),
+    enabled: !!user,
+  });
 
   const createEvent = async (data: CreateEventData) => {
     if (!user) return;
