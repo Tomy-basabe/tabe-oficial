@@ -303,25 +303,46 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
         </div>
       </div>
 
-      {/* Action buttons */}
-      {isFlipped && !isExiting && (
-        <div className="flex justify-center gap-4 mt-8 animate-fade-in">
-          <button
-            onClick={() => handleResult(false)}
-            className="flex items-center gap-3 px-8 py-4 bg-neon-red/10 text-neon-red rounded-2xl hover:bg-neon-red/20 transition-all hover:scale-105 border border-neon-red/30 font-semibold group"
-          >
-            <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-            No la sabía
-          </button>
-          <button
-            onClick={() => handleResult(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-neon-green/10 text-neon-green rounded-2xl hover:bg-neon-green/20 transition-all hover:scale-105 border border-neon-green/30 font-semibold group"
-          >
-            <Check className="w-5 h-5 group-hover:scale-125 transition-transform" />
-            ¡La sabía!
-          </button>
-        </div>
-      )}
+      {/* Action buttons - Always visible but different states */}
+      <div className="flex flex-col items-center gap-4 mt-8">
+        {!isFlipped ? (
+          <div className="text-center animate-fade-in">
+            <p className="text-muted-foreground text-sm mb-3">
+              Piensa en tu respuesta y luego voltea la carta
+            </p>
+            <button
+              onClick={() => setIsFlipped(true)}
+              className="px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-2xl font-semibold hover:shadow-lg hover:shadow-neon-cyan/25 transition-all hover:scale-105"
+            >
+              Mostrar Respuesta
+            </button>
+          </div>
+        ) : !isExiting ? (
+          <div className="animate-fade-in">
+            <p className="text-center text-muted-foreground text-sm mb-4">
+              ¿Acertaste tu respuesta?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => handleResult(false)}
+                className="flex items-center gap-3 px-8 py-4 bg-neon-red/10 text-neon-red rounded-2xl hover:bg-neon-red/20 transition-all hover:scale-105 border border-neon-red/30 font-semibold group"
+              >
+                <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                No la sabía
+              </button>
+              <button
+                onClick={() => handleResult(true)}
+                className="flex items-center gap-3 px-8 py-4 bg-neon-green/10 text-neon-green rounded-2xl hover:bg-neon-green/20 transition-all hover:scale-105 border border-neon-green/30 font-semibold group"
+              >
+                <Check className="w-5 h-5 group-hover:scale-125 transition-transform" />
+                ¡La sabía!
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="h-20" /> // Placeholder while transitioning
+        )}
+      </div>
     </div>
   );
 }

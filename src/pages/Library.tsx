@@ -232,7 +232,7 @@ export default function Library() {
           >
             Todos
           </button>
-          {[1, 2, 3, 4].map(year => (
+          {[1, 2, 3, 4, 5].map(year => (
             <button
               key={year}
               onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
@@ -364,7 +364,7 @@ export default function Library() {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Año</label>
               <div className="flex gap-2 mt-2">
-                {[1, 2, 3, 4].map(year => (
+                {[1, 2, 3, 4, 5].map(year => (
                   <button
                     key={year}
                     onClick={() => { setSelectedYear(year); setUploadSubject(""); }}
@@ -373,7 +373,7 @@ export default function Library() {
                       selectedYear === year ? "bg-primary text-primary-foreground" : "bg-secondary"
                     )}
                   >
-                    Año {year}
+                    {year}°
                   </button>
                 ))}
               </div>
@@ -436,7 +436,7 @@ export default function Library() {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Año</label>
               <div className="flex gap-2 mt-2">
-                {[1, 2, 3, 4].map(year => (
+                {[1, 2, 3, 4, 5].map(year => (
                   <button
                     key={year}
                     onClick={() => { setSelectedYear(year); setUploadSubject(""); }}
@@ -445,7 +445,7 @@ export default function Library() {
                       selectedYear === year ? "bg-primary text-primary-foreground" : "bg-secondary"
                     )}
                   >
-                    Año {year}
+                    {year}°
                   </button>
                 ))}
               </div>
