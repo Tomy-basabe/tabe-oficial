@@ -250,30 +250,39 @@ export function useSubjects() {
         }
         
         if (xpToAdd > 0) {
-          const { error: xpError } = await supabase
-            .from("user_stats")
-            .update({ xp_total: supabase.rpc ? undefined : undefined })
-            .eq("user_id", user.id);
-          
-          // Use raw SQL increment via RPC or direct update
-          await supabase.rpc('check_and_unlock_achievements', { p_user_id: user.id });
-          
-          // Update XP directly
+          // Get current stats
           const { data: currentStats } = await supabase
             .from("user_stats")
-            .select("xp_total")
+            .select("xp_total, nivel")
             .eq("user_id", user.id)
             .single();
           
           if (currentStats) {
+            const newXpTotal = (currentStats.xp_total || 0) + xpToAdd;
+            // Calculate new level: every 100 XP = 1 level
+            const newLevel = Math.floor(newXpTotal / 100) + 1;
+            const leveledUp = newLevel > (currentStats.nivel || 1);
+            
             await supabase
               .from("user_stats")
-              .update({ xp_total: (currentStats.xp_total || 0) + xpToAdd })
+              .update({ 
+                xp_total: newXpTotal,
+                nivel: newLevel
+              })
               .eq("user_id", user.id);
+            
+            const statusLabel = estado === "aprobada" ? "aprobar" : "regularizar";
+            toast.success(`+${xpToAdd} XP por ${statusLabel} la materia! 🎉`);
+            
+            if (leveledUp) {
+              toast.success(`🎮 ¡Subiste al nivel ${newLevel}!`, {
+                duration: 5000,
+              });
+            }
           }
           
-          const statusLabel = estado === "aprobada" ? "aprobar" : "regularizar";
-          toast.success(`+${xpToAdd} XP por ${statusLabel} la materia! 🎉`);
+          // Check achievements after XP update
+          await supabase.rpc('check_and_unlock_achievements', { p_user_id: user.id });
         }
       }
 

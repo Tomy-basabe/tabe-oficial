@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { User, Bell, Calendar, Link, LogOut, Moon, ChevronRight, ChevronDown } from "lucide-react";
+import { Bell, Calendar, Link, LogOut, Moon, Sun, ChevronRight, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
-import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function Settings() {
   const { user, signOut } = useAuth();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const { theme, toggleTheme } = useTheme();
   
   const userName = user?.user_metadata?.nombre || user?.email?.split("@")[0] || "Usuario";
   const userInitials = userName.slice(0, 2).toUpperCase();
@@ -79,18 +80,18 @@ export default function Settings() {
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-muted-foreground px-1">Integraciones</h3>
         <div className="card-gamer rounded-xl overflow-hidden divide-y divide-border">
-          <button className="w-full flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors text-left">
+          <div className="flex items-center gap-4 p-4">
             <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
               <Calendar className="w-5 h-5 text-muted-foreground" />
             </div>
             <div className="flex-1">
               <p className="font-medium text-sm">Google Calendar</p>
-              <p className="text-xs text-muted-foreground">Sincronizar eventos</p>
+              <p className="text-xs text-muted-foreground">Exportá eventos con el botón "Agregar a Google Calendar"</p>
             </div>
-            <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-full">
-              Próximamente
+            <span className="text-xs text-neon-green bg-neon-green/10 px-2 py-1 rounded-full">
+              Disponible
             </span>
-          </button>
+          </div>
           <button className="w-full flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors text-left">
             <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
               <Link className="w-5 h-5 text-muted-foreground" />
@@ -111,16 +112,33 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                <Moon className="w-5 h-5 text-muted-foreground" />
+                {theme === "dark" ? (
+                  <Moon className="w-5 h-5 text-muted-foreground" />
+                ) : (
+                  <Sun className="w-5 h-5 text-neon-gold" />
+                )}
               </div>
               <div>
-                <p className="font-medium text-sm">Tema oscuro</p>
-                <p className="text-xs text-muted-foreground">Activo por defecto</p>
+                <p className="font-medium text-sm">
+                  {theme === "dark" ? "Tema oscuro" : "Tema claro"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {theme === "dark" ? "Modo gamer activado" : "Modo claro activado"}
+                </p>
               </div>
             </div>
-            <div className="w-12 h-6 bg-primary rounded-full relative">
-              <div className="absolute right-1 top-1 w-4 h-4 bg-primary-foreground rounded-full" />
-            </div>
+            <button
+              onClick={toggleTheme}
+              className={`w-12 h-6 rounded-full relative transition-colors ${
+                theme === "dark" ? "bg-primary" : "bg-secondary"
+              }`}
+            >
+              <div 
+                className={`absolute top-1 w-4 h-4 bg-background rounded-full transition-all ${
+                  theme === "dark" ? "right-1" : "left-1"
+                }`}
+              />
+            </button>
           </div>
         </div>
       </div>

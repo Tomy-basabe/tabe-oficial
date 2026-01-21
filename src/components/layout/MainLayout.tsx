@@ -87,27 +87,29 @@ export function MainLayout() {
   }, [user]);
 
   // Calculate XP progress to next level
+  // Each level requires 100 XP: Level 1 = 0-99 XP, Level 2 = 100-199 XP, etc.
   const getXpProgress = () => {
     if (!userStats) return { currentXp: 0, level: 1, progress: 0, xpForNext: 100 };
     
-    const level = userStats.nivel;
-    const totalXp = userStats.xp_total;
+    const totalXp = userStats.xp_total || 0;
     
-    // XP needed per level: level * 100 (Level 1 = 100 XP, Level 2 = 200 XP, etc.)
-    const xpForCurrentLevel = (level - 1) * 100;
-    const xpForNextLevel = level * 100;
-    const xpInCurrentLevel = totalXp - xpForCurrentLevel * level / 2; // Approximate based on sum
+    // Level is calculated as: floor(XP / 100) + 1
+    const calculatedLevel = Math.floor(totalXp / 100) + 1;
     
-    // Simplified: just show total and estimate progress
-    const xpNeededForNext = level * 100;
-    const xpProgress = (totalXp % xpNeededForNext) / xpNeededForNext * 100;
-    const remaining = xpNeededForNext - (totalXp % xpNeededForNext);
+    // XP within current level (0-99)
+    const xpInCurrentLevel = totalXp % 100;
+    
+    // Progress percentage within current level
+    const progress = xpInCurrentLevel;
+    
+    // XP remaining to next level
+    const xpForNext = 100 - xpInCurrentLevel;
     
     return {
       currentXp: totalXp,
-      level,
-      progress: Math.min(xpProgress, 100),
-      xpForNext: remaining,
+      level: calculatedLevel,
+      progress,
+      xpForNext,
     };
   };
 

@@ -7,6 +7,78 @@
 
 @layer base {
   :root {
+    /* Light Theme */
+    --background: 0 0% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Cyan Primary - slightly darker for light mode */
+    --primary: 186 100% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Light Secondary */
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 95%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 186 100% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 87%;
+    --input: 220 13% 91%;
+    --ring: 186 100% 40%;
+
+    --radius: 0.75rem;
+
+    /* Custom Gamer Colors - adjusted for light mode */
+    --neon-cyan: 186 100% 40%;
+    --neon-green: 142 70% 40%;
+    --neon-gold: 45 100% 45%;
+    --neon-purple: 270 80% 55%;
+    --neon-red: 0 80% 50%;
+    
+    /* Status Colors */
+    --status-approved: 45 100% 45%;
+    --status-available: 142 70% 40%;
+    --status-blocked: 220 14% 70%;
+    --status-regular: 186 100% 40%;
+    --status-recursar: 0 80% 50%;
+
+    /* Glow Effects - subtle for light mode */
+    --glow-cyan: 0 0 10px hsl(186 100% 40% / 0.3), 0 0 20px hsl(186 100% 40% / 0.15);
+    --glow-green: 0 0 10px hsl(142 70% 40% / 0.3), 0 0 20px hsl(142 70% 40% / 0.15);
+    --glow-gold: 0 0 10px hsl(45 100% 45% / 0.3), 0 0 20px hsl(45 100% 45% / 0.15);
+    --glow-purple: 0 0 10px hsl(270 80% 55% / 0.3), 0 0 20px hsl(270 80% 55% / 0.15);
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(186 100% 40%) 0%, hsl(220 100% 50%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(45 100% 45%) 0%, hsl(35 100% 35%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142 70% 40%) 0%, hsl(160 70% 35%) 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(220 14% 95%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(220 14% 97%) 100%);
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 186 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 92%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 220 13% 87%;
+    --sidebar-ring: 186 100% 40%;
+  }
+
+  .dark {
     /* Dark Gamer Theme - Primary */
     --background: 222 47% 6%;
     --foreground: 210 40% 96%;
@@ -38,8 +110,6 @@
     --border: 222 30% 18%;
     --input: 222 30% 15%;
     --ring: 186 100% 50%;
-
-    --radius: 0.75rem;
 
     /* Custom Gamer Colors */
     --neon-cyan: 186 100% 50%;
