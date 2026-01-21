@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -44,6 +44,13 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
     hora?: string;
     notas?: string;
   } | null>(null);
+
+  // Update fecha when initialDate changes (when modal opens with a new date)
+  React.useEffect(() => {
+    if (open && initialDate) {
+      setFecha(initialDate);
+    }
+  }, [open, initialDate]);
 
   const handleClose = () => {
     setTitulo("");
