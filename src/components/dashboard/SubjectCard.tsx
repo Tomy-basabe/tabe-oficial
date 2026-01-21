@@ -9,6 +9,7 @@ interface SubjectCardProps {
   status: SubjectStatus;
   nota?: number | null;
   año: number;
+  numero_materia?: number;
   requisitos_faltantes?: string[];
   onClick?: () => void;
   compact?: boolean;
@@ -58,6 +59,7 @@ export function SubjectCard({
   status,
   nota,
   año,
+  numero_materia,
   requisitos_faltantes = [],
   onClick,
   compact = false,
@@ -94,7 +96,14 @@ export function SubjectCard({
       </h3>
 
       <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-muted-foreground">{codigo}</span>
+        <div className="flex items-center gap-2">
+          {numero_materia && (
+            <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+              #{numero_materia}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">{codigo}</span>
+        </div>
         {nota !== undefined && nota !== null && (
           <span className={cn(
             "text-sm font-display font-bold",

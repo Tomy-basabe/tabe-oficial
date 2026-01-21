@@ -223,6 +223,7 @@ export default function CareerPlan() {
                     status={subject.status}
                     nota={subject.nota}
                     año={subject.año}
+                    numero_materia={subject.numero_materia}
                     requisitos_faltantes={subject.requisitos_faltantes}
                     onClick={() => handleSubjectClick(subject)}
                   />

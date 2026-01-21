@@ -135,14 +135,14 @@ export function useSubjects() {
         const reqStatus = userStatuses.find(s => s.subject_id === dep.requiere_aprobada);
         if (reqStatus?.estado !== "aprobada") {
           const subject = subjects.find(s => s.id === dep.requiere_aprobada);
-          if (subject) missing.push(`${subject.codigo} aprobada`);
+          if (subject) missing.push(`${subject.numero_materia} aprobada`);
         }
       }
       if (dep.requiere_regular) {
         const reqStatus = userStatuses.find(s => s.subject_id === dep.requiere_regular);
         if (reqStatus?.estado !== "aprobada" && reqStatus?.estado !== "regular") {
           const subject = subjects.find(s => s.id === dep.requiere_regular);
-          if (subject) missing.push(`${subject.codigo} regular`);
+          if (subject) missing.push(`${subject.numero_materia} regular`);
         }
       }
     });
