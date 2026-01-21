@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Zap, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -29,6 +30,31 @@ export default function Auth() {
           navigate("/");
         }
       } else {
+        // Check if email is in invited_users list
+        const { data: invited, error: checkError } = await supabase
+          .from("invited_users")
+          .select("id, accepted_at")
+          .eq("email", email.toLowerCase())
+          .maybeSingle();
+
+        if (checkError) {
+          toast.error("Error al verificar invitación");
+          setLoading(false);
+          return;
+        }
+
+        if (!invited) {
+          toast.error("Este email no está autorizado para registrarse. Contacta al administrador.");
+          setLoading(false);
+          return;
+        }
+
+        if (invited.accepted_at) {
+          toast.error("Este email ya fue registrado anteriormente.");
+          setLoading(false);
+          return;
+        }
+
         const { error } = await signUp(email, password, nombre);
         if (error) {
           toast.error(error.message);
