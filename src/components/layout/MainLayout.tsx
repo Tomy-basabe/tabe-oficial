@@ -10,16 +10,22 @@ import {
   Settings,
   Menu,
   X,
-  Zap
+  Zap,
+  Layers,
+  Library,
+  Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera" },
+  { icon: Layers, label: "Flashcards", path: "/flashcards" },
+  { icon: Library, label: "Biblioteca", path: "/biblioteca" },
   { icon: Calendar, label: "Calendario", path: "/calendario" },
   { icon: Timer, label: "Pomodoro", path: "/pomodoro" },
   { icon: BarChart3, label: "Métricas", path: "/metricas" },
+  { icon: Trophy, label: "Logros", path: "/logros" },
   { icon: Bot, label: "Asistente IA", path: "/asistente" },
   { icon: Settings, label: "Configuración", path: "/configuracion" },
 ];
