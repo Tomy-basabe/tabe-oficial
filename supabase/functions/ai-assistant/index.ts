@@ -6,13 +6,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Valid event types matching the database constraint
+const VALID_EVENT_TYPES = ['P1', 'P2', 'Global', 'Final', 'Recuperatorio P1', 'Recuperatorio P2', 'Recuperatorio Global', 'Estudio'] as const;
+type ValidEventType = typeof VALID_EVENT_TYPES[number];
+
 interface CalendarEvent {
   titulo: string;
   fecha: string;
   hora?: string;
-  tipo_examen: string;
+  tipo_examen: ValidEventType;
   notas?: string;
   subject_id?: string;
+}
+
+// Map AI-friendly types to database valid types
+function mapEventType(aiType: string): ValidEventType {
+  const typeMap: Record<string, ValidEventType> = {
+    'parcial1': 'P1',
+    'parcial 1': 'P1',
+    'p1': 'P1',
+    'primer parcial': 'P1',
+    'parcial2': 'P2',
+    'parcial 2': 'P2',
+    'p2': 'P2',
+    'segundo parcial': 'P2',
+    'global': 'Global',
+    'final': 'Final',
+    'recuperatorio': 'Recuperatorio P1',
+    'recuperatorio p1': 'Recuperatorio P1',
+    'recuperatorio p2': 'Recuperatorio P2',
+    'recuperatorio global': 'Recuperatorio Global',
+    'estudio': 'Estudio',
+  };
+  
+  const normalizedType = aiType.toLowerCase().trim();
+  return typeMap[normalizedType] || 'Estudio';
 }
 
 serve(async (req) => {
@@ -48,7 +76,7 @@ serve(async (req) => {
 
     const today = new Date().toISOString().split("T")[0];
     
-    const subjectsList = subjects?.map(s => `- ${s.nombre} (${s.codigo}) - Ano ${s.año} - ID: ${s.id}`).join("\n") || "No hay materias cargadas";
+    const subjectsList = subjects?.map(s => `- ${s.nombre} (${s.codigo}) - Año ${s.año} - ID: ${s.id}`).join("\n") || "No hay materias cargadas";
     const eventsList = existingEvents?.map(e => `- ${e.titulo} el ${e.fecha} (${e.tipo_examen})`).join("\n") || "Sin eventos programados";
     
     const systemPrompt = `Eres T.A.B.E. IA, un asistente academico inteligente para estudiantes de ingenieria. Tu objetivo es ayudar con:
@@ -67,10 +95,12 @@ ${eventsList}
 
 INSTRUCCIONES PARA AGENDAR:
 Cuando el usuario quiera agendar algo (parcial, final, entrega, estudio, etc.), usa la herramienta "create_calendar_event".
-- Infiere la fecha según el contexto (ej: "el viernes" = próximo viernes)
+- Infiere la fecha según el contexto (ej: "el viernes" = próximo viernes, "viernes que viene" = próximo viernes)
+- Si dice "parcial 1" o "P1" usa tipo "P1", si dice "parcial 2" o "P2" usa tipo "P2"
 - Si no se especifica hora, no la incluyas
-- Tipos válidos: parcial, final, recuperatorio, tp, estudio, otro
+- Tipos válidos: P1, P2, Global, Final, Recuperatorio P1, Recuperatorio P2, Recuperatorio Global, Estudio
 - Siempre confirma al usuario lo que agendaste
+- Si menciona una materia, busca su ID en la lista y úsalo
 
 Responde siempre en español argentino, de forma amigable y concisa.`;
 
@@ -97,7 +127,7 @@ Responde siempre en español argentino, de forma amigable y concisa.`;
                 properties: {
                   titulo: {
                     type: "string",
-                    description: "Título del evento (ej: 'Parcial de Análisis Matemático')"
+                    description: "Título del evento (ej: 'Parcial 1 de Física II')"
                   },
                   fecha: {
                     type: "string",
@@ -109,8 +139,8 @@ Responde siempre en español argentino, de forma amigable y concisa.`;
                   },
                   tipo_examen: {
                     type: "string",
-                    enum: ["parcial", "final", "recuperatorio", "tp", "estudio", "otro"],
-                    description: "Tipo de evento"
+                    enum: ["P1", "P2", "Global", "Final", "Recuperatorio P1", "Recuperatorio P2", "Recuperatorio Global", "Estudio"],
+                    description: "Tipo de evento: P1 para primer parcial, P2 para segundo parcial, Global, Final, Recuperatorio P1/P2/Global, o Estudio"
                   },
                   notas: {
                     type: "string",
@@ -118,7 +148,7 @@ Responde siempre en español argentino, de forma amigable y concisa.`;
                   },
                   subject_id: {
                     type: "string",
-                    description: "ID de la materia asociada (opcional, usar los IDs proporcionados)"
+                    description: "ID de la materia asociada (opcional, usar los IDs proporcionados en la lista de materias)"
                   }
                 },
                 required: ["titulo", "fecha", "tipo_examen"],
@@ -160,7 +190,15 @@ Responde siempre en español argentino, de forma amigable y concisa.`;
       const toolCall = choice.message.tool_calls[0];
       
       if (toolCall.function.name === "create_calendar_event") {
-        const eventData: CalendarEvent = JSON.parse(toolCall.function.arguments);
+        const rawEventData = JSON.parse(toolCall.function.arguments);
+        
+        // Map the event type to a valid database type
+        const mappedType = mapEventType(rawEventData.tipo_examen);
+        
+        const eventData: CalendarEvent = {
+          ...rawEventData,
+          tipo_examen: mappedType,
+        };
         
         // Create the calendar event
         const { data: newEvent, error: insertError } = await supabase
@@ -195,7 +233,11 @@ Responde siempre en español argentino, de forma amigable y concisa.`;
           month: "long"
         });
         
-        const confirmationMessage = `✅ **Evento agendado:**\n\n📌 **${eventData.titulo}**\n📅 ${fechaFormateada}${eventData.hora ? `\n⏰ ${eventData.hora}` : ""}\n🏷️ ${eventData.tipo_examen.charAt(0).toUpperCase() + eventData.tipo_examen.slice(1)}${eventData.notas ? `\n📝 ${eventData.notas}` : ""}\n\n¿Hay algo más en lo que pueda ayudarte?`;
+        const tipoDisplay = eventData.tipo_examen === 'P1' ? 'Parcial 1' : 
+                            eventData.tipo_examen === 'P2' ? 'Parcial 2' : 
+                            eventData.tipo_examen;
+        
+        const confirmationMessage = `✅ **Evento agendado:**\n\n📌 **${eventData.titulo}**\n📅 ${fechaFormateada}${eventData.hora ? `\n⏰ ${eventData.hora}` : ""}\n🏷️ ${tipoDisplay}${eventData.notas ? `\n📝 ${eventData.notas}` : ""}\n\n¿Hay algo más en lo que pueda ayudarte?`;
 
         return new Response(JSON.stringify({ 
           content: confirmationMessage,
@@ -225,14 +267,16 @@ Responde siempre en español argentino, de forma amigable y concisa.`;
   }
 });
 
-function getColorForType(tipo: string): string {
-  const colors: Record<string, string> = {
-    parcial: "#f59e0b",
-    final: "#ef4444",
-    recuperatorio: "#f97316",
-    tp: "#8b5cf6",
-    estudio: "#22c55e",
-    otro: "#00d9ff",
+function getColorForType(tipo: ValidEventType): string {
+  const colors: Record<ValidEventType, string> = {
+    'P1': "#00d9ff",
+    'P2': "#a855f7",
+    'Global': "#fbbf24",
+    'Final': "#22c55e",
+    'Recuperatorio P1': "#ef4444",
+    'Recuperatorio P2': "#ef4444",
+    'Recuperatorio Global': "#ef4444",
+    'Estudio': "#6b7280",
   };
   return colors[tipo] || "#00d9ff";
 }

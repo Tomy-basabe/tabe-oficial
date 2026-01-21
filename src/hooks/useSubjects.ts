@@ -214,6 +214,7 @@ export function useSubjects() {
 
     try {
       const existingStatus = userStatuses.find(s => s.subject_id === subjectId);
+      const previousEstado = existingStatus?.estado;
       
       const statusData = {
         user_id: user.id,
@@ -236,6 +237,44 @@ export function useSubjects() {
           .insert(statusData);
         
         if (error) throw error;
+      }
+
+      // Award XP for status changes (only if status actually changed)
+      if (previousEstado !== estado) {
+        let xpToAdd = 0;
+        
+        if (estado === "aprobada") {
+          xpToAdd = 100; // 100 XP por aprobar materia
+        } else if (estado === "regular") {
+          xpToAdd = 50; // 50 XP por regularizar materia
+        }
+        
+        if (xpToAdd > 0) {
+          const { error: xpError } = await supabase
+            .from("user_stats")
+            .update({ xp_total: supabase.rpc ? undefined : undefined })
+            .eq("user_id", user.id);
+          
+          // Use raw SQL increment via RPC or direct update
+          await supabase.rpc('check_and_unlock_achievements', { p_user_id: user.id });
+          
+          // Update XP directly
+          const { data: currentStats } = await supabase
+            .from("user_stats")
+            .select("xp_total")
+            .eq("user_id", user.id)
+            .single();
+          
+          if (currentStats) {
+            await supabase
+              .from("user_stats")
+              .update({ xp_total: (currentStats.xp_total || 0) + xpToAdd })
+              .eq("user_id", user.id);
+          }
+          
+          const statusLabel = estado === "aprobada" ? "aprobar" : "regularizar";
+          toast.success(`+${xpToAdd} XP por ${statusLabel} la materia! 🎉`);
+        }
       }
 
       await fetchData();
