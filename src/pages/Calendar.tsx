@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType } from "@/hooks/useCalendarEvents";
 import { useSubjects } from "@/hooks/useSubjects";
 import { AddEventModal } from "@/components/calendar/AddEventModal";
+import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
+import { toast } from "sonner";
 
 const eventTypeColors: Record<EventType, string> = {
   P1: "bg-neon-cyan/20 border-neon-cyan text-neon-cyan",
@@ -68,8 +70,22 @@ export default function Calendar() {
     );
   };
 
-  const handleAddEvent = () => {
+  const handleAddEvent = (date?: Date) => {
+    if (date) {
+      setSelectedDate(date);
+    }
     setShowAddModal(true);
+  };
+
+  const handleExportToGoogle = (event: CalendarEvent) => {
+    const url = generateGoogleCalendarUrl({
+      title: event.titulo,
+      date: event.fecha,
+      time: event.hora || undefined,
+      description: event.notas || undefined,
+    });
+    window.open(url, "_blank");
+    toast.success("Abriendo Google Calendar...");
   };
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -96,9 +112,16 @@ export default function Calendar() {
       days.push(
         <button
           key={day}
-          onClick={() => setSelectedDate(date)}
+          onClick={() => {
+            setSelectedDate(date);
+            // If no events, open modal directly
+            if (dayEvents.length === 0) {
+              handleAddEvent(date);
+            }
+          }}
+          onDoubleClick={() => handleAddEvent(date)}
           className={cn(
-            "h-24 lg:h-32 p-2 border border-border rounded-lg transition-all text-left relative",
+            "h-24 lg:h-32 p-2 border border-border rounded-lg transition-all text-left relative group",
             today && "border-primary",
             selected && "bg-primary/10 border-primary",
             !today && !selected && "hover:bg-secondary/50"
@@ -115,6 +138,18 @@ export default function Calendar() {
           </span>
           {today && (
             <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse" />
+          )}
+          {/* Quick add button on hover */}
+          {dayEvents.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddEvent(date);
+              }}
+              className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-primary/20 hover:bg-primary/40"
+            >
+              <Plus className="w-3 h-3 text-primary" />
+            </button>
           )}
           <div className="mt-1 space-y-1 overflow-hidden">
             {dayEvents.slice(0, 2).map((event) => (
@@ -172,7 +207,7 @@ export default function Calendar() {
             Hoy
           </button>
           <button 
-            onClick={handleAddEvent}
+            onClick={() => handleAddEvent()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -240,7 +275,7 @@ export default function Calendar() {
               <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p className="text-sm">No hay eventos para este día</p>
               <button 
-                onClick={handleAddEvent}
+                onClick={() => handleAddEvent()}
                 className="mt-4 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 transition-colors"
               >
                 Agregar evento
@@ -258,13 +293,23 @@ export default function Calendar() {
                     eventTypeColors[event.tipo_examen]
                   )}
                 >
-                  <button
-                    onClick={() => handleDeleteEvent(event.id)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-background/20"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                  <p className="font-medium text-sm pr-6">{event.titulo}</p>
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleExportToGoogle(event)}
+                      className="p-1 rounded hover:bg-background/20"
+                      title="Exportar a Google Calendar"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEvent(event.id)}
+                      className="p-1 rounded hover:bg-background/20"
+                      title="Eliminar evento"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <p className="font-medium text-sm pr-12">{event.titulo}</p>
                   {event.hora && (
                     <p className="text-xs opacity-80 mt-1">{event.hora}</p>
                   )}
@@ -277,7 +322,7 @@ export default function Calendar() {
                 </div>
               ))}
               <button 
-                onClick={handleAddEvent}
+                onClick={() => handleAddEvent()}
                 className="w-full py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />

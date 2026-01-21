@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Clock, BookOpen, ExternalLink } from "lucide-react";
@@ -141,6 +141,9 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
             <CalendarIcon className="w-5 h-5" />
             {showGoogleButton ? "¡Evento Creado!" : "Nuevo Evento"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {showGoogleButton ? "Evento guardado exitosamente" : "Formulario para crear un nuevo evento en el calendario"}
+          </DialogDescription>
         </DialogHeader>
 
         {showGoogleButton ? (
