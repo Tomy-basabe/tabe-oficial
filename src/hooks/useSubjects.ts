@@ -75,7 +75,10 @@ export function useSubjects() {
       if (depsError) throw depsError;
 
       setSubjects(subjectsData || []);
-      setUserStatuses(statusData || []);
+      setUserStatuses((statusData || []).map(s => ({
+        ...s,
+        estado: s.estado as SubjectStatus,
+      })));
       setDependencies(depsData || []);
     } catch (error) {
       console.error("Error fetching subjects:", error);
