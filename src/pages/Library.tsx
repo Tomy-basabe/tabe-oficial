@@ -4,11 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   FileText, Image, Link as LinkIcon, Upload, Plus, 
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus,
-  ChevronRight, ArrowLeft, X, Eye
+  ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface LibraryFolder {
   id: string;
@@ -63,6 +70,8 @@ const folderColors = [
   { name: "Red", value: "#ef4444" },
 ];
 
+const years = [1, 2, 3, 4, 5];
+
 export default function Library() {
   const { user } = useAuth();
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -70,7 +79,11 @@ export default function Library() {
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<LibraryFolder[]>([]);
+  
+  // Filters
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+  
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -81,6 +94,7 @@ export default function Library() {
   const [linkName, setLinkName] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState("#00d9ff");
+  const [newFolderSubject, setNewFolderSubject] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,11 +107,17 @@ export default function Library() {
     }
   }, [user]);
 
+  // Reset subject filter when year changes
+  useEffect(() => {
+    setSelectedSubjectId(null);
+  }, [selectedYear]);
+
   const fetchSubjects = async () => {
     const { data, error } = await supabase
       .from("subjects")
       .select("*")
-      .order("año", { ascending: true });
+      .order("año", { ascending: true })
+      .order("nombre", { ascending: true });
     
     if (!error && data) {
       setSubjects(data);
@@ -107,11 +127,11 @@ export default function Library() {
   const fetchFolders = async () => {
     const { data, error } = await supabase
       .from("library_folders")
-      .select("*")
+      .select("*, subjects(nombre, codigo, año)")
       .order("nombre", { ascending: true });
     
     if (!error && data) {
-      setFolders(data as LibraryFolder[]);
+      setFolders(data.map((f: any) => ({ ...f, subject: f.subjects })) as LibraryFolder[]);
     }
   };
 
@@ -136,7 +156,6 @@ export default function Library() {
     } else {
       const folder = folders.find(f => f.id === folderId);
       if (folder) {
-        // Build path from root to current folder
         const path: LibraryFolder[] = [];
         let current: LibraryFolder | undefined = folder;
         while (current) {
@@ -159,12 +178,14 @@ export default function Library() {
           nombre: newFolderName.trim(),
           color: newFolderColor,
           parent_folder_id: currentFolderId,
+          subject_id: newFolderSubject || selectedSubjectId || null,
         });
 
       if (error) throw error;
 
       toast.success("¡Carpeta creada!");
       setNewFolderName("");
+      setNewFolderSubject("");
       setShowFolderModal(false);
       fetchFolders();
     } catch (error) {
@@ -215,11 +236,13 @@ export default function Library() {
         .from('library-files')
         .getPublicUrl(filePath);
 
+      const subjectToUse = uploadSubject || selectedSubjectId;
+
       const { error } = await supabase
         .from("library_files")
         .insert({
           user_id: user.id,
-          subject_id: uploadSubject || null,
+          subject_id: subjectToUse || null,
           folder_id: currentFolderId,
           nombre: file.name,
           tipo,
@@ -247,11 +270,13 @@ export default function Library() {
     if (!user || !linkUrl.trim() || !linkName.trim()) return;
 
     try {
+      const subjectToUse = uploadSubject || selectedSubjectId;
+
       const { error } = await supabase
         .from("library_files")
         .insert({
           user_id: user.id,
-          subject_id: uploadSubject || null,
+          subject_id: subjectToUse || null,
           folder_id: currentFolderId,
           nombre: linkName.trim(),
           tipo: "link",
@@ -305,11 +330,52 @@ export default function Library() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Get current folder contents
-  const currentFolders = folders.filter(f => f.parent_folder_id === currentFolderId);
-  const currentFiles = files.filter(f => f.folder_id === currentFolderId);
+  // Get subjects for current year filter
+  const filteredSubjects = selectedYear 
+    ? subjects.filter(s => s.año === selectedYear)
+    : subjects;
 
-  const filteredSubjects = subjects.filter(s => !selectedYear || s.año === selectedYear);
+  // Get selected subject info
+  const selectedSubject = selectedSubjectId 
+    ? subjects.find(s => s.id === selectedSubjectId)
+    : null;
+
+  // Filter folders and files based on year/subject
+  const getFilteredFolders = () => {
+    let result = folders.filter(f => f.parent_folder_id === currentFolderId);
+    
+    if (selectedSubjectId) {
+      result = result.filter(f => f.subject_id === selectedSubjectId || !f.subject_id);
+    } else if (selectedYear) {
+      const subjectIds = subjects.filter(s => s.año === selectedYear).map(s => s.id);
+      result = result.filter(f => !f.subject_id || subjectIds.includes(f.subject_id));
+    }
+    
+    return result;
+  };
+
+  const getFilteredFiles = () => {
+    let result = files.filter(f => f.folder_id === currentFolderId);
+    
+    if (selectedSubjectId) {
+      result = result.filter(f => f.subject_id === selectedSubjectId);
+    } else if (selectedYear) {
+      const subjectIds = subjects.filter(s => s.año === selectedYear).map(s => s.id);
+      result = result.filter(f => f.subject_id && subjectIds.includes(f.subject_id));
+    }
+    
+    return result;
+  };
+
+  const currentFolders = getFilteredFolders();
+  const currentFiles = getFilteredFiles();
+
+  // Stats
+  const totalFilesInFilter = selectedSubjectId 
+    ? files.filter(f => f.subject_id === selectedSubjectId).length
+    : selectedYear 
+      ? files.filter(f => f.subject?.año === selectedYear).length
+      : files.length;
 
   return (
     <div className="p-4 lg:p-8 space-y-6">
@@ -320,23 +386,23 @@ export default function Library() {
             Biblioteca
           </h1>
           <p className="text-muted-foreground mt-1">
-            Organiza tus recursos de estudio
+            Organiza tus recursos de estudio por año y materia
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setShowFolderModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors"
           >
             <FolderPlus className="w-4 h-4" />
-            Nueva Carpeta
+            <span className="hidden sm:inline">Nueva Carpeta</span>
           </button>
           <button
             onClick={() => setShowLinkModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors"
           >
             <LinkIcon className="w-4 h-4" />
-            Agregar Link
+            <span className="hidden sm:inline">Agregar Link</span>
           </button>
           <button
             onClick={() => setShowUploadModal(true)}
@@ -346,6 +412,97 @@ export default function Library() {
             Subir Archivo
           </button>
         </div>
+      </div>
+
+      {/* Year and Subject Filters */}
+      <div className="card-gamer rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="w-4 h-4 text-primary" />
+          <span className="font-medium text-sm">Filtrar por</span>
+        </div>
+        
+        <div className="flex flex-wrap gap-4">
+          {/* Year Filter */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs text-muted-foreground mb-2 block">Año</label>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setSelectedYear(null)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  selectedYear === null
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary hover:bg-secondary/80"
+                )}
+              >
+                Todos
+              </button>
+              {years.map(year => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    selectedYear === year
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary hover:bg-secondary/80"
+                  )}
+                >
+                  {year}° Año
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Subject Filter - Only shown when year is selected */}
+          {selectedYear && (
+            <div className="flex-1 min-w-[250px]">
+              <label className="text-xs text-muted-foreground mb-2 block">Materia</label>
+              <Select
+                value={selectedSubjectId || "all"}
+                onValueChange={(val) => setSelectedSubjectId(val === "all" ? null : val)}
+              >
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Todas las materias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las materias</SelectItem>
+                  {filteredSubjects.map(subject => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {/* Current filter info */}
+        {(selectedYear || selectedSubjectId) && (
+          <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <GraduationCap className="w-4 h-4 text-primary" />
+              <span className="text-muted-foreground">
+                {selectedSubject 
+                  ? `${selectedSubject.nombre} (${selectedSubject.año}° año)`
+                  : selectedYear 
+                    ? `Todas las materias de ${selectedYear}° año`
+                    : "Todos los archivos"
+                }
+              </span>
+              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
+                {totalFilesInFilter} archivos
+              </span>
+            </div>
+            <button
+              onClick={() => { setSelectedYear(null); setSelectedSubjectId(null); }}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Breadcrumb */}
@@ -405,7 +562,12 @@ export default function Library() {
         <div className="text-center py-16">
           <FolderOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
           <p className="text-muted-foreground mb-4">
-            {currentFolderId ? "Esta carpeta está vacía" : "No hay archivos en tu biblioteca"}
+            {selectedYear || selectedSubjectId 
+              ? "No hay archivos para este filtro"
+              : currentFolderId 
+                ? "Esta carpeta está vacía" 
+                : "No hay archivos en tu biblioteca"
+            }
           </p>
           <div className="flex gap-3 justify-center">
             <button
@@ -425,35 +587,41 @@ export default function Library() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {/* Folders */}
-          {currentFolders.map(folder => (
-            <div
-              key={folder.id}
-              onClick={() => navigateToFolder(folder.id)}
-              className="card-gamer rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-all group relative"
-            >
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: `${folder.color}20` }}
-                >
-                  <Folder className="w-6 h-6" style={{ color: folder.color }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium truncate">{folder.nombre}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {files.filter(f => f.folder_id === folder.id).length} archivos
-                  </p>
-                </div>
-              </div>
-              
-              <button
-                onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
-                className="absolute top-2 right-2 p-2 bg-destructive/20 text-destructive rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/30"
+          {currentFolders.map(folder => {
+            const folderFilesCount = files.filter(f => f.folder_id === folder.id).length;
+            const folderSubject = subjects.find(s => s.id === folder.subject_id);
+            
+            return (
+              <div
+                key={folder.id}
+                onClick={() => navigateToFolder(folder.id)}
+                className="card-gamer rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-all group relative"
               >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${folder.color}20` }}
+                  >
+                    <Folder className="w-6 h-6" style={{ color: folder.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate">{folder.nombre}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {folderFilesCount} archivos
+                      {folderSubject && ` • ${folderSubject.codigo}`}
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
+                  className="absolute top-2 right-2 p-2 bg-destructive/20 text-destructive rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/30"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
 
           {/* Files */}
           {currentFiles.map(file => {
@@ -590,6 +758,26 @@ export default function Library() {
                 className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
               />
             </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
+              <Select
+                value={newFolderSubject || "none"}
+                onValueChange={(val) => setNewFolderSubject(val === "none" ? "" : val)}
+              >
+                <SelectTrigger className="mt-2 bg-secondary border-border">
+                  <SelectValue placeholder="Sin materia asignada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin materia asignada</SelectItem>
+                  {subjects.map(subject => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.nombre} ({subject.año}° año)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             
             <div>
               <label className="text-sm font-medium text-muted-foreground">Color</label>
@@ -627,19 +815,25 @@ export default function Library() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
-              <select
-                value={uploadSubject}
-                onChange={(e) => setUploadSubject(e.target.value)}
-                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
+              <label className="text-sm font-medium text-muted-foreground">
+                Materia {selectedSubjectId ? "(heredada del filtro)" : "(opcional)"}
+              </label>
+              <Select
+                value={uploadSubject || selectedSubjectId || "none"}
+                onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
               >
-                <option value="">Sin materia asignada</option>
-                {subjects.map(subject => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.nombre} (Año {subject.año})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="mt-2 bg-secondary border-border">
+                  <SelectValue placeholder="Sin materia asignada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin materia asignada</SelectItem>
+                  {subjects.map(subject => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.nombre} ({subject.año}° año)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div
@@ -674,19 +868,25 @@ export default function Library() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
-              <select
-                value={uploadSubject}
-                onChange={(e) => setUploadSubject(e.target.value)}
-                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
+              <label className="text-sm font-medium text-muted-foreground">
+                Materia {selectedSubjectId ? "(heredada del filtro)" : "(opcional)"}
+              </label>
+              <Select
+                value={uploadSubject || selectedSubjectId || "none"}
+                onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
               >
-                <option value="">Sin materia asignada</option>
-                {subjects.map(subject => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.nombre} (Año {subject.año})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="mt-2 bg-secondary border-border">
+                  <SelectValue placeholder="Sin materia asignada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin materia asignada</SelectItem>
+                  {subjects.map(subject => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.nombre} ({subject.año}° año)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
