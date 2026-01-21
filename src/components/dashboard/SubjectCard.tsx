@@ -9,6 +9,7 @@ interface SubjectCardProps {
   status: SubjectStatus;
   nota?: number | null;
   año: number;
+  requisitos_faltantes?: string[];
   onClick?: () => void;
   compact?: boolean;
 }
@@ -57,6 +58,7 @@ export function SubjectCard({
   status,
   nota,
   año,
+  requisitos_faltantes = [],
   onClick,
   compact = false,
 }: SubjectCardProps) {
@@ -91,7 +93,7 @@ export function SubjectCard({
         {nombre}
       </h3>
 
-      <div className="flex items-center justify-between mt-3">
+      <div className="flex items-center justify-between mt-2">
         <span className="text-xs text-muted-foreground">{codigo}</span>
         {nota !== undefined && nota !== null && (
           <span className={cn(
@@ -102,6 +104,31 @@ export function SubjectCard({
           </span>
         )}
       </div>
+
+      {/* Show missing requirements for blocked subjects */}
+      {status === "bloqueada" && requisitos_faltantes.length > 0 && !compact && (
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground mb-1.5 flex items-center gap-1">
+            <Lock className="w-3 h-3" />
+            Necesitas:
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {requisitos_faltantes.slice(0, 3).map((req, idx) => (
+              <span 
+                key={idx}
+                className="px-1.5 py-0.5 bg-muted rounded text-[9px] text-muted-foreground"
+              >
+                {req}
+              </span>
+            ))}
+            {requisitos_faltantes.length > 3 && (
+              <span className="px-1.5 py-0.5 bg-muted rounded text-[9px] text-muted-foreground">
+                +{requisitos_faltantes.length - 3} más
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </button>
   );
 }
