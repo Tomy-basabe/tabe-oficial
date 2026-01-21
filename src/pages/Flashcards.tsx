@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Layers, Plus, Sparkles, GraduationCap, 
-  BookOpen, Zap
+  BookOpen, Zap, Trash2, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -50,6 +50,9 @@ export default function Flashcards() {
   const [correctCount, setCorrectCount] = useState(0);
   const [showNewDeckModal, setShowNewDeckModal] = useState(false);
   const [showNewCardModal, setShowNewCardModal] = useState(false);
+  const [showManageCardsModal, setShowManageCardsModal] = useState(false);
+  const [showDeleteDeckModal, setShowDeleteDeckModal] = useState(false);
+  const [deckToDelete, setDeckToDelete] = useState<Deck | null>(null);
   const [newDeckName, setNewDeckName] = useState("");
   const [newCardQuestion, setNewCardQuestion] = useState("");
   const [newCardAnswer, setNewCardAnswer] = useState("");
@@ -220,6 +223,74 @@ export default function Flashcards() {
     setSelectedDeck(deck);
     fetchCards(deck.id);
     setShowNewCardModal(true);
+  };
+
+  const handleManageCards = async (deck: Deck) => {
+    setSelectedDeck(deck);
+    await fetchCards(deck.id);
+    setShowManageCardsModal(true);
+  };
+
+  const handleDeleteDeckClick = (deck: Deck) => {
+    setDeckToDelete(deck);
+    setShowDeleteDeckModal(true);
+  };
+
+  const confirmDeleteDeck = async () => {
+    if (!deckToDelete) return;
+
+    try {
+      // First delete all cards in the deck
+      await supabase
+        .from("flashcards")
+        .delete()
+        .eq("deck_id", deckToDelete.id);
+
+      // Then delete the deck
+      const { error } = await supabase
+        .from("flashcard_decks")
+        .delete()
+        .eq("id", deckToDelete.id);
+
+      if (error) throw error;
+
+      toast.success("Mazo eliminado correctamente");
+      setShowDeleteDeckModal(false);
+      setDeckToDelete(null);
+      fetchDecks();
+    } catch (error) {
+      console.error("Error deleting deck:", error);
+      toast.error("Error al eliminar el mazo");
+    }
+  };
+
+  const deleteCard = async (cardId: string) => {
+    if (!selectedDeck) return;
+
+    try {
+      const { error } = await supabase
+        .from("flashcards")
+        .delete()
+        .eq("id", cardId);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedCards = cards.filter(c => c.id !== cardId);
+      setCards(updatedCards);
+
+      // Update deck card count
+      await supabase
+        .from("flashcard_decks")
+        .update({ total_cards: updatedCards.length })
+        .eq("id", selectedDeck.id);
+
+      fetchDecks();
+      toast.success("Tarjeta eliminada");
+    } catch (error) {
+      console.error("Error deleting card:", error);
+      toast.error("Error al eliminar la tarjeta");
+    }
   };
 
   const stopStudying = async () => {
@@ -451,6 +522,8 @@ export default function Flashcards() {
               index={index}
               onStartStudy={startStudying}
               onAddCard={handleAddCard}
+              onDeleteDeck={handleDeleteDeckClick}
+              onManageCards={handleManageCards}
             />
           ))}
         </div>
@@ -566,6 +639,96 @@ export default function Flashcards() {
               className="w-full py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-neon-cyan/25"
             >
               Agregar Tarjeta
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Cards Modal */}
+      <Dialog open={showManageCardsModal} onOpenChange={setShowManageCardsModal}>
+        <DialogContent className="sm:max-w-lg bg-card border-border max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
+              <Layers className="w-5 h-5 text-neon-cyan" />
+              Gestionar Tarjetas - {selectedDeck?.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto py-4 space-y-3">
+            {cards.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Layers className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Este mazo no tiene tarjetas</p>
+              </div>
+            ) : (
+              cards.map((card) => (
+                <div 
+                  key={card.id} 
+                  className="p-4 bg-secondary rounded-xl border border-border group hover:border-neon-cyan/30 transition-colors"
+                >
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm line-clamp-2">{card.pregunta}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
+                      <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                        <span className="text-neon-green">✓ {card.veces_correcta}</span>
+                        <span className="text-destructive">✗ {card.veces_incorrecta}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteCard(card.id)}
+                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="pt-4 border-t border-border">
+            <button
+              onClick={() => {
+                setShowManageCardsModal(false);
+                setShowNewCardModal(true);
+              }}
+              className="w-full py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar Tarjeta
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Deck Confirmation Modal */}
+      <Dialog open={showDeleteDeckModal} onOpenChange={setShowDeleteDeckModal}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Eliminar Mazo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-muted-foreground">
+              ¿Estás seguro de que deseas eliminar el mazo <span className="font-semibold text-foreground">"{deckToDelete?.nombre}"</span>?
+            </p>
+            <p className="text-sm text-destructive mt-2">
+              Esta acción eliminará todas las tarjetas ({deckToDelete?.total_cards}) y no se puede deshacer.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowDeleteDeckModal(false)}
+              className="flex-1 py-3 bg-secondary rounded-xl font-semibold hover:bg-secondary/80 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmDeleteDeck}
+              className="flex-1 py-3 bg-destructive text-destructive-foreground rounded-xl font-semibold hover:bg-destructive/90 transition-colors"
+            >
+              Eliminar
             </button>
           </div>
         </DialogContent>

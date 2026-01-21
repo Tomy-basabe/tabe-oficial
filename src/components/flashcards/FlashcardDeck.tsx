@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
-import { Layers, Play, Plus, Sparkles } from "lucide-react";
+import { Layers, Play, Plus, Sparkles, Trash2, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Deck {
   id: string;
@@ -14,10 +20,12 @@ interface FlashcardDeckProps {
   deck: Deck;
   onStartStudy: (deck: Deck) => void;
   onAddCard: (deck: Deck) => void;
+  onDeleteDeck: (deck: Deck) => void;
+  onManageCards: (deck: Deck) => void;
   index: number;
 }
 
-export function FlashcardDeck({ deck, onStartStudy, onAddCard, index }: FlashcardDeckProps) {
+export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onManageCards, index }: FlashcardDeckProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -79,9 +87,37 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, index }: Flashcar
               <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-neon-gold animate-pulse" />
             )}
           </div>
-          <span className="text-xs px-3 py-1.5 bg-secondary/80 backdrop-blur rounded-lg border border-border/50 font-medium">
-            Año {deck.subject?.año}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-3 py-1.5 bg-secondary/80 backdrop-blur rounded-lg border border-border/50 font-medium">
+              Año {deck.subject?.año}
+            </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+                >
+                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-card border-border">
+                <DropdownMenuItem 
+                  onClick={(e) => { e.stopPropagation(); onManageCards(deck); }}
+                  className="cursor-pointer"
+                >
+                  <Layers className="w-4 h-4 mr-2" />
+                  Gestionar tarjetas
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => { e.stopPropagation(); onDeleteDeck(deck); }}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar mazo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Content */}
