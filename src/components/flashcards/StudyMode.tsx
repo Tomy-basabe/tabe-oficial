@@ -29,13 +29,36 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
   const [shuffledCards, setShuffledCards] = useState<Flashcard[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Shuffle cards on mount with animation
+  // Spaced repetition: prioritize cards with more failures
   useEffect(() => {
-    const shuffled = [...cards].sort(() => Math.random() - 0.5);
+    // Calculate priority score for each card (higher = more likely to appear first)
+    const cardsWithPriority = cards.map(card => {
+      const totalAttempts = card.veces_correcta + card.veces_incorrecta;
+      let priority = 1;
+      
+      if (totalAttempts > 0) {
+        // Cards with more failures get higher priority
+        const failureRate = card.veces_incorrecta / totalAttempts;
+        priority = 1 + (failureRate * 3); // Multiply failure rate for stronger effect
+      } else {
+        // New cards (never studied) get medium-high priority
+        priority = 2;
+      }
+      
+      // Add some randomness to avoid exact same order every time
+      priority += Math.random() * 0.5;
+      
+      return { card, priority };
+    });
+    
+    // Sort by priority (highest first) then shuffle slightly
+    const sorted = cardsWithPriority
+      .sort((a, b) => b.priority - a.priority)
+      .map(item => item.card);
     
     // Shuffle animation duration
     const timer = setTimeout(() => {
-      setShuffledCards(shuffled);
+      setShuffledCards(sorted);
       setIsShuffling(false);
       // Draw first card
       setTimeout(() => setIsDrawing(true), 300);
@@ -102,9 +125,12 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
         </div>
         
         <p className="mt-8 font-display text-xl text-neon-cyan animate-pulse">
-          Mezclando cartas...
+          Organizando por dificultad...
         </p>
-        <p className="text-muted-foreground mt-2">{cards.length} tarjetas en el mazo</p>
+        <p className="text-muted-foreground mt-2 text-center text-sm">
+          Las tarjetas más difíciles aparecerán primero
+        </p>
+        <p className="text-muted-foreground mt-1">{cards.length} tarjetas en el mazo</p>
       </div>
     );
   }
@@ -234,6 +260,25 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
                     boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px -12px hsl(186 100% 50% / 0.15)"
                   }}
                 >
+                  {/* Difficulty indicator */}
+                  {(() => {
+                    const total = currentCard.veces_correcta + currentCard.veces_incorrecta;
+                    if (total === 0) return null;
+                    const failureRate = currentCard.veces_incorrecta / total;
+                    const isHard = failureRate > 0.5;
+                    const isMedium = failureRate > 0.25 && failureRate <= 0.5;
+                    return (
+                      <div className={cn(
+                        "absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                        isHard ? "bg-neon-red/20 text-neon-red" :
+                        isMedium ? "bg-neon-gold/20 text-neon-gold" :
+                        "bg-neon-green/20 text-neon-green"
+                      )}>
+                        {isHard ? "Difícil" : isMedium ? "Media" : "Fácil"}
+                      </div>
+                    );
+                  })()}
+                  
                   {/* Decorative corners */}
                   <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-neon-cyan/40 rounded-tl-lg" />
                   <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-neon-cyan/40 rounded-tr-lg" />
@@ -245,11 +290,18 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
                   <p className="text-xl lg:text-2xl font-medium leading-relaxed">
                     {currentCard.pregunta}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-8 flex items-center gap-2">
-                    <span className="w-6 h-0.5 bg-muted-foreground/30" />
-                    Toca para revelar
-                    <span className="w-6 h-0.5 bg-muted-foreground/30" />
-                  </p>
+                  
+                  {/* Stats indicator */}
+                  {(currentCard.veces_correcta > 0 || currentCard.veces_incorrecta > 0) && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 text-xs">
+                      <span className="flex items-center gap-1 text-neon-green/70">
+                        <Check className="w-3 h-3" />{currentCard.veces_correcta}
+                      </span>
+                      <span className="flex items-center gap-1 text-neon-red/70">
+                        <X className="w-3 h-3" />{currentCard.veces_incorrecta}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Back of card */}
