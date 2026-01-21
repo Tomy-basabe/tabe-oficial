@@ -9,11 +9,13 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { NotionEditor } from "@/components/notion/NotionEditor";
+import { EditorJSComponent } from "@/components/notion/EditorJS";
 import { DocumentTimer } from "@/components/notion/DocumentTimer";
 import { EmojiPicker } from "@/components/notion/EmojiPicker";
+import { PDFExporter } from "@/components/notion/PDFExporter";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { useAchievements } from "@/hooks/useAchievements";
+import { OutputData } from "@editorjs/editorjs";
 
 interface Subject {
   id: string;
@@ -36,6 +38,7 @@ export default function Notion() {
   const [docToDelete, setDocToDelete] = useState<NotionDocument | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [editorContent, setEditorContent] = useState<OutputData | null>(null);
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>("");
@@ -73,9 +76,10 @@ export default function Notion() {
   });
 
   // Auto-save document content
-  const handleContentUpdate = useCallback((content: any) => {
+  const handleContentUpdate = useCallback((content: OutputData) => {
     if (!activeDocument) return;
     
+    setEditorContent(content);
     const contentString = JSON.stringify(content);
     if (contentString === lastSavedContentRef.current) return;
     
@@ -115,6 +119,7 @@ export default function Notion() {
     const newDoc = await createDocument(selectedSubjectId);
     if (newDoc) {
       setActiveDocument(newDoc);
+      setEditorContent(newDoc.contenido as OutputData || null);
       setShowNewDocModal(false);
       checkAndUnlockAchievements();
     }
@@ -125,6 +130,7 @@ export default function Notion() {
     await deleteDocument(docToDelete.id);
     if (activeDocument?.id === docToDelete.id) {
       setActiveDocument(null);
+      setEditorContent(null);
     }
     setShowDeleteModal(false);
     setDocToDelete(null);
@@ -136,7 +142,9 @@ export default function Notion() {
   }, [activeDocument, addStudyTime]);
 
   const openDocument = (doc: NotionDocument) => {
-    lastSavedContentRef.current = JSON.stringify(doc.contenido);
+    const content = doc.contenido as OutputData;
+    lastSavedContentRef.current = JSON.stringify(content);
+    setEditorContent(content);
     setActiveDocument(doc);
   };
 
@@ -146,6 +154,7 @@ export default function Notion() {
       clearTimeout(saveTimeoutRef.current);
     }
     setActiveDocument(null);
+    setEditorContent(null);
     refetch();
   };
 
@@ -195,6 +204,16 @@ export default function Notion() {
             <div className="flex items-center gap-3">
               <DocumentTimer onSaveTime={handleSaveTime} />
               
+              {user && (
+                <PDFExporter
+                  documentTitle={activeDocument.titulo}
+                  documentEmoji={activeDocument.emoji}
+                  content={editorContent}
+                  subjectId={activeDocument.subject_id}
+                  userId={user.id}
+                />
+              )}
+              
               {activeDocument.subject && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-lg text-sm">
                   <GraduationCap className="w-4 h-4 text-primary" />
@@ -216,12 +235,40 @@ export default function Notion() {
         </div>
 
         {/* Editor */}
-        <div className="flex-1 max-w-4xl mx-auto w-full">
-          <NotionEditor
-            content={activeDocument.contenido}
+        <div className="flex-1 max-w-4xl mx-auto w-full px-4">
+          <EditorJSComponent
+            content={editorContent}
             onUpdate={handleContentUpdate}
           />
         </div>
+        
+        {/* Delete Confirmation Modal */}
+        <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Eliminar Apunte</DialogTitle>
+            </DialogHeader>
+            
+            <p className="text-muted-foreground">
+              ¿Estás seguro de eliminar "{docToDelete?.titulo || "Sin título"}"? Esta acción no se puede deshacer.
+            </p>
+            
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteDocument}
+                className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
