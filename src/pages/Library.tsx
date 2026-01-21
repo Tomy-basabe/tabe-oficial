@@ -728,8 +728,9 @@ export default function Library() {
               )}
               {previewFile?.tipo === "pdf" && (
                 <iframe
-                  src={`${previewFile.url}#toolbar=0`}
-                  className="w-full h-full rounded-lg"
+                  src={`${previewFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
+                  className="w-full rounded-lg border-0"
+                  style={{ minHeight: "calc(85vh - 100px)", height: "100%" }}
                   title={previewFile.nombre}
                 />
               )}

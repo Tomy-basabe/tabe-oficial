@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   FileText, Plus, Star, Clock, Trash2, 
   ChevronRight, Search, Loader2, ArrowLeft,
-  MoreHorizontal, GraduationCap
+  MoreHorizontal, GraduationCap, Save
 } from "lucide-react";
+import { NotionIcon } from "@/components/icons/NotionIcon";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -75,28 +76,33 @@ export default function Notion() {
     return matchesSearch && (selectedSubjectId ? matchesSubject : matchesYear || !selectedYear);
   });
 
-  // Auto-save document content
+  // Track content changes without auto-save
   const handleContentUpdate = useCallback((content: OutputData) => {
     if (!activeDocument) return;
-    
     setEditorContent(content);
-    const contentString = JSON.stringify(content);
-    if (contentString === lastSavedContentRef.current) return;
-    
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
+  }, [activeDocument]);
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = useCallback(() => {
+    const currentContent = JSON.stringify(editorContent);
+    return currentContent !== lastSavedContentRef.current;
+  }, [editorContent]);
+
+  // Manual save function
+  const handleManualSave = useCallback(async () => {
+    if (!activeDocument || !editorContent) return;
     
     setIsSaving(true);
-    
-    // Debounce save by 1 second
-    saveTimeoutRef.current = setTimeout(async () => {
-      await updateDocument(activeDocument.id, { contenido: content });
-      lastSavedContentRef.current = contentString;
+    try {
+      await updateDocument(activeDocument.id, { contenido: editorContent });
+      lastSavedContentRef.current = JSON.stringify(editorContent);
+      toast.success("Apunte guardado");
+    } catch (error) {
+      toast.error("Error al guardar");
+    } finally {
       setIsSaving(false);
-    }, 1000);
-  }, [activeDocument, updateDocument]);
+    }
+  }, [activeDocument, editorContent, updateDocument]);
 
   const handleTitleUpdate = useCallback(async (title: string) => {
     if (!activeDocument) return;
@@ -149,9 +155,9 @@ export default function Notion() {
   };
 
   const closeDocument = () => {
-    // Trigger final save
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    if (hasUnsavedChanges()) {
+      const shouldClose = window.confirm("Tienes cambios sin guardar. ¿Seguro que quieres salir?");
+      if (!shouldClose) return;
     }
     setActiveDocument(null);
     setEditorContent(null);
@@ -193,15 +199,26 @@ export default function Notion() {
                 placeholder="Sin título"
               />
               
-              {isSaving && (
+              {isSaving ? (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   Guardando...
                 </span>
+              ) : hasUnsavedChanges() && (
+                <span className="text-xs text-neon-gold">Sin guardar</span>
               )}
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleManualSave}
+                disabled={isSaving || !hasUnsavedChanges()}
+                className="flex items-center gap-2 px-4 py-2 bg-neon-green/20 text-neon-green rounded-lg font-medium hover:bg-neon-green/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                <span className="hidden sm:inline">Guardar</span>
+              </button>
+
               <DocumentTimer onSaveTime={handleSaveTime} />
               
               {user && (
@@ -279,8 +296,8 @@ export default function Notion() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon-purple to-neon-cyan flex items-center justify-center glow-purple">
-            <FileText className="w-7 h-7 text-background" />
+          <div className="w-14 h-14 rounded-2xl bg-background border border-border flex items-center justify-center">
+            <NotionIcon className="w-8 h-8 text-foreground" />
           </div>
           <div>
             <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">

@@ -13,16 +13,16 @@ import {
   Zap,
   Layers,
   Library,
-  Trophy,
-  FileText
+  Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { NotionIcon } from "@/components/icons/NotionIcon";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera" },
-  { icon: FileText, label: "Notion", path: "/notion" },
+  { icon: NotionIcon, label: "Notion", path: "/notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards" },
   { icon: Library, label: "Biblioteca", path: "/biblioteca" },
   { icon: Calendar, label: "Calendario", path: "/calendario" },
