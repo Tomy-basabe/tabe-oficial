@@ -7,7 +7,7 @@ import { OutputData } from "@editorjs/editorjs";
 interface PDFExporterProps {
   documentTitle: string;
   documentEmoji: string;
-  content: OutputData | null;
+  getContent: () => OutputData | null;
   subjectId: string | null;
   userId: string;
   onExported?: () => void;
@@ -16,7 +16,7 @@ interface PDFExporterProps {
 export function PDFExporter({ 
   documentTitle, 
   documentEmoji,
-  content, 
+  getContent, 
   subjectId, 
   userId,
   onExported 
@@ -141,7 +141,8 @@ export function PDFExporter({
   };
 
   const exportToPDF = async () => {
-    if (!content || content.blocks.length === 0) {
+    const content = getContent();
+    if (!content || !content.blocks || content.blocks.length === 0) {
       toast.error("El documento está vacío");
       return;
     }

@@ -286,9 +286,9 @@ export default function Notion() {
               
               {user && (
                 <PDFExporter
-                  documentTitle={activeDocument.titulo}
+                  documentTitle={localTitle || activeDocument.titulo}
                   documentEmoji={activeDocument.emoji}
-                  content={editorContent}
+                  getContent={() => editorContentRef.current ?? editorContent}
                   subjectId={activeDocument.subject_id}
                   userId={user.id}
                 />
