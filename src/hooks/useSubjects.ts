@@ -348,6 +348,49 @@ export function useSubjects() {
     return years.length > 0 ? years : [1, 2, 3, 4, 5];
   }, [subjects]);
 
+  // Initialize user statuses for 1st and 2nd year (all approved except Inglés II)
+  const initializeDefaultStatuses = async () => {
+    if (!user) return;
+
+    try {
+      // Get subjects from 1st and 2nd year
+      const subjectsToApprove = subjects.filter(s => 
+        (s.año === 1 || s.año === 2) && s.codigo !== "ING2"
+      );
+
+      // Check which ones don't have a status yet
+      const statusesToCreate = subjectsToApprove.filter(s => 
+        !userStatuses.some(us => us.subject_id === s.id)
+      );
+
+      if (statusesToCreate.length === 0) {
+        toast.info("Los estados ya están inicializados");
+        return;
+      }
+
+      // Create statuses for all subjects
+      const newStatuses = statusesToCreate.map(s => ({
+        user_id: user.id,
+        subject_id: s.id,
+        estado: "aprobada" as const,
+        nota: 7, // Default grade
+        fecha_aprobacion: new Date().toISOString().split('T')[0],
+      }));
+
+      const { error } = await supabase
+        .from("user_subject_status")
+        .insert(newStatuses);
+
+      if (error) throw error;
+
+      await fetchData();
+      toast.success(`Se inicializaron ${statusesToCreate.length} materias como aprobadas`);
+    } catch (error) {
+      console.error("Error initializing statuses:", error);
+      toast.error("Error al inicializar los estados");
+    }
+  };
+
   return {
     subjects: getSubjectsWithStatus(),
     rawSubjects: subjects,
@@ -357,6 +400,7 @@ export function useSubjects() {
     createSubject,
     updateSubjectDependencies,
     deleteSubject,
+    initializeDefaultStatuses,
     refetch: fetchData,
     getYears,
   };

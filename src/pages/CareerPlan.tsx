@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Filter, GraduationCap, Search, Plus, Loader2 } from "lucide-react";
+import { Filter, GraduationCap, Search, Plus, Loader2, Zap } from "lucide-react";
 import { SubjectCard } from "@/components/dashboard/SubjectCard";
 import { SubjectStatusModal } from "@/components/subjects/SubjectStatusModal";
 import { AddSubjectModal } from "@/components/subjects/AddSubjectModal";
@@ -24,6 +24,7 @@ export default function CareerPlan() {
     createSubject,
     updateSubjectDependencies,
     deleteSubject,
+    initializeDefaultStatuses,
     getYears 
   } = useSubjects();
   
@@ -230,6 +231,22 @@ export default function CareerPlan() {
           )
         ))}
       </div>
+
+      {subjects.length > 0 && stats.aprobadas === 0 && stats.regulares === 0 && (
+        <div className="card-gamer rounded-xl p-6 text-center border border-neon-cyan/30">
+          <Zap className="w-12 h-12 mx-auto mb-4 text-neon-cyan" />
+          <p className="text-foreground font-medium mb-2">¿Primera vez?</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            Inicializa tu progreso con 1º y 2º año aprobados (excepto Inglés II)
+          </p>
+          <button
+            onClick={initializeDefaultStatuses}
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
+          >
+            Inicializar mi progreso
+          </button>
+        </div>
+      )}
 
       {subjects.length === 0 && (
         <div className="text-center py-12">
