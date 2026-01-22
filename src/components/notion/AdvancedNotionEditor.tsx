@@ -46,6 +46,7 @@ import { SlashCommands } from "./extensions/SlashCommands";
 import { Callout } from "./extensions/CalloutExtension";
 import { Details, DetailsSummary, DetailsContent } from "./extensions/DetailsExtension";
 import { DragHandle } from "./extensions/DragHandle";
+import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
@@ -181,13 +182,151 @@ export function AdvancedNotionEditor({
     editor.commands.setContent(content);
   }, [documentId, content, editor]);
 
-  // Keyboard shortcuts
+  // Notion-style keyboard shortcuts
   useEffect(() => {
     if (!editor) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Markdown-style shortcuts
-      if (e.key === " " && !e.ctrlKey && !e.metaKey) {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+      const optionKey = isMac ? e.altKey : e.shiftKey;
+      
+      // ===== BLOCK TYPE SHORTCUTS (Cmd/Ctrl + Option/Shift + Number) =====
+      if (modKey && (isMac ? e.altKey : e.shiftKey)) {
+        switch (e.key) {
+          case '0':
+            e.preventDefault();
+            editor.chain().focus().setParagraph().run();
+            return;
+          case '1':
+            e.preventDefault();
+            editor.chain().focus().toggleHeading({ level: 1 }).run();
+            return;
+          case '2':
+            e.preventDefault();
+            editor.chain().focus().toggleHeading({ level: 2 }).run();
+            return;
+          case '3':
+            e.preventDefault();
+            editor.chain().focus().toggleHeading({ level: 3 }).run();
+            return;
+          case '4':
+            e.preventDefault();
+            editor.chain().focus().toggleTaskList().run();
+            return;
+          case '5':
+            e.preventDefault();
+            editor.chain().focus().toggleBulletList().run();
+            return;
+          case '6':
+            e.preventDefault();
+            editor.chain().focus().toggleOrderedList().run();
+            return;
+          case '7':
+            e.preventDefault();
+            editor.commands.setDetails();
+            return;
+          case '8':
+            e.preventDefault();
+            editor.chain().focus().toggleCodeBlock().run();
+            return;
+          case '9':
+            e.preventDefault();
+            editor.chain().focus().toggleBlockquote().run();
+            return;
+        }
+      }
+
+      // ===== TEXT FORMATTING SHORTCUTS =====
+      if (modKey && !e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case 'b':
+            e.preventDefault();
+            editor.chain().focus().toggleBold().run();
+            return;
+          case 'i':
+            e.preventDefault();
+            editor.chain().focus().toggleItalic().run();
+            return;
+          case 'u':
+            e.preventDefault();
+            editor.chain().focus().toggleUnderline().run();
+            return;
+          case 'e':
+            e.preventDefault();
+            editor.chain().focus().toggleCode().run();
+            return;
+          case 'k':
+            e.preventDefault();
+            const previousUrl = editor.getAttributes("link").href;
+            const url = window.prompt("URL:", previousUrl);
+            if (url === null) return;
+            if (url === "") {
+              editor.chain().focus().extendMarkRange("link").unsetLink().run();
+            } else {
+              editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+            }
+            return;
+          case 'd':
+            // Duplicate block (Cmd+D)
+            e.preventDefault();
+            const { from, to } = editor.state.selection;
+            const content = editor.state.doc.slice(from, to);
+            editor.chain().focus().insertContentAt(to, content.content.toJSON()).run();
+            return;
+        }
+        
+        // Strikethrough: Cmd+Shift+S
+        if (e.shiftKey && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          editor.chain().focus().toggleStrike().run();
+          return;
+        }
+        
+        // Highlight: Cmd+Shift+H
+        if (e.shiftKey && e.key.toLowerCase() === 'h') {
+          e.preventDefault();
+          editor.chain().focus().toggleHighlight().run();
+          return;
+        }
+      }
+
+      // ===== BLOCK NAVIGATION & EDITING =====
+      // Escape to select block
+      if (e.key === 'Escape') {
+        editor.commands.blur();
+        return;
+      }
+
+      // Tab to indent, Shift+Tab to outdent
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          editor.chain().focus().liftListItem('listItem').run() ||
+          editor.chain().focus().liftListItem('taskItem').run();
+        } else {
+          editor.chain().focus().sinkListItem('listItem').run() ||
+          editor.chain().focus().sinkListItem('taskItem').run();
+        }
+        return;
+      }
+
+      // Move blocks up/down with Cmd+Shift+Arrow
+      if (modKey && e.shiftKey) {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          // Move block up - TipTap doesn't have this built-in, but we can try lift
+          return;
+        }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          // Move block down
+          return;
+        }
+      }
+
+      // ===== MARKDOWN-STYLE SHORTCUTS (on space after pattern) =====
+      if (e.key === " " && !modKey) {
         const { $from } = editor.state.selection;
         const textBefore = $from.nodeBefore?.textContent || "";
         
@@ -201,22 +340,29 @@ export function AdvancedNotionEditor({
         } else if (textBefore === "###") {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).setHeading({ level: 3 }).run();
-        } else if (textBefore === "-" || textBefore === "*") {
+        } else if (textBefore === "-" || textBefore === "*" || textBefore === "+") {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).toggleBulletList().run();
-        } else if (textBefore === "1.") {
+        } else if (/^[1-9]\.$/.test(textBefore) || textBefore === "a." || textBefore === "i.") {
           e.preventDefault();
-          editor.chain().focus().deleteRange({ from: $from.pos - 2, to: $from.pos }).toggleOrderedList().run();
+          const len = textBefore.length;
+          editor.chain().focus().deleteRange({ from: $from.pos - len, to: $from.pos }).toggleOrderedList().run();
         } else if (textBefore === "[]" || textBefore === "[ ]") {
           e.preventDefault();
           const len = textBefore.length;
           editor.chain().focus().deleteRange({ from: $from.pos - len, to: $from.pos }).toggleTaskList().run();
         } else if (textBefore === ">") {
           e.preventDefault();
+          editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setDetails().run();
+        } else if (textBefore === '"') {
+          e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setBlockquote().run();
-        } else if (textBefore === "---") {
+        } else if (textBefore === "---" || textBefore === "***") {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).setHorizontalRule().run();
+        } else if (textBefore === "```") {
+          e.preventDefault();
+          editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).toggleCodeBlock().run();
         }
       }
     };
@@ -335,7 +481,7 @@ export function AdvancedNotionEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleStrike().run()}
             isActive={editor.isActive("strike")}
-            title="Tachado (Ctrl+Shift+X)"
+            title="Tachado (Ctrl+Shift+S)"
           >
             <Strikethrough className="w-4 h-4" />
           </ToolbarButton>
@@ -360,21 +506,21 @@ export function AdvancedNotionEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             isActive={editor.isActive("bulletList")}
-            title="Lista con viñetas"
+            title="Lista con viñetas (Ctrl+Shift+5)"
           >
             <List className="w-4 h-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             isActive={editor.isActive("orderedList")}
-            title="Lista numerada"
+            title="Lista numerada (Ctrl+Shift+6)"
           >
             <ListOrdered className="w-4 h-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleTaskList().run()}
             isActive={editor.isActive("taskList")}
-            title="Lista de tareas"
+            title="Lista de tareas (Ctrl+Shift+4)"
           >
             <CheckSquare className="w-4 h-4" />
           </ToolbarButton>
@@ -423,7 +569,7 @@ export function AdvancedNotionEditor({
         </div>
 
         {/* Media */}
-        <div className="flex items-center gap-0.5 px-2">
+        <div className="flex items-center gap-0.5 px-2 border-r border-border">
           <ToolbarButton onClick={setLink} isActive={editor.isActive("link")} title="Enlace (Ctrl+K)">
             <LinkIcon className="w-4 h-4" />
           </ToolbarButton>
@@ -433,6 +579,11 @@ export function AdvancedNotionEditor({
           <ToolbarButton onClick={insertTable} title="Tabla">
             <TableIcon className="w-4 h-4" />
           </ToolbarButton>
+        </div>
+
+        {/* Help */}
+        <div className="flex items-center gap-0.5 px-2">
+          <KeyboardShortcutsHelp />
         </div>
       </div>
 
