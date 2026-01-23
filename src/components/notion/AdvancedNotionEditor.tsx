@@ -175,7 +175,7 @@ export function AdvancedNotionEditor({
     },
     editorProps: {
       attributes: {
-        class: "notion-editor-content prose prose-invert max-w-none focus:outline-none min-h-[500px]",
+        class: "notion-editor-content prose dark:prose-invert max-w-none focus:outline-none min-h-[500px]",
       },
     },
   });
@@ -358,18 +358,34 @@ export function AdvancedNotionEditor({
           e.preventDefault();
           const len = textBefore.length;
           editor.chain().focus().deleteRange({ from: $from.pos - len, to: $from.pos }).toggleTaskList().run();
-        } else if (textBefore === ">") {
-          e.preventDefault();
-          editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setDetails().run();
         } else if (textBefore === '"') {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setBlockquote().run();
         } else if (textBefore === "---" || textBefore === "***") {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).setHorizontalRule().run();
-        } else if (textBefore === "```") {
+        }
+      }
+
+      // ===== ENTER SHORTCUTS (``` for code, > for toggle) =====
+      if (e.key === "Enter" && !modKey && !e.shiftKey) {
+        const { $from } = editor.state.selection;
+        const textBefore = $from.nodeBefore?.textContent || "";
+        
+        // Triple backticks -> code block
+        if (textBefore === "```" || textBefore.endsWith("```")) {
           e.preventDefault();
-          editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).toggleCodeBlock().run();
+          const backtickLen = textBefore.length >= 3 ? (textBefore.endsWith("```") ? 3 : textBefore.length) : 3;
+          const deleteFrom = $from.pos - backtickLen;
+          editor.chain().focus().deleteRange({ from: deleteFrom, to: $from.pos }).toggleCodeBlock().run();
+          return;
+        }
+        
+        // > at start of line -> toggle block
+        if (textBefore === ">") {
+          e.preventDefault();
+          editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setDetails().run();
+          return;
         }
       }
     };
@@ -705,15 +721,33 @@ export function AdvancedNotionEditor({
           line-height: 1.8;
         }
 
-        /* Lists */
-        .notion-editor-content ul,
+        /* Lists - with visible bullets and numbers */
+        .notion-editor-content ul {
+          list-style-type: disc;
+          padding-left: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .notion-editor-content ul ul {
+          list-style-type: circle;
+        }
+
+        .notion-editor-content ul ul ul {
+          list-style-type: square;
+        }
+
         .notion-editor-content ol {
+          list-style-type: decimal;
           padding-left: 1.5rem;
           margin-bottom: 0.5rem;
         }
 
         .notion-editor-content li {
           margin-bottom: 0.25rem;
+        }
+
+        .notion-editor-content li::marker {
+          color: hsl(var(--foreground));
         }
 
         /* Task List */
@@ -901,7 +935,11 @@ export function AdvancedNotionEditor({
           margin: 1rem 0;
           border: 1px solid hsl(var(--border));
           border-radius: 0.5rem;
-          overflow: hidden;
+          overflow: visible;
+        }
+
+        .notion-details-wrapper {
+          display: contents;
         }
 
         .notion-details-summary {
@@ -912,42 +950,58 @@ export function AdvancedNotionEditor({
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          user-select: none;
+          border-radius: 0.5rem 0.5rem 0 0;
         }
 
-        .notion-details-summary::marker {
-          content: '';
+        .notion-details:not([open]) .notion-details-summary {
+          border-radius: 0.5rem;
+        }
+
+        .notion-details-summary::marker,
+        .notion-details-summary::-webkit-details-marker {
+          display: none;
         }
 
         .notion-details-summary::before {
           content: '▶';
-          font-size: 0.75rem;
-          transition: transform 0.2s;
+          font-size: 0.7rem;
+          transition: transform 0.2s ease;
+          flex-shrink: 0;
         }
 
-        .notion-details[open] .notion-details-summary::before {
+        .notion-details[open] > .notion-details-wrapper > .notion-details-summary::before,
+        .notion-details[open] > summary.notion-details-summary::before {
           transform: rotate(90deg);
         }
 
         .notion-details-content {
           padding: 1rem;
+          border-top: 1px solid hsl(var(--border));
         }
 
         /* Drag Handle */
         .drag-handle {
           position: fixed;
           opacity: 0;
-          transition: opacity 0.2s, background 0.2s;
+          transition: opacity 0.15s ease, background 0.15s ease;
           cursor: grab;
-          padding: 0.25rem;
-          border-radius: 0.25rem;
+          padding: 4px;
+          border-radius: 4px;
           color: hsl(var(--muted-foreground));
+          background: hsl(var(--background));
+          border: 1px solid hsl(var(--border));
           z-index: 50;
           user-select: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .drag-handle:hover {
           background: hsl(var(--secondary));
           color: hsl(var(--foreground));
+          border-color: hsl(var(--primary) / 0.3);
         }
 
         .drag-handle.show {
@@ -957,8 +1011,9 @@ export function AdvancedNotionEditor({
         .drag-handle:active,
         .drag-handle.dragging {
           cursor: grabbing;
-          background: hsl(var(--primary) / 0.2);
+          background: hsl(var(--primary) / 0.15);
           color: hsl(var(--primary));
+          border-color: hsl(var(--primary));
         }
 
         .ProseMirror.dragging {
@@ -970,20 +1025,21 @@ export function AdvancedNotionEditor({
         }
 
         .ProseMirror.dragging .ProseMirror-selectednode {
-          opacity: 0.5;
+          opacity: 0.4;
           background: hsl(var(--primary) / 0.1);
+          border-radius: 4px;
         }
 
         /* Drop Indicator */
         .drop-indicator {
           position: fixed;
-          height: 4px;
-          background: hsl(var(--primary));
+          height: 3px;
+          background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.6));
           border-radius: 2px;
           z-index: 100;
           pointer-events: none;
           display: none;
-          box-shadow: 0 0 8px hsl(var(--primary) / 0.5);
+          box-shadow: 0 0 12px hsl(var(--primary) / 0.5);
         }
 
         /* Slash Commands Menu */

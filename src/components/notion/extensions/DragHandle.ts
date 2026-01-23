@@ -80,6 +80,7 @@ export const DragHandle = Extension.create<DragHandleOptions>({
     let dropIndicator: HTMLElement | null = null;
     let currentNode: Element | null = null;
     let draggedNodePos: number | null = null;
+    let lastHoveredNode: Element | null = null;
 
     const createDragHandle = () => {
       const handle = document.createElement("div");
@@ -87,13 +88,13 @@ export const DragHandle = Extension.create<DragHandleOptions>({
       handle.dataset.dragHandle = "";
       handle.classList.add("drag-handle");
       handle.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="14" height="14">
-          <circle cx="2" cy="2" r="1.5" fill="currentColor"/>
-          <circle cx="2" cy="5" r="1.5" fill="currentColor"/>
-          <circle cx="2" cy="8" r="1.5" fill="currentColor"/>
-          <circle cx="6" cy="2" r="1.5" fill="currentColor"/>
-          <circle cx="6" cy="5" r="1.5" fill="currentColor"/>
-          <circle cx="6" cy="8" r="1.5" fill="currentColor"/>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="16" height="16">
+          <circle cx="2" cy="2" r="1.2" fill="currentColor"/>
+          <circle cx="2" cy="5" r="1.2" fill="currentColor"/>
+          <circle cx="2" cy="8" r="1.2" fill="currentColor"/>
+          <circle cx="6" cy="2" r="1.2" fill="currentColor"/>
+          <circle cx="6" cy="5" r="1.2" fill="currentColor"/>
+          <circle cx="6" cy="8" r="1.2" fill="currentColor"/>
         </svg>
       `;
       return handle;
@@ -136,6 +137,20 @@ export const DragHandle = Extension.create<DragHandleOptions>({
       }
     };
 
+    const findBlockNode = (element: Element | null, view: any): Element | null => {
+      if (!element) return null;
+      
+      // Walk up to find the direct child of ProseMirror
+      let current: Element | null = element;
+      while (current && current.parentElement) {
+        if (current.parentElement.classList?.contains("ProseMirror")) {
+          return current;
+        }
+        current = current.parentElement;
+      }
+      return null;
+    };
+
     return [
       new Plugin({
         key: new PluginKey("dragHandle"),
@@ -161,14 +176,13 @@ export const DragHandle = Extension.create<DragHandleOptions>({
                   e.dataTransfer?.setData("text/plain", "");
                   e.dataTransfer!.effectAllowed = "move";
                   
-                  // Create ghost image
-                  const ghost = currentNode.cloneNode(true) as HTMLElement;
-                  ghost.style.opacity = "0.5";
-                  ghost.style.position = "absolute";
-                  ghost.style.top = "-1000px";
+                  // Create a subtle ghost image
+                  const ghost = document.createElement("div");
+                  ghost.style.cssText = "position:fixed;top:-1000px;left:-1000px;padding:8px 16px;background:hsl(var(--primary));color:white;border-radius:4px;font-size:14px;";
+                  ghost.textContent = "Moviendo bloque...";
                   document.body.appendChild(ghost);
                   e.dataTransfer?.setDragImage(ghost, 0, 0);
-                  setTimeout(() => ghost.remove(), 0);
+                  requestAnimationFrame(() => ghost.remove());
                 }
               }
             }
@@ -179,6 +193,7 @@ export const DragHandle = Extension.create<DragHandleOptions>({
             view.dom.classList.remove("dragging");
             dragHandleElement?.classList.remove("dragging");
             draggedNodePos = null;
+            lastHoveredNode = null;
             hideDragHandle();
             hideDropIndicator();
           });
@@ -203,20 +218,35 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               // Don't show handle while dragging
               if (draggedNodePos !== null) return false;
 
-              const node = nodeDOMAtCoords({
-                x: event.clientX + 50 + this.options.dragHandleWidth,
-                y: event.clientY,
-              });
+              // Find the block element
+              const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
+              let blockNode: Element | null = null;
+              
+              for (const elem of elementsAtPoint) {
+                const found = findBlockNode(elem, view);
+                if (found) {
+                  blockNode = found;
+                  break;
+                }
+              }
 
-              if (!node || !dragHandleElement) {
+              if (!blockNode || !dragHandleElement) {
                 hideDragHandle();
+                currentNode = null;
                 return false;
               }
 
-              currentNode = node;
-              const rect = absoluteRect(node);
-              const left = rect.left - this.options.dragHandleWidth - 8;
-              const top = rect.top + 4;
+              // Avoid unnecessary updates
+              if (blockNode === lastHoveredNode) return false;
+              lastHoveredNode = blockNode;
+              currentNode = blockNode;
+              
+              const rect = blockNode.getBoundingClientRect();
+              const editorRect = view.dom.getBoundingClientRect();
+              
+              // Position handle to the left of the block
+              const left = Math.max(editorRect.left - this.options.dragHandleWidth - 8, 8);
+              const top = rect.top + 2;
 
               dragHandleElement.style.left = `${left}px`;
               dragHandleElement.style.top = `${top}px`;
@@ -224,9 +254,10 @@ export const DragHandle = Extension.create<DragHandleOptions>({
 
               return false;
             },
-            mouseleave: (view) => {
+            mouseleave: () => {
               if (draggedNodePos === null) {
                 hideDragHandle();
+                lastHoveredNode = null;
               }
               return false;
             },
@@ -234,12 +265,18 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               event.preventDefault();
               if (draggedNodePos === null) return false;
               
-              const targetNode = nodeDOMAtCoords({
-                x: event.clientX + 50,
-                y: event.clientY,
-              });
+              const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
+              let targetNode: Element | null = null;
               
-              if (targetNode && targetNode !== currentNode) {
+              for (const elem of elementsAtPoint) {
+                const found = findBlockNode(elem, view);
+                if (found && found !== currentNode) {
+                  targetNode = found;
+                  break;
+                }
+              }
+              
+              if (targetNode) {
                 const rect = targetNode.getBoundingClientRect();
                 const midY = rect.top + rect.height / 2;
                 const position = event.clientY < midY ? "before" : "after";
@@ -258,10 +295,16 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               
               if (draggedNodePos === null) return false;
               
-              const targetNode = nodeDOMAtCoords({
-                x: event.clientX + 50,
-                y: event.clientY,
-              });
+              const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
+              let targetNode: Element | null = null;
+              
+              for (const elem of elementsAtPoint) {
+                const found = findBlockNode(elem, view);
+                if (found) {
+                  targetNode = found;
+                  break;
+                }
+              }
               
               if (!targetNode) {
                 draggedNodePos = null;
@@ -286,7 +329,6 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               }
               
               // Calculate new position
-              const targetResolve = view.state.doc.resolve(targetPos);
               let insertPos: number;
               
               if (insertBefore) {
@@ -307,15 +349,13 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               // Delete the original node
               tr.delete(draggedNodePos, draggedNodePos + draggedNode.nodeSize);
               
-              // Calculate the adjusted insert position after deletion
-              const adjustedPos = draggedNodePos < insertPos ? insertPos : insertPos;
-              
               // Insert at new position
-              tr.insert(adjustedPos, draggedNode);
+              tr.insert(insertPos, draggedNode);
               
               view.dispatch(tr);
               
               draggedNodePos = null;
+              lastHoveredNode = null;
               hideDragHandle();
               
               return true;

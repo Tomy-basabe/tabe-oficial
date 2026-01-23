@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import { cn } from "@/lib/utils";
 import {
   NOTION_TEXT_COLORS,
@@ -12,6 +12,53 @@ import {
 } from "@/components/ui/popover";
 import { Palette, Type, PaintBucket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface ColorButtonProps {
+  color: string | null;
+  name: string;
+  isActive: boolean;
+  onClick: () => void;
+  showLetter?: boolean;
+}
+
+const ColorButton = memo(function ColorButton({
+  color,
+  name,
+  isActive,
+  onClick,
+  showLetter = false,
+}: ColorButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-7 h-7 rounded-md flex items-center justify-center transition-all border",
+        isActive
+          ? "ring-2 ring-primary ring-offset-1 ring-offset-background"
+          : "hover:scale-110",
+        color === null
+          ? "border-border bg-transparent"
+          : "border-transparent"
+      )}
+      style={{
+        backgroundColor: color || undefined,
+      }}
+      title={name}
+    >
+      {color === null && (
+        <span className="text-xs text-muted-foreground">∅</span>
+      )}
+      {showLetter && color && (
+        <span
+          className="font-bold text-sm"
+          style={{ color: color }}
+        >
+          A
+        </span>
+      )}
+    </button>
+  );
+});
 
 interface ColorPickerProps {
   editor: any;
@@ -54,49 +101,6 @@ export function ColorPicker({ editor, type = "toolbar" }: ColorPickerProps) {
       }
     },
     [editor]
-  );
-
-  const ColorButton = ({
-    color,
-    name,
-    isActive,
-    onClick,
-    showLetter = false,
-  }: {
-    color: string | null;
-    name: string;
-    isActive: boolean;
-    onClick: () => void;
-    showLetter?: boolean;
-  }) => (
-    <button
-      onClick={onClick}
-      className={cn(
-        "w-7 h-7 rounded-md flex items-center justify-center transition-all border",
-        isActive
-          ? "ring-2 ring-primary ring-offset-1 ring-offset-background"
-          : "hover:scale-110",
-        color === null
-          ? "border-border bg-transparent"
-          : "border-transparent"
-      )}
-      style={{
-        backgroundColor: color || undefined,
-      }}
-      title={name}
-    >
-      {color === null && (
-        <span className="text-xs text-muted-foreground">∅</span>
-      )}
-      {showLetter && color && (
-        <span
-          className="font-bold text-sm"
-          style={{ color: color }}
-        >
-          A
-        </span>
-      )}
-    </button>
   );
 
   return (
