@@ -203,11 +203,20 @@ export default function Notion() {
     if (newDoc) {
       await updateDocument(newDoc.id, { contenido: content });
       
-      setActiveDocument({ ...newDoc, contenido: content });
+      // Refetch to get the updated document with subject info
+      await refetch();
+      
+      // Set up editor state
+      editorContentRef.current = content;
       setEditorContent(content);
       setLocalTitle(title);
       lastSavedContentRef.current = JSON.stringify(content);
+      
+      // Open the newly created document
+      setActiveDocument({ ...newDoc, contenido: content, titulo: title });
+      
       checkAndUnlockAchievements();
+      toast.success("¡Documento abierto para edición!");
     }
   };
 
