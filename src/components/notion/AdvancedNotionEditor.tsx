@@ -46,7 +46,9 @@ import { SlashCommands } from "./extensions/SlashCommands";
 import { Callout } from "./extensions/CalloutExtension";
 import { Details, DetailsSummary, DetailsContent } from "./extensions/DetailsExtension";
 import { DragHandle } from "./extensions/DragHandle";
+import { TextStyle, Color, BackgroundColor } from "./extensions/ColorExtension";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
+import { ColorPicker } from "./ColorPicker";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
@@ -124,6 +126,9 @@ export function AdvancedNotionEditor({
       Highlight.configure({
         multicolor: true,
       }),
+      TextStyle,
+      Color,
+      BackgroundColor,
       Typography,
       TiptapUnderline,
       TextAlign.configure({
@@ -499,6 +504,7 @@ export function AdvancedNotionEditor({
           >
             <Highlighter className="w-4 h-4" />
           </ToolbarButton>
+          <ColorPicker editor={editor} type="toolbar" />
         </div>
 
         {/* Lists */}
@@ -629,6 +635,7 @@ export function AdvancedNotionEditor({
         >
           <Highlighter className="w-4 h-4" />
         </ToolbarButton>
+        <ColorPicker editor={editor} type="bubble" />
         <ToolbarButton onClick={setLink} isActive={editor.isActive("link")}>
           <LinkIcon className="w-4 h-4" />
         </ToolbarButton>
@@ -927,12 +934,13 @@ export function AdvancedNotionEditor({
         .drag-handle {
           position: fixed;
           opacity: 0;
-          transition: opacity 0.2s;
+          transition: opacity 0.2s, background 0.2s;
           cursor: grab;
           padding: 0.25rem;
           border-radius: 0.25rem;
           color: hsl(var(--muted-foreground));
           z-index: 50;
+          user-select: none;
         }
 
         .drag-handle:hover {
@@ -944,12 +952,36 @@ export function AdvancedNotionEditor({
           opacity: 1;
         }
 
-        .drag-handle:active {
+        .drag-handle:active,
+        .drag-handle.dragging {
           cursor: grabbing;
+          background: hsl(var(--primary) / 0.2);
+          color: hsl(var(--primary));
         }
 
         .ProseMirror.dragging {
           cursor: grabbing;
+        }
+
+        .ProseMirror.dragging > * {
+          pointer-events: none;
+        }
+
+        .ProseMirror.dragging .ProseMirror-selectednode {
+          opacity: 0.5;
+          background: hsl(var(--primary) / 0.1);
+        }
+
+        /* Drop Indicator */
+        .drop-indicator {
+          position: fixed;
+          height: 4px;
+          background: hsl(var(--primary));
+          border-radius: 2px;
+          z-index: 100;
+          pointer-events: none;
+          display: none;
+          box-shadow: 0 0 8px hsl(var(--primary) / 0.5);
         }
 
         /* Slash Commands Menu */
@@ -982,6 +1014,12 @@ export function AdvancedNotionEditor({
         .notion-editor-content .ProseMirror-selectednode {
           outline: 2px solid hsl(var(--primary));
           outline-offset: 2px;
+          border-radius: 0.25rem;
+        }
+
+        /* Text colors will be handled inline */
+        .notion-editor-content [style*="background-color"] {
+          padding: 0 0.2em;
           border-radius: 0.25rem;
         }
       `}</style>
