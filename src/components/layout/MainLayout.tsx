@@ -14,7 +14,9 @@ import {
   Layers,
   Library,
   Trophy,
-  Shield
+  Shield,
+  Users,
+  Store
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,11 +29,13 @@ const baseNavItems = [
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera" },
   { icon: NotionIcon, label: "Notion", path: "/notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards" },
+  { icon: Store, label: "Marketplace", path: "/marketplace" },
   { icon: Library, label: "Biblioteca", path: "/biblioteca" },
   { icon: Calendar, label: "Calendario", path: "/calendario" },
   { icon: Timer, label: "Pomodoro", path: "/pomodoro" },
   { icon: BarChart3, label: "Métricas", path: "/metricas" },
   { icon: Trophy, label: "Logros", path: "/logros" },
+  { icon: Users, label: "Amigos", path: "/amigos" },
   { icon: Bot, label: "Asistente IA", path: "/asistente" },
   { icon: Settings, label: "Configuración", path: "/configuracion" },
 ];

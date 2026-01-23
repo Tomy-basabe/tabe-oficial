@@ -100,29 +100,79 @@ export type Database = {
           },
         ]
       }
-      flashcard_decks: {
+      deck_ratings: {
         Row: {
           created_at: string
+          deck_id: string
           id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deck_id: string
+          id?: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deck_id?: string
+          id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deck_ratings_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flashcard_decks: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          download_count: number
+          id: string
+          is_public: boolean
           nombre: string
+          rating_count: number
+          rating_sum: number
           subject_id: string
           total_cards: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
+          description?: string | null
+          download_count?: number
           id?: string
+          is_public?: boolean
           nombre: string
+          rating_count?: number
+          rating_sum?: number
           subject_id: string
           total_cards?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          category?: string | null
           created_at?: string
+          description?: string | null
+          download_count?: number
           id?: string
+          is_public?: boolean
           nombre?: string
+          rating_count?: number
+          rating_sum?: number
           subject_id?: string
           total_cards?: number
           updated_at?: string
@@ -181,6 +231,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       invited_users: {
         Row: {
@@ -362,29 +439,35 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          display_id: number
           email: string | null
           id: string
           nombre: string | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          display_id?: number
           email?: string | null
           id?: string
           nombre?: string | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          display_id?: number
           email?: string | null
           id?: string
           nombre?: string | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }

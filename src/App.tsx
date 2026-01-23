@@ -19,6 +19,8 @@ import Achievements from "@/pages/Achievements";
 import Notion from "@/pages/Notion";
 import AdminPanel from "@/pages/AdminPanel";
 import NotFound from "@/pages/NotFound";
+import Friends from "@/pages/Friends";
+import Marketplace from "@/pages/Marketplace";
 
 const queryClient = new QueryClient();
 
@@ -85,9 +87,11 @@ const AppRoutes = () => (
       <Route path="/metricas" element={<Metrics />} />
       <Route path="/asistente" element={<AIAssistant />} />
       <Route path="/flashcards" element={<Flashcards />} />
+      <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/biblioteca" element={<Library />} />
       <Route path="/logros" element={<Achievements />} />
       <Route path="/notion" element={<Notion />} />
+      <Route path="/amigos" element={<Friends />} />
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/admin" element={<AdminPanel />} />
     </Route>
