@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   FileText, Plus, Star, Clock, Trash2, 
   ChevronRight, Search, Loader2, ArrowLeft,
-  MoreHorizontal, GraduationCap, Save
+  MoreHorizontal, GraduationCap, Save, FileUp
 } from "lucide-react";
 import { NotionIcon } from "@/components/icons/NotionIcon";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import { AdvancedNotionEditor } from "@/components/notion/AdvancedNotionEditor";
 import { DocumentTimer } from "@/components/notion/DocumentTimer";
 import { EmojiPicker } from "@/components/notion/EmojiPicker";
 import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
+import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { useAchievements } from "@/hooks/useAchievements";
 import { JSONContent } from "@tiptap/core";
@@ -44,6 +45,7 @@ export default function Notion() {
   const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
   const [localTitle, setLocalTitle] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<TipTapTemplate>(tipTapTemplates[0]);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Keep latest content out of React render loop to avoid Editor.js cursor jumps
   const editorContentRef = useRef<JSONContent | null>(null);
@@ -184,6 +186,27 @@ export default function Notion() {
       lastSavedContentRef.current = JSON.stringify(templateContent);
       setShowNewDocModal(false);
       setSelectedTemplate(tipTapTemplates[0]); // Reset template selection
+      checkAndUnlockAchievements();
+    }
+  };
+
+  const handleImportDocument = async (content: JSONContent, title: string, subjectId: string | null) => {
+    // If a subject is selected, use it; otherwise use the subject from the imported file
+    const targetSubjectId = selectedSubjectId || subjectId;
+    
+    if (!targetSubjectId) {
+      toast.error("Selecciona una materia primero");
+      return;
+    }
+
+    const newDoc = await createDocument(targetSubjectId, title);
+    if (newDoc) {
+      await updateDocument(newDoc.id, { contenido: content });
+      
+      setActiveDocument({ ...newDoc, contenido: content });
+      setEditorContent(content);
+      setLocalTitle(title);
+      lastSavedContentRef.current = JSON.stringify(content);
       checkAndUnlockAchievements();
     }
   };
@@ -372,13 +395,22 @@ export default function Notion() {
           </div>
         </div>
         
-        <button
-          onClick={() => setShowNewDocModal(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-neon-purple to-neon-cyan text-background rounded-xl font-semibold hover:shadow-lg hover:shadow-neon-purple/25 transition-all hover:scale-105"
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Apunte
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-xl font-medium hover:bg-secondary/80 transition-all"
+          >
+            <FileUp className="w-5 h-5" />
+            <span className="hidden sm:inline">Importar</span>
+          </button>
+          <button
+            onClick={() => setShowNewDocModal(true)}
+            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-neon-purple to-neon-cyan text-background rounded-xl font-semibold hover:shadow-lg hover:shadow-neon-purple/25 transition-all hover:scale-105"
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo Apunte
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -685,6 +717,16 @@ export default function Notion() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import Document Modal */}
+      {user && (
+        <ImportDocumentModal
+          open={showImportModal}
+          onOpenChange={setShowImportModal}
+          onImport={handleImportDocument}
+          userId={user.id}
+        />
+      )}
     </div>
   );
 }
