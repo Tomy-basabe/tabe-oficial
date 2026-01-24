@@ -124,8 +124,18 @@ export function useForest() {
   const checkAndUpdatePlants = useCallback(async () => {
     if (!user || !currentPlant) return;
 
-    // Check if plant should die (no study for 7 days)
-    if (studyActivity.daysSinceLastStudy >= 7 && currentPlant.is_alive) {
+    // Calculate days since the plant was planted
+    const plantedDate = new Date(currentPlant.planted_at);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    plantedDate.setHours(0, 0, 0, 0);
+    const daysSincePlanted = Math.floor((today.getTime() - plantedDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Only check for death if:
+    // 1. Plant is at least 7 days old
+    // 2. No study activity in the last 7 days
+    // 3. Plant is still alive
+    if (daysSincePlanted >= 7 && studyActivity.daysSinceLastStudy >= 7 && currentPlant.is_alive) {
       const { error } = await supabase
         .from("user_plants")
         .update({ 
