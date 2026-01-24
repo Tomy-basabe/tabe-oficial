@@ -16,7 +16,8 @@ import {
   Trophy,
   Shield,
   Users,
-  Store
+  Store,
+  TreeDeciduous
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -34,6 +35,7 @@ const baseNavItems = [
   { icon: Calendar, label: "Calendario", path: "/calendario" },
   { icon: Timer, label: "Pomodoro", path: "/pomodoro" },
   { icon: BarChart3, label: "Métricas", path: "/metricas" },
+  { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque" },
   { icon: Trophy, label: "Logros", path: "/logros" },
   { icon: Users, label: "Amigos", path: "/amigos" },
   { icon: Bot, label: "Asistente IA", path: "/asistente" },

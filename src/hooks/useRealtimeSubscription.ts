@@ -9,7 +9,8 @@ type TableName =
   | "calendar_events" 
   | "flashcard_decks" 
   | "flashcards" 
-  | "user_achievements";
+  | "user_achievements"
+  | "user_plants";
 
 interface RealtimePayload {
   eventType: "INSERT" | "UPDATE" | "DELETE";

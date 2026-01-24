@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import Forest from "./pages/Forest";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -94,6 +95,7 @@ const AppRoutes = () => (
       <Route path="/amigos" element={<Friends />} />
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/admin" element={<AdminPanel />} />
+      <Route path="/bosque" element={<Forest />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

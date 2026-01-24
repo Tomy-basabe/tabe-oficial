@@ -614,6 +614,51 @@ export type Database = {
           },
         ]
       }
+      user_plants: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          died_at: string | null
+          growth_percentage: number
+          id: string
+          is_alive: boolean
+          is_completed: boolean
+          last_watered_at: string
+          plant_type: string
+          planted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          died_at?: string | null
+          growth_percentage?: number
+          id?: string
+          is_alive?: boolean
+          is_completed?: boolean
+          last_watered_at?: string
+          plant_type?: string
+          planted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          died_at?: string | null
+          growth_percentage?: number
+          id?: string
+          is_alive?: boolean
+          is_completed?: boolean
+          last_watered_at?: string
+          plant_type?: string
+          planted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
