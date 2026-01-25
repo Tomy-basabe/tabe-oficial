@@ -24,7 +24,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useForest, Plant } from "@/hooks/useForest";
 import { cn } from "@/lib/utils";
 
@@ -134,9 +147,22 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
   }
 
   const stage = getPlantStage(plant.growth_percentage, plant.is_alive, plant.plant_type);
-  const daysAlive = Math.floor(
-    (Date.now() - new Date(plant.planted_at).getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const plantedDate = new Date(plant.planted_at);
+  const now = new Date();
+  const msSincePlanted = now.getTime() - plantedDate.getTime();
+  const daysSincePlanted = msSincePlanted / (1000 * 60 * 60 * 24);
+  const daysAlive = Math.floor(daysSincePlanted);
+  
+  // Calculate time until death: grace period (7 days) OR 7 days since last study
+  const gracePeriodDays = 7;
+  const daysUntilVulnerable = Math.max(0, gracePeriodDays - daysSincePlanted);
+  const daysUntilDeath = daysUntilVulnerable > 0 
+    ? daysUntilVulnerable // Still in grace period
+    : Math.max(0, gracePeriodDays - studyActivity.daysSinceLastStudy); // After grace, based on study
+
+  const hoursUntilDeath = Math.floor((daysUntilDeath % 1) * 24);
+  const fullDaysUntilDeath = Math.floor(daysUntilDeath);
+  const isInGracePeriod = daysUntilVulnerable > 0;
 
   return (
     <div className="text-center space-y-6">
@@ -195,14 +221,54 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
         </div>
       )}
 
-      {plant.is_alive && studyActivity.daysSinceLastStudy >= 5 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-amber-500">
-            <Droplets className="w-5 h-5" />
-            <span className="font-medium">¡Tu planta necesita agua!</span>
+      {/* Death countdown timer */}
+      {plant.is_alive && !plant.is_completed && (
+        <div className={cn(
+          "rounded-lg p-4 border",
+          isInGracePeriod 
+            ? "bg-cyan-500/10 border-cyan-500/30" 
+            : daysUntilDeath <= 2 
+              ? "bg-destructive/10 border-destructive/30" 
+              : daysUntilDeath <= 4 
+                ? "bg-amber-500/10 border-amber-500/30"
+                : "bg-green-500/10 border-green-500/30"
+        )}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className={cn(
+                "w-5 h-5",
+                isInGracePeriod 
+                  ? "text-cyan-500" 
+                  : daysUntilDeath <= 2 
+                    ? "text-destructive" 
+                    : daysUntilDeath <= 4 
+                      ? "text-amber-500"
+                      : "text-green-500"
+              )} />
+              <span className="font-medium">
+                {isInGracePeriod ? "Período de gracia" : "Tiempo de vida"}
+              </span>
+            </div>
+            <div className={cn(
+              "text-lg font-bold",
+              isInGracePeriod 
+                ? "text-cyan-500" 
+                : daysUntilDeath <= 2 
+                  ? "text-destructive" 
+                  : daysUntilDeath <= 4 
+                    ? "text-amber-500"
+                    : "text-green-500"
+            )}>
+              {fullDaysUntilDeath}d {hoursUntilDeath}h
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {7 - studyActivity.daysSinceLastStudy} días para que muera
+          <p className="text-xs text-muted-foreground mt-2">
+            {isInGracePeriod 
+              ? "Tu planta está protegida. Después de 7 días, debes estudiar regularmente."
+              : studyActivity.hasStudiedToday 
+                ? "¡Bien! Estudiaste hoy, tu planta está creciendo."
+                : "Estudia para reiniciar el contador y hacer crecer tu planta."
+            }
           </p>
         </div>
       )}
@@ -420,15 +486,36 @@ export default function Forest() {
 
             {currentPlant && currentPlant.is_alive && !currentPlant.is_completed && (
               <div className="mt-6 flex justify-center">
-                <Button 
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => abandonPlant(currentPlant.id)}
-                  className="gap-2 text-destructive hover:bg-destructive/10"
-                >
-                  <XCircle className="w-4 h-4" />
-                  Abandonar planta
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      className="gap-2 text-destructive hover:bg-destructive/10"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Abandonar planta
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Abandonar tu planta?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Tu planta morirá y no podrás recuperarla.
+                        Tendrás que plantar una nueva semilla.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => abandonPlant(currentPlant.id)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Sí, abandonar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
           </CardContent>
