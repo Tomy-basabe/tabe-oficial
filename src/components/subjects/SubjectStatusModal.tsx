@@ -59,7 +59,10 @@ export function SubjectStatusModal({
   const [nota, setNota] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [partialGrades, setPartialGrades] = useState<PartialGrades>(subject?.partialGrades || {});
+
+  // Reset state when subject changes
+  const subjectId = subject?.id;
+  const currentPartialGrades = subject?.partialGrades || {};
 
   if (!subject) return null;
 
@@ -87,7 +90,6 @@ export function SubjectStatusModal({
 
   const handlePartialGradesUpdate = async (newGrades: PartialGrades) => {
     if (!onUpdatePartialGrades) return;
-    setPartialGrades(newGrades);
     setLoading(true);
     try {
       await onUpdatePartialGrades(subject.id, newGrades);
@@ -189,7 +191,8 @@ export function SubjectStatusModal({
             {/* Partial Grades Section */}
             {onUpdatePartialGrades && (
               <PartialGradesSection
-                grades={partialGrades}
+                key={subjectId}
+                grades={currentPartialGrades}
                 onUpdate={handlePartialGradesUpdate}
                 disabled={loading}
               />
