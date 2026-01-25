@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Check, X } from "lucide-react";
 
@@ -14,7 +14,7 @@ interface PartialGrades {
 
 interface PartialGradesSectionProps {
   grades: PartialGrades;
-  onUpdate: (grades: PartialGrades) => void;
+  onUpdate: (grades: PartialGrades) => Promise<void> | void;
   disabled?: boolean;
 }
 
@@ -29,59 +29,26 @@ interface GradeInputProps {
 
 function GradeInput({ label, value, onChange, disabled, isEnabled, disabledReason }: GradeInputProps) {
   const [inputValue, setInputValue] = useState(value?.toString() ?? "");
-  const debounceRef = useRef<number | null>(null);
-  const isFirstRender = useRef(true);
-  const lastSavedValue = useRef(value);
-  
-  // Sync input with external value changes (e.g., after refetch)
+
+  // Sync input with external value changes (e.g., after refetch / after save)
   useEffect(() => {
     setInputValue(value?.toString() ?? "");
-    lastSavedValue.current = value;
   }, [value]);
 
-  // Auto-save (debounced) - only after user interaction
-  useEffect(() => {
-    // Skip first render to avoid saving on mount
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
+  const handleInputChange = (next: string) => {
+    setInputValue(next);
+
+    // Update draft immediately if valid, but DO NOT save to backend here.
+    const trimmed = next.trim();
+    if (trimmed === "") {
+      onChange(null);
       return;
     }
-    
-    if (disabled || !isEnabled) return;
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
 
-    debounceRef.current = window.setTimeout(() => {
-      const trimmed = inputValue.trim();
-      const numValue = trimmed === "" ? null : parseFloat(trimmed);
-      
-      // Validate
-      if (numValue !== null && (Number.isNaN(numValue) || numValue < 0 || numValue > 100)) return;
-      
-      // Only save if value actually changed
-      if (numValue === lastSavedValue.current) return;
-      
-      lastSavedValue.current = numValue;
-      onChange(numValue);
-    }, 800);
-
-    return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputValue]);
-
-  const handleBlur = () => {
-    // Clear any pending debounce and save immediately on blur
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    
-    const trimmed = inputValue.trim();
-    const numValue = trimmed === "" ? null : parseFloat(trimmed);
-    
-    if (numValue !== null && (Number.isNaN(numValue) || numValue < 0 || numValue > 100)) return;
-    if (numValue === lastSavedValue.current) return;
-    
-    lastSavedValue.current = numValue;
-    onChange(numValue);
+    const num = Number(trimmed);
+    if (!Number.isFinite(num)) return;
+    if (num < 0 || num > 100) return;
+    onChange(num);
   };
 
   const isPassing = value !== null && value !== undefined && value >= 60;
@@ -111,9 +78,7 @@ function GradeInput({ label, value, onChange, disabled, isEnabled, disabledReaso
           max="100"
           step="1"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onBlur={handleBlur}
-          onKeyDown={(e) => e.key === "Enter" && handleBlur()}
+          onChange={(e) => handleInputChange(e.target.value)}
           disabled={disabled}
           placeholder="--"
           className={cn(
@@ -133,10 +98,22 @@ function GradeInput({ label, value, onChange, disabled, isEnabled, disabledReaso
 
 export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGradesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [draft, setDraft] = useState<PartialGrades>(grades);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Keep draft synced with persisted grades when we're not editing.
+  useEffect(() => {
+    if (!isDirty) setDraft(grades);
+  }, [grades, isDirty]);
+
+  const persistedFingerprint = useMemo(() => JSON.stringify(grades ?? {}), [grades]);
+  const draftFingerprint = useMemo(() => JSON.stringify(draft ?? {}), [draft]);
+  const canSave = isDirty && persistedFingerprint !== draftFingerprint;
   
   // Calculate effective grades (considering retakes)
-  const effectiveP1 = grades.nota_rec_parcial_1 ?? grades.nota_parcial_1;
-  const effectiveP2 = grades.nota_rec_parcial_2 ?? grades.nota_parcial_2;
+  const effectiveP1 = draft.nota_rec_parcial_1 ?? draft.nota_parcial_1;
+  const effectiveP2 = draft.nota_rec_parcial_2 ?? draft.nota_parcial_2;
   
   // Calculate average of parcials
   const hasP1 = effectiveP1 !== null && effectiveP1 !== undefined;
@@ -144,28 +121,46 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
   const promedioParciales = hasP1 && hasP2 ? (effectiveP1 + effectiveP2) / 2 : null;
   
   // Determine what's enabled
-  const isRecP1Enabled = grades.nota_parcial_1 !== null && grades.nota_parcial_1 !== undefined && grades.nota_parcial_1 < 60;
-  const isRecP2Enabled = grades.nota_parcial_2 !== null && grades.nota_parcial_2 !== undefined && grades.nota_parcial_2 < 60;
+  const isRecP1Enabled = draft.nota_parcial_1 !== null && draft.nota_parcial_1 !== undefined && draft.nota_parcial_1 < 60;
+  const isRecP2Enabled = draft.nota_parcial_2 !== null && draft.nota_parcial_2 !== undefined && draft.nota_parcial_2 < 60;
   const isGlobalEnabled = promedioParciales !== null && promedioParciales >= 60;
-  const isRecGlobalEnabled = grades.nota_global !== null && grades.nota_global !== undefined && grades.nota_global < 60;
+  const isRecGlobalEnabled = draft.nota_global !== null && draft.nota_global !== undefined && draft.nota_global < 60;
   
   // Final is enabled if rec global < 60 (meaning they failed the global path)
-  const effectiveGlobal = grades.nota_rec_global ?? grades.nota_global;
+  const effectiveGlobal = draft.nota_rec_global ?? draft.nota_global;
   const isFinalEnabled = effectiveGlobal !== null && effectiveGlobal !== undefined && effectiveGlobal < 60;
 
   const updateGrade = (key: keyof PartialGrades, value: number | null) => {
-    onUpdate({ ...grades, [key]: value });
+    setDraft((prev) => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  };
+
+  const handleSave = async () => {
+    if (disabled || !canSave) return;
+    setIsSaving(true);
+    try {
+      await onUpdate(draft);
+      setIsDirty(false);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    if (disabled) return;
+    setDraft(grades);
+    setIsDirty(false);
   };
 
   // Count how many grades are filled
   const filledCount = [
-    grades.nota_parcial_1,
-    grades.nota_rec_parcial_1,
-    grades.nota_parcial_2,
-    grades.nota_rec_parcial_2,
-    grades.nota_global,
-    grades.nota_rec_global,
-    grades.nota_final_examen
+    draft.nota_parcial_1,
+    draft.nota_rec_parcial_1,
+    draft.nota_parcial_2,
+    draft.nota_rec_parcial_2,
+    draft.nota_global,
+    draft.nota_rec_global,
+    draft.nota_final_examen
   ].filter(g => g !== null && g !== undefined).length;
 
   return (
@@ -207,7 +202,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
           {/* Parcial 1 */}
           <GradeInput
             label="Parcial 1"
-            value={grades.nota_parcial_1}
+            value={draft.nota_parcial_1}
             onChange={(v) => updateGrade("nota_parcial_1", v)}
             disabled={disabled}
             isEnabled={true}
@@ -216,7 +211,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
           {/* Rec Parcial 1 */}
           <GradeInput
             label="Rec. Parcial 1"
-            value={grades.nota_rec_parcial_1}
+            value={draft.nota_rec_parcial_1}
             onChange={(v) => updateGrade("nota_rec_parcial_1", v)}
             disabled={disabled}
             isEnabled={isRecP1Enabled}
@@ -226,7 +221,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
           {/* Parcial 2 */}
           <GradeInput
             label="Parcial 2"
-            value={grades.nota_parcial_2}
+            value={draft.nota_parcial_2}
             onChange={(v) => updateGrade("nota_parcial_2", v)}
             disabled={disabled}
             isEnabled={true}
@@ -235,7 +230,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
           {/* Rec Parcial 2 */}
           <GradeInput
             label="Rec. Parcial 2"
-            value={grades.nota_rec_parcial_2}
+            value={draft.nota_rec_parcial_2}
             onChange={(v) => updateGrade("nota_rec_parcial_2", v)}
             disabled={disabled}
             isEnabled={isRecP2Enabled}
@@ -247,7 +242,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
           {/* Global */}
           <GradeInput
             label="Global"
-            value={grades.nota_global}
+            value={draft.nota_global}
             onChange={(v) => updateGrade("nota_global", v)}
             disabled={disabled}
             isEnabled={isGlobalEnabled}
@@ -257,7 +252,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
           {/* Rec Global */}
           <GradeInput
             label="Rec. Global"
-            value={grades.nota_rec_global}
+            value={draft.nota_rec_global}
             onChange={(v) => updateGrade("nota_rec_global", v)}
             disabled={disabled}
             isEnabled={isRecGlobalEnabled}
@@ -269,12 +264,41 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
           {/* Final */}
           <GradeInput
             label="Final"
-            value={grades.nota_final_examen}
+            value={draft.nota_final_examen}
             onChange={(v) => updateGrade("nota_final_examen", v)}
             disabled={disabled}
             isEnabled={isFinalEnabled}
             disabledReason="Global/Rec Global ≥ 60"
           />
+
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={disabled || isSaving || !isDirty}
+              className={cn(
+                "flex-1 py-2 rounded-xl font-medium transition-all text-sm",
+                disabled || isSaving || !isDirty
+                  ? "bg-secondary text-muted-foreground cursor-not-allowed"
+                  : "bg-secondary hover:bg-secondary/80"
+              )}
+            >
+              Descartar
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={disabled || isSaving || !canSave}
+              className={cn(
+                "flex-1 py-2 rounded-xl font-medium transition-all text-sm",
+                disabled || isSaving || !canSave
+                  ? "bg-secondary text-muted-foreground cursor-not-allowed"
+                  : "bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90"
+              )}
+            >
+              {isSaving ? "Guardando..." : "Guardar notas"}
+            </button>
+          </div>
         </div>
       )}
     </div>
