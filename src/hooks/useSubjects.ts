@@ -503,7 +503,7 @@ export function useSubjects() {
       }
 
       await fetchData();
-      toast.success("Notas guardadas");
+      // No toast on success to avoid spamming during auto-save
     } catch (error) {
       console.error("Error updating partial grades:", error);
       toast.error("Error al actualizar las notas parciales");

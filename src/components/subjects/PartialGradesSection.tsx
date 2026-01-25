@@ -30,32 +30,57 @@ interface GradeInputProps {
 function GradeInput({ label, value, onChange, disabled, isEnabled, disabledReason }: GradeInputProps) {
   const [inputValue, setInputValue] = useState(value?.toString() ?? "");
   const debounceRef = useRef<number | null>(null);
+  const isFirstRender = useRef(true);
+  const lastSavedValue = useRef(value);
   
+  // Sync input with external value changes (e.g., after refetch)
   useEffect(() => {
     setInputValue(value?.toString() ?? "");
+    lastSavedValue.current = value;
   }, [value]);
 
-  // Auto-save (debounced) so users don't need to blur the input
+  // Auto-save (debounced) - only after user interaction
   useEffect(() => {
+    // Skip first render to avoid saving on mount
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
     if (disabled || !isEnabled) return;
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
 
     debounceRef.current = window.setTimeout(() => {
       const trimmed = inputValue.trim();
       const numValue = trimmed === "" ? null : parseFloat(trimmed);
+      
+      // Validate
       if (numValue !== null && (Number.isNaN(numValue) || numValue < 0 || numValue > 100)) return;
+      
+      // Only save if value actually changed
+      if (numValue === lastSavedValue.current) return;
+      
+      lastSavedValue.current = numValue;
       onChange(numValue);
-    }, 600);
+    }, 800);
 
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputValue, disabled, isEnabled]);
+  }, [inputValue]);
 
-  const handleSave = () => {
-    const numValue = inputValue === "" ? null : parseFloat(inputValue);
-    if (numValue !== null && (numValue < 0 || numValue > 100)) return;
+  const handleBlur = () => {
+    // Clear any pending debounce and save immediately on blur
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    
+    const trimmed = inputValue.trim();
+    const numValue = trimmed === "" ? null : parseFloat(trimmed);
+    
+    if (numValue !== null && (Number.isNaN(numValue) || numValue < 0 || numValue > 100)) return;
+    if (numValue === lastSavedValue.current) return;
+    
+    lastSavedValue.current = numValue;
     onChange(numValue);
   };
 
@@ -87,8 +112,8 @@ function GradeInput({ label, value, onChange, disabled, isEnabled, disabledReaso
           step="1"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={(e) => e.key === "Enter" && handleSave()}
+          onBlur={handleBlur}
+          onKeyDown={(e) => e.key === "Enter" && handleBlur()}
           disabled={disabled}
           placeholder="--"
           className={cn(
