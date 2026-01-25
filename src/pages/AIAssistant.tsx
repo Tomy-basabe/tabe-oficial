@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Loader2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Loader2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAIPersonality, AI_PERSONALITIES } from "@/hooks/useAIPersonality";
+import { PersonalitySelector } from "@/components/ai/PersonalitySelector";
 
 interface Message {
   id: string;
@@ -14,24 +16,39 @@ interface Message {
 
 const quickActions = [
   { id: "explain", label: "Explicar tema", icon: BookOpen, prompt: "Explícame el concepto de " },
-  { id: "quiz", label: "Simulacro de final", icon: FileQuestion, prompt: "Hazme un simulacro de final de " },
+  { id: "quiz", label: "Simulacro", icon: FileQuestion, prompt: "Hazme un simulacro de examen de " },
   { id: "plan", label: "Plan de estudio", icon: Calendar, prompt: "Genera un plan de estudio para " },
-  { id: "schedule", label: "Agendar evento", icon: Calendar, prompt: "Agendame " },
-  { id: "summary", label: "Resumen", icon: Sparkles, prompt: "Resume los puntos clave de " },
+  { id: "schedule", label: "Agendar", icon: Calendar, prompt: "Agendame " },
+  { id: "progress", label: "Mi progreso", icon: Sparkles, prompt: "Analizá mi progreso académico y dame recomendaciones" },
 ];
 
-const initialMessages: Message[] = [
-  {
+function getInitialMessage(personalityId: string): Message {
+  const personality = AI_PERSONALITIES.find(p => p.id === personalityId);
+  
+  const greetings: Record<string, string> = {
+    motivador: "¡Hola campeón! 👋🌟 Soy **T.A.B.E. IA**, tu coach académico personal. ¡Estoy acá para ayudarte a alcanzar tus metas!\n\n• **Explicaciones** claras de temas difíciles\n• **Simulacros** para que llegues preparado\n• **Planes de estudio** a tu medida\n• **Agendar eventos** en tu calendario 📅\n\n¡Vamos a romperla juntos! 💪 ¿En qué te puedo ayudar hoy?",
+    
+    exigente: "Buenas. 📚 Soy **T.A.B.E. IA**. Esperás aprobar, ¿no? Entonces vamos a trabajar en serio.\n\n• Te explico temas, pero vas a tener que pensar\n• Simulacros exigentes como los reales\n• Planes de estudio sin excusas\n• Agendo tus compromisos académicos\n\nNo voy a aceptar respuestas mediocres. ¿Empezamos?",
+    
+    debatidor: "Hola. ⚔️ Soy **T.A.B.E. IA**, y mi trabajo es hacerte pensar.\n\n• Te explico temas... pero vas a tener que defenderlos\n• Simulacros donde cuestiono cada respuesta\n• Planes de estudio que vamos a debatir\n• Y sí, también agendo eventos\n\nSi tu razonamiento es débil, te lo voy a hacer ver. ¿Estás listo para defender tus ideas?",
+    
+    profe_injusto: "Llegaste. 👹 Soy **T.A.B.E. IA**, el profe más exigente que vas a tener.\n\n• Te enseño, pero nunca estoy 100% satisfecho\n• Mis simulacros son más duros que cualquier cátedra\n• Si aprobás conmigo, el final real es un paseo\n\nAclaración: soy injusto porque te preparo para lo peor. ¿Bancás la exigencia?",
+    
+    te_van_a_bochar: "Sentate. 💀 Soy **T.A.B.E. IA** en modo crisis.\n\nVoy a ser directo: tenés materias pendientes, exámenes cerca, y quizás no estás tan preparado como creés.\n\n• Te muestro la realidad de tu preparación\n• Sin filtros, sin excusas\n• Pero después de la verdad cruda, te doy un plan\n\n¿Querés saber dónde estás parado realmente? Preguntame por tu progreso.",
+  };
+
+  return {
     id: "1",
     role: "assistant",
-    content: "¡Hola! 👋 Soy **T.A.B.E. IA**, tu asistente académico. Puedo ayudarte con:\n\n• **Explicaciones** de temas complejos\n• **Simulacros** de exámenes finales\n• **Planes de estudio** personalizados\n• **Agendar eventos** en tu calendario 📅\n\nPor ejemplo, podés decirme: *\"Agendame el parcial de Análisis para el viernes a las 14:00\"*\n\n¿En qué puedo ayudarte hoy?",
+    content: greetings[personalityId] || greetings.motivador,
     timestamp: new Date(),
-  },
-];
+  };
+}
 
 export default function AIAssistant() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const { personality, setPersonality, currentConfig } = useAIPersonality();
+  const [messages, setMessages] = useState<Message[]>([getInitialMessage(personality)]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,6 +60,18 @@ export default function AIAssistant() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Reset chat when personality changes
+  const handlePersonalityChange = (newPersonality: typeof personality) => {
+    setPersonality(newPersonality);
+    setMessages([getInitialMessage(newPersonality)]);
+    toast.success(`Modo ${AI_PERSONALITIES.find(p => p.id === newPersonality)?.name} activado`);
+  };
+
+  const handleResetChat = () => {
+    setMessages([getInitialMessage(personality)]);
+    toast.success("Chat reiniciado");
+  };
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading || !user) return;
@@ -59,7 +88,6 @@ export default function AIAssistant() {
     setIsLoading(true);
 
     try {
-      // Prepare conversation history for AI
       const conversationHistory = [...messages, userMessage].map(m => ({
         role: m.role,
         content: m.content,
@@ -67,18 +95,14 @@ export default function AIAssistant() {
 
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: { 
-          messages: conversationHistory.slice(1), // Skip initial greeting
-          userId: user.id 
+          messages: conversationHistory.slice(1),
+          userId: user.id,
+          personality: personality,
         },
       });
 
-      if (error) {
-        throw error;
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -89,7 +113,6 @@ export default function AIAssistant() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Show toast if event was created
       if (data.event_created) {
         toast.success("Evento agregado al calendario", {
           action: {
@@ -121,16 +144,12 @@ export default function AIAssistant() {
     setInputValue(prompt);
   };
 
-  // Simple markdown-like rendering
   const renderContent = (content: string) => {
     return content
       .split("\n")
       .map((line, i) => {
-        // Bold text
         let processed = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Italic text
         processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        // Bullet points
         if (processed.startsWith("• ")) {
           processed = `<span class="flex gap-2"><span>•</span><span>${processed.slice(2)}</span></span>`;
         }
@@ -141,16 +160,28 @@ export default function AIAssistant() {
   return (
     <div className="h-[calc(100vh-4rem)] lg:h-screen flex flex-col p-4 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
             Asistente IA
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Tu tutor académico personal impulsado por IA
+          <p className="text-muted-foreground text-sm mt-0.5">
+            {currentConfig.emoji} {currentConfig.description}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetChat}
+            className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+            title="Reiniciar chat"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+          <PersonalitySelector
+            currentPersonality={personality}
+            onSelect={handlePersonalityChange}
+            disabled={isLoading}
+          />
           <div className="px-3 py-1.5 bg-neon-green/20 text-neon-green rounded-full text-xs font-medium flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
             Online
@@ -261,7 +292,7 @@ export default function AIAssistant() {
             </button>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            Podés pedirme que agende eventos en tu calendario. Ej: "Agendame el final de Física para el 15 de febrero"
+            Podés pedirme simulacros, explicaciones, o que agende eventos. Ej: "Haceme un simulacro de final de Física"
           </p>
         </div>
       </div>
