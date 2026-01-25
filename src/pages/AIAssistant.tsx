@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Loader2, RotateCcw } from "lucide-react";
+import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAIPersonality, AI_PERSONALITIES } from "@/hooks/useAIPersonality";
 import { PersonalitySelector } from "@/components/ai/PersonalitySelector";
+import { useStreamingChat } from "@/hooks/useStreamingChat";
 
 interface Message {
   id: string;
@@ -48,9 +48,9 @@ function getInitialMessage(personalityId: string): Message {
 export default function AIAssistant() {
   const { user } = useAuth();
   const { personality, setPersonality, currentConfig } = useAIPersonality();
+  const { isStreaming, streamMessage } = useStreamingChat();
   const [messages, setMessages] = useState<Message[]>([getInitialMessage(personality)]);
   const [inputValue, setInputValue] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -74,7 +74,7 @@ export default function AIAssistant() {
   };
 
   const handleSend = async () => {
-    if (!inputValue.trim() || isLoading || !user) return;
+    if (!inputValue.trim() || isStreaming || !user) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -85,68 +85,71 @@ export default function AIAssistant() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
-    setIsLoading(true);
 
-    try {
-      const conversationHistory = [...messages, userMessage].map(m => ({
-        role: m.role,
-        content: m.content,
-      }));
+    const conversationHistory = [...messages, userMessage].map(m => ({
+      role: m.role,
+      content: m.content,
+    }));
 
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: { 
-          messages: conversationHistory.slice(1),
-          userId: user.id,
-          personality: personality,
-        },
-      });
+    const assistantMsgId = (Date.now() + 1).toString();
+    let assistantContent = "";
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+    // Create placeholder message for streaming
+    setMessages(prev => [...prev, {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+    }]);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.content,
-        timestamp: new Date(),
-      };
+    streamMessage(
+      conversationHistory.slice(1),
+      user.id,
+      personality,
+      // onDelta - update message as tokens arrive
+      (delta) => {
+        assistantContent += delta;
+        setMessages(prev => 
+          prev.map(m => 
+            m.id === assistantMsgId 
+              ? { ...m, content: assistantContent }
+              : m
+          )
+        );
+      },
+      // onComplete - handle tool results
+      (result) => {
+        if (result.event_created) {
+          toast.success("Evento agregado al calendario", {
+            action: {
+              label: "Ver calendario",
+              onClick: () => window.location.href = "/calendario",
+            },
+          });
+        }
 
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      if (data.event_created) {
-        toast.success("Evento agregado al calendario", {
-          action: {
-            label: "Ver calendario",
-            onClick: () => window.location.href = "/calendario",
-          },
-        });
+        if (result.flashcards_created) {
+          toast.success(`¡${result.flashcards_created.cards_count} flashcards creadas!`, {
+            action: {
+              label: "Ver mazos",
+              onClick: () => window.location.href = "/flashcards",
+            },
+          });
+        }
+      },
+      // onError
+      (error) => {
+        console.error("AI error:", error);
+        toast.error(error.message);
+        setMessages(prev => 
+          prev.map(m => 
+            m.id === assistantMsgId 
+              ? { ...m, content: `Lo siento, hubo un error: ${error.message}` }
+              : m
+          )
+        );
       }
-
-      if (data.flashcards_created) {
-        toast.success(`¡${data.flashcards_created.cards_count} flashcards creadas!`, {
-          action: {
-            label: "Ver mazos",
-            onClick: () => window.location.href = "/flashcards",
-          },
-        });
-      }
-
-    } catch (error) {
-      console.error("AI error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-      
-      toast.error(errorMessage);
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: `Lo siento, hubo un error al procesar tu mensaje. ${errorMessage}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+    );
   };
 
   const handleQuickAction = (prompt: string) => {
@@ -189,7 +192,7 @@ export default function AIAssistant() {
           <PersonalitySelector
             currentPersonality={personality}
             onSelect={handlePersonalityChange}
-            disabled={isLoading}
+            disabled={isStreaming}
           />
           <div className="px-3 py-1.5 bg-neon-green/20 text-neon-green rounded-full text-xs font-medium flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
@@ -258,15 +261,19 @@ export default function AIAssistant() {
             </div>
           ))}
 
-          {isLoading && (
+          {isStreaming && messages[messages.length - 1]?.content === "" && (
             <div className="flex gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
                 <Bot className="w-5 h-5 text-background" />
               </div>
               <div className="bg-secondary rounded-2xl rounded-bl-sm px-4 py-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Pensando...
+                  <span className="flex gap-1">
+                    <span className="w-2 h-2 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-2 h-2 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-2 h-2 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </span>
+                  Escribiendo...
                 </div>
               </div>
             </div>
@@ -285,14 +292,14 @@ export default function AIAssistant() {
               onKeyPress={(e) => e.key === "Enter" && handleSend()}
               placeholder="Escribe tu pregunta o pedido..."
               className="flex-1 px-4 py-3 bg-secondary rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-              disabled={isLoading}
+              disabled={isStreaming}
             />
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim() || isLoading}
+              disabled={!inputValue.trim() || isStreaming}
               className={cn(
                 "px-4 py-3 rounded-xl transition-all flex items-center gap-2",
-                inputValue.trim() && !isLoading
+                inputValue.trim() && !isStreaming
                   ? "bg-primary text-primary-foreground hover:bg-primary/90 glow-cyan"
                   : "bg-secondary text-muted-foreground cursor-not-allowed"
               )}

@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Play, Pause, RotateCcw, Settings, Coffee, BookOpen, Target, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useAchievements } from "@/hooks/useAchievements";
+import { PomodoroSettings } from "@/components/pomodoro/PomodoroSettings";
 
 type TimerMode = "work" | "shortBreak" | "longBreak";
 
@@ -19,7 +20,14 @@ interface TodayStats {
   pomodoros: number;
 }
 
-const defaultSettings = {
+interface PomodoroSettingsType {
+  work: number;
+  shortBreak: number;
+  longBreak: number;
+  longBreakInterval: number;
+}
+
+const defaultSettings: PomodoroSettingsType = {
   work: 25,
   shortBreak: 5,
   longBreak: 15,
@@ -53,6 +61,8 @@ const modeConfig = {
 export default function Pomodoro() {
   const { user } = useAuth();
   const { checkAndUnlockAchievements } = useAchievements();
+  const [settings, setSettings] = useState<PomodoroSettingsType>(defaultSettings);
+  const [showSettings, setShowSettings] = useState(false);
   const [mode, setMode] = useState<TimerMode>("work");
   const [timeLeft, setTimeLeft] = useState(defaultSettings.work * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -67,7 +77,7 @@ export default function Pomodoro() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const totalTime = defaultSettings[mode] * 60;
+  const totalTime = settings[mode] * 60;
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
 
   // Fetch subjects and today's stats
@@ -228,7 +238,7 @@ export default function Pomodoro() {
       playNotificationSound();
       
       // Check if it's time for a long break
-      if (newCount % defaultSettings.longBreakInterval === 0) {
+      if (newCount % settings.longBreakInterval === 0) {
         switchMode("longBreak");
       } else {
         switchMode("shortBreak");
@@ -236,6 +246,15 @@ export default function Pomodoro() {
     } else {
       switchMode("work");
     }
+  };
+
+  const handleSettingsChange = (newSettings: PomodoroSettingsType) => {
+    setSettings(newSettings);
+    // Update current timer if not running
+    if (!isRunning) {
+      setTimeLeft(newSettings[mode] * 60);
+    }
+    toast.success("Configuración actualizada");
   };
 
   const playNotificationSound = () => {
@@ -255,7 +274,7 @@ export default function Pomodoro() {
     }
     
     setMode(newMode);
-    setTimeLeft(defaultSettings[newMode] * 60);
+    setTimeLeft(settings[newMode] * 60);
     setIsRunning(false);
     setElapsedSeconds(0);
     setSessionStartTime(null);
@@ -275,7 +294,7 @@ export default function Pomodoro() {
     }
     
     setIsRunning(false);
-    setTimeLeft(defaultSettings[mode] * 60);
+    setTimeLeft(settings[mode] * 60);
     setElapsedSeconds(0);
     setSessionStartTime(null);
   };
@@ -427,7 +446,13 @@ export default function Pomodoro() {
                   <Play className="w-8 h-8 ml-1" />
                 )}
               </button>
-              <button className="p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors">
+              <button 
+                onClick={() => setShowSettings(!showSettings)}
+                className={cn(
+                  "p-3 rounded-xl transition-colors",
+                  showSettings ? "bg-primary/20 text-primary" : "bg-secondary hover:bg-secondary/80"
+                )}
+              >
                 <Settings className="w-6 h-6" />
               </button>
             </div>
@@ -525,24 +550,39 @@ export default function Pomodoro() {
             </div>
           </div>
 
-          {/* Quick Settings */}
-          <div className="card-gamer rounded-xl p-5">
-            <h3 className="font-display font-semibold mb-4">Configuración</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Trabajo</span>
-                <span>{defaultSettings.work} min</span>
+          {/* Settings Panel */}
+          {showSettings ? (
+            <PomodoroSettings
+              settings={settings}
+              onSettingsChange={handleSettingsChange}
+              onClose={() => setShowSettings(false)}
+              isRunning={isRunning}
+            />
+          ) : (
+            <div className="card-gamer rounded-xl p-5">
+              <h3 className="font-display font-semibold mb-4">Configuración</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Trabajo</span>
+                  <span className="text-neon-cyan font-medium">{settings.work} min</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Descanso corto</span>
+                  <span className="text-neon-green font-medium">{settings.shortBreak} min</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Descanso largo</span>
+                  <span className="text-neon-purple font-medium">{settings.longBreak} min</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Descanso corto</span>
-                <span>{defaultSettings.shortBreak} min</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Descanso largo</span>
-                <span>{defaultSettings.longBreak} min</span>
-              </div>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="w-full mt-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Editar configuración
+              </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
