@@ -238,6 +238,29 @@ export function useForest() {
     }
   };
 
+  const abandonPlant = async (plantId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("user_plants")
+        .update({ 
+          is_alive: false, 
+          died_at: new Date().toISOString() 
+        })
+        .eq("id", plantId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      toast.success("Planta abandonada 😢");
+      fetchPlants();
+    } catch (error) {
+      console.error("Error abandoning plant:", error);
+      toast.error("Error al abandonar planta");
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
