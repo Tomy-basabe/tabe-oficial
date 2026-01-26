@@ -7,6 +7,7 @@ import { VideoGrid } from "@/components/study-room/VideoGrid";
 import { RoomControls } from "@/components/study-room/RoomControls";
 import { ParticipantsList } from "@/components/study-room/ParticipantsList";
 import { StudyTimer } from "@/components/study-room/StudyTimer";
+import { RoomChat } from "@/components/study-room/RoomChat";
 import { Button } from "@/components/ui/button";
 import { Users, ChevronRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 export default function StudyRoom() {
   const { user } = useAuth();
   const [showParticipants, setShowParticipants] = useState(true);
+  const [showChat, setShowChat] = useState(false);
   
   const {
     activeRooms,
@@ -212,6 +214,13 @@ export default function StudyRoom() {
         onToggleVideo={handleToggleVideo}
         onToggleScreenShare={handleToggleScreenShare}
         onLeaveRoom={handleLeaveRoom}
+      />
+
+      {/* Chat */}
+      <RoomChat
+        roomId={currentRoom.id}
+        isOpen={showChat}
+        onToggle={() => setShowChat(!showChat)}
       />
 
       {/* Mobile participants drawer */}
