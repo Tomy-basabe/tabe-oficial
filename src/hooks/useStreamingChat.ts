@@ -19,7 +19,6 @@ export function useStreamingChat() {
 
   const streamMessage = useCallback(async (
     messages: Array<{ role: string; content: string }>,
-    userId: string,
     personality: string,
     onDelta: (text: string) => void,
     onComplete: (result: StreamResult) => void,
@@ -31,16 +30,21 @@ export function useStreamingChat() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
+      if (!token) {
+        throw new Error("No autenticado");
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant-stream`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
+            Authorization: `Bearer ${token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ messages, userId, personality }),
+          // Note: userId is no longer sent - the server uses the authenticated user from the token
+          body: JSON.stringify({ messages, personality }),
         }
       );
 

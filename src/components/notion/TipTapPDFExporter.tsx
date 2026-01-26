@@ -258,9 +258,12 @@ export function TipTapPDFExporter({
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
+        // Get signed URL for private bucket (1 hour expiry)
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from("library-files")
-          .getPublicUrl(storagePath);
+          .createSignedUrl(storagePath, 3600);
+
+        if (signedUrlError) throw signedUrlError;
 
         const { error: dbError } = await supabase
           .from("library_files")
@@ -269,7 +272,7 @@ export function TipTapPDFExporter({
             subject_id: subjectId,
             nombre: `${documentTitle || "Apunte"}.pdf`,
             tipo: "pdf",
-            url: urlData.publicUrl,
+            url: signedUrlData.signedUrl,
             storage_path: storagePath,
             tamaño_bytes: pdfBlob.size
           });

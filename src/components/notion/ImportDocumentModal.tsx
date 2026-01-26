@@ -171,16 +171,38 @@ export function ImportDocumentModal({
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("library-files")
-        .getPublicUrl(filePath);
-
       setUploading(false);
-      await processDocument(urlData.publicUrl, selectedFile.name, selectedFile.type, null);
+      // Use storagePath instead of URL for private bucket - edge function will download it
+      await processDocumentFromStorage(filePath, selectedFile.name, selectedFile.type, null);
     } catch (error: any) {
       console.error("Error uploading file:", error);
       toast.error("Error al subir el archivo");
       setUploading(false);
+    }
+  };
+
+  const processDocumentFromStorage = async (storagePath: string, fileName: string, fileType: string, subjectId: string | null) => {
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-document", {
+        body: { storagePath, fileName, fileType },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Error al procesar documento");
+
+      // Extract title from filename
+      const title = fileName.replace(/\.[^.]+$/, "");
+
+      onImport(data.content, title, subjectId);
+      onOpenChange(false);
+      resetState();
+      toast.success("¡Documento importado exitosamente!");
+    } catch (error: any) {
+      console.error("Error processing document:", error);
+      toast.error(error.message || "Error al procesar el documento");
+    } finally {
+      setProcessing(false);
     }
   };
 

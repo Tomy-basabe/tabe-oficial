@@ -8,7 +8,9 @@ const corsHeaders = {
 
 const VALID_EVENT_TYPES = ['P1', 'P2', 'Global', 'Final', 'Recuperatorio P1', 'Recuperatorio P2', 'Recuperatorio Global', 'Estudio'] as const;
 type ValidEventType = typeof VALID_EVENT_TYPES[number];
-type AIPersonality = "motivador" | "exigente" | "debatidor" | "profe_injusto" | "te_van_a_bochar";
+
+const VALID_PERSONALITIES = ['motivador', 'exigente', 'debatidor', 'profe_injusto', 'te_van_a_bochar'] as const;
+type AIPersonality = typeof VALID_PERSONALITIES[number];
 
 function mapEventType(aiType: string): ValidEventType {
   const typeMap: Record<string, ValidEventType> = {
@@ -52,28 +54,82 @@ function getPersonalityPrompt(personality: AIPersonality): string {
   return prompts[personality] || prompts.motivador;
 }
 
+// Validate input length limits
+function validateInputs(messages: unknown[], personality: string): void {
+  if (!Array.isArray(messages)) {
+    throw new Error("Invalid messages format");
+  }
+  if (messages.length > 50) {
+    throw new Error("Too many messages");
+  }
+  for (const msg of messages) {
+    if (typeof msg !== 'object' || msg === null) {
+      throw new Error("Invalid message format");
+    }
+    const m = msg as { content?: unknown };
+    if (typeof m.content === 'string' && m.content.length > 10000) {
+      throw new Error("Message too long");
+    }
+  }
+  if (!VALID_PERSONALITIES.includes(personality as AIPersonality)) {
+    throw new Error("Invalid personality");
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, userId, personality = "motivador" } = await req.json();
+    // SECURITY: Verify authenticated user from JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    // Create client with user's auth token to verify identity
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify the token and get the authenticated user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // Use the authenticated user's ID - IGNORE any client-supplied userId
+    const userId = claimsData.claims.sub as string;
+    
+    const { messages, personality = "motivador" } = await req.json();
+    
+    // Validate inputs
+    validateInputs(messages, personality);
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    // Use service role for read operations (fetching context)
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch user context (simplified for streaming)
     const [subjectsResult, userSubjectStatusResult, existingEventsResult, userStatsResult] = await Promise.all([
-      supabase.from("subjects").select("id, nombre, codigo, ano:año"),
-      supabase.from("user_subject_status").select("*").eq("user_id", userId),
-      supabase.from("calendar_events").select("titulo, fecha, tipo_examen, hora").eq("user_id", userId)
+      serviceClient.from("subjects").select("id, nombre, codigo, ano:año"),
+      serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
+      serviceClient.from("calendar_events").select("titulo, fecha, tipo_examen, hora").eq("user_id", userId)
         .gte("fecha", new Date().toISOString().split("T")[0]).order("fecha", { ascending: true }).limit(10),
-      supabase.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
+      serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
     ]);
 
     const subjects = subjectsResult.data as Array<{ id: string; nombre: string; codigo: string; ano: number }> | null;
@@ -223,66 +279,106 @@ Respondé siempre en español argentino.`;
                 const eventData = JSON.parse(toolCall.function.arguments);
                 const mappedType = mapEventType(eventData.tipo_examen);
                 
-                const { data: newEvent, error } = await supabase
-                  .from("calendar_events")
-                  .insert({
-                    user_id: userId,
-                    titulo: eventData.titulo,
-                    fecha: eventData.fecha,
-                    hora: eventData.hora || null,
-                    tipo_examen: mappedType,
-                    notas: eventData.notas || null,
-                    subject_id: eventData.subject_id || null,
-                    color: getColorForType(mappedType),
-                  })
-                  .select()
-                  .single();
-
-                if (error) {
-                  result = { tool_result: true, content: `Error al crear evento: ${error.message}` };
+                // Validate event data
+                if (!eventData.titulo || eventData.titulo.length > 200) {
+                  result = { tool_result: true, content: "Error: título inválido" };
+                } else if (!/^\d{4}-\d{2}-\d{2}$/.test(eventData.fecha)) {
+                  result = { tool_result: true, content: "Error: fecha inválida" };
                 } else {
-                  const fechaFormateada = new Date(eventData.fecha + "T12:00:00").toLocaleDateString("es-AR", {
-                    weekday: "long", day: "numeric", month: "long"
-                  });
-                  result = {
-                    tool_result: true,
-                    content: `✅ **Evento agendado:**\n\n📌 **${eventData.titulo}**\n📅 ${fechaFormateada}${eventData.hora ? `\n⏰ ${eventData.hora}` : ""}`,
-                    event_created: newEvent
-                  };
+                  // Validate subject_id if provided
+                  let validSubjectId = null;
+                  if (eventData.subject_id) {
+                    const { data: subjectCheck } = await serviceClient
+                      .from("subjects")
+                      .select("id")
+                      .eq("id", eventData.subject_id)
+                      .maybeSingle();
+                    if (subjectCheck) {
+                      validSubjectId = eventData.subject_id;
+                    }
+                  }
+                  
+                  const { data: newEvent, error } = await serviceClient
+                    .from("calendar_events")
+                    .insert({
+                      user_id: userId, // Uses authenticated user ID
+                      titulo: eventData.titulo.slice(0, 200),
+                      fecha: eventData.fecha,
+                      hora: eventData.hora || null,
+                      tipo_examen: mappedType,
+                      notas: eventData.notas?.slice(0, 1000) || null,
+                      subject_id: validSubjectId,
+                      color: getColorForType(mappedType),
+                    })
+                    .select()
+                    .single();
+
+                  if (error) {
+                    result = { tool_result: true, content: `Error al crear evento: ${error.message}` };
+                  } else {
+                    const fechaFormateada = new Date(eventData.fecha + "T12:00:00").toLocaleDateString("es-AR", {
+                      weekday: "long", day: "numeric", month: "long"
+                    });
+                    result = {
+                      tool_result: true,
+                      content: `✅ **Evento agendado:**\n\n📌 **${eventData.titulo}**\n📅 ${fechaFormateada}${eventData.hora ? `\n⏰ ${eventData.hora}` : ""}`,
+                      event_created: newEvent
+                    };
+                  }
                 }
               } else if (toolCall.function.name === "create_flashcards") {
                 const flashcardData = JSON.parse(toolCall.function.arguments);
                 
-                const { data: newDeck, error: deckError } = await supabase
-                  .from("flashcard_decks")
-                  .insert({
-                    user_id: userId,
-                    nombre: flashcardData.deck_name,
-                    description: flashcardData.description || null,
-                    subject_id: flashcardData.subject_id || subjects?.[0]?.id || null,
-                    total_cards: flashcardData.cards.length,
-                    is_public: false,
-                  })
-                  .select()
-                  .single();
-
-                if (deckError) {
-                  result = { tool_result: true, content: `Error al crear mazo: ${deckError.message}` };
+                // Validate flashcard data
+                if (!flashcardData.deck_name || flashcardData.deck_name.length > 200) {
+                  result = { tool_result: true, content: "Error: nombre del mazo inválido" };
+                } else if (!Array.isArray(flashcardData.cards) || flashcardData.cards.length === 0 || flashcardData.cards.length > 50) {
+                  result = { tool_result: true, content: "Error: cantidad de tarjetas inválida" };
                 } else {
-                  const flashcardsToInsert = flashcardData.cards.map((card: { pregunta: string; respuesta: string }) => ({
-                    deck_id: newDeck.id,
-                    user_id: userId,
-                    pregunta: card.pregunta,
-                    respuesta: card.respuesta,
-                  }));
+                  // Validate subject_id if provided
+                  let validSubjectId = subjects?.[0]?.id || null;
+                  if (flashcardData.subject_id) {
+                    const { data: subjectCheck } = await serviceClient
+                      .from("subjects")
+                      .select("id")
+                      .eq("id", flashcardData.subject_id)
+                      .maybeSingle();
+                    if (subjectCheck) {
+                      validSubjectId = flashcardData.subject_id;
+                    }
+                  }
+                  
+                  const { data: newDeck, error: deckError } = await serviceClient
+                    .from("flashcard_decks")
+                    .insert({
+                      user_id: userId, // Uses authenticated user ID
+                      nombre: flashcardData.deck_name.slice(0, 200),
+                      description: flashcardData.description?.slice(0, 500) || null,
+                      subject_id: validSubjectId,
+                      total_cards: flashcardData.cards.length,
+                      is_public: false,
+                    })
+                    .select()
+                    .single();
 
-                  await supabase.from("flashcards").insert(flashcardsToInsert);
+                  if (deckError) {
+                    result = { tool_result: true, content: `Error al crear mazo: ${deckError.message}` };
+                  } else {
+                    const flashcardsToInsert = flashcardData.cards.map((card: { pregunta: string; respuesta: string }) => ({
+                      deck_id: newDeck.id,
+                      user_id: userId, // Uses authenticated user ID
+                      pregunta: (card.pregunta || "").slice(0, 1000),
+                      respuesta: (card.respuesta || "").slice(0, 2000),
+                    }));
 
-                  result = {
-                    tool_result: true,
-                    content: `🃏 **¡Mazo creado!**\n\n📚 **${flashcardData.deck_name}**\n📝 ${flashcardData.cards.length} tarjetas generadas`,
-                    flashcards_created: { deck: newDeck, cards_count: flashcardData.cards.length }
-                  };
+                    await serviceClient.from("flashcards").insert(flashcardsToInsert);
+
+                    result = {
+                      tool_result: true,
+                      content: `🃏 **¡Mazo creado!**\n\n📚 **${flashcardData.deck_name}**\n📝 ${flashcardData.cards.length} tarjetas generadas`,
+                      flashcards_created: { deck: newDeck, cards_count: flashcardData.cards.length }
+                    };
+                  }
                 }
               }
 

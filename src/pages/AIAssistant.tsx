@@ -104,7 +104,6 @@ export default function AIAssistant() {
 
     streamMessage(
       conversationHistory.slice(1),
-      user.id,
       personality,
       // onDelta - update message as tokens arrive
       (delta) => {

@@ -195,12 +195,14 @@ export function PDFExporter({
 
         if (uploadError) throw uploadError;
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
+        // Get signed URL for private bucket (1 hour expiry)
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from("library-files")
-          .getPublicUrl(storagePath);
+          .createSignedUrl(storagePath, 3600);
 
-        // Create library file record
+        if (signedUrlError) throw signedUrlError;
+
+        // Create library file record - store signed URL (will be regenerated on access)
         const { error: dbError } = await supabase
           .from("library_files")
           .insert({
@@ -208,7 +210,7 @@ export function PDFExporter({
             subject_id: subjectId,
             nombre: `${documentTitle || "Apunte"}.pdf`,
             tipo: "pdf",
-            url: urlData.publicUrl,
+            url: signedUrlData.signedUrl,
             storage_path: storagePath,
             tamaño_bytes: pdfBlob.size
           });
