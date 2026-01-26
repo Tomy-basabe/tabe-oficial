@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NotionIcon } from "@/components/icons/NotionIcon";
+import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -37,7 +38,7 @@ const baseNavItems = [
   { icon: Timer, label: "Pomodoro", path: "/pomodoro" },
   { icon: BarChart3, label: "Métricas", path: "/metricas" },
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque" },
-  { icon: Video, label: "Sala de Estudio", path: "/sala-estudio" },
+  { icon: DiscordIcon, label: "Sala de Estudio", path: "/sala-estudio" },
   { icon: Trophy, label: "Logros", path: "/logros" },
   { icon: Users, label: "Amigos", path: "/amigos" },
   { icon: Bot, label: "Asistente IA", path: "/asistente" },
