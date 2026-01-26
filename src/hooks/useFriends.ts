@@ -205,9 +205,19 @@ export function useFriends() {
   const sendFriendRequest = async (identifier: string) => {
     if (!user) return { error: "No autenticado" };
 
+    // Normalize input: users often paste "#123" or "@username"
+    // Our RPC expects either a pure number (display_id) or the raw username.
+    const normalizedIdentifier = identifier
+      .trim()
+      .replace(/^\s+|\s+$/g, "")
+      .replace(/^[@#]+/, "")
+      .toLowerCase();
+
+    if (!normalizedIdentifier) return { error: "Usuario no encontrado" };
+
     // Use secure RPC function to find user by display_id or username
     const { data: users, error: findError } = await supabase
-      .rpc('find_user_for_friend_request', { identifier: identifier.trim() });
+      .rpc('find_user_for_friend_request', { identifier: normalizedIdentifier });
 
     if (findError || !users || users.length === 0) {
       return { error: "Usuario no encontrado" };
