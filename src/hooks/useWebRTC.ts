@@ -27,6 +27,7 @@ export function useWebRTC(roomId: string | null) {
   const { user } = useAuth();
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const [displayStream, setDisplayStream] = useState<MediaStream | null>(null); // What to show in local video tile
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -35,6 +36,7 @@ export function useWebRTC(roomId: string | null) {
 
   const peerConnections = useRef<Map<string, PeerConnection>>(new Map());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   // Initialize local media stream
   const initializeMedia = useCallback(async (video: boolean = true, audio: boolean = true) => {
@@ -44,6 +46,8 @@ export function useWebRTC(roomId: string | null) {
         audio: audio ? { echoCancellation: true, noiseSuppression: true } : false,
       });
       setLocalStream(stream);
+      setDisplayStream(stream);
+      localStreamRef.current = stream;
       setIsVideoEnabled(video);
       setIsAudioEnabled(audio);
       return stream;
@@ -54,6 +58,8 @@ export function useWebRTC(roomId: string | null) {
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           setLocalStream(audioStream);
+          setDisplayStream(audioStream);
+          localStreamRef.current = audioStream;
           setIsVideoEnabled(false);
           setIsAudioEnabled(true);
           return audioStream;
@@ -212,23 +218,64 @@ export function useWebRTC(roomId: string | null) {
 
   // Toggle audio
   const toggleAudio = useCallback(() => {
-    if (localStream) {
-      localStream.getAudioTracks().forEach((track) => {
+    const stream = localStreamRef.current;
+    if (stream) {
+      const audioTracks = stream.getAudioTracks();
+      audioTracks.forEach((track) => {
         track.enabled = !track.enabled;
       });
-      setIsAudioEnabled(!isAudioEnabled);
+      setIsAudioEnabled((prev) => !prev);
     }
-  }, [localStream, isAudioEnabled]);
+  }, []);
 
-  // Toggle video
-  const toggleVideo = useCallback(() => {
-    if (localStream) {
-      localStream.getVideoTracks().forEach((track) => {
-        track.enabled = !track.enabled;
+  // Toggle video - properly enable/disable without stopping tracks
+  const toggleVideo = useCallback(async () => {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+
+    const videoTracks = stream.getVideoTracks();
+    
+    if (isVideoEnabled) {
+      // Disable video
+      videoTracks.forEach((track) => {
+        track.enabled = false;
       });
-      setIsVideoEnabled(!isVideoEnabled);
+      setIsVideoEnabled(false);
+    } else {
+      // Enable video
+      if (videoTracks.length > 0) {
+        videoTracks.forEach((track) => {
+          track.enabled = true;
+        });
+        setIsVideoEnabled(true);
+      } else {
+        // No video track exists, need to get new one
+        try {
+          const newStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480, facingMode: "user" },
+          });
+          const newVideoTrack = newStream.getVideoTracks()[0];
+          stream.addTrack(newVideoTrack);
+          
+          // Update peer connections with new track
+          peerConnections.current.forEach(({ connection }) => {
+            const sender = connection.getSenders().find((s) => s.track?.kind === "video");
+            if (sender) {
+              sender.replaceTrack(newVideoTrack);
+            } else {
+              connection.addTrack(newVideoTrack, stream);
+            }
+          });
+          
+          setLocalStream(stream);
+          setDisplayStream(stream);
+          setIsVideoEnabled(true);
+        } catch (error) {
+          console.error("Error re-enabling video:", error);
+        }
+      }
     }
-  }, [localStream, isVideoEnabled]);
+  }, [isVideoEnabled]);
 
   // Start screen sharing
   const startScreenShare = useCallback(async () => {
@@ -239,6 +286,7 @@ export function useWebRTC(roomId: string | null) {
       });
 
       setScreenStream(stream);
+      setDisplayStream(stream); // Show screen share in local tile
       setIsScreenSharing(true);
 
       // Replace video track in all peer connections
@@ -270,9 +318,11 @@ export function useWebRTC(roomId: string | null) {
     }
     setIsScreenSharing(false);
 
-    // Restore camera video track
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
+    // Restore camera display and peer connections
+    const stream = localStreamRef.current;
+    if (stream) {
+      setDisplayStream(stream); // Show camera in local tile again
+      const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
         peerConnections.current.forEach(({ connection }) => {
           const sender = connection.getSenders().find((s) => s.track?.kind === "video");
@@ -282,7 +332,7 @@ export function useWebRTC(roomId: string | null) {
         });
       }
     }
-  }, [screenStream, localStream]);
+  }, [screenStream]);
 
   // Join room signaling channel
   const joinSignalingChannel = useCallback(
@@ -379,15 +429,17 @@ export function useWebRTC(roomId: string | null) {
     setIsScreenSharing(false);
   }, [localStream, screenStream]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - only when roomId becomes null
   useEffect(() => {
     return () => {
-      leaveSignalingChannel();
+      // Only cleanup if explicitly leaving the room
+      // The cleanup is handled by leaveSignalingChannel called from StudyRoom
     };
   }, []);
 
   return {
     localStream,
+    displayStream, // Use this for local video tile
     screenStream,
     remoteStreams,
     isAudioEnabled,

@@ -4,7 +4,7 @@ import { Mic, MicOff, Video, VideoOff, Monitor, User } from "lucide-react";
 import type { RoomParticipant } from "@/hooks/useStudyRoom";
 
 interface VideoGridProps {
-  localStream: MediaStream | null;
+  displayStream: MediaStream | null; // What to show in local tile (camera or screen)
   remoteStreams: Map<string, MediaStream>;
   participants: RoomParticipant[];
   currentUserId: string;
@@ -103,7 +103,7 @@ function VideoTile({
 }
 
 export function VideoGrid({
-  localStream,
+  displayStream,
   remoteStreams,
   participants,
   currentUserId,
@@ -123,14 +123,17 @@ export function VideoGrid({
 
   const myParticipant = participants.find(p => p.user_id === currentUserId);
 
+  // When screen sharing, always show video (the screen content)
+  const localVideoEnabled = isScreenSharing ? true : isVideoEnabled;
+
   return (
     <div className={cn("grid gap-4 p-4 flex-1", gridCols)}>
       {/* Local video */}
       <VideoTile
-        stream={localStream}
+        stream={displayStream}
         participant={myParticipant}
         isLocal
-        isVideoEnabled={isVideoEnabled}
+        isVideoEnabled={localVideoEnabled}
         isAudioEnabled={isAudioEnabled}
         isScreenSharing={isScreenSharing}
         muted

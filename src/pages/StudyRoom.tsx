@@ -31,6 +31,7 @@ export default function StudyRoom() {
 
   const {
     localStream,
+    displayStream,
     remoteStreams,
     isAudioEnabled,
     isVideoEnabled,
@@ -163,7 +164,7 @@ export default function StudyRoom() {
         {/* Video grid */}
         <div className="flex-1 flex flex-col min-w-0">
           <VideoGrid
-            localStream={localStream}
+            displayStream={displayStream}
             remoteStreams={remoteStreams}
             participants={participants}
             currentUserId={user?.id || ""}
