@@ -471,6 +471,107 @@ export type Database = {
         }
         Relationships: []
       }
+      room_participants: {
+        Row: {
+          created_at: string
+          id: string
+          is_camera_off: boolean
+          is_muted: boolean
+          is_sharing_screen: boolean
+          joined_at: string
+          left_at: string | null
+          room_id: string
+          study_duration_seconds: number
+          subject_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_camera_off?: boolean
+          is_muted?: boolean
+          is_sharing_screen?: boolean
+          joined_at?: string
+          left_at?: string | null
+          room_id: string
+          study_duration_seconds?: number
+          subject_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_camera_off?: boolean
+          is_muted?: boolean
+          is_sharing_screen?: boolean
+          joined_at?: string
+          left_at?: string | null
+          room_id?: string
+          study_duration_seconds?: number
+          subject_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "study_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_participants_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_rooms: {
+        Row: {
+          created_at: string
+          host_id: string
+          id: string
+          is_active: boolean
+          max_participants: number
+          name: string
+          subject_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          host_id: string
+          id?: string
+          is_active?: boolean
+          max_participants?: number
+          name: string
+          subject_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          host_id?: string
+          id?: string
+          is_active?: boolean
+          max_participants?: number
+          name?: string
+          subject_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_rooms_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_sessions: {
         Row: {
           completada: boolean | null
@@ -780,6 +881,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_study_room: {
+        Args: { room_id: string; user_id: string }
+        Returns: boolean
+      }
       check_and_unlock_achievements: {
         Args: { p_user_id: string }
         Returns: {

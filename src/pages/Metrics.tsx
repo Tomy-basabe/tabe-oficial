@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   BarChart3, Clock, BookOpen, 
-  Timer, Layers
+  Timer, Layers, Video
 } from "lucide-react";
 import { subDays, eachDayOfInterval, format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -185,6 +185,7 @@ export default function Metrics() {
   const totalHours = sessions.reduce((acc, s) => acc + s.duracion_segundos / 3600, 0);
   const totalPomodoros = sessions.filter(s => s.tipo === 'pomodoro').length;
   const totalFlashcardSessions = sessions.filter(s => s.tipo === 'flashcard').length;
+  const totalVideocallSessions = sessions.filter(s => s.tipo === 'videocall').length;
   const studiedSubjects = new Set(sessions.map(s => s.subject_id).filter(Boolean)).size;
   const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
 
@@ -249,7 +250,7 @@ export default function Metrics() {
       {activeTab === "general" ? (
         <>
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="card-gamer rounded-xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-neon-cyan/20 flex items-center justify-center">
@@ -266,7 +267,7 @@ export default function Metrics() {
                 </div>
               </div>
               <p className="text-2xl font-display font-bold text-neon-gold">{totalPomodoros}</p>
-              <p className="text-xs text-muted-foreground">Pomodoros completados</p>
+              <p className="text-xs text-muted-foreground">Pomodoros</p>
             </div>
             <div className="card-gamer rounded-xl p-5">
               <div className="flex items-center gap-3 mb-2">
@@ -275,7 +276,7 @@ export default function Metrics() {
                 </div>
               </div>
               <p className="text-2xl font-display font-bold text-neon-green">{studiedSubjects}</p>
-              <p className="text-xs text-muted-foreground">Materias estudiadas</p>
+              <p className="text-xs text-muted-foreground">Materias</p>
             </div>
             <div className="card-gamer rounded-xl p-5">
               <div className="flex items-center gap-3 mb-2">
@@ -284,7 +285,16 @@ export default function Metrics() {
                 </div>
               </div>
               <p className="text-2xl font-display font-bold text-neon-purple">{totalFlashcardSessions}</p>
-              <p className="text-xs text-muted-foreground">Sesiones flashcards</p>
+              <p className="text-xs text-muted-foreground">Flashcards</p>
+            </div>
+            <div className="card-gamer rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                  <Video className="w-5 h-5 text-primary" />
+                </div>
+              </div>
+              <p className="text-2xl font-display font-bold text-primary">{totalVideocallSessions}</p>
+              <p className="text-xs text-muted-foreground">Videollamadas</p>
             </div>
           </div>
 
@@ -393,6 +403,7 @@ export default function Metrics() {
                 const types = {
                   pomodoro: { label: "Pomodoro", icon: Timer, color: "neon-gold" },
                   flashcard: { label: "Flashcards", icon: Layers, color: "neon-cyan" },
+                  videocall: { label: "Videollamadas", icon: Video, color: "neon-purple" },
                   estudio: { label: "Estudio Libre", icon: BookOpen, color: "neon-green" },
                 };
 
