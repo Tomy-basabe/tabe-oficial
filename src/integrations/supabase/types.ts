@@ -788,6 +788,13 @@ export type Database = {
           xp_reward: number
         }[]
       }
+      check_invitation_status: {
+        Args: { check_email: string }
+        Returns: {
+          accepted_at: string
+          id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

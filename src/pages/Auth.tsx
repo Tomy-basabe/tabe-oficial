@@ -30,11 +30,9 @@ export default function Auth() {
           navigate("/");
         }
       } else {
-        // Check if email is in invited_users list
+        // Check if email is in invited_users list using secure RPC function
         const { data: invited, error: checkError } = await supabase
-          .from("invited_users")
-          .select("id, accepted_at")
-          .eq("email", email.toLowerCase())
+          .rpc("check_invitation_status", { check_email: email.toLowerCase() })
           .maybeSingle();
 
         if (checkError) {

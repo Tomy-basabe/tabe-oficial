@@ -212,6 +212,19 @@ export default function Library() {
     }
   };
 
+  // Get signed URL for private files
+  const getSignedUrl = async (storagePath: string): Promise<string | null> => {
+    const { data, error } = await supabase.storage
+      .from('library-files')
+      .createSignedUrl(storagePath, 3600); // 1 hour expiry
+    
+    if (error) {
+      console.error("Error getting signed URL:", error);
+      return null;
+    }
+    return data.signedUrl;
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
@@ -232,9 +245,9 @@ export default function Library() {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('library-files')
-        .getPublicUrl(filePath);
+      // Use signed URL instead of public URL for private bucket
+      const signedUrl = await getSignedUrl(filePath);
+      if (!signedUrl) throw new Error("Could not generate signed URL");
 
       const subjectToUse = uploadSubject || selectedSubjectId;
 
@@ -246,7 +259,7 @@ export default function Library() {
           folder_id: currentFolderId,
           nombre: file.name,
           tipo,
-          url: urlData.publicUrl,
+          url: signedUrl,
           storage_path: filePath,
           tamaño_bytes: file.size,
         });
@@ -318,8 +331,19 @@ export default function Library() {
     }
   };
 
-  const openPreview = (file: LibraryFile) => {
-    setPreviewFile(file);
+  const openPreview = async (file: LibraryFile) => {
+    // For files stored in our private bucket, get a fresh signed URL
+    if (file.storage_path) {
+      const signedUrl = await getSignedUrl(file.storage_path);
+      if (signedUrl) {
+        setPreviewFile({ ...file, url: signedUrl });
+      } else {
+        toast.error("Error al cargar el archivo");
+        return;
+      }
+    } else {
+      setPreviewFile(file);
+    }
     setShowPreviewModal(true);
   };
 
