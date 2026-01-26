@@ -87,7 +87,7 @@ export default function Pomodoro() {
   const [settings, setSettings] = useState<PomodoroSettingsType>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [mode, setMode] = useState<TimerMode>("work");
-  const [timeLeft, setTimeLeft] = useState(defaultSettings.work * 60);
+  const [timeLeft, setTimeLeft] = useState(() => loadSettings().work * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -102,6 +102,15 @@ export default function Pomodoro() {
 
   const totalTime = settings[mode] * 60;
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
+
+  // Reload settings from localStorage when component mounts (for sync with Settings page)
+  useEffect(() => {
+    const loadedSettings = loadSettings();
+    setSettings(loadedSettings);
+    if (!isRunning) {
+      setTimeLeft(loadedSettings[mode] * 60);
+    }
+  }, []);
 
   // Fetch subjects and today's stats
   useEffect(() => {
