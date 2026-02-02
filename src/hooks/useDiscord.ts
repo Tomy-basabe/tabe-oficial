@@ -153,11 +153,11 @@ export function useDiscord() {
       return;
     }
     
-    // Fetch profiles
+    // Fetch profiles using server member function (not friends-only)
     if (data && data.length > 0) {
       const userIds = data.map(m => m.user_id);
       const { data: profiles } = await supabase
-        .rpc('get_friend_profiles', { friend_user_ids: userIds });
+        .rpc('get_server_member_profiles', { member_user_ids: userIds });
       
       const membersWithProfiles = data.map(m => ({
         ...m,
@@ -190,7 +190,7 @@ export function useDiscord() {
     if (data && data.length > 0) {
       const userIds = [...new Set(data.map(m => m.user_id))];
       const { data: profiles } = await supabase
-        .rpc('get_friend_profiles', { friend_user_ids: userIds });
+        .rpc('get_server_member_profiles', { member_user_ids: userIds });
       
       const messagesWithProfiles = data.map(m => ({
         ...m,
@@ -220,7 +220,7 @@ export function useDiscord() {
     if (data && data.length > 0) {
       const userIds = data.map(p => p.user_id);
       const { data: profiles } = await supabase
-        .rpc('get_friend_profiles', { friend_user_ids: userIds });
+        .rpc('get_server_member_profiles', { member_user_ids: userIds });
       
       const participantsWithProfiles = data.map(p => ({
         ...p,

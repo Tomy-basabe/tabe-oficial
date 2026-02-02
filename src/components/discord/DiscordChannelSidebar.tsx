@@ -52,20 +52,29 @@ export function DiscordChannelSidebar({
   inVoiceChannel,
   currentVoiceChannel,
 }: DiscordChannelSidebarProps) {
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreateText, setShowCreateText] = useState(false);
+  const [showCreateVoice, setShowCreateVoice] = useState(false);
   const [channelName, setChannelName] = useState("");
-  const [channelType, setChannelType] = useState<"text" | "voice">("text");
   const [creating, setCreating] = useState(false);
 
   const textChannels = channels.filter((c) => c.type === "text");
   const voiceChannels = channels.filter((c) => c.type === "voice");
 
-  const handleCreate = async () => {
+  const handleCreateText = async () => {
     if (!channelName.trim()) return;
     setCreating(true);
-    await onCreateChannel(channelName.trim(), channelType);
+    await onCreateChannel(channelName.trim(), "text");
     setChannelName("");
-    setShowCreate(false);
+    setShowCreateText(false);
+    setCreating(false);
+  };
+
+  const handleCreateVoice = async () => {
+    if (!channelName.trim()) return;
+    setCreating(true);
+    await onCreateChannel(channelName.trim(), "voice");
+    setChannelName("");
+    setShowCreateVoice(false);
     setCreating(false);
   };
 
@@ -103,10 +112,7 @@ export function DiscordChannelSidebar({
             <span className="text-xs font-semibold text-[#949ba4] uppercase">
               Canales de texto
             </span>
-            <Dialog open={showCreate && channelType === "text"} onOpenChange={(open) => {
-              setShowCreate(open);
-              setChannelType("text");
-            }}>
+            <Dialog open={showCreateText} onOpenChange={setShowCreateText}>
               <DialogTrigger asChild>
                 <button className="text-[#949ba4] hover:text-[#dbdee1]">
                   <Plus className="w-4 h-4" />
@@ -123,11 +129,11 @@ export function DiscordChannelSidebar({
                     placeholder="nuevo-canal"
                     className="bg-[#1e1f22] border-none text-white"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreate();
+                      if (e.key === "Enter") handleCreateText();
                     }}
                   />
                   <Button
-                    onClick={handleCreate}
+                    onClick={handleCreateText}
                     disabled={!channelName.trim() || creating}
                     className="w-full bg-[#5865f2] hover:bg-[#4752c4]"
                   >
@@ -155,10 +161,7 @@ export function DiscordChannelSidebar({
             <span className="text-xs font-semibold text-[#949ba4] uppercase">
               Canales de voz
             </span>
-            <Dialog open={showCreate && channelType === "voice"} onOpenChange={(open) => {
-              setShowCreate(open);
-              setChannelType("voice");
-            }}>
+            <Dialog open={showCreateVoice} onOpenChange={setShowCreateVoice}>
               <DialogTrigger asChild>
                 <button className="text-[#949ba4] hover:text-[#dbdee1]">
                   <Plus className="w-4 h-4" />
@@ -175,11 +178,11 @@ export function DiscordChannelSidebar({
                     placeholder="Sala de estudio"
                     className="bg-[#1e1f22] border-none text-white"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreate();
+                      if (e.key === "Enter") handleCreateVoice();
                     }}
                   />
                   <Button
-                    onClick={handleCreate}
+                    onClick={handleCreateVoice}
                     disabled={!channelName.trim() || creating}
                     className="w-full bg-[#5865f2] hover:bg-[#4752c4]"
                   >
