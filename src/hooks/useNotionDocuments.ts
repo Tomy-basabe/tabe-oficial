@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -153,11 +153,9 @@ export function useNotionDocuments() {
     return true;
   };
 
-  // Track accumulated time that hasn't been saved to metrics yet
-  const accumulatedTimeRef = useRef<Map<string, number>>(new Map());
-  
+  // Save study time and update document - ALWAYS save to metrics for plant growth
   const addStudyTime = async (documentId: string, seconds: number, subjectId: string | null) => {
-    if (!user) return;
+    if (!user || seconds < 1) return;
 
     // Update document total time
     const doc = documents.find(d => d.id === documentId);
@@ -167,26 +165,20 @@ export function useNotionDocuments() {
       });
     }
 
-    // Accumulate time for this document
-    const currentAccumulated = accumulatedTimeRef.current.get(documentId) || 0;
-    const newAccumulated = currentAccumulated + seconds;
-    
-    // Only save to metrics when we've accumulated >= 60 seconds
-    if (newAccumulated >= 60) {
+    // Save to study_sessions for metrics and plant growth
+    // Save all sessions (even short ones) so the plant can track activity
+    try {
       await supabase
         .from("study_sessions")
         .insert({
           user_id: user.id,
           subject_id: subjectId,
-          duracion_segundos: newAccumulated,
+          duracion_segundos: seconds,
           tipo: "notion",
           completada: true,
         });
-      // Reset accumulated time after saving
-      accumulatedTimeRef.current.set(documentId, 0);
-    } else {
-      // Keep accumulating
-      accumulatedTimeRef.current.set(documentId, newAccumulated);
+    } catch (error) {
+      console.error("Error saving notion study session:", error);
     }
   };
 
