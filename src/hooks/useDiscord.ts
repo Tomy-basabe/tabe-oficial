@@ -105,6 +105,35 @@ export function useDiscord() {
   const screenStreamRef = useRef<MediaStream | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null); // Keep reference for signaling handlers
 
+  // Perfect Negotiation state (prevents offer glare)
+  const negotiationStateRef = useRef<
+    Map<
+      string,
+      {
+        makingOffer: boolean;
+        ignoreOffer: boolean;
+        polite: boolean;
+      }
+    >
+  >(new Map());
+
+  const getNegotiationState = useCallback(
+    (peerId: string) => {
+      const existing = negotiationStateRef.current.get(peerId);
+      if (existing) return existing;
+      const state = {
+        makingOffer: false,
+        ignoreOffer: false,
+        // Deterministic rule: the user with the lexicographically larger id is "polite"
+        // (will accept rollback on collisions). This avoids both sides ignoring.
+        polite: !!user && user.id.localeCompare(peerId) > 0,
+      };
+      negotiationStateRef.current.set(peerId, state);
+      return state;
+    },
+    [user]
+  );
+
   // Fetch user's servers
   const fetchServers = useCallback(async () => {
     if (!user) return;
@@ -458,8 +487,13 @@ export function useDiscord() {
       if (existingParticipants && existingParticipants.length > 0) {
         console.log("[Discord] Creating offers to existing participants");
         for (const participant of existingParticipants) {
-          console.log("[Discord] Creating offer to:", participant.user_id);
-          await createOffer(participant.user_id, stream);
+          // Deterministic initiator: only one side creates the offer
+          if (user.id.localeCompare(participant.user_id) < 0) {
+            console.log("[Discord] Creating offer to:", participant.user_id);
+            await createOffer(participant.user_id, stream);
+          } else {
+            console.log("[Discord] Waiting for offer from:", participant.user_id);
+          }
         }
       }
       
@@ -544,8 +578,13 @@ export function useDiscord() {
       .on("presence", { event: "join" }, async ({ key }) => {
         console.log("[Discord] User joined presence:", key);
         if (key !== user.id && localStreamRef.current) {
-          console.log("[Discord] Creating offer to new user:", key);
-          await createOffer(key, localStreamRef.current);
+          // Deterministic initiator: only one side creates the offer
+          if (user.id.localeCompare(key) < 0) {
+            console.log("[Discord] Creating offer to new user:", key);
+            await createOffer(key, localStreamRef.current);
+          } else {
+            console.log("[Discord] Waiting for offer from new user:", key);
+          }
         }
       })
       .on("presence", { event: "leave" }, ({ key }) => {
@@ -583,6 +622,9 @@ export function useDiscord() {
     
     console.log("[Discord] Creating peer connection to:", peerId);
     const pc = new RTCPeerConnection(ICE_SERVERS);
+
+    // Ensure state exists early
+    getNegotiationState(peerId);
     
     // Add all local tracks to the peer connection
     stream.getTracks().forEach(track => {
@@ -641,10 +683,14 @@ export function useDiscord() {
 
   const createOffer = async (peerId: string, stream: MediaStream) => {
     const pc = createPeerConnection(peerId, stream);
+
+    const n = getNegotiationState(peerId);
     
     try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      n.makingOffer = true;
+      await pc.setLocalDescription(await pc.createOffer());
+      const offer = pc.localDescription;
+      if (!offer) throw new Error("No localDescription after createOffer");
       
       signalingChannel.current?.send({
         type: "broadcast",
@@ -658,6 +704,8 @@ export function useDiscord() {
       });
     } catch (error) {
       console.error("Error creating offer:", error);
+    } finally {
+      n.makingOffer = false;
     }
   };
 
@@ -666,8 +714,25 @@ export function useDiscord() {
     if (!pc) {
       pc = createPeerConnection(fromId, stream);
     }
+
+    const n = getNegotiationState(fromId);
     
     try {
+      const offerCollision = n.makingOffer || pc.signalingState !== "stable";
+      n.ignoreOffer = !n.polite && offerCollision;
+
+      if (n.ignoreOffer) {
+        console.warn("[Discord] Ignoring offer due to collision from:", fromId);
+        return;
+      }
+
+      if (offerCollision) {
+        // Polite peer: rollback its local description and accept the offer
+        console.log("[Discord] Offer collision; rolling back (polite) with:", fromId);
+        // TS lib types don't include rollback in all configs
+        await pc.setLocalDescription({ type: "rollback" } as any);
+      }
+
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
