@@ -439,33 +439,77 @@ export function useDiscord() {
   // Join voice channel
   const joinVoiceChannel = async (channel: DiscordChannel) => {
     if (!user || channel.type !== "voice") return;
-    
+
+    console.log("[Discord][Diag] joinVoiceChannel start", {
+      channelId: channel.id,
+      userId: user.id,
+      ua: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+    });
+
     try {
-      // Get media
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
-        video: false,
+      // Helpful permissions snapshot (Chrome supports these names)
+      try {
+        const micPerm = await (navigator as any).permissions?.query?.({ name: "microphone" });
+        const camPerm = await (navigator as any).permissions?.query?.({ name: "camera" });
+        console.log("[Discord][Diag] permissions", {
+          microphone: micPerm?.state,
+          camera: camPerm?.state,
+        });
+      } catch (e) {
+        console.log("[Discord][Diag] permissions query not available", e);
+      }
+
+      // Enumerate devices (labels might be empty until permissions granted)
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        console.log("[Discord][Diag] devices", devices.map((d) => ({ kind: d.kind, label: d.label, deviceId: d.deviceId })));
+      } catch (e) {
+        console.log("[Discord][Diag] enumerateDevices failed", e);
+      }
+
+      // Get media (audio only at join)
+      let stream: MediaStream | null = null;
+      try {
+        console.log("[Discord][Diag] requesting audio stream (with constraints)");
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+          video: false,
+        });
+      } catch (e) {
+        console.warn("[Discord][Diag] getUserMedia (constraints) failed, retrying basic audio", e);
+        // Fallback: simpler constraints, more compatible
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      }
+
+      console.log("[Discord][Diag] got local stream", {
+        audioTracks: stream.getAudioTracks().map((t) => ({
+          id: t.id,
+          enabled: t.enabled,
+          muted: (t as any).muted,
+          readyState: t.readyState,
+          label: t.label,
+        })),
       });
-      
+
       setLocalStream(stream);
       localStreamRef.current = stream; // Store in ref for signaling handlers
       setIsAudioEnabled(true);
       setIsVideoEnabled(false);
-      
+
       // Setup voice activity detection
       setupVoiceActivityDetection(stream);
-      
+
       // Get existing participants BEFORE inserting ourselves
       const { data: existingParticipants } = await supabase
         .from("discord_voice_participants")
         .select("user_id")
         .eq("channel_id", channel.id)
         .neq("user_id", user.id);
-      
-      console.log("[Discord] Existing participants:", existingParticipants?.length || 0);
-      
+
+      console.log("[Discord][Diag] Existing participants:", existingParticipants?.length || 0);
+
       // Add to participants
-      await supabase
+      const { error: insertError } = await supabase
         .from("discord_voice_participants")
         .insert({
           channel_id: channel.id,
@@ -473,62 +517,91 @@ export function useDiscord() {
           is_muted: false,
           is_camera_on: false,
         });
-      
+
+      if (insertError) {
+        console.error("[Discord][Diag] insert voice participant failed", insertError);
+        throw insertError;
+      }
+
       setCurrentChannel(channel);
       setInVoiceChannel(true);
-      
+
       // Setup signaling channel
       await setupSignaling(channel.id, stream);
-      
+
       // Wait for signaling channel to be fully subscribed
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Create offers to all existing participants
       if (existingParticipants && existingParticipants.length > 0) {
-        console.log("[Discord] Creating offers to existing participants");
+        console.log("[Discord][Diag] Creating offers to existing participants");
         for (const participant of existingParticipants) {
           // Deterministic initiator: only one side creates the offer
           if (user.id.localeCompare(participant.user_id) < 0) {
-            console.log("[Discord] Creating offer to:", participant.user_id);
+            console.log("[Discord][Diag] Creating offer to:", participant.user_id);
             await createOffer(participant.user_id, stream);
           } else {
-            console.log("[Discord] Waiting for offer from:", participant.user_id);
+            console.log("[Discord][Diag] Waiting for offer from:", participant.user_id);
           }
         }
       }
-      
-    } catch (error) {
-      console.error("Error joining voice channel:", error);
-      toast({ title: "Error", description: "No se pudo unir al canal de voz", variant: "destructive" });
+    } catch (error: any) {
+      console.error("[Discord][Diag] Error joining voice channel:", error);
+      const name = error?.name || "Error";
+      const message = error?.message || "Desconocido";
+
+      toast({
+        title: "No se pudo unir al canal de voz",
+        description: `${name}: ${message}`,
+        variant: "destructive",
+      });
+
+      // If we partially created something, clean up local resources
+      try {
+        localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      } catch {}
+      localStreamRef.current = null;
+      setLocalStream(null);
+      setInVoiceChannel(false);
     }
   };
 
   // Leave voice channel
   const leaveVoiceChannel = async () => {
     if (!user || !currentChannel) return;
-    
+
+    console.log("[Discord][Diag] leaveVoiceChannel", { channelId: currentChannel.id, userId: user.id });
+
     // Cleanup
-    localStream?.getTracks().forEach(track => track.stop());
-    screenStreamRef.current?.getTracks().forEach(track => track.stop());
-    
-    peerConnections.current.forEach(pc => pc.close());
+    localStreamRef.current?.getTracks().forEach((track) => track.stop());
+    localStream?.getTracks().forEach((track) => track.stop());
+    screenStreamRef.current?.getTracks().forEach((track) => track.stop());
+
+    localStreamRef.current = null;
+    screenStreamRef.current = null;
+
+    peerConnections.current.forEach((pc) => pc.close());
     peerConnections.current.clear();
-    
+    negotiationStateRef.current.clear();
+
     if (signalingChannel.current) {
       await supabase.removeChannel(signalingChannel.current);
+      signalingChannel.current = null;
     }
-    
+
     if (audioContext.current) {
       audioContext.current.close();
+      audioContext.current = null;
+      analyserRef.current = null;
     }
-    
+
     // Remove from database
     await supabase
       .from("discord_voice_participants")
       .delete()
       .eq("channel_id", currentChannel.id)
       .eq("user_id", user.id);
-    
+
     setLocalStream(null);
     setRemoteStreams(new Map());
     setInVoiceChannel(false);
