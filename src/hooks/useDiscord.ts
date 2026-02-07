@@ -911,6 +911,10 @@ export function useDiscord() {
         sender?.replaceTrack(null);
       });
 
+      // Force React re-render with new MediaStream reference
+      const updatedStream = new MediaStream(stream.getTracks());
+      localStreamRef.current = updatedStream;
+      setLocalStream(updatedStream);
       setIsVideoEnabled(false);
 
       // Update database immediately
@@ -930,7 +934,10 @@ export function useDiscord() {
 
         // Add locally so local tile can render
         stream.addTrack(videoTrack);
-        setLocalStream(stream);
+        // Force React re-render with new MediaStream reference (same object won't trigger update)
+        const updatedStream = new MediaStream(stream.getTracks());
+        localStreamRef.current = updatedStream;
+        setLocalStream(updatedStream);
 
         // Replace on all peer connections using the pre-created video transceiver
         peerConnections.current.forEach((pc, peerId) => {

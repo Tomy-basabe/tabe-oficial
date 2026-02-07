@@ -89,7 +89,7 @@ function VoiceTile({
     <div
       className={cn(
         "relative rounded-lg overflow-hidden bg-[#2b2d31] transition-all duration-200",
-        isSpeaking && "ring-2 ring-[#23a559] ring-offset-2 ring-offset-[#1e1f22]"
+        isSpeaking && "discord-speaking-ring"
       )}
     >
       {hasVideo || participant.is_screen_sharing ? (
@@ -105,10 +105,6 @@ function VoiceTile({
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-[#2b2d31]">
-          {/*
-            IMPORTANT: cuando no hay video, igual necesitamos un elemento que reproduzca el audio.
-            Si no, los usuarios nunca se escuchan (porque el <video> no se monta).
-          */}
           {hasAudio && (
             <audio
               ref={audioRef}
@@ -119,8 +115,8 @@ function VoiceTile({
             />
           )}
           <Avatar className={cn(
-            "w-24 h-24 transition-all",
-            isSpeaking && "ring-4 ring-[#23a559]"
+            "w-24 h-24 transition-all duration-200",
+            isSpeaking && "ring-4 ring-[#23a559] ring-offset-2 ring-offset-[#2b2d31]"
           )}>
             <AvatarImage src={participant.profile?.avatar_url || undefined} />
             <AvatarFallback className="bg-[#5865f2] text-white text-3xl">
@@ -135,7 +131,7 @@ function VoiceTile({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className={cn(
-              "text-sm font-medium",
+              "text-sm font-medium transition-colors duration-200",
               isSpeaking ? "text-[#23a559]" : "text-white"
             )}>
               {isLocal ? "Tú" : displayName}
@@ -176,11 +172,9 @@ function VoiceTile({
         </div>
       </div>
 
-      {/* Speaking indicator animation */}
+      {/* Speaking glow animation - Discord style */}
       {isSpeaking && (
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 border-2 border-[#23a559] rounded-lg animate-pulse" />
-        </div>
+        <div className="absolute inset-0 pointer-events-none rounded-lg discord-speaking-glow" />
       )}
     </div>
   );
