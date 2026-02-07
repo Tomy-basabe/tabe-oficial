@@ -897,75 +897,91 @@ export function useDiscord() {
    }
     
     if (isVideoEnabled) {
-      // Turn off video
+      // === TURN OFF VIDEO ===
+      // 1. Update React state FIRST (instant UI update for local tile)
+      setIsVideoEnabled(false);
+
+      // 2. Stop and remove video track
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.stop();
         stream.removeTrack(videoTrack);
       }
 
-      // Remove video from all peer connections without renegotiation
+      // 3. Remove video from all peer connections without renegotiation
       peerConnections.current.forEach((pc, peerId) => {
         const transceiver = videoTransceiversRef.current.get(peerId);
         const sender = transceiver?.sender ?? pc.getSenders().find((s) => s.track?.kind === "video") ?? null;
         sender?.replaceTrack(null);
       });
 
-      // Force React re-render with new MediaStream reference
+      // 4. Force React re-render with new MediaStream reference
       const updatedStream = new MediaStream(stream.getTracks());
       localStreamRef.current = updatedStream;
       setLocalStream(updatedStream);
-      setIsVideoEnabled(false);
 
-      // Update database immediately
-      await supabase
+      // 5. Update database (async, no need to block UI)
+      supabase
         .from("discord_voice_participants")
         .update({ is_camera_on: false })
         .eq("channel_id", currentChannel.id)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .then(() => console.log("[Discord] DB: camera off"));
     } else {
-      // Turn on video
+      // === TURN ON VIDEO ===
       try {
         console.log("[Discord] Requesting video...");
         const videoStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 },
+          video: { width: { ideal: 640 }, height: { ideal: 480 } },
         });
         const videoTrack = videoStream.getVideoTracks()[0];
+        console.log("[Discord] Got video track:", {
+          id: videoTrack.id,
+          label: videoTrack.label,
+          readyState: videoTrack.readyState,
+          enabled: videoTrack.enabled,
+        });
 
-        // Add locally so local tile can render
+        // 1. Add video track to the current stream
         stream.addTrack(videoTrack);
-        // Force React re-render with new MediaStream reference (same object won't trigger update)
+
+        // 2. Create a NEW MediaStream so React detects the change
         const updatedStream = new MediaStream(stream.getTracks());
         localStreamRef.current = updatedStream;
+
+        // 3. Update React state FIRST so the local tile renders <video> immediately
+        setIsVideoEnabled(true);
         setLocalStream(updatedStream);
 
-        // Replace on all peer connections using the pre-created video transceiver
+        // 4. Send video to all peers via pre-created transceivers
         peerConnections.current.forEach((pc, peerId) => {
           const transceiver = videoTransceiversRef.current.get(peerId);
           const sender = transceiver?.sender ?? pc.getSenders().find((s) => s.track?.kind === "video") ?? null;
 
           if (sender) {
-            sender.replaceTrack(videoTrack);
+            sender.replaceTrack(videoTrack).then(() => {
+              console.log("[Discord] Replaced video track for peer:", peerId);
+            });
           } else {
-            // Extremely rare fallback; should not happen due to transceiver creation
+            console.warn("[Discord] No video sender for peer:", peerId, "- adding transceiver");
             pc.addTransceiver("video", { direction: "sendrecv" }).sender.replaceTrack(videoTrack);
           }
         });
 
-        setIsVideoEnabled(true);
         console.log("[Discord] Video enabled successfully");
 
-        // Update database
-        await supabase
+        // 5. Update database (async)
+        supabase
           .from("discord_voice_participants")
           .update({ is_camera_on: true })
           .eq("channel_id", currentChannel.id)
-          .eq("user_id", user.id);
-      } catch (error) {
-        console.error("Error enabling video:", error);
+          .eq("user_id", user.id)
+          .then(() => console.log("[Discord] DB: camera on"));
+      } catch (error: any) {
+        console.error("[Discord] Error enabling video:", error);
         toast({
           title: "Error de cámara",
-          description: "No se pudo acceder a la cámara. Verificá los permisos del navegador.",
+          description: `No se pudo acceder a la cámara: ${error?.name || "Error"} - ${error?.message || "desconocido"}`,
           variant: "destructive",
         });
       }

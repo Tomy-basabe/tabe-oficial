@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Mic, MicOff, Video, VideoOff, Monitor } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,7 +27,6 @@ export function DiscordVoiceChannel({
   isScreenSharing,
   localUserId,
 }: DiscordVoiceChannelProps) {
-  // Calculate grid layout based on number of participants
   const totalParticipants = participants.length;
   
   const getGridClass = () => {
@@ -53,6 +52,7 @@ export function DiscordVoiceChannel({
               stream={stream}
               isSpeaking={speakingUsers.has(participant.user_id)}
               isLocal={isLocal}
+              localVideoEnabled={isLocal ? isVideoEnabled : undefined}
             />
           );
         })}
@@ -66,24 +66,49 @@ function VoiceTile({
   stream,
   isSpeaking,
   isLocal,
+  localVideoEnabled,
 }: {
   participant: DiscordVoiceParticipant;
   stream: MediaStream | null;
   isSpeaking: boolean;
   isLocal: boolean;
+  localVideoEnabled?: boolean;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  useEffect(() => {
-    if (!stream) return;
-    if (videoRef.current) videoRef.current.srcObject = stream;
-    if (audioRef.current) audioRef.current.srcObject = stream;
-  }, [stream]);
+  // For the LOCAL user, use the local React state (instant) instead of the DB flag (has latency).
+  // For REMOTE users, use the DB flag since that's all we have.
+  const hasVideoTracks = !!(stream && stream.getVideoTracks().some(t => t.readyState === "live" && t.enabled));
+  const hasVideo = isLocal
+    ? (localVideoEnabled === true && hasVideoTracks)
+    : (participant.is_camera_on && hasVideoTracks);
 
-  const hasVideo = stream && stream.getVideoTracks().length > 0 && participant.is_camera_on;
   const hasAudio = !!(stream && stream.getAudioTracks().length > 0);
   const displayName = participant.profile?.nombre || participant.profile?.username || "Usuario";
+
+  // Use a ref callback for the video element.
+  // This ensures srcObject is assigned the INSTANT the <video> DOM node mounts,
+  // even if the stream reference hasn't changed (which would prevent useEffect from firing).
+  const videoRefCallback = useCallback(
+    (el: HTMLVideoElement | null) => {
+      if (el && stream) {
+        if (el.srcObject !== stream) {
+          el.srcObject = stream;
+          // Ensure playback starts (some browsers block autoplay silently)
+          el.play().catch(() => {});
+        }
+      }
+    },
+    [stream]
+  );
+
+  // Also update srcObject when stream changes on an already-mounted video
+  // (e.g., remote stream arriving while video element is already visible)
+  useEffect(() => {
+    if (audioRef.current && stream) {
+      audioRef.current.srcObject = stream;
+    }
+  }, [stream]);
 
   return (
     <div
@@ -94,7 +119,7 @@ function VoiceTile({
     >
       {hasVideo || participant.is_screen_sharing ? (
         <video
-          ref={videoRef}
+          ref={videoRefCallback}
           autoPlay
           playsInline
           muted={isLocal}
