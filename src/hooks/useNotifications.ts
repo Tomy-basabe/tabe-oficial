@@ -27,7 +27,7 @@ export function useNotifications() {
     // Check if notifications are supported
     const supported = "Notification" in window && "serviceWorker" in navigator;
     setIsSupported(supported);
-    
+
     if (supported) {
       setPermission(Notification.permission);
     }
@@ -48,7 +48,7 @@ export function useNotifications() {
     try {
       const result = await Notification.requestPermission();
       setPermission(result);
-      
+
       if (result === "granted") {
         toast.success("¡Notificaciones activadas!");
         return true;
@@ -90,7 +90,7 @@ export function useNotifications() {
     const now = new Date();
     const [hours, minutes] = settings.reminderTime.split(":").map(Number);
     const reminderTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-    
+
     if (reminderTime <= now) {
       reminderTime.setDate(reminderTime.getDate() + 1);
     }
@@ -125,9 +125,9 @@ export function useNotifications() {
         events.forEach(event => {
           const eventDate = new Date(event.fecha);
           const daysUntil = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-          
+
           const dayText = daysUntil === 0 ? "¡Hoy!" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
-          
+
           sendNotification(`📝 ${event.tipo_examen}: ${event.titulo}`, {
             body: `Tienes un examen ${dayText}. ¡Prepárate!`,
             tag: `exam-${event.fecha}`,
@@ -151,6 +151,10 @@ export function useNotifications() {
     if (permission === "granted") {
       scheduleStudyReminder();
       checkUpcomingExams();
+
+      // Re-check exams every 6 hours
+      const examInterval = setInterval(checkUpcomingExams, 6 * 60 * 60 * 1000);
+      return () => clearInterval(examInterval);
     }
   }, [permission, scheduleStudyReminder, checkUpcomingExams]);
 

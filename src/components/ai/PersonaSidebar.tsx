@@ -1,4 +1,4 @@
-import { Plus, Trash2, MessageSquare, MessageCircle, Bot } from "lucide-react";
+import { Plus, Trash2, MessageSquare, MessageCircle, Bot, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ interface PersonaSidebarProps {
     onSelectSession: (id: string) => void;
     onNewChat: () => void;
     onDeleteSession: (id: string) => void;
+    onClearAllSessions?: () => void;
     isOpen: boolean;
 }
 
@@ -29,6 +30,7 @@ export function PersonaSidebar({
     onSelectSession,
     onNewChat,
     onDeleteSession,
+    onClearAllSessions,
     isOpen,
 }: PersonaSidebarProps) {
     if (!isOpen) return null;
@@ -97,14 +99,25 @@ export function PersonaSidebar({
             </div>
 
             {/* Chat sessions section */}
-            <div className="p-3 border-b border-border/40">
+            <div className="p-3 border-b border-border/40 flex gap-2">
                 <Button
                     onClick={onNewChat}
-                    className="w-full justify-start gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-none shadow-none font-medium text-xs h-8"
+                    className="flex-1 justify-start gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-none shadow-none font-medium text-xs h-8"
                     variant="outline"
                 >
                     <Plus className="w-3.5 h-3.5" /> Nuevo Chat
                 </Button>
+                {sessions.length > 0 && onClearAllSessions && (
+                    <Button
+                        onClick={onClearAllSessions}
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        title="Borrar todo el historial"
+                    >
+                        <Eraser className="w-3.5 h-3.5" />
+                    </Button>
+                )}
             </div>
 
             <ScrollArea className="flex-1 px-3 py-2">

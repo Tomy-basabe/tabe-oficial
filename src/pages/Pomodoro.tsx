@@ -56,7 +56,9 @@ export default function Pomodoro() {
     progress,
     selectedSubject,
     setSelectedSubject,
-    completedPomodoros
+    completedPomodoros,
+    settings: pomodoroSettings,
+    updateSettings,
   } = usePomodoro();
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -221,7 +223,15 @@ export default function Pomodoro() {
                   <Play className="w-8 h-8 ml-1" />
                 )}
               </button>
-              {/* Settings could integrate with context settings if needed, hidden for now as context uses defaults */}
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={cn(
+                  "p-3 rounded-xl transition-colors",
+                  showSettings ? "bg-primary/20 text-primary" : "bg-secondary hover:bg-secondary/80"
+                )}
+              >
+                <Settings className="w-6 h-6" />
+              </button>
             </div>
 
             {/* Pomodoros Counter */}
@@ -318,6 +328,18 @@ export default function Pomodoro() {
               )}
             </div>
           </div>
+
+          {/* Settings Panel */}
+          {showSettings && (
+            <div className="card-gamer rounded-xl">
+              <PomodoroSettings
+                settings={pomodoroSettings}
+                onSettingsChange={updateSettings}
+                onClose={() => setShowSettings(false)}
+                isRunning={isActive}
+              />
+            </div>
+          )}
 
           <div className="card-gamer rounded-xl p-5">
             <p className="text-xs text-muted-foreground text-center">

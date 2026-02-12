@@ -139,6 +139,18 @@ export default function AIAssistant() {
     }
   };
 
+  const handleClearAllSessions = async () => {
+    if (!activePersona) return;
+    const toDelete = [...sessions];
+    let count = 0;
+    for (const s of toDelete) {
+      const ok = await deleteSession(s.id);
+      if (ok) count++;
+    }
+    handleNewChat();
+    toast.success(`${count} conversación(es) eliminadas`);
+  };
+
   // ---- File upload ----
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -306,6 +318,7 @@ export default function AIAssistant() {
         onSelectSession={handleSelectSession}
         onNewChat={handleNewChat}
         onDeleteSession={handleDeleteSession}
+        onClearAllSessions={handleClearAllSessions}
         isOpen={isSidebarOpen}
       />
 

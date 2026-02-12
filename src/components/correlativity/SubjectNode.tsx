@@ -2,38 +2,53 @@
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { cn } from '@/lib/utils';
-import { Sparkles, Trophy, Lock, CheckCircle, Clock, BookOpen, X } from 'lucide-react';
+import { Trophy, Lock, CheckCircle, Clock, BookOpen, X } from 'lucide-react';
 
 const statusStyles = {
     aprobada: {
-        base: "bg-green-500/10 border-green-500",
-        text: "text-green-500",
+        ring: "ring-green-500/60",
+        bg: "bg-green-500/15",
+        dot: "bg-green-400",
+        text: "text-green-400",
         icon: CheckCircle,
-        glow: "shadow-[0_0_15px_rgba(34,197,94,0.3)]",
+        glow: "shadow-[0_0_20px_rgba(34,197,94,0.25)]",
+        handleColor: "!bg-green-400",
     },
     regular: {
-        base: "bg-cyan-500/10 border-cyan-500",
-        text: "text-cyan-500",
+        ring: "ring-cyan-500/60",
+        bg: "bg-cyan-500/15",
+        dot: "bg-cyan-400",
+        text: "text-cyan-400",
         icon: Clock,
-        glow: "shadow-[0_0_15px_rgba(6,182,212,0.3)]",
+        glow: "shadow-[0_0_20px_rgba(6,182,212,0.25)]",
+        handleColor: "!bg-cyan-400",
     },
     cursable: {
-        base: "bg-blue-500/10 border-blue-500",
-        text: "text-blue-500",
+        ring: "ring-blue-500/60",
+        bg: "bg-blue-500/15",
+        dot: "bg-blue-400",
+        text: "text-blue-400",
         icon: BookOpen,
-        glow: "shadow-[0_0_15px_rgba(59,130,246,0.3)]",
+        glow: "shadow-[0_0_20px_rgba(59,130,246,0.25)]",
+        handleColor: "!bg-blue-400",
     },
     bloqueada: {
-        base: "bg-muted/30 border-muted-foreground/30",
-        text: "text-muted-foreground",
+        ring: "ring-zinc-600/40",
+        bg: "bg-zinc-800/30",
+        dot: "bg-zinc-500",
+        text: "text-zinc-500",
         icon: Lock,
         glow: "",
+        handleColor: "!bg-zinc-500",
     },
     recursar: {
-        base: "bg-red-500/10 border-red-500",
-        text: "text-red-500",
+        ring: "ring-red-500/60",
+        bg: "bg-red-500/15",
+        dot: "bg-red-400",
+        text: "text-red-400",
         icon: X,
-        glow: "shadow-[0_0_15px_rgba(239,68,68,0.3)]",
+        glow: "shadow-[0_0_20px_rgba(239,68,68,0.25)]",
+        handleColor: "!bg-red-400",
     },
 };
 
@@ -48,64 +63,69 @@ export const SubjectNode = memo(({ data }: NodeProps) => {
     if (isFinalProject) {
         return (
             <div className="relative group">
-                <Handle type="target" position={Position.Left} className="!bg-yellow-400 !w-3 !h-3 !-left-1.5" />
+                <Handle type="target" position={Position.Left} className="!bg-yellow-400 !w-2.5 !h-2.5 !border-0 !-left-1" />
                 <div className={cn(
-                    "w-[240px] p-4 rounded-xl border-2 transition-all duration-300",
-                    "bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-yellow-400",
-                    "shadow-[0_0_30px_rgba(250,204,21,0.4)] hover:shadow-[0_0_50px_rgba(250,204,21,0.6)]",
-                    "hover:scale-105 backdrop-blur-xl"
+                    "relative w-[200px] p-4 rounded-2xl border border-yellow-500/40 transition-all duration-500",
+                    "bg-gradient-to-br from-yellow-500/10 via-amber-500/5 to-orange-500/10",
+                    "shadow-[0_0_30px_rgba(250,204,21,0.2)] hover:shadow-[0_0_50px_rgba(250,204,21,0.4)]",
+                    "hover:scale-105 backdrop-blur-xl ring-1 ring-yellow-500/30",
                 )}>
-                    <div className="absolute -top-3 -right-3 animate-bounce">
-                        <div className="bg-yellow-400 text-black p-1.5 rounded-full shadow-lg">
-                            <Trophy className="w-5 h-5" />
+                    <div className="absolute -top-2.5 -right-2.5">
+                        <div className="bg-gradient-to-br from-yellow-400 to-amber-500 text-black p-1.5 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse">
+                            <Trophy className="w-3.5 h-3.5" />
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 mb-2">
-                        <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
-                        <span className="text-xs font-bold text-yellow-400 tracking-wider uppercase">Meta Final</span>
+                    <div className="text-[10px] font-mono text-yellow-500/70 uppercase tracking-widest mb-1">
+                        {data.codigo as string}
                     </div>
 
-                    <div className="text-lg font-display font-bold text-foreground leading-tight">
+                    <div className="text-sm font-display font-bold text-foreground leading-tight">
                         {data.label as string}
                     </div>
 
-                    <div className="mt-2 text-xs text-yellow-500/80 font-mono">
-                        {data.codigo as string}
+                    <div className="mt-2 flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                        <span className="text-[10px] text-yellow-400/80 font-semibold uppercase tracking-wider">Meta Final</span>
                     </div>
                 </div>
+                <Handle type="source" position={Position.Right} className="!bg-yellow-400 !w-2.5 !h-2.5 !border-0 !-right-1" />
             </div>
         );
     }
 
     return (
         <div className="relative group">
-            <Handle type="target" position={Position.Left} className={cn("!w-2 !h-2 transition-colors", style.text)} />
+            <Handle type="target" position={Position.Left} className={cn("!w-2 !h-2 !border-0 !-left-1", style.handleColor)} />
 
             <div className={cn(
-                "w-[180px] p-3 rounded-lg border backdrop-blur-md transition-all duration-300",
-                style.base,
-                style.glow,
-                "group-hover:scale-105 group-hover:border-opacity-100 border-opacity-60"
+                "w-[170px] p-3 rounded-xl border border-white/[0.06] backdrop-blur-md transition-all duration-300",
+                "ring-1", style.ring, style.bg, style.glow,
+                "group-hover:scale-[1.04] group-hover:ring-2",
             )}>
-                <div className="flex justify-between items-start gap-2">
-                    <div className="font-semibold text-sm text-foreground line-clamp-2 leading-tight">
-                        {data.label as string}
-                    </div>
-                    <Icon className={cn("w-4 h-4 flex-shrink-0 mt-0.5", style.text)} />
+                {/* Status dot + code */}
+                <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", style.dot)} />
+                    <span className="text-[10px] font-mono opacity-50 uppercase tracking-wider truncate">{data.codigo as string}</span>
+                    <Icon className={cn("w-3 h-3 flex-shrink-0 ml-auto opacity-70", style.text)} />
                 </div>
 
-                <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[10px] font-mono opacity-60 uppercase">{data.codigo as string}</span>
-                    {status === 'aprobada' && data.nota && (
-                        <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
-                            Nota: {data.nota}
-                        </span>
-                    )}
+                {/* Name */}
+                <div className="font-semibold text-[13px] text-foreground line-clamp-2 leading-snug">
+                    {data.label as string}
                 </div>
+
+                {/* Nota badge */}
+                {status === 'aprobada' && data.nota && (
+                    <div className="mt-1.5">
+                        <span className="text-[9px] font-bold bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
+                            {data.nota as number}/10
+                        </span>
+                    </div>
+                )}
             </div>
 
-            <Handle type="source" position={Position.Right} className={cn("!w-2 !h-2 transition-colors", style.text)} />
+            <Handle type="source" position={Position.Right} className={cn("!w-2 !h-2 !border-0 !-right-1", style.handleColor)} />
         </div>
     );
 });

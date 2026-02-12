@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "./useSubjects";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
+
+// Helper: format Date as YYYY-MM-DD in local timezone (avoids UTC offset issues)
+const toLocalDateStr = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 interface StudySession {
   id: string;
   duracion_segundos: number;
@@ -45,15 +53,14 @@ export function useDashboardStats() {
         .eq("user_id", user.id)
         .single();
 
-      // Fetch study sessions for the last 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const { data: sessionsData } = await supabase
         .from("study_sessions")
         .select("*")
         .eq("user_id", user.id)
-        .gte("fecha", thirtyDaysAgo.toISOString().split('T')[0])
+        .gte("fecha", toLocalDateStr(thirtyDaysAgo))
         .order("fecha", { ascending: false });
 
       setUserStats(statsData);
@@ -100,7 +107,7 @@ export function useDashboardStats() {
   };
 
   // Calculate progress percentage
-  const progressPercentage = subjectStats.total > 0 
+  const progressPercentage = subjectStats.total > 0
     ? Math.round((subjectStats.aprobadas / subjectStats.total) * 100)
     : 0;
 
@@ -133,11 +140,11 @@ export function useDashboardStats() {
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
-      
+      const dateStr = toLocalDateStr(date);
+
       const daySessions = studySessions.filter(s => s.fecha === dateStr);
       const totalMinutes = Math.round(daySessions.reduce((acc, s) => acc + s.duracion_segundos, 0) / 60);
-      
+
       weekData.push({
         day: days[(date.getDay())],
         studied: totalMinutes > 0,
@@ -155,7 +162,7 @@ export function useDashboardStats() {
     return years.map(year => {
       const yearSubjects = subjects.filter(s => s.año === year);
       const yearApproved = yearSubjects.filter(s => s.status === "aprobada").length;
-      const percentage = yearSubjects.length > 0 
+      const percentage = yearSubjects.length > 0
         ? Math.round((yearApproved / yearSubjects.length) * 100)
         : 0;
       return { year, total: yearSubjects.length, approved: yearApproved, percentage };
@@ -168,7 +175,7 @@ export function useDashboardStats() {
     const cursables = subjects.filter(s => s.status === "cursable").slice(0, 3);
     const regulares = subjects.filter(s => s.status === "regular").slice(0, 2);
     const aprobadas = subjects.filter(s => s.status === "aprobada").slice(0, 2);
-    
+
     return [...cursables, ...regulares, ...aprobadas].slice(0, 6);
   };
 

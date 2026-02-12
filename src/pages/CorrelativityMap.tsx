@@ -62,15 +62,15 @@ const nodeTypes = {
     subject: SubjectNode,
 };
 
-// Layout configuration
-const nodeWidth = 250;
-const nodeHeight = 100;
+// Layout configuration — smaller nodes for a tighter neural look
+const nodeWidth = 190;
+const nodeHeight = 80;
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-    dagreGraph.setGraph({ rankdir: direction });
+    dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 120 });
 
     nodes.forEach((node) => {
         dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -136,10 +136,10 @@ function CorrelativityMapContent() {
                             id: `e-${dep.requiere_aprobada}-${subject.id}`,
                             source: dep.requiere_aprobada,
                             target: subject.id,
-                            type: 'default', // Bezier by default in recent versions or 'default'
+                            type: 'smoothstep',
                             animated: true,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: '#22c55e' },
-                            style: { stroke: '#22c55e', strokeWidth: 2, opacity: 0.8 },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: '#4ade80', width: 14, height: 14 },
+                            style: { stroke: '#4ade80', strokeWidth: 1.5, opacity: 0.6 },
                         });
                     }
                     if (dep.requiere_regular) {
@@ -147,10 +147,10 @@ function CorrelativityMapContent() {
                             id: `e-${dep.requiere_regular}-${subject.id}`,
                             source: dep.requiere_regular,
                             target: subject.id,
-                            type: 'default',
+                            type: 'smoothstep',
                             animated: true,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: '#06b6d4' },
-                            style: { stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5,5', opacity: 0.8 },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: '#22d3ee', width: 14, height: 14 },
+                            style: { stroke: '#22d3ee', strokeWidth: 1.5, strokeDasharray: '6,4', opacity: 0.5 },
                         });
                     }
                 });
@@ -180,21 +180,21 @@ function CorrelativityMapContent() {
                 <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="bg-background/50 backdrop-blur hover:bg-background">
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <Card className="px-4 py-2 bg-background/50 backdrop-blur border-border/50 shadow-sm flex items-center gap-4">
+                <Card className="px-4 py-2 bg-background/60 backdrop-blur-xl border-border/30 shadow-2xl flex items-center gap-4">
                     <h1 className="font-bold text-lg gradient-text flex items-center gap-2">
                         <Zap className="text-neon-gold w-4 h-4" />
-                        Mapa de Correlatividades
+                        Mapa Neural
                     </h1>
                 </Card>
             </div>
 
             {/* Legend */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
-                <Card className="px-4 py-2 bg-background/80 backdrop-blur border-border/50 shadow-lg flex gap-4 text-xs rounded-full">
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>Aprobada</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>Regular</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>Cursable</div>
-                    <div className="flex items-center gap-1.5 opacity-50"><div className="w-2 h-2 rounded-full bg-gray-500"></div>Bloqueada</div>
+                <Card className="px-5 py-2.5 bg-background/70 backdrop-blur-xl border-border/30 shadow-2xl flex gap-5 text-xs rounded-full">
+                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]"></div><span className="text-muted-foreground">Aprobada</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]"></div><span className="text-muted-foreground">Regular</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]"></div><span className="text-muted-foreground">Cursable</span></div>
+                    <div className="flex items-center gap-1.5 opacity-40"><div className="w-2 h-2 rounded-full bg-zinc-500"></div><span className="text-muted-foreground">Bloqueada</span></div>
                 </Card>
             </div>
 
@@ -206,15 +206,16 @@ function CorrelativityMapContent() {
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     fitView
+                    fitViewOptions={{ padding: 0.2 }}
                     className="bg-background"
                     colorMode="dark"
                     minZoom={0.1}
                     proOptions={{ hideAttribution: true }}
                     defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
                 >
-                    <Controls className="bg-card border-border text-foreground fill-foreground" position="bottom-right" />
-                    <MiniMap className="bg-card border-border" nodeColor="#10b981" maskColor="rgba(0,0,0,0.6)" position="bottom-left" />
-                    <Background gap={25} size={1} color="#444" variant={BackgroundVariant.Dots} />
+                    <Controls className="bg-card/80 backdrop-blur border-border/50 rounded-xl text-foreground fill-foreground" position="bottom-right" />
+                    <MiniMap className="bg-card/60 backdrop-blur border-border/50 rounded-xl" nodeColor="#4ade80" maskColor="rgba(0,0,0,0.7)" position="bottom-left" />
+                    <Background gap={30} size={1} color="rgba(255,255,255,0.03)" variant={BackgroundVariant.Dots} />
                 </ReactFlow>
             </div>
         </div>

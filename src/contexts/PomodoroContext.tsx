@@ -6,10 +6,32 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export type TimerMode = "work" | "shortBreak" | "longBreak";
 
-const TIMER_MODES = {
-    work: { label: "Trabajo", minutes: 25 }, // Changed 'focus' to 'work' to match page logic
-    shortBreak: { label: "Descanso Corto", minutes: 5 },
-    longBreak: { label: "Descanso Largo", minutes: 15 },
+export interface PomodoroSettings {
+    work: number;
+    shortBreak: number;
+    longBreak: number;
+    longBreakInterval: number;
+}
+
+const STORAGE_KEY = "pomodoro-settings";
+
+const DEFAULT_SETTINGS: PomodoroSettings = {
+    work: 25,
+    shortBreak: 5,
+    longBreak: 15,
+    longBreakInterval: 4,
+};
+
+const loadSettings = (): PomodoroSettings => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+    } catch { /* fallback */ }
+    return DEFAULT_SETTINGS;
+};
+
+const getMinutesForMode = (mode: TimerMode, settings: PomodoroSettings): number => {
+    return settings[mode];
 };
 
 const MOTIVATIONAL_QUOTES = [
@@ -34,14 +56,17 @@ interface PomodoroContextType {
     formatTime: (seconds: number) => string;
     progress: number;
     completedPomodoros: number;
+    settings: PomodoroSettings;
+    updateSettings: (newSettings: PomodoroSettings) => void;
 }
 
 const PomodoroContext = createContext<PomodoroContextType | undefined>(undefined);
 
 export function PomodoroProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
+    const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettings>(loadSettings);
     const [mode, setMode] = useState<TimerMode>("work");
-    const [timeLeft, setTimeLeft] = useState(TIMER_MODES.work.minutes * 60);
+    const [timeLeft, setTimeLeft] = useState(pomodoroSettings.work * 60);
     const [isActive, setIsActive] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -62,6 +87,31 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             fetchToday();
         }
     }, [user]);
+
+    // Listen for localStorage changes from Settings page
+    useEffect(() => {
+        const onStorage = (e: StorageEvent) => {
+            if (e.key === STORAGE_KEY && e.newValue) {
+                try {
+                    const newSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(e.newValue) };
+                    setPomodoroSettings(newSettings);
+                    if (!isActive) {
+                        setTimeLeft(getMinutesForMode(mode, newSettings) * 60);
+                    }
+                } catch { /* ignore */ }
+            }
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+    }, [isActive, mode]);
+
+    const updateSettings = (newSettings: PomodoroSettings) => {
+        setPomodoroSettings(newSettings);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+        if (!isActive) {
+            setTimeLeft(getMinutesForMode(mode, newSettings) * 60);
+        }
+    };
 
     // Timer Tick
     useEffect(() => {
@@ -105,7 +155,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                     duracion_segundos: elapsedSeconds,
                     tipo: "pomodoro",
                     completada: completed,
-                    fecha: new Date().toISOString().split('T')[0],
+                    fecha: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
                 });
 
             if (error) throw error;
@@ -157,7 +207,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         } else {
             toast.info("Descanso terminado. ¡A volver!");
             setMode("work");
-            setTimeLeft(TIMER_MODES.work.minutes * 60);
+            setTimeLeft(pomodoroSettings.work * 60);
         }
     };
 
@@ -166,7 +216,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const resetTimer = () => {
         if (mode === "work" && elapsedSeconds > 60) saveCurrentSession(false);
         setIsActive(false);
-        setTimeLeft(TIMER_MODES[mode].minutes * 60);
+        setTimeLeft(getMinutesForMode(mode, pomodoroSettings) * 60);
         setElapsedSeconds(0);
     };
 
@@ -174,7 +224,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         if (mode === "work" && isActive && elapsedSeconds > 0) saveCurrentSession(false);
         setMode(newMode);
         setIsActive(false);
-        setTimeLeft(TIMER_MODES[newMode].minutes * 60);
+        setTimeLeft(getMinutesForMode(newMode, pomodoroSettings) * 60);
         setElapsedSeconds(0);
     };
 
@@ -184,7 +234,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     };
 
-    const totalTime = TIMER_MODES[mode].minutes * 60;
+    const totalTime = getMinutesForMode(mode, pomodoroSettings) * 60;
     const progress = ((totalTime - timeLeft) / totalTime) * 100;
 
     return (
@@ -201,7 +251,9 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             setSelectedSubject,
             formatTime,
             progress,
-            completedPomodoros
+            completedPomodoros,
+            settings: pomodoroSettings,
+            updateSettings,
         }}>
             {children}
         </PomodoroContext.Provider>
