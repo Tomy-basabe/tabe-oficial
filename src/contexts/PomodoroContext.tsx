@@ -112,11 +112,21 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
             // Update user stats (XP)
             const hours = Math.floor(elapsedSeconds / 3600);
-            const xpGained = Math.floor(elapsedSeconds / 60) * 2;
+            let xpGained = Math.floor(elapsedSeconds / 60) * 2;
 
             const { data: stats } = await supabase.from("user_stats").select("*").eq("user_id", user.id).single();
             if (stats) {
                 const currentStats = stats as any;
+
+                // Check for active XP multiplier
+                if (currentStats.xp_multiplier && currentStats.xp_multiplier > 1) {
+                    const endDate = currentStats.xp_multiplier_ends_at ? new Date(currentStats.xp_multiplier_ends_at) : null;
+                    if (endDate && endDate > new Date()) {
+                        xpGained = Math.floor(xpGained * currentStats.xp_multiplier);
+                        toast.info(`¡XP Boost activo! Ganaste ${xpGained} XP (x${currentStats.xp_multiplier})`);
+                    }
+                }
+
                 await supabase.from("user_stats").update({
                     horas_estudio_total: currentStats.horas_estudio_total + hours,
                     xp_total: currentStats.xp_total + xpGained,

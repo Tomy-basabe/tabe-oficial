@@ -22,6 +22,26 @@ interface MarketplaceItem {
 
 const ITEMS: MarketplaceItem[] = [
     {
+        id: "xp_boost_1h",
+        type: "xp_boost" as any,
+        name: "Potenciador de XP (1h)",
+        description: "Duplica tu experiencia ganada por 1 hora. ¡Sube de nivel más rápido!",
+        cost: 600,
+        icon: Zap,
+        color: "text-amber-500",
+        gradient: "from-amber-500 to-orange-600"
+    },
+    {
+        id: "mystery_box",
+        type: "mystery_box" as any,
+        name: "Caja Misteriosa",
+        description: "Contiene entre 500 y 5000 créditos. ¿Te sientes con suerte?",
+        cost: 1000,
+        icon: Package,
+        color: "text-pink-500",
+        gradient: "from-pink-500 to-rose-600"
+    },
+    {
         id: "instant_grow",
         type: "instant_grow",
         name: "Poción de Crecimiento",
@@ -267,7 +287,6 @@ export function MarketplaceModal() {
                                     </div>
                                 </div>
                             ))}
-                            <Loader2 className="w-12 h-12 animate-spin text-primary opacity-20" />
                         </div>
                     ) : userInventory.length === 0 ? (
                         <div className="py-12 text-center bg-secondary/10 rounded-xl border border-dashed border-border">
