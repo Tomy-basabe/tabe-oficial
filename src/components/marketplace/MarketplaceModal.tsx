@@ -208,153 +208,145 @@ export function MarketplaceModal() {
                                 <div
                                     key={item.id}
                                     className={cn(
-                                        <div className={cn(
-                                            "relative group overflow-hidden rounded-xl border border-border/50 bg-secondary/20 hover:border-neon-gold/30 transition-all duration-300",
-                                            credits >= item.cost ? "hover:scale-[1.02] hover:bg-secondary/40" : "opacity-80"
-                                        )}
-                                        >
-                                            {/* Background Glow */}
+                                        "relative group overflow-hidden rounded-xl border border-border/50 bg-secondary/20 hover:border-neon-gold/30 transition-all duration-300",
+                                        credits >= item.cost ? "hover:scale-[1.02] hover:bg-secondary/40" : "opacity-80"
+                                    )}
+                                >
+                                    {/* Background Glow */}
+                                    <div className={cn(
+                                        "absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br",
+                                        item.gradient
+                                    )} />
+
+                                    <div className="p-5 flex flex-col h-full relative z-10">
+                                        <div className="flex justify-between items-start mb-4">
                                             <div className={cn(
-                                                "absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br",
-                                                item.gradient
-                                            )} />
-
-                                            <div className="p-5 flex flex-col h-full relative z-10">
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div className={cn(
-                                                        "w-12 h-12 rounded-xl flex items-center justify-center bg-background border border-border/50 shadow-inner",
-                                                        item.color
-                                                    )}>
-                                                        <item.icon className="w-6 h-6" />
-                                                    </div>
-                                                    <div className={cn(
-                                                        "px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1",
-                                                        credits >= item.cost
-                                                            ? "bg-neon-gold/10 text-neon-gold border-neon-gold/30"
-                                                            : "bg-destructive/10 text-destructive border-destructive/30"
-                                                    )}>
-                                                        {item.cost} <Coins className="w-3 h-3" />
-                                                    </div>
-                                                </div>
-
-                                                <h3 className="font-bold text-lg mb-2">{item.name}</h3>
-                                                <p className="text-sm text-muted-foreground mb-6 flex-grow">
-                                                    {item.description}
-                                                </p>
-
-                                                <Button
-                                                    className={cn(
-                                                        "w-full font-bold transition-all",
-                                                        credits >= item.cost
-                                                            ? "bg-gradient-to-r hover:opacity-90 text-white shadow-lg"
-                                                            : "bg-secondary text-muted-foreground cursor-not-allowed",
-                                                        item.gradient
-                                                    )}
-                                                    disabled={credits < item.cost || purchasing === item.id}
-                                                    onClick={() => handlePurchase(item)}
-                                                >
-                                                    {purchasing === item.id ? (
-                                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                                    ) : credits >= item.cost ? (
-                                                        <>
-                                                            Comprar <Check className="w-4 h-4 ml-2" />
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            Insuficiente <AlertCircle className="w-4 h-4 ml-2" />
-                                                        </>
-                                                    )}
-                                                </Button>
+                                                "w-12 h-12 rounded-xl flex items-center justify-center bg-background border border-border/50 shadow-inner",
+                                                item.color
+                                            )}>
+                                                <item.icon className="w-6 h-6" />
+                                            </div>
+                                            <div className={cn(
+                                                "px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1",
+                                                credits >= item.cost
+                                                    ? "bg-neon-gold/10 text-neon-gold border-neon-gold/30"
+                                                    : "bg-destructive/10 text-destructive border-destructive/30"
+                                            )}>
+                                                {item.cost} <Coins className="w-3 h-3" />
                                             </div>
                                         </div>
-                                    ))}
+
+                                        <h3 className="font-bold text-lg mb-2">{item.name}</h3>
+                                        <p className="text-sm text-muted-foreground mb-6 flex-grow">
+                                            {item.description}
+                                        </p>
+
+                                        <Button
+                                            className={cn(
+                                                "w-full font-bold transition-all",
+                                                credits >= item.cost
+                                                    ? "bg-gradient-to-r hover:opacity-90 text-white shadow-lg"
+                                                    : "bg-secondary text-muted-foreground cursor-not-allowed",
+                                                item.gradient
+                                            )}
+                                            disabled={credits < item.cost || purchasing === item.id}
+                                            onClick={() => handlePurchase(item)}
+                                        >
+                                            {purchasing === item.id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : credits >= item.cost ? (
+                                                <>
+                                                    Comprar <Check className="w-4 h-4 ml-2" />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Insuficiente <AlertCircle className="w-4 h-4 ml-2" />
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                            <Loader2 className="w-12 h-12 animate-spin text-primary opacity-20" />
+                        </div>
+                    ) : userInventory.length === 0 ? (
+                        <div className="py-12 text-center bg-secondary/10 rounded-xl border border-dashed border-border">
+                            <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-20" />
+                            <p className="text-muted-foreground">Tu inventario está vacío</p>
+                            <Button
+                                variant="link"
+                                onClick={() => setView('tienda')}
+                                className="text-neon-cyan mt-2"
+                            >
+                                Ir a la tienda
+                            </Button>
                         </div>
                     ) : (
-                        <div className="space-y-4 mt-4">
-                            {loadingInventory ? (
-                                <div className="py-12 flex justify-center">
-                                    <Loader2 className="w-12 h-12 animate-spin text-primary opacity-20" />
-                                </div>
-                            ) : userInventory.length === 0 ? (
-                                <div className="py-12 text-center bg-secondary/10 rounded-xl border border-dashed border-border">
-                                    <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-20" />
-                                    <p className="text-muted-foreground">Tu inventario está vacío</p>
-                                    <Button
-                                        variant="link"
-                                        onClick={() => setView('tienda')}
-                                        className="text-neon-cyan mt-2"
+                        <div className="grid grid-cols-1 gap-3">
+                            {userInventory.map((invItem) => {
+                                const itemDetails = ITEMS.find(i => i.id === invItem.item_id);
+                                if (!itemDetails) return null;
+
+                                return (
+                                    <div
+                                        key={invItem.id}
+                                        className="flex items-center justify-between p-4 bg-secondary/20 rounded-xl border border-border group hover:border-border/80 transition-all"
                                     >
-                                        Ir a la tienda
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 gap-3">
-                                    {userInventory.map((invItem) => {
-                                        const itemDetails = ITEMS.find(i => i.id === invItem.item_id);
-                                        if (!itemDetails) return null;
-
-                                        return (
-                                            <div
-                                                key={invItem.id}
-                                                className="flex items-center justify-between p-4 bg-secondary/20 rounded-xl border border-border group hover:border-border/80 transition-all"
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className={cn(
-                                                        "w-12 h-12 rounded-lg flex items-center justify-center bg-background border border-border shadow-sm",
-                                                        itemDetails.color
-                                                    )}>
-                                                        <itemDetails.icon className="w-6 h-6" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-bold">{itemDetails.name}</h4>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                                                                {invItem.quantity} disponible(s)
-                                                            </Badge>
-                                                            <p className="text-xs text-muted-foreground italic truncate max-w-[200px]">
-                                                                {itemDetails.description}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    {itemDetails.type === 'fertilizer' || itemDetails.type === 'instant_grow' ? (
-                                                        <Button
-                                                            size="sm"
-                                                            className={cn(
-                                                                "font-bold h-9 transition-transform active:scale-95",
-                                                                itemDetails.type === 'instant_grow'
-                                                                    ? "bg-purple-600 hover:bg-purple-700 text-white"
-                                                                    : "bg-neon-green hover:bg-neon-green/90 text-black"
-                                                            )}
-                                                            onClick={() => useItem(invItem.item_type, invItem.item_id)}
-                                                        >
-                                                            Usar
-                                                        </Button>
-                                                    ) : itemDetails.type === 'theme' || itemDetails.type === 'badge' ? (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className={cn(
-                                                                "h-9 transition-all",
-                                                                itemDetails.type === 'theme' ? "border-neon-gold text-neon-gold hover:bg-neon-gold/10" : "border-neon-purple text-neon-purple hover:bg-neon-purple/10"
-                                                            )}
-                                                            onClick={() => equipItem(invItem.item_id, itemDetails.type)}
-                                                        >
-                                                            Equipar
-                                                        </Button>
-                                                    ) : (
-                                                        <Badge variant="outline" className="text-xs text-muted-foreground">
-                                                            {itemDetails.type === 'streak_freeze' ? "Auto-consumible" : "Perfil"}
-                                                        </Badge>
-                                                    )}
+                                        <div className="flex items-center gap-4">
+                                            <div className={cn(
+                                                "w-12 h-12 rounded-lg flex items-center justify-center bg-background border border-border shadow-sm",
+                                                itemDetails.color
+                                            )}>
+                                                <itemDetails.icon className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold">{itemDetails.name}</h4>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                                        {invItem.quantity} disponible(s)
+                                                    </Badge>
+                                                    <p className="text-xs text-muted-foreground italic truncate max-w-[200px]">
+                                                        {itemDetails.description}
+                                                    </p>
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {itemDetails.type === 'fertilizer' || itemDetails.type === 'instant_grow' ? (
+                                                <Button
+                                                    size="sm"
+                                                    className={cn(
+                                                        "font-bold h-9 transition-transform active:scale-95",
+                                                        itemDetails.type === 'instant_grow'
+                                                            ? "bg-purple-600 hover:bg-purple-700 text-white"
+                                                            : "bg-neon-green hover:bg-neon-green/90 text-black"
+                                                    )}
+                                                    onClick={() => useItem(invItem.item_type, invItem.item_id)}
+                                                >
+                                                    Usar
+                                                </Button>
+                                            ) : itemDetails.type === 'theme' || itemDetails.type === 'badge' ? (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "h-9 transition-all",
+                                                        itemDetails.type === 'theme' ? "border-neon-gold text-neon-gold hover:bg-neon-gold/10" : "border-neon-purple text-neon-purple hover:bg-neon-purple/10"
+                                                    )}
+                                                    onClick={() => equipItem(invItem.item_id, itemDetails.type)}
+                                                >
+                                                    Equipar
+                                                </Button>
+                                            ) : (
+                                                <Badge variant="outline" className="text-xs text-muted-foreground">
+                                                    {itemDetails.type === 'streak_freeze' ? "Auto-consumible" : "Perfil"}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
