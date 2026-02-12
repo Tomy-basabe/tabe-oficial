@@ -12,7 +12,11 @@ import {
   Calendar,
   TrendingUp,
   Loader2,
-  XCircle
+  XCircle,
+  Flower2,
+  TreePine,
+  Palmtree,
+  Map as MapleIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -187,6 +191,11 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
   const fullDaysUntilDeath = Math.floor(daysUntilDeath);
   const isInGracePeriod = daysUntilVulnerable > 0;
 
+  const isFertilized = plant.fertilizer_ends_at && new Date(plant.fertilizer_ends_at) > now;
+  const fertilizerMsLeft = isFertilized ? new Date(plant.fertilizer_ends_at!).getTime() - now.getTime() : 0;
+  const fertilizerHoursLeft = Math.floor(fertilizerMsLeft / (1000 * 60 * 60));
+  const fertilizerMinutesLeft = Math.floor((fertilizerMsLeft % (1000 * 60 * 60)) / (1000 * 60));
+
   return (
     <div className="text-center space-y-6">
       {/* Main plant visualization */}
@@ -203,6 +212,13 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
             ✨
           </div>
         )}
+
+        {isFertilized && (
+          <div className="absolute -bottom-2 right-1/2 translate-x-1/2 flex items-center gap-1 bg-neon-green/90 text-black px-2 py-0.5 rounded-full text-[10px] font-bold shadow-lg animate-pulse">
+            <Leaf className="w-3 h-3 fill-black" />
+            2x GROWTH
+          </div>
+        )}
       </div>
 
       {/* Status */}
@@ -213,6 +229,13 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
         <p className="text-muted-foreground text-sm">
           {daysAlive === 0 ? "Plantada hoy" : `${daysAlive} días creciendo`}
         </p>
+
+        {isFertilized && (
+          <div className="mt-2 flex items-center justify-center gap-2 text-xs text-neon-green font-medium">
+            <Droplets className="w-3 h-3" />
+            Vence en {fertilizerHoursLeft}h {fertilizerMinutesLeft}m
+          </div>
+        )}
       </div>
 
       {/* Progress */}

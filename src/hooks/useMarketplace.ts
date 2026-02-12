@@ -46,6 +46,14 @@ interface SubjectData {
   year: number;
 }
 
+export interface InventoryItem {
+  id: string;
+  user_id: string;
+  item_type: string;
+  item_id: string;
+  quantity: number;
+}
+
 export function useMarketplace() {
   const { user } = useAuth();
   const [publicDecks, setPublicDecks] = useState<PublicDeck[]>([]);
@@ -55,6 +63,8 @@ export function useMarketplace() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<number | null>(null);
   const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
+  const [userInventory, setUserInventory] = useState<InventoryItem[]>([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
 
   const fetchPublicDecks = useCallback(async () => {
     setLoading(true);
@@ -310,6 +320,55 @@ export function useMarketplace() {
     await fetchPublicDecks();
   };
 
+  const fetchInventory = useCallback(async () => {
+    if (!user) return;
+    setLoadingInventory(true);
+    const { data, error } = await supabase
+      .from("user_inventory")
+      .select("*")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error fetching inventory:", error);
+    } else {
+      setUserInventory(data || []);
+    }
+    setLoadingInventory(false);
+  }, [user]);
+
+  const useItem = async (itemType: string, itemId: string, plantId?: string) => {
+    if (!user) return { success: false, message: "No autenticado" };
+
+    try {
+      const { data, error } = await (supabase.rpc as any)('use_inventory_item', {
+        p_item_type: itemType,
+        p_item_id: itemId,
+        p_plant_id: plantId
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean, message: string };
+      if (result.success) {
+        toast.success(result.message);
+        await fetchInventory();
+      } else {
+        toast.error(result.message);
+      }
+      return result;
+    } catch (err: any) {
+      console.error("Use item error:", err);
+      toast.error("Error al usar objeto");
+      return { success: false, message: "Error al usar objeto" };
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchInventory();
+    }
+  }, [user, fetchInventory]);
+
   useEffect(() => {
     fetchPublicDecks();
     fetchMyPublicDecks();
@@ -333,6 +392,10 @@ export function useMarketplace() {
     getDeckPreview,
     importDeck,
     rateDeck,
+    fetchInventory,
+    useItem,
+    userInventory,
+    loadingInventory,
     refetch: fetchPublicDecks
   };
 }

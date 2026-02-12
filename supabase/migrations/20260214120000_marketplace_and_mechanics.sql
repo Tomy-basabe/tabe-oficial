@@ -178,3 +178,77 @@ BEGIN
   );
 END;
 $$;
+
+-- Function to use an item from inventory
+CREATE OR REPLACE FUNCTION use_inventory_item(
+  p_item_type text,
+  p_item_id text,
+  p_plant_id uuid DEFAULT NULL
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_user_id uuid;
+  v_inventory_id uuid;
+  v_quantity int;
+  v_plant_id uuid;
+BEGIN
+  v_user_id := auth.uid();
+  
+  -- Check inventory
+  SELECT id, quantity INTO v_inventory_id, v_quantity 
+  FROM user_inventory 
+  WHERE user_id = v_user_id AND item_type = p_item_type AND item_id = p_item_id;
+  
+  IF v_inventory_id IS NULL OR v_quantity <= 0 THEN
+    RETURN json_build_object('success', false, 'message', 'No tienes este objeto en tu inventario');
+  END IF;
+  
+  -- Apply Effects
+  IF p_item_type = 'fertilizer' THEN
+    -- Update active plant
+    IF p_plant_id IS NOT NULL THEN
+       v_plant_id := p_plant_id;
+    ELSE
+       SELECT id INTO v_plant_id FROM user_plants WHERE user_id = v_user_id AND is_alive = true AND is_completed = false LIMIT 1;
+    END IF;
+    
+    IF v_plant_id IS NOT NULL THEN
+      UPDATE user_plants 
+      SET fertilizer_ends_at = (now() + interval '24 hours'),
+          growth_multiplier = 2.0
+      WHERE id = v_plant_id;
+      
+      -- Consume item
+      IF v_quantity > 1 THEN
+        UPDATE user_inventory SET quantity = quantity - 1 WHERE id = v_inventory_id;
+      ELSE
+        DELETE FROM user_inventory WHERE id = v_inventory_id;
+      END IF;
+      
+      RETURN json_build_object('success', true, 'message', 'Fertilizante aplicado con éxito');
+    ELSE
+      RETURN json_build_object('success', false, 'message', 'No tienes una planta activa para fertilizar');
+    END IF;
+    
+  ELSIF p_item_type = 'streak_freeze' THEN
+    UPDATE user_stats 
+    SET streak_freezes = COALESCE(streak_freezes, 0) + 1
+    WHERE user_id = v_user_id;
+    
+    -- Consume item
+    IF v_quantity > 1 THEN
+      UPDATE user_inventory SET quantity = quantity - 1 WHERE id = v_inventory_id;
+    ELSE
+      DELETE FROM user_inventory WHERE id = v_inventory_id;
+    END IF;
+    
+    RETURN json_build_object('success', true, 'message', 'Congelador de racha añadido');
+  
+  ELSE
+    RETURN json_build_object('success', false, 'message', 'Este objeto no se puede usar manualmente todavía');
+  END IF;
+END;
+$$;
