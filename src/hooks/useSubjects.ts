@@ -9,21 +9,21 @@ export const checkAchievementsAfterSubjectUpdate = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .rpc('check_and_unlock_achievements', { p_user_id: userId });
-    
+
     if (error) {
       console.error("Error checking achievements:", error);
       return [];
     }
-    
+
     const unlocked = (data || []) as { achievement_id: string; achievement_name: string; xp_reward: number }[];
-    
+
     unlocked.forEach((achievement) => {
       toast.success(`🏆 ¡Logro desbloqueado!`, {
         description: `${achievement.achievement_name} (+${achievement.xp_reward} XP)`,
         duration: 5000,
       });
     });
-    
+
     return unlocked;
   } catch (err) {
     console.error("Error in checkAchievementsAfterSubjectUpdate:", err);
@@ -102,7 +102,7 @@ export function useSubjects() {
   const fetchData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      
+
       // Run all 3 queries in parallel
       const [subjectsResult, statusResult, depsResult] = await Promise.all([
         supabase
@@ -197,7 +197,7 @@ export function useSubjects() {
     if (userStatus) {
       return userStatus.estado;
     }
-    
+
     const deps = dependenciesBySubject.get(subjectId) || [];
     if (deps.length === 0) {
       return "cursable";
@@ -248,7 +248,7 @@ export function useSubjects() {
       const userStatus = userStatusMap.get(subject.id);
       const status = getSubjectStatus(subject.id);
       const subjectDeps = dependenciesBySubject.get(subject.id) || [];
-      
+
       return {
         ...subject,
         status,
@@ -271,8 +271,8 @@ export function useSubjects() {
   }, [subjects, userStatusMap, dependenciesBySubject, getSubjectStatus, getMissingRequirements]);
 
   const updateSubjectStatus = async (
-    subjectId: string, 
-    estado: SubjectStatus, 
+    subjectId: string,
+    estado: SubjectStatus,
     nota?: number
   ) => {
     if (!user) return;
@@ -280,7 +280,7 @@ export function useSubjects() {
     try {
       const existingStatus = userStatuses.find(s => s.subject_id === subjectId);
       const previousEstado = existingStatus?.estado;
-      
+
       const statusData = {
         user_id: user.id,
         subject_id: subjectId,
@@ -294,58 +294,63 @@ export function useSubjects() {
           .from("user_subject_status")
           .update(statusData)
           .eq("id", existingStatus.id);
-        
+
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("user_subject_status")
           .insert(statusData);
-        
+
         if (error) throw error;
       }
 
       // Award XP for status changes (only if status actually changed)
       if (previousEstado !== estado) {
         let xpToAdd = 0;
-        
+
         if (estado === "aprobada") {
           xpToAdd = 100; // 100 XP por aprobar materia
         } else if (estado === "regular") {
           xpToAdd = 50; // 50 XP por regularizar materia
         }
-        
+
         if (xpToAdd > 0) {
           // Get current stats
           const { data: currentStats } = await supabase
             .from("user_stats")
-            .select("xp_total, nivel")
+            .select("xp_total, nivel, credits")
             .eq("user_id", user.id)
             .single();
-          
+
           if (currentStats) {
-            const newXpTotal = (currentStats.xp_total || 0) + xpToAdd;
+            const stats = currentStats as any;
+            const newXpTotal = (stats.xp_total || 0) + xpToAdd;
+            const creditsToAdd = Math.floor(xpToAdd / 2); // 50% of XP as Credits
+            const newCredits = (stats.credits || 0) + creditsToAdd;
+
             // Calculate new level: every 100 XP = 1 level
             const newLevel = Math.floor(newXpTotal / 100) + 1;
-            const leveledUp = newLevel > (currentStats.nivel || 1);
-            
+            const leveledUp = newLevel > (stats.nivel || 1);
+
             await supabase
               .from("user_stats")
-              .update({ 
+              .update({
                 xp_total: newXpTotal,
-                nivel: newLevel
+                nivel: newLevel,
+                credits: newCredits
               })
               .eq("user_id", user.id);
-            
+
             const statusLabel = estado === "aprobada" ? "aprobar" : "regularizar";
-            toast.success(`+${xpToAdd} XP por ${statusLabel} la materia! 🎉`);
-            
+            toast.success(`+${xpToAdd} XP y +${creditsToAdd} Créditos por ${statusLabel} la materia! 🎉`);
+
             if (leveledUp) {
               toast.success(`🎮 ¡Subiste al nivel ${newLevel}!`, {
                 duration: 5000,
               });
             }
           }
-          
+
           // Check achievements after XP update
           await supabase.rpc('check_and_unlock_achievements', { p_user_id: user.id });
         }
@@ -353,7 +358,7 @@ export function useSubjects() {
 
       await fetchData(false);
       toast.success("Estado actualizado correctamente");
-      
+
       // Verificar logros después de actualizar estado de materia
       await checkAchievementsAfterSubjectUpdate(user.id);
     } catch (error) {
@@ -368,8 +373,8 @@ export function useSubjects() {
     try {
       // Get the next numero_materia for the year
       const subjectsInYear = subjects.filter(s => s.año === data.año);
-      const nextNumero = subjectsInYear.length > 0 
-        ? Math.max(...subjectsInYear.map(s => s.numero_materia)) + 1 
+      const nextNumero = subjectsInYear.length > 0
+        ? Math.max(...subjectsInYear.map(s => s.numero_materia)) + 1
         : 1;
 
       // Create the subject
@@ -392,11 +397,11 @@ export function useSubjects() {
           subject_id: newSubject.id,
           requiere_regular: reqId,
         }));
-        
+
         const { error: regError } = await supabase
           .from("subject_dependencies")
           .insert(regularDeps);
-        
+
         if (regError) throw regError;
       }
 
@@ -406,11 +411,11 @@ export function useSubjects() {
           subject_id: newSubject.id,
           requiere_aprobada: reqId,
         }));
-        
+
         const { error: aprError } = await supabase
           .from("subject_dependencies")
           .insert(approvedDeps);
-        
+
         if (aprError) throw aprError;
       }
 
@@ -502,7 +507,7 @@ export function useSubjects() {
 
     try {
       const existingStatus = userStatuses.find(s => s.subject_id === subjectId);
-      
+
       if (existingStatus) {
         const { error } = await supabase
           .from("user_subject_status")
@@ -516,7 +521,7 @@ export function useSubjects() {
             nota_final_examen: grades.nota_final_examen,
           })
           .eq("id", existingStatus.id);
-        
+
         if (error) throw error;
       } else {
         // Create a new status record with partial grades
@@ -534,7 +539,7 @@ export function useSubjects() {
             nota_rec_global: grades.nota_rec_global,
             nota_final_examen: grades.nota_final_examen,
           });
-        
+
         if (error) throw error;
       }
 
@@ -558,12 +563,12 @@ export function useSubjects() {
 
     try {
       // Get subjects from 1st and 2nd year
-      const subjectsToApprove = subjects.filter(s => 
+      const subjectsToApprove = subjects.filter(s =>
         (s.año === 1 || s.año === 2) && s.codigo !== "ING2"
       );
 
       // Check which ones don't have a status yet
-      const statusesToCreate = subjectsToApprove.filter(s => 
+      const statusesToCreate = subjectsToApprove.filter(s =>
         !userStatuses.some(us => us.subject_id === s.id)
       );
 

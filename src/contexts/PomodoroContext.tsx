@@ -116,9 +116,11 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
             const { data: stats } = await supabase.from("user_stats").select("*").eq("user_id", user.id).single();
             if (stats) {
+                const currentStats = stats as any;
                 await supabase.from("user_stats").update({
-                    horas_estudio_total: stats.horas_estudio_total + hours,
-                    xp_total: stats.xp_total + xpGained,
+                    horas_estudio_total: currentStats.horas_estudio_total + hours,
+                    xp_total: currentStats.xp_total + xpGained,
+                    credits: (currentStats.credits || 0) + Math.floor(elapsedSeconds / 60), // 1 Credit per minute
                 }).eq("user_id", user.id);
             }
 
