@@ -93,13 +93,11 @@ export function useFriends() {
       if (f.addressee_id !== user.id) userIds.add(f.addressee_id);
     });
 
-    // Fetch profiles for these users directly from the profiles table
+    // Fetch profiles for these users using secure RPC function (bypasses RLS)
     let profiles: Profile[] = [];
     if (userIds.size > 0) {
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id, username, display_id, nombre, avatar_url')
-        .in('user_id', Array.from(userIds));
+        .rpc('get_friend_profiles', { friend_user_ids: Array.from(userIds) });
 
       if (profileError) {
         console.error("Error fetching friend profiles:", profileError);
@@ -126,11 +124,18 @@ export function useFriends() {
       const friendId = f.requester_id === user.id ? f.addressee_id : f.requester_id;
       const friendProfile = profileMap.get(friendId);
 
-      if (!friendProfile) return;
+      // If profile is missing (RLS or other error), use fallback
+      const finalProfile = friendProfile || {
+        user_id: friendId,
+        username: "Usuario Desconocido",
+        display_id: 0,
+        nombre: "Usuario Desconocido",
+        avatar_url: null
+      };
 
       const friendWithProfile: FriendWithProfile = {
         ...f,
-        friend: friendProfile
+        friend: finalProfile
       };
 
       if (f.status === 'accepted') {
@@ -175,13 +180,10 @@ export function useFriends() {
       .in("user_id", allUserIds)
       .gte("fecha", weekAgo.toISOString().split('T')[0]);
 
-    // Get profiles for all users including current user
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, username, display_id, nombre, avatar_url")
-      .in("user_id", allUserIds);
-
-    const profileMap = new Map((profiles as Profile[] || []).map(p => [p.user_id, p]));
+    // Reuse profiles from state instead of fetching again (avoids RLS issues)
+    const profileMap = new Map<string, Profile>();
+    if (myProfile) profileMap.set(myProfile.user_id, myProfile);
+    friends.forEach(f => profileMap.set(f.friend.user_id, f.friend));
     const statsMap = new Map((stats || []).map(s => [s.user_id, s]));
 
     // Calculate weekly stats per user
