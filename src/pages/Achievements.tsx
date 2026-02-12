@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { 
-  Trophy, GraduationCap, Star, Clock, BookOpen, Flame, 
-  Layers, Compass, FilePlus, Library, Lock, Sparkles, RefreshCw
+import {
+  Trophy, GraduationCap, Star, Clock, BookOpen, Flame,
+  Layers, Compass, FilePlus, Library, Lock, Sparkles, RefreshCw,
+  Target, Users, MessageCircle, FolderOpen, Sprout, Brain, Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAchievements } from "@/hooks/useAchievements";
@@ -17,6 +18,13 @@ const iconMap: Record<string, any> = {
   compass: Compass,
   "file-plus": FilePlus,
   library: Library,
+  target: Target,
+  users: Users,
+  "message-circle": MessageCircle,
+  folder: FolderOpen,
+  sprout: Sprout,
+  brain: Brain,
+  calendar: Calendar,
 };
 
 const categoryConfig = {
@@ -41,11 +49,11 @@ const categoryConfig = {
 };
 
 export default function Achievements() {
-  const { 
-    achievements, 
-    loading, 
-    stats, 
-    isUnlocked, 
+  const {
+    achievements,
+    loading,
+    stats,
+    isUnlocked,
     getUnlockDate,
     checkAndUnlockAchievements
   } = useAchievements();
@@ -121,18 +129,18 @@ export default function Achievements() {
           </span>
         </div>
         <div className="h-4 bg-secondary rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-gold transition-all duration-1000"
             style={{ width: `${(stats.unlocked / stats.total) * 100}%` }}
           />
         </div>
-        
+
         {/* Category breakdown */}
         <div className="grid grid-cols-3 gap-4 mt-6">
           {Object.entries(categoryConfig).map(([key, config]) => {
             const categoryAchievements = achievements.filter(a => a.categoria === key);
             const unlockedCount = categoryAchievements.filter(a => isUnlocked(a.id)).length;
-            
+
             return (
               <button
                 key={key}
@@ -170,22 +178,22 @@ export default function Achievements() {
           {Object.entries(groupedAchievements).map(([category, categoryAchievements]) => {
             if (selectedCategory && selectedCategory !== category) return null;
             if (categoryAchievements.length === 0) return null;
-            
+
             const config = categoryConfig[category as keyof typeof categoryConfig];
-            
+
             return (
               <div key={category}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className={cn("w-3 h-3 rounded-full", config.bgColor.replace("/10", ""))} />
                   <h2 className="font-display font-semibold text-lg">{config.label}</h2>
                 </div>
-                
+
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {categoryAchievements.map(achievement => {
                     const unlocked = isUnlocked(achievement.id);
                     const Icon = iconMap[achievement.icono] || Trophy;
                     const unlockDate = getUnlockDate(achievement.id);
-                    
+
                     return (
                       <div
                         key={achievement.id}
@@ -200,7 +208,7 @@ export default function Achievements() {
                         {unlocked && (
                           <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/5 pointer-events-none" />
                         )}
-                        
+
                         <div className="relative">
                           <div className="flex items-start justify-between mb-4">
                             <div className={cn(
@@ -224,7 +232,7 @@ export default function Achievements() {
                               +{achievement.xp_reward} XP
                             </div>
                           </div>
-                          
+
                           <h3 className={cn(
                             "font-display font-semibold mb-1",
                             unlocked ? "text-foreground" : "text-muted-foreground"
@@ -234,7 +242,7 @@ export default function Achievements() {
                           <p className="text-sm text-muted-foreground">
                             {achievement.descripcion}
                           </p>
-                          
+
                           {unlocked && unlockDate && (
                             <p className={cn("text-xs mt-3", config.color)}>
                               Desbloqueado el {unlockDate}

@@ -1,32 +1,36 @@
 <!doctype html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>T.A.B.E</title>
-    <meta name="description" content="T.A.B.E - Plataforma de gestión" />
-    <meta name="author" content="T.A.B.E" />
 
-    <meta property="og:title" content="T.A.B.E" />
-    <meta property="og:description" content="T.A.B.E - Plataforma de gestión" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>T.A.B.E</title>
+  <meta name="description" content="T.A.B.E - Tu Asistente de Bolsillo Estudiantil" />
+  <meta name="author" content="T.A.B.E" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
 
-    <!-- Prevent white flash: apply theme before React loads -->
-    <script>
-      (function() {
-        var theme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.classList.add(theme);
-      })();
-    </script>
-  </head>
+  <meta property="og:title" content="T.A.B.E" />
+  <meta property="og:description" content="T.A.B.E - Tu Asistente de Bolsillo Estudiantil" />
+  <meta property="og:type" content="website" />
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="T.A.B.E" />
+
+  <!-- Prevent white flash: apply theme before React loads -->
+  <script>
+    (function () {
+      var theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.classList.add(theme);
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
