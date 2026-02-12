@@ -67,6 +67,7 @@ const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
     // Free OpenRelay TURN servers for testing
     {
       urls: "turn:openrelay.metered.ca:80",
@@ -1001,6 +1002,17 @@ export function useDiscord() {
       if (!event.streams[0]) {
         remoteStream.addTrack(event.track);
       }
+
+      // Force React update when tracks are added/removed from the stream
+      remoteStream.onaddtrack = () => {
+        console.log("[Discord] Stream track added for:", peerId);
+        setRemoteStreams((prev) => new Map(prev));
+      };
+
+      remoteStream.onremovetrack = () => {
+        console.log("[Discord] Stream track removed for:", peerId);
+        setRemoteStreams((prev) => new Map(prev));
+      };
 
       setRemoteStreams((prev) => {
         const updated = new Map(prev);
