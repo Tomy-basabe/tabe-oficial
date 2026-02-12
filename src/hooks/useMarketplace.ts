@@ -94,7 +94,7 @@ export function useMarketplace() {
 
     const profileMap = new Map<string, ProfileData>((profilesResult.data || []).map((p: ProfileData) => [p.user_id, p]));
     const statsMap = new Map((statsResult.data || []).map(s => [s.user_id, s]));
-    
+
     // Map subjects with correct field names
     const subjectMap = new Map<string, SubjectData>();
     (subjectsResult.data || []).forEach((s: { id: string; nombre: string; numero_materia: number }) => {
@@ -109,9 +109,9 @@ export function useMarketplace() {
       return {
         ...deck,
         creator: profile ? {
-          username: profile.username,
+          username: profile.username || "Usuario",
           display_id: profile.display_id,
-          nombre: profile.nombre,
+          nombre: profile.nombre || (profile.username ? null : "Usuario"),
           nivel: stats?.nivel || 1
         } : undefined,
         subject: subject ? {
@@ -125,7 +125,7 @@ export function useMarketplace() {
     let filtered = enrichedDecks;
 
     if (searchTerm) {
-      filtered = filtered.filter(d => 
+      filtered = filtered.filter(d =>
         d.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         d.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         d.subject?.nombre.toLowerCase().includes(searchTerm.toLowerCase())

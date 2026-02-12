@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { 
-  TreeDeciduous, 
-  Sprout, 
-  Leaf, 
-  Sun, 
+import {
+  TreeDeciduous,
+  Sprout,
+  Leaf,
+  Sun,
   Droplets,
   Clock,
   Skull,
@@ -44,32 +44,55 @@ import { cn } from "@/lib/utils";
 // Plant growth stages with visual representation
 const getPlantStage = (growth: number, isAlive: boolean, plantType: string) => {
   if (!isAlive) {
-    return { icon: "🥀", label: "Muerta", color: "text-muted-foreground" };
+    return { icon: <Skull className="w-full h-full text-muted-foreground/50" />, label: "Muerta", color: "text-muted-foreground" };
   }
-  
+
   if (growth < 10) {
-    return { icon: "🌱", label: "Semilla", color: "text-amber-500" };
+    return {
+      icon: <Sprout className="w-full h-full text-amber-500" />,
+      label: "Semilla",
+      color: "text-amber-500"
+    };
   } else if (growth < 30) {
-    return { icon: "🌿", label: "Brote", color: "text-green-400" };
+    return {
+      icon: <Sprout className="w-full h-full text-green-400" />,
+      label: "Brote",
+      color: "text-green-400"
+    };
   } else if (growth < 50) {
-    return { icon: "☘️", label: "Plántula", color: "text-green-500" };
+    return {
+      icon: <Sprout className="w-full h-full text-green-500 scale-125" />,
+      label: "Plántula",
+      color: "text-green-500"
+    };
   } else if (growth < 70) {
-    return { icon: "🪴", label: "Arbusto", color: "text-green-600" };
+    return {
+      icon: <TreeDeciduous className="w-full h-full text-green-600 scale-75" />,
+      label: "Arbusto",
+      color: "text-green-600"
+    };
   } else if (growth < 90) {
-    return { icon: "🌳", label: "Árbol joven", color: "text-emerald-500" };
+    return {
+      icon: <TreeDeciduous className="w-full h-full text-emerald-500" />,
+      label: "Árbol joven",
+      color: "text-emerald-500"
+    };
   } else {
     // Full grown tree based on type
-    const treeEmojis: Record<string, string> = {
-      oak: "🌳",
-      cherry: "🌸",
-      pine: "🌲",
-      palm: "🌴",
-      maple: "🍁",
+    const treeIcons: Record<string, any> = {
+      oak: TreeDeciduous,
+      cherry: Flower2, // Was cherry blossom
+      pine: TreePine,
+      palm: Palmtree,
+      maple: Leaf, // Maple leaf representation
     };
-    return { 
-      icon: treeEmojis[plantType] || "🌳", 
-      label: "Árbol completo", 
-      color: "text-neon-gold" 
+
+    const PlantIcon = treeIcons[plantType] || TreeDeciduous;
+
+    return {
+      icon: <PlantIcon className="w-full h-full text-neon-gold animate-pulse-slow" />,
+      label: "Árbol completo",
+      color: "text-neon-gold"
     };
   }
 };
@@ -90,7 +113,7 @@ function PlantCard({ plant, onRemove }: { plant: Plant; onRemove?: () => void })
     )}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-4xl">{stage.icon}</span>
+          <div className="w-10 h-10">{stage.icon}</div>
           {!plant.is_alive && onRemove && (
             <Button
               variant="ghost"
@@ -107,7 +130,7 @@ function PlantCard({ plant, onRemove }: { plant: Plant; onRemove?: () => void })
             </Badge>
           )}
         </div>
-        
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className={cn("text-sm font-medium", stage.color)}>
@@ -117,9 +140,9 @@ function PlantCard({ plant, onRemove }: { plant: Plant; onRemove?: () => void })
               {plant.growth_percentage}%
             </span>
           </div>
-          
+
           <Progress value={plant.growth_percentage} className="h-2" />
-          
+
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="w-3 h-3" />
             <span>Plantado: {plantedDate}</span>
@@ -130,8 +153,8 @@ function PlantCard({ plant, onRemove }: { plant: Plant; onRemove?: () => void })
   );
 }
 
-function CurrentPlantDisplay({ plant, studyActivity }: { 
-  plant: Plant | null; 
+function CurrentPlantDisplay({ plant, studyActivity }: {
+  plant: Plant | null;
   studyActivity: ReturnType<typeof useForest>['studyActivity'];
 }) {
   if (!plant) {
@@ -152,11 +175,11 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
   const msSincePlanted = now.getTime() - plantedDate.getTime();
   const daysSincePlanted = msSincePlanted / (1000 * 60 * 60 * 24);
   const daysAlive = Math.floor(daysSincePlanted);
-  
+
   // Calculate time until death: grace period (7 days) OR 7 days since last study
   const gracePeriodDays = 7;
   const daysUntilVulnerable = Math.max(0, gracePeriodDays - daysSincePlanted);
-  const daysUntilDeath = daysUntilVulnerable > 0 
+  const daysUntilDeath = daysUntilVulnerable > 0
     ? daysUntilVulnerable // Still in grace period
     : Math.max(0, gracePeriodDays - studyActivity.daysSinceLastStudy); // After grace, based on study
 
@@ -169,12 +192,12 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
       {/* Main plant visualization */}
       <div className="relative">
         <div className={cn(
-          "text-8xl md:text-9xl transition-all duration-500",
+          "w-32 h-32 md:w-48 md:h-48 mx-auto transition-all duration-500",
           plant.is_alive ? "animate-pulse" : "grayscale opacity-50"
         )}>
           {stage.icon}
         </div>
-        
+
         {plant.is_alive && studyActivity.hasStudiedToday && (
           <div className="absolute -top-2 -right-2 text-2xl animate-bounce">
             ✨
@@ -201,7 +224,7 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
           </span>
         </div>
         <div className="h-4 bg-secondary rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-green-500 via-emerald-500 to-neon-gold transition-all duration-1000"
             style={{ width: `${plant.growth_percentage}%` }}
           />
@@ -225,11 +248,11 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
       {plant.is_alive && !plant.is_completed && (
         <div className={cn(
           "rounded-lg p-4 border",
-          isInGracePeriod 
-            ? "bg-cyan-500/10 border-cyan-500/30" 
-            : daysUntilDeath <= 2 
-              ? "bg-destructive/10 border-destructive/30" 
-              : daysUntilDeath <= 4 
+          isInGracePeriod
+            ? "bg-cyan-500/10 border-cyan-500/30"
+            : daysUntilDeath <= 2
+              ? "bg-destructive/10 border-destructive/30"
+              : daysUntilDeath <= 4
                 ? "bg-amber-500/10 border-amber-500/30"
                 : "bg-green-500/10 border-green-500/30"
         )}>
@@ -237,11 +260,11 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
             <div className="flex items-center gap-2">
               <Clock className={cn(
                 "w-5 h-5",
-                isInGracePeriod 
-                  ? "text-cyan-500" 
-                  : daysUntilDeath <= 2 
-                    ? "text-destructive" 
-                    : daysUntilDeath <= 4 
+                isInGracePeriod
+                  ? "text-cyan-500"
+                  : daysUntilDeath <= 2
+                    ? "text-destructive"
+                    : daysUntilDeath <= 4
                       ? "text-amber-500"
                       : "text-green-500"
               )} />
@@ -251,11 +274,11 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
             </div>
             <div className={cn(
               "text-lg font-bold",
-              isInGracePeriod 
-                ? "text-cyan-500" 
-                : daysUntilDeath <= 2 
-                  ? "text-destructive" 
-                  : daysUntilDeath <= 4 
+              isInGracePeriod
+                ? "text-cyan-500"
+                : daysUntilDeath <= 2
+                  ? "text-destructive"
+                  : daysUntilDeath <= 4
                     ? "text-amber-500"
                     : "text-green-500"
             )}>
@@ -263,9 +286,9 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {isInGracePeriod 
+            {isInGracePeriod
               ? "Tu planta está protegida. Después de 7 días, debes estudiar regularmente."
-              : studyActivity.hasStudiedToday 
+              : studyActivity.hasStudiedToday
                 ? "¡Bien! Estudiaste hoy, tu planta está creciendo."
                 : "Estudia para reiniciar el contador y hacer crecer tu planta."
             }
@@ -277,16 +300,16 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
 }
 
 export default function Forest() {
-  const { 
-    plants, 
-    currentPlant, 
-    studyActivity, 
+  const {
+    plants,
+    currentPlant,
+    studyActivity,
     forestStats,
-    loading, 
+    loading,
     plantNewTree,
     removeDeadPlant,
     abandonPlant,
-    plantTypes 
+    plantTypes
   } = useForest();
 
   const [selectedPlantType, setSelectedPlantType] = useState("oak");
@@ -323,10 +346,10 @@ export default function Forest() {
             Cultiva tu bosque estudiando cada día
           </p>
         </div>
-        
+
         <Dialog open={isPlantDialogOpen} onOpenChange={setIsPlantDialogOpen}>
           <DialogTrigger asChild>
-            <Button 
+            <Button
               className="gap-2"
               disabled={forestStats.hasActivePlant}
             >
@@ -432,14 +455,14 @@ export default function Forest() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <CurrentPlantDisplay 
-              plant={currentPlant} 
-              studyActivity={studyActivity} 
+            <CurrentPlantDisplay
+              plant={currentPlant}
+              studyActivity={studyActivity}
             />
-            
+
             {!currentPlant && (
               <div className="mt-4 flex justify-center">
-                <Button 
+                <Button
                   onClick={() => setIsPlantDialogOpen(true)}
                   className="gap-2"
                 >
@@ -451,7 +474,7 @@ export default function Forest() {
 
             {currentPlant && !currentPlant.is_alive && (
               <div className="mt-4 flex justify-center gap-3">
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => removeDeadPlant(currentPlant.id)}
                   className="gap-2"
@@ -459,7 +482,7 @@ export default function Forest() {
                   <Trash2 className="w-4 h-4" />
                   Eliminar
                 </Button>
-                <Button 
+                <Button
                   onClick={() => {
                     removeDeadPlant(currentPlant.id);
                     setIsPlantDialogOpen(true);
@@ -474,7 +497,7 @@ export default function Forest() {
 
             {currentPlant?.is_completed && (
               <div className="mt-4 flex justify-center">
-                <Button 
+                <Button
                   onClick={() => setIsPlantDialogOpen(true)}
                   className="gap-2 bg-gradient-to-r from-green-500 to-emerald-500"
                 >
@@ -488,7 +511,7 @@ export default function Forest() {
               <div className="mt-6 flex justify-center">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button 
+                    <Button
                       variant="ghost"
                       size="sm"
                       className="gap-2 text-destructive hover:bg-destructive/10"
@@ -507,7 +530,7 @@ export default function Forest() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction 
+                      <AlertDialogAction
                         onClick={() => abandonPlant(currentPlant.id)}
                         className="bg-destructive hover:bg-destructive/90"
                       >
@@ -540,7 +563,7 @@ export default function Forest() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
                 <span className="text-lg">⏰</span>
                 <div>
@@ -550,7 +573,7 @@ export default function Forest() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
                 <span className="text-lg">⚠️</span>
                 <div>
@@ -560,7 +583,7 @@ export default function Forest() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
                 <span className="text-lg">🏆</span>
                 <div>
@@ -606,9 +629,9 @@ export default function Forest() {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {deadPlants.map((plant) => (
-                <PlantCard 
-                  key={plant.id} 
-                  plant={plant} 
+                <PlantCard
+                  key={plant.id}
+                  plant={plant}
                   onRemove={() => removeDeadPlant(plant.id)}
                 />
               ))}

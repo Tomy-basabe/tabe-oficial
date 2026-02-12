@@ -7,11 +7,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { usePomodoro, TimerMode } from "@/contexts/PomodoroContext";
 import { PomodoroSettings } from "@/components/pomodoro/PomodoroSettings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, Filter, X } from "lucide-react";
 
 interface Subject {
   id: string;
   nombre: string;
   codigo: string;
+  numero_materia: number;
 }
 
 const modeConfig = {
@@ -59,6 +62,7 @@ export default function Pomodoro() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [yearFilter, setYearFilter] = useState<string>("all");
 
   // Still fetch subjects locally as that's UI data, not timer logic
   useEffect(() => {
@@ -72,7 +76,7 @@ export default function Pomodoro() {
       setLoading(true);
       const { data, error } = await supabase
         .from("subjects")
-        .select("id, nombre, codigo")
+        .select("id, nombre, codigo, numero_materia")
         .order("nombre", { ascending: true });
 
       if (error) throw error;
@@ -239,34 +243,74 @@ export default function Pomodoro() {
         <div className="space-y-6">
           {/* Subject Selector */}
           <div className="card-gamer rounded-xl p-5">
-            <h3 className="font-display font-semibold mb-4">Materia Actual</h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+
+            <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-primary" />
+              Materia Actual
+            </h3>
+
+            {/* Year Filter */}
+            <div className="mb-4">
+              <Select value={yearFilter} onValueChange={setYearFilter}>
+                <SelectTrigger className="w-full bg-secondary border-border">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    <SelectValue placeholder="Filtrar por año" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los años</SelectItem>
+                  {[...new Set(subjects.map(s => Math.ceil(s.numero_materia / 10)))].sort().map(year => (
+                    <SelectItem key={year} value={year.toString()}>Año {year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               <button
                 onClick={() => setSelectedSubject(null)}
                 className={cn(
-                  "w-full p-3 rounded-lg text-left text-sm transition-all",
+                  "w-full p-3 rounded-lg text-left text-sm transition-all flex items-center gap-2",
                   selectedSubject === null
                     ? "bg-primary/10 text-primary border border-primary/30"
-                    : "bg-secondary hover:bg-secondary/80"
+                    : "bg-secondary hover:bg-secondary/80 border border-transparent"
                 )}
               >
+                <Filter className="w-4 h-4" />
                 Sin materia específica
               </button>
-              {subjects.map((subject) => (
-                <button
-                  key={subject.id}
-                  onClick={() => setSelectedSubject(subject.id)}
-                  className={cn(
-                    "w-full p-3 rounded-lg text-left text-sm transition-all",
-                    selectedSubject === subject.id
-                      ? "bg-primary/10 text-primary border border-primary/30"
-                      : "bg-secondary hover:bg-secondary/80"
-                  )}
-                >
-                  <span className="font-medium">{subject.codigo}</span>
-                  <span className="text-muted-foreground ml-2">{subject.nombre}</span>
-                </button>
-              ))}
+
+              {subjects
+                .filter(s => yearFilter === "all" || Math.ceil(s.numero_materia / 10).toString() === yearFilter)
+                .map((subject) => (
+                  <button
+                    key={subject.id}
+                    onClick={() => setSelectedSubject(subject.id)}
+                    className={cn(
+                      "w-full p-3 rounded-lg text-left text-sm transition-all",
+                      selectedSubject === subject.id
+                        ? "bg-primary/10 text-primary border border-primary/30"
+                        : "bg-secondary hover:bg-secondary/80 border border-transparent"
+                    )}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-mono text-xs text-muted-foreground bg-background/50 px-1 rounded">
+                        {subject.codigo}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground border border-border px-1 rounded">
+                        Año {Math.ceil(subject.numero_materia / 10)}
+                      </span>
+                    </div>
+                    <span className="font-medium block truncate">{subject.nombre}</span>
+                  </button>
+                ))}
+
+              {subjects.filter(s => yearFilter === "all" || Math.ceil(s.numero_materia / 10).toString() === yearFilter).length === 0 && (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  No hay materias para este año
+                </div>
+              )}
             </div>
           </div>
 

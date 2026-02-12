@@ -93,15 +93,29 @@ export function useFriends() {
       if (f.addressee_id !== user.id) userIds.add(f.addressee_id);
     });
 
-    // Fetch profiles for these users using secure RPC function
+    // Fetch profiles for these users directly from the profiles table
     let profiles: Profile[] = [];
     if (userIds.size > 0) {
-      const { data: profileData } = await supabase
-        .rpc('get_friend_profiles', { friend_user_ids: Array.from(userIds) });
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, username, display_id, nombre, avatar_url')
+        .in('user_id', Array.from(userIds));
+
+      if (profileError) {
+        console.error("Error fetching friend profiles:", profileError);
+      }
+
       profiles = (profileData as Profile[]) || [];
     }
 
-    const profileMap = new Map(profiles.map(p => [p.user_id, p]));
+    const profileMap = new Map(profiles.map(p => [
+      p.user_id,
+      {
+        ...p,
+        nombre: p.nombre || (p.username ? null : "Usuario"),
+        username: p.username || "Usuario"
+      }
+    ]));
 
     // Categorize friendships
     const accepted: FriendWithProfile[] = [];
@@ -111,7 +125,7 @@ export function useFriends() {
     friendships.forEach((f) => {
       const friendId = f.requester_id === user.id ? f.addressee_id : f.requester_id;
       const friendProfile = profileMap.get(friendId);
-      
+
       if (!friendProfile) return;
 
       const friendWithProfile: FriendWithProfile = {
@@ -188,7 +202,13 @@ export function useFriends() {
 
       return {
         user_id: userId,
-        profile: profile || { user_id: userId, username: null, display_id: 0, nombre: null, avatar_url: null },
+        profile: profile || {
+          user_id: userId,
+          username: null,
+          display_id: 0,
+          nombre: "Usuario Desconocido",
+          avatar_url: null
+        },
         weekly_xp: userStats?.xp_total || 0, // TODO: Calculate weekly XP specifically
         weekly_pomodoro_hours: weekly.pomodoro / 3600,
         weekly_study_hours: weekly.study / 3600,
