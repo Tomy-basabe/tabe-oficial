@@ -18,7 +18,7 @@ import { MarketplaceModal } from "@/components/marketplace/MarketplaceModal";
 interface Subject {
   id: string;
   nombre: string;
-  año: number;
+  year: number;
 }
 
 export default function Marketplace() {
@@ -74,13 +74,13 @@ export default function Marketplace() {
 
       const { data: subjectsData } = await supabase
         .from("subjects")
-        .select("id, nombre, numero_materia")
-        .order("numero_materia", { ascending: true });
+        .select("id, nombre, año")
+        .order("año", { ascending: true });
 
-      const mappedSubjects: Subject[] = (subjectsData || []).map((s: { id: string; nombre: string; numero_materia: number }) => ({
+      const mappedSubjects: Subject[] = (subjectsData || []).map((s: { id: string; nombre: string; año: number }) => ({
         id: s.id,
         nombre: s.nombre,
-        año: Math.ceil(s.numero_materia / 10)
+        year: s.año
       }));
       setSubjects(mappedSubjects);
 
@@ -162,7 +162,7 @@ export default function Marketplace() {
   };
 
   // Get available years from subjects
-  const availableYears = [...new Set(subjects.map(s => s.año))].sort();
+  const availableYears = [...new Set(subjects.map(s => s.year))].sort();
 
   const getAverageRating = (deck: typeof publicDecks[0]) => {
     if (deck.rating_count === 0) return 0;
@@ -231,7 +231,7 @@ export default function Marketplace() {
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Categoría" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px] overflow-y-auto">
                   <SelectItem value="all">Todas las categorías</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -250,7 +250,7 @@ export default function Marketplace() {
                   <Calendar className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Año" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px] overflow-y-auto">
                   <SelectItem value="all">Todos los años</SelectItem>
                   {availableYears.map((year) => (
                     <SelectItem key={year} value={year.toString()}>Año {year}</SelectItem>
@@ -266,10 +266,10 @@ export default function Marketplace() {
                   <GraduationCap className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Materia" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px] overflow-y-auto">
                   <SelectItem value="all">Todas las materias</SelectItem>
                   {subjects
-                    .filter(s => !yearFilter || s.año === yearFilter)
+                    .filter(s => !yearFilter || s.year === yearFilter)
                     .map((subject) => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.nombre}
@@ -437,7 +437,7 @@ export default function Marketplace() {
                             <p className="text-sm text-muted-foreground">{deck.total_cards} tarjetas</p>
                             {subjectInfo && (
                               <Badge variant="outline" className="text-xs">
-                                Año {subjectInfo.año} · {subjectInfo.nombre}
+                                Año {subjectInfo.year} · {subjectInfo.nombre}
                               </Badge>
                             )}
                           </div>
@@ -477,7 +477,7 @@ export default function Marketplace() {
                           <p className="text-sm text-muted-foreground">{deck.total_cards} tarjetas</p>
                           {subjectInfo && (
                             <Badge variant="outline" className="text-xs">
-                              Año {subjectInfo.año} · {subjectInfo.nombre}
+                              Año {subjectInfo.year} · {subjectInfo.nombre}
                             </Badge>
                           )}
                         </div>
@@ -583,10 +583,10 @@ export default function Marketplace() {
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar materia" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px] overflow-y-auto">
                   {subjects.map((subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
-                      {subject.nombre} (Año {subject.año})
+                      {subject.nombre} (Año {subject.year})
                     </SelectItem>
                   ))}
                 </SelectContent>

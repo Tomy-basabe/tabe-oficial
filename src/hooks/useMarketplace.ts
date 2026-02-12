@@ -89,7 +89,7 @@ export function useMarketplace() {
     const [profilesResult, statsResult, subjectsResult] = await Promise.all([
       supabase.from("profiles").select("user_id, username, display_id, nombre").in("user_id", userIds),
       supabase.from("user_stats").select("user_id, nivel").in("user_id", userIds),
-      supabase.from("subjects").select("id, nombre, numero_materia").in("id", subjectIds)
+      supabase.from("subjects").select("id, nombre, año").in("id", subjectIds)
     ]);
 
     const profileMap = new Map<string, ProfileData>((profilesResult.data || []).map((p: ProfileData) => [p.user_id, p]));
@@ -97,8 +97,8 @@ export function useMarketplace() {
 
     // Map subjects with correct field names
     const subjectMap = new Map<string, SubjectData>();
-    (subjectsResult.data || []).forEach((s: { id: string; nombre: string; numero_materia: number }) => {
-      subjectMap.set(s.id, { id: s.id, nombre: s.nombre, year: Math.ceil(s.numero_materia / 10) });
+    (subjectsResult.data || []).forEach((s: any) => {
+      subjectMap.set(s.id, { id: s.id, nombre: s.nombre, year: s.año });
     });
 
     const enrichedDecks: PublicDeck[] = (decks || []).map(deck => {

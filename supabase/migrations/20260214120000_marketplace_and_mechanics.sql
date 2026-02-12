@@ -171,6 +171,10 @@ BEGIN
     WHERE user_id = v_user_id;
   END IF;
   
-  RETURN json_build_object('success', true, 'message', 'Compra realizada con éxito');
+  RETURN json_build_object(
+    'success', true, 
+    'message', 'Compra realizada con éxito',
+    'new_xp', (v_current_xp - p_cost)
+  );
 END;
 $$;

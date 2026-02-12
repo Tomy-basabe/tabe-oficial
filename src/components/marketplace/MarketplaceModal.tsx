@@ -95,23 +95,26 @@ export function MarketplaceModal() {
 
         setPurchasing(item.id);
         try {
-            const { data, error } = await supabase.rpc('purchase_item', {
+            const { data, error } = await (supabase.rpc as any)('purchase_item', {
                 p_item_type: item.type,
                 p_item_id: item.id,
-                p_cost: item.cost,
-                p_user_id: user.id
+                p_cost: item.cost
             });
 
             if (error) throw error;
 
-            if (data && data.success) {
+            const result = data as { success: boolean, message: string, new_xp?: number };
+
+            if (result && result.success) {
                 toast.success(`¡Compraste ${item.name}!`, {
                     description: "Se ha añadido a tu inventario/activado."
                 });
-                setXp(data.new_xp);
-                setOpen(false); // Close on success or keep open? Maybe keep open to buy more
+                if (result.new_xp !== undefined) {
+                    setXp(result.new_xp);
+                }
+                setOpen(false);
             } else {
-                toast.error("Error en la compra: " + (data?.message || "Desconocido"));
+                toast.error("Error en la compra: " + (result?.message || "Desconocido"));
             }
         } catch (err: any) {
             console.error("Purchase error:", err);

@@ -14,7 +14,7 @@ interface Subject {
   id: string;
   nombre: string;
   codigo: string;
-  numero_materia: number;
+  year: number;
 }
 
 const modeConfig = {
@@ -76,11 +76,16 @@ export default function Pomodoro() {
       setLoading(true);
       const { data, error } = await supabase
         .from("subjects")
-        .select("id, nombre, codigo, numero_materia")
+        .select("id, nombre, codigo, año")
         .order("nombre", { ascending: true });
 
       if (error) throw error;
-      setSubjects(data || []);
+      setSubjects((data || []).map((s: any) => ({
+        id: s.id,
+        nombre: s.nombre,
+        codigo: s.codigo,
+        year: s.año
+      })));
     } catch (error) {
       console.error("Error fetching subjects:", error);
       toast.error("Error al cargar materias");
@@ -258,9 +263,9 @@ export default function Pomodoro() {
                     <SelectValue placeholder="Filtrar por año" />
                   </div>
                 </SelectTrigger>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
+                <SelectContent className="max-h-[300px] overflow-y-auto">
                   <SelectItem value="all">Todos los años</SelectItem>
-                  {[...new Set(subjects.map(s => Math.ceil(s.numero_materia / 10)))].sort().map(year => (
+                  {[...new Set(subjects.map(s => s.year))].sort().map(year => (
                     <SelectItem key={year} value={year.toString()}>Año {year}</SelectItem>
                   ))}
                 </SelectContent>
@@ -282,7 +287,7 @@ export default function Pomodoro() {
               </button>
 
               {subjects
-                .filter(s => yearFilter === "all" || Math.ceil(s.numero_materia / 10).toString() === yearFilter)
+                .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
                 .map((subject) => (
                   <button
                     key={subject.id}
@@ -299,14 +304,14 @@ export default function Pomodoro() {
                         {subject.codigo}
                       </span>
                       <span className="text-[10px] text-muted-foreground border border-border px-1 rounded">
-                        Año {Math.ceil(subject.numero_materia / 10)}
+                        Año {subject.year}
                       </span>
                     </div>
                     <span className="font-medium block truncate">{subject.nombre}</span>
                   </button>
                 ))}
 
-              {subjects.filter(s => yearFilter === "all" || Math.ceil(s.numero_materia / 10).toString() === yearFilter).length === 0 && (
+              {subjects.filter(s => yearFilter === "all" || s.year.toString() === yearFilter).length === 0 && (
                 <div className="text-center py-4 text-sm text-muted-foreground">
                   No hay materias para este año
                 </div>
