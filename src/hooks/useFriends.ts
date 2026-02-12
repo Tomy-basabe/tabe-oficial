@@ -110,8 +110,8 @@ export function useFriends() {
       p.user_id,
       {
         ...p,
-        nombre: p.nombre || (p.username ? null : "Usuario"),
-        username: p.username || "Usuario"
+        nombre: p.nombre || (p.username ? null : `Usuario #${p.display_id}`),
+        username: p.username || `Usuario #${p.display_id}`
       }
     ]));
 
@@ -164,58 +164,43 @@ export function useFriends() {
     const friendIds = friends.map(f => f.friend.user_id);
     const allUserIds = [user.id, ...friendIds];
 
-    // Get user stats
-    const { data: stats } = await supabase
-      .from("user_stats")
-      .select("user_id, xp_total, racha_actual, nivel")
-      .in("user_id", allUserIds);
+    // Get stats for all users using the new RPC (bypasses RLS and aggregates data)
+    const { data: socialStats, error: statsError } = await supabase
+      .rpc('get_social_stats', { target_user_ids: allUserIds });
 
-    // Get weekly study sessions
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
-    const { data: sessions } = await supabase
-      .from("study_sessions")
-      .select("user_id, duracion_segundos, tipo")
-      .in("user_id", allUserIds)
-      .gte("fecha", weekAgo.toISOString().split('T')[0]);
+    if (statsError) {
+      console.error("Error fetching social stats:", statsError);
+    }
 
     // Reuse profiles from state instead of fetching again (avoids RLS issues)
     const profileMap = new Map<string, Profile>();
     if (myProfile) profileMap.set(myProfile.user_id, myProfile);
     friends.forEach(f => profileMap.set(f.friend.user_id, f.friend));
-    const statsMap = new Map((stats || []).map(s => [s.user_id, s]));
 
-    // Calculate weekly stats per user
-    const weeklyStats = new Map<string, { pomodoro: number; study: number }>();
-    sessions?.forEach(s => {
-      const current = weeklyStats.get(s.user_id) || { pomodoro: 0, study: 0 };
-      current.study += s.duracion_segundos;
-      if (s.tipo === 'pomodoro') {
-        current.pomodoro += s.duracion_segundos;
-      }
-      weeklyStats.set(s.user_id, current);
-    });
+    const statsMap = new Map((socialStats || []).map(s => [s.user_id, s]));
 
     const friendStatsData: FriendStats[] = allUserIds.map(userId => {
       const profile = profileMap.get(userId);
-      const userStats = statsMap.get(userId);
-      const weekly = weeklyStats.get(userId) || { pomodoro: 0, study: 0 };
+      const stats = statsMap.get(userId);
+
+      // Improved fallback if profile is missing in map
+      const finalProfile = profile || {
+        user_id: userId,
+        username: "Usuario Desconocido",
+        display_id: 0,
+        nombre: "Usuario Desconocido",
+        avatar_url: null
+      };
 
       return {
         user_id: userId,
-        profile: profile || {
-          user_id: userId,
-          username: null,
-          display_id: 0,
-          nombre: "Usuario Desconocido",
-          avatar_url: null
-        },
-        weekly_xp: userStats?.xp_total || 0, // TODO: Calculate weekly XP specifically
-        weekly_pomodoro_hours: weekly.pomodoro / 3600,
-        weekly_study_hours: weekly.study / 3600,
-        current_streak: userStats?.racha_actual || 0,
-        level: userStats?.nivel || 1
+        profile: finalProfile,
+        weekly_xp: stats?.xp_total || 0,
+        // The RPC returns aggregated seconds, convert to hours
+        weekly_pomodoro_hours: (stats?.weekly_pomodoro_seconds || 0) / 3600,
+        weekly_study_hours: (stats?.weekly_study_seconds || 0) / 3600,
+        current_streak: stats?.racha_actual || 0,
+        level: stats?.nivel || 1
       };
     });
 
