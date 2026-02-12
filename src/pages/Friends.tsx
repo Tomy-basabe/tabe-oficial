@@ -312,7 +312,7 @@ export default function Friends() {
                   {getSortedStats().map((stat, index) => {
                     const isMe = stat.user_id === user?.id;
                     const position = index + 1;
-                    
+
                     return (
                       <div
                         key={stat.user_id}
@@ -337,7 +337,7 @@ export default function Friends() {
                           {/* Avatar */}
                           <div className={cn(
                             "w-10 h-10 rounded-full flex items-center justify-center font-bold",
-                            isMe 
+                            isMe
                               ? "bg-gradient-to-br from-neon-cyan to-neon-purple text-background"
                               : "bg-secondary text-foreground"
                           )}>
@@ -348,8 +348,10 @@ export default function Friends() {
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-medium">
-                                {stat.profile.nombre || stat.profile.username || `Usuario #${stat.profile.display_id}`}
                               </p>
+                              {stat.profile.active_badge === 'badge_supporter' && (
+                                <Crown className="w-3.5 h-3.5 text-neon-gold fill-neon-gold animate-pulse shadow-sm" />
+                              )}
                               {isMe && <Badge variant="secondary" className="text-xs">Tú</Badge>}
                             </div>
                             <p className="text-sm text-muted-foreground">Nivel {stat.level}</p>
@@ -405,15 +407,15 @@ export default function Friends() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {friends
-                .filter(f => 
-                  !searchQuery || 
+                .filter(f =>
+                  !searchQuery ||
                   f.friend.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                   f.friend.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                   f.friend.display_id.toString().includes(searchQuery)
                 )
                 .map((friendship) => {
                   const stat = friendStats.find(s => s.user_id === friendship.friend.user_id);
-                  
+
                   return (
                     <Card key={friendship.id} className="card-gamer hover:glow-cyan transition-all">
                       <CardContent className="p-4">
@@ -426,6 +428,9 @@ export default function Friends() {
                               <p className="font-semibold">
                                 {friendship.friend.nombre || friendship.friend.username || `Usuario #${friendship.friend.display_id}`}
                               </p>
+                              {friendship.friend.active_badge === 'badge_supporter' && (
+                                <Crown className="w-3.5 h-3.5 text-neon-gold fill-neon-gold" />
+                              )}
                               <p className="text-sm text-muted-foreground">#{friendship.friend.display_id}</p>
                             </div>
                           </div>

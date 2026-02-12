@@ -71,7 +71,7 @@ export function MarketplaceModal() {
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState<'tienda' | 'inventario'>('tienda');
 
-    const { userInventory, fetchInventory, useItem, loadingInventory } = useMarketplace();
+    const { userInventory, fetchInventory, useItem, equipItem, loadingInventory } = useMarketplace();
 
     useEffect(() => {
         if (open && user) {
@@ -315,12 +315,15 @@ export function MarketplaceModal() {
                                                         >
                                                             Usar
                                                         </Button>
-                                                    ) : itemDetails.type === 'theme' ? (
+                                                    ) : itemDetails.type === 'theme' || itemDetails.type === 'badge' ? (
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            className="border-neon-gold text-neon-gold hover:bg-neon-gold/10 h-9"
-                                                            onClick={() => toast.info("Función de equipar temas próximamente")}
+                                                            className={cn(
+                                                                "h-9 transition-all",
+                                                                itemDetails.type === 'theme' ? "border-neon-gold text-neon-gold hover:bg-neon-gold/10" : "border-neon-purple text-neon-purple hover:bg-neon-purple/10"
+                                                            )}
+                                                            onClick={() => equipItem(invItem.item_id, itemDetails.type)}
                                                         >
                                                             Equipar
                                                         </Button>

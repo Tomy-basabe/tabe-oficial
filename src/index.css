@@ -148,6 +148,18 @@
     --sidebar-border: 222 30% 15%;
     --sidebar-ring: 186 100% 50%;
   }
+
+  /* NEON GOLD THEME OVERRIDE */
+  .theme-neon-gold {
+    --primary: 45 100% 55%;
+    --primary-foreground: 222 47% 6%;
+    --accent: 45 100% 55%;
+    --accent-foreground: 222 47% 6%;
+    --ring: 45 100% 55%;
+    --neon-cyan: 45 100% 55%;
+    --glow-cyan: 0 0 20px hsl(45 100% 55% / 0.5), 0 0 40px hsl(45 100% 55% / 0.3);
+    --gradient-primary: linear-gradient(135deg, hsl(45 100% 55%) 0%, hsl(35 100% 45%) 100%);
+  }
 }
 
 @layer base {

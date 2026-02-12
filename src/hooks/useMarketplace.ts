@@ -337,29 +337,54 @@ export function useMarketplace() {
   }, [user]);
 
   const useItem = async (itemType: string, itemId: string, plantId?: string) => {
-    if (!user) return { success: false, message: "No autenticado" };
-
+    if (!user) return;
+    setLoadingInventory(true);
     try {
-      const { data, error } = await (supabase.rpc as any)('use_inventory_item', {
+      const { data, error } = await supabase.rpc('use_inventory_item', {
         p_item_type: itemType,
         p_item_id: itemId,
         p_plant_id: plantId
       });
 
       if (error) throw error;
-
-      const result = data as { success: boolean, message: string };
+      const result = data as any;
       if (result.success) {
         toast.success(result.message);
         await fetchInventory();
       } else {
         toast.error(result.message);
       }
-      return result;
     } catch (err: any) {
       console.error("Use item error:", err);
-      toast.error("Error al usar objeto");
-      return { success: false, message: "Error al usar objeto" };
+      toast.error("Error al usar el objeto");
+    } finally {
+      setLoadingInventory(false);
+    }
+  };
+
+  const equipItem = async (itemId: string, itemType: string) => {
+    if (!user) return;
+    setLoadingInventory(true);
+    try {
+      const { data, error } = await supabase.rpc('equip_inventory_item', {
+        p_item_id: itemId,
+        p_item_type: itemType
+      });
+
+      if (error) throw error;
+      const result = data as any;
+      if (result.success) {
+        toast.success(result.message);
+        // Trigger a page reload or state update to apply theme/badge
+        window.location.reload();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      console.error("Equip item error:", err);
+      toast.error("Error al equipar el objeto");
+    } finally {
+      setLoadingInventory(false);
     }
   };
 
@@ -391,10 +416,10 @@ export function useMarketplace() {
     unpublishDeck,
     getDeckPreview,
     importDeck,
-    rateDeck,
+    userInventory,
     fetchInventory,
     useItem,
-    userInventory,
+    equipItem,
     loadingInventory,
     refetch: fetchPublicDecks
   };
