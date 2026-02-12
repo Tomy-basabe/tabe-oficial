@@ -42,10 +42,13 @@ export default function Discord() {
     toggleVideo,
     toggleDeafen,
     startScreenShare,
-    stopScreenShare
+    stopScreenShare,
+    loading,
+    createInvite,
+    joinServerByCode
   } = discord;
 
-  if (servers.length === 0) {
+  if (loading && servers.length === 0) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background text-primary">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -65,6 +68,9 @@ export default function Discord() {
         onCreateServer={createServer}
         onDeleteServer={deleteServer}
         onLeaveServer={leaveServer}
+        onJoinByCode={joinServerByCode}
+        onCreateInvite={createInvite}
+        hasCurrentServer={!!currentServer}
       />
 
       {currentServer ? (

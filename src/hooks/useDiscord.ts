@@ -160,37 +160,42 @@ export function useDiscord() {
   // Fetch user's servers (only those where they are a member)
   const fetchServers = useCallback(async () => {
     if (!user) return;
+    setLoading(true);
 
-    // First get the server IDs where the user is a member
-    const { data: memberRows, error: memberError } = await supabase
-      .from("discord_server_members")
-      .select("server_id")
-      .eq("user_id", user.id);
+    try {
+      // First get the server IDs where the user is a member
+      const { data: memberRows, error: memberError } = await supabase
+        .from("discord_server_members")
+        .select("server_id")
+        .eq("user_id", user.id);
 
-    if (memberError) {
-      console.error("Error fetching server memberships:", memberError);
-      return;
+      if (memberError) {
+        console.error("Error fetching server memberships:", memberError);
+        return;
+      }
+
+      if (!memberRows || memberRows.length === 0) {
+        setServers([]);
+        return;
+      }
+
+      const serverIds = memberRows.map(m => m.server_id);
+
+      const { data, error } = await supabase
+        .from("discord_servers")
+        .select("*")
+        .in("id", serverIds)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching servers:", error);
+        return;
+      }
+
+      setServers(data || []);
+    } finally {
+      setLoading(false);
     }
-
-    if (!memberRows || memberRows.length === 0) {
-      setServers([]);
-      return;
-    }
-
-    const serverIds = memberRows.map(m => m.server_id);
-
-    const { data, error } = await supabase
-      .from("discord_servers")
-      .select("*")
-      .in("id", serverIds)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Error fetching servers:", error);
-      return;
-    }
-
-    setServers(data || []);
   }, [user]);
 
   // Fetch channels for current server
@@ -451,6 +456,91 @@ export function useDiscord() {
     } catch (error) {
       console.error("Error leaving server:", error);
       toast({ title: "Error", description: "No se pudo salir del servidor", variant: "destructive" });
+    }
+  };
+
+  // Create a server invite code
+  const createInvite = async (): Promise<string | null> => {
+    if (!user || !currentServer) return null;
+
+    try {
+      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const { error } = await supabase
+        .from("discord_server_invites")
+        .insert({
+          server_id: currentServer.id,
+          code,
+          created_by: user.id,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        });
+
+      if (error) throw error;
+      toast({ title: "Invitación creada", description: `Código: ${code}` });
+      return code;
+    } catch (error) {
+      console.error("Error creating invite:", error);
+      toast({ title: "Error", description: "No se pudo crear la invitación", variant: "destructive" });
+      return null;
+    }
+  };
+
+  // Join a server by invite code
+  const joinServerByCode = async (code: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // Look up the invite
+      const { data: invite, error: inviteError } = await supabase
+        .from("discord_server_invites")
+        .select("*")
+        .eq("code", code.toUpperCase().trim())
+        .single();
+
+      if (inviteError || !invite) {
+        toast({ title: "Error", description: "Código de invitación inválido o expirado", variant: "destructive" });
+        return false;
+      }
+
+      // Check if expired
+      if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+        toast({ title: "Error", description: "Esta invitación ha expirado", variant: "destructive" });
+        return false;
+      }
+
+      // Check if already a member
+      const { data: existing } = await supabase
+        .from("discord_server_members")
+        .select("id")
+        .eq("server_id", invite.server_id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast({ title: "Ya eres miembro", description: "Ya perteneces a este servidor" });
+        await fetchServers();
+        return true;
+      }
+
+      // Join
+      const { error: joinError } = await supabase
+        .from("discord_server_members")
+        .insert({ server_id: invite.server_id, user_id: user.id, role: "member" });
+
+      if (joinError) throw joinError;
+
+      // Increment uses
+      await supabase
+        .from("discord_server_invites")
+        .update({ uses: (invite.uses || 0) + 1 })
+        .eq("id", invite.id);
+
+      toast({ title: "¡Te uniste al servidor!", description: "Bienvenido al servidor" });
+      await fetchServers();
+      return true;
+    } catch (error) {
+      console.error("Error joining server:", error);
+      toast({ title: "Error", description: "No se pudo unir al servidor", variant: "destructive" });
+      return false;
     }
   };
 
@@ -1534,6 +1624,9 @@ export function useDiscord() {
     speakingUsers,
     inVoiceChannel,
 
+    // Loading
+    loading,
+
     // Actions
     createServer,
     deleteServer,
@@ -1551,5 +1644,7 @@ export function useDiscord() {
     startScreenShare,
     stopScreenShare,
     fetchServers,
+    createInvite,
+    joinServerByCode,
   };
 }

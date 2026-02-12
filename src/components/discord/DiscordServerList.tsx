@@ -28,6 +28,9 @@ interface DiscordServerListProps {
   onCreateServer: (name: string) => Promise<any>;
   onDeleteServer?: (serverId: string) => Promise<void>;
   onLeaveServer?: (serverId: string) => Promise<void>;
+  onJoinByCode?: (code: string) => Promise<boolean>;
+  onCreateInvite?: () => Promise<string | null>;
+  hasCurrentServer?: boolean;
 }
 
 export function DiscordServerList({
@@ -36,12 +39,18 @@ export function DiscordServerList({
   onSelectServer,
   onCreateServer,
   onDeleteServer,
-  onLeaveServer
+  onLeaveServer,
+  onJoinByCode,
+  onCreateInvite,
+  hasCurrentServer
 }: DiscordServerListProps) {
   const { user } = useAuth();
   const [showCreateServer, setShowCreateServer] = useState(false);
+  const [showJoinServer, setShowJoinServer] = useState(false);
   const [serverName, setServerName] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   const handleCreateServer = async () => {
     if (!serverName.trim()) return;
@@ -52,6 +61,16 @@ export function DiscordServerList({
     setCreating(false);
   };
 
+  const handleJoinServer = async () => {
+    if (!inviteCode.trim() || !onJoinByCode) return;
+    setJoining(true);
+    const success = await onJoinByCode(inviteCode.trim());
+    if (success) {
+      setInviteCode("");
+      setShowJoinServer(false);
+    }
+    setJoining(false);
+  };
   return (
     <div className="w-[72px] bg-background/95 backdrop-blur border-r border-border py-3 flex flex-col items-center gap-2 overflow-y-auto discord-scrollbar shrink-0 z-50">
       {/* Home Button (Direct Messages) */}
@@ -122,6 +141,22 @@ export function DiscordServerList({
               </div>
             </ContextMenuTrigger>
             <ContextMenuContent className="w-56 bg-card border-border text-foreground">
+              {onCreateInvite && (
+                <ContextMenuItem
+                  className="cursor-pointer"
+                  onClick={async () => {
+                    // Need to select server first to create invite for it
+                    onSelectServer(server);
+                    const code = await onCreateInvite();
+                    if (code) {
+                      navigator.clipboard?.writeText(code);
+                    }
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Crear Invitación
+                </ContextMenuItem>
+              )}
               {user?.id === server.owner_id && onDeleteServer ? (
                 <ContextMenuItem
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer group"
@@ -215,16 +250,61 @@ export function DiscordServerList({
         </Tooltip>
       </div>
 
-      {/* Explore Public Servers Button */}
+      {/* Join Server Button */}
       <div className="relative group mb-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="w-12 h-12 rounded-[24px] bg-card hover:bg-primary hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-primary hover:text-primary-foreground mx-3 shadow-sm">
-              <Compass className="w-6 h-6" />
-            </button>
+            <Dialog open={showJoinServer} onOpenChange={setShowJoinServer}>
+              <DialogTrigger asChild>
+                <button className="w-12 h-12 rounded-[24px] bg-card hover:bg-primary hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-primary hover:text-primary-foreground mx-3 shadow-sm">
+                  <Compass className="w-6 h-6" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border text-foreground sm:max-w-md p-0 overflow-hidden gap-0">
+                <DialogHeader className="p-6 pb-2 text-center bg-muted/20">
+                  <DialogTitle className="text-2xl font-bold text-primary font-orbitron">Unirse a un Servidor</DialogTitle>
+                  <p className="text-muted-foreground text-sm mt-2 text-center px-4">
+                    Ingresá el código de invitación que te compartieron para unirte a un servidor.
+                  </p>
+                </DialogHeader>
+                <div className="p-6 space-y-4 bg-muted/10">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide px-1">
+                      Código de invitación
+                    </label>
+                    <Input
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      placeholder="Ej: ABC12345"
+                      className="bg-background border-input text-foreground h-10 focus-visible:ring-primary text-center text-lg tracking-widest font-mono uppercase"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleJoinServer();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="bg-muted/30 p-4 flex justify-between items-center border-t border-border">
+                  <button
+                    onClick={() => setShowJoinServer(false)}
+                    className="text-sm text-foreground hover:underline px-4 hover:text-primary transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <Button
+                    onClick={handleJoinServer}
+                    disabled={!inviteCode.trim() || joining}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 shadow-lg shadow-primary/20"
+                  >
+                    {joining ? "Uniéndose..." : "Unirse"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
-            Explorar servidores públicos
+            Unirse a un servidor
           </TooltipContent>
         </Tooltip>
       </div>
