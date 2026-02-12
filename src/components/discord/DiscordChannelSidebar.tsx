@@ -333,8 +333,13 @@ export function DiscordChannelSidebar({
               <Signal className="w-3.5 h-3.5 animate-pulse" />
               <span>Voz Conectada</span>
             </div>
-            <button onClick={onLeaveVoice} className="hover:text-foreground transition-colors">
-              <PhoneOff className="w-4 h-4" />
+            <button
+              onClick={onLeaveVoice}
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-200 text-[10px] font-bold uppercase tracking-wider"
+              title="Desconectar"
+            >
+              <PhoneOff className="w-3 h-3" />
+              <span>Salir</span>
             </button>
           </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground px-0.5">
