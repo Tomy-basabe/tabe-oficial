@@ -966,12 +966,15 @@ export function useDiscord() {
       IMPORTANT:
       Creamos transceivers de audio+video desde el inicio para evitar renegociaciones
       cuando el usuario activa la cámara más tarde.
-
-      Si solo agregamos `addTrack(video)` después de que la conexión ya esté estable,
-      muchos navegadores requieren un nuevo offer/answer, y el video nunca llega.
     */
-    const audioTransceiver = pc.addTransceiver("audio", { direction: "sendrecv" });
-    const videoTransceiver = pc.addTransceiver("video", { direction: "sendrecv" });
+    const audioTransceiver = pc.addTransceiver("audio", {
+      direction: "sendrecv",
+      streams: [stream]
+    });
+    const videoTransceiver = pc.addTransceiver("video", {
+      direction: "sendrecv",
+      streams: [stream]
+    });
     videoTransceiversRef.current.set(peerId, videoTransceiver);
 
     // Attach current local tracks
@@ -990,14 +993,30 @@ export function useDiscord() {
 
     pc.ontrack = (event) => {
       console.log("[Discord] Received track from:", peerId, event.track.kind);
-      const [remoteStream] = event.streams;
-      if (remoteStream) {
-        setRemoteStreams((prev) => {
-          const updated = new Map(prev);
-          updated.set(peerId, remoteStream);
-          return updated;
-        });
+
+      // Get the stream from event, or create a new one if missing
+      const remoteStream = event.streams[0] || new MediaStream();
+
+      // If the stream was created manually, we need to add the track
+      if (!event.streams[0]) {
+        remoteStream.addTrack(event.track);
       }
+
+      setRemoteStreams((prev) => {
+        const updated = new Map(prev);
+        // If we already have a stream for this peer, we might want to reuse it or merge
+        const existing = updated.get(peerId);
+        if (existing) {
+          // If we already have a stream, ensure this track is added to it
+          if (!existing.getTracks().find(t => t.id === event.track.id)) {
+            existing.addTrack(event.track);
+          }
+          return updated;
+        }
+
+        updated.set(peerId, remoteStream);
+        return updated;
+      });
     };
 
     pc.onicecandidate = (event) => {
