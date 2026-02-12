@@ -35,7 +35,7 @@ const ITEMS: MarketplaceItem[] = [
         id: "mystery_box",
         type: "mystery_box" as any,
         name: "Caja Misteriosa",
-        description: "Contiene entre 500 y 5000 créditos. ¿Te sientes con suerte?",
+        description: "Contiene entre 0 y 5000 créditos. ¿Te sientes con suerte?",
         cost: 1000,
         icon: Package,
         color: "text-pink-500",
@@ -50,6 +50,36 @@ const ITEMS: MarketplaceItem[] = [
         icon: Zap,
         color: "text-purple-500",
         gradient: "from-purple-500 to-indigo-500"
+    },
+    {
+        id: "xp_chest_random",
+        type: "xp_chest" as any,
+        name: "Cofre de XP",
+        description: "Contiene entre 1000 y 5000 de XP. ¡Sube de nivel al instante!",
+        cost: 2000,
+        icon: Package,
+        color: "text-blue-500",
+        gradient: "from-blue-500 to-indigo-600"
+    },
+    {
+        id: "super_fertilizer_3x",
+        type: "fertilizer" as any,
+        name: "Fertilizante Maestro",
+        description: "Acelera el crecimiento al 300% por 24 horas. ¡Resultados increíbles!",
+        cost: 500,
+        icon: Leaf,
+        color: "text-emerald-400",
+        gradient: "from-emerald-400 to-teal-600"
+    },
+    {
+        id: "streak_repair",
+        type: "streak_repair" as any,
+        name: "Reparador de Racha",
+        description: "Restaura tu racha actual a tu mejor racha registrada.",
+        cost: 1500,
+        icon: Snowflake,
+        color: "text-cyan-400",
+        gradient: "from-cyan-400 to-blue-600"
     },
     {
         id: "fertilizer_2x",
@@ -332,16 +362,24 @@ export function MarketplaceModal() {
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            {itemDetails.type === 'fertilizer' || itemDetails.type === 'instant_grow' ? (
+                                            {itemDetails.type === 'fertilizer' || itemDetails.type === 'instant_grow' || itemDetails.type === 'xp_chest' || itemDetails.type === 'streak_repair' ? (
                                                 <Button
                                                     size="sm"
                                                     className={cn(
                                                         "font-bold h-9 transition-transform active:scale-95",
-                                                        itemDetails.type === 'instant_grow'
+                                                        itemDetails.type === 'instant_grow' || itemDetails.type === 'xp_chest'
                                                             ? "bg-purple-600 hover:bg-purple-700 text-white"
-                                                            : "bg-neon-green hover:bg-neon-green/90 text-black"
+                                                            : itemDetails.type === 'streak_repair'
+                                                                ? "bg-cyan-600 hover:bg-cyan-700 text-white"
+                                                                : "bg-neon-green hover:bg-neon-green/90 text-black"
                                                     )}
-                                                    onClick={() => useItem(invItem.item_type, invItem.item_id)}
+                                                    onClick={() => {
+                                                        if (itemDetails.type === 'xp_chest' || itemDetails.type === 'streak_repair') {
+                                                            useItem(itemDetails.type, itemDetails.id);
+                                                        } else {
+                                                            useItem(invItem.item_type, invItem.item_id);
+                                                        }
+                                                    }}
                                                 >
                                                     Usar
                                                 </Button>
