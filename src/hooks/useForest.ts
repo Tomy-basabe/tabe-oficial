@@ -15,6 +15,8 @@ export interface Plant {
   last_watered_at: string;
   completed_at: string | null;
   died_at: string | null;
+  fertilizer_ends_at?: string | null;
+  growth_multiplier?: number | null;
 }
 
 interface StudyActivity {
@@ -60,7 +62,7 @@ export function useForest() {
 
       const typedData = data as Plant[];
       setPlants(typedData);
-      
+
       // Find current active plant (alive and not completed)
       const active = typedData.find(p => p.is_alive && !p.is_completed);
       setCurrentPlant(active || null);
@@ -75,7 +77,7 @@ export function useForest() {
     try {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
+
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -136,14 +138,14 @@ export function useForest() {
     // IMPORTANT: Don't check for death if plant is less than 7 days old
     // This prevents newly planted seeds from dying immediately
     const isInGracePeriod = daysSincePlanted < 7;
-    
+
     if (!isInGracePeriod && studyActivity.daysSinceLastStudy >= 7 && currentPlant.is_alive) {
       // Plant is old enough AND user hasn't studied in 7 days - kill it
       const { error } = await supabase
         .from("user_plants")
-        .update({ 
-          is_alive: false, 
-          died_at: new Date().toISOString() 
+        .update({
+          is_alive: false,
+          died_at: new Date().toISOString()
         })
         .eq("id", currentPlant.id);
 
@@ -161,17 +163,23 @@ export function useForest() {
       const lastWatered = new Date(currentPlant.last_watered_at);
       const lastWateredDate = new Date(lastWatered.getFullYear(), lastWatered.getMonth(), lastWatered.getDate());
       const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
+
       // Skip if already watered today (growth already applied)
       if (lastWateredDate.getTime() === todayDate.getTime()) {
         return;
       }
-      
+
+      // Check for active fertilizer
+      let multiplier = 1;
+      if (currentPlant.fertilizer_ends_at && new Date(currentPlant.fertilizer_ends_at) > now) {
+        multiplier = currentPlant.growth_multiplier || 1;
+      }
+
       // Growth based on study time: 5% base + 1% per 30 minutes studied today
       const baseGrowth = 5;
       const bonusGrowth = Math.floor(studyActivity.studyMinutesToday / 30);
-      const totalGrowth = Math.min(baseGrowth + bonusGrowth, 15); // Max 15% per day
-      
+      const totalGrowth = Math.min((baseGrowth + bonusGrowth) * multiplier, 15 * multiplier); // Max 15% (or 30% with fertilizer) per day
+
       const newGrowth = Math.min(currentPlant.growth_percentage + totalGrowth, 100);
       const isCompleted = newGrowth >= 100;
 
@@ -257,9 +265,9 @@ export function useForest() {
     try {
       const { error } = await supabase
         .from("user_plants")
-        .update({ 
-          is_alive: false, 
-          died_at: new Date().toISOString() 
+        .update({
+          is_alive: false,
+          died_at: new Date().toISOString()
         })
         .eq("id", plantId)
         .eq("user_id", user.id);

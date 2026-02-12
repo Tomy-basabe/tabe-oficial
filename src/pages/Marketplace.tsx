@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MarketplaceModal } from "@/components/marketplace/MarketplaceModal";
 
 interface Subject {
   id: string;
@@ -44,7 +45,7 @@ export default function Marketplace() {
   const [categories, setCategories] = useState<string[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [myDecks, setMyDecks] = useState<Array<{ id: string; nombre: string; total_cards: number; is_public: boolean; subject_id: string }>>([]);
-  
+
   // Preview Modal State
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDeck, setPreviewDeck] = useState<typeof publicDecks[0] | null>(null);
@@ -75,7 +76,7 @@ export default function Marketplace() {
         .from("subjects")
         .select("id, nombre, numero_materia")
         .order("numero_materia", { ascending: true });
-      
+
       const mappedSubjects: Subject[] = (subjectsData || []).map((s: { id: string; nombre: string; numero_materia: number }) => ({
         id: s.id,
         nombre: s.nombre,
@@ -197,6 +198,7 @@ export default function Marketplace() {
             Descubre y comparte mazos de flashcards con la comunidad
           </p>
         </div>
+        <MarketplaceModal />
       </div>
 
       <Tabs defaultValue="explore" className="space-y-4">
@@ -213,7 +215,7 @@ export default function Marketplace() {
 
         {/* Explore Tab */}
         <TabsContent value="explore" className="space-y-4">
-        {/* Search & Filters */}
+          {/* Search & Filters */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1">
@@ -237,7 +239,7 @@ export default function Marketplace() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {/* Year and Subject Filters */}
             <div className="flex flex-col md:flex-row gap-4">
               <Select value={yearFilter?.toString() || "all"} onValueChange={(v) => {
@@ -255,9 +257,9 @@ export default function Marketplace() {
                   ))}
                 </SelectContent>
               </Select>
-              
-              <Select 
-                value={subjectFilter || "all"} 
+
+              <Select
+                value={subjectFilter || "all"}
                 onValueChange={(v) => setSubjectFilter(v === "all" ? null : v)}
               >
                 <SelectTrigger className="w-full md:w-64">
@@ -278,8 +280,8 @@ export default function Marketplace() {
 
               {/* Clear filters button */}
               {(yearFilter || subjectFilter || categoryFilter) && (
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => {
                     setYearFilter(null);
@@ -507,7 +509,7 @@ export default function Marketplace() {
               {previewDeck?.nombre}
             </DialogTitle>
           </DialogHeader>
-          
+
           {loadingPreview ? (
             <div className="p-8 text-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />

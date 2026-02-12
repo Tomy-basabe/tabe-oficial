@@ -258,7 +258,7 @@ export default function Pomodoro() {
                     <SelectValue placeholder="Filtrar por año" />
                   </div>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px] overflow-y-auto">
                   <SelectItem value="all">Todos los años</SelectItem>
                   {[...new Set(subjects.map(s => Math.ceil(s.numero_materia / 10)))].sort().map(year => (
                     <SelectItem key={year} value={year.toString()}>Año {year}</SelectItem>
