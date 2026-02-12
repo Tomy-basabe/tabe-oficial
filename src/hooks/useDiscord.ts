@@ -1006,12 +1006,21 @@ export function useDiscord() {
       // Force React update when tracks are added/removed from the stream
       remoteStream.onaddtrack = () => {
         console.log("[Discord] Stream track added for:", peerId);
-        setRemoteStreams((prev) => new Map(prev));
+        setRemoteStreams((prev) => {
+          const updated = new Map(prev);
+          // Clone stream to force React effect update
+          updated.set(peerId, new MediaStream(remoteStream.getTracks()));
+          return updated;
+        });
       };
 
       remoteStream.onremovetrack = () => {
         console.log("[Discord] Stream track removed for:", peerId);
-        setRemoteStreams((prev) => new Map(prev));
+        setRemoteStreams((prev) => {
+          const updated = new Map(prev);
+          updated.set(peerId, new MediaStream(remoteStream.getTracks()));
+          return updated;
+        });
       };
 
       setRemoteStreams((prev) => {
