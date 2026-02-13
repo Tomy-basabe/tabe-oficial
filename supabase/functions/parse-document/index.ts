@@ -21,9 +21,12 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
+    // DEBUG: log auth header presence
+    console.log("Auth Header present:", !!authHeader, "Header start:", authHeader?.substring(0, 10));
+
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized: Missing Bearer token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -39,13 +42,15 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await authClient.auth.getUser();
 
     if (userError || !user) {
+      console.error("Auth Error:", userError);
       return new Response(
-        JSON.stringify({ error: "Invalid token" }),
+        JSON.stringify({ error: "Invalid token: User verification failed" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const userId = user.id;
+    console.log("Authorized User:", userId);
 
     const { fileUrl, storagePath, fileName, fileType } = (await req.json()) as ParseDocumentRequest;
 
