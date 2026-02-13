@@ -90,6 +90,7 @@ export default function Library() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewFile, setPreviewFile] = useState<LibraryFile | null>(null);
   const [uploadSubject, setUploadSubject] = useState<string>("");
+  const [uploadYear, setUploadYear] = useState<number | null>(null);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkName, setLinkName] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
@@ -841,32 +842,60 @@ export default function Library() {
       </Dialog>
 
       {/* Upload Modal */}
-      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+      <Dialog open={showUploadModal} onOpenChange={(open) => {
+        setShowUploadModal(open);
+        if (open) setUploadYear(selectedYear); // Default to current filter
+      }}>
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-display gradient-text">Subir Archivo</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">
-                Materia {selectedSubjectId ? "(heredada del filtro)" : "(opcional)"}
-              </label>
-              <Select
-                value={uploadSubject || selectedSubjectId || "none"}
-                onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
-              >
-                <SelectTrigger className="mt-2 bg-secondary border-border">
-                  <SelectValue placeholder="Sin materia asignada" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin materia asignada</SelectItem>
-                  {subjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.nombre} ({subject.año}° año)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Año</label>
+                <Select
+                  value={uploadYear ? uploadYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setUploadYear(year);
+                    setUploadSubject(""); // Reset subject when year changes
+                  }}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {years.map(y => (
+                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Materia
+                </label>
+                <Select
+                  value={uploadSubject || "none"}
+                  onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Sin materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                    {subjects
+                      .filter(s => !uploadYear || s.año === uploadYear)
+                      .map(subject => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.nombre} ({subject.año}°)
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div
@@ -894,32 +923,60 @@ export default function Library() {
       </Dialog>
 
       {/* Link Modal */}
-      <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
+      <Dialog open={showLinkModal} onOpenChange={(open) => {
+        setShowLinkModal(open);
+        if (open) setUploadYear(selectedYear);
+      }}>
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-display gradient-text">Agregar Link</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">
-                Materia {selectedSubjectId ? "(heredada del filtro)" : "(opcional)"}
-              </label>
-              <Select
-                value={uploadSubject || selectedSubjectId || "none"}
-                onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
-              >
-                <SelectTrigger className="mt-2 bg-secondary border-border">
-                  <SelectValue placeholder="Sin materia asignada" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin materia asignada</SelectItem>
-                  {subjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.nombre} ({subject.año}° año)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Año</label>
+                <Select
+                  value={uploadYear ? uploadYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setUploadYear(year);
+                    setUploadSubject("");
+                  }}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {years.map(y => (
+                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Materia
+                </label>
+                <Select
+                  value={uploadSubject || "none"}
+                  onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Sin materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                    {subjects
+                      .filter(s => !uploadYear || s.año === uploadYear)
+                      .map(subject => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.nombre} ({subject.año}°)
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>
