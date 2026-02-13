@@ -183,7 +183,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
       if (!geminiApiKey) throw new Error("GEMINI_API_KEY not configured");
       console.log("Attempting Gemini Direct...");
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
       const geminiResponse = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -200,12 +200,16 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
       if (!geminiResponse.ok) {
         const err = await geminiResponse.text();
+        // Forward 429 to trigger fallback
+        if (geminiResponse.status === 429) {
+          throw new Error(`Gemini 429 Rate Limit: ${err}`);
+        }
         throw new Error(`Gemini API error: ${geminiResponse.status} - ${err}`);
       }
 
       const geminiData = await geminiResponse.json();
       aiResponseData = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      usedModel = "gemini-direct";
+      usedModel = "gemini-direct-2.0";
 
     } catch (geminiError: any) {
       console.warn("Gemini Direct failed:", geminiError.message);
@@ -223,7 +227,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-1.5-flash", // Use stable model for fallback
+          model: "google/gemini-1.5-flash-latest", // Use stable model for fallback
           messages: [{
             role: "user",
             content: [
