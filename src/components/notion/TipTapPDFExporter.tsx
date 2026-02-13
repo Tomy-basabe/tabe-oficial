@@ -216,11 +216,23 @@ export function TipTapPDFExporter({
   const uploadFile = async (blob: Blob, fileName: string, upsert: boolean) => {
     try {
       const storagePath = `${userId}/${fileName}.pdf`;
+
+      // V3: Explicitly delete if overwriting to force refresh and avoid cache/upsert issues
+      if (upsert) {
+        console.log("Deleting existing file:", storagePath);
+        const { error: removeError } = await supabase.storage
+          .from("library-files")
+          .remove([storagePath]);
+
+        if (removeError) console.warn("Remove failed (might not exist):", removeError);
+      }
+
       const { error: uploadError } = await supabase.storage
         .from("library-files")
         .upload(storagePath, blob, {
           contentType: "application/pdf",
-          upsert: upsert
+          upsert: true, // Always true if we want to ensure write
+          cacheControl: '0' // Prevent caching
         });
 
       if (uploadError) throw uploadError;
@@ -232,7 +244,7 @@ export function TipTapPDFExporter({
 
       if (signedUrlError) throw signedUrlError;
 
-      // Upsert into database record as well to ensure latest metadata
+      // Upsert into database record as well
       const { error: dbError } = await supabase
         .from("library_files")
         .upsert({
@@ -242,12 +254,13 @@ export function TipTapPDFExporter({
           tipo: "pdf",
           url: signedUrlData.signedUrl,
           storage_path: storagePath,
-          tamaño_bytes: blob.size
+          tamaño_bytes: blob.size,
+          updated_at: new Date().toISOString()
         }, { onConflict: 'storage_path' });
 
       if (dbError) throw dbError;
 
-      toast.success(upsert ? "Archivo actualizado" : "Archivo guardado como copia");
+      toast.success(upsert ? "Archivo actualizado exitosamente" : "Copia guardada exitosamente");
       onExported?.();
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -283,19 +296,42 @@ export function TipTapPDFExporter({
       const html2pdf = (await import("html2pdf.js")).default;
       const htmlContent = convertToHtml(content);
 
+      // Create main container (Full screen visible overlay)
       const container = document.createElement("div");
-      container.innerHTML = htmlContent;
-      container.style.position = "absolute";
-      container.style.top = "200vh"; // Push well below the fold
+
+      // VISIBLE OVERLAY STRATEGY (V3)
+      container.style.position = "fixed";
+      container.style.top = "0";
       container.style.left = "0";
-      container.style.width = "800px";
+      container.style.width = "100%";
+      container.style.height = "100%";
+      container.style.zIndex = "9999";
       container.style.background = "white";
-      container.style.zIndex = "100"; // Ensure it's "above" in stacking context so it renders, but off-screen
-      container.style.pointerEvents = "none"; // Non-interactive
+      container.style.overflow = "auto";
+
+      // Create loading overlay
+      const loadingOverlay = document.createElement("div");
+      loadingOverlay.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #333;">Generando PDF...</h2>
+          <p style="color: #666;">Por favor espere un momento.</p>
+        </div>
+      `;
+
+      // Create content wrapper
+      const contentDiv = document.createElement("div");
+      contentDiv.innerHTML = htmlContent;
+      contentDiv.style.width = "800px";
+      contentDiv.style.margin = "0 auto";
+      contentDiv.style.background = "white";
+      contentDiv.id = "pdf-content-export";
+
+      container.appendChild(loadingOverlay);
+      container.appendChild(contentDiv);
       document.body.appendChild(container);
 
       // Wait a moment for rendering (fonts, images)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const cleanTitle = (documentTitle || "apunte").replace(/[^a-zA-Z0-9\s-_]/g, "").trim();
       const fileName = cleanTitle; // Default: just the title
@@ -307,7 +343,8 @@ export function TipTapPDFExporter({
         html2canvas: {
           scale: 2,
           useCORS: true,
-          logging: false
+          logging: false,
+          windowWidth: 1024
         },
         jsPDF: {
           unit: "mm" as const,
@@ -317,7 +354,8 @@ export function TipTapPDFExporter({
       };
 
       if (saveToLibrary && subjectId) {
-        const pdfBlob = await html2pdf().set(opt).from(container).outputPdf("blob");
+        // Capture specifically the contentDiv
+        const pdfBlob = await html2pdf().set(opt).from(contentDiv).outputPdf("blob");
 
         // Check if file exists
         const { data: existingFiles } = await supabase.storage
@@ -332,10 +370,6 @@ export function TipTapPDFExporter({
         if (exists) {
           setPendingFile({ blob: pdfBlob, fileName });
           setShowOverwriteDialog(true);
-          // Exporting state remains true while dialog is open? 
-          // Better set it to false so spinner stops? No, keep spinner or handle UI.
-          // Actually, keep exporting=true is confusing if waiting for user.
-          // I'll set exporting=false locally but UI might need to reflect "Prompting".
           setExporting(false);
         } else {
           // Upload directly
@@ -343,7 +377,7 @@ export function TipTapPDFExporter({
         }
 
       } else {
-        await html2pdf().set(opt).from(container).save();
+        await html2pdf().set(opt).from(contentDiv).save();
         toast.success("PDF descargado");
         setExporting(false);
       }
