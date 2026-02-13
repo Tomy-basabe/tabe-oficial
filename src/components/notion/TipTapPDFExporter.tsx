@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { JSONContent } from "@tiptap/core";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
 interface TipTapPDFExporterProps {
   documentTitle: string;
   documentEmoji: string;
@@ -13,16 +16,18 @@ interface TipTapPDFExporterProps {
   onExported?: () => void;
 }
 
-export function TipTapPDFExporter({ 
-  documentTitle, 
+export function TipTapPDFExporter({
+  documentTitle,
   documentEmoji,
-  getContent, 
-  subjectId, 
+  getContent,
+  subjectId,
   userId,
-  onExported 
+  onExported
 }: TipTapPDFExporterProps) {
   const [exporting, setExporting] = useState(false);
   const [saveToLibrary, setSaveToLibrary] = useState(true);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+  const [pendingFile, setPendingFile] = useState<{ blob: Blob; fileName: string } | null>(null);
 
   const convertToHtml = (data: JSONContent): string => {
     if (!data || !data.content) return "";
@@ -32,11 +37,11 @@ export function TipTapPDFExporter({
         <div style="text-align: center; margin-bottom: 40px;">
           <span style="font-size: 48px;">${documentEmoji}</span>
           <h1 style="font-size: 28px; font-weight: 700; margin-top: 16px; color: #0f0f0f;">${documentTitle || "Sin título"}</h1>
-          <p style="color: #666; font-size: 14px; margin-top: 8px;">Exportado el ${new Date().toLocaleDateString("es-AR", { 
-            day: "numeric", 
-            month: "long", 
-            year: "numeric" 
-          })}</p>
+          <p style="color: #666; font-size: 14px; margin-top: 8px;">Exportado el ${new Date().toLocaleDateString("es-AR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    })}</p>
         </div>
     `;
 
@@ -208,6 +213,63 @@ export function TipTapPDFExporter({
     return html;
   };
 
+  const uploadFile = async (blob: Blob, fileName: string, upsert: boolean) => {
+    try {
+      const storagePath = `${userId}/${fileName}.pdf`;
+      const { error: uploadError } = await supabase.storage
+        .from("library-files")
+        .upload(storagePath, blob, {
+          contentType: "application/pdf",
+          upsert: upsert
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from("library-files")
+        .createSignedUrl(storagePath, 3600);
+
+      if (signedUrlError) throw signedUrlError;
+
+      // Upsert into database record as well to ensure latest metadata
+      const { error: dbError } = await supabase
+        .from("library_files")
+        .upsert({
+          user_id: userId,
+          subject_id: subjectId,
+          nombre: `${fileName}.pdf`,
+          tipo: "pdf",
+          url: signedUrlData.signedUrl,
+          storage_path: storagePath,
+          tamaño_bytes: blob.size
+        }, { onConflict: 'storage_path' });
+
+      if (dbError) throw dbError;
+
+      toast.success(upsert ? "Archivo actualizado" : "Archivo guardado como copia");
+      onExported?.();
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error("Error al guardar en biblioteca");
+    } finally {
+      setExporting(false);
+      setShowOverwriteDialog(false);
+      setPendingFile(null);
+    }
+  };
+
+  const handleOverwrite = () => {
+    if (pendingFile) uploadFile(pendingFile.blob, pendingFile.fileName, true);
+  };
+
+  const handleSaveAsCopy = () => {
+    if (pendingFile) {
+      const newName = `${pendingFile.fileName}-${Date.now()}`;
+      uploadFile(pendingFile.blob, newName, false);
+    }
+  };
+
   const exportToPDF = async () => {
     const content = getContent();
     if (!content || !content.content || content.content.length === 0) {
@@ -220,78 +282,69 @@ export function TipTapPDFExporter({
     try {
       const html2pdf = (await import("html2pdf.js")).default;
       const htmlContent = convertToHtml(content);
-      
+
       const container = document.createElement("div");
       container.innerHTML = htmlContent;
       container.style.position = "absolute";
       container.style.left = "-9999px";
       document.body.appendChild(container);
 
-      const fileName = `${documentTitle || "apunte"}-${Date.now()}`;
+      const cleanTitle = (documentTitle || "apunte").replace(/[^a-zA-Z0-9\s-_]/g, "").trim();
+      const fileName = cleanTitle; // Default: just the title
 
       const opt = {
         margin: [10, 10, 10, 10] as [number, number, number, number],
         filename: `${fileName}.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: { 
+        html2canvas: {
           scale: 2,
           useCORS: true,
           logging: false
         },
-        jsPDF: { 
-          unit: "mm" as const, 
-          format: "a4" as const, 
+        jsPDF: {
+          unit: "mm" as const,
+          format: "a4" as const,
           orientation: "portrait" as const
         }
       };
 
       if (saveToLibrary && subjectId) {
         const pdfBlob = await html2pdf().set(opt).from(container).outputPdf("blob");
-        
-        const storagePath = `${userId}/${fileName}.pdf`;
-        const { error: uploadError } = await supabase.storage
+
+        // Check if file exists
+        const { data: existingFiles } = await supabase.storage
           .from("library-files")
-          .upload(storagePath, pdfBlob, {
-            contentType: "application/pdf",
-            upsert: true
+          .list(userId, {
+            limit: 100,
+            search: `${fileName}.pdf`
           });
 
-        if (uploadError) throw uploadError;
+        const exists = existingFiles?.some(f => f.name === `${fileName}.pdf`);
 
-        // Get signed URL for private bucket (1 hour expiry)
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from("library-files")
-          .createSignedUrl(storagePath, 3600);
+        if (exists) {
+          setPendingFile({ blob: pdfBlob, fileName });
+          setShowOverwriteDialog(true);
+          // Exporting state remains true while dialog is open? 
+          // Better set it to false so spinner stops? No, keep spinner or handle UI.
+          // Actually, keep exporting=true is confusing if waiting for user.
+          // I'll set exporting=false locally but UI might need to reflect "Prompting".
+          setExporting(false);
+        } else {
+          // Upload directly
+          await uploadFile(pdfBlob, fileName, false);
+        }
 
-        if (signedUrlError) throw signedUrlError;
-
-        const { error: dbError } = await supabase
-          .from("library_files")
-          .insert({
-            user_id: userId,
-            subject_id: subjectId,
-            nombre: `${documentTitle || "Apunte"}.pdf`,
-            tipo: "pdf",
-            url: signedUrlData.signedUrl,
-            storage_path: storagePath,
-            tamaño_bytes: pdfBlob.size
-          });
-
-        if (dbError) throw dbError;
-
-        toast.success("PDF guardado en la Biblioteca");
       } else {
         await html2pdf().set(opt).from(container).save();
         toast.success("PDF descargado");
+        setExporting(false);
       }
 
       document.body.removeChild(container);
-      onExported?.();
 
     } catch (error) {
       console.error("Error exporting PDF:", error);
       toast.error("Error al exportar el PDF");
-    } finally {
       setExporting(false);
     }
   };
@@ -310,7 +363,7 @@ export function TipTapPDFExporter({
           <span className="hidden sm:inline">Guardar en Biblioteca</span>
         </label>
       )}
-      
+
       <button
         onClick={exportToPDF}
         disabled={exporting}
@@ -328,6 +381,29 @@ export function TipTapPDFExporter({
           </>
         )}
       </button>
-    </div>
+
+      <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>El archivo ya existe</DialogTitle>
+            <DialogDescription>
+              Ya tienes un archivo llamado "{pendingFile?.fileName}.pdf" en tu biblioteca.
+              ¿Qué deseas hacer?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="secondary" onClick={() => setShowOverwriteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button variant="outline" onClick={handleSaveAsCopy}>
+              Guardar Copia
+            </Button>
+            <Button onClick={handleOverwrite}>
+              Sobrescribir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div >
   );
 }
