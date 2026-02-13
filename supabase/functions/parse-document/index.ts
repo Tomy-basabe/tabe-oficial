@@ -51,21 +51,15 @@ serve(async (req) => {
     if (fileName.length > 255) throw new Error("fileName too long");
 
     // DATA NORMALIZATION:
-    // If we have a fileUrl that points to our own storage, converting it to a storagePath is safer/better
-    // because it uses the Service Role key for internal access (bypassing public auth issues).
     if (fileUrl && fileUrl.includes('/storage/v1/object/')) {
       try {
         const urlObj = new URL(fileUrl);
-        // Pattern: /storage/v1/object/public/BUCKET/PATH... or /sign/BUCKET/PATH...
         const pathParts = urlObj.pathname.split('/storage/v1/object/')[1].split('/');
-        // pathParts[0] is 'public' or 'sign'
-        // pathParts[1] is bucket (e.g. 'library-files')
-        // pathParts.slice(2) is the path
         if (pathParts.length >= 3 && pathParts[1] === 'library-files') {
           const extractedPath = pathParts.slice(2).join('/');
           console.log(`Converted URL to storagePath: ${extractedPath}`);
           storagePath = extractedPath;
-          fileUrl = undefined; // Clear fileUrl so we use the download logic
+          fileUrl = undefined;
         }
       } catch (e) {
         console.warn("Failed to parse storage URL:", e);
@@ -78,13 +72,8 @@ serve(async (req) => {
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-      // Validate storagePath belongs to user (security check)
-      // Allow if it starts with userId OR if it's in a public context we trust? 
-      // Strict check: must start with userId.
       if (!storagePath.startsWith(`${userId}/`)) {
         console.warn(`Access check failed. User: ${userId}, Path: ${storagePath}`);
-        // If converting from URL, maybe we should be more lenient? 
-        // But for now, enforce ownership for security.
         throw new Error("Access denied to this file (path mismatch)");
       }
 
@@ -183,7 +172,8 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
       if (!geminiApiKey) throw new Error("GEMINI_API_KEY not configured");
       console.log("Attempting Gemini Direct...");
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+      // Switched to gemini-1.5-flash-latest to avoid rate limits (429) and retirement (404)
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
       const geminiResponse = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -200,7 +190,6 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
       if (!geminiResponse.ok) {
         const err = await geminiResponse.text();
-        // Forward 429 to trigger fallback
         if (geminiResponse.status === 429) {
           throw new Error(`Gemini 429 Rate Limit: ${err}`);
         }
@@ -209,7 +198,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
       const geminiData = await geminiResponse.json();
       aiResponseData = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      usedModel = "gemini-direct-2.0";
+      usedModel = "gemini-direct-1.5-flash";
 
     } catch (geminiError: any) {
       console.warn("Gemini Direct failed:", geminiError.message);
@@ -227,7 +216,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-1.5-flash-latest", // Use stable model for fallback
+          model: "google/gemini-1.5-flash", // Use stable model for fallback
           messages: [{
             role: "user",
             content: [
