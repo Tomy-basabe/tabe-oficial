@@ -183,7 +183,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
       if (!geminiApiKey) throw new Error("GEMINI_API_KEY not configured");
       console.log("Attempting Gemini Direct...");
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
       const geminiResponse = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
