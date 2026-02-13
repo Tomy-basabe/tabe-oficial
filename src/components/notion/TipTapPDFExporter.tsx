@@ -285,12 +285,13 @@ export function TipTapPDFExporter({
 
       const container = document.createElement("div");
       container.innerHTML = htmlContent;
-      container.style.position = "fixed";
-      container.style.top = "0";
+      container.style.position = "absolute";
+      container.style.top = "200vh"; // Push well below the fold
       container.style.left = "0";
-      container.style.width = "800px"; // Fixed width for A4 consistency
-      container.style.zIndex = "-9999"; // Behind everything but visible to simple screen capture
-      container.style.background = "white"; // Ensure white background
+      container.style.width = "800px";
+      container.style.background = "white";
+      container.style.zIndex = "100"; // Ensure it's "above" in stacking context so it renders, but off-screen
+      container.style.pointerEvents = "none"; // Non-interactive
       document.body.appendChild(container);
 
       // Wait a moment for rendering (fonts, images)
