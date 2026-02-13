@@ -21,14 +21,8 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    // DEBUG: log auth header presence
-    console.log("Auth Header present:", !!authHeader, "Header start:", authHeader?.substring(0, 10));
-
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized: Missing Bearer token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error("Unauthorized: Missing Bearer token");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -43,30 +37,15 @@ serve(async (req) => {
 
     if (userError || !user) {
       console.error("Auth Error:", userError);
-      return new Response(
-        JSON.stringify({ error: "Invalid token: User verification failed" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error("Invalid token: User verification failed");
     }
 
     const userId = user.id;
-    console.log("Authorized User:", userId);
 
     const { fileUrl, storagePath, fileName, fileType } = (await req.json()) as ParseDocumentRequest;
 
-    if (!fileName || typeof fileName !== 'string') {
-      return new Response(
-        JSON.stringify({ error: "fileName is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (fileName.length > 255) {
-      return new Response(
-        JSON.stringify({ error: "fileName too long" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (!fileName) throw new Error("fileName is required");
+    if (fileName.length > 255) throw new Error("fileName too long");
 
     let fileBuffer: ArrayBuffer;
 
@@ -76,10 +55,7 @@ serve(async (req) => {
 
       // Validate storagePath belongs to user
       if (!storagePath.startsWith(`${userId}/`)) {
-        return new Response(
-          JSON.stringify({ error: "Access denied to this file" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        throw new Error("Access denied to this file");
       }
 
       const { data: fileData, error: downloadError } = await serviceClient.storage
@@ -93,10 +69,7 @@ serve(async (req) => {
       fileBuffer = await fileData.arrayBuffer();
     } else if (fileUrl) {
       if (!fileUrl.startsWith(`${supabaseUrl}/storage/`)) {
-        return new Response(
-          JSON.stringify({ error: "Invalid file URL - must be from storage" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        throw new Error("Invalid file URL - must be from storage");
       }
 
       const fileResponse = await fetch(fileUrl);
@@ -105,17 +78,11 @@ serve(async (req) => {
       }
       fileBuffer = await fileResponse.arrayBuffer();
     } else {
-      return new Response(
-        JSON.stringify({ error: "Either fileUrl or storagePath is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error("Either fileUrl or storagePath is required");
     }
 
     if (fileBuffer.byteLength > 20 * 1024 * 1024) {
-      return new Response(
-        JSON.stringify({ error: "File too large (max 20MB)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error("File too large (max 20MB)");
     }
 
     // For TXT files, process locally without AI
@@ -128,7 +95,6 @@ serve(async (req) => {
         type: "doc",
         content: paragraphs.map(p => {
           const trimmed = p.trim();
-          // Detect headings (lines ending with no period, shorter than 80 chars)
           if (trimmed.length < 80 && !trimmed.endsWith('.') && !trimmed.includes('\n')) {
             return {
               type: "heading",
@@ -149,13 +115,10 @@ serve(async (req) => {
       );
     }
 
-    // For PDF/DOCX: use Gemini API via Google AI
+    // For PDF/DOCX: AI Processing
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
-    console.log("Env check - GEMINI_KEY:", !!geminiApiKey, "LOVABLE_KEY:", !!lovableApiKey);
-
-    // Build base64 content
     const base64Content = btoa(
       new Uint8Array(fileBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
     );
@@ -170,41 +133,25 @@ serve(async (req) => {
     }
 
     const prompt = `Analiza el siguiente documento y extrae su contenido estructurado.
-
 IMPORTANTE: Responde ÚNICAMENTE con un JSON válido sin markdown ni texto adicional.
-
 El JSON debe tener esta estructura TipTap:
 {
   "type": "doc",
   "content": [
-    // Bloques del documento
+    // Bloques del documento (headings, paragraphs, lists)
   ]
 }
-
-Tipos de bloques permitidos:
-- {"type": "heading", "attrs": {"level": 1|2|3}, "content": [{"type": "text", "text": "..."}]}
-- {"type": "paragraph", "content": [{"type": "text", "text": "..."}]}
-- {"type": "bulletList", "content": [{"type": "listItem", "content": [{"type": "paragraph", "content": [...]}]}]}
-- {"type": "orderedList", "content": [{"type": "listItem", "content": [{"type": "paragraph", "content": [...]}]}]}
-- {"type": "blockquote", "content": [{"type": "paragraph", "content": [...]}]}
-- {"type": "codeBlock", "attrs": {"language": "..."}, "content": [{"type": "text", "text": "..."}]}
-- {"type": "horizontalRule"}
-
-Para texto con formato dentro de content:
-- Negrita: {"type": "text", "marks": [{"type": "bold"}], "text": "..."}
-- Cursiva: {"type": "text", "marks": [{"type": "italic"}], "text": "..."}
-- Subrayado: {"type": "text", "marks": [{"type": "underline"}], "text": "..."}
-
-Extrae todo el contenido del documento manteniendo la estructura original (títulos, párrafos, listas, etc).
-Responde SOLO con el JSON, sin explicaciones ni markdown.`;
+Extrae todo el contenido. Responde SOLO con el JSON.`;
 
     let aiResponseData: any;
+    let usedModel = "";
 
-    if (geminiApiKey) {
-      console.log("Using direct Gemini API");
-      // Use Google Gemini API directly
+    // ATTEMPT 1: Gemini Direct
+    try {
+      if (!geminiApiKey) throw new Error("GEMINI_API_KEY not configured");
+      console.log("Attempting Gemini Direct...");
+
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
-
       const geminiResponse = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -220,21 +167,23 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
       });
 
       if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text();
-        console.error("Gemini API Error:", geminiResponse.status, errorText);
-        throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
+        const err = await geminiResponse.text();
+        throw new Error(`Gemini API error: ${geminiResponse.status} - ${err}`);
       }
 
       const geminiData = await geminiResponse.json();
       aiResponseData = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    } else {
-      console.log("Using Lovable Gateway");
-      // Fallback: try LOVABLE_API_KEY
+      usedModel = "gemini-direct";
+
+    } catch (geminiError: any) {
+      console.warn("Gemini Direct failed:", geminiError.message);
+
+      // ATTEMPT 2: Lovable Gateway Fallback
       if (!lovableApiKey) {
-        console.error("No API keys found");
-        throw new Error("No AI API key configured (need GEMINI_API_KEY or LOVABLE_API_KEY)");
+        throw new Error(`Primary AI failed (${geminiError.message}) and LOVABLE_API_KEY missing.`);
       }
 
+      console.log("Attempting Lovable Gateway fallback...");
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -242,7 +191,7 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-1.5-flash",
+          model: "google/gemini-1.5-flash", // Use stable model for fallback
           messages: [{
             role: "user",
             content: [
@@ -255,16 +204,16 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
       });
 
       if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error("Lovable AI API Error:", aiResponse.status, errorText);
-        throw new Error(`AI API error: ${aiResponse.status} - ${errorText}`);
+        const err = await aiResponse.text();
+        throw new Error(`All AI providers failed. Gemini: ${geminiError.message}. Lovable: ${aiResponse.status} - ${err}`);
       }
 
       const aiData = await aiResponse.json();
       aiResponseData = aiData.choices?.[0]?.message?.content || "";
+      usedModel = "lovable-fallback";
     }
 
-    // Parse the JSON from the response
+    // Parse JSON response
     let tiptapContent;
     try {
       let jsonStr = typeof aiResponseData === 'string' ? aiResponseData.trim() : JSON.stringify(aiResponseData);
@@ -277,36 +226,25 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
       tiptapContent = {
         type: "doc",
         content: [
-          {
-            type: "heading",
-            attrs: { level: 1 },
-            content: [{ type: "text", text: fileName.replace(/\.[^.]+$/, "") }],
-          },
-          {
-            type: "paragraph",
-            content: [{ type: "text", text: typeof aiResponseData === 'string' ? aiResponseData : "No se pudo parsear el documento" }],
-          },
+          { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: fileName }] },
+          { type: "paragraph", content: [{ type: "text", text: "Error parsing AI response. Raw text available if needed." }] },
         ],
       };
     }
 
-    if (!tiptapContent.type || tiptapContent.type !== "doc") {
-      tiptapContent = { type: "doc", content: [tiptapContent] };
-    }
-    if (!Array.isArray(tiptapContent.content)) {
-      tiptapContent.content = [{ type: "paragraph", content: [{ type: "text", text: "Documento vacío" }] }];
-    }
+    if (!tiptapContent.type) tiptapContent = { type: "doc", content: [tiptapContent] };
 
     return new Response(
-      JSON.stringify({ success: true, content: tiptapContent, fileName }),
+      JSON.stringify({ success: true, content: tiptapContent, fileName, model: usedModel }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: unknown) {
-    console.error("Error parsing document:", error);
-    const errorMessage = error instanceof Error ? error.message : "Error parsing document";
+
+  } catch (error: any) {
+    console.error("Critical Error:", error);
+    // Return 200 with error details so client can display it instead of generic 500
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, error: error.message || "Unknown server error" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
