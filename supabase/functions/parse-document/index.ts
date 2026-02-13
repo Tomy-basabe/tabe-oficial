@@ -151,6 +151,9 @@ serve(async (req) => {
 
     // For PDF/DOCX: use Gemini API via Google AI
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+
+    console.log("Env check - GEMINI_KEY:", !!geminiApiKey, "LOVABLE_KEY:", !!lovableApiKey);
 
     // Build base64 content
     const base64Content = btoa(
@@ -198,6 +201,7 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
     let aiResponseData: any;
 
     if (geminiApiKey) {
+      console.log("Using direct Gemini API");
       // Use Google Gemini API directly
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
 
@@ -217,16 +221,17 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
 
       if (!geminiResponse.ok) {
         const errorText = await geminiResponse.text();
-        console.error("Gemini API Error:", errorText);
-        throw new Error(`Gemini API error: ${geminiResponse.status}`);
+        console.error("Gemini API Error:", geminiResponse.status, errorText);
+        throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
       }
 
       const geminiData = await geminiResponse.json();
       aiResponseData = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } else {
+      console.log("Using Lovable Gateway");
       // Fallback: try LOVABLE_API_KEY
-      const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
       if (!lovableApiKey) {
+        console.error("No API keys found");
         throw new Error("No AI API key configured (need GEMINI_API_KEY or LOVABLE_API_KEY)");
       }
 
@@ -237,7 +242,7 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-lite-preview-02-05",
+          model: "google/gemini-1.5-flash",
           messages: [{
             role: "user",
             content: [
@@ -251,8 +256,8 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
 
       if (!aiResponse.ok) {
         const errorText = await aiResponse.text();
-        console.error("Lovable AI API Error:", errorText);
-        throw new Error(`AI API error: ${aiResponse.status}`);
+        console.error("Lovable AI API Error:", aiResponse.status, errorText);
+        throw new Error(`AI API error: ${aiResponse.status} - ${errorText}`);
       }
 
       const aiData = await aiResponse.json();
