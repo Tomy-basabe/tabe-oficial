@@ -285,9 +285,16 @@ export function TipTapPDFExporter({
 
       const container = document.createElement("div");
       container.innerHTML = htmlContent;
-      container.style.position = "absolute";
-      container.style.left = "-9999px";
+      container.style.position = "fixed";
+      container.style.top = "0";
+      container.style.left = "0";
+      container.style.width = "800px"; // Fixed width for A4 consistency
+      container.style.zIndex = "-9999"; // Behind everything but visible to simple screen capture
+      container.style.background = "white"; // Ensure white background
       document.body.appendChild(container);
+
+      // Wait a moment for rendering (fonts, images)
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const cleanTitle = (documentTitle || "apunte").replace(/[^a-zA-Z0-9\s-_]/g, "").trim();
       const fileName = cleanTitle; // Default: just the title
