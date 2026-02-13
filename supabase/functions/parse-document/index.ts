@@ -172,8 +172,9 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
       if (!geminiApiKey) throw new Error("GEMINI_API_KEY not configured");
       console.log("Attempting Gemini Direct...");
 
-      // Switched to gemini-1.5-flash-latest to avoid rate limits (429) and retirement (404)
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+      // Switched to gemini-2.0-flash-lite on v1beta.
+      // This is a confirmed available model for Gemini 2.0 that should be more available.
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${geminiApiKey}`;
       const geminiResponse = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -198,7 +199,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
       const geminiData = await geminiResponse.json();
       aiResponseData = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      usedModel = "gemini-direct-1.5-flash";
+      usedModel = "gemini-direct-2.0-flash-lite";
 
     } catch (geminiError: any) {
       console.warn("Gemini Direct failed:", geminiError.message);
@@ -216,7 +217,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-1.5-flash", // Use stable model for fallback
+          model: "google/gemini-2.0-flash-lite", // Fallback to 2.0-flash-lite
           messages: [{
             role: "user",
             content: [
