@@ -28,18 +28,18 @@ async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
       .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
       .map((m: any) => m.name.replace("models/", ""));
 
-    // Custom sort order
+    // Custom sort order - Prioritize 1.5 Flash (Free tier friendly) over 2.0 (Quota limited)
     const priority = [
-      "gemini-2.0-flash-lite",
-      "gemini-2.0-flash",
       "gemini-1.5-flash",
       "gemini-1.5-flash-latest",
+      "gemini-1.5-flash-001",
+      "gemini-1.5-flash-002",
       "gemini-1.5-flash-8b",
-      "gemini-1.5-flash-001", // Explicit
-      "gemini-1.5-flash-002", // Explicit
       "gemini-1.5-pro",
       "gemini-1.5-pro-latest",
-      "gemini-1.0-pro"
+      "gemini-1.0-pro",
+      "gemini-2.0-flash-lite",
+      "gemini-2.0-flash"
     ];
 
     validModels.sort((a: string, b: string) => {
@@ -230,8 +230,8 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
         console.log(`Discovered models: ${candidateModels.join(", ")}`);
       }
 
-      // Try up to 5 priority models
-      for (const model of candidateModels.slice(0, 5)) {
+      // Try up to 12 priority models (increased from 5)
+      for (const model of candidateModels.slice(0, 12)) {
         try {
           console.log(`Attempting Gemini Model: ${model}`);
 
