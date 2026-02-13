@@ -20,7 +20,6 @@ serve(async (req) => {
   }
 
   try {
-    // SECURITY: Verify authenticated user from JWT
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -31,27 +30,25 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
-    // Verify user authentication
+
+    // Verify user authentication via getUser
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims?.sub) {
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
+
+    if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     const { fileUrl, storagePath, fileName, fileType } = (await req.json()) as ParseDocumentRequest;
 
-    // Validate required fields
     if (!fileName || typeof fileName !== 'string') {
       return new Response(
         JSON.stringify({ error: "fileName is required" }),
@@ -68,38 +65,35 @@ serve(async (req) => {
 
     let fileBuffer: ArrayBuffer;
 
-    // SECURITY: Only allow fetching from Supabase storage or use storagePath
     if (storagePath) {
-      // Use service role to download from private storage
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-      
-      // Validate storagePath belongs to user (should start with userId/)
+
+      // Validate storagePath belongs to user
       if (!storagePath.startsWith(`${userId}/`)) {
         return new Response(
           JSON.stringify({ error: "Access denied to this file" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
+
       const { data: fileData, error: downloadError } = await serviceClient.storage
         .from('library-files')
         .download(storagePath);
-      
+
       if (downloadError || !fileData) {
         throw new Error(`Failed to download file: ${downloadError?.message || 'Unknown error'}`);
       }
-      
+
       fileBuffer = await fileData.arrayBuffer();
     } else if (fileUrl) {
-      // SECURITY: Only allow Supabase storage URLs
       if (!fileUrl.startsWith(`${supabaseUrl}/storage/`)) {
         return new Response(
           JSON.stringify({ error: "Invalid file URL - must be from storage" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
+
       const fileResponse = await fetch(fileUrl);
       if (!fileResponse.ok) {
         throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
@@ -112,7 +106,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate file size (max 20MB)
     if (fileBuffer.byteLength > 20 * 1024 * 1024) {
       return new Response(
         JSON.stringify({ error: "File too large (max 20MB)" }),
@@ -120,38 +113,52 @@ serve(async (req) => {
       );
     }
 
+    // For TXT files, process locally without AI
+    const ext = fileName.toLowerCase().split(".").pop();
+    if (ext === "txt" || fileType === "text/plain") {
+      const textContent = new TextDecoder().decode(new Uint8Array(fileBuffer));
+      const paragraphs = textContent.split(/\n\n+/).filter(p => p.trim());
+
+      const tiptapContent = {
+        type: "doc",
+        content: paragraphs.map(p => {
+          const trimmed = p.trim();
+          // Detect headings (lines ending with no period, shorter than 80 chars)
+          if (trimmed.length < 80 && !trimmed.endsWith('.') && !trimmed.includes('\n')) {
+            return {
+              type: "heading",
+              attrs: { level: 2 },
+              content: [{ type: "text", text: trimmed }]
+            };
+          }
+          return {
+            type: "paragraph",
+            content: [{ type: "text", text: trimmed }]
+          };
+        })
+      };
+
+      return new Response(
+        JSON.stringify({ success: true, content: tiptapContent, fileName }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // For PDF/DOCX: use Gemini API via Google AI
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+
+    // Build base64 content
     const base64Content = btoa(
       new Uint8Array(fileBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
     );
 
-    // Determine MIME type
     let mimeType = "application/octet-stream";
-    const ext = fileName.toLowerCase().split(".").pop();
     switch (ext) {
-      case "pdf":
-        mimeType = "application/pdf";
-        break;
-      case "docx":
-        mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-        break;
-      case "doc":
-        mimeType = "application/msword";
-        break;
-      case "pptx":
-        mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-        break;
-      case "xlsx":
-        mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        break;
-      case "txt":
-        mimeType = "text/plain";
-        break;
-    }
-
-    // Use Lovable AI to extract and structure the content
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      case "pdf": mimeType = "application/pdf"; break;
+      case "docx": mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"; break;
+      case "doc": mimeType = "application/msword"; break;
+      case "pptx": mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation"; break;
+      case "xlsx": mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"; break;
     }
 
     const prompt = `Analiza el siguiente documento y extrae su contenido estructurado.
@@ -183,57 +190,80 @@ Para texto con formato dentro de content:
 Extrae todo el contenido del documento manteniendo la estructura original (títulos, párrafos, listas, etc).
 Responde SOLO con el JSON, sin explicaciones ni markdown.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
+    let aiResponseData: any;
+
+    if (geminiApiKey) {
+      // Use Google Gemini API directly
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+      const geminiResponse = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: mimeType, data: base64Content } }
+            ]
+          }],
+          generationConfig: { maxOutputTokens: 16000 }
+        }),
+      });
+
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error("Gemini API Error:", errorText);
+        throw new Error(`Gemini API error: ${geminiResponse.status}`);
+      }
+
+      const geminiData = await geminiResponse.json();
+      aiResponseData = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } else {
+      // Fallback: try LOVABLE_API_KEY
+      const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!lovableApiKey) {
+        throw new Error("No AI API key configured (need GEMINI_API_KEY or LOVABLE_API_KEY)");
+      }
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{
             role: "user",
             content: [
-              {
-                type: "text",
-                text: prompt,
-              },
-              {
-                type: "file",
-                file: {
-                  filename: fileName,
-                  file_data: `data:${mimeType};base64,${base64Content}`,
-                },
-              },
+              { type: "text", text: prompt },
+              { type: "file", file: { filename: fileName, file_data: `data:${mimeType};base64,${base64Content}` } },
             ],
-          },
-        ],
-        max_tokens: 16000,
-      }),
-    });
+          }],
+          max_tokens: 16000,
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI API Error:", errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error("Lovable AI API Error:", errorText);
+        throw new Error(`AI API error: ${aiResponse.status}`);
+      }
+
+      const aiData = await aiResponse.json();
+      aiResponseData = aiData.choices?.[0]?.message?.content || "";
     }
-
-    const aiData = await aiResponse.json();
-    const rawContent = aiData.choices?.[0]?.message?.content || "";
 
     // Parse the JSON from the response
     let tiptapContent;
     try {
-      // Try to extract JSON from the response (handle markdown code blocks)
-      let jsonStr = rawContent.trim();
+      let jsonStr = typeof aiResponseData === 'string' ? aiResponseData.trim() : JSON.stringify(aiResponseData);
       if (jsonStr.startsWith("```")) {
         jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
       }
       tiptapContent = JSON.parse(jsonStr);
     } catch (parseError) {
-      console.error("Failed to parse AI response:", rawContent);
-      // Fallback: create simple document with the raw text
+      console.error("Failed to parse AI response:", aiResponseData);
       tiptapContent = {
         type: "doc",
         content: [
@@ -244,13 +274,12 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
           },
           {
             type: "paragraph",
-            content: [{ type: "text", text: rawContent }],
+            content: [{ type: "text", text: typeof aiResponseData === 'string' ? aiResponseData : "No se pudo parsear el documento" }],
           },
         ],
       };
     }
 
-    // Validate and fix the content structure
     if (!tiptapContent.type || tiptapContent.type !== "doc") {
       tiptapContent = { type: "doc", content: [tiptapContent] };
     }
@@ -259,11 +288,7 @@ Responde SOLO con el JSON, sin explicaciones ni markdown.`;
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        content: tiptapContent,
-        fileName: fileName,
-      }),
+      JSON.stringify({ success: true, content: tiptapContent, fileName }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {

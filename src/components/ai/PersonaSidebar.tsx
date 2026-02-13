@@ -153,13 +153,13 @@ export function PersonaSidebar({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive shrink-0"
+                                    className="w-5 h-5 opacity-70 hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive shrink-0"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onDeleteSession(session.id);
                                     }}
                                 >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                             </div>
                         ))
