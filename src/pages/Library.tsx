@@ -402,6 +402,35 @@ export default function Library() {
       ? files.filter(f => f.subject?.año === selectedYear).length
       : files.length;
 
+  // Time tracking for preview
+  useEffect(() => {
+    if (!showPreviewModal || !previewFile) return;
+
+    const startTime = Date.now();
+
+    return () => {
+      const endTime = Date.now();
+      const durationSeconds = Math.floor((endTime - startTime) / 1000);
+
+      if (durationSeconds > 5 && user) {
+        // Save session
+        supabase
+          .from("study_sessions")
+          .insert({
+            user_id: user.id,
+            subject_id: previewFile.subject_id,
+            duracion_segundos: durationSeconds,
+            tipo: "biblioteca",
+            completada: true,
+            fecha: new Date().toISOString().split('T')[0],
+          })
+          .then(({ error }) => {
+            if (error) console.error("Error saving library session:", error);
+          });
+      }
+    };
+  }, [showPreviewModal, previewFile, user]);
+
   return (
     <div className="p-4 lg:p-8 space-y-6">
       {/* Header */}
