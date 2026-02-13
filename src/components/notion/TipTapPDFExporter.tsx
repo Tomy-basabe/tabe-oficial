@@ -215,6 +215,7 @@ export function TipTapPDFExporter({
 
   const uploadFile = async (blob: Blob, fileName: string, upsert: boolean) => {
     try {
+      console.log("Uploading file...", { fileName, upsert });
       const storagePath = `${userId}/${fileName}.pdf`;
 
       // V3: Explicitly delete if overwriting to force refresh and avoid cache/upsert issues
@@ -235,7 +236,10 @@ export function TipTapPDFExporter({
           cacheControl: '0' // Prevent caching
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error details:", uploadError);
+        throw uploadError;
+      }
 
       // Get signed URL for private bucket (1 hour expiry)
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
@@ -264,7 +268,7 @@ export function TipTapPDFExporter({
       onExported?.();
     } catch (error) {
       console.error("Error uploading file:", error);
-      toast.error("Error al guardar en biblioteca");
+      toast.error("Error al guardar en biblioteca: " + (error as any)?.message);
     } finally {
       setExporting(false);
       setShowOverwriteDialog(false);
@@ -284,6 +288,7 @@ export function TipTapPDFExporter({
   };
 
   const exportToPDF = async () => {
+    console.log("Starting PDF export...");
     const content = getContent();
     if (!content || !content.content || content.content.length === 0) {
       toast.error("El documento está vacío");
@@ -293,7 +298,11 @@ export function TipTapPDFExporter({
     setExporting(true);
 
     try {
-      const html2pdf = (await import("html2pdf.js")).default;
+      // Dynamic import
+      const html2pdfModule = await import("html2pdf.js");
+      const html2pdf = html2pdfModule.default;
+      console.log("html2pdf loaded");
+
       const htmlContent = convertToHtml(content);
 
       // Create main container (Full screen visible overlay)
@@ -329,12 +338,13 @@ export function TipTapPDFExporter({
       container.appendChild(loadingOverlay);
       container.appendChild(contentDiv);
       document.body.appendChild(container);
+      console.log("Container mounted");
 
       // Wait a moment for rendering (fonts, images)
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       const cleanTitle = (documentTitle || "apunte").replace(/[^a-zA-Z0-9\s-_]/g, "").trim();
-      const fileName = cleanTitle; // Default: just the title
+      const fileName = cleanTitle;
 
       const opt = {
         margin: [10, 10, 10, 10] as [number, number, number, number],
@@ -343,8 +353,7 @@ export function TipTapPDFExporter({
         html2canvas: {
           scale: 2,
           useCORS: true,
-          logging: false,
-          windowWidth: 1024
+          logging: true // Enable logging for debug
         },
         jsPDF: {
           unit: "mm" as const,
@@ -354,8 +363,12 @@ export function TipTapPDFExporter({
       };
 
       if (saveToLibrary && subjectId) {
-        // Capture specifically the contentDiv
-        const pdfBlob = await html2pdf().set(opt).from(contentDiv).outputPdf("blob");
+        console.log("Generating Blob...");
+        // Use .output('blob') instead of .outputPdf('blob') for safety
+        const worker = html2pdf().set(opt).from(contentDiv);
+        const pdfBlob = await worker.output('blob', 'blob'); // Specify type 'blob'
+
+        console.log("Blob generated", pdfBlob.size);
 
         // Check if file exists
         const { data: existingFiles } = await supabase.storage
@@ -368,6 +381,7 @@ export function TipTapPDFExporter({
         const exists = existingFiles?.some(f => f.name === `${fileName}.pdf`);
 
         if (exists) {
+          console.log("File exists, prompting overwrite");
           setPendingFile({ blob: pdfBlob, fileName });
           setShowOverwriteDialog(true);
           setExporting(false);
@@ -377,6 +391,7 @@ export function TipTapPDFExporter({
         }
 
       } else {
+        console.log("Saving locally...");
         await html2pdf().set(opt).from(contentDiv).save();
         toast.success("PDF descargado");
         setExporting(false);
@@ -386,8 +401,13 @@ export function TipTapPDFExporter({
 
     } catch (error) {
       console.error("Error exporting PDF:", error);
-      toast.error("Error al exportar el PDF");
+      toast.error("Error al exportar el PDF: " + (error as any)?.message || "Desconocido");
       setExporting(false);
+      // Ensure we clean up if we crash
+      const container = document.getElementById("pdf-content-export")?.parentElement;
+      if (container && container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
     }
   };
 
