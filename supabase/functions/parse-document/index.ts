@@ -42,10 +42,35 @@ serve(async (req) => {
 
     const userId = user.id;
 
-    const { fileUrl, storagePath, fileName, fileType } = (await req.json()) as ParseDocumentRequest;
+    const requestBody = await req.json();
+    console.log("Request Payload:", JSON.stringify(requestBody)); // DEBUG LOG
+
+    let { fileUrl, storagePath, fileName, fileType } = requestBody as ParseDocumentRequest;
 
     if (!fileName) throw new Error("fileName is required");
     if (fileName.length > 255) throw new Error("fileName too long");
+
+    // DATA NORMALIZATION:
+    // If we have a fileUrl that points to our own storage, converting it to a storagePath is safer/better
+    // because it uses the Service Role key for internal access (bypassing public auth issues).
+    if (fileUrl && fileUrl.includes('/storage/v1/object/')) {
+      try {
+        const urlObj = new URL(fileUrl);
+        // Pattern: /storage/v1/object/public/BUCKET/PATH... or /sign/BUCKET/PATH...
+        const pathParts = urlObj.pathname.split('/storage/v1/object/')[1].split('/');
+        // pathParts[0] is 'public' or 'sign'
+        // pathParts[1] is bucket (e.g. 'library-files')
+        // pathParts.slice(2) is the path
+        if (pathParts.length >= 3 && pathParts[1] === 'library-files') {
+          const extractedPath = pathParts.slice(2).join('/');
+          console.log(`Converted URL to storagePath: ${extractedPath}`);
+          storagePath = extractedPath;
+          fileUrl = undefined; // Clear fileUrl so we use the download logic
+        }
+      } catch (e) {
+        console.warn("Failed to parse storage URL:", e);
+      }
+    }
 
     let fileBuffer: ArrayBuffer;
 
@@ -53,9 +78,14 @@ serve(async (req) => {
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-      // Validate storagePath belongs to user
+      // Validate storagePath belongs to user (security check)
+      // Allow if it starts with userId OR if it's in a public context we trust? 
+      // Strict check: must start with userId.
       if (!storagePath.startsWith(`${userId}/`)) {
-        throw new Error("Access denied to this file");
+        console.warn(`Access check failed. User: ${userId}, Path: ${storagePath}`);
+        // If converting from URL, maybe we should be more lenient? 
+        // But for now, enforce ownership for security.
+        throw new Error("Access denied to this file (path mismatch)");
       }
 
       const { data: fileData, error: downloadError } = await serviceClient.storage
@@ -72,9 +102,10 @@ serve(async (req) => {
         throw new Error("Invalid file URL - must be from storage");
       }
 
+      console.log(`Fetching from URL: ${fileUrl}`);
       const fileResponse = await fetch(fileUrl);
       if (!fileResponse.ok) {
-        throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
+        throw new Error(`Failed to fetch file: ${fileResponse.statusText} (${fileResponse.status})`);
       }
       fileBuffer = await fileResponse.arrayBuffer();
     } else {
@@ -119,6 +150,7 @@ serve(async (req) => {
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
+    // Convert buffer to base64
     const base64Content = btoa(
       new Uint8Array(fileBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
     );
@@ -241,7 +273,6 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
   } catch (error: any) {
     console.error("Critical Error:", error);
-    // Return 200 with error details so client can display it instead of generic 500
     return new Response(
       JSON.stringify({ success: false, error: error.message || "Unknown server error" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
