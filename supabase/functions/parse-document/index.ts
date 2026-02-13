@@ -1,11 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getDocument } from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm";
-
-// Needed for pdfjs-dist in non-browser env
-// @ts-ignore
-globalThis.window = globalThis;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,8 +24,6 @@ async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
     if (!data.models) return [];
 
     // Prioritize models: Flash > Flash-Lite > Pro > Others
-    // Support both generateContent (multimodal) and generateText (legacy) if needed?
-    // For now we focused on generateContent models.
     const validModels = data.models
       .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
       .map((m: any) => m.name.replace("models/", ""));
@@ -42,7 +35,10 @@ async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
       "gemini-1.5-flash",
       "gemini-1.5-flash-latest",
       "gemini-1.5-flash-8b",
+      "gemini-1.5-flash-001", // Explicit
+      "gemini-1.5-flash-002", // Explicit
       "gemini-1.5-pro",
+      "gemini-1.5-pro-latest",
       "gemini-1.0-pro"
     ];
 
@@ -61,25 +57,6 @@ async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
   }
 }
 
-// Extract text from PDF buffer using pdfjs-dist
-async function extractTextFromPdf(buffer: ArrayBuffer): Promise<string> {
-  try {
-    const loadingTask = getDocument({ data: new Uint8Array(buffer), useSystemFonts: true });
-    const pdf = await loadingTask.promise;
-    let text = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = content.items.map((item: any) => item.str).join(" ");
-      text += pageText + "\n\n";
-    }
-    return text;
-  } catch (e) {
-    console.warn("PDF Text Extraction failed:", e);
-    return "";
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -94,7 +71,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify user authentication via getUser
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
@@ -218,15 +194,7 @@ serve(async (req) => {
       new Uint8Array(fileBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
     );
 
-    // Attempt to extract text for Fallback models (Gemini 1.0 Pro only accepts text)
-    let extractedText = "";
-    if (ext === "pdf") {
-      console.log("Attempting PDF text extraction...");
-      extractedText = await extractTextFromPdf(fileBuffer);
-      if (extractedText) console.log("PDF Text extracted successfully (length: " + extractedText.length + ")");
-    }
-
-    const promptText = `Analiza el siguiente documento y extrae su contenido estructurado.
+    const prompt = `Analiza el siguiente documento y extrae su contenido estructurado.
 IMPORTANTE: Responde ÚNICAMENTE con un JSON válido sin markdown ni texto adicional.
 El JSON debe tener esta estructura TipTap:
 {
@@ -240,6 +208,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
     let aiResponseData: any;
     let usedModel = "";
     let success = false;
+    let errorLog: string[] = [];
 
     // ATTEMPT 1: Dynamic Gemini Discovery & Retry
     if (geminiApiKey) {
@@ -247,50 +216,34 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
       let candidateModels = await getAvailableGeminiModels(geminiApiKey);
       if (candidateModels.length === 0) {
-        console.warn("Could not list models. Using fallback list.");
+        console.log("Dynamic discovery returned empty/failed. Using hardcoded fallback list.");
         candidateModels = [
           "gemini-2.0-flash-lite",
-          "gemini-2.0-flash",
           "gemini-1.5-flash",
+          "gemini-1.5-flash-latest",
           "gemini-1.5-flash-8b",
+          "gemini-1.5-flash-001",
           "gemini-1.5-pro",
-          "gemini-1.0-pro" // Added explicit logic for this below
+          "gemini-1.0-pro"
         ];
+      } else {
+        console.log(`Discovered models: ${candidateModels.join(", ")}`);
       }
 
-      console.log(`Found candidate models: ${candidateModels.join(", ")}`);
-
-      // Try up to 4 models
-      for (const model of candidateModels.slice(0, 4)) {
+      // Try up to 5 priority models
+      for (const model of candidateModels.slice(0, 5)) {
         try {
           console.log(`Attempting Gemini Model: ${model}`);
 
-          let body;
-          // Strategy: if model is 1.0-pro (text only) OR we have extracted text and previous failed, use text
-          const isTextOnlyModel = model.includes("1.0-pro");
-
-          if (isTextOnlyModel) {
-            if (!extractedText) {
-              console.log("Skipping 1.0-pro because no text extracted.");
-              continue;
-            }
-            // Text-only request
-            body = {
-              contents: [{ parts: [{ text: promptText + "\n\nDOCUMENT CONTENT:\n" + extractedText }] }],
-              generationConfig: { maxOutputTokens: 16000 }
-            };
-          } else {
-            // Multimodal request (default)
-            body = {
-              contents: [{
-                parts: [
-                  { text: promptText },
-                  { inline_data: { mime_type: mimeType, data: base64Content } }
-                ]
-              }],
-              generationConfig: { maxOutputTokens: 16000 }
-            };
-          }
+          let body = {
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mimeType, data: base64Content } }
+              ]
+            }],
+            generationConfig: { maxOutputTokens: 16000 }
+          };
 
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
           const geminiResponse = await fetch(geminiUrl, {
@@ -301,7 +254,12 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
           if (!geminiResponse.ok) {
             const err = await geminiResponse.text();
-            throw new Error(`Status ${geminiResponse.status}: ${err}`);
+            // Store error for debugging
+            errorLog.push(`${model}: ${geminiResponse.status} - ${err.substring(0, 100)}`);
+
+            // Special case: 1.0-pro often fails on inline_data. 
+            // In a future update, we could try text-only if we had extraction.
+            throw new Error(`Status ${geminiResponse.status}`);
           }
 
           const geminiData = await geminiResponse.json();
@@ -312,7 +270,6 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
         } catch (modelError: any) {
           console.warn(`Model ${model} failed: ${modelError.message}`);
-          // If multimodal failed, and we have text, maybe try text-only on next loop?
         }
       }
     } else {
@@ -322,7 +279,8 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
     // ATTEMPT 2: Lovable Gateway Fallback
     if (!success) {
       if (!lovableApiKey) {
-        throw new Error("All Gemini models failed (or key missing), and LOVABLE_API_KEY is missing.");
+        // Return detailed error report instead of generic message
+        throw new Error(`All Gemini models failed. Errors: [${errorLog.join("; ")}]. And LOVABLE_API_KEY is missing.`);
       }
 
       console.log("Attempting Lovable Gateway fallback...");
@@ -338,7 +296,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
             messages: [{
               role: "user",
               content: [
-                { type: "text", text: promptText },
+                { type: "text", text: prompt },
                 { type: "file", file: { filename: fileName, file_data: `data:${mimeType};base64,${base64Content}` } },
               ],
             }],
@@ -357,7 +315,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
         success = true;
 
       } catch (lovableError: any) {
-        throw new Error(`All strategies failed. Last error: ${lovableError.message}`);
+        throw new Error(`All strategies failed. Last Gemini Errors: ${errorLog.join("; ")}. Lovable Error: ${lovableError.message}`);
       }
     }
 
@@ -389,6 +347,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
   } catch (error: any) {
     console.error("Critical Error:", error);
+    // Return detailed error message for debugging
     return new Response(
       JSON.stringify({ success: false, error: error.message || "Unknown server error" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
