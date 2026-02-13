@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  FileText, Image, Link as LinkIcon, Upload, Plus, 
+import {
+  FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus,
   ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap
 } from "lucide-react";
@@ -79,11 +79,11 @@ export default function Library() {
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<LibraryFolder[]>([]);
-  
+
   // Filters
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
-  
+
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -118,7 +118,7 @@ export default function Library() {
       .select("*")
       .order("año", { ascending: true })
       .order("nombre", { ascending: true });
-    
+
     if (!error && data) {
       setSubjects(data);
     }
@@ -129,7 +129,7 @@ export default function Library() {
       .from("library_folders")
       .select("*, subjects(nombre, codigo, año)")
       .order("nombre", { ascending: true });
-    
+
     if (!error && data) {
       setFolders(data.map((f: any) => ({ ...f, subject: f.subjects })) as LibraryFolder[]);
     }
@@ -141,7 +141,7 @@ export default function Library() {
       .from("library_files")
       .select("*, subjects(nombre, codigo, año)")
       .order("created_at", { ascending: false });
-    
+
     if (!error && data) {
       const mapped = data.map((d: any) => ({ ...d, subject: d.subjects }));
       setFiles(mapped as LibraryFile[]);
@@ -217,7 +217,7 @@ export default function Library() {
     const { data, error } = await supabase.storage
       .from('library-files')
       .createSignedUrl(storagePath, 3600); // 1 hour expiry
-    
+
     if (error) {
       console.error("Error getting signed URL:", error);
       return null;
@@ -355,39 +355,39 @@ export default function Library() {
   };
 
   // Get subjects for current year filter
-  const filteredSubjects = selectedYear 
+  const filteredSubjects = selectedYear
     ? subjects.filter(s => s.año === selectedYear)
     : subjects;
 
   // Get selected subject info
-  const selectedSubject = selectedSubjectId 
+  const selectedSubject = selectedSubjectId
     ? subjects.find(s => s.id === selectedSubjectId)
     : null;
 
   // Filter folders and files based on year/subject
   const getFilteredFolders = () => {
     let result = folders.filter(f => f.parent_folder_id === currentFolderId);
-    
+
     if (selectedSubjectId) {
       result = result.filter(f => f.subject_id === selectedSubjectId || !f.subject_id);
     } else if (selectedYear) {
       const subjectIds = subjects.filter(s => s.año === selectedYear).map(s => s.id);
       result = result.filter(f => !f.subject_id || subjectIds.includes(f.subject_id));
     }
-    
+
     return result;
   };
 
   const getFilteredFiles = () => {
     let result = files.filter(f => f.folder_id === currentFolderId);
-    
+
     if (selectedSubjectId) {
       result = result.filter(f => f.subject_id === selectedSubjectId);
     } else if (selectedYear) {
       const subjectIds = subjects.filter(s => s.año === selectedYear).map(s => s.id);
       result = result.filter(f => f.subject_id && subjectIds.includes(f.subject_id));
     }
-    
+
     return result;
   };
 
@@ -395,9 +395,9 @@ export default function Library() {
   const currentFiles = getFilteredFiles();
 
   // Stats
-  const totalFilesInFilter = selectedSubjectId 
+  const totalFilesInFilter = selectedSubjectId
     ? files.filter(f => f.subject_id === selectedSubjectId).length
-    : selectedYear 
+    : selectedYear
       ? files.filter(f => f.subject?.año === selectedYear).length
       : files.length;
 
@@ -444,7 +444,7 @@ export default function Library() {
           <Filter className="w-4 h-4 text-primary" />
           <span className="font-medium text-sm">Filtrar por</span>
         </div>
-        
+
         <div className="flex flex-wrap gap-4">
           {/* Year Filter */}
           <div className="flex-1 min-w-[200px]">
@@ -477,7 +477,7 @@ export default function Library() {
               ))}
             </div>
           </div>
-          
+
           {/* Subject Filter - Only shown when year is selected */}
           {selectedYear && (
             <div className="flex-1 min-w-[250px]">
@@ -508,9 +508,9 @@ export default function Library() {
             <div className="flex items-center gap-2 text-sm">
               <GraduationCap className="w-4 h-4 text-primary" />
               <span className="text-muted-foreground">
-                {selectedSubject 
+                {selectedSubject
                   ? `${selectedSubject.nombre} (${selectedSubject.año}° año)`
-                  : selectedYear 
+                  : selectedYear
                     ? `Todas las materias de ${selectedYear}° año`
                     : "Todos los archivos"
                 }
@@ -586,10 +586,10 @@ export default function Library() {
         <div className="text-center py-16">
           <FolderOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
           <p className="text-muted-foreground mb-4">
-            {selectedYear || selectedSubjectId 
+            {selectedYear || selectedSubjectId
               ? "No hay archivos para este filtro"
-              : currentFolderId 
-                ? "Esta carpeta está vacía" 
+              : currentFolderId
+                ? "Esta carpeta está vacía"
                 : "No hay archivos en tu biblioteca"
             }
           </p>
@@ -614,7 +614,7 @@ export default function Library() {
           {currentFolders.map(folder => {
             const folderFilesCount = files.filter(f => f.folder_id === folder.id).length;
             const folderSubject = subjects.find(s => s.id === folder.subject_id);
-            
+
             return (
               <div
                 key={folder.id}
@@ -622,7 +622,7 @@ export default function Library() {
                 className="card-gamer rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-all group relative"
               >
                 <div className="flex items-center gap-3">
-                  <div 
+                  <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${folder.color}20` }}
                   >
@@ -636,7 +636,7 @@ export default function Library() {
                     </p>
                   </div>
                 </div>
-                
+
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
                   className="absolute top-2 right-2 p-2 bg-destructive/20 text-destructive rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/30"
@@ -657,13 +657,13 @@ export default function Library() {
               <div key={file.id} className="card-gamer rounded-xl p-4 group relative">
                 {/* Preview thumbnail for images */}
                 {file.tipo === "imagen" && (
-                  <div 
+                  <div
                     className="w-full h-32 rounded-lg mb-3 bg-cover bg-center cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundImage: `url(${file.url})` }}
                     onClick={() => openPreview(file)}
                   />
                 )}
-                
+
                 {/* PDF icon or other files */}
                 {file.tipo !== "imagen" && (
                   <div className="flex items-start gap-3 mb-3">
@@ -688,27 +688,35 @@ export default function Library() {
                   <span>{formatFileSize(file.tamaño_bytes)}</span>
                 </div>
 
-                {/* Actions */}
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                   {canPreview && (
                     <button
                       onClick={() => openPreview(file)}
                       className="p-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30"
+                      title="Vista previa"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
                   )}
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={async () => {
+                      if (file.storage_path) {
+                        const url = await getSignedUrl(file.storage_path);
+                        if (url) window.open(url, '_blank');
+                        else toast.error("Error al obtener el link");
+                      } else {
+                        window.open(file.url, '_blank');
+                      }
+                    }}
                     className="p-2 bg-secondary rounded-lg hover:bg-secondary/80"
+                    title="Abrir en nueva pestaña"
                   >
                     <ExternalLink className="w-4 h-4" />
-                  </a>
+                  </button>
                   <button
                     onClick={() => deleteFile(file)}
                     className="p-2 bg-destructive/20 text-destructive rounded-lg hover:bg-destructive/30"
+                    title="Eliminar"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -744,9 +752,9 @@ export default function Library() {
             </div>
             <div className="flex-1 overflow-auto p-4">
               {previewFile?.tipo === "imagen" && (
-                <img 
-                  src={previewFile.url} 
-                  alt={previewFile.nombre} 
+                <img
+                  src={previewFile.url}
+                  alt={previewFile.nombre}
                   className="max-w-full h-auto mx-auto rounded-lg"
                 />
               )}
@@ -803,7 +811,7 @@ export default function Library() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <label className="text-sm font-medium text-muted-foreground">Color</label>
               <div className="flex gap-2 mt-2">
