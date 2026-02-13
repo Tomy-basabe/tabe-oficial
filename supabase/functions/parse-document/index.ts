@@ -14,6 +14,50 @@ interface ParseDocumentRequest {
   fileType: string;
 }
 
+// Helper to list available models dynamically
+async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    if (!data.models) return [];
+
+    // Prioritize models: Flash > Flash-Lite > Pro > Others
+    // Filter for models that support generateContent
+    const validModels = data.models
+      .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
+      .map((m: any) => m.name.replace("models/", "")); // e.g. "gemini-1.5-flash"
+
+    // Custom sort order
+    const priority = [
+      "gemini-2.0-flash-lite",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash-8b",
+      "gemini-1.5-pro",
+      "gemini-1.0-pro"
+    ];
+
+    validModels.sort((a: string, b: string) => {
+      const idxA = priority.findIndex(p => a.includes(p));
+      const idxB = priority.findIndex(p => b.includes(p));
+
+      // If found in priority list, lower index is better
+      const valA = idxA === -1 ? 999 : idxA;
+      const valB = idxB === -1 ? 999 : idxB;
+
+      return valA - valB;
+    });
+
+    return validModels;
+  } catch (e) {
+    console.warn("Failed to list models:", e);
+    return [];
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -43,14 +87,14 @@ serve(async (req) => {
     const userId = user.id;
 
     const requestBody = await req.json();
-    console.log("Request Payload:", JSON.stringify(requestBody)); // DEBUG LOG
+    console.log("Request Payload:", JSON.stringify(requestBody));
 
     let { fileUrl, storagePath, fileName, fileType } = requestBody as ParseDocumentRequest;
 
     if (!fileName) throw new Error("fileName is required");
     if (fileName.length > 255) throw new Error("fileName too long");
 
-    // DATA NORMALIZATION:
+    // DATA NORMALIZATION
     if (fileUrl && fileUrl.includes('/storage/v1/object/')) {
       try {
         const urlObj = new URL(fileUrl);
@@ -105,7 +149,7 @@ serve(async (req) => {
       throw new Error("File too large (max 20MB)");
     }
 
-    // For TXT files, process locally without AI
+    // For TXT: process locally
     const ext = fileName.toLowerCase().split(".").pop();
     if (ext === "txt" || fileType === "text/plain") {
       const textContent = new TextDecoder().decode(new Uint8Array(fileBuffer));
@@ -135,7 +179,7 @@ serve(async (req) => {
       );
     }
 
-    // For PDF/DOCX: AI Processing
+    // AI Processing
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
@@ -166,77 +210,108 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
     let aiResponseData: any;
     let usedModel = "";
+    let success = false;
 
-    // ATTEMPT 1: Gemini Direct
-    try {
-      if (!geminiApiKey) throw new Error("GEMINI_API_KEY not configured");
-      console.log("Attempting Gemini Direct...");
+    // ATTEMPT 1: Dynamic Gemini Discovery & Retry
+    if (geminiApiKey) {
+      console.log("Starting Dynamic Gemini Model Discovery...");
 
-      // Switched to gemini-2.0-flash-lite on v1beta.
-      // This is a confirmed available model for Gemini 2.0 that should be more available.
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${geminiApiKey}`;
-      const geminiResponse = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              { inline_data: { mime_type: mimeType, data: base64Content } }
-            ]
-          }],
-          generationConfig: { maxOutputTokens: 16000 }
-        }),
-      });
-
-      if (!geminiResponse.ok) {
-        const err = await geminiResponse.text();
-        if (geminiResponse.status === 429) {
-          throw new Error(`Gemini 429 Rate Limit: ${err}`);
-        }
-        throw new Error(`Gemini API error: ${geminiResponse.status} - ${err}`);
+      // Get list of available models or fallback to defaults
+      let candidateModels = await getAvailableGeminiModels(geminiApiKey);
+      if (candidateModels.length === 0) {
+        console.warn("Could not list models. Using fallback list.");
+        candidateModels = [
+          "gemini-2.0-flash-lite",
+          "gemini-2.0-flash",
+          "gemini-1.5-flash",
+          "gemini-1.5-flash-8b",
+          "gemini-1.5-pro"
+        ];
       }
 
-      const geminiData = await geminiResponse.json();
-      aiResponseData = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      usedModel = "gemini-direct-2.0-flash-lite";
+      console.log(`Found candidate models: ${candidateModels.join(", ")}`);
 
-    } catch (geminiError: any) {
-      console.warn("Gemini Direct failed:", geminiError.message);
+      // Try up to 3 models
+      for (const model of candidateModels.slice(0, 3)) {
+        try {
+          console.log(`Attempting Gemini Model: ${model}`);
 
-      // ATTEMPT 2: Lovable Gateway Fallback
+          // Use v1beta for widest compatibility
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+          const geminiResponse = await fetch(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: prompt },
+                  { inline_data: { mime_type: mimeType, data: base64Content } }
+                ]
+              }],
+              generationConfig: { maxOutputTokens: 16000 }
+            }),
+          });
+
+          if (!geminiResponse.ok) {
+            const err = await geminiResponse.text();
+            throw new Error(`Status ${geminiResponse.status}: ${err}`);
+          }
+
+          const geminiData = await geminiResponse.json();
+          aiResponseData = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          usedModel = `gemini-dynamic-${model}`;
+          success = true;
+          break; // Success! Exit loop
+
+        } catch (modelError: any) {
+          console.warn(`Model ${model} failed: ${modelError.message}`);
+          // Continue to next model
+        }
+      }
+    } else {
+      console.warn("GEMINI_API_KEY missing, skipping Direct Gemini attempt.");
+    }
+
+    // ATTEMPT 2: Lovable Gateway Fallback (if Gemini failed)
+    if (!success) {
       if (!lovableApiKey) {
-        throw new Error(`Primary AI failed (${geminiError.message}) and LOVABLE_API_KEY missing.`);
+        throw new Error("All Gemini models failed (or key missing), and LOVABLE_API_KEY is missing.");
       }
 
       console.log("Attempting Lovable Gateway fallback...");
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.0-flash-lite", // Fallback to 2.0-flash-lite
-          messages: [{
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "file", file: { filename: fileName, file_data: `data:${mimeType};base64,${base64Content}` } },
-            ],
-          }],
-          max_tokens: 16000,
-        }),
-      });
+      try {
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${lovableApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.0-flash-lite", // Fallback request
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "file", file: { filename: fileName, file_data: `data:${mimeType};base64,${base64Content}` } },
+              ],
+            }],
+            max_tokens: 16000,
+          }),
+        });
 
-      if (!aiResponse.ok) {
-        const err = await aiResponse.text();
-        throw new Error(`All AI providers failed. Gemini: ${geminiError.message}. Lovable: ${aiResponse.status} - ${err}`);
+        if (!aiResponse.ok) {
+          const err = await aiResponse.text();
+          throw new Error(`Lovable Gateway failed: ${aiResponse.status} - ${err}`);
+        }
+
+        const aiData = await aiResponse.json();
+        aiResponseData = aiData.choices?.[0]?.message?.content || "";
+        usedModel = "lovable-fallback";
+        success = true;
+
+      } catch (lovableError: any) {
+        throw new Error(`All strategies failed. Last error: ${lovableError.message}`);
       }
-
-      const aiData = await aiResponse.json();
-      aiResponseData = aiData.choices?.[0]?.message?.content || "";
-      usedModel = "lovable-fallback";
     }
 
     // Parse JSON response
