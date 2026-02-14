@@ -29,7 +29,7 @@ function getColorForType(tipo: ValidEventType): string {
   return colors[tipo] || "#00d9ff";
 }
 
-// Helper to list available models dynamically (Copied from parse-document to ensure consistency)
+// Helper to list available models dynamically
 async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -175,7 +175,7 @@ serve(async (req) => {
     const plants = plantsResult.data || [];
     const profile = profileResult.data;
 
-    // --- BUILD SUBJECTS WITH FULL STATUS ---
+    // --- BUILD SUBJECTS ---
     const subjectsWithStatus = subjects.map((s: any) => {
       const status = userSubjectStatus.find((us: any) => us.subject_id === s.id);
       return {
@@ -186,9 +186,9 @@ serve(async (req) => {
         fecha_aprobacion: status?.fecha_aprobacion || null,
       };
     });
-
     const subjectNameById = Object.fromEntries(subjects.map((s: any) => [s.id, s.nombre]));
 
+    // --- FORMAT DATA STRINGS ---
     const subjectsList = subjectsWithStatus.map((s: any) => {
       const notaStr = s.nota ? ` | Nota final: ${s.nota}` : '';
       const parcialStr = s.nota_parcial && s.nota_parcial !== s.nota ? ` | Nota parcial: ${s.nota_parcial}` : '';
@@ -196,77 +196,36 @@ serve(async (req) => {
       return `- ${s.nombre} (${s.codigo}, Año ${s.ano}): ${s.estado.toUpperCase()}${notaStr}${parcialStr}${fechaStr}`;
     }).join("\n");
 
-    // --- CALENDAR ---
     const eventsList = existingEvents.map((e: any) =>
       `📅 ${e.fecha}${e.hora ? ' ' + e.hora : ''}: ${e.titulo} (${e.tipo_examen})${e.notas ? ' - ' + e.notas : ''}`
     ).join("\n") || "Sin eventos próximos.";
 
-    // --- STUDY SESSIONS ---
-    const totalStudyMinutes = recentSessions.reduce((acc: number, s: any) => acc + (s.duracion_segundos || 0), 0) / 60;
+    const recentSessionsMinutes = recentSessions.reduce((acc: number, s: any) => acc + (s.duracion_segundos || 0), 0) / 60;
     const sessionsList = recentSessions.map((s: any) => {
       const mins = Math.round((s.duracion_segundos || 0) / 60);
       const subjectName = s.subject_id ? subjectNameById[s.subject_id] || '' : '';
       return `⏱️ ${s.fecha}: ${mins}min (${s.tipo})${subjectName ? ' - ' + subjectName : ''}`;
-    }).join("\n") || "Sin sesiones recientes.";
+    }).join("\n") || "Sin sesiones.";
 
-    // --- FLASHCARDS ---
     const decksList = flashcardDecks.map((d: any) => {
       const subjectName = d.subject_id ? subjectNameById[d.subject_id] || '' : '';
       return `🃏 ${d.nombre} (${d.total_cards} cartas)${subjectName ? ' - ' + subjectName : ''}`;
     }).join("\n") || "Sin mazos.";
 
-    // --- ACHIEVEMENTS ---
     const unlockedIds = new Set(userAchievements.map((ua: any) => ua.achievement_id));
-    const unlockedList = allAchievements
-      .filter((a: any) => unlockedIds.has(a.id))
-      .map((a: any) => `🏆 ${a.icono} ${a.nombre}: ${a.descripcion} (+${a.xp_reward} XP)`)
-      .join("\n") || "Sin logros todavía.";
-    const lockedList = allAchievements
-      .filter((a: any) => !unlockedIds.has(a.id))
-      .map((a: any) => `🔒 ${a.nombre}: ${a.descripcion} (${a.condicion_tipo}: ${a.condicion_valor})`)
-      .join("\n");
+    const unlockedList = allAchievements.filter((a: any) => unlockedIds.has(a.id)).map((a: any) => `🏆 ${a.icono} ${a.nombre}`).join("\n") || "Sin logros.";
+    const lockedList = allAchievements.filter((a: any) => !unlockedIds.has(a.id)).map((a: any) => `🔒 ${a.nombre}`).join("\n");
 
-    // --- NOTION DOCUMENTS ---
-    const notionList = notionDocs.map((d: any) => {
-      const subjectName = d.subject_id ? subjectNameById[d.subject_id] || '' : '';
-      const timeStr = d.total_time_seconds ? ` | ${Math.round(d.total_time_seconds / 60)}min dedicados` : '';
-      const favStr = d.is_favorite ? ' ⭐' : '';
-      return `📝 ${d.emoji || ''} ${d.titulo}${subjectName ? ' (' + subjectName + ')' : ''}${timeStr}${favStr}`;
-    }).join("\n") || "Sin documentos.";
+    const notionList = notionDocs.map((d: any) => `📝 ${d.titulo}`).join("\n") || "Sin documentos.";
+    const librarySummary = libraryFiles.length > 0 ? `Total: ${libraryFiles.length} archivos.` : "Biblioteca vacía.";
 
-    // --- LIBRARY FILES ---
-    const filesBySubject: Record<string, number> = {};
-    const filesByType: Record<string, number> = {};
-    libraryFiles.forEach((f: any) => {
-      const sName = f.subject_id ? subjectNameById[f.subject_id] || 'Sin materia' : 'Sin materia';
-      filesBySubject[sName] = (filesBySubject[sName] || 0) + 1;
-      filesByType[f.tipo] = (filesByType[f.tipo] || 0) + 1;
-    });
-    const librarySummary = libraryFiles.length > 0
-      ? `Total: ${libraryFiles.length} archivos\nPor materia: ${Object.entries(filesBySubject).map(([k, v]) => `${k}: ${v}`).join(', ')}\nPor tipo: ${Object.entries(filesByType).map(([k, v]) => `${k}: ${v}`).join(', ')}`
-      : "Biblioteca vacía.";
-
-    // --- CORRELATIVITIES ---
     const depsList = dependencies.map((d: any) => {
       const subjectName = subjectNameById[d.subject_id] || d.subject_id;
-      const reqs: string[] = [];
-      if (d.requiere_aprobada) reqs.push(`aprobada: ${subjectNameById[d.requiere_aprobada] || d.requiere_aprobada}`);
-      if (d.requiere_regular) reqs.push(`regular: ${subjectNameById[d.requiere_regular] || d.requiere_regular}`);
-      return `🔗 ${subjectName} requiere ${reqs.join(' y ')}`;
-    }).join("\n") || "Sin correlatividades registradas.";
+      return `🔗 ${subjectName}`;
+    }).join("\n") || "Sin correlatividades.";
 
-    // --- FOREST (PLANTS) ---
-    const alivePlants = plants.filter((p: any) => p.is_alive && !p.is_completed).length;
-    const completedPlants = plants.filter((p: any) => p.is_completed).length;
-    const deadPlants = plants.filter((p: any) => !p.is_alive).length;
-    const plantsSummary = plants.length > 0
-      ? `🌱 Creciendo: ${alivePlants} | 🌳 Completadas: ${completedPlants} | 💀 Muertas: ${deadPlants}`
-      : "Sin plantas todavía.";
-
-    // --- STATS ---
-    const statsBlock = userStats
-      ? `Nivel: ${userStats.nivel} | XP: ${userStats.xp_total} | Racha: ${userStats.racha_actual} días (mejor: ${userStats.mejor_racha}) | Horas totales: ${Math.round(userStats.horas_estudio_total)}h`
-      : "Sin estadísticas.";
+    const plantsSummary = plants.length > 0 ? `🌱 ${plants.length} plantas.` : "Sin plantas.";
+    const statsBlock = userStats ? `Nivel: ${userStats.nivel} | XP: ${userStats.xp_total}` : "Sin estadísticas.";
 
     const userName = profile?.nombre || profile?.username || 'Estudiante';
 
@@ -277,46 +236,43 @@ Fecha actual: ${new Date().toISOString().split('T')[0]}
 ESTADÍSTICAS:
 ${statsBlock}
 
-MATERIAS (estado académico completo):
+MATERIAS:
 ${subjectsList}
 
 CORRELATIVIDADES:
 ${depsList}
 
-AGENDA (próximos eventos):
+AGENDA:
 ${eventsList}
 
-SESIONES DE ESTUDIO RECIENTES:
+SESIONES:
 ${sessionsList}
 
 FLASHCARDS:
 ${decksList}
 
-LOGROS DESBLOQUEADOS:
+LOGROS:
 ${unlockedList}
-
-LOGROS PENDIENTES:
 ${lockedList}
 
-DOCUMENTOS NOTION:
+NOTION:
 ${notionList}
 
 BIBLIOTECA:
 ${librarySummary}
 
-BOSQUE DE ESTUDIO:
+PLANTAS:
 ${plantsSummary}
 ${chatMemory}
 
 CAPACIDADES:
-- Responder sobre notas, estado y correlatividades de materias.
+- Responder sobre notas, estado y correlatividades.
 - Gestionar calendario.
 - Crear flashcards.
-- Analizar progreso y hábitos de estudio.
-- Informar sobre logros desbloqueados y pendientes.
-- Resumir documentos y archivos de la biblioteca.
+- Analizar progreso.
+- Resumir documentos.
 
-IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas.`;
+IMPORTANTE: Usá datos reales.`;
 
     const tools = [
       {
@@ -344,7 +300,6 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas.`;
     let provider = "";
     let usedModel = "";
 
-    // --- HELPER: ADAPT OPENAI TOOLS TO GEMINI ---
     const geminiTools = {
       function_declarations: tools.map((t: any) => ({
         name: t.function.name,
@@ -353,7 +308,6 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas.`;
       }))
     };
 
-    // --- HELPER: ADAPT MESSAGES TO GEMINI ---
     const geminiContents = messages.map((m: any) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
@@ -375,30 +329,28 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas.`;
         console.warn("Dynamic discovery failed, using fallback.");
       }
 
-      // If discovery fails, use the fallback list from parse-document
-      if (candidateModels.length === 0) {
-        candidateModels = [
-          "gemini-2.0-flash-lite",
-          "gemini-1.5-flash",
-          "gemini-1.5-flash-latest",
-          "gemini-1.5-flash-001",
-          "gemini-1.5-pro",
-          "gemini-1.0-pro"
-        ];
+      // If discovery fails OR if gemini-1.5-flash is not present in the discovery list (e.g. strict filtering),
+      // we MANUALLY inject it at the top, because we know it exists and usually has good free tier.
+      if (!candidateModels.includes("gemini-1.5-flash")) {
+        candidateModels.unshift("gemini-1.5-flash"); // Force it to be first candidate if missing
       }
 
-      console.log(`Discovered/Fallback models: ${candidateModels.join(", ")}`);
+      // Fallback list if absolutely empty
+      if (candidateModels.length === 0) {
+        candidateModels = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"];
+      }
 
-      // Try top 3 available models
-      for (const model of candidateModels.slice(0, 3)) {
+      console.log(`Candidate models: ${candidateModels.join(", ")}`);
+
+      // INCREASED RETRY LIMIT: Try up to 20 models to bypass rate limits (429)
+      for (const model of candidateModels.slice(0, 20)) {
         try {
           console.log(`[Google Native] Trying model: ${model}`);
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}`;
 
           const body = {
             contents: geminiContents,
-            system_instruction: systemInstruction, // Some models might error on this, if so catch and retry without? 
-            // Most Gemini 1.5+ support it. 1.0 Pro doesn't via this field in older API versions but v1beta usually does.
+            system_instruction: systemInstruction,
             tools: [geminiTools],
             generationConfig: { maxOutputTokens: 2048 }
           };
@@ -418,7 +370,7 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas.`;
           }
 
           const errText = await res.text();
-          const errorMsg = `[Google ${model}] ${res.status}: ${errText.substring(0, 200)}`;
+          const errorMsg = `[Google ${model}] ${res.status}: ${errText.substring(0, 100)}`; // Truncate log
           console.warn(errorMsg);
           errors.push(errorMsg);
         } catch (e) {
@@ -492,7 +444,6 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas.`;
           if (!cleanText) return;
 
           try {
-            // Handle multiple JSON objects in one chunk
             const parts = cleanText.split(/\n,\n|,/g).filter(p => p.trim().length > 0);
             for (const part of parts) {
               try {
