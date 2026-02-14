@@ -334,16 +334,43 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
     ];
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.0-flash-lite-preview-02-05",
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
-        tools,
-        stream: true,
-      }),
-    });
+    const AVAILABLE_MODELS = [
+      "google/gemini-2.0-flash-lite-preview-02-05",
+      "google/gemini-1.5-flash",
+      "google/gemini-1.5-pro",
+    ];
+
+    let response;
+    let usedModel = "";
+
+    for (const model of AVAILABLE_MODELS) {
+      try {
+        console.log(`Trying model: ${model}`);
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: "system", content: systemPrompt }, ...messages],
+            tools,
+            stream: true,
+          }),
+        });
+
+        if (response.ok) {
+          usedModel = model;
+          break;
+        }
+
+        console.warn(`Model ${model} failed with status ${response.status}`);
+      } catch (err) {
+        console.error(`Model ${model} failed with error:`, err);
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error("Todos los modelos de IA están temporalmente no disponibles. Por favor intenta de nuevo en unos minutos.");
+    }
 
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
