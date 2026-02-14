@@ -365,6 +365,8 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
       parts: [{ text: systemPrompt }]
     };
 
+    const errors: string[] = [];
+
     // 1. STRATEGY: GOOGLE DIRECT (NATIVE API)
     if (GEMINI_API_KEY) {
       for (const model of GOOGLE_MODELS) {
@@ -394,11 +396,17 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
           }
 
           const errText = await res.text();
-          console.warn(`[Google Native] ${model} failed: ${res.status} - ${errText}`);
+          const errorMsg = `[Google ${model}] ${res.status}: ${errText.substring(0, 200)}`;
+          console.warn(errorMsg);
+          errors.push(errorMsg);
         } catch (e) {
-          console.error(`[Google Native] ${model} error:`, e);
+          const errorMsg = `[Google ${model}] Network Error: ${e instanceof Error ? e.message : String(e)}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
         }
       }
+    } else {
+      errors.push("[Google] GEMINI_API_KEY not found.");
     }
 
     // 2. STRATEGY: LOVABLE GATEWAY (FALLBACK)
@@ -426,15 +434,22 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
             break;
           }
           const errText = await res.text();
-          console.warn(`[Lovable] ${model} failed: ${res.status} - ${errText}`);
+          const errorMsg = `[Lovable ${model}] ${res.status}: ${errText.substring(0, 200)}`;
+          console.warn(errorMsg);
+          errors.push(errorMsg);
         } catch (e) {
-          console.error(`[Lovable] ${model} error:`, e);
+          const errorMsg = `[Lovable ${model}] Network Error: ${e instanceof Error ? e.message : String(e)}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
         }
       }
+    } else if (!LOVABLE_API_KEY) {
+      errors.push("[Lovable] LOVABLE_API_KEY not found.");
     }
 
     if (!responseStream) {
-      throw new Error(`Error crítico de IA: No se pudo conectar con ningún modelo.`);
+      console.error("Critical AI Error. Logs:", JSON.stringify(errors));
+      throw new Error(`Error de conexión IA. Detalles: ${errors.join(" | ")}`);
     }
 
     const encoder = new TextEncoder();
