@@ -335,9 +335,10 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const AVAILABLE_MODELS = [
-      "google/gemini-2.0-flash-lite-preview-02-05",
+      "google/gemini-2.0-flash-lite",
       "google/gemini-1.5-flash",
       "google/gemini-1.5-pro",
+      "openai/gpt-4o-mini",
     ];
 
     let response;
