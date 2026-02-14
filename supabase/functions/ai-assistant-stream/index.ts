@@ -29,6 +29,50 @@ function getColorForType(tipo: ValidEventType): string {
   return colors[tipo] || "#00d9ff";
 }
 
+// Helper to list available models dynamically (Copied from parse-document to ensure consistency)
+async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    if (!data.models) return [];
+
+    // Prioritize models: Flash > Flash-Lite > Pro > Others
+    // We filter for generateContent support. streamGenerateContent is usually implied.
+    const validModels = data.models
+      .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
+      .map((m: any) => m.name.replace("models/", "")); // Strip 'models/' prefix for use in URL construction if needed
+
+    // Custom sort order - Prioritize 1.5 Flash (Free tier friendly) over 2.0 (Quota limited)
+    const priority = [
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash-001",
+      "gemini-1.5-flash-002",
+      "gemini-1.5-flash-8b",
+      "gemini-1.5-pro",
+      "gemini-1.5-pro-latest",
+      "gemini-1.0-pro",
+      "gemini-2.0-flash-lite",
+      "gemini-2.0-flash"
+    ];
+
+    validModels.sort((a: string, b: string) => {
+      const idxA = priority.findIndex(p => a.includes(p));
+      const idxB = priority.findIndex(p => b.includes(p));
+      const valA = idxA === -1 ? 999 : idxA;
+      const valB = idxB === -1 ? 999 : idxB;
+      return valA - valB;
+    });
+
+    return validModels;
+  } catch (e) {
+    console.warn("Failed to list models:", e);
+    return [];
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -242,7 +286,7 @@ ${depsList}
 AGENDA (próximos eventos):
 ${eventsList}
 
-SESIONES DE ESTUDIO RECIENTES (últimas ${recentSessions.length}, total ${Math.round(totalStudyMinutes)}min):
+SESIONES DE ESTUDIO RECIENTES:
 ${sessionsList}
 
 FLASHCARDS:
@@ -266,78 +310,35 @@ ${chatMemory}
 
 CAPACIDADES:
 - Responder sobre notas, estado y correlatividades de materias.
-- Gestionar calendario (crear, borrar, editar eventos).
+- Gestionar calendario.
 - Crear flashcards.
 - Analizar progreso y hábitos de estudio.
 - Informar sobre logros desbloqueados y pendientes.
 - Resumir documentos y archivos de la biblioteca.
-- Dar recomendaciones personalizadas basadas en TODOS los datos.
-- Indicar qué materias puede cursar según correlatividades.
 
-IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. Si preguntan por una nota, buscala en la sección MATERIAS y respondé con el dato exacto. Nunca digas que no tenés acceso a la información si está en tu contexto. Respondé siempre en español.`;
+IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas.`;
 
     const tools = [
       {
         type: "function",
-        function: {
-          name: "create_calendar_event",
-          description: "Crea un evento en el calendario.",
-          parameters: {
-            type: "object",
-            properties: {
-              titulo: { type: "string" },
-              fecha: { type: "string" },
-              hora: { type: "string" },
-              tipo_examen: { type: "string", enum: VALID_EVENT_TYPES },
-              notas: { type: "string" },
-              subject_id: { type: "string" }
-            },
-            required: ["titulo", "fecha", "tipo_examen"]
-          }
-        }
+        function: { name: "create_calendar_event", description: "Crea un evento.", parameters: { type: "object", properties: { titulo: { type: "string" }, fecha: { type: "string" }, hora: { type: "string" }, tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, notas: { type: "string" }, subject_id: { type: "string" } }, required: ["titulo", "fecha", "tipo_examen"] } }
       },
       {
         type: "function",
-        function: {
-          name: "delete_calendar_event",
-          description: "Elimina un evento por ID.",
-          parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] }
-        }
+        function: { name: "delete_calendar_event", description: "Elimina un evento por ID.", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } }
       },
       {
         type: "function",
-        function: {
-          name: "create_flashcards",
-          description: "Crea mazo de flashcards.",
-          parameters: {
-            type: "object",
-            properties: {
-              deck_name: { type: "string" },
-              cards: {
-                type: "array",
-                items: { type: "object", properties: { pregunta: { type: "string" }, respuesta: { type: "string" } }, required: ["pregunta", "respuesta"] }
-              }
-            },
-            required: ["deck_name", "cards"]
-          }
-        }
+        function: { name: "create_flashcards", description: "Crea mazo de flashcards.", parameters: { type: "object", properties: { deck_name: { type: "string" }, cards: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, respuesta: { type: "string" } }, required: ["pregunta", "respuesta"] } } }, required: ["deck_name", "cards"] } }
       },
       {
         type: "function",
-        function: {
-          name: "get_study_history",
-          description: "Obtiene historial extendido.",
-          parameters: { type: "object", properties: { days: { type: "number" } }, required: ["days"] }
-        }
+        function: { name: "get_study_history", description: "Obtiene historial extendido.", parameters: { type: "object", properties: { days: { type: "number" } }, required: ["days"] } }
       }
     ];
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-
-    // Native Gemini Models
-    const GOOGLE_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro"];
-    const LOVABLE_MODELS = ["google/gemini-2.0-flash-lite", "google/gemini-1.5-flash", "openai/gpt-4o-mini"];
 
     let responseStream: ReadableStream | null = null;
     let provider = "";
@@ -354,29 +355,50 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
 
     // --- HELPER: ADAPT MESSAGES TO GEMINI ---
     const geminiContents = messages.map((m: any) => ({
-      role: m.role === 'assistant' ? 'model' : 'user', // Gemini uses 'model' instead of 'assistant'
+      role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
-    })).filter((m: any) => m.role !== 'system'); // Filter out system messages, we handle them separately
+    })).filter((m: any) => m.role !== 'system');
 
-    // Add System Prompt as instruction (if supported) or prepend to first user message
-    // For simplicity, we'll prepend system prompt instructions to the first user message
-    // or use system_instruction if functionality allows (Gemini 1.5+ supports it)
     const systemInstruction = {
       parts: [{ text: systemPrompt }]
     };
 
     const errors: string[] = [];
 
-    // 1. STRATEGY: GOOGLE DIRECT (NATIVE API)
+    // 1. STRATEGY: GOOGLE DIRECT (DYNAMIC DISCOVERY)
     if (GEMINI_API_KEY) {
-      for (const model of GOOGLE_MODELS) {
+      console.log("Starting Dynamic Gemini Model Discovery...");
+      let candidateModels: string[] = [];
+      try {
+        candidateModels = await getAvailableGeminiModels(GEMINI_API_KEY);
+      } catch (e) {
+        console.warn("Dynamic discovery failed, using fallback.");
+      }
+
+      // If discovery fails, use the fallback list from parse-document
+      if (candidateModels.length === 0) {
+        candidateModels = [
+          "gemini-2.0-flash-lite",
+          "gemini-1.5-flash",
+          "gemini-1.5-flash-latest",
+          "gemini-1.5-flash-001",
+          "gemini-1.5-pro",
+          "gemini-1.0-pro"
+        ];
+      }
+
+      console.log(`Discovered/Fallback models: ${candidateModels.join(", ")}`);
+
+      // Try top 3 available models
+      for (const model of candidateModels.slice(0, 3)) {
         try {
           console.log(`[Google Native] Trying model: ${model}`);
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}`;
 
           const body = {
             contents: geminiContents,
-            system_instruction: systemInstruction,
+            system_instruction: systemInstruction, // Some models might error on this, if so catch and retry without? 
+            // Most Gemini 1.5+ support it. 1.0 Pro doesn't via this field in older API versions but v1beta usually does.
             tools: [geminiTools],
             generationConfig: { maxOutputTokens: 2048 }
           };
@@ -411,6 +433,7 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
 
     // 2. STRATEGY: LOVABLE GATEWAY (FALLBACK)
     if (!responseStream && LOVABLE_API_KEY) {
+      const LOVABLE_MODELS = ["google/gemini-2.0-flash-lite", "google/gemini-1.5-flash", "openai/gpt-4o-mini"];
       console.log("Falling back to Lovable Gateway...");
       for (const model of LOVABLE_MODELS) {
         try {
@@ -456,19 +479,12 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
     const decoder = new TextDecoder();
     let toolCalls: any[] = [];
 
-    // --- TRANSFORM STREAM: UNIFY FORMATS TO OPENAI SSE ---
+    // --- TRANSFORM STREAM: UNIFY FORMATS ---
     const transformStream = new TransformStream({
       async transform(chunk, controller) {
         const text = decoder.decode(chunk, { stream: true });
 
         if (provider === "google-native") {
-          // Gemini returns a stream of JSON blocks. 
-          // Needs robust parsing because chunks might split JSON.
-          // For simplicity in this environment, let's assume we get parsable text segments 
-          // or use a simpler parsing heuristic.
-          // The API returns: `[`, `,\n{...}`, `]` 
-
-          // Dirty parser: remove leading comma/brackets and try parsing
           let cleanText = text.replace(/^,/, '').trim();
           if (cleanText.startsWith('[')) cleanText = cleanText.substring(1);
           if (cleanText.endsWith(']')) cleanText = cleanText.substring(0, cleanText.length - 1);
@@ -476,100 +492,62 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
           if (!cleanText) return;
 
           try {
-            // Sometimes multiple objects come in one chunk: "{...}\n,\n{...}"
+            // Handle multiple JSON objects in one chunk
             const parts = cleanText.split(/\n,\n|,/g).filter(p => p.trim().length > 0);
-
             for (const part of parts) {
               try {
                 const data = JSON.parse(part);
                 const candidate = data.candidates?.[0];
 
-                // Handle Content
                 if (candidate?.content?.parts?.[0]?.text) {
                   const content = candidate.content.parts[0].text;
-                  const sse = {
-                    choices: [{ delta: { content } }]
-                  };
+                  const sse = { choices: [{ delta: { content } }] };
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify(sse)}\n\n`));
                 }
 
-                // Handle Function Calls
                 if (candidate?.content?.parts?.[0]?.functionCall) {
                   const fc = candidate.content.parts[0].functionCall;
-                  // Translate to OpenAI Tool Call format
-                  // OpenAI expects: tool_calls: [{ function: { name, arguments } }]
-                  // We need a dummy ID.
                   const toolSse = {
-                    choices: [{
-                      delta: {
-                        tool_calls: [{
-                          id: "call_" + Math.random().toString(36).substr(2, 9),
-                          function: {
-                            name: fc.name,
-                            arguments: JSON.stringify(fc.args)
-                          }
-                        }]
-                      }
-                    }]
+                    choices: [{ delta: { tool_calls: [{ id: "call_" + Math.random().toString(36).substr(2, 9), function: { name: fc.name, arguments: JSON.stringify(fc.args) } }] } }]
                   };
-
                   if (!toolCalls.length) toolCalls = [{ id: "gemini_id", function: { name: fc.name, arguments: JSON.stringify(fc.args) } }];
                 }
-              } catch (e) {
-                // partial json?
-              }
+              } catch (e) { }
             }
           } catch (e) { }
 
         } else {
-          // CASE B: LOVABLE / OPENAI STANDARD SSE
+          // LOVABLE / OPENAI STANDARD SSE
           const lines = text.split("\n");
           for (const line of lines) {
             if (!line.startsWith("data: ")) continue;
             const jsonStr = line.slice(6).trim();
-            if (jsonStr === "[DONE]") {
-              // Logic handled in flush or special check below
-              // We need to preserve original logic for tool execution
-            }
-
-            try {
-              if (jsonStr !== "[DONE]") {
+            if (jsonStr !== "[DONE]") {
+              try {
                 const parsed = JSON.parse(jsonStr);
                 const delta = parsed.choices?.[0]?.delta;
                 if (delta?.tool_calls) {
                   const tc = delta.tool_calls[0];
                   if (tc.function?.name) toolCalls = [{ id: tc.id, function: { name: tc.function.name, arguments: "" } }];
                   if (tc.function?.arguments) toolCalls[0].function.arguments += tc.function.arguments;
-
                 } else if (delta?.content) {
                   controller.enqueue(encoder.encode(`data: ${jsonStr}\n\n`));
                 }
-              }
-            } catch { }
+              } catch { }
+            }
           }
         }
       },
 
       async flush(controller) {
-        // Execution Logic for Tools
         if (toolCalls.length > 0) {
           const call = toolCalls[0];
           const args = JSON.parse(call.function.arguments);
           let result;
 
-          // ... (Same tool execution logic as before) ...
           if (call.function.name === "create_calendar_event") {
             const mappedType = mapEventType(args.tipo_examen);
-            const { data, error } = await serviceClient.from("calendar_events").insert({
-              user_id: userId,
-              titulo: args.titulo,
-              fecha: args.fecha,
-              hora: args.hora,
-              tipo_examen: mappedType,
-              color: getColorForType(mappedType),
-              notas: args.notas,
-              subject_id: args.subject_id
-            }).select().single();
+            const { data, error } = await serviceClient.from("calendar_events").insert({ user_id: userId, titulo: args.titulo, fecha: args.fecha, hora: args.hora, tipo_examen: mappedType, color: getColorForType(mappedType), notas: args.notas, subject_id: args.subject_id }).select().single();
             result = error ? { content: `Error: ${error.message}` } : { content: `Evento agendado: ${data.titulo} el ${data.fecha}` };
           }
           else if (call.function.name === "delete_calendar_event") {
@@ -577,24 +555,12 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
             result = error ? { content: "Error al eliminar." } : { content: "Evento eliminado." };
           }
           else if (call.function.name === "create_flashcards") {
-            const { data: deck, error } = await serviceClient.from("flashcard_decks").insert({
-              user_id: userId,
-              nombre: args.deck_name,
-              total_cards: args.cards.length
-            }).select().single();
-
+            const { data: deck, error } = await serviceClient.from("flashcard_decks").insert({ user_id: userId, nombre: args.deck_name, total_cards: args.cards.length }).select().single();
             if (deck) {
-              const cards = args.cards.map((c: any) => ({
-                deck_id: deck.id,
-                user_id: userId,
-                pregunta: c.pregunta,
-                respuesta: c.respuesta
-              }));
+              const cards = args.cards.map((c: any) => ({ deck_id: deck.id, user_id: userId, pregunta: c.pregunta, respuesta: c.respuesta }));
               await serviceClient.from("flashcards").insert(cards);
               result = { content: `Mazo "${deck.nombre}" creado con ${deck.total_cards} cartas.` };
-            } else {
-              result = { content: `Error creando mazo: ${error?.message}` };
-            }
+            } else { result = { content: `Error creando mazo: ${error?.message}` }; }
           }
           else if (call.function.name === "get_study_history") {
             const days = args.days || 30;
@@ -605,12 +571,10 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
           }
 
           if (result) {
-            // Send result back to client as data
             const sse = { choices: [{ delta: { content: "\n\n" + result.content } }] };
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(sse)}\n\n`));
           }
         }
-
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       }
     });
