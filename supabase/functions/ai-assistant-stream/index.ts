@@ -334,43 +334,82 @@ IMPORTANTE: Usá los datos reales del estudiante para dar respuestas precisas. S
     ];
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const AVAILABLE_MODELS = [
-      "google/gemini-2.0-flash-lite",
-      "google/gemini-1.5-flash",
-      "google/gemini-1.5-pro",
-      "openai/gpt-4o-mini",
-    ];
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
+    // Strategy 1: Google Direct (OpenAI Compatible)
+    // Docs: https://ai.google.dev/gemini-api/docs/openai
+    const GOOGLE_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro"];
+
+    // Strategy 2: Lovable Gateway
+    const LOVABLE_MODELS = ["google/gemini-2.0-flash-lite", "google/gemini-1.5-flash", "openai/gpt-4o-mini"];
 
     let response;
     let usedModel = "";
+    let provider = "";
 
-    for (const model of AVAILABLE_MODELS) {
-      try {
-        console.log(`Trying model: ${model}`);
-        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: model,
-            messages: [{ role: "system", content: systemPrompt }, ...messages],
-            tools,
-            stream: true,
-          }),
-        });
+    // 1. Try Google Direct if Key exists
+    if (GEMINI_API_KEY) {
+      for (const model of GOOGLE_MODELS) {
+        try {
+          console.log(`[Google Direct] Trying model: ${model}`);
+          const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: model,
+              messages: [{ role: "system", content: systemPrompt }, ...messages],
+              tools,
+              stream: true,
+            }),
+          });
 
-        if (response.ok) {
-          usedModel = model;
-          break;
+          if (res.ok) {
+            response = res;
+            usedModel = model;
+            provider = "google-direct";
+            console.log(`[Google Direct] Success with ${model}`);
+            break;
+          }
+          console.warn(`[Google Direct] ${model} failed: ${res.status}`);
+        } catch (e) {
+          console.error(`[Google Direct] ${model} error:`, e);
         }
+      }
+    }
 
-        console.warn(`Model ${model} failed with status ${response.status}`);
-      } catch (err) {
-        console.error(`Model ${model} failed with error:`, err);
+    // 2. Fallback to Lovable Gateway if Google failed
+    if (!response && LOVABLE_API_KEY) {
+      console.log("Falling back to Lovable Gateway...");
+      for (const model of LOVABLE_MODELS) {
+        try {
+          console.log(`[Lovable] Trying model: ${model}`);
+          const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: model,
+              messages: [{ role: "system", content: systemPrompt }, ...messages],
+              tools,
+              stream: true,
+            }),
+          });
+
+          if (res.ok) {
+            response = res;
+            usedModel = model;
+            provider = "lovable";
+            console.log(`[Lovable] Success with ${model}`);
+            break;
+          }
+          console.warn(`[Lovable] ${model} failed: ${res.status}`);
+        } catch (e) {
+          console.error(`[Lovable] ${model} error:`, e);
+        }
       }
     }
 
     if (!response || !response.ok) {
-      throw new Error("Todos los modelos de IA están temporalmente no disponibles. Por favor intenta de nuevo en unos minutos.");
+      throw new Error("Todos los modelos de IA están temporalmente no disponibles (Google & Lovable).");
     }
 
     const encoder = new TextEncoder();
