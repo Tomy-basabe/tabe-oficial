@@ -876,298 +876,297 @@ export default function Library() {
                 >
                   <X className="w-4 h-4" />
                 </button>
+              </div>
+            </div>
+
+            {/* AI Actions Toolbar */}
+            <div className="bg-secondary/30 border-b border-border p-2 flex gap-2 justify-center">
+              <button
+                onClick={() => previewFile && handleGenerateContent(previewFile, 'flashcards')}
+                disabled={generating !== null}
+                className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {generating === 'flashcards' ? (
+                  <span className="animate-spin">⏳</span>
+                ) : (
+                  <span className="text-lg">✨</span>
+                )}
+                {generating === 'flashcards' ? "Generando..." : "Generar Flashcards"}
+              </button>
+              <button
+                onClick={() => previewFile && handleGenerateContent(previewFile, 'summary')}
+                disabled={generating !== null}
+                className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {generating === 'summary' ? (
+                  <span className="animate-spin">⏳</span>
+                ) : (
+                  <span className="text-lg">📝</span>
+                )}
+                {generating === 'summary' ? "Resumiendo..." : "Resumir"}
               </button>
             </div>
-          </div>
 
-          {/* AI Actions Toolbar */}
-          <div className="bg-secondary/30 border-b border-border p-2 flex gap-2 justify-center">
-            <button
-              onClick={() => previewFile && handleGenerateContent(previewFile, 'flashcards')}
-              disabled={generating !== null}
-              className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {generating === 'flashcards' ? (
-                <span className="animate-spin">⏳</span>
-              ) : (
-                <span className="text-lg">✨</span>
+            <div className="flex-1 overflow-auto p-4">
+              {previewFile?.tipo === "imagen" && (
+                <img
+                  src={previewFile.url}
+                  alt={previewFile.nombre}
+                  className="max-w-full h-auto mx-auto rounded-lg"
+                />
               )}
-              {generating === 'flashcards' ? "Generando..." : "Generar Flashcards"}
-            </button>
-            <button
-              onClick={() => previewFile && handleGenerateContent(previewFile, 'summary')}
-              disabled={generating !== null}
-              className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {generating === 'summary' ? (
-                <span className="animate-spin">⏳</span>
-              ) : (
-                <span className="text-lg">📝</span>
+              {previewFile?.tipo === "pdf" && (
+                <iframe
+                  src={`${previewFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
+                  className="w-full rounded-lg border-0"
+                  style={{ minHeight: "calc(85vh - 100px)", height: "100%" }}
+                  title={previewFile.nombre}
+                />
               )}
-              {generating === 'summary' ? "Resumiendo..." : "Resumir"}
-            </button>
+            </div>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          <div className="flex-1 overflow-auto p-4">
-            {previewFile?.tipo === "imagen" && (
-              <img
-                src={previewFile.url}
-                alt={previewFile.nombre}
-                className="max-w-full h-auto mx-auto rounded-lg"
+      {/* New Folder Modal */}
+      <Dialog open={showFolderModal} onOpenChange={setShowFolderModal}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-display gradient-text flex items-center gap-2">
+              <FolderPlus className="w-5 h-5 text-primary" />
+              Nueva Carpeta
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Nombre</label>
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Nombre de la carpeta"
+                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
               />
-            )}
-            {previewFile?.tipo === "pdf" && (
-              <iframe
-                src={`${previewFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
-                className="w-full rounded-lg border-0"
-                style={{ minHeight: "calc(85vh - 100px)", height: "100%" }}
-                title={previewFile.nombre}
-              />
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+            </div>
 
-      {/* New Folder Modal */ }
-  <Dialog open={showFolderModal} onOpenChange={setShowFolderModal}>
-    <DialogContent className="sm:max-w-md bg-card border-border">
-      <DialogHeader>
-        <DialogTitle className="font-display gradient-text flex items-center gap-2">
-          <FolderPlus className="w-5 h-5 text-primary" />
-          Nueva Carpeta
-        </DialogTitle>
-      </DialogHeader>
-      <div className="space-y-4 py-4">
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">Nombre</label>
-          <input
-            type="text"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            placeholder="Nombre de la carpeta"
-            className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
-          <Select
-            value={newFolderSubject || "none"}
-            onValueChange={(val) => setNewFolderSubject(val === "none" ? "" : val)}
-          >
-            <SelectTrigger className="mt-2 bg-secondary border-border">
-              <SelectValue placeholder="Sin materia asignada" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sin materia asignada</SelectItem>
-              {subjects.map(subject => (
-                <SelectItem key={subject.id} value={subject.id}>
-                  {subject.nombre} ({subject.año}° año)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">Color</label>
-          <div className="flex gap-2 mt-2">
-            {folderColors.map(color => (
-              <button
-                key={color.value}
-                onClick={() => setNewFolderColor(color.value)}
-                className={cn(
-                  "w-10 h-10 rounded-xl transition-all",
-                  newFolderColor === color.value && "ring-2 ring-offset-2 ring-offset-background ring-primary"
-                )}
-                style={{ backgroundColor: color.value }}
-              />
-            ))}
-          </div>
-        </div>
-
-        <button
-          onClick={createFolder}
-          disabled={!newFolderName.trim()}
-          className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50 transition-all"
-        >
-          Crear Carpeta
-        </button>
-      </div>
-    </DialogContent>
-  </Dialog>
-
-  {/* Upload Modal */ }
-  <Dialog open={showUploadModal} onOpenChange={(open) => {
-    setShowUploadModal(open);
-    if (open) setUploadYear(selectedYear); // Default to current filter
-  }}>
-    <DialogContent className="sm:max-w-md bg-card border-border">
-      <DialogHeader>
-        <DialogTitle className="font-display gradient-text">Subir Archivo</DialogTitle>
-      </DialogHeader>
-      <div className="space-y-4 py-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">Año</label>
-            <Select
-              value={uploadYear ? uploadYear.toString() : "all"}
-              onValueChange={(val) => {
-                const year = val === "all" ? null : parseInt(val);
-                setUploadYear(year);
-                setUploadSubject(""); // Reset subject when year changes
-              }}
-            >
-              <SelectTrigger className="mt-2 bg-secondary border-border">
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {years.map(y => (
-                  <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">
-              Materia
-            </label>
-            <Select
-              value={uploadSubject || "none"}
-              onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
-            >
-              <SelectTrigger className="mt-2 bg-secondary border-border">
-                <SelectValue placeholder="Sin materia" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin materia asignada</SelectItem>
-                {subjects
-                  .filter(s => !uploadYear || s.año === uploadYear)
-                  .map(subject => (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
+              <Select
+                value={newFolderSubject || "none"}
+                onValueChange={(val) => setNewFolderSubject(val === "none" ? "" : val)}
+              >
+                <SelectTrigger className="mt-2 bg-secondary border-border">
+                  <SelectValue placeholder="Sin materia asignada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin materia asignada</SelectItem>
+                  {subjects.map(subject => (
                     <SelectItem key={subject.id} value={subject.id}>
-                      {subject.nombre} ({subject.año}°)
+                      {subject.nombre} ({subject.año}° año)
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-primary/50 hover:border-primary bg-primary/5 rounded-xl p-8 text-center transition-colors cursor-pointer"
-        >
-          <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-          <p className="text-sm font-medium">
-            {uploading ? "Subiendo..." : "Click para seleccionar archivo"}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            PDF, imágenes (máx 20MB)
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-            disabled={uploading}
-          />
-        </div>
-      </div>
-    </DialogContent>
-  </Dialog>
-
-  {/* Link Modal */ }
-  <Dialog open={showLinkModal} onOpenChange={(open) => {
-    setShowLinkModal(open);
-    if (open) setUploadYear(selectedYear);
-  }}>
-    <DialogContent className="sm:max-w-md bg-card border-border">
-      <DialogHeader>
-        <DialogTitle className="font-display gradient-text">Agregar Link</DialogTitle>
-      </DialogHeader>
-      <div className="space-y-4 py-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">Año</label>
-            <Select
-              value={uploadYear ? uploadYear.toString() : "all"}
-              onValueChange={(val) => {
-                const year = val === "all" ? null : parseInt(val);
-                setUploadYear(year);
-                setUploadSubject("");
-              }}
-            >
-              <SelectTrigger className="mt-2 bg-secondary border-border">
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {years.map(y => (
-                  <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Color</label>
+              <div className="flex gap-2 mt-2">
+                {folderColors.map(color => (
+                  <button
+                    key={color.value}
+                    onClick={() => setNewFolderColor(color.value)}
+                    className={cn(
+                      "w-10 h-10 rounded-xl transition-all",
+                      newFolderColor === color.value && "ring-2 ring-offset-2 ring-offset-background ring-primary"
+                    )}
+                    style={{ backgroundColor: color.value }}
+                  />
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">
-              Materia
-            </label>
-            <Select
-              value={uploadSubject || "none"}
-              onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
+              </div>
+            </div>
+
+            <button
+              onClick={createFolder}
+              disabled={!newFolderName.trim()}
+              className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50 transition-all"
             >
-              <SelectTrigger className="mt-2 bg-secondary border-border">
-                <SelectValue placeholder="Sin materia" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin materia asignada</SelectItem>
-                {subjects
-                  .filter(s => !uploadYear || s.año === uploadYear)
-                  .map(subject => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.nombre} ({subject.año}°)
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+              Crear Carpeta
+            </button>
           </div>
-        </div>
+        </DialogContent>
+      </Dialog>
 
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">Nombre del recurso</label>
-          <input
-            type="text"
-            value={linkName}
-            onChange={(e) => setLinkName(e.target.value)}
-            placeholder="Ej: Video explicativo - Tema 1"
-            className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
-          />
-        </div>
+      {/* Upload Modal */}
+      <Dialog open={showUploadModal} onOpenChange={(open) => {
+        setShowUploadModal(open);
+        if (open) setUploadYear(selectedYear); // Default to current filter
+      }}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-display gradient-text">Subir Archivo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Año</label>
+                <Select
+                  value={uploadYear ? uploadYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setUploadYear(year);
+                    setUploadSubject(""); // Reset subject when year changes
+                  }}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {years.map(y => (
+                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Materia
+                </label>
+                <Select
+                  value={uploadSubject || "none"}
+                  onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Sin materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                    {subjects
+                      .filter(s => !uploadYear || s.año === uploadYear)
+                      .map(subject => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.nombre} ({subject.año}°)
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">URL</label>
-          <input
-            type="url"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
-          />
-        </div>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-primary/50 hover:border-primary bg-primary/5 rounded-xl p-8 text-center transition-colors cursor-pointer"
+            >
+              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm font-medium">
+                {uploading ? "Subiendo..." : "Click para seleccionar archivo"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                PDF, imágenes (máx 20MB)
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={uploading}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        <button
-          onClick={addLink}
-          disabled={!linkUrl.trim() || !linkName.trim()}
-          className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50 transition-all"
-        >
-          Agregar Link
-        </button>
-      </div>
-    </DialogContent>
-  </Dialog>
+      {/* Link Modal */}
+      <Dialog open={showLinkModal} onOpenChange={(open) => {
+        setShowLinkModal(open);
+        if (open) setUploadYear(selectedYear);
+      }}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-display gradient-text">Agregar Link</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Año</label>
+                <Select
+                  value={uploadYear ? uploadYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setUploadYear(year);
+                    setUploadSubject("");
+                  }}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {years.map(y => (
+                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Materia
+                </label>
+                <Select
+                  value={uploadSubject || "none"}
+                  onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Sin materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                    {subjects
+                      .filter(s => !uploadYear || s.año === uploadYear)
+                      .map(subject => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.nombre} ({subject.año}°)
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Nombre del recurso</label>
+              <input
+                type="text"
+                value={linkName}
+                onChange={(e) => setLinkName(e.target.value)}
+                placeholder="Ej: Video explicativo - Tema 1"
+                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">URL</label>
+              <input
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
+              />
+            </div>
+
+            <button
+              onClick={addLink}
+              disabled={!linkUrl.trim() || !linkName.trim()}
+              className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50 transition-all"
+            >
+              Agregar Link
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div >
   );
 }
