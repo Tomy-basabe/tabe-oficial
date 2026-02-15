@@ -96,6 +96,7 @@ export default function Library() {
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState("#00d9ff");
   const [newFolderSubject, setNewFolderSubject] = useState<string>("");
+  const [newFolderYear, setNewFolderYear] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState<'flashcards' | 'summary' | null>(null);
   const [loading, setLoading] = useState(true);
@@ -188,6 +189,7 @@ export default function Library() {
       toast.success("¡Carpeta creada!");
       setNewFolderName("");
       setNewFolderSubject("");
+      setNewFolderYear(null);
       setShowFolderModal(false);
       fetchFolders();
     } catch (error) {
@@ -929,7 +931,10 @@ export default function Library() {
       </Dialog>
 
       {/* New Folder Modal */}
-      <Dialog open={showFolderModal} onOpenChange={setShowFolderModal}>
+      <Dialog open={showFolderModal} onOpenChange={(open) => {
+        setShowFolderModal(open);
+        if (open) setNewFolderYear(selectedYear);
+      }}>
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-display gradient-text flex items-center gap-2">
@@ -949,24 +954,49 @@ export default function Library() {
               />
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
-              <Select
-                value={newFolderSubject || "none"}
-                onValueChange={(val) => setNewFolderSubject(val === "none" ? "" : val)}
-              >
-                <SelectTrigger className="mt-2 bg-secondary border-border">
-                  <SelectValue placeholder="Sin materia asignada" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin materia asignada</SelectItem>
-                  {subjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.nombre} ({subject.año}° año)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Año</label>
+                <Select
+                  value={newFolderYear ? newFolderYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setNewFolderYear(year);
+                    setNewFolderSubject("");
+                  }}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {years.map(y => (
+                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
+                <Select
+                  value={newFolderSubject || "none"}
+                  onValueChange={(val) => setNewFolderSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Sin materia asignada" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                    {subjects
+                      .filter(s => !newFolderYear || s.año === newFolderYear)
+                      .map(subject => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.nombre} ({subject.año}° año)
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>
