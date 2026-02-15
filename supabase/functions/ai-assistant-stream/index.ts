@@ -284,7 +284,13 @@ CAPACIDADES:
 - Analizar progreso.
 - Resumir documentos.
 
-IMPORTANTE: Usá datos reales.`;
+IMPORTANTE: Usá datos reales.
+Si el usuario menciona una materia (ej: "Física 1"), buscá su ID en la lista de MATERIAS y usalo en subject_id. Si no encontrás coincidencia exacta, buscá la más parecida. Si no hay ninguna, dejalo null.
+Para "Mañana", calculá la fecha exacta basándote en la "Fecha actual".
+Siempre respondes en Español Argentino.`;
+
+    console.log(`[AI Request] User: ${messages[messages.length - 1].content}`);
+
 
     const tools = [
       {
@@ -516,8 +522,10 @@ IMPORTANTE: Usá datos reales.`;
 
           if (call.function.name === "create_calendar_event") {
             const mappedType = mapEventType(args.tipo_examen);
+            console.log(`[Tool] create_calendar_event: ${args.titulo} (${mappedType}) for ${args.fecha}`);
             const { data, error } = await serviceClient.from("calendar_events").insert({ user_id: userId, titulo: args.titulo, fecha: args.fecha, hora: args.hora, tipo_examen: mappedType, color: getColorForType(mappedType), notas: args.notas, subject_id: args.subject_id }).select().single();
             result = error ? { content: `Error: ${error.message}` } : { content: `Evento agendado: ${data.titulo} el ${data.fecha}` };
+            console.log(`[Tool Result] ${JSON.stringify(result)}`);
           }
           else if (call.function.name === "delete_calendar_event") {
             const { error } = await serviceClient.from("calendar_events").delete().eq("id", args.id).eq("user_id", userId);
@@ -553,6 +561,7 @@ IMPORTANTE: Usá datos reales.`;
     return new Response(responseStream!.pipeThrough(transformStream), { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
 
   } catch (e) {
+    console.error("Critical AI Error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: corsHeaders });
   }
 });
