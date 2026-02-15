@@ -39,10 +39,10 @@ async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
     if (!data.models) return [];
 
     // Prioritize models: Flash > Flash-Lite > Pro > Others
-    // We filter for generateContent support. streamGenerateContent is usually implied.
+    // We filter for generateContent support.
     const validModels = data.models
       .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
-      .map((m: any) => m.name.replace("models/", "")); // Strip 'models/' prefix for use in URL construction if needed
+      .map((m: any) => m.name.replace("models/", ""));
 
     // Custom sort order - Prioritize 1.5 Flash (Free tier friendly) over 2.0 (Quota limited)
     const priority = [
@@ -266,7 +266,7 @@ ${plantsSummary}
 ${chatMemory}
 
 CAPACIDADES:
-- Responder sobre notas, estado y correlatividades.
+- Responder sobre notas, estado y correlatividades de materias.
 - Gestionar calendario.
 - Crear flashcards.
 - Analizar progreso.
@@ -319,7 +319,11 @@ IMPORTANTE: Usá datos reales.`;
 
     const errors: string[] = [];
 
-    // 1. STRATEGY: GOOGLE DIRECT (DYNAMIC DISCOVERY)
+    // Variables to store blocking result (Google Native only)
+    let blockingText = "";
+    let blockingToolCall: any = null;
+
+    // 1. STRATEGY: GOOGLE DIRECT (DYNAMIC DISCOVERY + BLOCKING GENERATE CONTENT)
     if (GEMINI_API_KEY) {
       console.log("Starting Dynamic Gemini Model Discovery...");
       let candidateModels: string[] = [];
@@ -329,24 +333,22 @@ IMPORTANTE: Usá datos reales.`;
         console.warn("Dynamic discovery failed, using fallback.");
       }
 
-      // If discovery fails OR if gemini-1.5-flash is not present in the discovery list (e.g. strict filtering),
-      // we MANUALLY inject it at the top, because we know it exists and usually has good free tier.
       if (!candidateModels.includes("gemini-1.5-flash")) {
-        candidateModels.unshift("gemini-1.5-flash"); // Force it to be first candidate if missing
+        candidateModels.unshift("gemini-1.5-flash");
       }
 
-      // Fallback list if absolutely empty
       if (candidateModels.length === 0) {
         candidateModels = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"];
       }
 
       console.log(`Candidate models: ${candidateModels.join(", ")}`);
 
-      // INCREASED RETRY LIMIT: Try up to 20 models to bypass rate limits (429)
       for (const model of candidateModels.slice(0, 20)) {
         try {
           console.log(`[Google Native] Trying model: ${model}`);
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}`;
+          // CHANGED: Use generateContent (BLOCKING) instead of streamGenerateContent
+          // This ensures we get a valid JSON response and avoid parsing errors of chunks.
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
           const body = {
             contents: geminiContents,
@@ -363,14 +365,36 @@ IMPORTANTE: Usá datos reales.`;
 
           if (res.ok) {
             console.log(`[Google Native] Success with ${model}`);
-            responseStream = res.body;
+            const data = await res.json();
+            const candidate = data.candidates?.[0];
+
+            if (candidate?.content?.parts?.[0]?.text) {
+              blockingText = candidate.content.parts[0].text;
+            }
+            if (candidate?.content?.parts?.[0]?.functionCall) {
+              const fc = candidate.content.parts[0].functionCall;
+              blockingToolCall = {
+                id: "gemini_call_" + Math.random().toString(36).substr(2, 9),
+                function: { name: fc.name, arguments: JSON.stringify(fc.args) }
+              };
+            }
+
             provider = "google-native";
             usedModel = model;
+            // Create a fake stream for the response body
+            const stream = new ReadableStream({
+              start(controller) {
+                // We push the data later in transformStream or here?
+                // We will handle it in the provider check below
+                controller.close();
+              }
+            });
+            responseStream = stream; // This stream is empty but signals success
             break;
           }
 
           const errText = await res.text();
-          const errorMsg = `[Google ${model}] ${res.status}: ${errText.substring(0, 100)}`; // Truncate log
+          const errorMsg = `[Google ${model}] ${res.status}: ${errText.substring(0, 100)}`;
           console.warn(errorMsg);
           errors.push(errorMsg);
         } catch (e) {
@@ -384,7 +408,7 @@ IMPORTANTE: Usá datos reales.`;
     }
 
     // 2. STRATEGY: LOVABLE GATEWAY (FALLBACK)
-    if (!responseStream && LOVABLE_API_KEY) {
+    if (!provider && LOVABLE_API_KEY) {
       const LOVABLE_MODELS = ["google/gemini-2.0-flash-lite", "google/gemini-1.5-flash", "openai/gpt-4o-mini"];
       console.log("Falling back to Lovable Gateway...");
       for (const model of LOVABLE_MODELS) {
@@ -418,11 +442,9 @@ IMPORTANTE: Usá datos reales.`;
           errors.push(errorMsg);
         }
       }
-    } else if (!LOVABLE_API_KEY) {
-      errors.push("[Lovable] LOVABLE_API_KEY not found.");
     }
 
-    if (!responseStream) {
+    if (!provider) {
       console.error("Critical AI Error. Logs:", JSON.stringify(errors));
       throw new Error(`Error de conexión IA. Detalles: ${errors.join(" | ")}`);
     }
@@ -431,44 +453,28 @@ IMPORTANTE: Usá datos reales.`;
     const decoder = new TextDecoder();
     let toolCalls: any[] = [];
 
-    // --- TRANSFORM STREAM: UNIFY FORMATS ---
+    // --- TRANSFORM STREAM ---
     const transformStream = new TransformStream({
-      async transform(chunk, controller) {
-        const text = decoder.decode(chunk, { stream: true });
-
+      async start(controller) {
+        // If we used Google Native Blocking, we push the result immediately here
         if (provider === "google-native") {
-          let cleanText = text.replace(/^,/, '').trim();
-          if (cleanText.startsWith('[')) cleanText = cleanText.substring(1);
-          if (cleanText.endsWith(']')) cleanText = cleanText.substring(0, cleanText.length - 1);
-
-          if (!cleanText) return;
-
-          try {
-            const parts = cleanText.split(/\n,\n|,/g).filter(p => p.trim().length > 0);
-            for (const part of parts) {
-              try {
-                const data = JSON.parse(part);
-                const candidate = data.candidates?.[0];
-
-                if (candidate?.content?.parts?.[0]?.text) {
-                  const content = candidate.content.parts[0].text;
-                  const sse = { choices: [{ delta: { content } }] };
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(sse)}\n\n`));
-                }
-
-                if (candidate?.content?.parts?.[0]?.functionCall) {
-                  const fc = candidate.content.parts[0].functionCall;
-                  const toolSse = {
-                    choices: [{ delta: { tool_calls: [{ id: "call_" + Math.random().toString(36).substr(2, 9), function: { name: fc.name, arguments: JSON.stringify(fc.args) } }] } }]
-                  };
-                  if (!toolCalls.length) toolCalls = [{ id: "gemini_id", function: { name: fc.name, arguments: JSON.stringify(fc.args) } }];
-                }
-              } catch (e) { }
-            }
-          } catch (e) { }
-
-        } else {
-          // LOVABLE / OPENAI STANDARD SSE
+          if (blockingText) {
+            const sse = { choices: [{ delta: { content: blockingText } }] };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(sse)}\n\n`));
+          }
+          if (blockingToolCall) {
+            const toolSse = {
+              choices: [{ delta: { tool_calls: [blockingToolCall] } }]
+            };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolSse)}\n\n`));
+            toolCalls = [blockingToolCall];
+          }
+        }
+      },
+      async transform(chunk, controller) {
+        // Only process chunks if using Lovable (streamed)
+        if (provider === "lovable") {
+          const text = decoder.decode(chunk, { stream: true });
           const lines = text.split("\n");
           for (const line of lines) {
             if (!line.startsWith("data: ")) continue;
@@ -530,7 +536,9 @@ IMPORTANTE: Usá datos reales.`;
       }
     });
 
-    return new Response(responseStream.pipeThrough(transformStream), { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    // If using Google NativeBlocking, responseStream is essentially empty/dummy, but we need to pass a stream to pipeThrough.
+    // The transformStream.start() will push the data.
+    return new Response(responseStream!.pipeThrough(transformStream), { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
 
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: corsHeaders });
