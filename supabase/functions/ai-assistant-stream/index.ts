@@ -6,25 +6,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const VALID_EVENT_TYPES = ['P1', 'P2', 'Global', 'Final', 'Recuperatorio P1', 'Recuperatorio P2', 'Recuperatorio Global', 'Estudio'] as const;
+const VALID_EVENT_TYPES = ['P1', 'P2', 'Global', 'Final', 'Recuperatorio P1', 'Recuperatorio P2', 'Recuperatorio Global', 'Estudio', 'TP', 'Entrega', 'Clase', 'Otro'] as const;
 type ValidEventType = typeof VALID_EVENT_TYPES[number];
 
 function mapEventType(aiType: string): ValidEventType {
+  const normalized = aiType.toLowerCase().trim();
   const typeMap: Record<string, ValidEventType> = {
     'parcial1': 'P1', 'parcial 1': 'P1', 'p1': 'P1', 'primer parcial': 'P1',
     'parcial2': 'P2', 'parcial 2': 'P2', 'p2': 'P2', 'segundo parcial': 'P2',
     'global': 'Global', 'final': 'Final', 'recuperatorio': 'Recuperatorio P1',
     'recuperatorio p1': 'Recuperatorio P1', 'recuperatorio p2': 'Recuperatorio P2',
-    'recuperatorio global': 'Recuperatorio Global', 'estudio': 'Estudio',
+    'recuperatorio global': 'Recuperatorio Global',
+    'estudio': 'Estudio', 'estudiar': 'Estudio',
+    'tp': 'TP', 'trabajo practico': 'TP', 'trabajo práctico': 'TP',
+    'entrega': 'Entrega', 'entregar': 'Entrega',
+    'clase': 'Clase', 'cursada': 'Clase',
+    'otro': 'Otro', 'evento': 'Otro'
   };
-  return typeMap[aiType.toLowerCase().trim()] || 'Estudio';
+  return typeMap[normalized] || 'Otro';
 }
 
 function getColorForType(tipo: ValidEventType): string {
   const colors: Record<ValidEventType, string> = {
     'P1': "#00d9ff", 'P2': "#a855f7", 'Global': "#fbbf24", 'Final': "#22c55e",
     'Recuperatorio P1': "#ef4444", 'Recuperatorio P2': "#ef4444",
-    'Recuperatorio Global': "#ef4444", 'Estudio': "#6b7280",
+    'Recuperatorio Global': "#ef4444",
+    'Estudio': "#6b7280",
+    'TP': "#ec4899", // Pink
+    'Entrega': "#f97316", // Orange
+    'Clase': "#3b82f6", // Blue
+    'Otro': "#8b5cf6" // Violet
   };
   return colors[tipo] || "#00d9ff";
 }
