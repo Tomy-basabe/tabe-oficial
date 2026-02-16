@@ -522,8 +522,29 @@ Siempre respondes en Español Argentino.`;
 
           if (call.function.name === "create_calendar_event") {
             const mappedType = mapEventType(args.tipo_examen);
-            console.log(`[Tool] create_calendar_event: ${args.titulo} (${mappedType}) for ${args.fecha}`);
-            const { data, error } = await serviceClient.from("calendar_events").insert({ user_id: userId, titulo: args.titulo, fecha: args.fecha, hora: args.hora, tipo_examen: mappedType, color: getColorForType(mappedType), notas: args.notas, subject_id: args.subject_id }).select().single();
+
+            // Robust Subject ID Resolution
+            let resolvedSubjectId = args.subject_id;
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedSubjectId);
+
+            if (resolvedSubjectId && !isUUID) {
+              console.log(`[Tool] Invalid UUID for subject: ${resolvedSubjectId}. Searching by name...`);
+              // Normalize Helper
+              const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              const search = norm(resolvedSubjectId);
+
+              const found = subjects.find((s: any) => norm(s.nombre).includes(search) || norm(s.codigo).toLowerCase() === search);
+              if (found) {
+                resolvedSubjectId = found.id;
+                console.log(`[Tool] Resolved subject "${args.subject_id}" to ID: ${resolvedSubjectId} (${found.nombre})`);
+              } else {
+                console.log(`[Tool] Could not resolve subject "${args.subject_id}". Setting to null.`);
+                resolvedSubjectId = null;
+              }
+            }
+
+            console.log(`[Tool] create_calendar_event: ${args.titulo} (${mappedType}) for ${args.fecha}. SubjectID: ${resolvedSubjectId}`);
+            const { data, error } = await serviceClient.from("calendar_events").insert({ user_id: userId, titulo: args.titulo, fecha: args.fecha, hora: args.hora, tipo_examen: mappedType, color: getColorForType(mappedType), notas: args.notas, subject_id: resolvedSubjectId }).select().single();
             result = error ? { content: `Error: ${error.message}` } : { content: `Evento agendado: ${data.titulo} el ${data.fecha}` };
             console.log(`[Tool Result] ${JSON.stringify(result)}`);
           }
