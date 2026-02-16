@@ -20,7 +20,10 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
-    // Free OpenRelay TURN servers for testing
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    { urls: "stun:global.stun.twilio.com:3478" },
+    // Free OpenRelay TURN servers (Use with caution in production)
     {
       urls: "turn:openrelay.metered.ca:80",
       username: "openrelayproject",
@@ -57,21 +60,24 @@ export function useWebRTC(roomId: string | null) {
   // Initialize local media stream
   const initializeMedia = useCallback(async (video: boolean = true, audio: boolean = true) => {
     try {
+      console.log(`[WebRTC] Initializing media. Video: ${video}, Audio: ${audio}`);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: video ? { width: 640, height: 480, facingMode: "user" } : false,
-        audio: audio ? { echoCancellation: true, noiseSuppression: true } : false,
+        audio: audio ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
       });
       setLocalStream(stream);
       setDisplayStream(stream);
       localStreamRef.current = stream;
       setIsVideoEnabled(video);
       setIsAudioEnabled(audio);
+      console.log(`[WebRTC] Local stream initialized. Tracks: ${stream.getTracks().map(t => t.kind).join(", ")}`);
       return stream;
     } catch (error) {
       console.error("Error accessing media devices:", error);
       // Try audio only if video fails
       if (video) {
         try {
+          console.warn("[WebRTC] Video failed, trying audio only...");
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           setLocalStream(audioStream);
           setDisplayStream(audioStream);
@@ -92,15 +98,18 @@ export function useWebRTC(roomId: string | null) {
     (peerId: string, stream: MediaStream) => {
       if (!user) return null;
 
+      console.log(`[WebRTC] Creating PeerConnection for ${peerId}`);
       const pc = new RTCPeerConnection(ICE_SERVERS);
 
       // Add local tracks to peer connection
       stream.getTracks().forEach((track) => {
         pc.addTrack(track, stream);
+        console.log(`[WebRTC] Added local track (${track.kind}) to ${peerId}`);
       });
 
       // Handle incoming tracks
       pc.ontrack = (event) => {
+        console.log(`[WebRTC] Received remote track (${event.track.kind}) from ${peerId}`);
         const [remoteStream] = event.streams;
         setRemoteStreams((prev) => {
           const updated = new Map(prev);
@@ -127,9 +136,11 @@ export function useWebRTC(roomId: string | null) {
 
       // Handle connection state changes
       pc.onconnectionstatechange = () => {
+        console.log(`[WebRTC] Connection state with ${peerId}: ${pc.connectionState}`);
         if (pc.connectionState === "connected") {
           setConnectionState("connected");
         } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+          console.warn(`[WebRTC] Connection disconnected/failed with ${peerId}`);
           // Remove peer
           setRemoteStreams((prev) => {
             const updated = new Map(prev);
@@ -137,6 +148,9 @@ export function useWebRTC(roomId: string | null) {
             return updated;
           });
           peerConnections.current.delete(peerId);
+        }
+        if (pc.connectionState === "failed") {
+          // Optional: Restart ICE?
         }
       };
 

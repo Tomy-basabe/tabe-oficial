@@ -207,15 +207,14 @@ function VideoTile({
       isSpeaking && "ring-2 ring-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]",
       !isScreenShare && "aspect-video max-h-full"
     )}>
-      {isVideoEnabled && stream ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted={isLocal} // Mute local video
-          playsInline
-          className={cn("w-full h-full object-cover", isLocal && "scale-x-[-1]")} // Mirror local
-        />
-      ) : (
+      <video
+        ref={videoRef}
+        autoPlay
+        muted={isLocal} // Mute local video
+        playsInline
+        className={cn("w-full h-full object-cover", isLocal && "scale-x-[-1]", (!isVideoEnabled || !stream) && "hidden")}
+      />
+      {(!isVideoEnabled || !stream) && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
           <Avatar className={cn(
             "transition-all duration-300 ring-4 ring-transparent",
@@ -282,9 +281,13 @@ function SmallTile({
       "aspect-video bg-card rounded-lg overflow-hidden relative border border-border shadow-md transition-all hover:scale-105 cursor-pointer",
       isSpeaking && "ring-2 ring-green-500"
     )}>
-      {isVideoEnabled && stream ? (
-        <video ref={videoRef} autoPlay muted={isLocal} className="w-full h-full object-cover" />
-      ) : (
+      <video
+        ref={videoRef}
+        autoPlay
+        muted={isLocal}
+        className={cn("w-full h-full object-cover", (!isVideoEnabled || !stream) && "hidden")}
+      />
+      {(!isVideoEnabled || !stream) && (
         <div className="w-full h-full flex items-center justify-center bg-muted/30">
           <Avatar className="w-10 h-10">
             <AvatarImage src={participant.profile?.avatar_url || undefined} />
