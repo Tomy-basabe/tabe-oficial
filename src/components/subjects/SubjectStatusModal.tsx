@@ -188,44 +188,6 @@ export function SubjectStatusModal({
           </div>
         ) : (
           <div className="py-4 space-y-4">
-            {/* Prerequisites Section (Correlativas) */}
-            {subject.dependencyInfo && subject.dependencyInfo.length > 0 && (
-              <div className="text-xs space-y-2 p-3 bg-muted/50 rounded-xl border border-border/50 animate-fade-in">
-                <h4 className="font-medium flex items-center gap-1.5 text-muted-foreground">
-                  <Link2 className="w-3.5 h-3.5" />
-                  Correlativas
-                </h4>
-                <div className="grid gap-2">
-                  {/* Cursada (Regular) */}
-                  {subject.dependencyInfo.some(d => d.type === 'regular') && (
-                    <div>
-                      <span className="text-muted-foreground font-medium block mb-1">Para cursar (Regular):</span>
-                      <div className="flex flex-wrap gap-1">
-                        {subject.dependencyInfo.filter(d => d.type === 'regular').map(d => (
-                          <span key={d.id} className="px-2 py-0.5 bg-background rounded border border-border text-[10px] whitespace-nowrap shadow-sm">
-                            #{d.numero_materia} {d.nombre}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {/* Final (Aprobada) */}
-                  {subject.dependencyInfo.some(d => d.type === 'aprobada') && (
-                    <div>
-                      <span className="text-muted-foreground font-medium block mb-1">Para rendir (Aprobada):</span>
-                      <div className="flex flex-wrap gap-1">
-                        {subject.dependencyInfo.filter(d => d.type === 'aprobada').map(d => (
-                          <span key={d.id} className="px-2 py-0.5 bg-background rounded border border-border text-[10px] whitespace-nowrap shadow-sm">
-                            #{d.numero_materia} {d.nombre}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Partial Grades Section */}
             {onUpdatePartialGrades && (
               <PartialGradesSection
