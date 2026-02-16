@@ -287,7 +287,9 @@ CAPACIDADES:
 IMPORTANTE: Usá datos reales.
 Si el usuario menciona una materia (ej: "Física 1"), buscá su ID en la lista de MATERIAS y usalo en subject_id. Si no encontrás coincidencia exacta, buscá la más parecida. Si no hay ninguna, dejalo null.
 Para "Mañana", calculá la fecha exacta basándote en la "Fecha actual".
-Siempre respondes en Español Argentino.`;
+Siempre respondes en Español Argentino.
+
+REGLA DE ORO: Si el usuario pide una acción (agendar, crear, borrar), **DEBES** usar la herramienta correspondiente. NO confirmes con texto sin haber llamado a la función primero. Si no llamás a la función, la acción NO sucede.`;
 
     console.log(`[AI Request] User: ${messages[messages.length - 1].content}`);
 
@@ -476,16 +478,20 @@ Siempre respondes en Español Argentino.`;
       async start(controller) {
         // If we used Google Native Blocking, we push the result immediately here
         if (provider === "google-native") {
+          console.log(`[Google Native] Blocking Text: ${blockingText ? "Yes" : "No"}`);
           if (blockingText) {
             const sse = { choices: [{ delta: { content: blockingText } }] };
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(sse)}\n\n`));
           }
           if (blockingToolCall) {
+            console.log(`[Google Native] Blocking Tool Call: ${blockingToolCall.function.name}`);
             const toolSse = {
               choices: [{ delta: { tool_calls: [blockingToolCall] } }]
             };
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolSse)}\n\n`));
             toolCalls = [blockingToolCall];
+          } else {
+            console.log("[Google Native] No tool call generated.");
           }
         }
       },
