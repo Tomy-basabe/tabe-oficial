@@ -78,6 +78,12 @@ export interface SubjectWithStatus extends Subject {
   fecha_aprobacion: string | null;
   requisitos_faltantes: string[];
   dependencies: Dependency[];
+  dependencyInfo: {
+    id: string;
+    type: 'regular' | 'aprobada';
+    nombre: string;
+    numero_materia: number;
+  }[];
   partialGrades: PartialGrades;
   userStatusId?: string;
 }
@@ -269,6 +275,22 @@ export function useSubjects() {
       const status = getSubjectStatus(subject.id);
       const subjectDeps = dependenciesBySubject.get(subject.id) || [];
 
+      // Enrich dependencies with names and numbers
+      const dependencyInfo = subjectDeps.map(dep => {
+        const reqId = dep.requiere_regular || dep.requiere_aprobada;
+        const type = dep.requiere_regular ? 'regular' : 'aprobada';
+        const reqSubject = reqId ? subjectMap.get(reqId) : null;
+
+        if (!reqSubject) return null;
+
+        return {
+          id: reqId!,
+          type: type as 'regular' | 'aprobada',
+          nombre: reqSubject.nombre,
+          numero_materia: reqSubject.numero_materia
+        };
+      }).filter((d): d is { id: string; type: 'regular' | 'aprobada'; nombre: string; numero_materia: number } => d !== null);
+
       return {
         ...subject,
         status,
@@ -276,6 +298,7 @@ export function useSubjects() {
         fecha_aprobacion: userStatus?.fecha_aprobacion ?? null,
         requisitos_faltantes: status === "bloqueada" ? getMissingRequirements(subject.id) : [],
         dependencies: subjectDeps,
+        dependencyInfo, // New field
         userStatusId: userStatus?.id,
         partialGrades: {
           nota_parcial_1: userStatus?.nota_parcial_1 ?? null,
@@ -288,7 +311,7 @@ export function useSubjects() {
         },
       };
     });
-  }, [subjects, userStatusMap, dependenciesBySubject, getSubjectStatus, getMissingRequirements]);
+  }, [subjects, userStatusMap, dependenciesBySubject, getSubjectStatus, getMissingRequirements, subjectMap]);
 
   const updateSubjectStatus = async (
     subjectId: string,
