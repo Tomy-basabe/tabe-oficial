@@ -162,6 +162,26 @@ export function useSubjects() {
     enabled: !!user,
   });
 
+  // Realtime subscription for global subjects
+  useRealtimeSubscription({
+    table: "subjects",
+    onChange: useCallback(() => {
+      console.log("📡 Realtime: subjects changed, refetching...");
+      debouncedRefetch();
+    }, [debouncedRefetch]),
+    enabled: !!user,
+  });
+
+  // Realtime subscription for dependencies
+  useRealtimeSubscription({
+    table: "subject_dependencies",
+    onChange: useCallback(() => {
+      console.log("📡 Realtime: subject_dependencies changed, refetching...");
+      debouncedRefetch();
+    }, [debouncedRefetch]),
+    enabled: !!user,
+  });
+
   // Pre-build lookup maps for O(1) access instead of repeated .find() calls
   const userStatusMap = useMemo(() => {
     const map = new Map<string, UserSubjectStatus>();

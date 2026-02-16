@@ -2,17 +2,19 @@ import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-type TableName = 
-  | "user_stats" 
-  | "user_subject_status" 
-  | "study_sessions" 
-  | "calendar_events" 
-  | "flashcard_decks" 
-  | "flashcards" 
+type TableName =
+  | "user_stats"
+  | "user_subject_status"
+  | "study_sessions"
+  | "calendar_events"
+  | "flashcard_decks"
+  | "flashcards"
   | "user_achievements"
   | "user_plants"
   | "study_rooms"
-  | "room_participants";
+  | "room_participants"
+  | "subjects"
+  | "subject_dependencies";
 
 interface RealtimePayload {
   eventType: "INSERT" | "UPDATE" | "DELETE";
@@ -58,7 +60,7 @@ export function useRealtimeSubscription({
     if (!enabled) return;
 
     const channelName = `realtime-${table}-${filter || "all"}-${Date.now()}`;
-    
+
     // Build the channel with proper typing
     const channel = supabase
       .channel(channelName)
