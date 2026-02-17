@@ -88,6 +88,7 @@ const ICE_SERVERS: RTCConfiguration = {
 };
 
 export function useDiscord() {
+  console.log("[Discord] Hook initialized v2.1 (Self-Block Active)");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -949,6 +950,10 @@ export function useDiscord() {
   const videoTransceiversRef = useRef<Map<string, RTCRtpTransceiver>>(new Map());
 
   const createPeerConnection = (peerId: string, stream: MediaStream) => {
+    if (user && peerId === user.id) {
+      console.warn("[Discord] Attempted to create peer connection to self. Aborting.");
+      return null!; // Force exit
+    }
     // Check if connection already exists
     const existingPc = peerConnections.current.get(peerId);
     if (existingPc) {
