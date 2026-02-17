@@ -1156,7 +1156,14 @@ export function useDiscord() {
     let pc = peerConnections.current.get(fromId);
     if (!pc) {
       pc = createPeerConnection(fromId, currentLocalStream);
-    } else if (currentLocalStream) {
+    }
+
+    if (!pc) {
+      console.warn("[Discord] handleOffer aborted: could not create peer connection (self-block?)");
+      return;
+    }
+
+    if (currentLocalStream) {
       // Add missing tracks to existing PC
       const senders = pc.getSenders();
       currentLocalStream.getTracks().forEach(track => {
