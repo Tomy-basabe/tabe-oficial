@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 
 export function DiscordAudioRenderer() {
     const { remoteStreams, voiceParticipants } = useDiscordVoice();
@@ -19,13 +21,31 @@ export function DiscordAudioRenderer() {
 }
 
 function AudioStream({ peerId, stream }: { peerId: string; stream: MediaStream }) {
-    const audioRef = useRef<HTMLAudioElement>(null);
+    const { toast } = useToast();
 
     useEffect(() => {
-        if (audioRef.current) {
+        if (audioRef.current && stream) {
+            console.log(`[DiscordAudio] Attaching stream ${peerId}`, stream.getAudioTracks());
             audioRef.current.srcObject = stream;
+
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    console.error(`[DiscordAudio] Autoplay failed for peer ${peerId}:`, e);
+                    toast({
+                        title: "Audio bloqueado",
+                        description: "Hacé click aquí para activar el sonido",
+                        action: (
+                            <ToastAction altText="Activar" onClick={() => audioRef.current?.play()}>
+                                Activar
+                            </ToastAction>
+                        ),
+                        duration: 10000,
+                    });
+                });
+            }
         }
-    }, [stream]);
+    }, [stream, peerId, toast]);
 
     return (
         <audio
@@ -33,7 +53,8 @@ function AudioStream({ peerId, stream }: { peerId: string; stream: MediaStream }
             autoPlay
             playsInline
             controls={false}
-        // We could add local mute logic here if we had a "localMute" state for each peer
+            // Ensure we don't mute remote streams
+            muted={false}
         />
     );
 }
