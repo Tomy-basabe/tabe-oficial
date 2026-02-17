@@ -88,7 +88,7 @@ const ICE_SERVERS: RTCConfiguration = {
 };
 
 export function useDiscord() {
-  console.log("[Discord] Hook initialized v2.1 (Self-Block Active)");
+  console.log("[Discord] Hook initialized v3.0 (Simplified WebRTC)");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -954,120 +954,48 @@ export function useDiscord() {
       console.warn("[Discord] Attempted to create peer connection to self. Aborting.");
       return null!; // Force exit
     }
-    // Check if connection already exists
+
     const existingPc = peerConnections.current.get(peerId);
     if (existingPc) {
       console.log("[Discord] Closing existing connection to:", peerId);
       existingPc.close();
       peerConnections.current.delete(peerId);
-      videoTransceiversRef.current.delete(peerId);
     }
 
     console.log("[Discord] Creating peer connection to:", peerId);
     const pc = new RTCPeerConnection(ICE_SERVERS);
 
-    // Ensure state exists early
-    getNegotiationState(peerId);
-
-    // Set initial connection state
+    // Initial state
     setPeerStates(prev => {
       const updated = new Map(prev);
       updated.set(peerId, "new");
       return updated;
     });
 
-    /*
-      IMPORTANT:
-      Creamos transceivers de audio+video desde el inicio para evitar renegociaciones
-      cuando el usuario activa la cámara más tarde.
-    */
-    const audioTransceiver = pc.addTransceiver("audio", {
-      direction: "sendrecv",
-      streams: [stream]
+    // Add local tracks
+    stream.getTracks().forEach(track => {
+      console.log(`[Discord] Adding local track ${track.kind} to ${peerId}`);
+      pc.addTrack(track, stream);
     });
-    const videoTransceiver = pc.addTransceiver("video", {
-      direction: "sendrecv",
-      streams: [stream]
-    });
-    videoTransceiversRef.current.set(peerId, videoTransceiver);
-
-    // Attach current local tracks
-    const audioTrack = stream.getAudioTracks()[0] ?? null;
-    const videoTrack = stream.getVideoTracks()[0] ?? null;
-
-    if (audioTrack) {
-      console.log("[Discord] Attaching audio track to peer:", peerId);
-      audioTransceiver.sender.replaceTrack(audioTrack);
-    }
-
-    if (videoTrack) {
-      console.log("[Discord] Attaching video track to peer:", peerId);
-      videoTransceiver.sender.replaceTrack(videoTrack);
-    }
 
     pc.ontrack = (event) => {
-      console.log("[Discord] Received track from:", peerId, event.track.kind);
-
-      // Get the stream from event, or create a new one if missing
-      const remoteStream = event.streams[0] || new MediaStream();
-
-      // If the stream was created manually, we need to add the track
-      if (!event.streams[0]) {
-        remoteStream.addTrack(event.track);
-      }
-
-      // Force React update when tracks are added/removed from the stream
-      remoteStream.onaddtrack = () => {
-        console.log("[Discord] Stream track added for:", peerId);
-        setRemoteStreams((prev) => {
-          const updated = new Map(prev);
-          // Clone stream to force React effect update
-          updated.set(peerId, new MediaStream(remoteStream.getTracks()));
-          return updated;
-        });
-      };
-
-      remoteStream.onremovetrack = () => {
-        console.log("[Discord] Stream track removed for:", peerId);
-        setRemoteStreams((prev) => {
-          const updated = new Map(prev);
-          updated.set(peerId, new MediaStream(remoteStream.getTracks()));
-          return updated;
-        });
-      };
+      console.log("[Discord] Received remote track from:", peerId, event.track.kind);
+      const remoteStream = event.streams[0] || new MediaStream([event.track]);
 
       setRemoteStreams((prev) => {
         const updated = new Map(prev);
-        // Always create a NEW MediaStream to force React re-render
-        // If we already have a stream, combine its tracks with the new one
-        const existing = updated.get(peerId);
-        let newTracks: MediaStreamTrack[] = [event.track];
-
-        if (existing) {
-          const existingTracks = existing.getTracks().filter(t => t.id !== event.track.id);
-          newTracks = [...existingTracks, ...newTracks];
-        } else if (remoteStream) {
-          // If we don't have an existing map entry but have remoteStream from event
-          const rsTracks = remoteStream.getTracks().filter(t => t.id !== event.track.id);
-          newTracks = [...rsTracks, ...newTracks];
-        }
-
-        const newStream = new MediaStream(newTracks);
-        console.log(`[Discord] Updated stream for ${peerId} with ${newTracks.length} tracks. Audio? ${newStream.getAudioTracks().length > 0}`);
-
-        updated.set(peerId, newStream);
+        updated.set(peerId, remoteStream);
         return updated;
       });
     };
 
     pc.onicecandidate = (event) => {
       if (event.candidate && signalingChannel.current) {
-        console.log("[Discord] Sending ICE candidate to:", peerId);
         signalingChannel.current.send({
           type: "broadcast",
           event: "signal",
           payload: {
-            type: "candidate",
+            type: "ice-candidate",
             from: user?.id,
             to: peerId,
             data: event.candidate,
@@ -1076,19 +1004,12 @@ export function useDiscord() {
       }
     };
 
-
     pc.onconnectionstatechange = () => {
-      console.log("[Discord] Connection state with", peerId, ":", pc.connectionState);
+      console.log(`[Discord] Connection state with ${peerId}:`, pc.connectionState);
       if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-        // Attempt to recover from failed state if we are still connected to signaling
-        if (pc.connectionState === "failed" && signalingChannel.current) {
-          console.log("[Discord] Connection failed, attempting restart ICE for:", peerId);
-          pc.restartIce();
-        } else {
-          // Clean up failed connection
+        if (pc.connectionState === "failed") {
           peerConnections.current.delete(peerId);
-          videoTransceiversRef.current.delete(peerId);
-          setRemoteStreams((prev) => {
+          setRemoteStreams(prev => {
             const updated = new Map(prev);
             updated.delete(peerId);
             return updated;
@@ -1098,7 +1019,7 @@ export function useDiscord() {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log(`[Discord] ICE connection state with ${peerId}:`, pc.iceConnectionState);
+      console.log(`[Discord] ICE state with ${peerId}:`, pc.iceConnectionState);
       setPeerStates(prev => {
         const updated = new Map(prev);
         updated.set(peerId, pc.iceConnectionState);
@@ -1106,28 +1027,15 @@ export function useDiscord() {
       });
     };
 
-    pc.onicegatheringstatechange = () => {
-      console.log(`[Discord] ICE gathering state with ${peerId}:`, pc.iceGatheringState);
-    };
-
-    pc.onsignalingstatechange = () => {
-      console.log(`[Discord] Signaling state with ${peerId}:`, pc.signalingState);
-    };
-
     peerConnections.current.set(peerId, pc);
     return pc;
   };
 
   const createOffer = async (peerId: string, stream: MediaStream) => {
-    const pc = createPeerConnection(peerId, stream);
-
-    const n = getNegotiationState(peerId);
-
     try {
-      n.makingOffer = true;
-      await pc.setLocalDescription(await pc.createOffer());
-      const offer = pc.localDescription;
-      if (!offer) throw new Error("No localDescription after createOffer");
+      const pc = createPeerConnection(peerId, stream);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
 
       signalingChannel.current?.send({
         type: "broadcast",
@@ -1136,13 +1044,11 @@ export function useDiscord() {
           type: "offer",
           from: user?.id,
           to: peerId,
-          data: offer,
-        },
+          data: offer
+        }
       });
-    } catch (error) {
-      console.error("Error creating offer:", error);
-    } finally {
-      n.makingOffer = false;
+    } catch (err) {
+      console.error("Error creating offer:", err);
     }
   };
 
