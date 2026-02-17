@@ -46,6 +46,9 @@ export function DiscordDebugPanel() {
                             <span className="text-white">Remote Streams:</span> {remoteStreams.size}
                         </div>
 
+                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-400">
+                            v3.2
+                        </Badge>
                         <div className="border-t border-green-500/30 pt-2 mt-2">
                             <h4 className="text-white font-semibold mb-1">Peers & Connection:</h4>
 
