@@ -964,6 +964,13 @@ export function useDiscord() {
     // Ensure state exists early
     getNegotiationState(peerId);
 
+    // Set initial connection state
+    setPeerStates(prev => {
+      const updated = new Map(prev);
+      updated.set(peerId, "new");
+      return updated;
+    });
+
     /*
       IMPORTANT:
       Creamos transceivers de audio+video desde el inicio para evitar renegociaciones

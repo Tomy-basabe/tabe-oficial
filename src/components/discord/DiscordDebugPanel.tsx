@@ -1,8 +1,11 @@
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 export function DiscordDebugPanel() {
+    const { user } = useAuth(); // Need user to filter self
     const {
         remoteStreams,
         voiceParticipants,
@@ -51,7 +54,7 @@ export function DiscordDebugPanel() {
                                 <div>State Keys: {Array.from(peerStates.keys()).join(", ")}</div>
                             </div>
 
-                            {voiceParticipants.filter(p => p.user_id !== "me").map(p => {
+                            {voiceParticipants.filter(p => p.user_id !== user?.id).map(p => {
                                 const stream = remoteStreams.get(p.user_id);
                                 const status = peerStates.get(p.user_id) || "unknown";
 
