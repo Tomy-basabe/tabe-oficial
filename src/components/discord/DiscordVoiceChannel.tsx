@@ -210,10 +210,10 @@ function VideoTile({
       <video
         ref={videoRef}
         autoPlay
-        msg => "muted" // Always mute video element because AudioRenderer handles sound
-      muted={true}
-      playsInline
-      className={cn("w-full h-full object-cover", isLocal && "scale-x-[-1]", (!isVideoEnabled || !stream) && "hidden")}
+        // Always mute video element because AudioRenderer handles sound
+        muted={true}
+        playsInline
+        className={cn("w-full h-full object-cover", isLocal && "scale-x-[-1]", (!isVideoEnabled || !stream) && "hidden")}
       />
       {(!isVideoEnabled || !stream) && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
