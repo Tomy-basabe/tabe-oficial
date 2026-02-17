@@ -7,7 +7,8 @@ export function DiscordDebugPanel() {
         remoteStreams,
         voiceParticipants,
         inVoiceChannel,
-        currentChannel
+        currentChannel,
+        peerStates
     } = useDiscordVoice();
 
     const [isVisible, setIsVisible] = useState(false);
