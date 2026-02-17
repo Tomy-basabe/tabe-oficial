@@ -1178,19 +1178,40 @@ export function useDiscord() {
         .eq("channel_id", currentChannel.id)
         .eq("user_id", user.id)
         .then(() => console.log("[Discord] DB: camera off"));
+      const updatedStream = new MediaStream(stream.getTracks());
+      localStreamRef.current = updatedStream;
+      setLocalStream(updatedStream);
+
+      // Update DB
+      supabase
+        .from("discord_voice_participants")
+        .update({ is_camera_on: false })
+        .eq("channel_id", currentChannel.id)
+        .eq("user_id", user.id)
+        .then(() => console.log("[Discord] DB: camera off"));
 
     } else {
       // === TURN ON VIDEO ===
       try {
         console.log("[Discord] Turning ON video...");
-        // 1. Get Video Stream
-        const videoStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
-          },
-        });
+        let videoStream;
+        try {
+          // 1. Try HD first
+          videoStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: 'user'
+            },
+          });
+        } catch (hdError) {
+          console.warn("[Discord] HD video failed, trying basic constraints...", hdError);
+          // 2. Fallback to basic
+          videoStream = await navigator.mediaDevices.getUserMedia({
+            video: true
+          });
+        }
+
         const videoTrack = videoStream.getVideoTracks()[0];
 
         console.log("[Discord] Got video track:", videoTrack.label);
@@ -1244,9 +1265,20 @@ export function useDiscord() {
 
       } catch (error: any) {
         console.error("[Discord] Error enabling video:", error);
+        let errorMessage = "No se pudo acceder a la cámara.";
+        if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+          errorMessage = "Permiso denegado. Por favor permite el acceso a la cámara en tu navegador.";
+        } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+          errorMessage = "No se encontró ninguna cámara.";
+        } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+          errorMessage = "La cámara está en uso por otra aplicación.";
+        } else if (error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError") {
+          errorMessage = "La cámara no cumple con los requisitos de resolución.";
+        }
+
         toast({
           title: "Error de cámara",
-          description: `No se pudo acceder a la cámara.`,
+          description: `${errorMessage} (${error.name}: ${error.message})`,
           variant: "destructive",
         });
       }
