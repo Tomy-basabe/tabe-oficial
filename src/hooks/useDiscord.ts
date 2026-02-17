@@ -1025,17 +1025,24 @@ export function useDiscord() {
 
       setRemoteStreams((prev) => {
         const updated = new Map(prev);
-        // If we already have a stream for this peer, we might want to reuse it or merge
+        // Always create a NEW MediaStream to force React re-render
+        // If we already have a stream, combine its tracks with the new one
         const existing = updated.get(peerId);
+        let newTracks: MediaStreamTrack[] = [event.track];
+
         if (existing) {
-          // If we already have a stream, ensure this track is added to it
-          if (!existing.getTracks().find(t => t.id === event.track.id)) {
-            existing.addTrack(event.track);
-          }
-          return updated;
+          const existingTracks = existing.getTracks().filter(t => t.id !== event.track.id);
+          newTracks = [...existingTracks, ...newTracks];
+        } else if (remoteStream) {
+          // If we don't have an existing map entry but have remoteStream from event
+          const rsTracks = remoteStream.getTracks().filter(t => t.id !== event.track.id);
+          newTracks = [...rsTracks, ...newTracks];
         }
 
-        updated.set(peerId, remoteStream);
+        const newStream = new MediaStream(newTracks);
+        console.log(`[Discord] Updated stream for ${peerId} with ${newTracks.length} tracks. Audio? ${newStream.getAudioTracks().length > 0}`);
+
+        updated.set(peerId, newStream);
         return updated;
       });
     };
