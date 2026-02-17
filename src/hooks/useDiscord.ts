@@ -1084,7 +1084,15 @@ export function useDiscord() {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log("[Discord] ICE connection state with", peerId, ":", pc.iceConnectionState);
+      console.log(`[Discord] ICE connection state with ${peerId}:`, pc.iceConnectionState);
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log(`[Discord] ICE gathering state with ${peerId}:`, pc.iceGatheringState);
+    };
+
+    pc.onsignalingstatechange = () => {
+      console.log(`[Discord] Signaling state with ${peerId}:`, pc.signalingState);
     };
 
     peerConnections.current.set(peerId, pc);
