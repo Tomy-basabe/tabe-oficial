@@ -1153,59 +1153,58 @@ const handleOffer = async (fromId: string, offer: RTCSessionDescriptionInit, str
       }
     });
   }
-}
 
-const n = getNegotiationState(fromId);
+  const n = getNegotiationState(fromId);
 
-try {
-  const offerCollision = n.makingOffer || pc.signalingState !== "stable";
-  n.ignoreOffer = !n.polite && offerCollision;
+  try {
+    const offerCollision = n.makingOffer || pc.signalingState !== "stable";
+    n.ignoreOffer = !n.polite && offerCollision;
 
-  if (n.ignoreOffer) {
-    console.warn("[Discord] Ignoring offer due to collision from:", fromId);
-    return;
-  }
-
-  if (offerCollision) {
-    // Polite peer: rollback its local description and accept the offer
-    console.log("[Discord] Offer collision; rolling back (polite) with:", fromId);
-    // TS lib types don't include rollback in all configs
-    await pc.setLocalDescription({ type: "rollback" } as any);
-  }
-
-  await pc.setRemoteDescription(new RTCSessionDescription(offer));
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-
-  signalingChannel.current?.send({
-    type: "broadcast",
-    event: "signal",
-    payload: {
-      type: "answer",
-      from: user?.id,
-      to: fromId,
-      data: answer,
-    },
-  });
-
-  // Process any pending candidates
-  const pending = pendingCandidatesRef.current.get(fromId);
-  if (pending) {
-    console.log(`[Discord] Processing ${pending.length} buffered candidates for ${fromId}`);
-    for (const candidate of pending) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (e) {
-        console.error("Error adding buffered candidate:", e);
-      }
+    if (n.ignoreOffer) {
+      console.warn("[Discord] Ignoring offer due to collision from:", fromId);
+      return;
     }
-    pendingCandidatesRef.current.delete(fromId);
-  }
 
-} catch (error) {
-  console.error("Error handling offer:", error);
-}
-  };
+    if (offerCollision) {
+      // Polite peer: rollback its local description and accept the offer
+      console.log("[Discord] Offer collision; rolling back (polite) with:", fromId);
+      // TS lib types don't include rollback in all configs
+      await pc.setLocalDescription({ type: "rollback" } as any);
+    }
+
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    signalingChannel.current?.send({
+      type: "broadcast",
+      event: "signal",
+      payload: {
+        type: "answer",
+        from: user?.id,
+        to: fromId,
+        data: answer,
+      },
+    });
+
+    // Process any pending candidates
+    const pending = pendingCandidatesRef.current.get(fromId);
+    if (pending) {
+      console.log(`[Discord] Processing ${pending.length} buffered candidates for ${fromId}`);
+      for (const candidate of pending) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error("Error adding buffered candidate:", e);
+        }
+      }
+      pendingCandidatesRef.current.delete(fromId);
+    }
+
+  } catch (error) {
+    console.error("Error handling offer:", error);
+  }
+};
 
 const handleAnswer = async (fromId: string, answer: RTCSessionDescriptionInit) => {
   const pc = peerConnections.current.get(fromId);
