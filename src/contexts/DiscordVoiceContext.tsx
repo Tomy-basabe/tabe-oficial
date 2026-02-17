@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode } from "react";
 import { useDiscord } from "@/hooks/useDiscord";
+import { DiscordAudioRenderer } from "@/components/discord/DiscordAudioRenderer";
 
 type DiscordContextType = ReturnType<typeof useDiscord>;
 
@@ -16,6 +17,7 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
 
     return (
         <DiscordVoiceContext.Provider value={discord}>
+            <DiscordAudioRenderer />
             {children}
         </DiscordVoiceContext.Provider>
     );
