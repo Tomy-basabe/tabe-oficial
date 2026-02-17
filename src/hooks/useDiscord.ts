@@ -891,7 +891,7 @@ export function useDiscord() {
     channel
       .on("broadcast", { event: "signal" }, async ({ payload }) => {
         const { type, from, to, data } = payload;
-        if (to && to !== user.id) return;
+        if ((to && to !== user.id) || from === user.id) return;
 
         // Use ref to get current stream (important for closures)
         const currentStream = localStreamRef.current;
