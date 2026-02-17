@@ -140,6 +140,7 @@ export function useDiscord() {
       }
     >
   >(new Map());
+  const [peerStates, setPeerStates] = useState<Map<string, string>>(new Map());
 
   const getNegotiationState = useCallback(
     (peerId: string) => {
@@ -1085,6 +1086,11 @@ export function useDiscord() {
 
     pc.oniceconnectionstatechange = () => {
       console.log(`[Discord] ICE connection state with ${peerId}:`, pc.iceConnectionState);
+      setPeerStates(prev => {
+        const updated = new Map(prev);
+        updated.set(peerId, pc.iceConnectionState);
+        return updated;
+      });
     };
 
     pc.onicegatheringstatechange = () => {
@@ -1678,6 +1684,7 @@ export function useDiscord() {
     isSpeaking,
     speakingUsers,
     inVoiceChannel,
+    peerStates,
 
     // Loading
     loading,
