@@ -721,55 +721,25 @@ export function useDiscord() {
         console.log("[Discord][Diag] enumerateDevices failed", e);
       }
 
-      // Get media (audio only at join)
-      let stream: MediaStream | null = null;
+      // Enumerate devices (diagnostics only)
       try {
-        console.log("[Discord][Diag] requesting audio stream (with constraints)");
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
-          video: false,
-        });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        console.log("[Discord][Diag] devices", devices.map((d) => ({ kind: d.kind, label: d.label, deviceId: d.deviceId })));
       } catch (e) {
-        console.warn("[Discord][Diag] getUserMedia (constraints) failed, retrying basic audio", e);
-        // Fallback: simpler constraints, more compatible
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        console.log("[Discord][Diag] enumerateDevices failed", e);
       }
 
-      console.log("[Discord][Diag] got local stream", {
-        audioTracks: stream.getAudioTracks().map((t) => ({
-          id: t.id,
-          enabled: t.enabled,
-          muted: (t as any).muted,
-          readyState: t.readyState,
-          label: t.label,
-        })),
-      });
-
-      setLocalStream(stream);
-      localStreamRef.current = stream; // Store in ref for signaling handlers
-      setIsAudioEnabled(true);
-      setIsVideoEnabled(false);
-
-      // Setup voice activity detection
-      setupVoiceActivityDetection(stream);
-
-      // Get existing participants BEFORE inserting ourselves
-      const { data: existingParticipants } = await supabase
-        .from("discord_voice_participants")
-        .select("user_id")
-        .eq("channel_id", channel.id)
-        .neq("user_id", user.id);
-
-      console.log("[Discord][Diag] Existing participants:", existingParticipants?.length || 0);
+      // REMOVED WebRTC Logic here (Successor: useRobustDiscord)
+      // We only handle DB State here.
+      console.log("[Discord] Joining Channel (DB Only)");
 
       // Clean up any stale voice participant records from previous sessions
-      // (handles crashes, tab closures, navigating away without disconnecting)
       await supabase
         .from("discord_voice_participants")
         .delete()
         .eq("user_id", user.id);
 
-      // Add to participants (now safe - no duplicate key possible)
+      // Add to participants
       const { error: insertError } = await supabase
         .from("discord_voice_participants")
         .insert({
@@ -787,25 +757,7 @@ export function useDiscord() {
       setInternalCurrentChannel(channel);
       setInVoiceChannel(true);
 
-      // Setup signaling channel
-      await setupSignaling(channel.id, stream);
-
-      // Wait for signaling channel to be fully subscribed
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Create offers to all existing participants
-      if (existingParticipants && existingParticipants.length > 0) {
-        console.log("[Discord][Diag] Creating offers to existing participants");
-        for (const participant of existingParticipants) {
-          // Deterministic initiator: only one side creates the offer
-          if (user.id.localeCompare(participant.user_id) < 0) {
-            console.log("[Discord][Diag] Creating offer to:", participant.user_id);
-            await createOffer(participant.user_id, stream);
-          } else {
-            console.log("[Discord][Diag] Waiting for offer from:", participant.user_id);
-          }
-        }
-      }
+      // Signaling moved to useRobustDiscord
     } catch (error: any) {
       console.error("[Discord][Diag] Error joining voice channel:", error);
       const name = error?.name || "Error";
@@ -816,13 +768,6 @@ export function useDiscord() {
         description: `${name}: ${message}`,
         variant: "destructive",
       });
-
-      // If we partially created something, clean up local resources
-      try {
-        localStreamRef.current?.getTracks().forEach((t) => t.stop());
-      } catch { }
-      localStreamRef.current = null;
-      setLocalStream(null);
       setInVoiceChannel(false);
     }
   };
@@ -831,32 +776,9 @@ export function useDiscord() {
   const leaveVoiceChannel = async () => {
     if (!user || !currentChannel) return;
 
-    console.log("[Discord][Diag] leaveVoiceChannel", { channelId: currentChannel.id, userId: user.id });
+    console.log("[Discord][Diag] leaveVoiceChannel (DB Only)", { channelId: currentChannel.id, userId: user.id });
 
-    // Cleanup
-    localStreamRef.current?.getTracks().forEach((track) => track.stop());
-    localStream?.getTracks().forEach((track) => track.stop());
-    screenStreamRef.current?.getTracks().forEach((track) => track.stop());
-
-    localStreamRef.current = null;
-    screenStreamRef.current = null;
-
-    peerConnections.current.forEach((pc) => pc.close());
-    peerConnections.current.clear();
-    negotiationStateRef.current.clear();
-    videoTransceiversRef.current.clear();
-    pendingCandidatesRef.current.clear();
-
-    if (signalingChannel.current) {
-      await supabase.removeChannel(signalingChannel.current);
-      signalingChannel.current = null;
-    }
-
-    if (audioContext.current) {
-      audioContext.current.close();
-      audioContext.current = null;
-      analyserRef.current = null;
-    }
+    // Cleanup WebRTC is handled by useRobustDiscord unmounting or changing channel
 
     // Remove from database
     await supabase
@@ -865,9 +787,8 @@ export function useDiscord() {
       .eq("channel_id", currentChannel.id)
       .eq("user_id", user.id);
 
-    setLocalStream(null);
-    setRemoteStreams(new Map());
     setInVoiceChannel(false);
+    // State cleanup
     setIsScreenSharing(false);
     setIsSpeaking(false);
   };

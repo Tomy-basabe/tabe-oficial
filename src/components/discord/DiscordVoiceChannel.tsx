@@ -6,29 +6,28 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuth } from "@/contexts/AuthContext";
 import type { DiscordChannel, DiscordVoiceParticipant } from "@/hooks/useDiscord";
 
+// Update props interface to match what Context provides now
 interface DiscordVoiceChannelProps {
   channel: DiscordChannel;
-  voiceParticipants?: DiscordVoiceParticipant[]; // Rename to voiceParticipants to match Discord.tsx usage, or keep participants
-  participants?: DiscordVoiceParticipant[]; // fallback
+  voiceParticipants?: DiscordVoiceParticipant[];
+  participants?: DiscordVoiceParticipant[];
   localStream: MediaStream | null;
-  remoteStreams: Map<string, MediaStream>;
+  remoteStreams: Map<string, MediaStream>; // This matches useRobustDiscord
   speakingUsers: Set<string>;
   isVideoEnabled: boolean;
   isAudioEnabled: boolean;
   isScreenSharing: boolean;
-  isDeafened: boolean; // Added prop
-  // localUserId removed from prop if using useAuth inside, but Discord.tsx doesn't pass it yet effectively 
-  // Let's rely on useAuth for localUserId
+  isDeafened: boolean;
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
-  onLeaveChannel: () => void; // Renamed to match Discord.tsx
+  onLeaveChannel: () => void;
 }
 
 export function DiscordVoiceChannel({
   channel,
   voiceParticipants,
-  participants, // fallback
+  participants,
   localStream,
   remoteStreams,
   speakingUsers,
