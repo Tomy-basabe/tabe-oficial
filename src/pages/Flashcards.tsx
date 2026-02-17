@@ -59,6 +59,21 @@ export default function Flashcards() {
   const [newCardAnswer, setNewCardAnswer] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Edit Deck State
+  const [showEditDeckModal, setShowEditDeckModal] = useState(false);
+  const [deckToEdit, setDeckToEdit] = useState<Deck | null>(null);
+  const [newSubjectId, setNewSubjectId] = useState<string>("");
+
+  // Import Cards State
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importTargetDeck, setImportTargetDeck] = useState<Deck | null>(null);
+  const [importStep, setImportStep] = useState(1);
+  const [importSourceYear, setImportSourceYear] = useState<number | null>(null);
+  const [importSourceSubject, setImportSourceSubject] = useState<string | null>(null);
+  const [importSourceDeck, setImportSourceDeck] = useState<Deck | null>(null);
+  const [importSourceCards, setImportSourceCards] = useState<Flashcard[]>([]);
+  const [selectedImportCards, setSelectedImportCards] = useState<string[]>([]);
+
   useEffect(() => {
     if (user) {
       fetchSubjects();
@@ -343,6 +358,117 @@ export default function Flashcards() {
 
   const filteredSubjects = subjects.filter(s => !selectedYear || s.año === selectedYear);
 
+  // Edit Deck Functions
+  const handleEditDeck = (deck: Deck) => {
+    setDeckToEdit(deck);
+    setNewSubjectId(deck.subject_id || "");
+    setShowEditDeckModal(true);
+  };
+
+  const saveDeckSubject = async () => {
+    if (!deckToEdit) return;
+
+    // Allow null if empty string is passed (or handle based on UI preference)
+    const subjectIdToSave = newSubjectId || null;
+
+    const { error } = await supabase
+      .from("flashcard_decks")
+      .update({ subject_id: subjectIdToSave })
+      .eq("id", deckToEdit.id);
+
+    if (error) {
+      toast.error("Error al actualizar la materia");
+    } else {
+      toast.success("Materia actualizada");
+      setShowEditDeckModal(false);
+      fetchDecks();
+    }
+  };
+
+  // Import Cards Functions
+  const handleImportCards = (targetDeck: Deck) => {
+    setImportTargetDeck(targetDeck);
+    resetImportState();
+    setShowImportModal(true);
+  };
+
+  const resetImportState = () => {
+    setImportStep(1);
+    setImportSourceYear(null);
+    setImportSourceSubject(null);
+    setImportSourceDeck(null);
+    setImportSourceCards([]);
+    setSelectedImportCards([]);
+  };
+
+  const handleImportSelectDeck = async (sourceDeck: Deck) => {
+    setImportSourceDeck(sourceDeck);
+    const cards = await fetchCards(sourceDeck.id);
+    setImportSourceCards(cards || []);
+    setImportStep(2);
+  };
+
+  const handleImportConfirm = async () => {
+    if (!user || !importTargetDeck || selectedImportCards.length === 0) return;
+
+    const cardsToCopy = importSourceCards.filter(c => selectedImportCards.includes(c.id));
+
+    // Prepare new cards for insertion
+    const newCards = cardsToCopy.map(c => ({
+      user_id: user.id,
+      deck_id: importTargetDeck.id,
+      pregunta: c.pregunta,
+      respuesta: c.respuesta,
+      veces_correcta: 0,
+      veces_incorrecta: 0
+    }));
+
+    const { error } = await supabase.from("flashcards").insert(newCards);
+
+    if (error) {
+      toast.error("Error al importar cartas");
+    } else {
+      toast.success(`${newCards.length} cartas importadas`);
+
+      // Update deck count
+      const currentCount = importTargetDeck.total_cards;
+      await supabase
+        .from("flashcard_decks")
+        .update({ total_cards: currentCount + newCards.length })
+        .eq("id", importTargetDeck.id);
+
+      setShowImportModal(false);
+      fetchDecks();
+    }
+  };
+
+  const toggleImportCardSelection = (cardId: string) => {
+    setSelectedImportCards(prev =>
+      prev.includes(cardId)
+        ? prev.filter(id => id !== cardId)
+        : [...prev, cardId]
+    );
+  };
+
+  const selectAllImportCards = () => {
+    if (selectedImportCards.length === importSourceCards.length) {
+      setSelectedImportCards([]);
+    } else {
+      setSelectedImportCards(importSourceCards.map(c => c.id));
+    }
+  };
+
+  const filteredSourceDecks = decks.filter(deck => {
+    // Exclude current target deck
+    if (deck.id === importTargetDeck?.id) return false;
+
+    const matchesYear = !importSourceYear || deck.subject?.año === importSourceYear;
+    const matchesSubject = !importSourceSubject || deck.subject_id === importSourceSubject;
+    return matchesYear && matchesSubject;
+  });
+
+  const filteredSourceSubjects = subjects.filter(s => !importSourceYear || s.año === importSourceYear);
+
   // Study Mode
   if (studyState === "studying" && selectedDeck && cards.length > 0) {
     return (
@@ -535,6 +661,8 @@ export default function Flashcards() {
               onAddCard={handleAddCard}
               onDeleteDeck={handleDeleteDeckClick}
               onManageCards={handleManageCards}
+              onEditDeck={handleEditDeck}
+              onImportCards={handleImportCards}
             />
           ))}
         </div>
@@ -708,6 +836,205 @@ export default function Flashcards() {
               Agregar Tarjeta
             </button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Deck Subject Modal */}
+      <Dialog open={showEditDeckModal} onOpenChange={setShowEditDeckModal}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-neon-cyan" />
+              Editar Materia - {deckToEdit?.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-4">
+            <p className="text-sm text-muted-foreground">
+              Asigna una materia a este mazo para organizarlo mejor.
+            </p>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Materia</label>
+              <select
+                value={newSubjectId}
+                onChange={(e) => setNewSubjectId(e.target.value)}
+                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border font-medium"
+              >
+                <option value="">Sin materia</option>
+                {subjects.map(subject => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={saveDeckSubject}
+              className="w-full py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold transition-all hover:shadow-lg hover:shadow-neon-cyan/25"
+            >
+              Guardar Cambios
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Cards Modal */}
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent className="sm:max-w-lg bg-card border-border max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-neon-gold" />
+              Importar Cartas a "{importTargetDeck?.nombre}"
+            </DialogTitle>
+          </DialogHeader>
+
+          {importStep === 1 ? (
+            <div className="flex-1 overflow-y-auto py-4 space-y-5">
+              <p className="text-sm text-muted-foreground">
+                Selecciona un mazo existente para copiar sus cartas.
+              </p>
+
+              {/* Year Filter */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Filtrar por Año</label>
+                <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
+                  <button
+                    onClick={() => { setImportSourceYear(null); setImportSourceSubject(null); }}
+                    className={cn(
+                      "px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                      !importSourceYear
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary hover:bg-secondary/80"
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {[1, 2, 3, 4, 5].map(year => (
+                    <button
+                      key={year}
+                      onClick={() => { setImportSourceYear(year); setImportSourceSubject(null); }}
+                      className={cn(
+                        "px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                        importSourceYear === year
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary hover:bg-secondary/80"
+                      )}
+                    >
+                      {year}°
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subject Filter */}
+              {importSourceYear && (
+                <div className="animate-fade-in">
+                  <label className="text-sm font-medium text-muted-foreground">Filtrar por Materia</label>
+                  <select
+                    value={importSourceSubject || ""}
+                    onChange={(e) => setImportSourceSubject(e.target.value || null)}
+                    className="w-full mt-2 px-3 py-2 bg-secondary rounded-lg border border-border text-sm"
+                  >
+                    <option value="">Todas las materias</option>
+                    {filteredSourceSubjects.map(subject => (
+                      <option key={subject.id} value={subject.id}>{subject.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Decks List */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Seleccionar Mazo ({filteredSourceDecks.length})</label>
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {filteredSourceDecks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic py-2">No se encontraron mazos.</p>
+                  ) : (
+                    filteredSourceDecks.map(deck => (
+                      <button
+                        key={deck.id}
+                        onClick={() => handleImportSelectDeck(deck)}
+                        className="w-full p-3 bg-secondary rounded-xl hover:bg-secondary/80 transition-all text-left flex justify-between items-center group"
+                      >
+                        <div>
+                          <p className="font-medium text-sm group-hover:text-neon-cyan transition-colors">{deck.nombre}</p>
+                          <p className="text-xs text-muted-foreground">{deck.subject?.nombre || "Sin materia"}</p>
+                        </div>
+                        <span className="text-xs font-medium bg-background/50 px-2 py-1 rounded">
+                          {deck.total_cards} cartas
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-hidden flex flex-col py-4">
+              <div className="flex justify-between items-center mb-4">
+                <button
+                  onClick={() => setImportStep(1)}
+                  className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  ← Volver
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">
+                    {selectedImportCards.length} seleccionadas
+                  </span>
+                  <button
+                    onClick={selectAllImportCards}
+                    className="text-xs px-2 py-1 bg-secondary rounded hover:bg-secondary/80"
+                  >
+                    {selectedImportCards.length === importSourceCards.length ? "Deseleccionar" : "Todas"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {importSourceCards.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Este mazo está vacío.
+                  </div>
+                ) : (
+                  importSourceCards.map(card => (
+                    <div
+                      key={card.id}
+                      onClick={() => toggleImportCardSelection(card.id)}
+                      className={cn(
+                        "p-3 rounded-xl border border-border cursor-pointer transition-all flex gap-3",
+                        selectedImportCards.includes(card.id)
+                          ? "bg-neon-cyan/10 border-neon-cyan"
+                          : "bg-secondary hover:border-neon-cyan/50"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5",
+                        selectedImportCards.includes(card.id)
+                          ? "bg-neon-cyan border-neon-cyan"
+                          : "border-muted-foreground"
+                      )}>
+                        {selectedImportCards.includes(card.id) && <Plus className="w-3 h-3 text-background" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium line-clamp-2">{card.pregunta}</p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="pt-4 mt-auto border-t border-border">
+                <button
+                  onClick={handleImportConfirm}
+                  disabled={selectedImportCards.length === 0}
+                  className="w-full py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg"
+                >
+                  Importar {selectedImportCards.length} Cartas
+                </button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

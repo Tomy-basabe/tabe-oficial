@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Layers, Play, Plus, Sparkles, Trash2, MoreVertical } from "lucide-react";
+import { Layers, Play, Plus, Sparkles, Trash2, MoreVertical, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -22,10 +22,12 @@ interface FlashcardDeckProps {
   onAddCard: (deck: Deck) => void;
   onDeleteDeck: (deck: Deck) => void;
   onManageCards: (deck: Deck) => void;
+  onEditDeck: (deck: Deck) => void;
+  onImportCards: (deck: Deck) => void;
   index: number;
 }
 
-export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onManageCards, index }: FlashcardDeckProps) {
+export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onManageCards, onEditDeck, onImportCards, index }: FlashcardDeckProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -93,7 +95,7 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button 
+                <button
                   onClick={(e) => e.stopPropagation()}
                   className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
                 >
@@ -101,14 +103,28 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-card border-border">
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onManageCards(deck); }}
                   className="cursor-pointer"
                 >
                   <Layers className="w-4 h-4 mr-2" />
                   Gestionar tarjetas
                 </DropdownMenuItem>
-                <DropdownMenuItem 
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onEditDeck(deck); }}
+                  className="cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Editar materia
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onImportCards(deck); }}
+                  className="cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Importar cartas
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onDeleteDeck(deck); }}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
