@@ -2,7 +2,6 @@ import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 export function DiscordDebugPanel() {
     const { user } = useAuth(); // Need user to filter self
@@ -37,7 +36,7 @@ export function DiscordDebugPanel() {
 
                     <div className="space-y-2">
                         <div>
-                            <span className="text-white">Channel:</span> {currentChannel?.name} <span className="text-[10px] bg-red-900/50 px-1 rounded ml-1 text-red-300">v4.0</span>
+                            <span className="text-white">Channel:</span> {currentChannel?.name} <span className="text-[10px] bg-red-900/50 px-1 rounded ml-1 text-red-300">v5.0</span>
                         </div>
                         <div>
                             <span className="text-white">Participants:</span> {voiceParticipants.length}

@@ -1526,16 +1526,27 @@ export function useDiscord() {
     if (currentChannel?.id === channel?.id) return;
 
     // Logic for Voice Channels
-    const isLeavingVoice = inVoiceChannel && currentChannel?.type === 'voice';
+    const isLeavingVoice = inVoiceChannel || (currentChannel?.type === 'voice'); // Ensure we catch if we are in a voice channel even if flag is desynced
     const isJoiningVoice = channel?.type === 'voice';
 
+    console.log("[Discord] Changing Channel:", {
+      from: currentChannel?.name,
+      to: channel?.name,
+      isLeavingVoice,
+      isJoiningVoice
+    });
+
     if (isLeavingVoice) {
+      console.log("[Discord] Leaving previous voice channel...");
       await leaveVoiceChannel();
+      // Small delay to ensure cleanup
+      await new Promise(r => setTimeout(r, 100));
     }
 
     setInternalCurrentChannel(channel);
 
     if (isJoiningVoice && channel) {
+      console.log("[Discord] Joining new voice channel...");
       await joinVoiceChannel(channel);
     }
   };
