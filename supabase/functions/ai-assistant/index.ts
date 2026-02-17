@@ -41,7 +41,7 @@ function mapEventType(aiType: string): ValidEventType {
     'recuperatorio global': 'Recuperatorio Global',
     'estudio': 'Estudio',
   };
-  
+
   const normalizedType = aiType.toLowerCase().trim();
   return typeMap[normalizedType] || 'Estudio';
 }
@@ -154,7 +154,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
+
     // Create client with user's auth token to verify identity
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
@@ -163,7 +163,7 @@ serve(async (req) => {
     // Verify the token and get the authenticated user
     const token = authHeader.replace('Bearer ', '');
     const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    
+
     if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -172,12 +172,12 @@ serve(async (req) => {
 
     // Use the authenticated user's ID - IGNORE any client-supplied userId
     const userId = claimsData.claims.sub as string;
-    
+
     const { messages, personality = "motivador" } = await req.json();
-    
+
     // Validate inputs
     validateInputs(messages, personality);
-    
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -226,7 +226,7 @@ serve(async (req) => {
 
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
-    
+
     // Build subject list with user status
     const subjectsWithStatus = subjects?.map(s => {
       const status = userSubjectStatus?.find(us => us.subject_id === s.id);
@@ -250,11 +250,11 @@ serve(async (req) => {
     const regulares = subjectsWithStatus.filter(s => s.estado === "regular").length;
     const cursando = subjectsWithStatus.filter(s => s.estado === "cursable" || s.estado === "regular").length;
     const totalMaterias = subjects?.length || 0;
-    
+
     const promedioNotas = subjectsWithStatus
       .filter(s => s.nota)
       .reduce((acc, s, _, arr) => acc + (s.nota! / arr.length), 0);
-    
+
     // Study time this week
     const oneWeekAgo = new Date(today);
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -262,12 +262,12 @@ serve(async (req) => {
       ?.filter(s => new Date(s.fecha) >= oneWeekAgo)
       .reduce((acc, s) => acc + s.duracion_segundos, 0) || 0;
     const studyHoursThisWeek = Math.round(studyTimeThisWeek / 3600 * 10) / 10;
-    
+
     // Upcoming events
-    const upcomingExams = existingEvents?.filter(e => 
+    const upcomingExams = existingEvents?.filter(e =>
       ['P1', 'P2', 'Global', 'Final'].includes(e.tipo_examen)
     ) || [];
-    
+
     // Format data for AI
     const subjectsList = subjectsWithStatus.map(s => {
       let statusEmoji = "⬜";
@@ -275,7 +275,7 @@ serve(async (req) => {
       else if (s.estado === "regular") statusEmoji = "🟡";
       else if (s.estado === "cursable") statusEmoji = "🔵";
       else if (s.estado === "bloqueada") statusEmoji = "🔒";
-      
+
       let info = `${statusEmoji} ${s.nombre} (${s.codigo}) - Año ${s.ano}`;
       if (s.nota) info += ` - Nota final: ${s.nota}`;
       if (s.notasParciales?.p1) info += ` | P1: ${s.notasParciales.p1}`;
@@ -283,18 +283,18 @@ serve(async (req) => {
       info += ` - ID: ${s.id}`;
       return info;
     }).join("\n");
-    
-    const eventsList = existingEvents?.map(e => 
+
+    const eventsList = existingEvents?.map(e =>
       `📅 ${e.fecha}${e.hora ? ` ${e.hora}` : ""} - ${e.titulo} (${e.tipo_examen})`
     ).join("\n") || "Sin eventos programados";
-    
-    const flashcardsSummary = flashcardDecks?.map(d => 
+
+    const flashcardsSummary = flashcardDecks?.map(d =>
       `📚 ${d.nombre}: ${d.total_cards} tarjetas`
     ).join("\n") || "Sin mazos creados";
 
     // Personality-specific prompt
     const personalityPrompt = getPersonalityPrompt(personality as AIPersonality);
-    
+
     const systemPrompt = `Sos T.A.B.E. IA, el asistente académico de un estudiante de Ingeniería en Sistemas.
 
 ${personalityPrompt}
@@ -446,6 +446,20 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
                 additionalProperties: false
               }
             }
+          },
+          {
+            type: "function",
+            function: {
+              name: "get_subject_info",
+              description: "Obtiene información detallada de una materia (notas, estado, correlativas).",
+              parameters: {
+                type: "object",
+                properties: {
+                  query: { type: "string", description: "Nombre o código de la materia (ej: 'Sintaxis', 'Física 1')" }
+                },
+                required: ["query"]
+              }
+            }
           }
         ],
         stream: false,
@@ -475,18 +489,18 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
 
     const aiResponse = await response.json();
     const choice = aiResponse.choices?.[0];
-    
+
     // Check if AI wants to call a tool
     if (choice?.message?.tool_calls?.length > 0) {
       const toolCall = choice.message.tool_calls[0];
-      
+
       if (toolCall.function.name === "create_calendar_event") {
         const rawEventData = JSON.parse(toolCall.function.arguments);
         const mappedType = mapEventType(rawEventData.tipo_examen);
-        
+
         // Validate event data
         if (!rawEventData.titulo || rawEventData.titulo.length > 200) {
-          return new Response(JSON.stringify({ 
+          return new Response(JSON.stringify({
             content: "Error: título inválido",
             event_created: null,
             flashcards_created: null,
@@ -495,7 +509,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           });
         }
         if (!/^\d{4}-\d{2}-\d{2}$/.test(rawEventData.fecha)) {
-          return new Response(JSON.stringify({ 
+          return new Response(JSON.stringify({
             content: "Error: fecha inválida",
             event_created: null,
             flashcards_created: null,
@@ -503,7 +517,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        
+
         // Validate subject_id if provided
         let validSubjectId = null;
         if (rawEventData.subject_id) {
@@ -516,7 +530,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             validSubjectId = rawEventData.subject_id;
           }
         }
-        
+
         const eventData: CalendarEvent = {
           titulo: rawEventData.titulo.slice(0, 200),
           fecha: rawEventData.fecha,
@@ -525,7 +539,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           notas: rawEventData.notas?.slice(0, 1000),
           subject_id: validSubjectId,
         };
-        
+
         const { data: newEvent, error: insertError } = await supabase
           .from("calendar_events")
           .insert({
@@ -543,7 +557,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
 
         if (insertError) {
           console.error("Error creating event:", insertError);
-          return new Response(JSON.stringify({ 
+          return new Response(JSON.stringify({
             content: `Hubo un error al crear el evento: ${insertError.message}`,
             event_created: null,
             flashcards_created: null,
@@ -557,16 +571,38 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           day: "numeric",
           month: "long"
         });
-        
-        const tipoDisplay = eventData.tipo_examen === 'P1' ? 'Parcial 1' : 
-                            eventData.tipo_examen === 'P2' ? 'Parcial 2' : 
-                            eventData.tipo_examen;
-        
+
+        const tipoDisplay = eventData.tipo_examen === 'P1' ? 'Parcial 1' :
+          eventData.tipo_examen === 'P2' ? 'Parcial 2' :
+            eventData.tipo_examen;
+
         const confirmationMessage = `✅ **Evento agendado:**\n\n📌 **${eventData.titulo}**\n📅 ${fechaFormateada}${eventData.hora ? `\n⏰ ${eventData.hora}` : ""}\n🏷️ ${tipoDisplay}${eventData.notas ? `\n📝 ${eventData.notas}` : ""}\n\n¿Hay algo más en lo que pueda ayudarte?`;
 
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           content: confirmationMessage,
           event_created: newEvent,
+          flashcards_created: null,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (toolCall.function.name === "get_subject_info") {
+        const args = JSON.parse(toolCall.function.arguments);
+        const query = (args.query || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const found = subjectsWithStatus.find(s =>
+          s.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(query) ||
+          s.codigo.toLowerCase().includes(query)
+        );
+
+        let content = "No encontré ninguna materia con ese nombre.";
+        if (found) {
+          content = `Materia: ${found.nombre} (${found.codigo})\nAño: ${found.ano}\nEstado: ${found.estado.toUpperCase()}\nNota Final: ${found.nota || "N/A"}\nParciales: ${JSON.stringify(found.notasParciales || {})}`;
+        }
+
+        return new Response(JSON.stringify({
+          content: content,
+          event_created: null,
           flashcards_created: null,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -580,10 +616,10 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           subject_id?: string;
           cards: Array<{ pregunta: string; respuesta: string }>;
         };
-        
+
         // Validate flashcard data
         if (!flashcardData.deck_name || flashcardData.deck_name.length > 200) {
-          return new Response(JSON.stringify({ 
+          return new Response(JSON.stringify({
             content: "Error: nombre del mazo inválido",
             event_created: null,
             flashcards_created: null,
@@ -592,7 +628,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           });
         }
         if (!Array.isArray(flashcardData.cards) || flashcardData.cards.length === 0 || flashcardData.cards.length > 50) {
-          return new Response(JSON.stringify({ 
+          return new Response(JSON.stringify({
             content: "Error: cantidad de tarjetas inválida",
             event_created: null,
             flashcards_created: null,
@@ -600,7 +636,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        
+
         // Validate subject_id if provided
         let validSubjectId = subjects?.[0]?.id || null;
         if (flashcardData.subject_id) {
@@ -613,7 +649,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             validSubjectId = flashcardData.subject_id;
           }
         }
-        
+
         // First, create the deck
         const { data: newDeck, error: deckError } = await supabase
           .from("flashcard_decks")
@@ -630,7 +666,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
 
         if (deckError) {
           console.error("Error creating deck:", deckError);
-          return new Response(JSON.stringify({ 
+          return new Response(JSON.stringify({
             content: `Hubo un error al crear el mazo: ${deckError.message}`,
             event_created: null,
             flashcards_created: null,
@@ -657,7 +693,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           console.error("Error creating flashcards:", cardsError);
           // Cleanup: delete the deck if cards failed
           await supabase.from("flashcard_decks").delete().eq("id", newDeck.id);
-          return new Response(JSON.stringify({ 
+          return new Response(JSON.stringify({
             content: `Hubo un error al crear las flashcards: ${cardsError.message}`,
             event_created: null,
             flashcards_created: null,
@@ -668,17 +704,17 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
 
         // Build confirmation message with sample cards
         const sampleCards = flashcardData.cards.slice(0, 3);
-        let cardsList = sampleCards.map((c, i) => 
+        let cardsList = sampleCards.map((c, i) =>
           `${i + 1}. **${c.pregunta}**\n   → ${c.respuesta}`
         ).join("\n\n");
-        
+
         if (flashcardData.cards.length > 3) {
           cardsList += `\n\n... y ${flashcardData.cards.length - 3} más`;
         }
 
         const confirmationMessage = `🃏 **¡Mazo de flashcards creado!**\n\n📚 **${flashcardData.deck_name}**\n📝 ${flashcardData.cards.length} tarjetas generadas\n\n**Vista previa:**\n${cardsList}\n\n¡Podés encontrar tu mazo en la sección de Flashcards para empezar a estudiar!`;
 
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           content: confirmationMessage,
           event_created: null,
           flashcards_created: {
@@ -688,20 +724,48 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+
+      }
+
+      if (toolCall.function.name === "get_subject_info") {
+        const args = JSON.parse(toolCall.function.arguments);
+        const query = (args.query || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const found = subjectsWithStatus.find(s =>
+          s.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(query) ||
+          s.codigo.toLowerCase().includes(query)
+        );
+
+        let content = "No encontré ninguna materia con ese nombre.";
+        if (found) {
+          // We need dependencies to fully answer. Let's fetch them if not available in this scope?
+          // Actually, `ai-assistant` (non-stream) puts everything in `systemPrompt` but doesn't have `dependencies` variable in scope easily accessible?
+          // Wait, I need to check if `ai-assistant/index.ts` fetches dependencies.
+          // It does NOT fetch dependencies in the current version I read (lines 191-208).
+          // So for this one, I will just return status and grades which ARE available.
+          content = `Materia: ${found.nombre} (${found.codigo})\nAño: ${found.ano}\nEstado: ${found.estado.toUpperCase()}\nNota Final: ${found.nota || "N/A"}\nParciales: ${JSON.stringify(found.notasParciales || {})}`;
+        }
+
+        return new Response(JSON.stringify({
+          content: content,
+          event_created: null,
+          flashcards_created: null,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       content: choice?.message?.content || "No pude generar una respuesta.",
-      event_created: null 
+      event_created: null
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (e) {
     console.error("AI assistant error:", e);
-    return new Response(JSON.stringify({ 
-      error: e instanceof Error ? e.message : "Error desconocido" 
+    return new Response(JSON.stringify({
+      error: e instanceof Error ? e.message : "Error desconocido"
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

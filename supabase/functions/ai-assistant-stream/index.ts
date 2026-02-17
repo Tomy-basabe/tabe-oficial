@@ -278,7 +278,7 @@ ${plantsSummary}
 ${chatMemory}
 
 CAPACIDADES:
-- Responder sobre notas, estado y correlatividades de materias.
+- Responder sobre notas, estado y correlatividades de materias (usá get_subject_info si tenés dudas).
 - Gestionar calendario.
 - Crear flashcards.
 - Analizar progreso.
@@ -310,6 +310,20 @@ REGLA DE ORO: Si el usuario pide una acción (agendar, crear, borrar), **DEBES**
       {
         type: "function",
         function: { name: "get_study_history", description: "Obtiene historial extendido.", parameters: { type: "object", properties: { days: { type: "number" } }, required: ["days"] } }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_subject_info",
+          description: "Obtiene información detallada de una materia (notas, estado, correlativas).",
+          parameters: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "Nombre o código de la materia (ej: 'Sintaxis', 'Física 1')" }
+            },
+            required: ["query"]
+          }
+        }
       }
     ];
 
@@ -572,6 +586,30 @@ REGLA DE ORO: Si el usuario pide una acción (agendar, crear, borrar), **DEBES**
             since.setDate(since.getDate() - days);
             const { data } = await serviceClient.from("study_sessions").select("*").eq("user_id", userId).gte("fecha", since.toISOString());
             result = { content: JSON.stringify(data) };
+          }
+          else if (call.function.name === "get_subject_info") {
+            const query = (args.query || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const found = subjectsWithStatus.find((s: any) =>
+              s.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(query) ||
+              s.codigo.toLowerCase().includes(query)
+            );
+
+            if (found) {
+              // Find dependencies
+              const subjectDeps = dependencies.filter((d: any) => d.subject_id === found.id);
+              const depsInfo = subjectDeps.map((d: any) => {
+                const reqId = d.requiere_aprobada || d.requiere_regular;
+                const reqType = d.requiere_aprobada ? "Aprobada" : "Regular";
+                const reqName = subjectNameById[reqId] || reqId;
+                return `${reqName} (${reqType})`;
+              }).join(", ") || "Ninguna";
+
+              result = {
+                content: `Materia: ${found.nombre} (${found.codigo})\nAño: ${found.ano}\nEstado: ${found.estado.toUpperCase()}\nNota Final: ${found.nota || "N/A"}\nParciales: ${found.nota_parcial || "N/A"}\nFecha Aprobación: ${found.fecha_aprobacion || "N/A"}\nCorrelativas necesarias: ${depsInfo}`
+              };
+            } else {
+              result = { content: "No encontré ninguna materia con ese nombre." };
+            }
           }
 
           if (result) {
