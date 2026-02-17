@@ -1053,49 +1053,13 @@ export function useDiscord() {
   };
 
   const handleOffer = async (fromId: string, offer: RTCSessionDescriptionInit, stream: MediaStream) => {
-    // Ensure we have current local tracks
-    let currentLocalStream = stream;
-    if (!currentLocalStream && localStreamRef.current) {
-      currentLocalStream = localStreamRef.current;
-    }
-
-    let pc = peerConnections.current.get(fromId);
-    if (!pc) {
-      pc = createPeerConnection(fromId, currentLocalStream);
-    }
-
-    if (!pc) {
-      console.warn("[Discord] handleOffer aborted: could not create peer connection (self-block?)");
-      return;
-    }
-
-    if (currentLocalStream) {
-      // Add missing tracks to existing PC
-      const senders = pc.getSenders();
-      currentLocalStream.getTracks().forEach(track => {
-        if (!senders.find(s => s.track?.id === track.id)) {
-          pc?.addTrack(track, currentLocalStream);
-        }
-      });
-    }
-
-    const n = getNegotiationState(fromId);
-
     try {
-      const offerCollision = n.makingOffer || pc.signalingState !== "stable";
-      n.ignoreOffer = !n.polite && offerCollision;
-
-      if (n.ignoreOffer) {
-        console.warn("[Discord] Ignoring offer due to collision from:", fromId);
-        return;
+      let pc = peerConnections.current.get(fromId);
+      if (!pc) {
+        pc = createPeerConnection(fromId, stream);
       }
 
-      if (offerCollision) {
-        // Polite peer: rollback its local description and accept the offer
-        console.log("[Discord] Offer collision; rolling back (polite) with:", fromId);
-        // TS lib types don't include rollback in all configs
-        await pc.setLocalDescription({ type: "rollback" } as any);
-      }
+      if (!pc) return;
 
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await pc.createAnswer();
@@ -1108,66 +1072,44 @@ export function useDiscord() {
           type: "answer",
           from: user?.id,
           to: fromId,
-          data: answer,
-        },
+          data: answer
+        }
       });
 
-      // Process any pending candidates
+      // Process pending candidates
       const pending = pendingCandidatesRef.current.get(fromId);
       if (pending) {
-        console.log(`[Discord] Processing ${pending.length} buffered candidates for ${fromId}`);
-        for (const candidate of pending) {
-          try {
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
-          } catch (e) {
-            console.error("Error adding buffered candidate:", e);
-          }
-        }
+        pending.forEach(c => pc?.addIceCandidate(new RTCIceCandidate(c)));
         pendingCandidatesRef.current.delete(fromId);
       }
-
-    } catch (error) {
-      console.error("Error handling offer:", error);
+    } catch (err) {
+      console.error("Error handling offer:", err);
     }
   };
 
   const handleAnswer = async (fromId: string, answer: RTCSessionDescriptionInit) => {
     const pc = peerConnections.current.get(fromId);
     if (pc) {
-      await pc.setRemoteDescription(new RTCSessionDescription(answer));
-
-      // Process any pending candidates
-      const pending = pendingCandidatesRef.current.get(fromId);
-      if (pending) {
-        console.log(`[Discord] Processing ${pending.length} buffered candidates for ${fromId}`);
-        for (const candidate of pending) {
-          try {
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
-          } catch (e) {
-            console.error("Error adding buffered candidate:", e);
-          }
-        }
-        pendingCandidatesRef.current.delete(fromId);
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      } catch (err) {
+        console.error("Error handling answer:", err);
       }
     }
   };
 
   const handleIceCandidate = async (fromId: string, candidate: RTCIceCandidateInit) => {
     const pc = peerConnections.current.get(fromId);
-    if (!pc) return;
-
-    if (!pc.remoteDescription) {
-      // Remote description not set yet, buffer candidate
-      console.log(`[Discord] Buffering ICE candidate for ${fromId} (no remote description)`);
-      const current = pendingCandidatesRef.current.get(fromId) || [];
-      current.push(candidate);
-      pendingCandidatesRef.current.set(fromId, current);
-    } else {
+    if (pc) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (e) {
-        console.error("Error adding ICE candidate:", e);
+      } catch (err) {
+        console.error("Error adding ICE candidate:", err);
       }
+    } else {
+      const pending = pendingCandidatesRef.current.get(fromId) || [];
+      pending.push(candidate);
+      pendingCandidatesRef.current.set(fromId, pending);
     }
   };
 
