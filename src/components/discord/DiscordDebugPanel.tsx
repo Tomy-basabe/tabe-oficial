@@ -45,12 +45,19 @@ export function DiscordDebugPanel() {
 
                         <div className="border-t border-green-500/30 pt-2 mt-2">
                             <h4 className="text-white font-semibold mb-1">Peers & Connection:</h4>
+
+                            <div className="mb-2 text-[10px] text-gray-400 break-all">
+                                <div>Stream Keys: {Array.from(remoteStreams.keys()).join(", ")}</div>
+                                <div>State Keys: {Array.from(peerStates.keys()).join(", ")}</div>
+                            </div>
+
                             {voiceParticipants.filter(p => p.user_id !== "me").map(p => {
                                 const stream = remoteStreams.get(p.user_id);
                                 const status = peerStates.get(p.user_id) || "unknown";
 
                                 return (
                                     <div key={p.user_id} className="mb-2 pl-2 border-l-2 border-green-500/50">
+                                        <div className="text-[10px] text-gray-500">ID: {p.user_id}</div>
                                         <div>User: {p.profile?.username || p.user_id.substring(0, 8)}</div>
                                         <div className={status === "connected" ? "text-green-400" : "text-yellow-400"}>
                                             ICE Status: {status}
