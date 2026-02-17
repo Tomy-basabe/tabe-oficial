@@ -22,6 +22,7 @@ export function DiscordAudioRenderer() {
 
 function AudioStream({ peerId, stream }: { peerId: string; stream: MediaStream }) {
     const { toast } = useToast();
+    const audioRef = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
         if (audioRef.current && stream) {
