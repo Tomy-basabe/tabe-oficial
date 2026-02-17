@@ -1178,17 +1178,7 @@ export function useDiscord() {
         .eq("channel_id", currentChannel.id)
         .eq("user_id", user.id)
         .then(() => console.log("[Discord] DB: camera off"));
-      const updatedStream = new MediaStream(stream.getTracks());
-      localStreamRef.current = updatedStream;
-      setLocalStream(updatedStream);
 
-      // Update DB
-      supabase
-        .from("discord_voice_participants")
-        .update({ is_camera_on: false })
-        .eq("channel_id", currentChannel.id)
-        .eq("user_id", user.id)
-        .then(() => console.log("[Discord] DB: camera off"));
 
     } else {
       // === TURN ON VIDEO ===
