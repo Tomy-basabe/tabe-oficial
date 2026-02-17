@@ -88,7 +88,7 @@ const ICE_SERVERS: RTCConfiguration = {
 };
 
 export function useDiscord() {
-  console.log("[Discord] Hook initialized v3.0 (Simplified WebRTC)");
+  console.log("[Discord] Hook initialized v4.0 (Force Redeploy)");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -1135,7 +1135,7 @@ export function useDiscord() {
     }
   };
 
-  // Toggle video with Renegotiation (v3.2)
+  // Toggle video
   const toggleVideo = async () => {
     if (!user || !currentChannel) return;
 
@@ -1145,116 +1145,92 @@ export function useDiscord() {
       return;
     }
 
-    // === TURN OFF VIDEO ===
     if (isVideoEnabled) {
-      console.log("[Discord] Turning OFF video...");
+      // === TURN OFF VIDEO ===
+      // 1. Update React state FIRST (instant UI update for local tile)
       setIsVideoEnabled(false);
 
-      // Stop track
+      // 2. Stop and remove video track
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.stop();
         stream.removeTrack(videoTrack);
       }
 
-      // Remove from connections (soft remove via replaceTrack)
-      // We don't necessarily need to renegotiate to stop sending, just replace with null
-      peerConnections.current.forEach((pc) => {
-        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-        if (sender) {
-          sender.replaceTrack(null);
-        }
+      // 3. Remove video from all peer connections without renegotiation
+      peerConnections.current.forEach((pc, peerId) => {
+        const transceiver = videoTransceiversRef.current.get(peerId);
+        const sender = transceiver?.sender ?? pc.getSenders().find((s) => s.track?.kind === "video") ?? null;
+        sender?.replaceTrack(null);
       });
 
-      // Force React update
+      // 4. Force React re-render with new MediaStream reference
       const updatedStream = new MediaStream(stream.getTracks());
       localStreamRef.current = updatedStream;
       setLocalStream(updatedStream);
 
-      // Update DB
+      // 5. Update database (async, no need to block UI)
       supabase
         .from("discord_voice_participants")
         .update({ is_camera_on: false })
         .eq("channel_id", currentChannel.id)
         .eq("user_id", user.id)
         .then(() => console.log("[Discord] DB: camera off"));
-
     } else {
       // === TURN ON VIDEO ===
       try {
-        console.log("[Discord] Turning ON video...");
-        // Use basic constraints to avoid Timeout/AbortError on some Windows drivers
+        console.log("[Discord] Requesting video...");
         const videoStream = await navigator.mediaDevices.getUserMedia({
-          video: true
+          video: { width: { ideal: 640 }, height: { ideal: 480 } },
+        });
+        const videoTrack = videoStream.getVideoTracks()[0];
+        console.log("[Discord] Got video track:", {
+          id: videoTrack.id,
+          label: videoTrack.label,
+          readyState: videoTrack.readyState,
+          enabled: videoTrack.enabled,
         });
 
-        const videoTrack = videoStream.getVideoTracks()[0];
-
-        console.log("[Discord] Got video track:", videoTrack.label);
-
-        // 2. Add to Local Stream
+        // 1. Add video track to the current stream
         stream.addTrack(videoTrack);
+
+        // 2. Create a NEW MediaStream so React detects the change
         const updatedStream = new MediaStream(stream.getTracks());
         localStreamRef.current = updatedStream;
 
-        // 3. Update React (Local Preview)
+        // 3. Update React state FIRST so the local tile renders <video> immediately
         setIsVideoEnabled(true);
         setLocalStream(updatedStream);
 
-        // 4. Add to Peer Connections & RENEGOTIATE
-        const conversionPromises = Array.from(peerConnections.current.entries()).map(async ([peerId, pc]) => {
-          console.log(`[Discord] Adding video track to peer ${peerId}`);
+        // 4. Send video to all peers via pre-created transceivers
+        peerConnections.current.forEach((pc, peerId) => {
+          const transceiver = videoTransceiversRef.current.get(peerId);
+          const sender = transceiver?.sender ?? pc.getSenders().find((s) => s.track?.kind === "video") ?? null;
 
-          const sender = pc.getSenders().find((s) => s.track?.kind === "video");
           if (sender) {
-            console.log(`[Discord] Reusing existing video sender for ${peerId}`);
-            await sender.replaceTrack(videoTrack);
-          } else {
-            console.log(`[Discord] Adding new video track for ${peerId}`);
-            pc.addTrack(videoTrack, stream);
-            // Must renegotiate if adding a new track/sender
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-
-            signalingChannel.current?.send({
-              type: "broadcast",
-              event: "signal",
-              payload: {
-                type: "offer",
-                from: user.id,
-                to: peerId,
-                data: offer
-              }
+            sender.replaceTrack(videoTrack).then(() => {
+              console.log("[Discord] Replaced video track for peer:", peerId);
             });
+          } else {
+            console.warn("[Discord] No video sender for peer:", peerId, "- adding transceiver");
+            pc.addTransceiver("video", { direction: "sendrecv" }).sender.replaceTrack(videoTrack);
           }
         });
 
-        await Promise.all(conversionPromises);
+        console.log("[Discord] Video enabled successfully");
 
-        // 5. Update DB
+        // 5. Update database (async)
         supabase
           .from("discord_voice_participants")
           .update({ is_camera_on: true })
           .eq("channel_id", currentChannel.id)
           .eq("user_id", user.id)
           .then(() => console.log("[Discord] DB: camera on"));
-
       } catch (error: any) {
         console.error("[Discord] Error enabling video:", error);
-        let errorMessage = "No se pudo acceder a la cámara.";
-        if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-          errorMessage = "Permiso denegado. Por favor permite el acceso a la cámara en tu navegador.";
-        } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-          errorMessage = "No se encontró ninguna cámara.";
-        } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
-          errorMessage = "La cámara está en uso por otra aplicación.";
-        } else if (error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError") {
-          errorMessage = "La cámara no cumple con los requisitos de resolución.";
-        }
-
         toast({
           title: "Error de cámara",
-          description: `${errorMessage} (${error.name}: ${error.message})`,
+          description: `No se pudo acceder a la cámara: ${error?.name || "Error"} - ${error?.message || "desconocido"}`,
           variant: "destructive",
         });
       }
@@ -1280,11 +1256,7 @@ export function useDiscord() {
         if (sender) {
           sender.replaceTrack(videoTrack);
         } else {
-          pc.addTrack(videoTrack, localStreamRef.current!);
-          // Note: If adding track here too, might need renegotiation if transceiver didn't exist
-          // checking if we need to negotiate
-          // For now assume video track existed or this will need similar fix to toggleVideo
-          // But screen share usually replaces camera
+          pc.addTrack(videoTrack, localStream!);
         }
       });
 

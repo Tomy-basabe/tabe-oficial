@@ -2,7 +2,7 @@ import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 export function DiscordDebugPanel() {
     const { user } = useAuth(); // Need user to filter self
@@ -37,7 +37,7 @@ export function DiscordDebugPanel() {
 
                     <div className="space-y-2">
                         <div>
-                            <span className="text-white">Channel:</span> {currentChannel?.name} <span className="text-[10px] bg-green-900/50 px-1 rounded ml-1 text-green-300">v3.0</span>
+                            <span className="text-white">Channel:</span> {currentChannel?.name} <span className="text-[10px] bg-red-900/50 px-1 rounded ml-1 text-red-300">v4.0</span>
                         </div>
                         <div>
                             <span className="text-white">Participants:</span> {voiceParticipants.length}
@@ -46,9 +46,6 @@ export function DiscordDebugPanel() {
                             <span className="text-white">Remote Streams:</span> {remoteStreams.size}
                         </div>
 
-                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-400">
-                            v3.2
-                        </Badge>
                         <div className="border-t border-green-500/30 pt-2 mt-2">
                             <h4 className="text-white font-semibold mb-1">Peers & Connection:</h4>
 
