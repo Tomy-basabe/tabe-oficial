@@ -573,11 +573,49 @@ REGLA DE ORO: Si el usuario pide una acción (agendar, crear, borrar), **DEBES**
             result = error ? { content: "Error al eliminar." } : { content: "Evento eliminado." };
           }
           else if (call.function.name === "create_flashcards") {
-            const { data: deck, error } = await serviceClient.from("flashcard_decks").insert({ user_id: userId, nombre: args.deck_name, total_cards: args.cards.length }).select().single();
+            const args = JSON.parse(call.function.arguments);
+
+            // Validate subject_id if provided
+            let validSubjectId = null; // Default to null (now allowed by DB)
+
+            if (args.subject_id) {
+              // 1. Try exact UUID match
+              const { data: subjectCheck } = await serviceClient
+                .from("subjects")
+                .select("id")
+                .eq("id", args.subject_id)
+                .maybeSingle();
+
+              if (subjectCheck) {
+                validSubjectId = args.subject_id;
+              } else {
+                // 2. Try fuzzy name match (e.g. "Ingles 2" -> "Ingles II")
+                console.log(`[Flashcards] Invalid UUID for subject: ${args.subject_id}. Searching by name...`);
+                const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const search = norm(args.subject_id);
+
+                // Custom replacement for Roman numerals often used in "Ingles II", "Física I"
+                const searchFixed = search.replace(/\b1\b/g, "i").replace(/\b2\b/g, "ii").replace(/\b3\b/g, "iii");
+
+                const found = subjects.find((s: any) => {
+                  const sNorm = norm(s.nombre);
+                  return sNorm.includes(search) || sNorm.includes(searchFixed) || norm(s.codigo).toLowerCase() === search;
+                });
+
+                if (found) {
+                  validSubjectId = found.id;
+                  console.log(`[Flashcards] Resolved subject "${args.subject_id}" to ID: ${validSubjectId} (${found.nombre})`);
+                } else {
+                  console.log(`[Flashcards] Could not resolve subject "${args.subject_id}". Leaving as null.`);
+                }
+              }
+            }
+
+            const { data: deck, error } = await serviceClient.from("flashcard_decks").insert({ user_id: userId, nombre: args.deck_name, total_cards: args.cards.length, subject_id: validSubjectId }).select().single();
             if (deck) {
               const cards = args.cards.map((c: any) => ({ deck_id: deck.id, user_id: userId, pregunta: c.pregunta, respuesta: c.respuesta }));
               await serviceClient.from("flashcards").insert(cards);
-              result = { content: `Mazo "${deck.nombre}" creado con ${deck.total_cards} cartas.` };
+              result = { content: `Mazo "${deck.nombre}" creado con ${deck.total_cards} cartas.${validSubjectId ? "" : " (Sin materia asignada)"}` };
             } else { result = { content: `Error creando mazo: ${error?.message}` }; }
           }
           else if (call.function.name === "get_study_history") {

@@ -638,15 +638,38 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
         }
 
         // Validate subject_id if provided
-        let validSubjectId = subjects?.[0]?.id || null;
+        let validSubjectId = null; // Default to null (now allowed by DB)
+
         if (flashcardData.subject_id) {
+          // 1. Try exact UUID match
           const { data: subjectCheck } = await supabase
             .from("subjects")
             .select("id")
             .eq("id", flashcardData.subject_id)
             .maybeSingle();
+
           if (subjectCheck) {
             validSubjectId = flashcardData.subject_id;
+          } else {
+            // 2. Try fuzzy name match (e.g. "Ingles 2" -> "Ingles II")
+            console.log(`[Flashcards] Invalid UUID for subject: ${flashcardData.subject_id}. Searching by name...`);
+            const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const search = norm(flashcardData.subject_id);
+
+            // Custom replacement for Roman numerals often used in "Ingles II", "Física I"
+            const searchFixed = search.replace(/\b1\b/g, "i").replace(/\b2\b/g, "ii").replace(/\b3\b/g, "iii");
+
+            const found = subjects?.find(s => {
+              const sNorm = norm(s.nombre);
+              return sNorm.includes(search) || sNorm.includes(searchFixed) || norm(s.codigo).toLowerCase() === search;
+            });
+
+            if (found) {
+              validSubjectId = found.id;
+              console.log(`[Flashcards] Resolved subject "${flashcardData.subject_id}" to ID: ${validSubjectId} (${found.nombre})`);
+            } else {
+              console.log(`[Flashcards] Could not resolve subject "${flashcardData.subject_id}". Leaving as null.`);
+            }
           }
         }
 
