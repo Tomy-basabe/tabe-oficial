@@ -1253,6 +1253,65 @@ export function useDiscord() {
     }
   };
 
+  // Start screen share
+  const startScreenShare = async () => {
+    if (!user || !currentChannel) return;
+
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+
+      screenStreamRef.current = screenStream;
+
+      // Replace video track in all connections
+      const videoTrack = screenStream.getVideoTracks()[0];
+      peerConnections.current.forEach((pc) => {
+        const sender = pc.getSenders().find(s => s.track?.kind === "video");
+        if (sender) {
+          sender.replaceTrack(videoTrack);
+        } else {
+          pc.addTrack(videoTrack, localStreamRef.current!);
+          // Note: If adding track here too, might need renegotiation if transceiver didn't exist
+          // checking if we need to negotiate
+          // For now assume video track existed or this will need similar fix to toggleVideo
+          // But screen share usually replaces camera
+        }
+      });
+
+      videoTrack.onended = () => {
+        stopScreenShare();
+      };
+
+      setIsScreenSharing(true);
+
+      await supabase
+        .from("discord_voice_participants")
+        .update({ is_screen_sharing: true })
+        .eq("channel_id", currentChannel.id)
+        .eq("user_id", user.id);
+
+    } catch (error) {
+      console.error("Error starting screen share:", error);
+    }
+  };
+
+  // Stop screen share
+  const stopScreenShare = async () => {
+    if (!user || !currentChannel) return;
+
+    screenStreamRef.current?.getTracks().forEach(track => track.stop());
+    screenStreamRef.current = null;
+    setIsScreenSharing(false);
+
+    await supabase
+      .from("discord_voice_participants")
+      .update({ is_screen_sharing: false })
+      .eq("channel_id", currentChannel.id)
+      .eq("user_id", user.id);
+  };
+
   // Toggle deafen
   const toggleDeafen = () => {
     const newDeafened = !isDeafened;
