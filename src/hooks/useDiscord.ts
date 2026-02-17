@@ -1179,458 +1179,441 @@ export function useDiscord() {
         .eq("user_id", user.id)
         .then(() => console.log("[Discord] DB: camera off"));
 
-
-    } else {
-      // === TURN ON VIDEO ===
-      try {
-        console.log("[Discord] Turning ON video...");
-        let videoStream;
-        try {
-          // 1. Try HD first
-          videoStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: 'user'
-            },
-          });
-        } catch (hdError) {
-          console.warn("[Discord] HD video failed, trying basic constraints...", hdError);
-          // 2. Fallback to basic
-          videoStream = await navigator.mediaDevices.getUserMedia({
-            video: true
-          });
-        }
-
-        const videoTrack = videoStream.getVideoTracks()[0];
-
-        console.log("[Discord] Got video track:", videoTrack.label);
-
-        // 2. Add to Local Stream
-        stream.addTrack(videoTrack);
-        const updatedStream = new MediaStream(stream.getTracks());
-        localStreamRef.current = updatedStream;
-
-        // 3. Update React (Local Preview)
-        setIsVideoEnabled(true);
-        setLocalStream(updatedStream);
-
-        // 4. Add to Peer Connections & RENEGOTIATE
-        const conversionPromises = Array.from(peerConnections.current.entries()).map(async ([peerId, pc]) => {
-          console.log(`[Discord] Adding video track to peer ${peerId}`);
-
-          const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-          if (sender) {
-            console.log(`[Discord] Reusing existing video sender for ${peerId}`);
-            await sender.replaceTrack(videoTrack);
-          } else {
-            console.log(`[Discord] Adding new video track for ${peerId}`);
-            pc.addTrack(videoTrack, stream);
-            // Must renegotiate if adding a new track/sender
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-
-            signalingChannel.current?.send({
-              type: "broadcast",
-              event: "signal",
-              payload: {
-                type: "offer",
-                from: user.id,
-                to: peerId,
-                data: offer
-              }
-            });
-          }
-        });
-
-        await Promise.all(conversionPromises);
-
-        // 5. Update DB
-        supabase
-          .from("discord_voice_participants")
-          .update({ is_camera_on: true })
-          .eq("channel_id", currentChannel.id)
-          .eq("user_id", user.id)
-          .then(() => console.log("[Discord] DB: camera on"));
-
-      } catch (error: any) {
-        console.error("[Discord] Error enabling video:", error);
-        let errorMessage = "No se pudo acceder a la cámara.";
-        if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-          errorMessage = "Permiso denegado. Por favor permite el acceso a la cámara en tu navegador.";
-        } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-          errorMessage = "No se encontró ninguna cámara.";
-        } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
-          errorMessage = "La cámara está en uso por otra aplicación.";
-        } else if (error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError") {
-          errorMessage = "La cámara no cumple con los requisitos de resolución.";
-        }
-
-        toast({
-          title: "Error de cámara",
-          description: `${errorMessage} (${error.name}: ${error.message})`,
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  // Start screen share
-  const startScreenShare = async () => {
-    if (!user || !currentChannel) return;
-
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
+      console.log("[Discord] Turning ON video...");
+      // Use basic constraints to avoid Timeout/AbortError on some Windows drivers
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        video: true
       });
 
-      screenStreamRef.current = screenStream;
+      const videoTrack = videoStream.getVideoTracks()[0];
 
-      // Replace video track in all connections
-      const videoTrack = screenStream.getVideoTracks()[0];
-      peerConnections.current.forEach((pc) => {
-        const sender = pc.getSenders().find(s => s.track?.kind === "video");
+      console.log("[Discord] Got video track:", videoTrack.label);
+
+      // 2. Add to Local Stream
+      stream.addTrack(videoTrack);
+      const updatedStream = new MediaStream(stream.getTracks());
+      localStreamRef.current = updatedStream;
+
+      // 3. Update React (Local Preview)
+      setIsVideoEnabled(true);
+      setLocalStream(updatedStream);
+
+      // 4. Add to Peer Connections & RENEGOTIATE
+      const conversionPromises = Array.from(peerConnections.current.entries()).map(async ([peerId, pc]) => {
+        console.log(`[Discord] Adding video track to peer ${peerId}`);
+
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
         if (sender) {
-          sender.replaceTrack(videoTrack);
+          console.log(`[Discord] Reusing existing video sender for ${peerId}`);
+          await sender.replaceTrack(videoTrack);
         } else {
-          pc.addTrack(videoTrack, localStreamRef.current!);
-          // Note: If adding track here too, might need renegotiation if transceiver didn't exist
-          // checking if we need to negotiate
-          // For now assume video track existed or this will need similar fix to toggleVideo
-          // But screen share usually replaces camera
+          console.log(`[Discord] Adding new video track for ${peerId}`);
+          pc.addTrack(videoTrack, stream);
+          // Must renegotiate if adding a new track/sender
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+
+          signalingChannel.current?.send({
+            type: "broadcast",
+            event: "signal",
+            payload: {
+              type: "offer",
+              from: user.id,
+              to: peerId,
+              data: offer
+            }
+          });
         }
       });
 
-      videoTrack.onended = () => {
-        stopScreenShare();
-      };
+      await Promise.all(conversionPromises);
 
-      setIsScreenSharing(true);
-
-      await supabase
+      // 5. Update DB
+      supabase
         .from("discord_voice_participants")
-        .update({ is_screen_sharing: true })
+        .update({ is_camera_on: true })
         .eq("channel_id", currentChannel.id)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .then(() => console.log("[Discord] DB: camera on"));
 
-    } catch (error) {
-      console.error("Error starting screen share:", error);
+    } catch (error: any) {
+      console.error("[Discord] Error enabling video:", error);
+      let errorMessage = "No se pudo acceder a la cámara.";
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        errorMessage = "Permiso denegado. Por favor permite el acceso a la cámara en tu navegador.";
+      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        errorMessage = "No se encontró ninguna cámara.";
+      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+        errorMessage = "La cámara está en uso por otra aplicación.";
+      } else if (error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError") {
+        errorMessage = "La cámara no cumple con los requisitos de resolución.";
+      }
+
+      toast({
+        title: "Error de cámara",
+        description: `${errorMessage} (${error.name}: ${error.message})`,
+        variant: "destructive",
+      });
     }
-  };
+  }
+};
 
-  // Stop screen share
-  const stopScreenShare = async () => {
-    if (!user || !currentChannel) return;
+// Start screen share
+const startScreenShare = async () => {
+  if (!user || !currentChannel) return;
 
-    screenStreamRef.current?.getTracks().forEach(track => track.stop());
-    screenStreamRef.current = null;
-    setIsScreenSharing(false);
+  try {
+    const screenStream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: true,
+    });
+
+    screenStreamRef.current = screenStream;
+
+    // Replace video track in all connections
+    const videoTrack = screenStream.getVideoTracks()[0];
+    peerConnections.current.forEach((pc) => {
+      const sender = pc.getSenders().find(s => s.track?.kind === "video");
+      if (sender) {
+        sender.replaceTrack(videoTrack);
+      } else {
+        pc.addTrack(videoTrack, localStreamRef.current!);
+        // Note: If adding track here too, might need renegotiation if transceiver didn't exist
+        // checking if we need to negotiate
+        // For now assume video track existed or this will need similar fix to toggleVideo
+        // But screen share usually replaces camera
+      }
+    });
+
+    videoTrack.onended = () => {
+      stopScreenShare();
+    };
+
+    setIsScreenSharing(true);
 
     await supabase
       .from("discord_voice_participants")
-      .update({ is_screen_sharing: false })
+      .update({ is_screen_sharing: true })
       .eq("channel_id", currentChannel.id)
       .eq("user_id", user.id);
-  };
 
-  // Toggle deafen
-  const toggleDeafen = () => {
-    const newDeafened = !isDeafened;
-    setIsDeafened(newDeafened);
+  } catch (error) {
+    console.error("Error starting screen share:", error);
+  }
+};
 
-    // Mute/unmute all remote audio
-    remoteStreams.forEach((stream) => {
-      stream.getAudioTracks().forEach(track => {
-        track.enabled = !newDeafened;
-      });
+// Stop screen share
+const stopScreenShare = async () => {
+  if (!user || !currentChannel) return;
+
+  screenStreamRef.current?.getTracks().forEach(track => track.stop());
+  screenStreamRef.current = null;
+  setIsScreenSharing(false);
+
+  await supabase
+    .from("discord_voice_participants")
+    .update({ is_screen_sharing: false })
+    .eq("channel_id", currentChannel.id)
+    .eq("user_id", user.id);
+};
+
+// Toggle deafen
+const toggleDeafen = () => {
+  const newDeafened = !isDeafened;
+  setIsDeafened(newDeafened);
+
+  // Mute/unmute all remote audio
+  remoteStreams.forEach((stream) => {
+    stream.getAudioTracks().forEach(track => {
+      track.enabled = !newDeafened;
     });
+  });
 
-    // If deafening, also mute mic
-    if (newDeafened && isAudioEnabled) {
-      const stream = localStreamRef.current;
-      if (stream) {
-        const audioTrack = stream.getAudioTracks()[0];
-        if (audioTrack) {
-          audioTrack.enabled = false;
-          setIsAudioEnabled(false);
+  // If deafening, also mute mic
+  if (newDeafened && isAudioEnabled) {
+    const stream = localStreamRef.current;
+    if (stream) {
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = false;
+        setIsAudioEnabled(false);
+      }
+    }
+    if (currentChannel && user) {
+      supabase
+        .from("discord_voice_participants")
+        .update({ is_muted: true })
+        .eq("channel_id", currentChannel.id)
+        .eq("user_id", user.id)
+        .then(() => { });
+    }
+  }
+};
+
+// Typing indicator
+const sendTypingIndicator = useCallback(() => {
+  if (!currentChannel || currentChannel.type !== "text" || !user) return;
+
+  typingChannel.current?.send({
+    type: "broadcast",
+    event: "typing",
+    payload: {
+      user_id: user.id,
+      display_name: "Usuario",
+    },
+  });
+}, [currentChannel, user]);
+
+// Effects
+useEffect(() => {
+  fetchServers();
+}, [fetchServers]);
+
+useEffect(() => {
+  if (currentServer) {
+    fetchChannels();
+    fetchMembers();
+    fetchAllVoiceParticipants();
+
+    // Subscribe to voice participant changes for ALL channels in server
+    const allVoiceSub = supabase
+      .channel(`all-voice:${currentServer.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "discord_voice_participants",
+        },
+        () => {
+          fetchAllVoiceParticipants();
         }
-      }
-      if (currentChannel && user) {
-        supabase
-          .from("discord_voice_participants")
-          .update({ is_muted: true })
-          .eq("channel_id", currentChannel.id)
-          .eq("user_id", user.id)
-          .then(() => { });
-      }
-    }
-  };
-
-  // Typing indicator
-  const sendTypingIndicator = useCallback(() => {
-    if (!currentChannel || currentChannel.type !== "text" || !user) return;
-
-    typingChannel.current?.send({
-      type: "broadcast",
-      event: "typing",
-      payload: {
-        user_id: user.id,
-        display_name: "Usuario",
-      },
-    });
-  }, [currentChannel, user]);
-
-  // Effects
-  useEffect(() => {
-    fetchServers();
-  }, [fetchServers]);
-
-  useEffect(() => {
-    if (currentServer) {
-      fetchChannels();
-      fetchMembers();
-      fetchAllVoiceParticipants();
-
-      // Subscribe to voice participant changes for ALL channels in server
-      const allVoiceSub = supabase
-        .channel(`all-voice:${currentServer.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "discord_voice_participants",
-          },
-          () => {
-            fetchAllVoiceParticipants();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(allVoiceSub);
-      };
-    }
-  }, [currentServer, fetchChannels, fetchMembers, fetchAllVoiceParticipants]);
-
-  useEffect(() => {
-    if (currentChannel?.type === "text") {
-      fetchMessages();
-
-      // Subscribe to new messages
-      const channel = supabase
-        .channel(`messages:${currentChannel.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "discord_messages",
-            filter: `channel_id=eq.${currentChannel.id}`,
-          },
-          () => {
-            fetchMessages();
-          }
-        )
-        .subscribe();
-
-      // Setup typing indicator channel
-      const tCh = supabase.channel(`typing:${currentChannel.id}`);
-      tCh.on("broadcast", { event: "typing" }, ({ payload }) => {
-        if (payload.user_id === user?.id) return;
-        const displayName = payload.display_name || "Alguien";
-        setTypingUsers(prev => {
-          const updated = new Map(prev);
-          updated.set(payload.user_id, displayName);
-          return updated;
-        });
-        // Clear after 3 seconds
-        const existingTimeout = typingTimeouts.current.get(payload.user_id);
-        if (existingTimeout) clearTimeout(existingTimeout);
-        const timeout = setTimeout(() => {
-          setTypingUsers(prev => {
-            const updated = new Map(prev);
-            updated.delete(payload.user_id);
-            return updated;
-          });
-          typingTimeouts.current.delete(payload.user_id);
-        }, 3000);
-        typingTimeouts.current.set(payload.user_id, timeout);
-      }).subscribe();
-      typingChannel.current = tCh;
-
-      return () => {
-        supabase.removeChannel(channel);
-        if (typingChannel.current) {
-          supabase.removeChannel(typingChannel.current);
-          typingChannel.current = null;
-        }
-        // Clear typing timeouts
-        typingTimeouts.current.forEach(t => clearTimeout(t));
-        typingTimeouts.current.clear();
-        setTypingUsers(new Map());
-      };
-    }
-  }, [currentChannel, fetchMessages, user]);
-
-  useEffect(() => {
-    if (currentChannel?.type === "voice") {
-      fetchVoiceParticipants();
-
-      // Subscribe to voice participant changes
-      const channel = supabase
-        .channel(`voice-participants:${currentChannel.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "discord_voice_participants",
-            filter: `channel_id=eq.${currentChannel.id}`,
-          },
-          (payload) => {
-            fetchVoiceParticipants();
-
-            // Update speaking users
-            if (payload.eventType === "UPDATE") {
-              const participant = payload.new as DiscordVoiceParticipant;
-              setSpeakingUsers(prev => {
-                const updated = new Set(prev);
-                if (participant.is_speaking) {
-                  updated.add(participant.user_id);
-                } else {
-                  updated.delete(participant.user_id);
-                }
-                return updated;
-              });
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [currentChannel, fetchVoiceParticipants]);
-
-  // Cleanup on unmount AND on tab close / page unload
-  useEffect(() => {
-    const cleanupVoice = () => {
-      localStreamRef.current?.getTracks().forEach(track => track.stop());
-      localStream?.getTracks().forEach(track => track.stop());
-      screenStreamRef.current?.getTracks().forEach(track => track.stop());
-      peerConnections.current.forEach(pc => pc.close());
-      if (signalingChannel.current) {
-        supabase.removeChannel(signalingChannel.current);
-      }
-      if (audioContext.current) {
-        audioContext.current.close();
-      }
-    };
-
-    // Use sendBeacon for reliable cleanup on tab close
-    const handleBeforeUnload = () => {
-      cleanupVoice();
-      // Best-effort DB cleanup via sendBeacon (works during page unload)
-      if (user) {
-        const url = `${(supabase as any).supabaseUrl}/rest/v1/discord_voice_participants?user_id=eq.${user.id}`;
-        const apiKey = (supabase as any).supabaseKey;
-        if (url && apiKey) {
-          // sendBeacon doesn't support DELETE, so we use fetch with keepalive
-          try {
-            fetch(url, {
-              method: "DELETE",
-              headers: {
-                "apikey": apiKey,
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
-              },
-              keepalive: true,
-            }).catch(() => { });
-          } catch { }
-        }
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
+      )
+      .subscribe();
 
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      cleanupVoice();
+      supabase.removeChannel(allVoiceSub);
     };
-  }, [user]);
+  }
+}, [currentServer, fetchChannels, fetchMembers, fetchAllVoiceParticipants]);
 
-  // Wrapper for setCurrentChannel to handle voice channel logic
-  const handleSetCurrentChannel = async (channel: DiscordChannel | null) => {
-    // If clicking the same channel, do nothing
-    if (currentChannel?.id === channel?.id) return;
+useEffect(() => {
+  if (currentChannel?.type === "text") {
+    fetchMessages();
 
-    // Logic for Voice Channels
-    const isLeavingVoice = inVoiceChannel && currentChannel?.type === 'voice';
-    const isJoiningVoice = channel?.type === 'voice';
+    // Subscribe to new messages
+    const channel = supabase
+      .channel(`messages:${currentChannel.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "discord_messages",
+          filter: `channel_id=eq.${currentChannel.id}`,
+        },
+        () => {
+          fetchMessages();
+        }
+      )
+      .subscribe();
 
-    if (isLeavingVoice) {
-      await leaveVoiceChannel();
+    // Setup typing indicator channel
+    const tCh = supabase.channel(`typing:${currentChannel.id}`);
+    tCh.on("broadcast", { event: "typing" }, ({ payload }) => {
+      if (payload.user_id === user?.id) return;
+      const displayName = payload.display_name || "Alguien";
+      setTypingUsers(prev => {
+        const updated = new Map(prev);
+        updated.set(payload.user_id, displayName);
+        return updated;
+      });
+      // Clear after 3 seconds
+      const existingTimeout = typingTimeouts.current.get(payload.user_id);
+      if (existingTimeout) clearTimeout(existingTimeout);
+      const timeout = setTimeout(() => {
+        setTypingUsers(prev => {
+          const updated = new Map(prev);
+          updated.delete(payload.user_id);
+          return updated;
+        });
+        typingTimeouts.current.delete(payload.user_id);
+      }, 3000);
+      typingTimeouts.current.set(payload.user_id, timeout);
+    }).subscribe();
+    typingChannel.current = tCh;
+
+    return () => {
+      supabase.removeChannel(channel);
+      if (typingChannel.current) {
+        supabase.removeChannel(typingChannel.current);
+        typingChannel.current = null;
+      }
+      // Clear typing timeouts
+      typingTimeouts.current.forEach(t => clearTimeout(t));
+      typingTimeouts.current.clear();
+      setTypingUsers(new Map());
+    };
+  }
+}, [currentChannel, fetchMessages, user]);
+
+useEffect(() => {
+  if (currentChannel?.type === "voice") {
+    fetchVoiceParticipants();
+
+    // Subscribe to voice participant changes
+    const channel = supabase
+      .channel(`voice-participants:${currentChannel.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "discord_voice_participants",
+          filter: `channel_id=eq.${currentChannel.id}`,
+        },
+        (payload) => {
+          fetchVoiceParticipants();
+
+          // Update speaking users
+          if (payload.eventType === "UPDATE") {
+            const participant = payload.new as DiscordVoiceParticipant;
+            setSpeakingUsers(prev => {
+              const updated = new Set(prev);
+              if (participant.is_speaking) {
+                updated.add(participant.user_id);
+              } else {
+                updated.delete(participant.user_id);
+              }
+              return updated;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }
+}, [currentChannel, fetchVoiceParticipants]);
+
+// Cleanup on unmount AND on tab close / page unload
+useEffect(() => {
+  const cleanupVoice = () => {
+    localStreamRef.current?.getTracks().forEach(track => track.stop());
+    localStream?.getTracks().forEach(track => track.stop());
+    screenStreamRef.current?.getTracks().forEach(track => track.stop());
+    peerConnections.current.forEach(pc => pc.close());
+    if (signalingChannel.current) {
+      supabase.removeChannel(signalingChannel.current);
     }
-
-    setInternalCurrentChannel(channel);
-
-    if (isJoiningVoice && channel) {
-      await joinVoiceChannel(channel);
+    if (audioContext.current) {
+      audioContext.current.close();
     }
   };
 
-  return {
-    // Server state
-    servers,
-    currentServer,
-    members,
-    channels,
-    setCurrentServer,
-
-    // Channel state
-    currentChannel,
-    setCurrentChannel: handleSetCurrentChannel,
-    messages,
-    voiceParticipants,
-    allVoiceParticipants,
-    typingUsers,
-
-    // Voice state
-    localStream,
-    remoteStreams,
-    isAudioEnabled,
-    isVideoEnabled,
-    isScreenSharing,
-    isDeafened,
-    isSpeaking,
-    speakingUsers,
-    inVoiceChannel,
-    peerStates,
-
-    // Loading
-    loading,
-
-    // Actions
-    createServer,
-    deleteServer,
-    leaveServer,
-    createChannel,
-    deleteChannel,
-    sendMessage,
-    sendTypingIndicator,
-    inviteUser,
-    joinVoiceChannel,
-    leaveVoiceChannel,
-    toggleAudio,
-    toggleVideo,
-    toggleDeafen,
-    startScreenShare,
-    stopScreenShare,
-    fetchServers,
-    createInvite,
-    joinServerByCode,
+  // Use sendBeacon for reliable cleanup on tab close
+  const handleBeforeUnload = () => {
+    cleanupVoice();
+    // Best-effort DB cleanup via sendBeacon (works during page unload)
+    if (user) {
+      const url = `${(supabase as any).supabaseUrl}/rest/v1/discord_voice_participants?user_id=eq.${user.id}`;
+      const apiKey = (supabase as any).supabaseKey;
+      if (url && apiKey) {
+        // sendBeacon doesn't support DELETE, so we use fetch with keepalive
+        try {
+          fetch(url, {
+            method: "DELETE",
+            headers: {
+              "apikey": apiKey,
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            keepalive: true,
+          }).catch(() => { });
+        } catch { }
+      }
+    }
   };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    cleanupVoice();
+  };
+}, [user]);
+
+// Wrapper for setCurrentChannel to handle voice channel logic
+const handleSetCurrentChannel = async (channel: DiscordChannel | null) => {
+  // If clicking the same channel, do nothing
+  if (currentChannel?.id === channel?.id) return;
+
+  // Logic for Voice Channels
+  const isLeavingVoice = inVoiceChannel && currentChannel?.type === 'voice';
+  const isJoiningVoice = channel?.type === 'voice';
+
+  if (isLeavingVoice) {
+    await leaveVoiceChannel();
+  }
+
+  setInternalCurrentChannel(channel);
+
+  if (isJoiningVoice && channel) {
+    await joinVoiceChannel(channel);
+  }
+};
+
+return {
+  // Server state
+  servers,
+  currentServer,
+  members,
+  channels,
+  setCurrentServer,
+
+  // Channel state
+  currentChannel,
+  setCurrentChannel: handleSetCurrentChannel,
+  messages,
+  voiceParticipants,
+  allVoiceParticipants,
+  typingUsers,
+
+  // Voice state
+  localStream,
+  remoteStreams,
+  isAudioEnabled,
+  isVideoEnabled,
+  isScreenSharing,
+  isDeafened,
+  isSpeaking,
+  speakingUsers,
+  inVoiceChannel,
+  peerStates,
+
+  // Loading
+  loading,
+
+  // Actions
+  createServer,
+  deleteServer,
+  leaveServer,
+  createChannel,
+  deleteChannel,
+  sendMessage,
+  sendTypingIndicator,
+  inviteUser,
+  joinVoiceChannel,
+  leaveVoiceChannel,
+  toggleAudio,
+  toggleVideo,
+  toggleDeafen,
+  startScreenShare,
+  stopScreenShare,
+  fetchServers,
+  createInvite,
+  joinServerByCode,
+};
 }
