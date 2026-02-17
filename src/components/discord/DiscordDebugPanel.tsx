@@ -2,7 +2,7 @@ import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
+import { Badge } from "@/components/ui/badge";
 
 export function DiscordDebugPanel() {
     const { user } = useAuth(); // Need user to filter self
