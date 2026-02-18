@@ -17,15 +17,42 @@ const ICE_SERVERS: RTCConfiguration = {
     iceCandidatePoolSize: 10,
 };
 
-// ═══ Global camera cleanup on tab close ═══
+// ═══ Global cleanup on tab close/refresh ═══
 const activeStreams = new Set<MediaStream>();
-function stopAllActiveStreams() {
+let _globalUserId: string | null = null;
+
+function cleanupOnUnload() {
+    // 1. Stop all media tracks (camera, mic)
     activeStreams.forEach(s => s.getTracks().forEach(t => t.stop()));
     activeStreams.clear();
+
+    // 2. Delete voice participant rows from DB via keepalive fetch
+    if (_globalUserId) {
+        const url = import.meta.env.VITE_SUPABASE_URL;
+        const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        if (url && key) {
+            const token = localStorage.getItem('sb-' + new URL(url).hostname.split('.')[0] + '-auth-token');
+            let accessToken = key; // fallback to anon key
+            if (token) {
+                try { accessToken = JSON.parse(token).access_token || key; } catch { }
+            }
+            // Fire-and-forget DELETE — keepalive ensures it survives page unload
+            fetch(`${url}/rest/v1/discord_voice_participants?user_id=eq.${_globalUserId}`, {
+                method: 'DELETE',
+                headers: {
+                    'apikey': key,
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                keepalive: true,
+            }).catch(() => { });
+        }
+    }
 }
+
 if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', stopAllActiveStreams);
-    window.addEventListener('pagehide', stopAllActiveStreams);
+    window.addEventListener('beforeunload', cleanupOnUnload);
+    window.addEventListener('pagehide', cleanupOnUnload);
 }
 
 export interface CameraDevice {
@@ -56,7 +83,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const userIdRef = useRef<string | null>(null);
 
     useEffect(() => { channelIdRef.current = channelId; }, [channelId]);
-    useEffect(() => { userIdRef.current = user?.id ?? null; }, [user?.id]);
+    useEffect(() => { userIdRef.current = user?.id ?? null; _globalUserId = user?.id ?? null; }, [user?.id]);
 
     const log = useCallback((msg: string) => console.log(`[RobustDiscord v7.1] ${msg}`), []);
 
