@@ -39,13 +39,13 @@ export default function Discord() {
     joinVoiceChannel,
     leaveVoiceChannel,
     toggleAudio,
+    toggleVideo,
     toggleDeafen,
     startScreenShare,
     stopScreenShare,
     loading,
     createInvite,
     joinServerByCode,
-    video // Destructure video object
   } = discord;
 
   if (loading && servers.length === 0) {
@@ -90,7 +90,7 @@ export default function Discord() {
             inVoiceChannel={inVoiceChannel}
             currentVoiceChannel={inVoiceChannel && currentChannel?.type === 'voice' ? currentChannel : null}
             isAudioEnabled={isAudioEnabled}
-            isVideoEnabled={video.isVideoEnabled} // Use video hook
+            isVideoEnabled={isVideoEnabled}
             isDeafened={isDeafened}
             isSpeaking={isSpeaking}
             onToggleAudio={toggleAudio}
@@ -117,15 +117,15 @@ export default function Discord() {
             ) : currentChannel?.type === "voice" ? (
               <DiscordVoiceChannel
                 channel={currentChannel}
-                localStream={video.localVideoStream} // Use video hook
-                remoteStreams={video.remoteVideoStreams} // Use video hook
+                localStream={localStream}
+                remoteStreams={remoteStreams}
                 voiceParticipants={voiceParticipants}
                 isAudioEnabled={isAudioEnabled}
-                isVideoEnabled={video.isVideoEnabled} // Use video hook
+                isVideoEnabled={isVideoEnabled}
                 isScreenSharing={isScreenSharing}
                 isDeafened={isDeafened}
                 onToggleAudio={toggleAudio}
-                onToggleVideo={video.toggleVideo} // Use video hook
+                onToggleVideo={toggleVideo}
                 onToggleScreenShare={isScreenSharing ? stopScreenShare : startScreenShare}
                 onLeaveChannel={leaveVoiceChannel}
                 speakingUsers={speakingUsers}

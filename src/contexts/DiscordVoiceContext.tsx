@@ -1,24 +1,29 @@
-import React, { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import { useDiscord } from "@/hooks/useDiscord";
-import { useDiscordVideo } from "@/hooks/useDiscordVideo";
+import { useRobustDiscord } from "@/hooks/useRobustDiscord";
 import { DiscordAudioRenderer } from "@/components/discord/DiscordAudioRenderer";
 import { DiscordDebugPanel } from "@/components/discord/DiscordDebugPanel";
 
-// Combine both hooks into one context value
-type DiscordContextType = ReturnType<typeof useDiscord> & {
-    video: ReturnType<typeof useDiscordVideo>;
-};
-
-const DiscordVoiceContext = createContext<DiscordContextType | undefined>(undefined);
+const DiscordVoiceContext = createContext<any>(null);
 
 export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
     const discord = useDiscord();
-    // Use the current channel ID from the main hook to initialize video
-    const video = useDiscordVideo(discord.currentChannel?.id || null);
 
+    // Only activate voice when user is viewing a voice channel
+    const voiceChannelId = discord.currentChannel?.type === 'voice' ? discord.currentChannel.id : null;
+    const voice = useRobustDiscord({ channelId: voiceChannelId });
+
+    // Merge: discord provides data (servers, channels, messages, participants)
+    //        voice provides media (streams, toggle functions)
     const combinedValue = {
         ...discord,
-        video
+        // Override media-related properties with robust hook values
+        localStream: voice.localStream,
+        remoteStreams: voice.remoteStreams,
+        isAudioEnabled: voice.isAudioEnabled,
+        isVideoEnabled: voice.isVideoEnabled,
+        toggleAudio: voice.toggleAudio,
+        toggleVideo: voice.toggleVideo,
     };
 
     return (
@@ -30,9 +35,9 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
     );
 }
 
-export function useDiscordVoice(): DiscordContextType {
+export function useDiscordVoice() {
     const context = useContext(DiscordVoiceContext);
-    if (context === undefined) {
+    if (!context) {
         throw new Error("useDiscordVoice must be used within a DiscordVoiceProvider");
     }
     return context;

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoSignaling } from '../lib/discord-signaling';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
-// Configuración de servidores ICE (STUN/TURN)
-const ICE_SERVERS = {
+// ICE Servers
+const ICE_SERVERS: RTCConfiguration = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
@@ -20,374 +20,360 @@ interface UseRobustDiscordProps {
     channelId: string | null;
 }
 
-export const useRobustDiscord = ({ channelId }: UseRobustDiscordProps) => {
+export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const { user } = useAuth();
     const { toast } = useToast();
 
-    // Estados
-    const [isConnected, setIsConnected] = useState(false);
-    const [isAudioEnabled, setIsAudioEnabled] = useState(false); // Start false
-    const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-
-    // Streams
+    // States
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+    const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+    const [isVideoEnabled, setIsVideoEnabled] = useState(false);
 
-    // Connection State
-    const [connectionState, setConnectionState] = useState<string>('new');
-    const [error, setError] = useState<string | null>(null);
-
-    // Referencias
+    // Refs (survive re-renders)
     const localStreamRef = useRef<MediaStream | null>(null);
     const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-    const signalingRef = useRef<VideoSignaling | null>(null);
-    const makingOfferRef = useRef<Map<string, boolean>>(new Map());
-    const politeRef = useRef(false); // Deterministic politeness
+    const signalingChannelRef = useRef<RealtimeChannel | null>(null);
+    const channelIdRef = useRef<string | null>(null);
+    const userIdRef = useRef<string | null>(null);
 
-    // Logger para debugging
-    const log = useCallback((message: string) => {
-        console.log(`[RobustDiscord] ${message}`);
-    }, []);
+    // Keep refs in sync
+    useEffect(() => { channelIdRef.current = channelId; }, [channelId]);
+    useEffect(() => { userIdRef.current = user?.id ?? null; }, [user?.id]);
 
-    // Cleanup peer connection for a specific user
-    const closePeerConnection = useCallback((targetUserId: string) => {
-        log(`Closing connection to ${targetUserId}`);
-        const pc = peerConnectionsRef.current.get(targetUserId);
+    const log = useCallback((msg: string) => console.log(`[RobustDiscord] ${msg}`), []);
+
+    // ─── Cleanup helpers ───
+
+    const closePeerConnection = useCallback((targetId: string) => {
+        const pc = peerConnectionsRef.current.get(targetId);
         if (pc) {
             pc.close();
-            peerConnectionsRef.current.delete(targetUserId);
+            peerConnectionsRef.current.delete(targetId);
+            log(`Closed PC for ${targetId.slice(0, 8)}`);
         }
         setRemoteStreams(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(targetUserId);
-            return newMap;
+            const m = new Map(prev);
+            m.delete(targetId);
+            return m;
         });
     }, [log]);
 
-    // Crear peer connection
-    const createPeerConnection = useCallback((targetUserId: string) => {
-        log(`Creando peer connection para ${targetUserId}...`);
-
-        // Check if exists
-        if (peerConnectionsRef.current.has(targetUserId)) {
-            log(`PC ya existe para ${targetUserId}, cerrando anterior`);
-            closePeerConnection(targetUserId);
+    const cleanupAll = useCallback(() => {
+        log('Full cleanup');
+        localStreamRef.current?.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
+        setLocalStream(null);
+        peerConnectionsRef.current.forEach(pc => pc.close());
+        peerConnectionsRef.current.clear();
+        setRemoteStreams(new Map());
+        setIsAudioEnabled(true);
+        setIsVideoEnabled(false);
+        if (signalingChannelRef.current) {
+            signalingChannelRef.current.unsubscribe();
+            signalingChannelRef.current = null;
         }
+    }, [log]);
+
+    // ─── Peer Connection Factory ───
+
+    const makePeerConnection = useCallback((targetId: string, stream: MediaStream): RTCPeerConnection => {
+        // Close existing if any
+        const existing = peerConnectionsRef.current.get(targetId);
+        if (existing) { existing.close(); peerConnectionsRef.current.delete(targetId); }
 
         const pc = new RTCPeerConnection(ICE_SERVERS);
-        peerConnectionsRef.current.set(targetUserId, pc);
-
-        // Evento: Recibir tracks remotos (CRÍTICO)
-        pc.ontrack = (event) => {
-            log(`Track remoto recibido de ${targetUserId}: ${event.track.kind}`);
-
-            const remoteStream = event.streams[0] || new MediaStream([event.track]);
-
-            // Update remote streams map
-            setRemoteStreams(prev => {
-                const newMap = new Map(prev);
-                newMap.set(targetUserId, remoteStream);
-                return newMap;
-            });
-
-            // Ensure tracks are processed?
-            event.track.onunmute = () => {
-                log(`Track ${event.track.kind} de ${targetUserId} unmuted`);
-            };
-        };
-
-        // Evento: ICE candidates
-        pc.onicecandidate = (event) => {
-            if (event.candidate && signalingRef.current) {
-                signalingRef.current.send({
-                    type: 'ice-candidate',
-                    candidate: event.candidate.toJSON(),
-                    userId: targetUserId // Send intent? Signaling handles broadcast but we format payload
-                });
-                // Wait, signaling send() wraps payload.
-                // We broadcast to channel. All users receive.
-                // We need to specify TARGET in payload if we want privacy, or just filtered by 'senderId'.
-                // The VideoSignaling class sends broadcast. 
-                // We should add 'target' field to payload so others ignore if not for them.
-                // But for Voice Channel broadcast, usually we just send to 'video-{channel}'.
-                // The VideoSignaling.send adds userId (sender).
-                // If we adhere to "Generic Solution", it broadcasted to everyone? 
-                // The `useVideoCall` was 1-on-1.
-                // In Mesh, we need to handle specific peers.
-                // Let's modify signaling send to include 'targetUserId' if known, but here we just broadcast candidates.
-                // The receivers filter by 'senderId'.
-            }
-        };
-
-        // Evento: Cambio de estado de conexión
-        pc.onconnectionstatechange = () => {
-            const state = pc.connectionState;
-            log(`Connection state with ${targetUserId}: ${state}`);
-
-            if (state === 'failed') {
-                log(`Conexión falló con ${targetUserId} - intentando reiniciar ICE`);
-                pc.restartIce();
-            } else if (state === 'closed' || state === 'disconnected') {
-                // closePeerConnection(targetUserId); // Maybe too aggressive if temporary disconnect?
-            }
-        };
-
-        // Evento: Negociación necesaria
-        pc.onnegotiationneeded = async () => {
-            try {
-                log(`Negociación necesaria con ${targetUserId}`);
-                makingOfferRef.current.set(targetUserId, true);
-
-                await pc.setLocalDescription();
-
-                if (signalingRef.current) {
-                    await signalingRef.current.send({
-                        type: 'offer',
-                        offer: pc.localDescription,
-                        targetUserId: targetUserId // We only want THIS user to answer ideally
-                    });
-                }
-            } catch (err: any) {
-                log(`ERROR en negotiationneeded: ${err.message}`);
-            } finally {
-                makingOfferRef.current.set(targetUserId, false);
-            }
-        };
+        peerConnectionsRef.current.set(targetId, pc);
 
         // Add local tracks
-        if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => {
-                pc.addTrack(track, localStreamRef.current!);
+        stream.getTracks().forEach(track => {
+            pc.addTrack(track, stream);
+        });
+        log(`Added ${stream.getTracks().length} tracks to PC for ${targetId.slice(0, 8)}`);
+
+        // Receive remote tracks
+        pc.ontrack = (ev) => {
+            log(`ontrack from ${targetId.slice(0, 8)}: ${ev.track.kind}`);
+            const remoteStream = ev.streams[0] || new MediaStream([ev.track]);
+            setRemoteStreams(prev => {
+                const m = new Map(prev);
+                m.set(targetId, remoteStream);
+                return m;
             });
-        }
+        };
+
+        // ICE candidates → broadcast
+        pc.onicecandidate = (ev) => {
+            if (ev.candidate && signalingChannelRef.current) {
+                signalingChannelRef.current.send({
+                    type: 'broadcast',
+                    event: 'signaling',
+                    payload: {
+                        type: 'ice-candidate',
+                        candidate: ev.candidate.toJSON(),
+                        from: userIdRef.current,
+                        to: targetId,
+                    },
+                });
+            }
+        };
+
+        // Connection state
+        pc.onconnectionstatechange = () => {
+            log(`PC ${targetId.slice(0, 8)} connection: ${pc.connectionState}`);
+            if (pc.connectionState === 'failed') pc.restartIce();
+        };
+
+        pc.oniceconnectionstatechange = () => {
+            log(`PC ${targetId.slice(0, 8)} ICE: ${pc.iceConnectionState}`);
+        };
 
         return pc;
-    }, [log, closePeerConnection]);
+    }, [log]);
 
-    // Inicializar llamada (Obtener media local)
-    const initializeMedia = useCallback(async () => {
+    // ─── Signaling Handlers ───
+
+    const handleSignaling = useCallback(async (payload: any) => {
+        const myId = userIdRef.current;
+        if (!myId) return;
+        if (payload.from === myId) return; // ignore own messages
+
+        const senderId = payload.from as string;
+
+        // If message is targeted and not for us, skip
+        if (payload.to && payload.to !== myId) return;
+
+        const stream = localStreamRef.current;
+
+        switch (payload.type) {
+            case 'offer': {
+                log(`Offer from ${senderId.slice(0, 8)}`);
+                if (!stream) { log('No local stream, ignoring offer'); return; }
+
+                let pc = peerConnectionsRef.current.get(senderId);
+                if (!pc) {
+                    pc = makePeerConnection(senderId, stream);
+                }
+
+                try {
+                    await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+
+                    signalingChannelRef.current?.send({
+                        type: 'broadcast',
+                        event: 'signaling',
+                        payload: {
+                            type: 'answer',
+                            answer: pc.localDescription,
+                            from: myId,
+                            to: senderId,
+                        },
+                    });
+                    log(`Answer sent to ${senderId.slice(0, 8)}`);
+                } catch (e: any) {
+                    log(`Error handling offer: ${e.message}`);
+                }
+                break;
+            }
+
+            case 'answer': {
+                log(`Answer from ${senderId.slice(0, 8)}`);
+                const pc = peerConnectionsRef.current.get(senderId);
+                if (!pc) { log('No PC for answer, ignoring'); return; }
+
+                try {
+                    await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+                    log(`Remote description set for ${senderId.slice(0, 8)}`);
+                } catch (e: any) {
+                    log(`Error handling answer: ${e.message}`);
+                }
+                break;
+            }
+
+            case 'ice-candidate': {
+                const pc = peerConnectionsRef.current.get(senderId);
+                if (!pc) { log(`No PC for ICE from ${senderId.slice(0, 8)}`); return; }
+
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                } catch (e: any) {
+                    log(`Error adding ICE: ${e.message}`);
+                }
+                break;
+            }
+        }
+    }, [makePeerConnection, log]);
+
+    // ─── Create Offer to a specific user ───
+
+    const createOfferTo = useCallback(async (targetId: string, stream: MediaStream) => {
+        log(`Creating offer to ${targetId.slice(0, 8)}`);
+        const pc = makePeerConnection(targetId, stream);
+
         try {
-            log('Inicializando media...');
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+            await pc.setLocalDescription(offer);
 
-            const constraints = {
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
+            signalingChannelRef.current?.send({
+                type: 'broadcast',
+                event: 'signaling',
+                payload: {
+                    type: 'offer',
+                    offer: pc.localDescription,
+                    from: userIdRef.current,
+                    to: targetId,
                 },
-                video: true, // Request video initially to get permissions? Or false?
-                // Discord usually starts audio-only.
-                // If we request video: true, camera turns on.
-                // Let's request audio only first, or handle video toggle later.
-                // User wants VIDEO working.
-                // Let's start audio only, let toggle enable video.
-            };
+            });
+            log(`Offer sent to ${targetId.slice(0, 8)}`);
+        } catch (e: any) {
+            log(`Error creating offer: ${e.message}`);
+        }
+    }, [makePeerConnection, log]);
 
-            // To follow "Robust" solution, we get stream. 
-            // If we want audio-only start:
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    // ─── Main Effect: Join/Leave channel ───
+
+    useEffect(() => {
+        if (!channelId || !user) {
+            cleanupAll();
+            return;
+        }
+
+        let cancelled = false;
+        log(`Joining channel ${channelId.slice(0, 8)} as ${user.id.slice(0, 8)}`);
+
+        const start = async () => {
+            // 1. Get local audio stream
+            let stream: MediaStream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false,
+                });
+            } catch (e: any) {
+                log(`getUserMedia failed: ${e.message}`);
+                toast({ title: 'Error de micrófono', description: e.message, variant: 'destructive' });
+                return;
+            }
+
+            if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
             localStreamRef.current = stream;
             setLocalStream(stream);
             setIsAudioEnabled(true);
+            setIsVideoEnabled(false);
+            log(`Got local audio stream (${stream.getAudioTracks().length} audio tracks)`);
 
-            log(`Stream de audio obtenido`);
-            return stream;
+            // 2. Setup signaling channel
+            const channel = supabase.channel(`voice-robust:${channelId}`, {
+                config: { broadcast: { self: false }, presence: { key: user.id } },
+            });
 
-        } catch (err: any) {
-            log(`ERROR en inicialización media: ${err.message}`);
-            toast({ title: "Error", description: "No se pudo acceder al micrófono", variant: "destructive" });
-            throw err;
-        }
-    }, [log, toast]);
+            // Listen for signaling messages
+            channel.on('broadcast', { event: 'signaling' }, ({ payload }) => {
+                if (!cancelled) handleSignaling(payload);
+            });
 
-    // Crear oferta para un usuario específico (Initiator)
-    const createOffer = useCallback(async (targetUserId: string) => {
-        const pc = createPeerConnection(targetUserId);
-        try {
-            // Manual offer creation if negotiationneeded doesn't fire optimally
-            // But negotiationneeded should fire when we add tracks.
-            // We'll rely on onnegotiationneeded or manual?
-            // The 'Robust' solution used manual createOffer in joinCall.
+            // Listen for presence changes
+            channel.on('presence', { event: 'join' }, ({ key }) => {
+                if (cancelled || !key || key === user.id) return;
+                log(`User joined: ${key.slice(0, 8)}`);
 
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-
-            if (signalingRef.current) {
-                await signalingRef.current.send({
-                    type: 'offer',
-                    offer: pc.localDescription,
-                    targetUserId // Use this to direct offer
-                });
-            }
-        } catch (e) {
-            log(`Error creating offer: ${e}`);
-        }
-    }, [createPeerConnection, log]);
-
-
-    // Initial Join Logic
-    useEffect(() => {
-        if (!channelId || !user) return;
-
-        let mounted = true;
-
-        const start = async () => {
-            // 1. Get Media
-            const stream = await initializeMedia();
-
-            // 2. Setup Signaling
-            const handlers = {
-                onOffer: async (offer: RTCSessionDescriptionInit, senderId: string) => {
-                    // Check if for us? Mesh broadcast implicitly implies for everyone unless targeted.
-                    // We will verify target in data if possible, but basic signaling doesn't have it yet.
-                    // For now, assume broadcast offers are for everyone who doesn't have a connection?
-                    // Or better, we only process offers from lower IDs? (Politeness)
-
-                    log(`Recibida oferta de ${senderId}`);
-                    let pc = peerConnectionsRef.current.get(senderId);
-                    if (!pc) {
-                        pc = createPeerConnection(senderId);
-                    }
-
-                    await pc.setRemoteDescription(offer);
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-
-                    signalingRef.current?.send({
-                        type: 'answer',
-                        answer: pc.localDescription,
-                        targetUserId: senderId // Answer specifically back to sender
-                    });
-                },
-                onAnswer: async (answer: RTCSessionDescriptionInit, senderId: string) => {
-                    log(`Recibida respuesta de ${senderId}`);
-                    const pc = peerConnectionsRef.current.get(senderId);
-                    if (pc) {
-                        await pc.setRemoteDescription(answer);
-                    }
-                },
-                onIceCandidate: async (candidate: RTCIceCandidateInit, senderId: string) => {
-                    const pc = peerConnectionsRef.current.get(senderId);
-                    if (pc) {
-                        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-                    }
-                },
-                onUserJoined: (userId: string) => {
-                    log(`Usuario unido: ${userId}`);
-                    // Existing user should offer to new user?
-                    // Or new user offers to existing?
-                    // Polite strategy:
-                    // We use ID comparison.
-                    // If localUser < remoteUser, we offer.
-                    if (user.id.localeCompare(userId) < 0) {
-                        log(`Iniciando conexión con ${userId} (Soy iniciador)`);
-                        createOffer(userId);
-                    }
-                },
-                onUserLeft: (userId: string) => {
-                    closePeerConnection(userId);
+                // Deterministic: lower ID creates offer
+                if (user.id.localeCompare(key) < 0) {
+                    log(`I'm initiator → offering to ${key.slice(0, 8)}`);
+                    createOfferTo(key, stream);
                 }
-            };
+            });
 
-            const sig = new VideoSignaling(channelId, user.id, handlers);
-            await sig.connect();
-            signalingRef.current = sig;
+            channel.on('presence', { event: 'leave' }, ({ key }) => {
+                if (!key || key === user.id) return;
+                log(`User left: ${key.slice(0, 8)}`);
+                closePeerConnection(key);
+            });
 
-            // Presence check? The class handles events.
-            // We might want to see existing users.
-            setTimeout(() => {
-                // For existing users, we might need a way to trigger connection.
-                // Currently 'onUserJoined' handles NEW joins.
-                // But what about people already there?
-                // VideoSignaling could expose current presence?
-                // Or we just broadcast "I am here"?
-                // The VideoSignaling.connect() calls track().
-                // This triggers 'join' for OTHERS.
-                // But for ME, I need to know others.
-                // The presence state sync ... 
-                // We can check `sig.getPresence()`.
-                const others = sig.getPresence().filter(id => id !== user.id);
-                others.forEach(otherId => {
-                    if (user.id.localeCompare(otherId) < 0) {
-                        log(`Conectando con usuario existente: ${otherId}`);
-                        createOffer(otherId);
-                    }
-                });
-            }, 1000); // Give time for presence sync
+            // Subscribe
+            channel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED' && !cancelled) {
+                    log('Signaling channel subscribed');
+                    await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
+                    signalingChannelRef.current = channel;
+
+                    // Check for existing users after a short delay
+                    setTimeout(() => {
+                        if (cancelled) return;
+                        const presenceState = channel.presenceState();
+                        const otherIds = Object.keys(presenceState).filter(id => id !== user.id);
+                        log(`Found ${otherIds.length} existing users`);
+                        otherIds.forEach(otherId => {
+                            if (user.id.localeCompare(otherId) < 0) {
+                                log(`Offering to existing user ${otherId.slice(0, 8)}`);
+                                createOfferTo(otherId, stream);
+                            }
+                        });
+                    }, 500);
+                }
+            });
         };
 
         start();
 
         return () => {
-            mounted = false;
-            log("Cleaning up...");
-            localStreamRef.current?.getTracks().forEach(t => t.stop());
-            setLocalStream(null);
-            peerConnectionsRef.current.forEach(pc => pc.close());
-            peerConnectionsRef.current.clear();
-            signalingRef.current?.disconnect();
-            setRemoteStreams(new Map());
+            cancelled = true;
+            log('Cleanup effect running');
+            cleanupAll();
         };
-    }, [channelId, user, createOffer, createPeerConnection, initializeMedia, closePeerConnection, log]);
+    }, [channelId, user?.id]); // Minimal deps - only re-run on channel/user change
 
-    // Toggle Video
+    // ─── Toggle Audio ───
+
+    const toggleAudio = useCallback(() => {
+        const stream = localStreamRef.current;
+        if (!stream) return;
+        stream.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
+        setIsAudioEnabled(prev => !prev);
+    }, []);
+
+    // ─── Toggle Video ───
+
     const toggleVideo = useCallback(async () => {
         const stream = localStreamRef.current;
         if (!stream) return;
 
         if (isVideoEnabled) {
-            // Turn off
-            const videoTracks = stream.getVideoTracks();
-            videoTracks.forEach(t => {
-                t.stop();
-                stream.removeTrack(t);
-            });
-            setIsVideoEnabled(false);
-            // Remove from all PCs
+            // Turn off video
+            stream.getVideoTracks().forEach(t => { t.stop(); stream.removeTrack(t); });
             peerConnectionsRef.current.forEach(pc => {
                 const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-                if (sender) {
-                    pc.removeTrack(sender);
-                }
+                if (sender) pc.removeTrack(sender);
             });
+            setIsVideoEnabled(false);
+            log('Video disabled');
         } else {
-            // Turn on
+            // Turn on video
             try {
-                const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const videoTrack = videoStream.getVideoTracks()[0];
-
+                const vs = await navigator.mediaDevices.getUserMedia({ video: true });
+                const videoTrack = vs.getVideoTracks()[0];
                 stream.addTrack(videoTrack);
-                setIsVideoEnabled(true);
-
-                // Add to all PCs
                 peerConnectionsRef.current.forEach(pc => {
                     pc.addTrack(videoTrack, stream);
                 });
-            } catch (e) {
-                console.error("Error enabling video", e);
-                toast({ title: "Error camera", variant: "destructive" });
+                setIsVideoEnabled(true);
+                setLocalStream(stream); // trigger re-render
+                log('Video enabled');
+            } catch (e: any) {
+                log(`Video error: ${e.message}`);
+                toast({ title: 'Error de cámara', description: e.message, variant: 'destructive' });
             }
         }
-    }, [isVideoEnabled, toast]);
-
-    // Toggle Mute
-    const toggleAudio = useCallback(() => {
-        const stream = localStreamRef.current;
-        if (stream) {
-            stream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
-            setIsAudioEnabled(prev => !prev);
-        }
-    }, []);
+    }, [isVideoEnabled, toast, log]);
 
     return {
         localStream,
         remoteStreams,
-        isConnected: !!localStream,
-        toggleVideo,
-        toggleAudio,
-        isVideoEnabled,
         isAudioEnabled,
-        leaveVoiceChannel: () => { /* handled by unmount for now? or explicit? */ }
+        isVideoEnabled,
+        toggleAudio,
+        toggleVideo,
     };
 }
