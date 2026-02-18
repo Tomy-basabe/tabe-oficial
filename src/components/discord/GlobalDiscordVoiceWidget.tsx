@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { PhoneOff, Mic, MicOff, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
+import { usePomodoro } from "@/contexts/PomodoroContext";
 
 /**
  * Floating mini-widget that shows the active voice call when the user
@@ -11,14 +12,22 @@ export function GlobalDiscordVoiceWidget() {
     const location = useLocation();
     const navigate = useNavigate();
     const { inVoiceChannel, currentChannel, isAudioEnabled, isSpeaking, leaveVoiceChannel, toggleAudio } = useDiscordVoice();
+    const { timeLeft, isActive, mode } = usePomodoro();
 
     // Don't show the widget if on the Discord page or not in a voice channel
     if (location.pathname === "/discord" || !inVoiceChannel || !currentChannel) {
         return null;
     }
 
+    // Check if pomodoro widget is also visible (to offset ourselves above it)
+    const isPomodoroVisible = location.pathname !== "/pomodoro" &&
+        (isActive || timeLeft < (mode === 'work' ? 25 : mode === 'shortBreak' ? 5 : 15) * 60);
+
     return (
-        <div className="fixed bottom-6 right-6 z-[9999] animate-in slide-in-from-bottom-4 duration-300">
+        <div className={cn(
+            "fixed right-6 z-[9999] animate-in slide-in-from-bottom-4 duration-300 transition-all",
+            isPomodoroVisible ? "bottom-[5.5rem]" : "bottom-6"
+        )}>
             <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl shadow-black/30 p-3 flex items-center gap-3 min-w-[220px]">
                 {/* Speaking indicator + channel name */}
                 <button
@@ -67,3 +76,4 @@ export function GlobalDiscordVoiceWidget() {
         </div>
     );
 }
+

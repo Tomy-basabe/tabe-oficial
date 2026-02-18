@@ -36,7 +36,7 @@ export function DiscordDebugPanel() {
 
                     <div className="space-y-2">
                         <div>
-                            <span className="text-white">Channel:</span> {currentChannel?.name} <span className="text-[10px] bg-red-900/50 px-1 rounded ml-1 text-red-300">v7.3</span>
+                            <span className="text-white">Channel:</span> {currentChannel?.name} <span className="text-[10px] bg-red-900/50 px-1 rounded ml-1 text-red-300">v7.4</span>
                         </div>
                         <div>
                             <span className="text-white">Participants:</span> {voiceParticipants.length}

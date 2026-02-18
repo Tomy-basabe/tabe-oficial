@@ -18,7 +18,7 @@ export function GlobalPomodoroWidget() {
     // Solo mostrar si el timer está corriendo o pausado pero con tiempo > 0 (activo en sesión)
     // O siempre si el usuario lo activó. Por simplicidad, si hay una sesión "activa" (tiempo != default o isActive)
     // Pero para no molestar, digamos si isActive o timeLeft < total
-    const isSessionActive = isActive || timeLeft < (mode === 'focus' ? 25 : mode === 'shortBreak' ? 5 : 15) * 60;
+    const isSessionActive = isActive || timeLeft < (mode === 'work' ? 25 : mode === 'shortBreak' ? 5 : 15) * 60;
 
     if (!isSessionActive) return null;
 
@@ -35,7 +35,7 @@ export function GlobalPomodoroWidget() {
                         <path
                             className={cn(
                                 "stroke-current",
-                                mode === 'focus' ? "text-primary" : mode === 'shortBreak' ? "text-neon-green" : "text-neon-cyan"
+                                mode === 'work' ? "text-primary" : mode === 'shortBreak' ? "text-neon-green" : "text-neon-cyan"
                             )}
                             strokeDasharray="100, 100"
                             d="M18 2.0845
@@ -49,7 +49,7 @@ export function GlobalPomodoroWidget() {
                 </div>
 
                 <div className="flex-1 min-w-0" onClick={() => navigate("/pomodoro")}>
-                    <p className="text-xs font-medium text-muted-foreground truncate uppercase tracking-wider">{mode === 'focus' ? 'Focus' : 'Descanso'}</p>
+                    <p className="text-xs font-medium text-muted-foreground truncate uppercase tracking-wider">{mode === 'work' ? 'Focus' : 'Descanso'}</p>
                     <p className="text-lg font-mono font-bold leading-none">{formatTime(timeLeft)}</p>
                 </div>
 

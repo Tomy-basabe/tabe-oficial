@@ -72,11 +72,13 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
     const [isAudioEnabled, setIsAudioEnabled] = useState(true);
     const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [peerStates, setPeerStates] = useState<Map<string, string>>(new Map());
     const [cameras, setCameras] = useState<CameraDevice[]>([]);
     const [selectedCameraId, setSelectedCameraId] = useState<string>('');
 
     const localStreamRef = useRef<MediaStream | null>(null);
+    const screenStreamRef = useRef<MediaStream | null>(null);
     const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
     const sigRef = useRef<RealtimeChannel | null>(null);
     const channelIdRef = useRef<string | null>(null);
@@ -117,7 +119,10 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         log('Cleanup all');
         const s = localStreamRef.current;
         if (s) { s.getTracks().forEach(t => t.stop()); activeStreams.delete(s); localStreamRef.current = null; }
+        const ss = screenStreamRef.current;
+        if (ss) { ss.getTracks().forEach(t => t.stop()); screenStreamRef.current = null; }
         setLocalStream(null);
+        setIsScreenSharing(false);
         pcsRef.current.forEach(pc => pc.close());
         pcsRef.current.clear();
         setRemoteStreams(new Map());
@@ -457,16 +462,101 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, [isVideoEnabled, toast, log]);
 
+    // ─── Screen Share ───
+
+    const startScreenShare = useCallback(async () => {
+        const stream = localStreamRef.current;
+        if (!stream) return;
+
+        try {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: true,
+            });
+
+            screenStreamRef.current = screenStream;
+            const screenTrack = screenStream.getVideoTracks()[0];
+
+            // Add screen track to all existing PCs
+            pcsRef.current.forEach(pc => {
+                pc.addTrack(screenTrack, screenStream);
+            });
+
+            setIsScreenSharing(true);
+            log('Screen share ON');
+
+            // Update DB
+            if (channelIdRef.current && userIdRef.current) {
+                supabase.from('discord_voice_participants')
+                    .update({ is_screen_sharing: true })
+                    .eq('channel_id', channelIdRef.current)
+                    .eq('user_id', userIdRef.current)
+                    .then(() => log('DB: screen share on'));
+            }
+
+            // Renegotiate so peers receive the screen track
+            await renegotiateAll();
+
+            // Auto-stop when user clicks "Stop sharing" in browser UI
+            screenTrack.onended = () => {
+                stopScreenShareInternal();
+            };
+        } catch (e: any) {
+            log(`Screen share err: ${e.message}`);
+            // User cancelled the dialog — not an error
+        }
+    }, [toast, log, renegotiateAll]);
+
+    const stopScreenShareInternal = useCallback(async () => {
+        const screenStream = screenStreamRef.current;
+        if (screenStream) {
+            screenStream.getTracks().forEach(t => t.stop());
+
+            // Remove screen tracks from PCs
+            pcsRef.current.forEach(pc => {
+                pc.getSenders().forEach(sender => {
+                    if (sender.track && screenStream.getTracks().some(t => t.id === sender.track!.id)) {
+                        try { pc.removeTrack(sender); } catch { }
+                    }
+                });
+            });
+
+            screenStreamRef.current = null;
+        }
+
+        setIsScreenSharing(false);
+        log('Screen share OFF');
+
+        // Update DB
+        if (channelIdRef.current && userIdRef.current) {
+            supabase.from('discord_voice_participants')
+                .update({ is_screen_sharing: false })
+                .eq('channel_id', channelIdRef.current)
+                .eq('user_id', userIdRef.current)
+                .then(() => log('DB: screen share off'));
+        }
+
+        await renegotiateAll();
+    }, [log, renegotiateAll]);
+
+    const stopScreenShare = useCallback(async () => {
+        await stopScreenShareInternal();
+    }, [stopScreenShareInternal]);
+
     return {
         localStream,
         remoteStreams,
         isAudioEnabled,
         isVideoEnabled,
+        isScreenSharing,
         toggleAudio,
         toggleVideo,
         peerStates,
         cameras,
         selectedCameraId,
         switchCamera,
+        startScreenShare,
+        stopScreenShare,
+        screenStream: screenStreamRef.current,
     };
 }
