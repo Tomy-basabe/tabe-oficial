@@ -776,21 +776,25 @@ export function useDiscord() {
   const leaveVoiceChannel = async () => {
     if (!user || !currentChannel) return;
 
-    console.log("[Discord][Diag] leaveVoiceChannel (DB Only)", { channelId: currentChannel.id, userId: user.id });
+    console.log("[Discord][Diag] leaveVoiceChannel", { channelId: currentChannel.id, userId: user.id });
 
-    // Cleanup WebRTC is handled by useRobustDiscord unmounting or changing channel
-
-    // Remove from database
+    // Remove ALL voice participant rows for this user (cleanup stale entries)
     await supabase
       .from("discord_voice_participants")
       .delete()
-      .eq("channel_id", currentChannel.id)
       .eq("user_id", user.id);
 
     setInVoiceChannel(false);
-    // State cleanup
     setIsScreenSharing(false);
     setIsSpeaking(false);
+
+    // Switch to default text channel so robust hook gets channelId=null and stops media
+    const textChannel = channels.find(c => c.type === 'text');
+    if (textChannel) {
+      setInternalCurrentChannel(textChannel);
+    } else {
+      setInternalCurrentChannel(null);
+    }
   };
 
   // Setup WebRTC signaling

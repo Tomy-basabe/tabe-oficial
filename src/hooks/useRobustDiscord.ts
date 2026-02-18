@@ -342,6 +342,15 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             setLocalStream(new MediaStream(stream.getTracks()));
             log('Video OFF');
 
+            // Update DB so remote users know camera is off
+            if (channelIdRef.current && userIdRef.current) {
+                supabase.from('discord_voice_participants')
+                    .update({ is_camera_on: false })
+                    .eq('channel_id', channelIdRef.current)
+                    .eq('user_id', userIdRef.current)
+                    .then(() => log('DB: camera off'));
+            }
+
             // Renegotiate so remote knows video track is gone
             await renegotiateAll();
 
@@ -364,6 +373,15 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 setIsVideoEnabled(true);
                 setLocalStream(new MediaStream(stream.getTracks()));
                 log('Video ON');
+
+                // Update DB so remote users know camera is on
+                if (channelIdRef.current && userIdRef.current) {
+                    supabase.from('discord_voice_participants')
+                        .update({ is_camera_on: true })
+                        .eq('channel_id', channelIdRef.current)
+                        .eq('user_id', userIdRef.current)
+                        .then(() => log('DB: camera on'));
+                }
 
                 // Renegotiate so remote peer adds the video track
                 await renegotiateAll();

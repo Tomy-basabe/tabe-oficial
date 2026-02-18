@@ -199,12 +199,17 @@ export function DiscordChannelSidebar({
                     <Hash className="w-4 h-4 mr-1.5 opacity-60 shrink-0" />
                     <span className="font-medium text-sm truncate">{channel.name}</span>
                   </button>
-                  <button
-                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                    onClick={(e) => { e.stopPropagation(); onDeleteChannel(channel.id); }}
-                  >
-                    <Settings className="w-3.5 h-3.5" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                        onClick={(e) => { e.stopPropagation(); onDeleteChannel(channel.id); }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Eliminar canal</TooltipContent>
+                  </Tooltip>
                 </div>
               ))}
             </div>
@@ -272,12 +277,17 @@ export function DiscordChannelSidebar({
                         <Volume2 className="w-4 h-4 mr-1.5 opacity-60 shrink-0" />
                         <span className="font-medium text-sm truncate">{channel.name}</span>
                       </button>
-                      <button
-                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                        onClick={(e) => { e.stopPropagation(); onDeleteChannel(channel.id); }}
-                      >
-                        <Settings className="w-3.5 h-3.5" />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                            onClick={(e) => { e.stopPropagation(); onDeleteChannel(channel.id); }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Eliminar canal</TooltipContent>
+                      </Tooltip>
                     </div>
 
                     {/* Participants List */}
