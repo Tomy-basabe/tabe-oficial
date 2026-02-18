@@ -52,8 +52,10 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const localStreamRef = useRef<MediaStream | null>(null);
     const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
     const sigRef = useRef<RealtimeChannel | null>(null);
+    const channelIdRef = useRef<string | null>(null);
     const userIdRef = useRef<string | null>(null);
 
+    useEffect(() => { channelIdRef.current = channelId; }, [channelId]);
     useEffect(() => { userIdRef.current = user?.id ?? null; }, [user?.id]);
 
     const log = useCallback((msg: string) => console.log(`[RobustDiscord v7.1] ${msg}`), []);
