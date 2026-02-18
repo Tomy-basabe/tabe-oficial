@@ -24,6 +24,7 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
         isVideoEnabled: voice.isVideoEnabled,
         toggleAudio: voice.toggleAudio,
         toggleVideo: voice.toggleVideo,
+        peerStates: voice.peerStates,
     };
 
     return (
