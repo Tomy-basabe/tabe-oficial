@@ -46,6 +46,9 @@ export default function Discord() {
     loading,
     createInvite,
     joinServerByCode,
+    cameras,
+    selectedCameraId,
+    switchCamera,
   } = discord;
 
   if (loading && servers.length === 0) {
@@ -124,10 +127,13 @@ export default function Discord() {
                 isVideoEnabled={isVideoEnabled}
                 isScreenSharing={isScreenSharing}
                 isDeafened={isDeafened}
+                cameras={cameras}
+                selectedCameraId={selectedCameraId}
                 onToggleAudio={toggleAudio}
                 onToggleVideo={toggleVideo}
                 onToggleScreenShare={isScreenSharing ? stopScreenShare : startScreenShare}
                 onLeaveChannel={leaveVoiceChannel}
+                onSwitchCamera={switchCamera}
                 speakingUsers={speakingUsers}
               />
             ) : (

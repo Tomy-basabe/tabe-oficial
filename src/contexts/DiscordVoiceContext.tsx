@@ -25,6 +25,9 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
         toggleAudio: voice.toggleAudio,
         toggleVideo: voice.toggleVideo,
         peerStates: voice.peerStates,
+        cameras: voice.cameras,
+        selectedCameraId: voice.selectedCameraId,
+        switchCamera: voice.switchCamera,
     };
 
     return (

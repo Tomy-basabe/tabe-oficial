@@ -1,5 +1,6 @@
-import { useRef, useEffect } from "react";
-import { Volume2, Mic, MicOff, Video, VideoOff, Monitor, PhoneOff, MonitorOff } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import { Volume2, Mic, MicOff, Video, VideoOff, Monitor, PhoneOff, MonitorOff, SwitchCamera, ChevronDown } from "lucide-react";
+import type { CameraDevice } from "@/hooks/useRobustDiscord";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,16 +13,19 @@ interface DiscordVoiceChannelProps {
   voiceParticipants?: DiscordVoiceParticipant[];
   participants?: DiscordVoiceParticipant[];
   localStream: MediaStream | null;
-  remoteStreams: Map<string, MediaStream>; // This matches useRobustDiscord
+  remoteStreams: Map<string, MediaStream>;
   speakingUsers: Set<string>;
   isVideoEnabled: boolean;
   isAudioEnabled: boolean;
   isScreenSharing: boolean;
   isDeafened: boolean;
+  cameras?: CameraDevice[];
+  selectedCameraId?: string;
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
   onLeaveChannel: () => void;
+  onSwitchCamera?: (deviceId: string) => void;
 }
 
 export function DiscordVoiceChannel({
@@ -35,13 +39,17 @@ export function DiscordVoiceChannel({
   isAudioEnabled,
   isScreenSharing,
   isDeafened,
+  cameras = [],
+  selectedCameraId = '',
   onToggleAudio,
   onToggleVideo,
   onToggleScreenShare,
   onLeaveChannel,
+  onSwitchCamera,
 }: DiscordVoiceChannelProps) {
   const { user } = useAuth();
   const localUserId = user?.id || "";
+  const [showCameraMenu, setShowCameraMenu] = useState(false);
 
   // Normalize participants
   const activeParticipants = voiceParticipants || participants || [];
@@ -143,13 +151,47 @@ export function DiscordVoiceChannel({
           variant={!isAudioEnabled ? "destructive" : "secondary"}
         />
 
-        <ControlBtn
-          icon={isVideoEnabled ? Video : VideoOff}
-          active={!isVideoEnabled}
-          onClick={onToggleVideo}
-          tooltip={isVideoEnabled ? "Desactivar cámara" : "Activar cámara"}
-          variant={!isVideoEnabled ? "destructive" : "secondary"}
-        />
+        <div className="relative">
+          <div className="flex items-center">
+            <ControlBtn
+              icon={isVideoEnabled ? Video : VideoOff}
+              active={!isVideoEnabled}
+              onClick={onToggleVideo}
+              tooltip={isVideoEnabled ? "Desactivar cámara" : "Activar cámara"}
+              variant={!isVideoEnabled ? "destructive" : "secondary"}
+            />
+            {cameras.length > 1 && (
+              <button
+                onClick={() => setShowCameraMenu(!showCameraMenu)}
+                className="ml-1 w-7 h-7 rounded-full flex items-center justify-center bg-muted/50 hover:bg-muted text-foreground transition-all"
+                title="Cambiar cámara"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          {showCameraMenu && cameras.length > 1 && (
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur border border-border rounded-lg shadow-xl p-2 min-w-[200px] z-50">
+              <div className="text-xs font-semibold text-muted-foreground px-2 py-1 flex items-center gap-1.5">
+                <SwitchCamera className="w-3.5 h-3.5" /> Seleccionar cámara
+              </div>
+              {cameras.map(cam => (
+                <button
+                  key={cam.deviceId}
+                  onClick={() => { onSwitchCamera?.(cam.deviceId); setShowCameraMenu(false); }}
+                  className={cn(
+                    "w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors truncate",
+                    cam.deviceId === selectedCameraId
+                      ? "bg-primary/20 text-primary font-medium"
+                      : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  {cam.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <ControlBtn
           icon={isScreenSharing ? MonitorOff : Monitor}
