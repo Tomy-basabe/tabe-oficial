@@ -70,6 +70,8 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+    const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+    const [remoteScreenStreams, setRemoteScreenStreams] = useState<Map<string, MediaStream>>(new Map());
     const [isAudioEnabled, setIsAudioEnabled] = useState(true);
     const [isVideoEnabled, setIsVideoEnabled] = useState(false);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -146,9 +148,24 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         log(`PC ${targetId.slice(0, 8)}: ${stream.getTracks().length} tracks`);
 
         pc.ontrack = (ev) => {
-            log(`Track from ${targetId.slice(0, 8)}: ${ev.track.kind}`);
+            log(`Track from ${targetId.slice(0, 8)}: ${ev.track.kind} (streams: ${ev.streams.length})`);
             const rs = ev.streams[0] || new MediaStream([ev.track]);
-            setRemoteStreams(p => { const m = new Map(p); m.set(targetId, rs); return m; });
+
+            // Detect if this is a screen share stream:
+            // If we already have a camera stream for this peer AND this is a different stream with a video track,
+            // treat it as a screen share stream
+            setRemoteStreams(prev => {
+                const existingStream = prev.get(targetId);
+                if (existingStream && ev.track.kind === 'video' && rs.id !== existingStream.id) {
+                    // This is a screen share — store separately
+                    log(`Screen share track from ${targetId.slice(0, 8)}`);
+                    setRemoteScreenStreams(p => { const m = new Map(p); m.set(targetId, rs); return m; });
+                    return prev; // Don't overwrite camera stream
+                }
+                const m = new Map(prev);
+                m.set(targetId, rs);
+                return m;
+            });
         };
 
         pc.onicecandidate = (ev) => {
@@ -469,17 +486,18 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         if (!stream) return;
 
         try {
-            const screenStream = await navigator.mediaDevices.getDisplayMedia({
+            const screenStreamResult = await navigator.mediaDevices.getDisplayMedia({
                 video: true,
                 audio: true,
             });
 
-            screenStreamRef.current = screenStream;
-            const screenTrack = screenStream.getVideoTracks()[0];
+            screenStreamRef.current = screenStreamResult;
+            setScreenStream(screenStreamResult);
+            const screenTrack = screenStreamResult.getVideoTracks()[0];
 
             // Add screen track to all existing PCs
             pcsRef.current.forEach(pc => {
-                pc.addTrack(screenTrack, screenStream);
+                pc.addTrack(screenTrack, screenStreamResult);
             });
 
             setIsScreenSharing(true);
@@ -525,6 +543,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
 
         setIsScreenSharing(false);
+        setScreenStream(null);
         log('Screen share OFF');
 
         // Update DB
@@ -557,6 +576,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         switchCamera,
         startScreenShare,
         stopScreenShare,
-        screenStream: screenStreamRef.current,
+        screenStream,
+        remoteScreenStreams,
     };
 }

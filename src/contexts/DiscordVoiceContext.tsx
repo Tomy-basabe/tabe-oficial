@@ -27,6 +27,8 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
         toggleVideo: voice.toggleVideo,
         startScreenShare: voice.startScreenShare,
         stopScreenShare: voice.stopScreenShare,
+        screenStream: voice.screenStream,
+        remoteScreenStreams: voice.remoteScreenStreams,
         peerStates: voice.peerStates,
         cameras: voice.cameras,
         selectedCameraId: voice.selectedCameraId,

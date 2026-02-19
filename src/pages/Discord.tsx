@@ -49,6 +49,8 @@ export default function Discord() {
     cameras,
     selectedCameraId,
     switchCamera,
+    screenStream,
+    remoteScreenStreams,
   } = discord;
 
   if (loading && servers.length === 0) {
@@ -135,6 +137,8 @@ export default function Discord() {
                 onLeaveChannel={leaveVoiceChannel}
                 onSwitchCamera={switchCamera}
                 speakingUsers={speakingUsers}
+                screenStream={screenStream}
+                remoteScreenStreams={remoteScreenStreams}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4">

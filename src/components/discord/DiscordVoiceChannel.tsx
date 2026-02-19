@@ -26,6 +26,8 @@ interface DiscordVoiceChannelProps {
   onToggleScreenShare: () => void;
   onLeaveChannel: () => void;
   onSwitchCamera?: (deviceId: string) => void;
+  screenStream?: MediaStream | null;
+  remoteScreenStreams?: Map<string, MediaStream>;
 }
 
 export function DiscordVoiceChannel({
@@ -46,6 +48,8 @@ export function DiscordVoiceChannel({
   onToggleScreenShare,
   onLeaveChannel,
   onSwitchCamera,
+  screenStream,
+  remoteScreenStreams = new Map(),
 }: DiscordVoiceChannelProps) {
   const { user } = useAuth();
   const localUserId = user?.id || "";
@@ -85,18 +89,9 @@ export function DiscordVoiceChannel({
             {/* Main screen share */}
             <div className="flex-1 bg-black/80 rounded-xl overflow-hidden relative flex items-center justify-center border border-border/50 shadow-2xl">
               {screenSharer.user_id === localUserId ? (
-                <div className="text-center text-muted-foreground animate-pulse">
-                  <Monitor className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-xl font-bold font-orbitron text-primary">Estás compartiendo tu pantalla</p>
-                </div>
+                <ScreenShareTile stream={screenStream} />
               ) : (
-                <VideoTile
-                  participant={screenSharer}
-                  stream={remoteStreams.get(screenSharer.user_id)}
-                  isSpeaking={false}
-                  isLocal={false}
-                  isScreenShare
-                />
+                <ScreenShareTile stream={remoteScreenStreams.get(screenSharer.user_id) || remoteStreams.get(screenSharer.user_id)} />
               )}
               <div className="absolute bottom-4 left-4 bg-background/80 backdrop-blur px-4 py-1.5 rounded-full text-foreground text-sm font-medium border border-border shadow-lg flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-primary" />
@@ -338,6 +333,35 @@ function SmallTile({
         </div>
       )}
     </div>
+  );
+}
+
+function ScreenShareTile({ stream }: { stream?: MediaStream | null }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  if (!stream) {
+    return (
+      <div className="text-center text-muted-foreground animate-pulse w-full h-full flex flex-col items-center justify-center">
+        <Monitor className="w-16 h-16 mx-auto mb-4 opacity-50" />
+        <p className="text-xl font-bold font-orbitron text-primary">Conectando pantalla...</p>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted
+      className="w-full h-full object-contain"
+    />
   );
 }
 
