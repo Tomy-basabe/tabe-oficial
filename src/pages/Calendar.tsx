@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
 import { useSubjects } from "@/hooks/useSubjects";
 import { AddEventModal } from "@/components/calendar/AddEventModal";
 import { ImportICSModal } from "@/components/calendar/ImportICSModal";
+import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import { toast } from "sonner";
 
@@ -26,11 +27,12 @@ const months = [
 export default function Calendar() {
   const { events, loading, createEvent, deleteEvent, getEventsForDate } = useCalendarEvents();
   const { rawSubjects } = useSubjects();
-  
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -98,7 +100,7 @@ export default function Calendar() {
 
   const renderCalendarDays = () => {
     const days = [];
-    
+
     // Empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(<div key={`empty-${i}`} className="h-24 lg:h-32" />);
@@ -209,13 +211,20 @@ export default function Calendar() {
             Hoy
           </button>
           <button
+            onClick={() => setShowSyncModal(true)}
+            className="px-4 py-2 bg-gradient-to-r from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 rounded-lg text-sm font-medium hover:from-neon-cyan/30 hover:to-neon-purple/30 transition-all flex items-center gap-2"
+          >
+            <Link2 className="w-4 h-4 text-neon-cyan" />
+            Google Calendar
+          </button>
+          <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
           >
             <Upload className="w-4 h-4" />
             Importar
           </button>
-          <button 
+          <button
             onClick={() => handleAddEvent()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
           >
@@ -271,10 +280,10 @@ export default function Calendar() {
             <h3 className="font-display font-semibold text-sm">
               {selectedDate
                 ? selectedDate.toLocaleDateString("es-AR", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                  })
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })
                 : "Selecciona un día"}
             </h3>
           </div>
@@ -283,7 +292,7 @@ export default function Calendar() {
             <div className="text-center py-8 text-muted-foreground">
               <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p className="text-sm">No hay eventos para este día</p>
-              <button 
+              <button
                 onClick={() => handleAddEvent()}
                 className="mt-4 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 transition-colors"
               >
@@ -330,7 +339,7 @@ export default function Calendar() {
                   </div>
                 </div>
               ))}
-              <button 
+              <button
                 onClick={() => handleAddEvent()}
                 className="w-full py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
               >
@@ -373,6 +382,13 @@ export default function Calendar() {
             await createEvent(eventData);
           }
         }}
+      />
+
+      {/* Google Calendar Sync Modal */}
+      <GoogleCalendarSyncModal
+        open={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
+        onOpenImport={() => setShowImportModal(true)}
       />
     </div>
   );
