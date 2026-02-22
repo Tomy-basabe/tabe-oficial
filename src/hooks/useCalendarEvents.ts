@@ -16,6 +16,8 @@ export interface CalendarEvent {
   subject_nombre?: string;
   subject_codigo?: string;
   notas: string | null;
+  ubicacion: string | null;
+  is_all_day: boolean;
   color: string;
   recurrence_rule: RecurrenceRule;
   recurrence_end: string | null;
@@ -30,6 +32,8 @@ export interface CreateEventData {
   tipo_examen: EventType;
   subject_id?: string;
   notas?: string;
+  ubicacion?: string;
+  is_all_day?: boolean;
   color?: string;
   recurrence_rule?: RecurrenceRule;
   recurrence_end?: string;
@@ -177,6 +181,8 @@ export function useCalendarEvents() {
         tipo_examen: data.tipo_examen,
         subject_id: data.subject_id || null,
         notas: data.notas || null,
+        ubicacion: data.ubicacion || null,
+        is_all_day: data.is_all_day || false,
         color: data.color || getColorForType(data.tipo_examen),
       };
 
@@ -212,6 +218,8 @@ export function useCalendarEvents() {
         tipo_examen: event.tipo_examen,
         subject_id: event.subject_id,
         notas: event.notas,
+        ubicacion: event.ubicacion,
+        is_all_day: event.is_all_day,
         color: event.color,
       };
 
@@ -237,7 +245,7 @@ export function useCalendarEvents() {
         .from("calendar_events")
         .update({
           ...data,
-          color: data.tipo_examen ? getColorForType(data.tipo_examen) : undefined,
+          color: data.color || (data.tipo_examen ? getColorForType(data.tipo_examen) : undefined),
         })
         .eq("id", eventId)
         .eq("user_id", user.id);

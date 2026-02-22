@@ -38,6 +38,7 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [monthTransition, setMonthTransition] = useState<"enter" | "exit" | null>(null);
@@ -87,6 +88,12 @@ export default function Calendar() {
     if (date) {
       setSelectedDate(date);
     }
+    setEventToEdit(null);
+    setShowAddModal(true);
+  };
+
+  const handleEditEvent = (event: CalendarEvent) => {
+    setEventToEdit(event);
     setShowAddModal(true);
   };
 
@@ -185,8 +192,9 @@ export default function Calendar() {
                 className={cn(
                   "text-xs px-1.5 py-0.5 rounded border truncate flex items-center gap-1",
                   "transition-all duration-200 hover:scale-[1.02]",
-                  eventTypeColors[event.tipo_examen]
+                  !event.color && eventTypeColors[event.tipo_examen]
                 )}
+                style={event.color ? { backgroundColor: `${event.color}33`, borderColor: event.color, color: event.color } : undefined}
               >
                 {event.recurrence_rule && <Repeat className="w-2.5 h-2.5 flex-shrink-0 opacity-60" />}
                 <span className="truncate">{event.titulo}</span>
@@ -340,21 +348,41 @@ export default function Calendar() {
                   key={event.id}
                   className={cn(
                     "p-3 rounded-lg border relative transition-all duration-200 hover:shadow-md",
-                    eventTypeColors[event.tipo_examen]
+                    !event.color && eventTypeColors[event.tipo_examen]
                   )}
-                  style={{ animationDelay: `${idx * 50}ms` }}
+                  style={{
+                    animationDelay: `${idx * 50}ms`,
+                    ...(event.color ? { backgroundColor: `${event.color}15`, borderColor: `${event.color}50` } : {})
+                  }}
                 >
-                  <p className="font-medium text-sm flex items-center gap-1.5">
-                    {event.recurrence_rule && (
-                      <Repeat className="w-3.5 h-3.5 opacity-60 flex-shrink-0" />
-                    )}
-                    {event.titulo}
-                  </p>
-                  {event.hora && (
-                    <p className="text-xs opacity-80 mt-1">{event.hora}</p>
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="font-medium text-sm flex items-center gap-1.5" style={event.color ? { color: event.color } : {}}>
+                      {event.recurrence_rule && (
+                        <Repeat className="w-3.5 h-3.5 opacity-60 flex-shrink-0" />
+                      )}
+                      {event.titulo}
+                    </p>
+                    <button
+                      onClick={() => handleEditEvent(event)}
+                      className="p-1 rounded text-xs opacity-50 hover:opacity-100 hover:bg-background/40 transition-all flex-shrink-0"
+                      title="Editar evento"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+
+                  {event.is_all_day ? (
+                    <p className="text-xs opacity-80 mt-1 font-medium">✨ Todo el día</p>
+                  ) : event.hora && (
+                    <p className="text-xs opacity-80 mt-1 flex items-center gap-1">🕒 {event.hora}</p>
                   )}
+
                   {event.subject_nombre && (
-                    <p className="text-xs opacity-80 mt-1">{event.subject_nombre}</p>
+                    <p className="text-xs opacity-80 mt-1 flex items-center gap-1">📚 {event.subject_nombre}</p>
+                  )}
+
+                  {event.ubicacion && (
+                    <p className="text-xs opacity-80 mt-1 flex items-center gap-1">📍 {event.ubicacion}</p>
                   )}
                   {event.recurrence_rule && (
                     <p className="text-xs opacity-60 mt-1">
@@ -415,13 +443,17 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Add Event Modal */}
+      {/* Add/Edit Event Modal */}
       <AddEventModal
         open={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSubmit={createEvent}
+        onClose={() => {
+          setShowAddModal(false);
+          setEventToEdit(null);
+        }}
+        onSubmit={eventToEdit ? (data) => useCalendarEvents().updateEvent(eventToEdit.id, data) : createEvent}
         subjects={rawSubjects}
         initialDate={selectedDate || undefined}
+        editEvent={eventToEdit}
       />
 
       {/* Import ICS Modal */}
