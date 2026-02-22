@@ -114,8 +114,8 @@ export function MainLayout() {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-card/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
-            <Zap className="w-5 h-5 text-background" />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 flex items-center justify-center p-1 border border-neon-cyan/30">
+            <img src="/favicon.svg" alt="T.A.B.E Logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-display font-bold text-lg gradient-text">T.A.B.E.</span>
         </Link>
@@ -148,8 +148,8 @@ export function MainLayout() {
 
         {/* Logo */}
         <div className={cn("h-16 flex items-center border-b border-sidebar-border flex-shrink-0 transition-all overflow-hidden", isCollapsed ? "justify-center px-0" : "justify-start px-6 gap-3")}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center glow-cyan flex-shrink-0">
-            <Zap className="w-6 h-6 text-background" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 flex items-center justify-center glow-cyan flex-shrink-0 p-1.5 border border-neon-cyan/30">
+            <img src="/favicon.svg" alt="T.A.B.E Logo" className="w-full h-full object-contain" />
           </div>
           {!isCollapsed && (
             <div className="min-w-0">
