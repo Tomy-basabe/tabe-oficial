@@ -42,11 +42,11 @@ const saveSettings = (settings: PomodoroSettingsType): void => {
 };
 
 export default function Settings() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, profile, updateTheme } = useAuth();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettingsType>(loadSettings);
   const { theme, toggleTheme } = useTheme();
-  
+
   const userName = user?.user_metadata?.nombre || user?.email?.split("@")[0] || "Usuario";
   const userInitials = userName.slice(0, 2).toUpperCase();
   const userEmail = user?.email || "";
@@ -123,7 +123,7 @@ export default function Settings() {
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             )}
           </button>
-          
+
           {expandedSection === "notifications" && (
             <div className="p-4 pt-0 border-t border-border">
               <NotificationSettings />
@@ -185,16 +185,41 @@ export default function Settings() {
             </div>
             <button
               onClick={toggleTheme}
-              className={`w-12 h-6 rounded-full relative transition-colors ${
-                theme === "dark" ? "bg-primary" : "bg-secondary"
-              }`}
-            >
-              <div 
-                className={`absolute top-1 w-4 h-4 bg-background rounded-full transition-all ${
-                  theme === "dark" ? "right-1" : "left-1"
+              className={`w-12 h-6 rounded-full relative transition-colors ${theme === "dark" ? "bg-primary" : "bg-secondary"
                 }`}
+            >
+              <div
+                className={`absolute top-1 w-4 h-4 bg-background rounded-full transition-all ${theme === "dark" ? "right-1" : "left-1"
+                  }`}
               />
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Theme Color Selection */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-muted-foreground px-1">Color Principal</h3>
+        <div className="card-gamer rounded-xl p-4">
+          <div className="flex flex-wrap gap-4 justify-between sm:justify-start">
+            {[
+              { id: null, color: "bg-[#8A3DF0]", name: "Violeta (Por defecto)" },
+              { id: "theme-cyan", color: "bg-[#00D8FF]", name: "Cyan" },
+              { id: "theme-green", color: "bg-[#00C853]", name: "Verde" },
+              { id: "theme-neon-gold", color: "bg-[#FFB800]", name: "Dorado" },
+              { id: "theme-red", color: "bg-[#FF3B30]", name: "Rojo" },
+            ].map((t) => {
+              const isActive = profile?.active_theme === t.id || (!profile?.active_theme && t.id === null);
+              return (
+                <button
+                  key={t.id || "default"}
+                  onClick={() => updateTheme(t.id || "")}
+                  title={t.name}
+                  className={`w-10 h-10 rounded-full flex-shrink-0 transition-transform ${t.color} ${isActive ? "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-background" : "hover:scale-105 opacity-80"
+                    }`}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
@@ -206,14 +231,14 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <span className="text-sm">Tiempo de trabajo</span>
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => updatePomodoroSetting("work", -1)}
                 className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-all active:scale-95"
               >
                 -
               </button>
               <span className="font-display font-bold w-12 text-center text-neon-cyan">{pomodoroSettings.work}</span>
-              <button 
+              <button
                 onClick={() => updatePomodoroSetting("work", 1)}
                 className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-all active:scale-95"
               >
@@ -225,14 +250,14 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <span className="text-sm">Descanso corto</span>
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => updatePomodoroSetting("shortBreak", -1)}
                 className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-all active:scale-95"
               >
                 -
               </button>
               <span className="font-display font-bold w-12 text-center text-neon-green">{pomodoroSettings.shortBreak}</span>
-              <button 
+              <button
                 onClick={() => updatePomodoroSetting("shortBreak", 1)}
                 className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-all active:scale-95"
               >
@@ -244,14 +269,14 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <span className="text-sm">Descanso largo</span>
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => updatePomodoroSetting("longBreak", -1)}
                 className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-all active:scale-95"
               >
                 -
               </button>
               <span className="font-display font-bold w-12 text-center text-neon-purple">{pomodoroSettings.longBreak}</span>
-              <button 
+              <button
                 onClick={() => updatePomodoroSetting("longBreak", 1)}
                 className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-all active:scale-95"
               >
@@ -264,7 +289,7 @@ export default function Settings() {
       </div>
 
       {/* Logout */}
-      <button 
+      <button
         onClick={handleLogout}
         className="w-full card-gamer rounded-xl p-4 flex items-center gap-4 text-destructive hover:bg-destructive/10 transition-colors"
       >

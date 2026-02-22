@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   profile: { active_theme: string | null; active_badge: string | null } | null;
+  updateTheme: (theme: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +21,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null } | null>(null);
 
+  const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-green', 'theme-red'];
+
+  const applyTheme = (themeClass: string | null) => {
+    const body = document.body;
+    body.classList.remove(...AVAILABLE_THEMES);
+    if (themeClass && AVAILABLE_THEMES.includes(themeClass)) {
+      body.classList.add(themeClass);
+    }
+  };
+
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
@@ -29,13 +40,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (data) {
       setProfile(data as any);
-      // Apply theme to body
-      const body = document.body;
-      // Remove existing themes (assuming they follow a pattern or we just remove the specific ones)
-      body.classList.remove("theme-neon-gold");
-      if (data.active_theme === 'theme_neon_gold') {
-        body.classList.add("theme-neon-gold");
+      applyTheme(data.active_theme);
+    }
+  };
+
+  const updateTheme = async (theme: string) => {
+    if (!user) return;
+
+    // Optimistic UI update
+    setProfile(prev => prev ? { ...prev, active_theme: theme } : null);
+    applyTheme(theme);
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ active_theme: theme })
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error updating theme:", error);
       }
+    } catch (e) {
+      console.error("Error updating theme:", e);
     }
   };
 
@@ -49,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fetchProfile(session.user.id);
         } else {
           setProfile(null);
-          document.body.classList.remove("theme-neon-gold");
+          applyTheme(null);
         }
         setLoading(false);
       }
@@ -105,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, profile }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, profile, updateTheme }}>
       {children}
     </AuthContext.Provider>
   );
