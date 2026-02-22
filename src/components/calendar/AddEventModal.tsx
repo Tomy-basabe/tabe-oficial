@@ -6,7 +6,7 @@ import { CalendarIcon, Clock, BookOpen, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { EventType, CreateEventData } from "@/hooks/useCalendarEvents";
+import { EventType, CreateEventData, RecurrenceRule } from "@/hooks/useCalendarEvents";
 import { Subject } from "@/hooks/useSubjects";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import { toast } from "sonner";
@@ -37,6 +37,8 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
   const [notas, setNotas] = useState("");
   const [loading, setLoading] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
+  const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule>(null);
+  const [recurrenceEnd, setRecurrenceEnd] = useState("");
   const [showGoogleButton, setShowGoogleButton] = useState(false);
   const [savedEventData, setSavedEventData] = useState<{
     titulo: string;
@@ -59,6 +61,8 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
     setTipoExamen("P1");
     setSubjectId("");
     setNotas("");
+    setRecurrenceRule(null);
+    setRecurrenceEnd("");
     setShowGoogleButton(false);
     setSavedEventData(null);
     onClose();
@@ -77,10 +81,12 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
         tipo_examen: tipoExamen,
         subject_id: subjectId || undefined,
         notas: notas || undefined,
+        recurrence_rule: recurrenceRule,
+        recurrence_end: recurrenceEnd || undefined,
       };
-      
+
       await onSubmit(eventData);
-      
+
       // Save data for Google Calendar export
       setSavedEventData({
         titulo: eventData.titulo,
@@ -96,14 +102,14 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
 
   const handleAddToGoogleCalendar = () => {
     if (!savedEventData) return;
-    
+
     const url = generateGoogleCalendarUrl({
       title: savedEventData.titulo,
       date: savedEventData.fecha,
       time: savedEventData.hora,
       description: savedEventData.notas,
     });
-    
+
     window.open(url, "_blank");
     toast.success("Abriendo Google Calendar...");
     handleClose();
@@ -113,7 +119,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
   const generateTitle = (type: EventType, subId: string) => {
     const subject = subjects.find(s => s.id === subId);
     if (!subject) return "";
-    
+
     const typeLabel = eventTypes.find(t => t.value === type)?.label || type;
     return `${typeLabel} - ${subject.nombre}`;
   };
@@ -164,7 +170,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
                 El evento fue guardado en tu calendario
               </p>
             </div>
-            
+
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleAddToGoogleCalendar}
@@ -290,6 +296,34 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate }
                 className="w-full px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
+
+            {/* Recurrence */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Repetir</label>
+              <select
+                value={recurrenceRule || ""}
+                onChange={(e) => setRecurrenceRule((e.target.value || null) as RecurrenceRule)}
+                className="w-full px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+              >
+                <option value="">No se repite</option>
+                <option value="DAILY">Diariamente</option>
+                <option value="WEEKLY">Semanalmente</option>
+                <option value="MONTHLY">Mensualmente</option>
+                <option value="YEARLY">Anualmente</option>
+              </select>
+            </div>
+
+            {recurrenceRule && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Repetir hasta (opcional)</label>
+                <input
+                  type="date"
+                  value={recurrenceEnd}
+                  onChange={(e) => setRecurrenceEnd(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                />
+              </div>
+            )}
 
             {/* Notes */}
             <div className="space-y-2">
