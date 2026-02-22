@@ -1,37 +1,28 @@
-import { Plus, Trash2, MessageSquare, MessageCircle, Bot, Eraser } from "lucide-react";
+import { Plus, Trash2, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { AIPersona, AIChatSession } from "@/hooks/useAIPersonas";
+import { AIPersona } from "@/hooks/useAIPersonas";
 
 interface PersonaSidebarProps {
     personas: AIPersona[];
     activePersona: AIPersona | null;
-    sessions: AIChatSession[];
-    currentSessionId: string | null;
     onSelectPersona: (persona: AIPersona) => void;
     onCreatePersona: () => void;
     onDeletePersona: (id: string) => void;
-    onSelectSession: (id: string) => void;
-    onNewChat: () => void;
-    onDeleteSession: (id: string) => void;
-    onClearAllSessions?: () => void;
+    onClearHistory?: () => void;
     isOpen: boolean;
+    hasHistory: boolean;
 }
 
 export function PersonaSidebar({
     personas,
     activePersona,
-    sessions,
-    currentSessionId,
     onSelectPersona,
     onCreatePersona,
     onDeletePersona,
-    onSelectSession,
-    onNewChat,
-    onDeleteSession,
-    onClearAllSessions,
+    onClearHistory,
     isOpen,
+    hasHistory,
 }: PersonaSidebarProps) {
     if (!isOpen) return null;
 
@@ -98,74 +89,20 @@ export function PersonaSidebar({
                 </div>
             </div>
 
-            {/* Chat sessions section */}
-            <div className="p-3 border-b border-border/40 flex gap-2">
-                <Button
-                    onClick={onNewChat}
-                    className="flex-1 justify-start gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-none shadow-none font-medium text-xs h-8"
-                    variant="outline"
-                >
-                    <Plus className="w-3.5 h-3.5" /> Nuevo Chat
-                </Button>
-                {sessions.length > 0 && onClearAllSessions && (
+            {/* Clear History Tool */}
+            {hasHistory && onClearHistory && (
+                <div className="p-3 mt-auto border-t border-border/40">
                     <Button
-                        onClick={onClearAllSessions}
+                        onClick={onClearHistory}
                         variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        title="Borrar todo el historial"
+                        className="w-full justify-center gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        title="Vacíar este chat"
                     >
-                        <Eraser className="w-3.5 h-3.5" />
+                        <Eraser className="w-4 h-4" />
+                        <span className="text-sm font-medium">Borrar el Historial</span>
                     </Button>
-                )}
-            </div>
-
-            <ScrollArea className="flex-1 px-3 py-2">
-                <div className="space-y-1">
-                    {sessions.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/60 gap-2">
-                            <MessageCircle className="w-8 h-8 opacity-20" />
-                            <span className="text-xs">Sin historial</span>
-                        </div>
-                    ) : (
-                        sessions.map((session) => (
-                            <div
-                                key={session.id}
-                                onClick={() => onSelectSession(session.id)}
-                                className={cn(
-                                    "group flex items-center justify-between p-2 rounded-lg text-sm transition-all cursor-pointer hover:bg-accent/50",
-                                    currentSessionId === session.id
-                                        ? "bg-accent text-accent-foreground font-medium shadow-sm"
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                <div className="flex items-center gap-2 overflow-hidden flex-1">
-                                    <MessageSquare
-                                        className={cn(
-                                            "w-3.5 h-3.5 flex-shrink-0",
-                                            currentSessionId === session.id
-                                                ? "text-primary"
-                                                : "text-muted-foreground/70"
-                                        )}
-                                    />
-                                    <span className="truncate text-xs">{session.title}</span>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="w-5 h-5 opacity-70 hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive shrink-0"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDeleteSession(session.id);
-                                    }}
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                            </div>
-                        ))
-                    )}
                 </div>
-            </ScrollArea>
+            )}
         </div>
     );
 }

@@ -48,14 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     // Optimistic UI update
-    setProfile(prev => prev ? { ...prev, active_theme: theme } : null);
+    setProfile(prev => ({
+      ...(prev || { active_theme: null, active_badge: null }),
+      active_theme: theme,
+    }) as any);
     applyTheme(theme);
 
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ active_theme: theme })
-        .eq("user_id", user.id);
+        .upsert({ user_id: user.id, active_theme: theme }, { onConflict: "user_id" });
 
       if (error) {
         console.error("Error updating theme:", error);

@@ -160,7 +160,7 @@ export function useAIPersonas() {
     // Delete persona
     const deletePersona = useCallback(
         async (personaId: string) => {
-            const { error } = await supabase
+            const { error } = await (supabase as any)
                 .from("ai_personas")
                 .delete()
                 .eq("id", personaId);
@@ -186,7 +186,7 @@ export function useAIPersonas() {
     // Update persona personality (for learning/evolution)
     const updatePersonaPrompt = useCallback(
         async (personaId: string, personality_prompt: string) => {
-            const { error } = await supabase
+            const { error } = await (supabase as any)
                 .from("ai_personas")
                 .update({ personality_prompt, updated_at: new Date().toISOString() } as any)
                 .eq("id", personaId);
@@ -206,8 +206,8 @@ export function useAIPersonas() {
 
     const loadSessions = useCallback(
         async (personaId: string) => {
-            if (!user) return;
-            const { data, error } = await supabase
+            if (!user) return [];
+            const { data, error } = await (supabase as any)
                 .from("ai_chat_sessions")
                 .select("*")
                 .eq("user_id", user.id)
@@ -217,9 +217,11 @@ export function useAIPersonas() {
 
             if (error) {
                 console.error("Error loading sessions:", error);
-                return;
+                return [];
             }
-            setSessions((data || []) as unknown as AIChatSession[]);
+            const rows = (data || []) as unknown as AIChatSession[];
+            setSessions(rows);
+            return rows;
         },
         [user]
     );
@@ -227,7 +229,7 @@ export function useAIPersonas() {
     const createSession = useCallback(
         async (personaId: string, title: string) => {
             if (!user) return null;
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from("ai_chat_sessions")
                 .insert({
                     user_id: user.id,
@@ -257,7 +259,7 @@ export function useAIPersonas() {
     );
 
     const deleteSession = useCallback(async (sessionId: string) => {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from("ai_chat_sessions")
             .delete()
             .eq("id", sessionId);
@@ -271,7 +273,7 @@ export function useAIPersonas() {
     // ---- CHAT MESSAGES ----
 
     const loadMessages = useCallback(async (sessionId: string) => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from("ai_chat_messages")
             .select("*")
             .eq("session_id", sessionId)
@@ -289,7 +291,7 @@ export function useAIPersonas() {
             // Skip DB save for local sessions
             if (sessionId.startsWith("local-")) return null;
 
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from("ai_chat_messages")
                 .insert({ session_id: sessionId, role, content } as any)
                 .select()

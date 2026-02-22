@@ -62,15 +62,46 @@ export default function AIAssistant() {
   const [isUploading, setIsUploading] = useState(false);
   const currentSessionRef = useRef<string | null>(null);
 
-  // Load sessions when persona changes
+  // Load single session when persona changes
   useEffect(() => {
+    let isMounted = true;
     if (activePersona) {
-      loadSessions(activePersona.id);
-      setCurrentSessionId(null);
-      currentSessionRef.current = null;
-      setMessages([getGreeting(activePersona)]);
+      const initPersona = async () => {
+        const loadedSessions = await loadSessions(activePersona.id);
+        if (!isMounted) return;
+
+        if (loadedSessions && loadedSessions.length > 0) {
+          // Auto-load the most recent chat session
+          const latestSessionId = loadedSessions[0].id;
+          setCurrentSessionId(latestSessionId);
+          currentSessionRef.current = latestSessionId;
+          const msgs = await loadMessages(latestSessionId);
+
+          if (!isMounted) return;
+          if (msgs.length > 0) {
+            setMessages(
+              msgs.map((m) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                timestamp: new Date(m.created_at),
+              }))
+            );
+          } else {
+            setMessages([getGreeting(activePersona)]);
+          }
+        } else {
+          // No history, start fresh
+          setCurrentSessionId(null);
+          currentSessionRef.current = null;
+          setMessages([getGreeting(activePersona)]);
+        }
+      };
+
+      initPersona();
     }
-  }, [activePersona?.id, loadSessions]);
+    return () => { isMounted = false; };
+  }, [activePersona?.id, loadSessions, loadMessages]);
 
   // Scroll to bottom
   const scrollToBottom = () => {
@@ -106,49 +137,16 @@ export default function AIAssistant() {
     }
   };
 
-  // ---- Session actions ----
-  const handleNewChat = () => {
-    setCurrentSessionId(null);
-    currentSessionRef.current = null;
-    if (activePersona) {
-      setMessages([getGreeting(activePersona)]);
+  // ---- Single Session actions (Simplified) ----
+  const handleClearHistory = async () => {
+    if (!currentSessionId) return;
+    const ok = await deleteSession(currentSessionId);
+    if (ok) {
+      toast.success("Historial de esta IA borrado");
+      setCurrentSessionId(null);
+      currentSessionRef.current = null;
+      if (activePersona) setMessages([getGreeting(activePersona)]);
     }
-  };
-
-  const handleSelectSession = async (sessionId: string) => {
-    setCurrentSessionId(sessionId);
-    currentSessionRef.current = sessionId;
-    const msgs = await loadMessages(sessionId);
-    if (msgs.length > 0) {
-      setMessages(
-        msgs.map((m) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          timestamp: new Date(m.created_at),
-        }))
-      );
-    }
-    if (window.innerWidth < 768) setIsSidebarOpen(false);
-  };
-
-  const handleDeleteSession = async (sessionId: string) => {
-    const ok = await deleteSession(sessionId);
-    if (ok && currentSessionRef.current === sessionId) {
-      handleNewChat();
-    }
-  };
-
-  const handleClearAllSessions = async () => {
-    if (!activePersona) return;
-    const toDelete = [...sessions];
-    let count = 0;
-    for (const s of toDelete) {
-      const ok = await deleteSession(s.id);
-      if (ok) count++;
-    }
-    handleNewChat();
-    toast.success(`${count} conversación(es) eliminadas`);
   };
 
   // ---- File upload ----
@@ -310,16 +308,12 @@ export default function AIAssistant() {
       <PersonaSidebar
         personas={personas}
         activePersona={activePersona}
-        sessions={sessions}
-        currentSessionId={currentSessionId}
         onSelectPersona={handleSelectPersona}
         onCreatePersona={() => setShowOnboarding(true)}
         onDeletePersona={handleDeletePersona}
-        onSelectSession={handleSelectSession}
-        onNewChat={handleNewChat}
-        onDeleteSession={handleDeleteSession}
-        onClearAllSessions={handleClearAllSessions}
+        onClearHistory={handleClearHistory}
         isOpen={isSidebarOpen}
+        hasHistory={messages.length > 1}
       />
 
       {showOnboarding && (
