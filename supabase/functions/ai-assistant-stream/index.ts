@@ -18,7 +18,7 @@ function mapET(t: string): VET {
     "recuperatorio p1": "Recuperatorio P1", "recuperatorio p2": "Recuperatorio P2",
     "recuperatorio global": "Recuperatorio Global",
     "estudio": "Estudio", "estudiar": "Estudio",
-    "tp": "TP", "trabajo practico": "TP",
+    "tp": "TP", "trabajo practico": "TP", "trabajo práctico": "TP",
     "entrega": "Entrega", "entregar": "Entrega",
     "clase": "Clase", "cursada": "Clase", "otro": "Otro", "evento": "Otro"
   };
@@ -69,6 +69,28 @@ function fuzzyFind(query: string, subjects: any[]): any | null {
     if (score > bestScore) { bestScore = score; best = s; }
   }
   return bestScore >= 3 ? best : null;
+}
+
+async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.models) return [];
+    const validModels = data.models
+      .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
+      .map((m: any) => m.name.replace("models/", ""));
+    const priority = [
+      "gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash-8b",
+      "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.0-pro"
+    ];
+    validModels.sort((a: string, b: string) => {
+      const idxA = priority.findIndex(p => a.includes(p));
+      const idxB = priority.findIndex(p => b.includes(p));
+      return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+    });
+    return validModels;
+  } catch (e) { return []; }
 }
 
 serve(async (req) => {
@@ -123,10 +145,6 @@ serve(async (req) => {
     const decks = fdR.data || [];
     const profile = prR.data;
 
-    if (sR.error) console.error("[DB] subjects err:", sR.error.message);
-    if (ussR.error) console.error("[DB] uss err:", ussR.error.message);
-    console.log("[Data] subjects:", subjects.length, "uss:", uss.length, "events:", events.length);
-
     const nameById: Record<string, string> = {};
     for (const s of subjects) nameById[s.id] = s.nombre;
 
@@ -144,8 +162,6 @@ serve(async (req) => {
     const progreso = subjects.length > 0 ? ((aprobadas.length / subjects.length) * 100).toFixed(1) : "0";
     const studyMin = sessions.reduce((a: number, s: any) => a + (s.duracion_segundos || 0), 0) / 60;
     const userName = profile?.nombre || profile?.username || "Estudiante";
-
-    console.log("[Stats] Aprobadas:", aprobadas.length, "Regulares:", regulares.length, "Promedio:", promedio);
 
     const materiasStr = swStatus.map((s: any) =>
       "- " + s.nombre + " (" + s.codigo + "): " + s.estado.toUpperCase() + (s.nota ? " | Nota: " + s.nota : "") + (s.fecha_aprobacion ? " | Fecha: " + s.fecha_aprobacion : "")
@@ -208,7 +224,11 @@ serve(async (req) => {
     const errors: string[] = [];
 
     if (GEMINI_API_KEY) {
-      const models = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"];
+      // DYNAMICALLY FETCH MODELS 
+      const availableModels = await getAvailableGeminiModels(GEMINI_API_KEY);
+      const models = availableModels.length > 0 ? availableModels : ["gemini-1.5-flash-8b", "gemini-1.5-flash-latest"];
+      console.log("[AI] Dynamically selected models:", models);
+
       for (const model of models) {
         try {
           const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + GEMINI_API_KEY;
@@ -237,8 +257,10 @@ serve(async (req) => {
             break;
           } else {
             const errBody = await res.text();
-            errors.push(model + ":" + status + " " + errBody.slice(0, 200));
+            errors.push(model + ":" + status); // only save code to avoid leaking huge strings
             console.error("[AI] " + model + " failed:", status, errBody.slice(0, 300));
+            // if 429 quota limit, we skip immediately to Lovable instead of trying all local variants with same key
+            if (status === 429) break;
           }
         } catch (e: any) {
           errors.push(model + ":" + (e.message || String(e)));
