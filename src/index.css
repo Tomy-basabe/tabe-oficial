@@ -17,8 +17,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Cyan Primary - slightly darker for light mode */
-    --primary: 186 100% 40%;
+    /* Purple Primary - adapted for light mode */
+    --primary: 265 85% 55%;
     --primary-foreground: 0 0% 100%;
 
     /* Light Secondary */
@@ -28,7 +28,7 @@
     --muted: 220 14% 95%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 186 100% 40%;
+    --accent: 265 85% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -36,12 +36,12 @@
 
     --border: 220 13% 87%;
     --input: 220 13% 91%;
-    --ring: 186 100% 40%;
+    --ring: 265 85% 55%;
 
     --radius: 0.75rem;
 
     /* Custom Gamer Colors - adjusted for light mode */
-    --neon-cyan: 186 100% 40%;
+    --neon-cyan: 265 85% 55%;
     --neon-green: 142 70% 40%;
     --neon-gold: 45 100% 45%;
     --neon-purple: 270 80% 55%;
@@ -51,17 +51,17 @@
     --status-approved: 45 100% 45%;
     --status-available: 142 70% 40%;
     --status-blocked: 220 14% 70%;
-    --status-regular: 186 100% 40%;
+    --status-regular: 265 85% 55%;
     --status-recursar: 0 80% 50%;
 
     /* Glow Effects - subtle for light mode */
-    --glow-cyan: 0 0 10px hsl(186 100% 40% / 0.3), 0 0 20px hsl(186 100% 40% / 0.15);
+    --glow-cyan: 0 0 10px hsl(265 85% 55% / 0.3), 0 0 20px hsl(265 85% 55% / 0.15);
     --glow-green: 0 0 10px hsl(142 70% 40% / 0.3), 0 0 20px hsl(142 70% 40% / 0.15);
     --glow-gold: 0 0 10px hsl(45 100% 45% / 0.3), 0 0 20px hsl(45 100% 45% / 0.15);
     --glow-purple: 0 0 10px hsl(270 80% 55% / 0.3), 0 0 20px hsl(270 80% 55% / 0.15);
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(186 100% 40%) 0%, hsl(220 100% 50%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(265 85% 55%) 0%, hsl(280 85% 50%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(45 100% 45%) 0%, hsl(35 100% 35%) 100%);
     --gradient-success: linear-gradient(135deg, hsl(142 70% 40%) 0%, hsl(160 70% 35%) 100%);
     --gradient-dark: linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(220 14% 95%) 100%);
@@ -70,12 +70,12 @@
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 186 100% 40%;
+    --sidebar-primary: 265 85% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 14% 92%;
     --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 220 13% 87%;
-    --sidebar-ring: 186 100% 40%;
+    --sidebar-ring: 265 85% 55%;
   }
 
   .dark {
@@ -89,8 +89,8 @@
     --popover: 222 47% 10%;
     --popover-foreground: 210 40% 96%;
 
-    /* Neon Cyan Primary */
-    --primary: 186 100% 50%;
+    /* Purple Primary */
+    --primary: 265 90% 65%;
     --primary-foreground: 222 47% 6%;
 
     /* Deep Blue Secondary */
@@ -100,8 +100,8 @@
     --muted: 222 30% 18%;
     --muted-foreground: 215 20% 55%;
 
-    /* Neon Accent */
-    --accent: 186 100% 50%;
+    /* Purple Accent */
+    --accent: 265 90% 65%;
     --accent-foreground: 222 47% 6%;
 
     --destructive: 0 84% 60%;
@@ -109,30 +109,30 @@
 
     --border: 222 30% 18%;
     --input: 222 30% 15%;
-    --ring: 186 100% 50%;
+    --ring: 265 90% 65%;
 
     /* Custom Gamer Colors */
-    --neon-cyan: 186 100% 50%;
+    --neon-cyan: 265 90% 65%;
     --neon-green: 142 76% 50%;
     --neon-gold: 45 100% 55%;
-    --neon-purple: 270 100% 65%;
+    --neon-purple: 280 100% 65%;
     --neon-red: 0 100% 60%;
 
     /* Status Colors */
     --status-approved: 45 100% 55%;
     --status-available: 142 76% 50%;
     --status-blocked: 222 20% 35%;
-    --status-regular: 186 100% 50%;
+    --status-regular: 265 90% 65%;
     --status-recursar: 0 100% 60%;
 
     /* Glow Effects */
-    --glow-cyan: 0 0 20px hsl(186 100% 50% / 0.5), 0 0 40px hsl(186 100% 50% / 0.3);
+    --glow-cyan: 0 0 20px hsl(265 90% 65% / 0.5), 0 0 40px hsl(265 90% 65% / 0.3);
     --glow-green: 0 0 20px hsl(142 76% 50% / 0.5), 0 0 40px hsl(142 76% 50% / 0.3);
     --glow-gold: 0 0 20px hsl(45 100% 55% / 0.5), 0 0 40px hsl(45 100% 55% / 0.3);
-    --glow-purple: 0 0 20px hsl(270 100% 65% / 0.5), 0 0 40px hsl(270 100% 65% / 0.3);
+    --glow-purple: 0 0 20px hsl(280 100% 65% / 0.5), 0 0 40px hsl(280 100% 65% / 0.3);
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(186 100% 50%) 0%, hsl(220 100% 60%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(265 90% 65%) 0%, hsl(280 90% 60%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(45 100% 55%) 0%, hsl(35 100% 45%) 100%);
     --gradient-success: linear-gradient(135deg, hsl(142 76% 50%) 0%, hsl(160 84% 40%) 100%);
     --gradient-dark: linear-gradient(180deg, hsl(222 47% 8%) 0%, hsl(222 47% 4%) 100%);
@@ -141,12 +141,12 @@
     /* Sidebar */
     --sidebar-background: 222 47% 5%;
     --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 186 100% 50%;
+    --sidebar-primary: 265 90% 65%;
     --sidebar-primary-foreground: 222 47% 6%;
     --sidebar-accent: 222 47% 12%;
     --sidebar-accent-foreground: 210 40% 96%;
     --sidebar-border: 222 30% 15%;
-    --sidebar-ring: 186 100% 50%;
+    --sidebar-ring: 265 90% 65%;
   }
 
   /* NEON GOLD THEME OVERRIDE */
@@ -203,7 +203,7 @@
 
   /* Text Glow */
   .text-glow-cyan {
-    text-shadow: 0 0 10px hsl(186 100% 50% / 0.8), 0 0 20px hsl(186 100% 50% / 0.5);
+    text-shadow: 0 0 10px hsl(265 90% 65% / 0.8), 0 0 20px hsl(265 90% 65% / 0.5);
   }
 
   .text-glow-gold {
@@ -244,7 +244,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(186 100% 50% / 0.5), transparent);
+    background: linear-gradient(90deg, transparent, hsl(265 90% 65% / 0.5), transparent);
   }
 
   /* Animated Border */
@@ -258,7 +258,7 @@
     inset: -1px;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, hsl(186 100% 50%), hsl(270 100% 65%), hsl(186 100% 50%));
+    background: linear-gradient(135deg, hsl(265 90% 65%), hsl(280 100% 65%), hsl(265 90% 65%));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -477,8 +477,8 @@
   }
 
   .subject-regular {
-    background: linear-gradient(135deg, hsl(186 100% 50% / 0.15) 0%, hsl(220 100% 60% / 0.1) 100%);
-    border: 1px solid hsl(186 100% 50% / 0.5);
+    background: linear-gradient(135deg, hsl(265 90% 65% / 0.15) 0%, hsl(280 90% 60% / 0.1) 100%);
+    border: 1px solid hsl(265 90% 65% / 0.5);
   }
 
   /* Pulse Animation for Gold */
@@ -516,7 +516,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(180deg, transparent, hsl(186 100% 50% / 0.1), transparent);
+    background: linear-gradient(180deg, transparent, hsl(265 90% 65% / 0.1), transparent);
     animation: scanline 3s linear infinite;
   }
 
@@ -600,11 +600,11 @@
 
     0%,
     100% {
-      box-shadow: 0 0 15px hsl(186 100% 50% / 0.2), 0 0 30px hsl(270 100% 65% / 0.1);
+      box-shadow: 0 0 15px hsl(265 90% 65% / 0.2), 0 0 30px hsl(280 100% 65% / 0.1);
     }
 
     50% {
-      box-shadow: 0 0 25px hsl(186 100% 50% / 0.4), 0 0 50px hsl(270 100% 65% / 0.2);
+      box-shadow: 0 0 25px hsl(265 90% 65% / 0.4), 0 0 50px hsl(280 100% 65% / 0.2);
     }
   }
 
@@ -689,7 +689,7 @@
 
   /* Calendar Grid Pattern */
   .bg-grid-pattern {
-    background-image: 
+    background-image:
       linear-gradient(to right, hsl(var(--border) / 0.1) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(var(--border) / 0.1) 1px, transparent 1px);
     background-size: 60px 60px;
