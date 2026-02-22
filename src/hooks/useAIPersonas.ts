@@ -183,6 +183,28 @@ export function useAIPersonas() {
         [activePersona, switchPersona]
     );
 
+    // Update persona (name, emoji, prompt, etc)
+    const updatePersona = useCallback(
+        async (personaId: string, updates: Partial<AIPersona>) => {
+            const { error } = await (supabase as any)
+                .from("ai_personas")
+                .update({ ...updates, updated_at: new Date().toISOString() } as any)
+                .eq("id", personaId);
+
+            if (!error) {
+                setPersonas((prev) =>
+                    prev.map((p) => (p.id === personaId ? { ...p, ...updates } : p))
+                );
+                // Si estamos editando el activo, actualizarlo en local
+                if (activePersona?.id === personaId) {
+                    setActivePersona((prev) => prev ? { ...prev, ...updates } : prev);
+                }
+            }
+            return !error;
+        },
+        [activePersona]
+    );
+
     // Update persona personality (for learning/evolution)
     const updatePersonaPrompt = useCallback(
         async (personaId: string, personality_prompt: string) => {
@@ -206,7 +228,7 @@ export function useAIPersonas() {
 
     const loadSessions = useCallback(
         async (personaId: string) => {
-            if (!user) return [];
+            if (!user) return;
             const { data, error } = await (supabase as any)
                 .from("ai_chat_sessions")
                 .select("*")
@@ -217,11 +239,9 @@ export function useAIPersonas() {
 
             if (error) {
                 console.error("Error loading sessions:", error);
-                return [];
+                return;
             }
-            const rows = (data || []) as unknown as AIChatSession[];
-            setSessions(rows);
-            return rows;
+            setSessions((data || []) as unknown as AIChatSession[]);
         },
         [user]
     );
@@ -320,6 +340,7 @@ export function useAIPersonas() {
         loading,
         switchPersona,
         createPersona,
+        updatePersona,
         deletePersona,
         updatePersonaPrompt,
         loadSessions,
