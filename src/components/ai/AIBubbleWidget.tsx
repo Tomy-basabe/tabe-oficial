@@ -131,7 +131,7 @@ export function AIBubbleWidget() {
             {isOpen && (
                 <div
                     className={cn(
-                        "fixed bottom-20 left-4 z-[60] w-[360px] max-w-[calc(100vw-2rem)] bg-card/95 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl flex flex-col overflow-hidden",
+                        "fixed bottom-20 right-4 z-[60] w-[360px] max-w-[calc(100vw-2rem)] bg-card/95 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl flex flex-col overflow-hidden",
                         "animate-in fade-in slide-in-from-bottom-4 duration-300"
                     )}
                     style={{ maxHeight: "min(500px, 60vh)" }}
@@ -224,7 +224,7 @@ export function AIBubbleWidget() {
             <button
                 onClick={handleToggle}
                 className={cn(
-                    "fixed bottom-4 left-4 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 group",
+                    "fixed bottom-4 right-4 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 group",
                     isOpen
                         ? "bg-secondary hover:bg-secondary/80 text-foreground scale-90"
                         : "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground hover:scale-110 hover:shadow-xl hover:shadow-primary/25"

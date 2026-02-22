@@ -23,7 +23,7 @@ export function GlobalPomodoroWidget() {
     if (!isSessionActive) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-10 fade-in duration-300">
+        <div className="fixed bottom-4 right-[76px] z-50 animate-in slide-in-from-bottom-10 fade-in duration-300">
             <div className="bg-card/90 backdrop-blur-xl border border-primary/20 rounded-2xl shadow-2xl p-3 flex items-center gap-3 w-64 ring-1 ring-border/50">
 
                 {/* Progress Ring Mini */}
