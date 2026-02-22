@@ -71,28 +71,6 @@ function fuzzyFind(query: string, subjects: any[]): any | null {
   return bestScore >= 3 ? best : null;
 }
 
-async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!data.models) return [];
-    const validModels = data.models
-      .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
-      .map((m: any) => m.name.replace("models/", ""));
-    const priority = [
-      "gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash-8b",
-      "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.0-pro"
-    ];
-    validModels.sort((a: string, b: string) => {
-      const idxA = priority.findIndex(p => a.includes(p));
-      const idxB = priority.findIndex(p => b.includes(p));
-      return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
-    });
-    return validModels;
-  } catch (e) { return []; }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -200,6 +178,7 @@ serve(async (req) => {
       "4. Para 'maniana', calcula la fecha exacta.\n" +
       "5. Responde siempre en Espaniol Argentino.";
 
+    // OpenAI compatible tools format
     const tools = [
       { type: "function", function: { name: "create_calendar_event", description: "Crea evento en calendario", parameters: { type: "object", properties: { titulo: { type: "string" }, fecha: { type: "string", description: "YYYY-MM-DD" }, hora: { type: "string" }, tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, notas: { type: "string" }, subject_id: { type: "string", description: "Nombre de la materia" } }, required: ["titulo", "fecha", "tipo_examen"] } } },
       { type: "function", function: { name: "delete_calendar_event", description: "Elimina evento por ID", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } } },
@@ -210,99 +189,74 @@ serve(async (req) => {
       { type: "function", function: { name: "search_library", description: "Busca archivos", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } }
     ];
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    // LEO DIRECTAMENTE DE LA VARIABLE DE ENTORNO EN SUPABASE PARA NO HARDCODEARLO EN GITHUB
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
-    const geminiContents = messages.map((m: any) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }]
-    })).filter((m: any) => m.role !== "system");
+    // Format messages for Groq (OpenAI spec)
+    const groqMessages = [
+      { role: "system", content: sysPrompt },
+      ...messages.map((m: any) => ({
+        role: m.role,
+        content: m.content
+      }))
+    ];
 
     let content = "";
     let toolCall: any = null;
     let provider = "";
     const errors: string[] = [];
 
-    if (GEMINI_API_KEY) {
-      // DYNAMICALLY FETCH MODELS 
-      const availableModels = await getAvailableGeminiModels(GEMINI_API_KEY);
-      const models = availableModels.length > 0 ? availableModels : ["gemini-1.5-flash-8b", "gemini-1.5-flash-latest"];
-      console.log("[AI] Dynamically selected models:", models);
+    if (GROQ_API_KEY) {
+      try {
+        console.log("[AI] Usando GROQ API con Llama 3");
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "llama3-groq-70b-8192-tool-use-preview", // Best model for function calling on Groq
+            messages: groqMessages,
+            tools: tools,
+            tool_choice: "auto",
+            temperature: 0.5,
+            max_tokens: 2048,
+            stream: false
+          })
+        });
 
-      for (const model of models) {
-        try {
-          const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + GEMINI_API_KEY;
-          const res = await fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: geminiContents,
-              system_instruction: { parts: [{ text: sysPrompt }] },
-              tools: [{ function_declarations: tools.map(t => t.function) }],
-              generationConfig: { maxOutputTokens: 2048 }
-            })
-          });
-          const status = res.status;
-          if (res.ok) {
-            const data = await res.json();
-            const c = data.candidates && data.candidates[0];
-            if (c && c.content && c.content.parts) {
-              for (const part of c.content.parts) {
-                if (part.text) content += part.text;
-                if (part.functionCall) toolCall = part.functionCall;
-              }
+        const status = res.status;
+        if (res.ok) {
+          const data = await res.json();
+          const choice = data.choices && data.choices[0];
+
+          if (choice && choice.message) {
+            if (choice.message.content) {
+              content = choice.message.content;
             }
-            provider = "gemini";
-            console.log("[AI] OK model:" + model + " text:" + (content.length > 0) + " tool:" + (!!toolCall));
-            break;
-          } else {
-            const errBody = await res.text();
-            errors.push(model + ":" + status); // only save code to avoid leaking huge strings
-            console.error("[AI] " + model + " failed:", status, errBody.slice(0, 300));
-            // if 429 quota limit, we skip immediately to Lovable instead of trying all local variants with same key
-            if (status === 429) break;
+            if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+              const tc = choice.message.tool_calls[0];
+              toolCall = {
+                name: tc.function.name,
+                args: JSON.parse(tc.function.arguments)
+              };
+            }
           }
-        } catch (e: any) {
-          errors.push(model + ":" + (e.message || String(e)));
-          console.error("[AI] " + model + " exception:", e.message || e);
+          provider = "groq";
+          console.log("[AI] Groq OK text:" + (content.length > 0) + " tool:" + (!!toolCall));
+        } else {
+          const errBody = await res.text();
+          errors.push("groq:" + status);
+          console.error("[AI] Groq failed:", status, errBody.slice(0, 300));
         }
+      } catch (e: any) {
+        errors.push("groq:" + (e.message || String(e)));
+        console.error("[AI] Groq exception:", e.message || e);
       }
     } else {
-      errors.push("No GEMINI_API_KEY");
-      console.error("[AI] No GEMINI_API_KEY set");
-    }
-
-    if (!provider && LOVABLE_API_KEY) {
-      const models = ["google/gemini-2.0-flash-lite", "google/gemini-1.5-flash", "openai/gpt-4o-mini"];
-      for (const model of models) {
-        try {
-          const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: { Authorization: "Bearer " + LOVABLE_API_KEY, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: model, messages: [{ role: "system", content: sysPrompt }, ...messages], tools: tools, stream: false })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const msg = data.choices && data.choices[0] && data.choices[0].message;
-            if (msg) {
-              if (msg.content) content = msg.content;
-              if (msg.tool_calls && msg.tool_calls[0]) {
-                const tc = msg.tool_calls[0];
-                toolCall = { name: tc.function.name, args: JSON.parse(tc.function.arguments) };
-              }
-            }
-            provider = "lovable";
-            console.log("[AI] Lovable OK:" + model);
-            break;
-          } else {
-            const errBody = await res.text();
-            errors.push("lovable-" + model + ":" + res.status);
-            console.error("[AI] Lovable " + model + " failed:", res.status, errBody.slice(0, 200));
-          }
-        } catch (e: any) {
-          errors.push("lovable-" + model + ":" + (e.message || String(e)));
-        }
-      }
+      errors.push("No GROQ_API_KEY set in environment variables");
+      console.error("[AI] No GROQ_API_KEY set");
     }
 
     if (!provider) {
