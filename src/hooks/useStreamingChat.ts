@@ -17,7 +17,7 @@ interface StreamResult {
 export function useStreamingChat() {
   const [isStreaming, setIsStreaming] = useState(false);
 
-  const doFetch = async (token: string, messages: Array<{ role: string; content: string }>, persona_id: string) => {
+  const doFetch = async (token: string, messages: Array<{ role: string; content: string }>, persona_id: string, context_page?: string) => {
     return fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant-stream`,
       {
@@ -27,7 +27,7 @@ export function useStreamingChat() {
           Authorization: `Bearer ${token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ messages, persona_id }),
+        body: JSON.stringify({ messages, persona_id, context_page }),
       }
     );
   };
@@ -133,19 +133,20 @@ export function useStreamingChat() {
     persona_id: string,
     onDelta: (text: string) => void,
     onComplete: (result: StreamResult) => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    context_page?: string
   ) => {
     setIsStreaming(true);
 
     try {
       let token = await getToken();
-      let response = await doFetch(token, messages, persona_id);
+      let response = await doFetch(token, messages, persona_id, context_page);
 
       // If 401, refresh the token and retry once
       if (response.status === 401) {
         console.log("Got 401, refreshing session and retrying...");
         token = await getToken(true);
-        response = await doFetch(token, messages, persona_id);
+        response = await doFetch(token, messages, persona_id, context_page);
       }
 
       if (!response.ok) {

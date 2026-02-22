@@ -29,6 +29,7 @@ import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
+import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
 import { Button } from "@/components/ui/button";
 
 const baseNavItems = [
@@ -246,6 +247,7 @@ export function MainLayout() {
 
       {/* Global Widgets */}
       <GlobalPomodoroWidget />
+      <AIBubbleWidget />
     </div>
   );
 }
