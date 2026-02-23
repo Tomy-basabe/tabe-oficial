@@ -35,7 +35,7 @@ const PAGE_CONTEXT_MAP: Record<string, string> = {
 
 export function AIBubbleWidget() {
     const location = useLocation();
-    const { user } = useAuth();
+    const { user, isGuest } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<BubbleMessage[]>([]);
     const [input, setInput] = useState("");
@@ -47,7 +47,7 @@ export function AIBubbleWidget() {
 
     // Hide on /asistente page
     if (location.pathname === "/asistente") return null;
-    if (!user) return null;
+    if (!user && !isGuest) return null;
 
     const currentContext = PAGE_CONTEXT_MAP[location.pathname] || "Otra sección";
 

@@ -150,6 +150,25 @@ export default function Library() {
 
   const fetchFiles = async () => {
     setLoading(true);
+
+    if (isGuest) {
+      setFiles([
+        {
+          id: "mock-file-1",
+          nombre: "Guía Rápida de Tabe.pdf",
+          tipo: "pdf",
+          url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+          storage_path: null,
+          tamaño_bytes: 1048576 * 1.5, // 1.5 MB
+          subject_id: null,
+          folder_id: "mock-folder-1", // Tutorial Tabe
+          created_at: new Date().toISOString(),
+        }
+      ]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("library_files")
       .select("*, subjects(nombre, codigo, año)")
