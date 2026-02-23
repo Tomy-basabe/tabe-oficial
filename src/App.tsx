@@ -28,11 +28,12 @@ import Friends from "@/pages/Friends";
 import Marketplace from "@/pages/Marketplace";
 import CorrelativityMap from "@/pages/CorrelativityMap";
 import Landing from "@/pages/Landing";
+import { TutorialTour } from "@/components/onboarding/TutorialTour";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isGuest } = useAuth();
 
   if (loading) {
     return (
@@ -45,7 +46,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) {
+  if (!user && !isGuest) {
     return <Navigate to="/auth" replace />;
   }
 
@@ -53,7 +54,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isGuest } = useAuth();
 
   if (loading) {
     return (
@@ -63,7 +64,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (user) {
+  if (user || isGuest) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -87,6 +88,7 @@ const AppRoutes = () => (
     <Route
       element={
         <ProtectedRoute>
+          <TutorialTour />
           <MainLayout />
         </ProtectedRoute>
       }

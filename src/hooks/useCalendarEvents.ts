@@ -82,12 +82,53 @@ function advanceDate(date: Date, rule: RecurrenceRule) {
 }
 
 export function useCalendarEvents() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [rawEvents, setRawEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchEvents = useCallback(async () => {
-    if (!user) return;
+    if (!user && !isGuest) return;
+
+    if (isGuest) {
+      setLoading(false);
+      const today = new Date().toISOString().split("T")[0];
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+      setRawEvents([
+        {
+          id: "guest-event-1",
+          titulo: "Parcial de Análisis Matemático",
+          fecha: today,
+          hora: "10:30",
+          tipo_examen: "P1",
+          subject_id: null,
+          subject_nombre: "Análisis I",
+          notas: "Recuerda llevar calculadora y tabla de integrales.",
+          ubicacion: "Aula 14",
+          is_all_day: false,
+          color: "#00ffaa",
+          recurrence_rule: null,
+          recurrence_end: null,
+          recurrence_parent_id: null,
+        },
+        {
+          id: "guest-event-2",
+          titulo: "Entrega Trabajo Práctico",
+          fecha: tomorrow,
+          hora: "18:00",
+          tipo_examen: "Global",
+          subject_id: null,
+          subject_nombre: "Física II",
+          notas: "Formato PDF, máximo 10 páginas.",
+          ubicacion: "Campus Virtual",
+          is_all_day: false,
+          color: "#b026ff",
+          recurrence_rule: null,
+          recurrence_end: null,
+          recurrence_parent_id: null,
+        }
+      ]);
+      return;
+    }
 
     try {
       setLoading(true);

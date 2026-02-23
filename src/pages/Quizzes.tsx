@@ -48,7 +48,7 @@ interface Subject {
 }
 
 export default function Quizzes() {
-    const { user } = useAuth();
+    const { user, isGuest } = useAuth();
     const [decks, setDecks] = useState<QuizDeck[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [loading, setLoading] = useState(true);
@@ -93,6 +93,7 @@ export default function Quizzes() {
     }, [studyDeck, finished, studyQuestions]);
 
     const saveStudySession = async (isCompleted: boolean) => {
+        if (isGuest) return;
         if (!user || !studyDeck || studyTime === 0) return;
         try {
             await supabase.from("study_sessions").insert({
@@ -120,8 +121,18 @@ export default function Quizzes() {
     }, []);
 
     const fetchDecks = useCallback(async () => {
-        if (!user) return;
+        if (!user && !isGuest) return;
         setLoading(true);
+
+        if (isGuest) {
+            setDecks([
+                { id: "mock-1", nombre: "Cálculo I - Integrales", subject_id: "mock", total_questions: 10, subject: { nombre: "Análisis Matemático", codigo: "AM1", año: 1 } },
+                { id: "mock-2", nombre: "Física - Dinámica", subject_id: "mock", total_questions: 5, subject: { nombre: "Física I", codigo: "F1", año: 1 } }
+            ]);
+            setLoading(false);
+            return;
+        }
+
         const { data } = await supabase
             .from("quiz_decks")
             .select("id, nombre, subject_id, total_questions")

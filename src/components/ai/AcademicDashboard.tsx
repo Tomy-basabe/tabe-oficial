@@ -30,7 +30,7 @@ const TIPS = [
 ];
 
 export function AcademicDashboard() {
-    const { user } = useAuth();
+    const { user, isGuest } = useAuth();
     const [stats, setStats] = useState<AcademicStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [tip, setTip] = useState("");
@@ -41,7 +41,25 @@ export function AcademicDashboard() {
     }, [user]);
 
     const fetchStats = async () => {
-        if (!user) return;
+        if (!user && !isGuest) return;
+
+        if (isGuest) {
+            setStats({
+                totalSubjects: 10,
+                approved: 2,
+                regular: 3,
+                cursando: 5,
+                level: 3,
+                xp: 1450,
+                nextExam: {
+                    title: "Examen Final Ficticio",
+                    date: "Mañana",
+                    daysLeft: 1
+                }
+            });
+            setLoading(false);
+            return;
+        }
 
         try {
             // First get subjects to count total

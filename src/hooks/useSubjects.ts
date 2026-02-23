@@ -91,7 +91,7 @@ export interface CreateSubjectData {
 }
 
 export function useSubjects() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [userStatuses, setUserStatuses] = useState<UserSubjectStatus[]>([]);
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
@@ -140,8 +140,21 @@ export function useSubjects() {
   useEffect(() => {
     if (user) {
       fetchData(true);
+    } else if (isGuest) {
+      setSubjects([
+        { id: "s1", nombre: "Matemática", codigo: "MAT1", año: 1, numero_materia: 1 },
+        { id: "s2", nombre: "Física", codigo: "FIS1", año: 1, numero_materia: 2 },
+        { id: "s3", nombre: "Programación", codigo: "PRG1", año: 1, numero_materia: 3 }
+      ]);
+      setUserStatuses([
+        { id: "st1", subject_id: "s1", estado: "aprobada", nota: 8, fecha_aprobacion: "2023-12-01" },
+        { id: "st2", subject_id: "s2", estado: "regular", nota: null, fecha_aprobacion: null },
+        { id: "st3", subject_id: "s3", estado: "cursable", nota: null, fecha_aprobacion: null }
+      ]);
+      setDependencies([]);
+      setLoading(false);
     }
-  }, [user, fetchData]);
+  }, [user, isGuest, fetchData]);
 
   // Debounced refetch for realtime — avoids cascade re-renders
   const debouncedRefetch = useCallback(() => {

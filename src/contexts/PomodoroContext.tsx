@@ -63,7 +63,7 @@ interface PomodoroContextType {
 const PomodoroContext = createContext<PomodoroContextType | undefined>(undefined);
 
 export function PomodoroProvider({ children }: { children: ReactNode }) {
-    const { user } = useAuth();
+    const { user, isGuest } = useAuth();
     const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettings>(loadSettings);
     const [mode, setMode] = useState<TimerMode>("work");
     const [timeLeft, setTimeLeft] = useState(pomodoroSettings.work * 60);
@@ -78,6 +78,10 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
     // Load today's stats on init
     useEffect(() => {
+        if (isGuest) {
+            setCompletedPomodoros(2); // Mock completed pomodoros for guests
+            return;
+        }
         if (user) {
             const fetchToday = async () => {
                 const today = new Date().toISOString().split('T')[0];
@@ -144,6 +148,14 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
 
     const saveCurrentSession = async (completed: boolean) => {
+        if (isGuest) {
+            if (completed) {
+                setCompletedPomodoros(prev => prev + 1);
+            }
+            setElapsedSeconds(0);
+            return;
+        }
+
         if (!user || mode !== "work" || elapsedSeconds === 0) return;
 
         try {

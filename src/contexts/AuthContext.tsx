@@ -11,6 +11,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   profile: { active_theme: string | null; active_badge: string | null } | null;
   updateTheme: (theme: string) => Promise<void>;
+  isGuest: boolean;
+  loginAsGuest: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null } | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
 
   const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-green', 'theme-red'];
 
@@ -39,8 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (data) {
-      setProfile(data as any);
-      applyTheme(data.active_theme);
+      const typedData = data as unknown as { active_theme: string | null; active_badge: string | null };
+      setProfile(typedData);
+      applyTheme(typedData.active_theme);
     }
   };
 
@@ -75,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         if (session?.user) {
           fetchProfile(session.user.id);
+          setIsGuest(false);
         } else {
           setProfile(null);
           applyTheme(null);
@@ -89,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
+        setIsGuest(false);
       }
       setLoading(false);
     });
@@ -129,11 +135,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    setIsGuest(false);
     await supabase.auth.signOut();
   };
 
+  const loginAsGuest = () => {
+    setIsGuest(true);
+    // Guest dummy profile
+    setProfile({ active_theme: 'theme-cyan', active_badge: null });
+    applyTheme('theme-cyan');
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, profile, updateTheme }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, profile, updateTheme, isGuest, loginAsGuest }}>
       {children}
     </AuthContext.Provider>
   );

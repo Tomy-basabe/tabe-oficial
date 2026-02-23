@@ -38,7 +38,7 @@ interface Subject {
 type StudyState = "browsing" | "studying" | "completed";
 
 export default function Flashcards() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { checkAndUnlockAchievements } = useAchievements();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -75,11 +75,11 @@ export default function Flashcards() {
   const [selectedImportCards, setSelectedImportCards] = useState<string[]>([]);
 
   useEffect(() => {
-    if (user) {
+    if (user || isGuest) {
       fetchSubjects();
       fetchDecks();
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   // Study timer
   useEffect(() => {
@@ -104,8 +104,18 @@ export default function Flashcards() {
   };
 
   const fetchDecks = async () => {
-    if (!user) return;
+    if (!user && !isGuest) return;
     setLoading(true);
+
+    if (isGuest) {
+      setDecks([
+        { id: "mock-deck-1", nombre: "Mazo de Prueba: Anatomía", subject_id: "mock", total_cards: 15, subject: { nombre: "Anatomía Normal", codigo: "AN1", año: 1 } },
+        { id: "mock-deck-2", nombre: "Fórmulas Estadísticas", subject_id: "mock", total_cards: 8, subject: { nombre: "Estadística V", codigo: "EST5", año: 3 } }
+      ]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("flashcard_decks")
       .select("*, subjects(nombre, codigo, año)")
@@ -120,6 +130,15 @@ export default function Flashcards() {
   };
 
   const fetchCards = async (deckId: string) => {
+    if (isGuest) {
+      const mocks = [
+        { id: "mock-card-1", pregunta: "¿Qué es la MITOCONDRIA?", respuesta: "La usina energética de la célula.", veces_correcta: 0, veces_incorrecta: 0 },
+        { id: "mock-card-2", pregunta: "¿Fórmula general de varianza?", respuesta: "Suma de diferencias cuadradas / N", veces_correcta: 0, veces_incorrecta: 0 }
+      ];
+      setCards(mocks);
+      return mocks;
+    }
+
     const { data, error } = await supabase
       .from("flashcards")
       .select("*")

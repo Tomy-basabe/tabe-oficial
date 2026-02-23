@@ -13,8 +13,16 @@ export default function Auth() {
   const [nombre, setNombre] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, loginAsGuest } = useAuth();
   const navigate = useNavigate();
+
+  const handleGuestLogin = () => {
+    loginAsGuest();
+    toast.info("Ingresando como invitado. Los cambios que realices no se guardarán.", {
+      duration: 5000,
+    });
+    navigate("/dashboard");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,6 +197,20 @@ export default function Auth() {
                 isLogin ? "Iniciar Sesión" : "Crear Cuenta"
               )}
             </button>
+
+            <div className="relative mt-6 pt-4 border-t border-border">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 bg-card text-xs text-muted-foreground uppercase">
+                o también
+              </div>
+              <button
+                type="button"
+                onClick={handleGuestLogin}
+                className="w-full py-3 bg-secondary text-foreground font-medium rounded-xl hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
+              >
+                <User className="w-5 h-5 text-neon-cyan" />
+                Probar como Invitado
+              </button>
+            </div>
           </form>
         </div>
 

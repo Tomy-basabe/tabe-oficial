@@ -177,7 +177,12 @@ export function MainLayout() {
                     isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
                     isActive
                       ? "bg-primary/10 text-primary border border-primary/30"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    // Add Joyride targets
+                    item.path === "/dashboard" && "tour-sidebar-dashboard",
+                    item.path === "/carrera" && "tour-sidebar-plan",
+                    item.path === "/calendario" && "tour-sidebar-calendar",
+                    item.path === "/pomodoro" && "tour-sidebar-pomodoro"
                   )}
                   title={isCollapsed ? item.label : undefined}
                 >

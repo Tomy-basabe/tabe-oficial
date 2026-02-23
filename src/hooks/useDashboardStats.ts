@@ -34,13 +34,39 @@ interface WeekDay {
 }
 
 export function useDashboardStats() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { subjects } = useSubjects();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
+    if (!user && !isGuest) {
+      setLoading(false);
+      return;
+    }
+
+    if (isGuest) {
+      setUserStats({
+        xp_total: 1450,
+        nivel: 15,
+        racha_actual: 3,
+        mejor_racha: 7,
+        horas_estudio_total: 42
+      });
+
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      setStudySessions([
+        { id: "s1", duracion_segundos: 3600, fecha: toLocalDateStr(today), completada: true },
+        { id: "s2", duracion_segundos: 1800, fecha: toLocalDateStr(yesterday), completada: true }
+      ]);
+      setLoading(false);
+      return;
+    }
+
     if (!user) return;
 
     try {
@@ -70,7 +96,7 @@ export function useDashboardStats() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   useEffect(() => {
     fetchStats();

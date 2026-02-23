@@ -240,7 +240,7 @@ export function AIBubbleWidget() {
             <button
                 onClick={handleToggle}
                 className={cn(
-                    "fixed bottom-4 right-4 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 group",
+                    "fixed bottom-4 right-4 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 group tour-header-ai",
                     isOpen
                         ? "bg-secondary hover:bg-secondary/80 text-foreground scale-90"
                         : "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground hover:scale-110 hover:shadow-xl hover:shadow-primary/25"

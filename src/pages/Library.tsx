@@ -73,7 +73,7 @@ const folderColors = [
 const years = [1, 2, 3, 4, 5];
 
 export default function Library() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [folders, setFolders] = useState<LibraryFolder[]>([]);
   const [files, setFiles] = useState<LibraryFile[]>([]);
@@ -105,12 +105,12 @@ export default function Library() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (user) {
+    if (user || isGuest) {
       fetchSubjects();
       fetchFolders();
       fetchFiles();
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   // Reset subject filter when year changes
   useEffect(() => {
@@ -130,6 +130,14 @@ export default function Library() {
   };
 
   const fetchFolders = async () => {
+    if (isGuest) {
+      setFolders([
+        { id: "mock-folder-1", nombre: "Apuntes Análisis Matemático", color: "#00d9ff", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() },
+        { id: "mock-folder-2", nombre: "Resúmenes Física", color: "#a855f7", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() }
+      ]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("library_folders")
       .select("*, subjects(nombre, codigo, año)")
