@@ -34,7 +34,7 @@ import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
 import { Button } from "@/components/ui/button";
 
 const baseNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera" },
   { icon: NotionIcon, label: "Notion", path: "/notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards" },

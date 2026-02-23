@@ -27,6 +27,7 @@ import NotFound from "@/pages/NotFound";
 import Friends from "@/pages/Friends";
 import Marketplace from "@/pages/Marketplace";
 import CorrelativityMap from "@/pages/CorrelativityMap";
+import Landing from "@/pages/Landing";
 
 const queryClient = new QueryClient();
 
@@ -63,7 +64,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -71,6 +72,14 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 const AppRoutes = () => (
   <Routes>
+    <Route
+      path="/"
+      element={
+        <PublicRoute>
+          <Landing />
+        </PublicRoute>
+      }
+    />
     <Route
       path="/auth"
       element={
@@ -86,7 +95,7 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     >
-      <Route path="/" element={<Dashboard />} />
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/carrera" element={<CareerPlan />} />
       <Route path="/calendario" element={<Calendar />} />
       <Route path="/pomodoro" element={<Pomodoro />} />
