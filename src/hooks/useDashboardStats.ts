@@ -48,21 +48,28 @@ export function useDashboardStats() {
 
     if (isGuest) {
       setUserStats({
-        xp_total: 1450,
-        nivel: 15,
-        racha_actual: 3,
-        mejor_racha: 7,
-        horas_estudio_total: 42
+        xp_total: 24500,
+        nivel: 42,
+        racha_actual: 14,
+        mejor_racha: 35,
+        horas_estudio_total: 312
       });
 
       const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
+      const sessions = [];
+      // Generate 14 days of intense study sessions
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        sessions.push({
+          id: `mock-session-${i}`,
+          duracion_segundos: Math.floor(Math.random() * 3600) + 7200, // 2-3 hours daily
+          fecha: toLocalDateStr(d),
+          completada: true
+        });
+      }
 
-      setStudySessions([
-        { id: "s1", duracion_segundos: 3600, fecha: toLocalDateStr(today), completada: true },
-        { id: "s2", duracion_segundos: 1800, fecha: toLocalDateStr(yesterday), completada: true }
-      ]);
+      setStudySessions(sessions);
       setLoading(false);
       return;
     }

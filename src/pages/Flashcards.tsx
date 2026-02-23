@@ -131,12 +131,38 @@ export default function Flashcards() {
 
   const fetchCards = async (deckId: string) => {
     if (isGuest) {
-      const mocks = [
-        { id: "mock-card-1", pregunta: "¿Qué es la MITOCONDRIA?", respuesta: "La usina energética de la célula.", veces_correcta: 0, veces_incorrecta: 0 },
-        { id: "mock-card-2", pregunta: "¿Fórmula general de varianza?", respuesta: "Suma de diferencias cuadradas / N", veces_correcta: 0, veces_incorrecta: 0 }
+      if (deckId === "mock-deck-1") {
+        const anatomyMocks = [
+          { pregunta: "¿Qué es la Mitocondria?", respuesta: "Organela encargada de la respiración celular y producción de ATP." },
+          { pregunta: "¿Qué tejido forma la epidermis?", respuesta: "Tejido epitelial plano estratificado queratinizado." },
+          { pregunta: "¿Qué hueso no se articula con ningún otro?", respuesta: "El hueso hioides, en la parte anterior del cuello." },
+          { pregunta: "¿Cuál es la válvula entre el atrio y ventrículo izquierdo?", respuesta: "Válvula mitral (o bicúspide)." },
+          { pregunta: "¿Dónde se produce la bilis?", respuesta: "En el Hígado (específicamente en los hepatocitos)." },
+          { pregunta: "¿Qué son los osteoblastos?", respuesta: "Células encargadas de la síntesis de la matriz ósea." },
+          { pregunta: "¿Principal músculo inspiratorio?", respuesta: "El Diafragma." },
+          { pregunta: "¿Qué nervio inerva al diafragma?", respuesta: "Nervio frénico." },
+          { pregunta: "¿Componentes del Sistema Nervioso Central?", respuesta: "Encéfalo y Médula espinal." },
+          { pregunta: "¿Qué es el periostio?", respuesta: "Membrana de tejido conectivo que cubre los huesos exteriormente." },
+          { pregunta: "¿Dónde ocurre el intercambio gaseoso?", respuesta: "En los alvéolos pulmonares." },
+          { pregunta: "¿Hormona secretada por células beta del páncreas?", respuesta: "Insulina." },
+          { pregunta: "¿Células que transportan el oxígeno?", respuesta: "Eritrocitos (Glóbulos rojos)." },
+          { pregunta: "¿Capas de las meninges?", respuesta: "Duramadre, Aracnoides, Piamadre." },
+          { pregunta: "¿Estructura que conecta amígdala e hipocampo?", respuesta: "Fórnix." },
+        ].map((c, i) => ({
+          id: `mock-card-1-${i}`,
+          ...c,
+          veces_correcta: Math.floor(Math.random() * 20),
+          veces_incorrecta: Math.floor(Math.random() * 5)
+        }));
+        setCards(anatomyMocks);
+        return anatomyMocks;
+      }
+
+      const defaultMocks = [
+        { id: "mock-card-x", pregunta: "¿Concepto general?", respuesta: "Respuesta de prueba.", veces_correcta: 0, veces_incorrecta: 0 }
       ];
-      setCards(mocks);
-      return mocks;
+      setCards(defaultMocks);
+      return defaultMocks;
     }
 
     const { data, error } = await supabase

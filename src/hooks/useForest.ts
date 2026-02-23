@@ -36,7 +36,7 @@ const PLANT_TYPES = [
 ];
 
 export function useForest() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [currentPlant, setCurrentPlant] = useState<Plant | null>(null);
   const [studyActivity, setStudyActivity] = useState<StudyActivity>({
@@ -49,7 +49,26 @@ export function useForest() {
   const [loading, setLoading] = useState(true);
 
   const fetchPlants = useCallback(async () => {
-    if (!user) return;
+    if (!user && !isGuest) return;
+
+    if (isGuest) {
+      const now = new Date();
+      const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+      const daysAgo2 = new Date(now); daysAgo2.setDate(now.getDate() - 2);
+      const daysAgo5 = new Date(now); daysAgo5.setDate(now.getDate() - 5);
+      const daysAgo10 = new Date(now); daysAgo10.setDate(now.getDate() - 10);
+      const daysAgo20 = new Date(now); daysAgo20.setDate(now.getDate() - 20);
+
+      const mockPlants: Plant[] = [
+        { id: "mock-1", user_id: "guest", plant_type: "oak", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo20.toISOString(), last_watered_at: daysAgo10.toISOString(), completed_at: daysAgo10.toISOString(), died_at: null },
+        { id: "mock-2", user_id: "guest", plant_type: "cherry", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo10.toISOString(), last_watered_at: daysAgo5.toISOString(), completed_at: daysAgo5.toISOString(), died_at: null },
+        { id: "mock-3", user_id: "guest", plant_type: "pine", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo10.toISOString(), last_watered_at: daysAgo2.toISOString(), completed_at: daysAgo2.toISOString(), died_at: null },
+        { id: "mock-4", user_id: "guest", plant_type: "maple", growth_percentage: 95, is_alive: true, is_completed: false, planted_at: daysAgo5.toISOString(), last_watered_at: now.toISOString(), completed_at: null, died_at: null },
+      ];
+      setPlants(mockPlants);
+      setCurrentPlant(mockPlants.find(p => p.is_alive && !p.is_completed) || null);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
