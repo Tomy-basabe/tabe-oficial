@@ -28,78 +28,6 @@ const slides = [
     },
     {
         id: 4,
-        title: "Bosque de Estudios",
-        description: "Gamifica tu aprendizaje plantando y cultivando árboles con cada sesión de estudio.",
-        icon: Gamepad2,
-        color: "from-neon-green to-emerald-500",
-        image: "/screenshots/forest.png"
-    },
-    {
-        id: 5,
-        title: "Biblioteca Personalizada",
-        description: "Sube, organiza y filtra tus apuntes, resúmenes y ejercicios por materia y año.",
-        icon: FileText,
-        color: "from-neon-purple to-pink-500",
-        image: "/screenshots/library.png"
-    },
-    {
-        id: 6,
-        title: "Métricas y Rendimiento",
-        description: "Analiza a fondo cuánto y cómo estudias con gráficos detallados diarios.",
-        icon: BarChart3,
-        color: "from-purple-400 to-purple-700",
-        image: "/screenshots/metricas.png"
-    },
-    {
-        id: 7,
-        title: "Marketplace de Comunidad",
-        description: "Adquiere mazos de estudio, temas y pócimas gastando tus XP ganados.",
-        icon: Store,
-        color: "from-orange-500 to-red-500",
-        image: "/screenshots/marketplace.png"
-    },
-    {
-        id: 8,
-        title: "Logros e Insignias",
-        description: "Desbloquea logros académicos y demuestra tu nivel en la plataforma.",
-        icon: Trophy,
-        color: "from-yellow-400 to-yellow-600",
-        image: "/screenshots/logros.png"
-    },
-    {
-        id: 9,
-        title: "Comunidad y Competencia",
-        description: "Añade amigos, compara XP semanal y motivaciónate en equipo.",
-        icon: Users,
-        color: "from-neon-gold to-yellow-500",
-        image: "/screenshots/friends.png"
-    },
-    {
-        id: 10,
-        title: "T.A.B.E. IA",
-        description: "Un tutor inteligente disponible 24/7 para resolver tus dudas exactas y diagramar planes.",
-        icon: Bot,
-        color: "from-neon-cyan to-blue-500",
-        image: "/screenshots/ai.png"
-    },
-    {
-        id: 11,
-        title: "Calendario Universitario",
-        description: "Lleva el control de todos tus parciales, finales y entregas en un solo lugar sincronizado.",
-        icon: Calendar,
-        color: "from-purple-500 to-indigo-500",
-        image: "/screenshots/calendar.png"
-    },
-    {
-        id: 12,
-        title: "Cuestionarios Automáticos",
-        description: "Crea exámenes de opción múltiple con IA y pon a prueba tus conocimientos antes del gran día.",
-        icon: CheckCircle,
-        color: "from-indigo-400 to-indigo-600",
-        image: "/screenshots/cuestionarios.png"
-    },
-    {
-        id: 13,
         title: "Sistema de Flashcards",
         description: "Repasa con inteligencia a través del algoritmo de repetición espaciada nativo.",
         icon: Layers,
@@ -107,7 +35,63 @@ const slides = [
         image: "/screenshots/flashcards.png"
     },
     {
-        id: 14,
+        id: 5,
+        title: "Cuestionarios Automáticos",
+        description: "Crea exámenes de opción múltiple con IA y pon a prueba tus conocimientos antes del gran día.",
+        icon: CheckCircle,
+        color: "from-indigo-400 to-indigo-600",
+        image: "/screenshots/cuestionarios.png"
+    },
+    {
+        id: 6,
+        title: "Marketplace de Comunidad",
+        description: "Adquiere mazos de estudio, temas y pócimas gastando tus XP ganados.",
+        icon: Store,
+        color: "from-orange-500 to-red-500",
+        image: "/screenshots/marketplace.png"
+    },
+    {
+        id: 7,
+        title: "Biblioteca Personalizada",
+        description: "Sube, organiza y filtra tus apuntes, resúmenes y ejercicios por materia y año.",
+        icon: FileText,
+        color: "from-neon-purple to-pink-500",
+        image: "/screenshots/library.png"
+    },
+    {
+        id: 8,
+        title: "Calendario Universitario",
+        description: "Lleva el control de todos tus parciales, finales y entregas en un solo lugar sincronizado.",
+        icon: Calendar,
+        color: "from-purple-500 to-indigo-500",
+        image: "/screenshots/calendar.png"
+    },
+    {
+        id: 9,
+        title: "Pomodoro Global",
+        description: "Mantén el control de tus tiempos de estudio y descansos sin importar en qué parte de la app te encuentres.",
+        icon: Timer,
+        color: "from-purple-500 to-fuchsia-600",
+        image: "/screenshots/pomodoro.png"
+    },
+    {
+        id: 10,
+        title: "Métricas y Rendimiento",
+        description: "Analiza a fondo cuánto y cómo estudias con gráficos detallados diarios.",
+        icon: BarChart3,
+        color: "from-purple-400 to-purple-700",
+        image: "/screenshots/metricas.png"
+    },
+    {
+        id: 11,
+        title: "Bosque de Estudios",
+        description: "Gamifica tu aprendizaje plantando y cultivando árboles con cada sesión de estudio.",
+        icon: Gamepad2,
+        color: "from-neon-green to-emerald-500",
+        image: "/screenshots/forest.png"
+    },
+    {
+        id: 12,
         title: "Integración Comunitaria",
         description: "Estudia junto a otros estudiantes, comparte voz y pantalla en salas de estudio en vivo.",
         icon: Users,
@@ -115,20 +99,36 @@ const slides = [
         image: "/screenshots/discord.png"
     },
     {
+        id: 13,
+        title: "Logros e Insignias",
+        description: "Desbloquea logros académicos y demuestra tu nivel en la plataforma.",
+        icon: Trophy,
+        color: "from-yellow-400 to-yellow-600",
+        image: "/screenshots/logros.png"
+    },
+    {
+        id: 14,
+        title: "Comunidad y Amigos",
+        description: "Añade amigos, compara XP semanal y motivaciónate en equipo.",
+        icon: Users,
+        color: "from-neon-gold to-yellow-500",
+        image: "/screenshots/friends.png"
+    },
+    {
         id: 15,
+        title: "T.A.B.E. IA",
+        description: "Un tutor inteligente disponible 24/7 para resolver tus dudas exactas y diagramar planes.",
+        icon: Bot,
+        color: "from-neon-cyan to-blue-500",
+        image: "/screenshots/ai.png"
+    },
+    {
+        id: 16,
         title: "Personalización Total",
         description: "Ajusta temas de color, tiempos del Pomodoro y notificaciones a tu propio ritmo.",
         icon: Settings,
         color: "from-slate-400 to-slate-600",
         image: "/screenshots/config.png"
-    },
-    {
-        id: 16,
-        title: "Pomodoro Global",
-        description: "Mantén el control de tus tiempos de estudio y descansos sin importar en qué parte de la app te encuentres.",
-        icon: Timer,
-        color: "from-purple-500 to-fuchsia-600",
-        image: "/screenshots/pomodoro.png"
     }
 ];
 
