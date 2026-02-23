@@ -142,7 +142,7 @@ export function useStreamingChat() {
 
     if (isGuest) {
       setTimeout(() => {
-        const text = "¡Hola! Como invitado, mis funciones de IA son limitadas. Te sugiero crearte una cuenta gratuita para experimentar todo mi potencial y ayudarte a potenciar tu rendimiento académico al máximo.";
+        const text = "¡Hola! Como invitado, mis funciones de IA son limitadas. Te sugiero crearte una cuenta para experimentar todo mi potencial y ayudarte a potenciar tu rendimiento académico al máximo.";
         let i = 0;
         const interval = setInterval(() => {
           onDelta(text.substring(i, i + 3));
