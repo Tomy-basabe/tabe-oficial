@@ -207,7 +207,8 @@ serve(async (req) => {
       { type: "function", function: { name: "create_flashcards", description: "Crea mazo de flashcards directamente sin pedir confirmacion", parameters: { type: "object", properties: { deck_name: { type: "string" }, subject_id: { type: "string", description: "Nombre de la materia" }, cards: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, respuesta: { type: "string" } }, required: ["pregunta", "respuesta"] } } }, required: ["deck_name", "cards"] } } },
       { type: "function", function: { name: "update_subject_status", description: "Cambia estado de materia", parameters: { type: "object", properties: { subject_id: { type: "string", description: "Nombre de la materia" }, estado: { type: "string", enum: ["sin_cursar", "en_curso", "regular", "aprobada", "libre"] }, nota: { type: "number" } }, required: ["subject_id", "estado"] } } },
       { type: "function", function: { name: "create_notion_document", description: "Crea documento en Notion", parameters: { type: "object", properties: { titulo: { type: "string" }, contenido: { type: "string" }, subject_id: { type: "string" } }, required: ["titulo"] } } },
-      { type: "function", function: { name: "search_library", description: "Busca archivos", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } }
+      { type: "function", function: { name: "search_library", description: "Busca archivos", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
+      { type: "function", function: { name: "create_quiz", description: "Crea un cuestionario de opcion multiple con preguntas y 5 opciones cada una, donde solo 1 es correcta. Usalo cuando te pidan generar un cuestionario, examen o quiz.", parameters: { type: "object", properties: { quiz_name: { type: "string", description: "Nombre del cuestionario" }, subject_id: { type: "string", description: "Nombre de la materia" }, questions: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, opciones: { type: "array", items: { type: "string" }, description: "5 opciones" }, correcta: { type: "integer", description: "Indice 0-4 de la opcion correcta" }, explicacion: { type: "string" } }, required: ["pregunta", "opciones", "correcta"] } } }, required: ["quiz_name", "questions"] } } }
     ];
 
     // LEO DIRECTAMENTE DE LA VARIABLE DE ENTORNO EN SUPABASE PARA NO HARDCODEARLO EN GITHUB
@@ -436,6 +437,26 @@ serve(async (req) => {
       }
       else if (fn === "search_library") {
         content += "\nBusqueda no disponible en este momento.";
+      }
+      else if (fn === "create_quiz") {
+        const sid = resolveId(args.subject_id || args.quiz_name);
+        const { data: quizDeck, error: qdErr } = await serviceClient.from("quiz_decks").insert({
+          user_id: userId, nombre: args.quiz_name, total_questions: (args.questions || []).length, subject_id: sid
+        }).select().single();
+        if (quizDeck && args.questions) {
+          for (const q of args.questions) {
+            const { data: question } = await serviceClient.from("quiz_questions").insert({
+              deck_id: quizDeck.id, user_id: userId, pregunta: q.pregunta, explicacion: q.explicacion || null
+            }).select().single();
+            if (question && q.opciones) {
+              const opts = q.opciones.map((o: string, i: number) => ({
+                question_id: question.id, texto: o, es_correcta: i === (q.correcta || 0)
+              }));
+              await serviceClient.from("quiz_options").insert(opts);
+            }
+          }
+          content += "\nCuestionario \"" + quizDeck.nombre + "\" creado con " + args.questions.length + " preguntas. Anda a la seccion Cuestionarios para practicarlo.";
+        } else if (qdErr) { content += "\nError: " + qdErr.message; }
       }
     }
 

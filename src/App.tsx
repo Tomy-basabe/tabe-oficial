@@ -18,6 +18,7 @@ import AIAssistant from "@/pages/AIAssistant";
 import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
 import Flashcards from "@/pages/Flashcards";
+import Quizzes from "@/pages/Quizzes";
 import Library from "@/pages/Library";
 import Achievements from "@/pages/Achievements";
 import Notion from "@/pages/Notion";
@@ -92,6 +93,7 @@ const AppRoutes = () => (
       <Route path="/metricas" element={<Metrics />} />
       <Route path="/asistente" element={<AIAssistant />} />
       <Route path="/flashcards" element={<Flashcards />} />
+      <Route path="/cuestionarios" element={<Quizzes />} />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/biblioteca" element={<Library />} />
       <Route path="/logros" element={<Achievements />} />
