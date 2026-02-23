@@ -63,7 +63,7 @@ export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile state
   const [isCollapsed, setIsCollapsed] = useState(false); // Desktop state
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -86,7 +86,13 @@ export function MainLayout() {
 
   useEffect(() => {
     const fetchUserStats = async () => {
-      if (!user) return;
+      if (!user && !isGuest) return;
+
+      if (isGuest) {
+        setUserStats({ xp_total: 4150, nivel: 42 });
+        return;
+      }
+
       const { data } = await supabase
         .from("user_stats")
         .select("xp_total, nivel")
@@ -102,7 +108,7 @@ export function MainLayout() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, isGuest]);
 
   const xpData = (() => {
     if (!userStats) return { currentXp: 0, level: 1, progress: 0, xpForNext: 100 };
