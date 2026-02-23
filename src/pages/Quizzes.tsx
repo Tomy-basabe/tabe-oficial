@@ -5,7 +5,7 @@ import {
     ClipboardList, Plus, Sparkles, GraduationCap,
     BookOpen, Zap, Trash2, X, Check, ChevronRight,
     ChevronLeft, Trophy, RotateCcw, Upload, Store,
-    Edit, AlertCircle, Filter
+    Edit, AlertCircle, Filter, Timer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +78,34 @@ export default function Quizzes() {
     const [answered, setAnswered] = useState(false);
     const [score, setScore] = useState(0);
     const [finished, setFinished] = useState(false);
+    const [studyTime, setStudyTime] = useState(0);
+
+    // Timer
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (studyDeck && !finished && studyQuestions.length > 0) {
+            interval = setInterval(() => {
+                setStudyTime(prev => prev + 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [studyDeck, finished, studyQuestions]);
+
+    const saveStudySession = async (isCompleted: boolean) => {
+        if (!user || !studyDeck || studyTime === 0) return;
+        try {
+            await supabase.from("study_sessions").insert({
+                user_id: user.id,
+                subject_id: studyDeck.subject_id,
+                duracion_segundos: studyTime,
+                tipo: "cuestionario",
+                completada: isCompleted,
+                fecha: new Date().toISOString().split('T')[0],
+            });
+        } catch (e) {
+            console.error("Error saving session", e);
+        }
+    };
 
     // Delete confirm
     const [deleteDeck, setDeleteDeck] = useState<QuizDeck | null>(null);
@@ -233,6 +261,7 @@ export default function Quizzes() {
         setAnswered(false);
         setScore(0);
         setFinished(false);
+        setStudyTime(0);
         // Fetch all questions with options
         const { data: questions } = await supabase
             .from("quiz_questions")
@@ -268,6 +297,7 @@ export default function Quizzes() {
     const nextQuestion = () => {
         if (currentIndex + 1 >= studyQuestions.length) {
             setFinished(true);
+            saveStudySession(true);
         } else {
             setCurrentIndex(prev => prev + 1);
             setSelectedAnswer(null);
@@ -281,7 +311,17 @@ export default function Quizzes() {
         setAnswered(false);
         setScore(0);
         setFinished(false);
+        setStudyTime(0);
         setStudyQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
+    };
+
+    const exitStudy = () => {
+        if (!finished && studyTime > 0) {
+            saveStudySession(false);
+            toast.success("Progreso guardado");
+        }
+        setStudyDeck(null);
+        setStudyQuestions([]);
     };
 
     // ---------- STUDY MODE VIEW ----------
@@ -308,8 +348,12 @@ export default function Quizzes() {
                                 {score}/{studyQuestions.length}
                             </div>
                             <p className="text-muted-foreground">{percentage}% de respuestas correctas</p>
-                            <div className="flex gap-3 justify-center">
-                                <Button variant="outline" onClick={() => { setStudyDeck(null); setStudyQuestions([]); }}>
+                            <p className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1 mt-2">
+                                <Timer className="w-4 h-4" />
+                                Tiempo: {Math.floor(studyTime / 60)}:{(studyTime % 60).toString().padStart(2, '0')}
+                            </p>
+                            <div className="flex gap-3 justify-center pt-2">
+                                <Button variant="outline" onClick={exitStudy}>
                                     <X className="w-4 h-4 mr-2" /> Salir
                                 </Button>
                                 <Button onClick={restartStudy} className="bg-gradient-to-r from-neon-cyan to-neon-purple">
@@ -328,14 +372,19 @@ export default function Quizzes() {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="icon" onClick={() => { setStudyDeck(null); setStudyQuestions([]); }}>
+                        <Button variant="ghost" size="icon" onClick={exitStudy}>
                             <ChevronLeft className="w-5 h-5" />
                         </Button>
                         <div>
                             <h2 className="font-semibold">{studyDeck.nombre}</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Pregunta {currentIndex + 1} de {studyQuestions.length} · Correctas: {score}
-                            </p>
+                            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                <span>Pregunta {currentIndex + 1} de {studyQuestions.length} · Correctas: {score}</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1 font-medium bg-secondary px-2 py-0.5 rounded-full">
+                                    <Timer className="w-3 h-3" />
+                                    {Math.floor(studyTime / 60)}:{(studyTime % 60).toString().padStart(2, '0')}
+                                </span>
+                            </div>
                         </div>
                     </div>
                     {/* Progress bar */}
