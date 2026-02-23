@@ -5,6 +5,10 @@ import { cn } from "@/lib/utils";
 import { useStreamingChat } from "@/hooks/useStreamingChat";
 import { useAIPersonas } from "@/hooks/useAIPersonas";
 import { useAuth } from "@/contexts/AuthContext";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 interface BubbleMessage {
     id: string;
@@ -182,8 +186,20 @@ export function AIBubbleWidget() {
                                             : "bg-secondary/80 text-foreground rounded-bl-md"
                                     )}
                                 >
-                                    {msg.content || (
+                                    {!msg.content && isStreaming && (
                                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                    )}
+                                    {msg.content && msg.role === "assistant" ? (
+                                        <div className="prose prose-sm dark:prose-invert prose-p:leading-snug prose-p:my-1 prose-pre:bg-black/50 prose-pre:p-2 prose-pre:rounded-lg prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkMath]}
+                                                rehypePlugins={[rehypeKatex]}
+                                            >
+                                                {msg.content}
+                                            </ReactMarkdown>
+                                        </div>
+                                    ) : (
+                                        <span className="whitespace-pre-wrap">{msg.content}</span>
                                     )}
                                 </div>
                             </div>

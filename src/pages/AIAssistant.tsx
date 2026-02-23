@@ -9,6 +9,10 @@ import { PersonaSidebar } from "@/components/ai/PersonaSidebar";
 import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
 import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
 import { Button } from "@/components/ui/button";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 interface DisplayMessage {
   id: string;
@@ -293,7 +297,7 @@ export default function AIAssistant() {
     }
   };
 
-  const renderContent = (content: string) => {
+  const renderContent = (content: string, role: "user" | "assistant") => {
     if (!content)
       return (
         <div className="flex items-center gap-2 text-muted-foreground/80 italic animate-pulse">
@@ -301,14 +305,21 @@ export default function AIAssistant() {
           <span className="text-neon-cyan/80">Pensando...</span>
         </div>
       );
-    return content.split("\n").map((line, i) => {
-      let p = line
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.*?)\*/g, "<em>$1</em>");
-      if (p.startsWith("• "))
-        p = `<span class="flex gap-2"><span>•</span><span>${p.slice(2)}</span></span>`;
-      return <div key={i} dangerouslySetInnerHTML={{ __html: p }} />;
-    });
+
+    if (role === "user") {
+      return content.split("\n").map((line, i) => <div key={i}>{line}</div>);
+    }
+
+    return (
+      <div className="prose prose-sm dark:prose-invert prose-p:leading-snug prose-p:my-1 prose-pre:bg-black/50 prose-pre:p-2 prose-pre:rounded-lg prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground">
+        <ReactMarkdown
+          remarkPlugins={[remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   if (loading) {
@@ -447,7 +458,7 @@ export default function AIAssistant() {
                     )}
                   >
                     <div className="text-sm space-y-2 leading-relaxed break-words">
-                      {renderContent(message.content)}
+                      {renderContent(message.content, message.role)}
                     </div>
                     <div
                       className={cn(
