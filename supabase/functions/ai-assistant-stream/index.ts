@@ -128,7 +128,16 @@ serve(async (req) => {
 
     const swStatus = subjects.map((s: any) => {
       const st = uss.find((u: any) => u.subject_id === s.id);
-      return { ...s, estado: st?.estado || "sin_cursar", nota: st?.nota_final_examen || st?.nota || null, fecha_aprobacion: st?.fecha_aprobacion || null };
+      return {
+        ...s,
+        estado: st?.estado || "sin_cursar",
+        nota: st?.nota || null,
+        fecha_aprobacion: st?.fecha_aprobacion || null,
+        p1: st?.nota_parcial_1 || st?.nota_rec_parcial_1 || null,
+        p2: st?.nota_parcial_2 || st?.nota_rec_parcial_2 || null,
+        global: st?.nota_global || st?.nota_rec_global || null,
+        final_examen: st?.nota_final_examen || null
+      };
     });
 
     const aprobadas = swStatus.filter((s: any) => s.estado === "aprobada");
@@ -141,9 +150,20 @@ serve(async (req) => {
     const studyMin = sessions.reduce((a: number, s: any) => a + (s.duracion_segundos || 0), 0) / 60;
     const userName = profile?.nombre || profile?.username || "Estudiante";
 
-    const materiasStr = swStatus.map((s: any) =>
-      "- " + s.nombre + " (" + s.codigo + "): " + s.estado.toUpperCase() + (s.nota ? " | Nota: " + s.nota : "") + (s.fecha_aprobacion ? " | Fecha: " + s.fecha_aprobacion : "")
-    ).join("\n");
+    const materiasStr = swStatus.map((s: any) => {
+      let str = "- " + s.nombre + " (" + s.codigo + "): " + s.estado.toUpperCase();
+      if (s.nota) str += " | Promedio Final de Cursada: " + s.nota;
+      if (s.final_examen) str += " | Nota Examen Final: " + s.final_examen;
+      if (s.p1 || s.p2 || s.global) {
+        const exams = [];
+        if (s.p1) exams.push("P1: " + s.p1);
+        if (s.p2) exams.push("P2: " + s.p2);
+        if (s.global) exams.push("Global: " + s.global);
+        str += " | Parciales: [" + exams.join(", ") + "]";
+      }
+      if (s.fecha_aprobacion) str += " | Fecha Cierre: " + s.fecha_aprobacion;
+      return str;
+    }).join("\n");
 
     const eventosStr = events.length > 0
       ? events.map((e: any) => "- " + e.fecha + (e.hora ? " " + e.hora : "") + ": " + e.titulo + " (" + e.tipo_examen + ") [ID: " + e.id + "]").join("\n")
