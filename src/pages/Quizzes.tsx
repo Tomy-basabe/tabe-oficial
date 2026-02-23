@@ -300,6 +300,27 @@ export default function Quizzes() {
         setScore(0);
         setFinished(false);
         setStudyTime(0);
+
+        if (isGuest) {
+            if (deck.id === "mock-1") {
+                const mockQs = Array.from({ length: 10 }, (_, i) => ({
+                    id: `mock-q-${i}`,
+                    pregunta: `Pregunta de Cálculo #${i + 1}: ¿Cuál es el límite o derivada fundamental?`,
+                    explicacion: `Explicación matemática extendida para la pregunta ${i + 1}.`,
+                    options: [
+                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Respuesta correcta", es_correcta: true },
+                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta A", es_correcta: false },
+                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta B", es_correcta: false },
+                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta C", es_correcta: false }
+                    ]
+                }));
+                setStudyQuestions(mockQs.sort(() => Math.random() - 0.5));
+            } else {
+                setStudyQuestions([]);
+            }
+            return;
+        }
+
         // Fetch all questions with options
         const { data: questions } = await supabase
             .from("quiz_questions")

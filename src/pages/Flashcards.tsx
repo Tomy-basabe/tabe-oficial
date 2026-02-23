@@ -110,7 +110,7 @@ export default function Flashcards() {
     if (isGuest) {
       setDecks([
         { id: "mock-deck-1", nombre: "Mazo de Prueba: Anatomía", subject_id: "mock", total_cards: 15, subject: { nombre: "Anatomía Normal", codigo: "AN1", año: 1 } },
-        { id: "mock-deck-2", nombre: "Fórmulas Estadísticas", subject_id: "mock", total_cards: 8, subject: { nombre: "Estadística V", codigo: "EST5", año: 3 } }
+        { id: "mock-deck-2", nombre: "Fórmulas Estadísticas", subject_id: "mock", total_cards: 5, subject: { nombre: "Estadística V", codigo: "EST5", año: 3 } }
       ]);
       setLoading(false);
       return;
@@ -158,11 +158,20 @@ export default function Flashcards() {
         return anatomyMocks;
       }
 
-      const defaultMocks = [
-        { id: "mock-card-x", pregunta: "¿Concepto general?", respuesta: "Respuesta de prueba.", veces_correcta: 0, veces_incorrecta: 0 }
-      ];
-      setCards(defaultMocks);
-      return defaultMocks;
+      const formulasMocks = [
+        { pregunta: "Fórmula de la Media Simple", respuesta: "Suma de todos los valores dividida por N." },
+        { pregunta: "¿Qué mide la Desviación Estándar?", respuesta: "La dispersión promedio de los datos respecto a la media." },
+        { pregunta: "Varianza", respuesta: "El cuadrado de la desviación estándar." },
+        { pregunta: "¿Qué es la Mediana?", respuesta: "El valor central de un conjunto de datos ordenados." },
+        { pregunta: "Moda", respuesta: "El valor que más se repite." },
+      ].map((c, i) => ({
+        id: `mock-card-2-${i}`,
+        ...c,
+        veces_correcta: Math.floor(Math.random() * 10),
+        veces_incorrecta: Math.floor(Math.random() * 3)
+      }));
+      setCards(formulasMocks);
+      return formulasMocks;
     }
 
     const { data, error } = await supabase
@@ -245,6 +254,8 @@ export default function Flashcards() {
       setCorrectCount(prev => prev + 1);
     }
 
+    if (isGuest) return; // Prevent DB execution for guests
+
     // Update card stats in database
     if (card) {
       await supabase
@@ -255,7 +266,7 @@ export default function Flashcards() {
         })
         .eq("id", card.id);
     }
-  }, [cards, correctCount]);
+  }, [cards, correctCount, isGuest]);
 
   const handleStudyComplete = useCallback(async () => {
     // Save study session
