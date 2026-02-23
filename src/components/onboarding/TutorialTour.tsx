@@ -47,7 +47,18 @@ export function TutorialTour() {
             const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
 
             if (targetEl && viewport && viewport.contains(targetEl)) {
-                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Calculate position of target relative to the scrolling container
+                const targetRectTop = targetEl.getBoundingClientRect().top;
+                const scrollContentTop = viewport.firstElementChild?.getBoundingClientRect().top || 0;
+
+                // Absolute pixel distance from the top of the scrollable content
+                const absoluteTargetTop = targetRectTop - scrollContentTop;
+
+                // Center the item vertically by subtracting half the viewport height
+                const viewportHeight = viewport.getBoundingClientRect().height;
+                const offset = absoluteTargetTop - (viewportHeight / 2) + 20;
+
+                viewport.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
             }
         }
     };
