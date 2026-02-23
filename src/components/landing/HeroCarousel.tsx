@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, LayoutDashboard, Calendar, Layers, Bot, Settings, Gamepad2, Users, FileText, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutDashboard, Calendar, Layers, Bot, Settings, Gamepad2, Users, FileText, CheckCircle, BarChart3, Store, Trophy, BookOpen, Map } from "lucide-react";
 
 const slides = [
     {
@@ -12,6 +12,22 @@ const slides = [
     },
     {
         id: 2,
+        title: "Plan de Carrera",
+        description: "Gestiona tus correlativas y promedios con un mapa visual e intuitivo.",
+        icon: Map,
+        color: "from-yellow-500 to-amber-600",
+        image: "/screenshots/plan.png"
+    },
+    {
+        id: 3,
+        title: "Tus Apuntes (Notion)",
+        description: "Un espacio de trabajo completo estilo Notion para tomar tus apuntes integrados.",
+        icon: BookOpen,
+        color: "from-slate-300 to-slate-500",
+        image: "/screenshots/notion.png"
+    },
+    {
+        id: 4,
         title: "Bosque de Estudios",
         description: "Gamifica tu aprendizaje plantando y cultivando árboles con cada sesión de estudio.",
         icon: Gamepad2,
@@ -19,7 +35,7 @@ const slides = [
         image: "/screenshots/forest.png"
     },
     {
-        id: 3,
+        id: 5,
         title: "Biblioteca Personalizada",
         description: "Sube, organiza y filtra tus apuntes, resúmenes y ejercicios por materia y año.",
         icon: FileText,
@@ -27,7 +43,31 @@ const slides = [
         image: "/screenshots/library.png"
     },
     {
-        id: 4,
+        id: 6,
+        title: "Métricas y Rendimiento",
+        description: "Analiza a fondo cuánto y cómo estudias con gráficos detallados diarios.",
+        icon: BarChart3,
+        color: "from-purple-400 to-purple-700",
+        image: "/screenshots/metricas.png"
+    },
+    {
+        id: 7,
+        title: "Marketplace de Comunidad",
+        description: "Adquiere mazos de estudio, temas y pócimas gastando tus XP ganados.",
+        icon: Store,
+        color: "from-orange-500 to-red-500",
+        image: "/screenshots/marketplace.png"
+    },
+    {
+        id: 8,
+        title: "Logros e Insignias",
+        description: "Desbloquea logros académicos y demuestra tu nivel en la plataforma.",
+        icon: Trophy,
+        color: "from-yellow-400 to-yellow-600",
+        image: "/screenshots/logros.png"
+    },
+    {
+        id: 9,
         title: "Comunidad y Competencia",
         description: "Añade amigos, compara XP semanal y motivaciónate en equipo.",
         icon: Users,
@@ -35,7 +75,7 @@ const slides = [
         image: "/screenshots/friends.png"
     },
     {
-        id: 5,
+        id: 10,
         title: "T.A.B.E. IA",
         description: "Un tutor inteligente disponible 24/7 para resolver tus dudas exactas y diagramar planes.",
         icon: Bot,
@@ -43,7 +83,7 @@ const slides = [
         image: "/screenshots/ai.png"
     },
     {
-        id: 6,
+        id: 11,
         title: "Calendario Universitario",
         description: "Lleva el control de todos tus parciales, finales y entregas en un solo lugar sincronizado.",
         icon: Calendar,
@@ -51,7 +91,7 @@ const slides = [
         image: "/screenshots/calendar.png"
     },
     {
-        id: 7,
+        id: 12,
         title: "Cuestionarios Automáticos",
         description: "Crea exámenes de opción múltiple con IA y pon a prueba tus conocimientos antes del gran día.",
         icon: CheckCircle,
@@ -59,7 +99,7 @@ const slides = [
         image: "/screenshots/cuestionarios.png"
     },
     {
-        id: 8,
+        id: 13,
         title: "Sistema de Flashcards",
         description: "Repasa con inteligencia a través del algoritmo de repetición espaciada nativo.",
         icon: Layers,
@@ -67,7 +107,7 @@ const slides = [
         image: "/screenshots/flashcards.png"
     },
     {
-        id: 9,
+        id: 14,
         title: "Integración Comunitaria",
         description: "Estudia junto a otros estudiantes, comparte voz y pantalla en salas de estudio en vivo.",
         icon: Users,
@@ -75,7 +115,7 @@ const slides = [
         image: "/screenshots/discord.png"
     },
     {
-        id: 10,
+        id: 15,
         title: "Personalización Total",
         description: "Ajusta temas de color, tiempos del Pomodoro y notificaciones a tu propio ritmo.",
         icon: Settings,
