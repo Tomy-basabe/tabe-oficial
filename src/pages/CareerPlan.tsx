@@ -128,7 +128,7 @@ export default function CareerPlan() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all tour-career-add"
           >
             <Plus className="w-4 h-4" />
             Agregar Materia

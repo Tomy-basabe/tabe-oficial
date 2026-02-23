@@ -484,7 +484,7 @@ export default function Notion() {
         {/* Editor area */}
         <div className="notion-editor-area">
           {activeDocument ? (
-            <div className="notion-editor-wrapper">
+            <div className="notion-editor-wrapper tour-notion-list">
               {/* Cover */}
               {activeDocument.cover_url && (
                 <div className="notion-cover">

@@ -284,7 +284,7 @@ export function NotionSidebar({
 
                 {/* New page button */}
                 <button
-                    className="notion-sidebar-new-page"
+                    className="notion-sidebar-new-page tour-notion-create"
                     onClick={() => {
                         // Open the first subject with docs, or the first subject
                         const firstSub = subjects[0];

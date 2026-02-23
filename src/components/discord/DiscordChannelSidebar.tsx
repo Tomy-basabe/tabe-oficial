@@ -217,7 +217,7 @@ export function DiscordChannelSidebar({
         </div>
 
         {/* Voice Channels */}
-        <div className="mb-4">
+        <div className="mb-4 tour-discord-connect">
           <div className="flex items-center justify-between px-2 mb-1 group">
             <button
               onClick={() => setVoiceCollapsed(!voiceCollapsed)}

@@ -470,7 +470,7 @@ export default function Forest() {
       {/* Main Content */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Current Plant */}
-        <Card className="lg:col-span-2 card-gamer">
+        <Card className="lg:col-span-2 card-gamer tour-forest-tree">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Leaf className="w-5 h-5 text-green-500" />

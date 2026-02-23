@@ -1,23 +1,201 @@
 import { useState, useEffect } from "react";
 import Joyride, { Step, CallBackProps, STATUS } from "react-joyride";
 import { useAuth } from "@/contexts/AuthContext";
-
+import { useLocation } from "react-router-dom";
 export function TutorialTour() {
     const { user, isGuest } = useAuth();
+    const location = useLocation();
     const [run, setRun] = useState(false);
+    const [tourSteps, setTourSteps] = useState<Step[]>([]);
+    const [initialized, setInitialized] = useState(false);
+
+    // DICCIONARIO DE PASOS POR SECCIÓN (RUTAS)
+    const TOUR_STEPS_BY_ROUTE: Record<string, Step[]> = {
+        "/dashboard": [
+            {
+                target: '.tour-dashboard-stats',
+                content: '¡Bienvenido a T.A.B.E.! Aquí en tu Tablero verás un resumen de todo tu progreso y tu Nivel actual.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
+                disableScrolling: true,
+                disableBeacon: true,
+            },
+            {
+                target: '.tour-dashboard-schedule',
+                content: 'En este minicalendario verás tus repasos y eventos más próximos para que no te olvides de nada.',
+                placement: 'left',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Empezar!' },
+                disableScrolling: true,
+            }
+        ],
+        "/carrera": [
+            {
+                target: '.tour-career-add',
+                content: '¡Agrega aquí las materias de tu plan de estudios! Podrás vincular correlativas para organizar tu mapa académico.',
+                placement: 'bottom-end',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/notion": [
+            {
+                target: '.tour-notion-create',
+                content: 'Usa este botón para crear tu primer apunte enriquecido.',
+                placement: 'right',
+                locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
+                disableBeacon: true,
+                disableScrolling: true,
+            },
+            {
+                target: '.tour-notion-list',
+                content: 'Al abrir un apunte, podrás seleccionarle cualquier texto y usar el menú flotante para preguntarle a la IA.',
+                placement: 'right',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableScrolling: true,
+            }
+        ],
+        "/flashcards": [
+            {
+                target: '.tour-flashcards-decks',
+                content: 'Los mazos organizan tus Flashcards. Selecciona un Mazo y empieza el "Modo Repaso" para testear tu memoria usando repetición espaciada.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/cuestionarios": [
+            {
+                target: '.tour-quizzes-decks',
+                content: 'Genera exámenes de opción múltiple manualmente o deja que la Inteligencia Artificial los cree a base de tus apuntes.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/marketplace": [
+            {
+                target: '.tour-marketplace-decks',
+                content: '¡Gasta tus Monedas de Tabe! Aquí puedes comprar fondos, pócimas de XP y herramientas para potenciar tu estudio.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/biblioteca": [
+            {
+                target: '.tour-library-upload',
+                content: 'Sube tus PDFs o imágenes directas a la nube de Tabe para poder leerlos sin interrupciones.',
+                placement: 'left',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/calendario": [
+            {
+                target: '.tour-calendar-schedule',
+                content: 'Si usas Google Calendar, aprieta aquí para exportar o importar todos tus eventos automáticamente.',
+                placement: 'bottom-end',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/pomodoro": [
+            {
+                target: '.tour-pomodoro-stats',
+                content: 'Estudia en bloques de alta concentración. Cuando termines este reloj, ganarás XP y harás crecer tus árboles.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/metricas": [
+            {
+                target: '.tour-metrics-overview',
+                content: 'Tu mapa térmico a lo GitHub. Cada cuadrado verde representa cuántas horas estudiaste ese día.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/bosque": [
+            {
+                target: '.tour-forest-tree',
+                content: 'Cada bloque de Pomodoro que terminas se planta aquí en forma de árbol. ¡No dejes que tu bosque muera, mantén la consistencia!',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/discord": [
+            {
+                target: '.tour-discord-connect',
+                content: 'Únete a las salas de voz para estudiar chill con personas reales escuchando Lofi.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/logros": [
+            {
+                target: '.tour-achievements-list',
+                content: 'Cada objetivo cumplido tiene su medalla. Úsalas para adornar tu perfil.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
+        "/amigos": [
+            {
+                target: '.tour-friends-add',
+                content: 'Agrega a tus compañeros usando su ID de Tabe (Lo encontrarás arriba a la derecha).',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ]
+    };
 
     useEffect(() => {
-        // Run tutorial if they are a guest OR if they haven't seen it yet
-        const hasSeenTutorial = localStorage.getItem("tabe-tutorial-seen");
+        if (!user && !isGuest) return;
 
-        if (!hasSeenTutorial && (user || isGuest)) {
-            // Slight delay so the UI can mount before starting the tour
-            const timer = setTimeout(() => {
+        // Give UI a tiny moment to render the newly navigated page before triggering tour
+        const timer = setTimeout(() => {
+            const rawTutorials = localStorage.getItem("tabe-tutorials-completed") || "{}";
+            let tutorialsCompleted: Record<string, boolean> = {};
+
+            try {
+                tutorialsCompleted = JSON.parse(rawTutorials);
+            } catch (e) {
+                tutorialsCompleted = {};
+            }
+
+            const currentPath = location.pathname;
+            const routeSteps = TOUR_STEPS_BY_ROUTE[currentPath];
+
+            if (routeSteps && routeSteps.length > 0 && !tutorialsCompleted[currentPath]) {
+                setTourSteps(routeSteps);
                 setRun(true);
-            }, 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [user, isGuest]);
+            } else {
+                setRun(false);
+            }
+            setInitialized(true);
+
+        }, 800);
+
+        return () => clearTimeout(timer);
+    }, [user, isGuest, location.pathname]);
 
     // Hack: Force Joyride to re-calculate its overlay mask when scrolling Radix's viewport
     useEffect(() => {
@@ -38,7 +216,17 @@ export function TutorialTour() {
 
         if (finishedStatuses.includes(status)) {
             setRun(false);
-            localStorage.setItem("tabe-tutorial-seen", "true");
+
+            // Mark this specific route as visited
+            const rawTutorials = localStorage.getItem("tabe-tutorials-completed") || "{}";
+            let tutorialsCompleted: Record<string, boolean> = {};
+            try {
+                tutorialsCompleted = JSON.parse(rawTutorials);
+            } catch (e) {
+                tutorialsCompleted = {};
+            }
+            tutorialsCompleted[location.pathname] = true;
+            localStorage.setItem("tabe-tutorials-completed", JSON.stringify(tutorialsCompleted));
         }
 
         // Before step renders, ensure the target is scrolled into the ScrollArea viewport
@@ -61,147 +249,14 @@ export function TutorialTour() {
                 viewport.scrollTo({ top: Math.max(0, offset), behavior: 'instant' });
                 // Force an immediate recalculation manually
                 window.dispatchEvent(new Event('resize'));
+            } else if (targetEl) {
+                // Just fallback to native scroll if not in scrollarea
+                targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
             }
         }
     };
 
-    const steps: Step[] = [
-        {
-            content: (
-                <div className="text-left space-y-2">
-                    <h2 className="text-xl font-bold bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">¡Bienvenido a T.A.B.E.!</h2>
-                    <p className="text-sm text-foreground/80">
-                        Te guiaremos por todos los apartados principales para que aproveches al máximo la plataforma.
-                    </p>
-                </div>
-            ),
-            locale: { skip: 'Saltar', next: 'Siguiente' },
-            placement: 'center',
-            target: 'body',
-        },
-        {
-            target: '.tour-sidebar-dashboard',
-            content: 'Este es tu Tablero Principal. Aquí verás el estado de tus materias, nivel de Experiencia (XP) y próximos exámenes.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-plan',
-            content: 'En "Plan de Carrera" (o Mapa de Correlatividades) podrás cargar todas tus materias, ver cuáles se cruzan y visualizar tu progreso a largo plazo.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-notion',
-            content: 'Integra tus apuntes directamente desde Notion para tener todo tu material de estudio centralizado.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-flashcards',
-            content: 'Repasa conceptos clave con tarjetas de memoria inteligentes para mejorar tu retención.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-cuestionarios',
-            content: 'Pon a prueba tus conocimientos con exámenes de práctica autogenerados para cada materia.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-marketplace',
-            content: 'Descubre e intercambia recursos educativos, resúmenes y guías con la comunidad estudiantil.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-biblioteca',
-            content: 'Sube y organiza tus PDFs, libros y documentos de la cursada en una sola nube.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-calendar',
-            content: 'Usa el Calendario para agendar exámenes y turnos de estudio. Transforma tareas urgentes en eventos recurrentes.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-pomodoro',
-            content: 'El Pomodoro integrado te premiará con XP cada vez que completes una sesión de estudio profunda.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-metricas',
-            content: 'Analiza tus horas de concentración y progreso histórico en la pestaña de métricas.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-bosque',
-            content: 'Siembra constancia: visualiza tu esfuerzo mediante árboles digitales en tu propio bosque interactivo.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-discord',
-            content: 'Ingresa a nuestra comunidad de Discord para estudiar en grupo, hacer consultas y socializar.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-logros',
-            content: 'Aquí verás las medallas y recompensas desbloqueadas por tu dedicación.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-amigos',
-            content: 'Motívate compitiendo sanamente con tus amigos y comparen su progreso y XP acumulada.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-asistenteia',
-            content: 'Chatea con otros universitarios, o habla directamente con el asistente IA integrado en la barra lateral.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-        },
-        {
-            target: '.tour-sidebar-configuracion',
-            content: 'Ajusta la apariencia visual (¡elige tu color favorito!) y modifica las configuraciones de tu cuenta.',
-            placement: 'right',
-            locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
-            disableScrolling: true,
-            isFixed: true,
-        },
-        {
-            target: '.tour-header-ai',
-            content: 'Finalmente, nuestra IA experta flotante te acompañará a donde vayas. Haz clic y pregúntale lo que quieras de tus apuntes.',
-            placement: 'left',
-            locale: { skip: 'Saltar', back: 'Atrás', last: '¡Comenzar a aprender!' },
-            disableBeacon: true,
-            disableScrolling: true,
-            isFixed: true,
-        }
-    ];
+    if (!initialized || !run || tourSteps.length === 0) return null;
 
     return (
         <Joyride
@@ -212,7 +267,7 @@ export function TutorialTour() {
             scrollToFirstStep
             showProgress
             showSkipButton
-            steps={steps}
+            steps={tourSteps}
             styles={{
                 options: {
                     zIndex: 10000,

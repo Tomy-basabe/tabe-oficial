@@ -314,7 +314,7 @@ export default function Marketplace() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 tour-marketplace-decks">
               {publicDecks.map((deck) => (
                 <Card key={deck.id} className="card-gamer hover:glow-purple transition-all group">
                   <CardContent className="p-5">

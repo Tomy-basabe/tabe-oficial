@@ -174,7 +174,7 @@ export default function Achievements() {
           ))}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-8 tour-achievements-list">
           {Object.entries(groupedAchievements).map(([category, categoryAchievements]) => {
             if (selectedCategory && selectedCategory !== category) return null;
             if (categoryAchievements.length === 0) return null;

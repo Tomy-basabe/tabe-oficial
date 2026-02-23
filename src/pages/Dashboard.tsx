@@ -22,7 +22,7 @@ export default function Dashboard() {
     yearProgress,
     recentSubjects,
   } = useDashboardStats();
-  
+
   const { getUpcomingExams, loading: eventsLoading } = useCalendarEvents();
 
   // Get user display name
@@ -36,7 +36,7 @@ export default function Dashboard() {
     today.setHours(0, 0, 0, 0);
     const diffTime = eventDate.getTime() - today.getTime();
     const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return {
       id: event.id,
       subject: event.subject_nombre || event.titulo,
@@ -70,7 +70,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="card-gamer rounded-xl px-4 py-2 flex items-center gap-2">
+          <div className="card-gamer rounded-xl px-4 py-2 flex items-center gap-2 tour-dashboard-stats">
             <Zap className="w-4 h-4 text-neon-gold" />
             <span className="text-sm font-medium">{userStats?.xp_total || 0} XP</span>
           </div>
@@ -130,14 +130,14 @@ export default function Dashboard() {
             {/* Progress Details */}
             <div className="flex-1 w-full space-y-4">
               {yearProgress.map(({ year, percentage }) => {
-                const colorClass = percentage === 100 
-                  ? "text-neon-gold" 
-                  : percentage >= 50 
-                    ? "text-neon-cyan" 
-                    : percentage > 0 
-                      ? "text-neon-green" 
+                const colorClass = percentage === 100
+                  ? "text-neon-gold"
+                  : percentage >= 50
+                    ? "text-neon-cyan"
+                    : percentage > 0
+                      ? "text-neon-green"
                       : "text-muted-foreground";
-                
+
                 return (
                   <div key={year}>
                     <div className="flex items-center justify-between text-sm mb-2">
@@ -145,9 +145,9 @@ export default function Dashboard() {
                       <span className={`font-medium ${colorClass}`}>{percentage}%</span>
                     </div>
                     <div className="progress-gamer h-2">
-                      <div 
-                        className="progress-gamer-bar transition-all duration-500" 
-                        style={{ width: `${percentage}%` }} 
+                      <div
+                        className="progress-gamer-bar transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
                       />
                     </div>
                   </div>
@@ -192,8 +192,8 @@ export default function Dashboard() {
             <div className="text-center py-8">
               <GraduationCap className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground text-sm">No hay materias cargadas</p>
-              <Link 
-                to="/carrera" 
+              <Link
+                to="/carrera"
                 className="inline-block mt-3 text-sm text-primary hover:underline"
               >
                 Ir al Plan de Carrera
@@ -203,7 +203,9 @@ export default function Dashboard() {
         </div>
 
         {/* Upcoming Exams */}
-        <UpcomingExams exams={upcomingExams} />
+        <div className="tour-dashboard-schedule">
+          <UpcomingExams exams={upcomingExams} />
+        </div>
       </div>
     </div>
   );

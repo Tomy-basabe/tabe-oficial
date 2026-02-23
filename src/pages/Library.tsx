@@ -611,7 +611,7 @@ export default function Library() {
             Organiza tus recursos de estudio por año y materia
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap tour-library-upload">
           <button
             onClick={() => setShowFolderModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors"
@@ -807,7 +807,7 @@ export default function Library() {
           </div>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 tour-library-grid">
           {/* Folders */}
           {currentFolders.map(folder => {
             const folderFilesCount = files.filter(f => f.folder_id === folder.id).length;

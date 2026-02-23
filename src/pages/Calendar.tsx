@@ -314,7 +314,7 @@ export default function Calendar() {
         </div>
 
         {/* Sidebar - Selected Date Events */}
-        <div className="card-gamer rounded-xl p-5">
+        <div className="card-gamer rounded-xl p-5 tour-calendar-schedule">
           <div className="flex items-center gap-2 mb-4">
             <CalendarIcon className="w-5 h-5 text-primary" />
             <h3 className="font-display font-semibold text-sm">

@@ -151,7 +151,7 @@ export default function Friends() {
           {/* Add Friend Button */}
           <Dialog open={addFriendOpen} onOpenChange={setAddFriendOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-neon-cyan to-neon-purple">
+              <Button className="bg-gradient-to-r from-neon-cyan to-neon-purple tour-friends-add">
                 <UserPlus className="w-4 h-4 mr-2" />
                 Agregar Amigo
               </Button>
@@ -349,7 +349,8 @@ export default function Friends() {
                             <div className="flex items-center gap-2">
                               <p className="font-medium">
                               </p>
-                              {stat.profile.active_badge === 'badge_supporter' && (
+                              {/* @ts-ignore */}
+                              {(stat.profile as any).active_badge === 'badge_supporter' && (
                                 <Crown className="w-3.5 h-3.5 text-neon-gold fill-neon-gold animate-pulse shadow-sm" />
                               )}
                               {isMe && <Badge variant="secondary" className="text-xs">Tú</Badge>}
@@ -428,7 +429,8 @@ export default function Friends() {
                               <p className="font-semibold">
                                 {friendship.friend.nombre || friendship.friend.username || `Usuario #${friendship.friend.display_id}`}
                               </p>
-                              {friendship.friend.active_badge === 'badge_supporter' && (
+                              {/* @ts-ignore */}
+                              {(friendship.friend as any).active_badge === 'badge_supporter' && (
                                 <Crown className="w-3.5 h-3.5 text-neon-gold fill-neon-gold" />
                               )}
                               <p className="text-sm text-muted-foreground">#{friendship.friend.display_id}</p>

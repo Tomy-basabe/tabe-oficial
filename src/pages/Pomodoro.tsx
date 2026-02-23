@@ -257,7 +257,7 @@ export default function Pomodoro() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Subject Selector */}
-          <div className="card-gamer rounded-xl p-5">
+          <div className="card-gamer rounded-xl p-5 tour-pomodoro-stats">
 
             <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-primary" />
