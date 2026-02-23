@@ -200,7 +200,7 @@ export function useFriends() {
         {
           user_id: "guest",
           profile: myProfile || { user_id: "guest", username: "invitado_pro", display_id: 999, nombre: "Invitado Pro", avatar_url: null },
-          weekly_xp: 24500,
+          weekly_xp: 4150,
           weekly_pomodoro_hours: 42,
           weekly_study_hours: 312,
           current_streak: 14,

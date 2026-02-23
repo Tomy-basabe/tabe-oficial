@@ -48,7 +48,7 @@ export function useDashboardStats() {
 
     if (isGuest) {
       setUserStats({
-        xp_total: 24500,
+        xp_total: 4150, // 4150 / 100 + 1 => Nivel 42
         nivel: 42,
         racha_actual: 14,
         mejor_racha: 35,

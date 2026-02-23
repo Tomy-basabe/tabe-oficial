@@ -130,8 +130,7 @@ export default function Quizzes() {
 
         if (isGuest) {
             setDecks([
-                { id: "mock-1", nombre: "Cuestionario de Prueba", subject_id: "mock", total_questions: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } },
-                { id: "mock-2", nombre: "Técnicas de Estudio", subject_id: "mock", total_questions: 1, subject: { nombre: "Técnicas de Estudio", codigo: "EST1", año: 1 } }
+                { id: "mock-1", nombre: "Cuestionario de Prueba", subject_id: "mock", total_questions: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } }
             ]);
             setLoading(false);
             return;

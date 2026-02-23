@@ -110,7 +110,6 @@ export default function Flashcards() {
     if (isGuest) {
       setDecks([
         { id: "mock-deck-1", nombre: "Uso de Flashcards", subject_id: "mock", total_cards: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } },
-        { id: "mock-deck-2", nombre: "Tips de Estudio", subject_id: "mock", total_cards: 5, subject: { nombre: "Técnicas de Estudio", codigo: "EST1", año: 1 } }
       ]);
       setLoading(false);
       return;
