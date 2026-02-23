@@ -28,7 +28,7 @@ export interface UnlockedAchievement {
 }
 
 export function useAchievements() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,40 +39,53 @@ export function useAchievements() {
       .select("*")
       .order("categoria", { ascending: true })
       .order("xp_reward", { ascending: true });
-    
+
     if (!error && data) {
       setAchievements(data as Achievement[]);
     }
   }, []);
 
   const fetchUserAchievements = useCallback(async () => {
-    if (!user) return;
-    
+    if (!user && !isGuest) return;
+
+    if (isGuest) {
+      const { data } = await supabase.from('achievements').select('id').limit(5);
+      const mocks = (data || []).map(a => ({
+        id: `mock-${a.id}`,
+        achievement_id: a.id,
+        unlocked_at: new Date().toISOString()
+      }));
+      setUserAchievements(mocks);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("user_achievements")
-      .select("*");
-    
+      .select("*")
+      .eq("user_id", user.id);
+
     if (!error && data) {
       setUserAchievements(data);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, isGuest]);
 
   // Verificar y desbloquear logros automáticamente
   const checkAndUnlockAchievements = useCallback(async (): Promise<UnlockedAchievement[]> => {
     if (!user) return [];
-    
+
     try {
       const { data, error } = await supabase
         .rpc('check_and_unlock_achievements', { p_user_id: user.id });
-      
+
       if (error) {
         console.error("Error checking achievements:", error);
         return [];
       }
-      
+
       const unlocked = (data || []) as UnlockedAchievement[];
-      
+
       // Mostrar notificación por cada logro desbloqueado
       unlocked.forEach((achievement) => {
         toast.success(`🏆 ¡Logro desbloqueado!`, {
@@ -80,12 +93,12 @@ export function useAchievements() {
           duration: 5000,
         });
       });
-      
+
       // Refrescar logros del usuario si se desbloquearon nuevos
       if (unlocked.length > 0) {
         await fetchUserAchievements();
       }
-      
+
       return unlocked;
     } catch (err) {
       console.error("Error in checkAndUnlockAchievements:", err);

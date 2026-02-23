@@ -39,7 +39,7 @@ const DEFAULT_PERSONA: Omit<AIPersona, "id" | "user_id" | "created_at"> = {
 };
 
 export function useAIPersonas() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, isGuest, loading: authLoading } = useAuth();
     const [personas, setPersonas] = useState<AIPersona[]>([]);
     const [activePersona, setActivePersona] = useState<AIPersona | null>(null);
     const [sessions, setSessions] = useState<AIChatSession[]>([]);
@@ -248,7 +248,20 @@ export function useAIPersonas() {
 
     const createSession = useCallback(
         async (personaId: string, title: string) => {
-            if (!user) return null;
+            if (!user && !isGuest) return null;
+
+            if (isGuest) {
+                const localSession: AIChatSession = {
+                    id: `local-${Date.now()}`,
+                    persona_id: personaId,
+                    title,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                };
+                setSessions((prev) => [localSession, ...prev]);
+                return localSession;
+            }
+
             const { data, error } = await (supabase as any)
                 .from("ai_chat_sessions")
                 .insert({

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   id: string;
@@ -16,6 +17,7 @@ interface StreamResult {
 
 export function useStreamingChat() {
   const [isStreaming, setIsStreaming] = useState(false);
+  const { isGuest } = useAuth();
 
   const doFetch = async (token: string, messages: Array<{ role: string; content: string }>, persona_id: string, context_page?: string) => {
     return fetch(
@@ -137,6 +139,23 @@ export function useStreamingChat() {
     context_page?: string
   ) => {
     setIsStreaming(true);
+
+    if (isGuest) {
+      setTimeout(() => {
+        const text = "¡Hola! Como invitado, mis funciones de IA son limitadas. Te sugiero crearte una cuenta gratuita para experimentar todo mi potencial y ayudarte a potenciar tu rendimiento académico al máximo.";
+        let i = 0;
+        const interval = setInterval(() => {
+          onDelta(text.substring(i, i + 3));
+          i += 3;
+          if (i >= text.length) {
+            clearInterval(interval);
+            onComplete({ content: text });
+            setIsStreaming(false);
+          }
+        }, 30);
+      }, 300);
+      return;
+    }
 
     try {
       let token = await getToken();

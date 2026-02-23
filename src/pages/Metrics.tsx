@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  BarChart3, Clock, BookOpen, 
+import {
+  BarChart3, Clock, BookOpen,
   Timer, Layers, Video
 } from "lucide-react";
 import { subDays, eachDayOfInterval, format, differenceInDays } from "date-fns";
@@ -31,7 +31,7 @@ const defaultDateRange: DateRange = {
 };
 
 export default function Metrics() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; nombre: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +39,37 @@ export default function Metrics() {
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!user && !isGuest) return;
     setLoading(true);
+
+    if (isGuest) {
+      const today = new Date();
+      const mockSessions: StudySession[] = [];
+      const types = ["pomodoro", "flashcard", "estudio", "videocall"];
+
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+
+        const sessionsToday = Math.floor(Math.random() * 3) + 1;
+        for (let j = 0; j < sessionsToday; j++) {
+          mockSessions.push({
+            fecha: d.toISOString().split('T')[0],
+            duracion_segundos: Math.floor(Math.random() * 3600) + 1800,
+            tipo: types[Math.floor(Math.random() * types.length)],
+            subject_id: j % 2 === 0 ? "mock-sub-1" : "mock-sub-2"
+          });
+        }
+      }
+
+      setSessions(mockSessions);
+      setSubjects([
+        { id: "mock-sub-1", nombre: "Anatomía" },
+        { id: "mock-sub-2", nombre: "Cálculo Integral" }
+      ]);
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data: sessionData } = await supabase
@@ -62,23 +91,23 @@ export default function Metrics() {
     } finally {
       setLoading(false);
     }
-  }, [user, dateRange]);
+  }, [user, isGuest, dateRange]);
 
   useEffect(() => {
-    if (user) {
+    if (user || isGuest) {
       fetchData();
     }
-  }, [user, fetchData]);
+  }, [user, isGuest, fetchData]);
 
   // Calculate chart data based on date range
   const getChartData = () => {
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
-    
+
     // If range is <= 14 days, show daily data
     // If range is <= 90 days, show weekly aggregates
     // Otherwise, show monthly aggregates
-    
+
     if (totalDays <= 14) {
       // Daily view
       const allDays = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
@@ -101,13 +130,13 @@ export default function Metrics() {
     } else if (totalDays <= 90) {
       // Weekly view - aggregate by week
       const weeks: { [key: string]: { hours: number; pomodoros: number; flashcards: number; startDate: Date } } = {};
-      
+
       sessions.forEach(session => {
         const sessionDate = new Date(session.fecha);
         const weekStart = new Date(sessionDate);
         weekStart.setDate(sessionDate.getDate() - sessionDate.getDay());
         const weekKey = format(weekStart, 'yyyy-MM-dd');
-        
+
         if (!weeks[weekKey]) {
           weeks[weekKey] = { hours: 0, pomodoros: 0, flashcards: 0, startDate: weekStart };
         }
@@ -129,11 +158,11 @@ export default function Metrics() {
     } else {
       // Monthly view
       const months: { [key: string]: { hours: number; pomodoros: number; flashcards: number; date: Date } } = {};
-      
+
       sessions.forEach(session => {
         const sessionDate = new Date(session.fecha);
         const monthKey = format(sessionDate, 'yyyy-MM');
-        
+
         if (!months[monthKey]) {
           months[monthKey] = { hours: 0, pomodoros: 0, flashcards: 0, date: sessionDate };
         }
@@ -213,19 +242,19 @@ export default function Metrics() {
               Analiza tu progreso y optimiza tu estudio
             </p>
           </div>
-          
+
           {/* Date Range Filter */}
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
-        
+
         {/* Tab Selector */}
         <div className="flex bg-secondary rounded-xl p-1 w-fit">
           <button
             onClick={() => setActiveTab("general")}
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-              activeTab === "general" 
-                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background" 
+              activeTab === "general"
+                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -236,8 +265,8 @@ export default function Metrics() {
             onClick={() => setActiveTab("flashcards")}
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-              activeTab === "flashcards" 
-                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background" 
+              activeTab === "flashcards"
+                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -257,9 +286,9 @@ export default function Metrics() {
                   <Clock className="w-5 h-5 text-neon-cyan" />
                 </div>
               </div>
-            <p className="text-2xl font-display font-bold text-neon-cyan">{formatHours(totalHours)}</p>
-            <p className="text-xs text-muted-foreground">Horas totales</p>
-          </div>
+              <p className="text-2xl font-display font-bold text-neon-cyan">{formatHours(totalHours)}</p>
+              <p className="text-xs text-muted-foreground">Horas totales</p>
+            </div>
             <div className="card-gamer rounded-xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-neon-gold/20 flex items-center justify-center">
@@ -301,54 +330,54 @@ export default function Metrics() {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Weekly Chart */}
             <div className="lg:col-span-2 card-gamer rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display font-semibold text-lg">{getChartTitle()}</h2>
-              <BarChart3 className="w-5 h-5 text-muted-foreground" />
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-display font-semibold text-lg">{getChartTitle()}</h2>
+                <BarChart3 className="w-5 h-5 text-muted-foreground" />
               </div>
-              
+
               {loading ? (
                 <div className="h-48 flex items-center justify-center">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
-              <div className="flex items-end justify-between gap-1 h-48 overflow-x-auto pb-2">
-                {chartData.map((item, idx) => (
-                  <div key={`${item.date}-${idx}`} className="flex-1 min-w-[28px] max-w-[60px] flex flex-col items-center gap-1">
-                    <div
-                      className={cn(
-                        "w-full rounded-t-lg transition-all duration-500 relative group",
-                        item.hours > 0 ? "" : "bg-secondary/30"
-                      )}
-                      style={{
-                        height: `${Math.max((item.hours / maxHours) * 100, 4)}%`,
-                        background: item.hours > 0 
-                          ? `linear-gradient(180deg, hsl(var(--neon-cyan)) 0%, hsl(var(--neon-purple)) 100%)`
-                          : undefined,
-                      }}
-                    >
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-card px-2 py-1 rounded text-xs whitespace-nowrap border border-border z-10">
-                        {formatHours(item.hours)}
+                <div className="flex items-end justify-between gap-1 h-48 overflow-x-auto pb-2">
+                  {chartData.map((item, idx) => (
+                    <div key={`${item.date}-${idx}`} className="flex-1 min-w-[28px] max-w-[60px] flex flex-col items-center gap-1">
+                      <div
+                        className={cn(
+                          "w-full rounded-t-lg transition-all duration-500 relative group",
+                          item.hours > 0 ? "" : "bg-secondary/30"
+                        )}
+                        style={{
+                          height: `${Math.max((item.hours / maxHours) * 100, 4)}%`,
+                          background: item.hours > 0
+                            ? `linear-gradient(180deg, hsl(var(--neon-cyan)) 0%, hsl(var(--neon-purple)) 100%)`
+                            : undefined,
+                        }}
+                      >
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-card px-2 py-1 rounded text-xs whitespace-nowrap border border-border z-10">
+                          {formatHours(item.hours)}
+                        </div>
                       </div>
+                      <span className="text-[10px] text-muted-foreground leading-tight">{item.label}</span>
+                      <span className="text-[9px] text-muted-foreground/70 leading-tight">{item.sublabel}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground leading-tight">{item.label}</span>
-                    <span className="text-[9px] text-muted-foreground/70 leading-tight">{item.sublabel}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
-            <div className="mt-6 pt-6 border-t border-border">
-              <p className="text-sm text-muted-foreground mb-2">Promedio diario</p>
-              <p className="text-2xl font-display font-bold gradient-text">
-                {formatHours(totalHours / totalDays)}
-              </p>
-            </div>
+              <div className="mt-6 pt-6 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-2">Promedio diario</p>
+                <p className="text-2xl font-display font-bold gradient-text">
+                  {formatHours(totalHours / totalDays)}
+                </p>
+              </div>
             </div>
 
             {/* Subject Progress */}
             <div className="card-gamer rounded-xl p-5">
               <h3 className="font-display font-semibold mb-4">Por Materia</h3>
-              
+
               {loading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map(i => (
@@ -369,7 +398,7 @@ export default function Metrics() {
                     const progress = (subject.total_seconds / maxSeconds) * 100;
                     const colors = ["neon-cyan", "neon-green", "neon-purple", "neon-gold", "neon-red"];
                     const color = colors[i % colors.length];
-                    
+
                     return (
                       <div key={subject.subject_id}>
                         <div className="flex items-center justify-between text-sm mb-2">

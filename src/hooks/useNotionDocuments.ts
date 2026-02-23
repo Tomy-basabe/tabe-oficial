@@ -23,14 +23,50 @@ export interface NotionDocument {
 }
 
 export function useNotionDocuments() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [documents, setDocuments] = useState<NotionDocument[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDocuments = useCallback(async () => {
-    if (!user) return;
+    if (!user && !isGuest) return;
 
     setLoading(true);
+
+    if (isGuest) {
+      setDocuments([
+        {
+          id: "mock-doc-1",
+          user_id: "guest",
+          subject_id: "mock",
+          titulo: "Apuntes de Anatomía: Huesos",
+          contenido: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "El fémur es el hueso más largo del cuerpo humano." }] }] },
+          emoji: "🦴",
+          cover_url: null,
+          is_favorite: true,
+          total_time_seconds: 4500,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          subject: { nombre: "Anatomía", codigo: "AN1", year: 1 }
+        },
+        {
+          id: "mock-doc-2",
+          user_id: "guest",
+          subject_id: "mock",
+          titulo: "Fórmulas de Cálculo",
+          contenido: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "La derivada de e^x es e^x.\nLa integral de 1/x es ln|x|." }] }] },
+          emoji: "📐",
+          cover_url: null,
+          is_favorite: false,
+          total_time_seconds: 1200,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          subject: { nombre: "Cálculo", codigo: "CA1", year: 1 }
+        }
+      ]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("notion_documents")
       .select("*")
@@ -69,10 +105,10 @@ export function useNotionDocuments() {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
+    if (user || isGuest) {
       fetchDocuments();
     }
-  }, [user, fetchDocuments]);
+  }, [user, isGuest, fetchDocuments]);
 
   const createDocument = async (subjectId: string, titulo: string = "Sin título") => {
     if (!user) return null;

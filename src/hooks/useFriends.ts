@@ -42,7 +42,7 @@ interface FriendStats {
 }
 
 export function useFriends() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [friends, setFriends] = useState<FriendWithProfile[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendWithProfile[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendWithProfile[]>([]);
@@ -65,7 +65,41 @@ export function useFriends() {
   }, [user]);
 
   const fetchFriendships = useCallback(async () => {
-    if (!user) return;
+    if (!user && !isGuest) return;
+
+    if (isGuest) {
+      setFriends([
+        {
+          id: "mock-friend-1",
+          requester_id: "guest",
+          addressee_id: "f1",
+          status: "accepted",
+          created_at: new Date().toISOString(),
+          friend: { user_id: "f1", username: "lucianamed", display_id: 101, nombre: "Luciana M.", avatar_url: null }
+        },
+        {
+          id: "mock-friend-2",
+          requester_id: "guest",
+          addressee_id: "f2",
+          status: "accepted",
+          created_at: new Date().toISOString(),
+          friend: { user_id: "f2", username: "matias_eng", display_id: 102, nombre: "Matías", avatar_url: null }
+        }
+      ]);
+      setPendingRequests([
+        {
+          id: "mock-pend-1",
+          requester_id: "f3",
+          addressee_id: "guest",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          friend: { user_id: "f3", username: "sofia_arq", display_id: 103, nombre: "Sofía", avatar_url: null }
+        }
+      ]);
+      setSentRequests([]);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 
@@ -156,8 +190,41 @@ export function useFriends() {
   }, [user]);
 
   const fetchFriendStats = useCallback(async () => {
-    if (!user || friends.length === 0) {
+    if ((!user && !isGuest) || friends.length === 0) {
       setFriendStats([]);
+      return;
+    }
+
+    if (isGuest) {
+      setFriendStats([
+        {
+          user_id: "guest",
+          profile: myProfile || { user_id: "guest", username: "invitado_pro", display_id: 999, nombre: "Invitado Pro", avatar_url: null },
+          weekly_xp: 24500,
+          weekly_pomodoro_hours: 42,
+          weekly_study_hours: 312,
+          current_streak: 14,
+          level: 42
+        },
+        {
+          user_id: "f1",
+          profile: { user_id: "f1", username: "lucianamed", display_id: 101, nombre: "Luciana M.", avatar_url: null },
+          weekly_xp: 18500,
+          weekly_pomodoro_hours: 28,
+          weekly_study_hours: 180,
+          current_streak: 10,
+          level: 35
+        },
+        {
+          user_id: "f2",
+          profile: { user_id: "f2", username: "matias_eng", display_id: 102, nombre: "Matías", avatar_url: null },
+          weekly_xp: 12400,
+          weekly_pomodoro_hours: 15,
+          weekly_study_hours: 90,
+          current_streak: 3,
+          level: 28
+        }
+      ]);
       return;
     }
 
@@ -177,7 +244,7 @@ export function useFriends() {
     if (myProfile) profileMap.set(myProfile.user_id, myProfile);
     friends.forEach(f => profileMap.set(f.friend.user_id, f.friend));
 
-    const statsMap = new Map((socialStats || []).map(s => [s.user_id, s]));
+    const statsMap = new Map(((socialStats as any[]) || []).map(s => [s.user_id, s]));
 
     const friendStatsData: FriendStats[] = allUserIds.map(userId => {
       const profile = profileMap.get(userId);

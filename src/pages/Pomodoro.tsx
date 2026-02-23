@@ -42,7 +42,7 @@ const modeConfig = {
 };
 
 export default function Pomodoro() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
 
   // Consume Global Context
   const {
@@ -68,10 +68,10 @@ export default function Pomodoro() {
 
   // Still fetch subjects locally as that's UI data, not timer logic
   useEffect(() => {
-    if (user) {
+    if (user || isGuest) {
       fetchSubjects();
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   const fetchSubjects = async () => {
     try {
