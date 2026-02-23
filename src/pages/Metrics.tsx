@@ -342,7 +342,7 @@ export default function Metrics() {
               ) : (
                 <div className="flex items-end justify-between gap-1 h-48 overflow-x-auto pb-2">
                   {chartData.map((item, idx) => (
-                    <div key={`${item.date}-${idx}`} className="flex-1 min-w-[28px] max-w-[60px] flex flex-col items-center gap-1">
+                    <div key={`${item.date}-${idx}`} className="flex-1 min-w-[28px] max-w-[60px] flex flex-col items-center justify-end gap-1 h-full">
                       <div
                         className={cn(
                           "w-full rounded-t-lg transition-all duration-500 relative group",
