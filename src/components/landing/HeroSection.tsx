@@ -51,52 +51,95 @@ export function HeroSection() {
                         </div>
                     </div>
 
-                    {/* Visual Mockup */}
-                    <div className="relative animate-fade-in lg:ml-10 mt-12 lg:mt-0">
-                        <div className="relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-xl shadow-2xl aspect-[4/3] flex items-center justify-center">
-                            {/* Inner container for background so it obeys border-radius */}
-                            <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary/50 to-background opacity-50" />
+                    {/* Visual Mockup - Rich UI Preview */}
+                    <div className="relative lg:ml-10 mt-12 lg:mt-0 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+                        <div className="relative rounded-2xl border border-neon-cyan/20 bg-background/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,255,170,0.1)] overflow-hidden flex flex-col">
+                            {/* Browser/Window Header */}
+                            <div className="h-10 bg-secondary/50 border-b border-border/50 flex items-center px-4 gap-2">
+                                <div className="flex gap-1.5">
+                                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                                </div>
+                                <div className="ml-4 h-5 flex-1 bg-background/50 rounded-md border border-border/50 flex items-center px-3">
+                                    <span className="text-[10px] text-muted-foreground font-mono">tabe-oficial.com/dashboard</span>
+                                </div>
                             </div>
 
-                            {/* UI Content, also with overflow-hidden to keep items inside */}
-                            <div className="w-full h-full p-6 flex flex-col gap-4 relative z-10 rounded-2xl overflow-hidden">
-                                {/* Header Mockup */}
-                                <div className="flex justify-between items-center pb-4 border-b border-border/50">
-                                    <div className="w-32 h-6 rounded-md bg-secondary animate-pulse" />
-                                    <div className="w-10 h-10 rounded-full bg-secondary animate-pulse" />
-                                </div>
-                                {/* Body Mockup */}
-                                <div className="flex gap-4 flex-1">
-                                    <div className="w-1/3 space-y-3">
-                                        <div className="h-24 rounded-xl bg-neon-cyan/10 border border-neon-cyan/20 animate-pulse" />
-                                        <div className="h-24 rounded-xl bg-neon-purple/10 border border-neon-purple/20 animate-pulse" />
-                                        <div className="h-24 rounded-xl bg-secondary animate-pulse" />
+                            {/* App Content */}
+                            <div className="flex p-4 gap-4 h-[350px]">
+                                {/* Sidebar Mock */}
+                                <div className="w-1/4 hidden sm:flex flex-col gap-3 border-r border-border/50 pr-4">
+                                    <div className="h-8 flex items-center gap-2 mb-2">
+                                        <div className="w-6 h-6 rounded bg-gradient-to-br from-neon-cyan to-neon-purple" />
+                                        <div className="h-4 w-16 bg-foreground/20 rounded" />
                                     </div>
-                                    <div className="flex-1 rounded-xl bg-secondary/50 border border-border/50 animate-pulse" />
+                                    <div className="h-8 rounded-lg bg-neon-cyan/10 border border-neon-cyan/20 flex items-center px-2 gap-2">
+                                        <div className="w-4 h-4 rounded bg-neon-cyan/50" />
+                                        <div className="h-2 w-16 bg-neon-cyan/50 rounded" />
+                                    </div>
+                                    <div className="h-8 rounded-lg flex items-center px-2 gap-2 opacity-50">
+                                        <div className="w-4 h-4 rounded bg-foreground/30" />
+                                        <div className="h-2 w-20 bg-foreground/30 rounded" />
+                                    </div>
+                                    <div className="h-8 rounded-lg flex items-center px-2 gap-2 opacity-50">
+                                        <div className="w-4 h-4 rounded bg-foreground/30" />
+                                        <div className="h-2 w-14 bg-foreground/30 rounded" />
+                                    </div>
+
+                                    <div className="mt-auto h-16 rounded-xl border border-neon-gold/20 bg-neon-gold/5 p-2 flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-neon-gold/20 flex items-center justify-center border border-neon-gold/30">
+                                            <span className="text-xs">⚡</span>
+                                        </div>
+                                        <div>
+                                            <div className="h-2 w-10 bg-neon-gold/50 rounded mb-1" />
+                                            <div className="h-1.5 w-16 bg-neon-gold/30 rounded" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Main View Mock */}
+                                <div className="flex-1 flex flex-col gap-4">
+                                    <div className="flex gap-4">
+                                        <div className="h-24 flex-1 rounded-xl bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/20 p-4 flex flex-col justify-between relative overflow-hidden">
+                                            <div className="h-3 w-20 bg-neon-cyan/40 rounded" />
+                                            <div className="text-3xl font-display font-bold text-neon-cyan">8.5</div>
+                                            <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-neon-cyan/20 blur-xl rounded-full" />
+                                        </div>
+                                        <div className="h-24 flex-1 rounded-xl bg-gradient-to-br from-neon-purple/10 to-transparent border border-neon-purple/20 p-4 flex flex-col justify-between relative overflow-hidden">
+                                            <div className="h-3 w-24 bg-neon-purple/40 rounded" />
+                                            <div className="text-3xl font-display font-bold text-neon-purple">3</div>
+                                            <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-neon-purple/20 blur-xl rounded-full" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 rounded-xl border border-border/50 bg-secondary/30 p-4 flex flex-col gap-3">
+                                        <div className="flex justify-between items-center">
+                                            <div className="h-3 w-32 bg-foreground/20 rounded" />
+                                            <div className="h-2 w-8 bg-foreground/10 rounded" />
+                                        </div>
+                                        <div className="flex-1 flex gap-2 items-end">
+                                            {[40, 70, 45, 90, 60, 100, 80].map((height, i) => (
+                                                <div key={i} className="flex-1 bg-gradient-to-t from-neon-cyan/40 to-neon-cyan relative rounded-t-sm" style={{ height: `${height}%` }}>
+                                                    {i === 3 && (
+                                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-card border border-neon-cyan/30 text-[10px] py-0.5 px-1.5 rounded text-neon-cyan font-bold">+40%</div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Floating Element 1 */}
-                            <div className="hidden md:flex absolute -left-8 lg:-left-12 top-12 lg:top-20 bg-card/90 backdrop-blur-md border border-border shadow-xl rounded-xl p-4 items-center gap-3 hover:-translate-y-2 transition-transform duration-500 shadow-neon-cyan/10">
-                                <div className="w-10 h-10 rounded-full bg-neon-green/20 flex items-center justify-center">
-                                    <span className="text-xl">📈</span>
-                                </div>
-                                <div>
-                                    <div className="text-sm font-bold">+40% Rendimiento</div>
-                                    <div className="text-xs text-muted-foreground">Este mes</div>
-                                </div>
+                            {/* Decorative Floating Overlay Elements */}
+                            <div className="absolute -left-4 top-1/2 -translate-y-1/2 bg-card/90 backdrop-blur-xl border border-neon-green/30 shadow-[0_0_20px_rgba(0,255,100,0.15)] rounded-full py-2 px-4 flex items-center gap-2 hover:scale-105 transition-transform cursor-default">
+                                <CheckCircle2 className="w-4 h-4 text-neon-green" />
+                                <span className="text-xs font-bold text-foreground">Examen Aprobado</span>
                             </div>
 
-                            {/* Floating Element 2 */}
-                            <div className="hidden md:flex absolute -right-8 lg:-right-12 bottom-12 lg:bottom-20 bg-card/90 backdrop-blur-md border border-border shadow-xl rounded-xl p-4 flex-col gap-2 hover:-translate-y-2 transition-transform duration-500 shadow-neon-purple/10">
-                                <div className="text-xs font-bold text-neon-purple">Flashcards</div>
-                                <div className="flex gap-1">
-                                    <div className="w-3 h-8 bg-green-500 rounded-sm" />
-                                    <div className="w-3 h-10 bg-green-500 rounded-sm" />
-                                    <div className="w-3 h-12 bg-green-500 rounded-sm" />
-                                    <div className="w-3 h-14 bg-green-500 rounded-sm" />
-                                </div>
+                            <div className="absolute -right-4 top-1/4 bg-card/90 backdrop-blur-xl border border-neon-purple/30 shadow-[0_0_20px_rgba(150,0,255,0.15)] rounded-2xl p-3 flex flex-col gap-1 items-center hover:scale-105 transition-transform cursor-default">
+                                <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Racha</div>
+                                <div className="text-xl font-display font-bold text-neon-purple">🔥 7</div>
                             </div>
                         </div>
                     </div>
