@@ -1,33 +1,41 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, LayoutDashboard, Calendar, Layers, Bot } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutDashboard, Calendar, Layers, Bot, Settings, Gamepad2, Users, FileText, CheckCircle } from "lucide-react";
 
 const slides = [
     {
         id: 1,
+        title: "Tablero Principal",
+        description: "Visualiza tu progreso, métricas clave y próximos exámenes de un vistazo.",
+        icon: LayoutDashboard,
+        color: "from-neon-cyan to-blue-500",
+        image: "/screenshots/dashboard.png"
+    },
+    {
+        id: 2,
         title: "Bosque de Estudios",
         description: "Gamifica tu aprendizaje plantando y cultivando árboles con cada sesión de estudio.",
-        icon: LayoutDashboard,
+        icon: Gamepad2,
         color: "from-neon-green to-emerald-500",
         image: "/screenshots/forest.png"
     },
     {
-        id: 2,
+        id: 3,
         title: "Biblioteca Personalizada",
         description: "Sube, organiza y filtra tus apuntes, resúmenes y ejercicios por materia y año.",
-        icon: Layers,
+        icon: FileText,
         color: "from-neon-purple to-pink-500",
         image: "/screenshots/library.png"
     },
     {
-        id: 3,
+        id: 4,
         title: "Comunidad y Competencia",
         description: "Añade amigos, compara XP semanal y motivaciónate en equipo.",
-        icon: LayoutDashboard,
+        icon: Users,
         color: "from-neon-gold to-yellow-500",
         image: "/screenshots/friends.png"
     },
     {
-        id: 4,
+        id: 5,
         title: "T.A.B.E. IA",
         description: "Un tutor inteligente disponible 24/7 para resolver tus dudas exactas y diagramar planes.",
         icon: Bot,
@@ -35,12 +43,44 @@ const slides = [
         image: "/screenshots/ai.png"
     },
     {
-        id: 5,
+        id: 6,
         title: "Calendario Universitario",
         description: "Lleva el control de todos tus parciales, finales y entregas en un solo lugar sincronizado.",
         icon: Calendar,
         color: "from-purple-500 to-indigo-500",
         image: "/screenshots/calendar.png"
+    },
+    {
+        id: 7,
+        title: "Cuestionarios Automáticos",
+        description: "Crea exámenes de opción múltiple con IA y pon a prueba tus conocimientos antes del gran día.",
+        icon: CheckCircle,
+        color: "from-indigo-400 to-indigo-600",
+        image: "/screenshots/cuestionarios.png"
+    },
+    {
+        id: 8,
+        title: "Sistema de Flashcards",
+        description: "Repasa con inteligencia a través del algoritmo de repetición espaciada nativo.",
+        icon: Layers,
+        color: "from-pink-500 to-rose-500",
+        image: "/screenshots/flashcards.png"
+    },
+    {
+        id: 9,
+        title: "Integración Comunitaria",
+        description: "Estudia junto a otros estudiantes, comparte voz y pantalla en salas de estudio en vivo.",
+        icon: Users,
+        color: "from-[#5865F2] to-blue-600",
+        image: "/screenshots/discord.png"
+    },
+    {
+        id: 10,
+        title: "Personalización Total",
+        description: "Ajusta temas de color, tiempos del Pomodoro y notificaciones a tu propio ritmo.",
+        icon: Settings,
+        color: "from-slate-400 to-slate-600",
+        image: "/screenshots/config.png"
     }
 ];
 
