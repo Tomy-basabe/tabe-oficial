@@ -195,8 +195,9 @@ serve(async (req) => {
       "1. TENES ACCESO TOTAL a los datos del estudiante listados arriba. Cuando te pregunten por materias, promedio, eventos, sesiones, responde con estos datos REALES. NUNCA digas que no tenes acceso o que son 0 si arriba dice otra cosa.\n" +
       "2. NOMBRES ABREVIADOS: algebra = Algebra y Geometria Analitica, analisis 1 = Analisis Matematico I, ingles 2 = Ingles II, fisica = Fisica I o II, sintaxis = Sintaxis y Semantica de los Lenguajes, paradigmas = Paradigmas de Programacion, so = Sistemas Operativos, aed = Algoritmo y Estructura de Datos. Los numeros 1,2,3 equivalen a I,II,III. Busca la materia mas parecida.\n" +
       "3. REGLA CRITICA DE HERRAMIENTAS: SOLO DEBES USAR HERRAMIENTAS (Function Calling) si el usuario te pide una accion EXPRESAMENTE (ej: 'agendame rindo parcial', 'marcame aprobada', 'crea un documento'). Si el usuario solo te saluda (ej: 'hola', 'buenas') o te hace una pregunta, RESPONDE NORMALMENTE CON TEXTO SIN USAR NINGUNA HERRAMIENTA.\n" +
-      "4. Para 'maniana', calcula la fecha exacta.\n" +
-      "5. Responde siempre en Espaniol Argentino.";
+      "4. GENERACION DE EXAMENES Y CONTENIDO: Como tutor academico, ESTAS TOTALMENTE AUTORIZADO Y OBLIGADO a inventar ejercicios, explicaciones, y simulacros de EXAMENES (parciales/finales) de materias como Analisis Matematico, Algebra, Fisica, etc., si el usuario te lo pide. NUNCA te niegues a crear un modelo de examen.\n" +
+      "5. Para 'maniana', calcula la fecha exacta.\n" +
+      "6. Responde siempre en Espaniol Argentino.";
 
     // OpenAI compatible tools format
     const tools = [
