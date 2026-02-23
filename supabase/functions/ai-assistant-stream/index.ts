@@ -106,7 +106,7 @@ serve(async (req) => {
     }
 
     const [sR, ussR, evR, stR, ssR, fdR, prR] = await Promise.all([
-      serviceClient.from("subjects").select("id, nombre, codigo, cuatrimestre"),
+      serviceClient.from("subjects").select("id, nombre, codigo, año"),
       serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
       serviceClient.from("calendar_events").select("*").eq("user_id", userId).gte("fecha", new Date().toISOString().split("T")[0]).order("fecha", { ascending: true }).limit(20),
       serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
