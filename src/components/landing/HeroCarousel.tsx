@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, LayoutDashboard, Calendar, Layers, Bot, Settings, Gamepad2, Users, FileText, CheckCircle, BarChart3, Store, Trophy, BookOpen, Map } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutDashboard, Calendar, Layers, Bot, Settings, Gamepad2, Users, FileText, CheckCircle, BarChart3, Store, Trophy, BookOpen, Map, Timer } from "lucide-react";
 
 const slides = [
     {
@@ -121,6 +121,14 @@ const slides = [
         icon: Settings,
         color: "from-slate-400 to-slate-600",
         image: "/screenshots/config.png"
+    },
+    {
+        id: 16,
+        title: "Pomodoro Global",
+        description: "Mantén el control de tus tiempos de estudio y descansos sin importar en qué parte de la app te encuentres.",
+        icon: Timer,
+        color: "from-purple-500 to-fuchsia-600",
+        image: "/screenshots/pomodoro.png"
     }
 ];
 
