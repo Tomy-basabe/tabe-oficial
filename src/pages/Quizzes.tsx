@@ -55,6 +55,7 @@ export default function Quizzes() {
 
     // Create deck state
     const [newDeckName, setNewDeckName] = useState("");
+    const [newDeckYear, setNewDeckYear] = useState<number | null>(null);
     const [newDeckSubject, setNewDeckSubject] = useState("");
     const [showCreateDeck, setShowCreateDeck] = useState(false);
 
@@ -740,37 +741,73 @@ export default function Quizzes() {
 
             {/* Create Deck Dialog */}
             <Dialog open={showCreateDeck} onOpenChange={setShowCreateDeck}>
-                <DialogContent className="bg-card border-border">
+                <DialogContent className="sm:max-w-md bg-card border-border">
                     <DialogHeader>
-                        <DialogTitle>Nuevo Cuestionario</DialogTitle>
+                        <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
+                            <ClipboardList className="w-5 h-5 text-neon-cyan" />
+                            Nuevo Cuestionario
+                        </DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 pt-2">
-                        <div className="space-y-2">
-                            <Label>Nombre *</Label>
-                            <Input
-                                placeholder="Ej: Parcial 1 - Sistemas Operativos"
-                                value={newDeckName}
-                                onChange={(e) => setNewDeckName(e.target.value)}
-                            />
+                    <div className="space-y-5 py-4">
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Seleccionar Año *</label>
+                            <div className="flex gap-2 mt-2">
+                                {[1, 2, 3, 4, 5].map(year => (
+                                    <button
+                                        key={year}
+                                        onClick={() => { setNewDeckYear(year); setNewDeckSubject(""); }}
+                                        className={cn(
+                                            "flex-1 py-3 rounded-xl text-sm font-semibold transition-all",
+                                            newDeckYear === year
+                                                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
+                                                : "bg-secondary hover:bg-secondary/80"
+                                        )}
+                                    >
+                                        {year}°
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Materia (opcional)</Label>
-                            <Select value={newDeckSubject} onValueChange={setNewDeckSubject}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar materia" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[300px] overflow-y-auto">
-                                    {subjects.map((s) => (
-                                        <SelectItem key={s.id} value={s.id}>
-                                            {s.nombre} (Año {s.año})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <Button className="w-full" onClick={createDeck} disabled={!newDeckName.trim()}>
+
+                        {newDeckYear && (
+                            <div className="animate-fade-in">
+                                <label className="text-sm font-medium text-muted-foreground">Materia *</label>
+                                <select
+                                    value={newDeckSubject}
+                                    onChange={(e) => setNewDeckSubject(e.target.value)}
+                                    className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border font-medium"
+                                >
+                                    <option value="">Seleccionar materia</option>
+                                    {subjects
+                                        .filter(s => s.año === newDeckYear)
+                                        .map(subject => (
+                                            <option key={subject.id} value={subject.id}>
+                                                {subject.nombre}
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {newDeckSubject && (
+                            <div className="animate-fade-in space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">Nombre del Cuestionario *</label>
+                                <Input
+                                    placeholder="Ej: Parcial 1 - Sistemas Operativos"
+                                    value={newDeckName}
+                                    onChange={(e) => setNewDeckName(e.target.value)}
+                                    className="px-4 py-6 bg-secondary rounded-xl border-border"
+                                />
+                            </div>
+                        )}
+
+                        <button
+                            onClick={createDeck}
+                            disabled={!newDeckSubject || !newDeckName.trim()}
+                            className="w-full py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-neon-cyan/25"
+                        >
                             Crear Cuestionario
-                        </Button>
+                        </button>
                     </div>
                 </DialogContent>
             </Dialog>
