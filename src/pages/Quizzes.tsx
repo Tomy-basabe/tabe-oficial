@@ -116,9 +116,13 @@ export default function Quizzes() {
     const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
     const fetchSubjects = useCallback(async () => {
+        if (isGuest) {
+            setSubjects([{ id: "mock", nombre: "Materias Mock", codigo: "MOCK", año: 1 }]);
+            return;
+        }
         const { data } = await supabase.from("subjects").select("id, nombre, codigo, año").order("año");
-        setSubjects(data || []);
-    }, []);
+        setSubjects((data as unknown as Subject[]) || []);
+    }, [isGuest]);
 
     const fetchDecks = useCallback(async () => {
         if (!user && !isGuest) return;

@@ -42,10 +42,13 @@ const saveSettings = (settings: PomodoroSettingsType): void => {
 };
 
 export default function Settings() {
-  const { user, signOut, profile, updateTheme } = useAuth();
+  const { user, isGuest, signOut, profile, updateTheme } = useAuth();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettingsType>(loadSettings);
   const { theme, toggleTheme } = useTheme();
+
+  // Local state for guest theme representation
+  const [guestActiveTheme, setGuestActiveTheme] = useState<string | null>(null);
 
   const userName = user?.user_metadata?.nombre || user?.email?.split("@")[0] || "Usuario";
   const userInitials = userName.slice(0, 2).toUpperCase();
@@ -209,11 +212,25 @@ export default function Settings() {
               { id: "theme-neon-gold", color: "bg-[#FFB800]", name: "Dorado" },
               { id: "theme-red", color: "bg-[#FF3B30]", name: "Rojo" },
             ].map((t) => {
-              const isActive = profile?.active_theme === t.id || (!profile?.active_theme && t.id === null);
+              const isActive = isGuest
+                ? guestActiveTheme === t.id || (!guestActiveTheme && t.id === null)
+                : profile?.active_theme === t.id || (!profile?.active_theme && t.id === null);
+
               return (
                 <button
                   key={t.id || "default"}
-                  onClick={() => updateTheme(t.id || "")}
+                  onClick={() => {
+                    if (isGuest) {
+                      setGuestActiveTheme(t.id);
+                      // Set DOM class manually for preview
+                      document.documentElement.classList.remove("theme-cyan", "theme-green", "theme-neon-gold", "theme-red");
+                      if (t.id) {
+                        document.documentElement.classList.add(t.id);
+                      }
+                    } else {
+                      updateTheme(t.id || "");
+                    }
+                  }}
                   title={t.name}
                   className={`w-10 h-10 rounded-full flex-shrink-0 transition-transform ${t.color} ${isActive ? "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-background" : "hover:scale-105 opacity-80"
                     }`}

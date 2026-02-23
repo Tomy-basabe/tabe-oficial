@@ -346,13 +346,10 @@ export default function Metrics() {
                       <div
                         className={cn(
                           "w-full rounded-t-lg transition-all duration-500 relative group",
-                          item.hours > 0 ? "" : "bg-secondary/30"
+                          item.hours > 0 ? "bg-gradient-to-t from-primary/50 to-primary" : "bg-secondary/30"
                         )}
                         style={{
                           height: `${Math.max((item.hours / maxHours) * 100, 4)}%`,
-                          background: item.hours > 0
-                            ? `linear-gradient(180deg, hsl(var(--neon-cyan)) 0%, hsl(var(--neon-purple)) 100%)`
-                            : undefined,
                         }}
                       >
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-card px-2 py-1 rounded text-xs whitespace-nowrap border border-border z-10">

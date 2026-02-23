@@ -34,6 +34,42 @@ export function useAchievements() {
   const [loading, setLoading] = useState(true);
 
   const fetchAchievements = useCallback(async () => {
+    if (isGuest) {
+      setAchievements([
+        {
+          id: "3e5a3055-7cf0-4bb5-a3d5-e517ab5ebd5c",
+          nombre: "Primera Sangre",
+          descripcion: "Realiza tu primera sesión de estudio.",
+          icono: "🩸",
+          categoria: "estudio",
+          condicion_tipo: "sesiones_estudio",
+          condicion_valor: 1,
+          xp_reward: 100
+        },
+        {
+          id: "a1",
+          nombre: "Maratonista",
+          descripcion: "Alcanza una racha de 7 días consecutivos.",
+          icono: "🔥",
+          categoria: "academico",
+          condicion_tipo: "racha_dias",
+          condicion_valor: 7,
+          xp_reward: 500
+        },
+        {
+          id: "a2",
+          nombre: "Maestro del Pomodoro",
+          descripcion: "Completa 50 horas de estudio con Pomodoro.",
+          icono: "🍅",
+          categoria: "uso",
+          condicion_tipo: "horas_pomodoro",
+          condicion_valor: 50,
+          xp_reward: 1000
+        }
+      ]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("achievements")
       .select("*")
@@ -43,18 +79,25 @@ export function useAchievements() {
     if (!error && data) {
       setAchievements(data as Achievement[]);
     }
-  }, []);
+  }, [isGuest]);
 
   const fetchUserAchievements = useCallback(async () => {
     if (!user && !isGuest) return;
 
     if (isGuest) {
-      const { data } = await supabase.from('achievements').select('id').limit(5);
-      const mocks = (data || []).map(a => ({
-        id: `mock-${a.id}`,
-        achievement_id: a.id,
-        unlocked_at: new Date().toISOString()
-      }));
+      // Mock user achievements corresponding to our mock achievements above
+      const mocks = [
+        {
+          id: `mock-u1`,
+          achievement_id: "3e5a3055-7cf0-4bb5-a3d5-e517ab5ebd5c",
+          unlocked_at: new Date().toISOString()
+        },
+        {
+          id: `mock-u2`,
+          achievement_id: "a1",
+          unlocked_at: new Date(Date.now() - 86400000).toISOString()
+        }
+      ];
       setUserAchievements(mocks);
       setLoading(false);
       return;

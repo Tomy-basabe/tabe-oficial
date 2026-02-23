@@ -39,7 +39,7 @@ function getGreeting(persona: AIPersona): DisplayMessage {
 }
 
 export default function AIAssistant() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { isStreaming, streamMessage } = useStreamingChat();
   const {
     personas,
@@ -200,7 +200,7 @@ export default function AIAssistant() {
 
   // ---- Send message ----
   const handleSend = async () => {
-    if (!inputValue.trim() || isStreaming || !user || !activePersona) return;
+    if (!inputValue.trim() || isStreaming || (!user && !isGuest) || !activePersona) return;
 
     const userMessage: DisplayMessage = {
       id: Date.now().toString(),
