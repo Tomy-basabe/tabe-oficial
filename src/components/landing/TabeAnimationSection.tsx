@@ -35,7 +35,7 @@ export function TabeAnimationSection() {
     return (
         <section
             ref={containerRef}
-            className="relative min-h-[150vh] bg-foreground text-background overflow-hidden"
+            className="relative min-h-[120vh] bg-foreground text-background overflow-hidden"
         >
             <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden">
 
@@ -52,8 +52,8 @@ export function TabeAnimationSection() {
                     <div className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16">
                         {letters.map((item, index) => {
                             // Calculate individual delays for each letter based on scroll
-                            const appearStart = index * 0.15;
-                            const appearEnd = appearStart + 0.2;
+                            const appearStart = index * 0.1;
+                            const appearEnd = appearStart + 0.15;
 
                             let opacity = 0;
                             let yOffset = 50;

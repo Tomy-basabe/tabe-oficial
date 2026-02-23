@@ -52,12 +52,15 @@ export function HeroSection() {
                     </div>
 
                     {/* Visual Mockup */}
-                    <div className="relative animate-fade-in lg:ml-10">
-                        <div className="relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden aspect-[4/3] flex items-center justify-center">
-                            {/* Abstract App Representation */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary/50 to-background opacity-50" />
+                    <div className="relative animate-fade-in lg:ml-10 mt-12 lg:mt-0">
+                        <div className="relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-xl shadow-2xl aspect-[4/3] flex items-center justify-center">
+                            {/* Inner container for background so it obeys border-radius */}
+                            <div className="absolute inset-0 rounded-2xl overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary/50 to-background opacity-50" />
+                            </div>
 
-                            <div className="w-full h-full p-6 flex flex-col gap-4 relative z-10">
+                            {/* UI Content, also with overflow-hidden to keep items inside */}
+                            <div className="w-full h-full p-6 flex flex-col gap-4 relative z-10 rounded-2xl overflow-hidden">
                                 {/* Header Mockup */}
                                 <div className="flex justify-between items-center pb-4 border-b border-border/50">
                                     <div className="w-32 h-6 rounded-md bg-secondary animate-pulse" />
