@@ -4,36 +4,43 @@ import { ChevronLeft, ChevronRight, LayoutDashboard, Calendar, Layers, Bot } fro
 const slides = [
     {
         id: 1,
-        title: "Tablero Principal",
-        description: "Visualiza tu progreso, métricas clave y próximos exámenes de un vistazo.",
+        title: "Bosque de Estudios",
+        description: "Gamifica tu aprendizaje plantando y cultivando árboles con cada sesión de estudio.",
         icon: LayoutDashboard,
-        color: "from-neon-cyan to-blue-500",
-        // The user will replace this with their actual screenshot
-        image: "/screenshots/dashboard.webp"
+        color: "from-neon-green to-emerald-500",
+        image: "/screenshots/forest.png"
     },
     {
         id: 2,
-        title: "Plan de Carrera",
-        description: "Organiza tus materias mediante el mapa de correlatividades inteligente.",
-        icon: Calendar,
+        title: "Biblioteca Personalizada",
+        description: "Sube, organiza y filtra tus apuntes, resúmenes y ejercicios por materia y año.",
+        icon: Layers,
         color: "from-neon-purple to-pink-500",
-        image: "/screenshots/plan.webp"
+        image: "/screenshots/library.png"
     },
     {
         id: 3,
-        title: "Sistema de Flashcards",
-        description: "Estudia activamente con nuestro algoritmo de repetición espaciada.",
-        icon: Layers,
+        title: "Comunidad y Competencia",
+        description: "Añade amigos, compara XP semanal y motivaciónate en equipo.",
+        icon: LayoutDashboard,
         color: "from-neon-gold to-yellow-500",
-        image: "/screenshots/flashcards.webp"
+        image: "/screenshots/friends.png"
     },
     {
         id: 4,
-        title: "Asistente IA",
-        description: "Resuelve dudas al instante con inteligencias especializadas en tus materias.",
+        title: "T.A.B.E. IA",
+        description: "Un tutor inteligente disponible 24/7 para resolver tus dudas exactas y diagramar planes.",
         icon: Bot,
-        color: "from-neon-green to-emerald-500",
-        image: "/screenshots/ai.webp"
+        color: "from-neon-cyan to-blue-500",
+        image: "/screenshots/ai.png"
+    },
+    {
+        id: 5,
+        title: "Calendario Universitario",
+        description: "Lleva el control de todos tus parciales, finales y entregas en un solo lugar sincronizado.",
+        icon: Calendar,
+        color: "from-purple-500 to-indigo-500",
+        image: "/screenshots/calendar.png"
     }
 ];
 

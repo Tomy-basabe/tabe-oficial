@@ -52,9 +52,35 @@ export function HeroSection() {
                         </div>
                     </div>
 
-                    {/* Visual Mockup - Interactive Carousel */}
-                    <div className="relative z-10 w-full max-w-2xl mx-auto lg:max-w-none lg:ml-10 mt-12 lg:mt-0 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-                        <HeroCarousel />
+                    {/* Virtual Mockup / Highlighted App View */}
+                    <div className="mt-16 w-full max-w-5xl mx-auto z-20 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+                        <div className="relative rounded-2xl md:rounded-[2rem] border border-border/50 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden aspect-[16/10] md:aspect-[16/9] flex flex-col group">
+                            <div className="h-8 md:h-12 bg-secondary/80 border-b border-border/50 flex items-center px-4 gap-2 z-20">
+                                <div className="flex gap-1.5 md:gap-2">
+                                    <div className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full bg-red-500/80" />
+                                    <div className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full bg-yellow-500/80" />
+                                    <div className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full bg-green-500/80" />
+                                </div>
+                                <div className="ml-4 h-6 md:h-7 hidden sm:flex flex-1 max-w-[250px] bg-background/50 rounded-md border border-border/50 items-center justify-center px-4">
+                                    <span className="text-[10px] md:text-xs text-muted-foreground font-mono">app.tabe-oficial.com</span>
+                                </div>
+                            </div>
+                            <div className="relative flex-1 bg-background/50 overflow-hidden">
+                                <img
+                                    src="/screenshots/dashboard-full.png"
+                                    alt="Tablero Dashboard TABE"
+                                    className="absolute inset-0 w-full h-full object-cover object-top"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Features Carousel */}
+                    <div className="mt-24 text-center z-20">
+                        <h2 className="text-3xl md:text-5xl font-display font-bold mb-12">Todo lo que necesitas, en un solo lugar</h2>
+                        <div className="w-full max-w-4xl mx-auto">
+                            <HeroCarousel />
+                        </div>
                     </div>
                 </div>
             </div>
