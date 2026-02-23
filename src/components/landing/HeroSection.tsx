@@ -78,7 +78,7 @@ export function HeroSection() {
                             </div>
 
                             {/* Floating Element 1 */}
-                            <div className="absolute -left-6 top-20 bg-card border border-border shadow-xl rounded-xl p-4 flex items-center gap-3 animate-bounce shadow-neon-cyan/10">
+                            <div className="hidden md:flex absolute -left-8 lg:-left-12 top-12 lg:top-20 bg-card/90 backdrop-blur-md border border-border shadow-xl rounded-xl p-4 items-center gap-3 hover:-translate-y-2 transition-transform duration-500 shadow-neon-cyan/10">
                                 <div className="w-10 h-10 rounded-full bg-neon-green/20 flex items-center justify-center">
                                     <span className="text-xl">📈</span>
                                 </div>
@@ -89,7 +89,7 @@ export function HeroSection() {
                             </div>
 
                             {/* Floating Element 2 */}
-                            <div className="absolute -right-6 bottom-20 bg-card border border-border shadow-xl rounded-xl p-4 flex flex-col gap-2 animate-pulse shadow-neon-purple/10" style={{ animationDelay: "1s" }}>
+                            <div className="hidden md:flex absolute -right-8 lg:-right-12 bottom-12 lg:bottom-20 bg-card/90 backdrop-blur-md border border-border shadow-xl rounded-xl p-4 flex-col gap-2 hover:-translate-y-2 transition-transform duration-500 shadow-neon-purple/10">
                                 <div className="text-xs font-bold text-neon-purple">Flashcards</div>
                                 <div className="flex gap-1">
                                     <div className="w-3 h-8 bg-green-500 rounded-sm" />
