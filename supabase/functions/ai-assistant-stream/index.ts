@@ -215,12 +215,95 @@ serve(async (req) => {
 
     // Format messages for Groq (OpenAI spec)
     const groqMessages = [
-      { role: "system", content: sysPrompt },
       ...messages.map((m: any) => ({
         role: m.role,
         content: m.content
       }))
     ];
+
+    // RAG: Retrieval-Augmented Generation
+    // 1. Detect if the user is asking about a specific subject in their last message
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+    let ragContext = "";
+
+    if (lastUserMsg) {
+      const detectedSubject = fuzzyFind(lastUserMsg, subjects);
+      if (detectedSubject) {
+        console.log(`[RAG] Tema detectado: ${detectedSubject.nombre}. Buscando apuntes...`);
+
+        // Fetch Notion Documents for this subject
+        const { data: notionDocs } = await serviceClient
+          .from("notion_documents")
+          .select("titulo, contenido")
+          .eq("user_id", userId)
+          .eq("subject_id", detectedSubject.id)
+          .order("updated_at", { ascending: false })
+          .limit(3);
+
+        // Fetch Flashcards for this subject
+        const { data: subjectDecks } = await serviceClient
+          .from("flashcard_decks")
+          .select("id, nombre")
+          .eq("user_id", userId)
+          .eq("subject_id", detectedSubject.id)
+          .limit(2);
+
+        let notionText = "";
+        if (notionDocs && notionDocs.length > 0) {
+          notionText = notionDocs.map((doc: any) => {
+            let parsedContent = "";
+            try {
+              // Notion content is usually stored as a JSON string representing TipTap nodes
+              const contentArr = typeof doc.contenido === 'string' ? JSON.parse(doc.contenido) : doc.contenido;
+              if (Array.isArray(contentArr)) {
+                // Extract text from TipTap nodes
+                const extractText = (nodes: any[]): string => {
+                  let text = "";
+                  for (const node of nodes) {
+                    if (node.type === "text" && node.text) text += node.text;
+                    else if (node.content) text += extractText(node.content) + " ";
+                    if (node.type === "paragraph" || node.type === "heading") text += "\n";
+                  }
+                  return text;
+                };
+                parsedContent = extractText(contentArr).trim();
+              } else {
+                parsedContent = String(doc.contenido);
+              }
+            } catch (e) {
+              parsedContent = "Error parseando documento.";
+            }
+            // Limit each doc to ~3000 chars to avoid token limits
+            return `Doc: ${doc.titulo}\n${parsedContent.slice(0, 3000)}`;
+          }).join("\n\n");
+        }
+
+        let flashcardsText = "";
+        if (subjectDecks && subjectDecks.length > 0) {
+          const deckIds = subjectDecks.map((d: any) => d.id);
+          const { data: cards } = await serviceClient
+            .from("flashcards")
+            .select("pregunta, respuesta")
+            .in("deck_id", deckIds)
+            .limit(20); // Limit to 20 cards total to save tokens
+
+          if (cards && cards.length > 0) {
+            flashcardsText = cards.map((c: any) => `Q: ${c.pregunta} | A: ${c.respuesta}`).join("\n");
+          }
+        }
+
+        if (notionText || flashcardsText) {
+          ragContext = `\n\n=== APUNTES DEL ESTUDIANTE SOBRE ${detectedSubject.nombre.toUpperCase()} ===\n`;
+          ragContext += "INSTRUCCION CRITICA: Prioriza esta informacion personal del estudiante sobre tu conocimiento general para responder la pregunta actual.\n\n";
+          if (notionText) ragContext += `[DOCUMENTOS]\n${notionText}\n\n`;
+          if (flashcardsText) ragContext += `[FLASHCARDS]\n${flashcardsText}\n`;
+        }
+      }
+    }
+
+    // Insert the sysPrompt at the beginning, now including RAG context if any
+    const finalSysPrompt = sysPrompt + ragContext;
+    groqMessages.unshift({ role: "system", content: finalSysPrompt });
 
     let content = "";
     let toolCall: any = null;
