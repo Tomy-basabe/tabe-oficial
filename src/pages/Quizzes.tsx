@@ -5,7 +5,7 @@ import {
     ClipboardList, Plus, Sparkles, GraduationCap,
     BookOpen, Zap, Trash2, X, Check, ChevronRight,
     ChevronLeft, Trophy, RotateCcw, Upload, Store,
-    Edit, AlertCircle
+    Edit, AlertCircle, Filter
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,9 @@ export default function Quizzes() {
 
     // Delete confirm
     const [deleteDeck, setDeleteDeck] = useState<QuizDeck | null>(null);
+
+    // Year filter
+    const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
     const fetchSubjects = useCallback(async () => {
         const { data } = await supabase.from("subjects").select("id, nombre, codigo, año").order("año");
@@ -563,6 +566,41 @@ export default function Quizzes() {
                 </Button>
             </div>
 
+            {/* Year Filter */}
+            <div className="card-gamer rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                    <Filter className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-sm">Filtrar por Año</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                    <button
+                        onClick={() => setSelectedYear(null)}
+                        className={cn(
+                            "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                            selectedYear === null
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary hover:bg-secondary/80"
+                        )}
+                    >
+                        Todos
+                    </button>
+                    {[1, 2, 3, 4, 5].map(y => (
+                        <button
+                            key={y}
+                            onClick={() => setSelectedYear(y)}
+                            className={cn(
+                                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                                selectedYear === y
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-secondary hover:bg-secondary/80"
+                            )}
+                        >
+                            {y}° Año
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {/* Decks Grid */}
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -572,7 +610,7 @@ export default function Quizzes() {
                         </Card>
                     ))}
                 </div>
-            ) : decks.length === 0 ? (
+            ) : decks.length === 0 && !selectedYear ? (
                 <Card className="card-gamer">
                     <CardContent className="p-12 text-center">
                         <ClipboardList className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
@@ -587,62 +625,67 @@ export default function Quizzes() {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {decks.map((deck) => (
-                        <Card key={deck.id} className="card-gamer hover:glow-cyan transition-all group">
-                            <CardContent className="p-5">
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
-                                            <ClipboardList className="w-6 h-6 text-background" />
+                    {decks
+                        .filter(d => {
+                            if (!selectedYear) return true;
+                            return d.subject?.año === selectedYear;
+                        })
+                        .map((deck) => (
+                            <Card key={deck.id} className="card-gamer hover:glow-cyan transition-all group">
+                                <CardContent className="p-5">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
+                                                <ClipboardList className="w-6 h-6 text-background" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold line-clamp-1">{deck.nombre}</h3>
+                                                <p className="text-sm text-muted-foreground">{deck.total_questions} preguntas</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="font-semibold line-clamp-1">{deck.nombre}</h3>
-                                            <p className="text-sm text-muted-foreground">{deck.total_questions} preguntas</p>
-                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="opacity-0 group-hover:opacity-100 text-destructive"
+                                            onClick={() => setDeleteDeck(deck)}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="opacity-0 group-hover:opacity-100 text-destructive"
-                                        onClick={() => setDeleteDeck(deck)}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
 
-                                {deck.subject && (
-                                    <Badge variant="outline" className="text-xs mb-3 bg-primary/10">
-                                        <GraduationCap className="w-3 h-3 mr-1" />
-                                        Año {deck.subject.año} · {deck.subject.nombre}
-                                    </Badge>
-                                )}
+                                    {deck.subject && (
+                                        <Badge variant="outline" className="text-xs mb-3 bg-primary/10">
+                                            <GraduationCap className="w-3 h-3 mr-1" />
+                                            Año {deck.subject.año} · {deck.subject.nombre}
+                                        </Badge>
+                                    )}
 
-                                <div className="flex gap-2 mt-4">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1"
-                                        onClick={() => {
-                                            setManageDeck(deck);
-                                            fetchQuestions(deck.id);
-                                        }}
-                                    >
-                                        <Edit className="w-4 h-4 mr-2" />
-                                        Gestionar
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple"
-                                        disabled={deck.total_questions === 0}
-                                        onClick={() => startStudy(deck)}
-                                    >
-                                        <Zap className="w-4 h-4 mr-2" />
-                                        Practicar
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                    <div className="flex gap-2 mt-4">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                            onClick={() => {
+                                                setManageDeck(deck);
+                                                fetchQuestions(deck.id);
+                                            }}
+                                        >
+                                            <Edit className="w-4 h-4 mr-2" />
+                                            Gestionar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple"
+                                            disabled={deck.total_questions === 0}
+                                            onClick={() => startStudy(deck)}
+                                        >
+                                            <Zap className="w-4 h-4 mr-2" />
+                                            Practicar
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
                 </div>
             )}
 

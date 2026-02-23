@@ -98,7 +98,9 @@ export default function Library() {
   const [newFolderSubject, setNewFolderSubject] = useState<string>("");
   const [newFolderYear, setNewFolderYear] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [generating, setGenerating] = useState<'flashcards' | 'summary' | null>(null);
+  const [generating, setGenerating] = useState<'flashcards' | 'summary' | 'quiz' | null>(null);
+  const [showGenOptions, setShowGenOptions] = useState<'flashcards' | 'quiz' | null>(null);
+  const [genCount, setGenCount] = useState(10);
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -351,9 +353,10 @@ export default function Library() {
     setShowPreviewModal(true);
   };
 
-  const handleGenerateContent = async (file: LibraryFile, type: 'flashcards' | 'summary') => {
+  const handleGenerateContent = async (file: LibraryFile, type: 'flashcards' | 'summary' | 'quiz', count?: number) => {
     if (!user) return;
     setGenerating(type);
+    setShowGenOptions(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-study-content', {
@@ -361,7 +364,8 @@ export default function Library() {
           storagePath: file.storage_path,
           fileUrl: file.url,
           fileName: file.nombre,
-          type
+          type,
+          count: count || genCount
         }
       });
 
@@ -372,7 +376,6 @@ export default function Library() {
         const cards = data.data.cards;
         if (!cards || cards.length === 0) throw new Error("No flashcards generated");
 
-        // Create Deck
         const { data: deck, error: deckError } = await supabase
           .from("flashcard_decks")
           .insert({
@@ -387,7 +390,6 @@ export default function Library() {
 
         if (deckError) throw deckError;
 
-        // Insert Cards
         const cardRows = cards.map((c: any) => ({
           deck_id: deck.id,
           user_id: user.id,
@@ -401,13 +403,52 @@ export default function Library() {
 
         if (cardsError) throw cardsError;
 
-        toast.success("¡Mazo de flashcards creado exitosamente!");
+        toast.success(`¡Mazo de ${cards.length} flashcards creado!`);
+      } else if (type === 'quiz') {
+        const questions = data.data.questions;
+        if (!questions || questions.length === 0) throw new Error("No se generaron preguntas");
+
+        const { data: quizDeck, error: qdErr } = await supabase
+          .from("quiz_decks")
+          .insert({
+            user_id: user.id,
+            subject_id: file.subject_id,
+            nombre: `Quiz: ${file.nombre.substring(0, 30)}...`,
+            total_questions: questions.length,
+            is_public: false
+          })
+          .select()
+          .single();
+
+        if (qdErr) throw qdErr;
+
+        for (const q of questions) {
+          const { data: question } = await supabase
+            .from("quiz_questions")
+            .insert({
+              deck_id: quizDeck.id,
+              user_id: user.id,
+              pregunta: q.pregunta,
+              explicacion: q.explicacion || null
+            })
+            .select()
+            .single();
+
+          if (question && q.opciones) {
+            const opts = q.opciones.map((o: string, i: number) => ({
+              question_id: question.id,
+              texto: o,
+              es_correcta: i === (q.correcta || 0)
+            }));
+            await supabase.from("quiz_options").insert(opts);
+          }
+        }
+
+        toast.success(`¡Cuestionario de ${questions.length} preguntas creado! Andá a Cuestionarios para practicarlo.`);
       } else {
         const summaryText = data.data.summary;
         if (!summaryText) throw new Error("No summary generated");
 
-        // Create Note (Notion Document)
-        // Convert Markdown summary to basic Tiptap JSON
         const paragraphs = summaryText.split('\n').filter((p: string) => p.trim());
         const tiptapContent = {
           type: "doc",
@@ -419,7 +460,7 @@ export default function Library() {
               return { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: p.replace('## ', '') }] };
             }
             if (p.startsWith('- ') || p.startsWith('• ')) {
-              return { type: "paragraph", content: [{ type: "text", text: p }] }; // Lists as paragraphs for simplicity
+              return { type: "paragraph", content: [{ type: "text", text: p }] };
             }
             return { type: "paragraph", content: [{ type: "text", text: p }] };
           })
@@ -882,31 +923,83 @@ export default function Library() {
             </div>
 
             {/* AI Actions Toolbar */}
-            <div className="bg-secondary/30 border-b border-border p-2 flex gap-2 justify-center">
-              <button
-                onClick={() => previewFile && handleGenerateContent(previewFile, 'flashcards')}
-                disabled={generating !== null}
-                className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                {generating === 'flashcards' ? (
-                  <span className="animate-spin">⏳</span>
-                ) : (
-                  <span className="text-lg">✨</span>
-                )}
-                {generating === 'flashcards' ? "Generando..." : "Generar Flashcards"}
-              </button>
-              <button
-                onClick={() => previewFile && handleGenerateContent(previewFile, 'summary')}
-                disabled={generating !== null}
-                className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                {generating === 'summary' ? (
-                  <span className="animate-spin">⏳</span>
-                ) : (
-                  <span className="text-lg">📝</span>
-                )}
-                {generating === 'summary' ? "Resumiendo..." : "Resumir"}
-              </button>
+            <div className="bg-secondary/30 border-b border-border p-2 flex flex-col gap-2">
+              <div className="flex gap-2 justify-center flex-wrap">
+                <button
+                  onClick={() => setShowGenOptions(showGenOptions === 'flashcards' ? null : 'flashcards')}
+                  disabled={generating !== null}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
+                    showGenOptions === 'flashcards' ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary/20"
+                  )}
+                >
+                  {generating === 'flashcards' ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    <span className="text-lg">✨</span>
+                  )}
+                  {generating === 'flashcards' ? "Generando..." : "Flashcards"}
+                </button>
+                <button
+                  onClick={() => setShowGenOptions(showGenOptions === 'quiz' ? null : 'quiz')}
+                  disabled={generating !== null}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
+                    showGenOptions === 'quiz' ? "bg-primary text-primary-foreground" : "bg-neon-purple/10 text-neon-purple hover:bg-neon-purple/20"
+                  )}
+                >
+                  {generating === 'quiz' ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    <span className="text-lg">📋</span>
+                  )}
+                  {generating === 'quiz' ? "Generando..." : "Cuestionario"}
+                </button>
+                <button
+                  onClick={() => previewFile && handleGenerateContent(previewFile, 'summary')}
+                  disabled={generating !== null}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {generating === 'summary' ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    <span className="text-lg">📝</span>
+                  )}
+                  {generating === 'summary' ? "Resumiendo..." : "Resumir"}
+                </button>
+              </div>
+
+              {/* Quantity selector for flashcards/quiz */}
+              {showGenOptions && (
+                <div className="flex items-center gap-3 justify-center bg-background/50 rounded-lg p-2">
+                  <span className="text-xs text-muted-foreground">
+                    {showGenOptions === 'flashcards' ? 'Cantidad de tarjetas:' : 'Cantidad de preguntas:'}
+                  </span>
+                  <div className="flex gap-1">
+                    {[5, 10, 15, 20, 30].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setGenCount(n)}
+                        className={cn(
+                          "px-2 py-1 rounded text-xs font-medium transition-all",
+                          genCount === n
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary hover:bg-secondary/80"
+                        )}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => previewFile && handleGenerateContent(previewFile, showGenOptions, genCount)}
+                    disabled={generating !== null}
+                    className="px-3 py-1 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    Generar {genCount}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-auto p-4">
