@@ -38,29 +38,29 @@ export function useNotionDocuments() {
           id: "mock-doc-1",
           user_id: "guest",
           subject_id: "mock",
-          titulo: "Apuntes de Anatomía: Huesos",
-          contenido: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "El fémur es el hueso más largo del cuerpo humano." }] }] },
-          emoji: "🦴",
+          titulo: "Acerca de los Apuntes",
+          contenido: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "En los apuntes de Tabe puedes redactar tus ideas libres, resúmenes de clase y apuntes detallados. El editor soporta formato rico, atajos de teclado y autoguardado." }] }] },
+          emoji: "📝",
           cover_url: null,
           is_favorite: true,
           total_time_seconds: 4500,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          subject: { nombre: "Anatomía", codigo: "AN1", year: 1 }
+          subject: { nombre: "Uso de Tablero", codigo: "TAB1", year: 1 }
         },
         {
           id: "mock-doc-2",
           user_id: "guest",
           subject_id: "mock",
-          titulo: "Fórmulas de Cálculo",
-          contenido: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "La derivada de e^x es e^x.\nLa integral de 1/x es ln|x|." }] }] },
-          emoji: "📐",
+          titulo: "La Inteligencia Artificial",
+          contenido: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "La IA de Tabe puede leer los apuntes que guardes aquí. Luego, podes pedirle desde el chat que te genere Cuestionarios o Flashcards basándose EXPRESAMENTE en lo que hayas escrito." }] }] },
+          emoji: "🤖",
           cover_url: null,
           is_favorite: false,
           total_time_seconds: 1200,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          subject: { nombre: "Cálculo", codigo: "CA1", year: 1 }
+          subject: { nombre: "Técnicas de Estudio", codigo: "EST1", year: 1 }
         }
       ]);
       setLoading(false);

@@ -132,8 +132,8 @@ export default function Library() {
   const fetchFolders = async () => {
     if (isGuest) {
       setFolders([
-        { id: "mock-folder-1", nombre: "Apuntes Análisis Matemático", color: "#00d9ff", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() },
-        { id: "mock-folder-2", nombre: "Resúmenes Física", color: "#a855f7", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() }
+        { id: "mock-folder-1", nombre: "Tutorial Tabe", color: "#00d9ff", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() },
+        { id: "mock-folder-2", nombre: "Importante", color: "#a855f7", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() }
       ]);
       return;
     }

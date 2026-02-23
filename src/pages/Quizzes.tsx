@@ -130,8 +130,8 @@ export default function Quizzes() {
 
         if (isGuest) {
             setDecks([
-                { id: "mock-1", nombre: "Cálculo I - Integrales", subject_id: "mock", total_questions: 10, subject: { nombre: "Análisis Matemático", codigo: "AM1", año: 1 } },
-                { id: "mock-2", nombre: "Física - Dinámica", subject_id: "mock", total_questions: 5, subject: { nombre: "Física I", codigo: "F1", año: 1 } }
+                { id: "mock-1", nombre: "Cuestionario de Prueba", subject_id: "mock", total_questions: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } },
+                { id: "mock-2", nombre: "Técnicas de Estudio", subject_id: "mock", total_questions: 1, subject: { nombre: "Técnicas de Estudio", codigo: "EST1", año: 1 } }
             ]);
             setLoading(false);
             return;
@@ -160,15 +160,15 @@ export default function Quizzes() {
 
         if (isGuest) {
             if (deckId === "mock-1") {
-                const mockQs = Array.from({ length: 10 }, (_, i) => ({
+                const mockQs = Array.from({ length: 5 }, (_, i) => ({
                     id: `mock-q-${i}`,
-                    pregunta: `Pregunta de Cálculo #${i + 1}: ¿Cuál es el límite o derivada fundamental?`,
-                    explicacion: `Explicación matemática extendida para la pregunta ${i + 1}.`,
+                    pregunta: `Aquí puedes colocar preguntas de opción múltiple (Ejemplo #${i + 1})`,
+                    explicacion: `Y aquí puedes añadir una explicación detallada que aparecerá cuando elijas una respuesta. Esta es la explicación para la pregunta ${i + 1}.`,
                     options: [
-                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Respuesta correcta", es_correcta: true },
-                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta A", es_correcta: false },
-                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta B", es_correcta: false },
-                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta C", es_correcta: false }
+                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Aquí pondrías la respuesta correcta", es_correcta: true },
+                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Aquí una respuesta incorrecta", es_correcta: false },
+                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Otra opción distractora", es_correcta: false },
+                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracción más", es_correcta: false }
                     ]
                 }));
                 setDeckQuestions(mockQs);
@@ -303,15 +303,15 @@ export default function Quizzes() {
 
         if (isGuest) {
             if (deck.id === "mock-1") {
-                const mockQs = Array.from({ length: 10 }, (_, i) => ({
+                const mockQs = Array.from({ length: 5 }, (_, i) => ({
                     id: `mock-q-${i}`,
-                    pregunta: `Pregunta de Cálculo #${i + 1}: ¿Cuál es el límite o derivada fundamental?`,
-                    explicacion: `Explicación matemática extendida para la pregunta ${i + 1}.`,
+                    pregunta: `Aquí puedes colocar preguntas de opción múltiple (Ejemplo #${i + 1})`,
+                    explicacion: `Y aquí puedes añadir una explicacion detallada que aparecerá cuando elijas una respuesta. Esta es la explicación para la pregunta ${i + 1}.`,
                     options: [
-                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Respuesta correcta", es_correcta: true },
-                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta A", es_correcta: false },
-                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta B", es_correcta: false },
-                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Respuesta incorrecta C", es_correcta: false }
+                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Aquí pondrías la respuesta correcta", es_correcta: true },
+                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Aquí una respuesta incorrecta", es_correcta: false },
+                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Otra opción distractora", es_correcta: false },
+                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracción más", es_correcta: false }
                     ]
                 }));
                 setStudyQuestions(mockQs.sort(() => Math.random() - 0.5));

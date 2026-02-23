@@ -109,8 +109,8 @@ export default function Flashcards() {
 
     if (isGuest) {
       setDecks([
-        { id: "mock-deck-1", nombre: "Mazo de Prueba: Anatomía", subject_id: "mock", total_cards: 15, subject: { nombre: "Anatomía Normal", codigo: "AN1", año: 1 } },
-        { id: "mock-deck-2", nombre: "Fórmulas Estadísticas", subject_id: "mock", total_cards: 5, subject: { nombre: "Estadística V", codigo: "EST5", año: 3 } }
+        { id: "mock-deck-1", nombre: "Uso de Flashcards", subject_id: "mock", total_cards: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } },
+        { id: "mock-deck-2", nombre: "Tips de Estudio", subject_id: "mock", total_cards: 5, subject: { nombre: "Técnicas de Estudio", codigo: "EST1", año: 1 } }
       ]);
       setLoading(false);
       return;
@@ -133,21 +133,11 @@ export default function Flashcards() {
     if (isGuest) {
       if (deckId === "mock-deck-1") {
         const anatomyMocks = [
-          { pregunta: "¿Qué es la Mitocondria?", respuesta: "Organela encargada de la respiración celular y producción de ATP." },
-          { pregunta: "¿Qué tejido forma la epidermis?", respuesta: "Tejido epitelial plano estratificado queratinizado." },
-          { pregunta: "¿Qué hueso no se articula con ningún otro?", respuesta: "El hueso hioides, en la parte anterior del cuello." },
-          { pregunta: "¿Cuál es la válvula entre el atrio y ventrículo izquierdo?", respuesta: "Válvula mitral (o bicúspide)." },
-          { pregunta: "¿Dónde se produce la bilis?", respuesta: "En el Hígado (específicamente en los hepatocitos)." },
-          { pregunta: "¿Qué son los osteoblastos?", respuesta: "Células encargadas de la síntesis de la matriz ósea." },
-          { pregunta: "¿Principal músculo inspiratorio?", respuesta: "El Diafragma." },
-          { pregunta: "¿Qué nervio inerva al diafragma?", respuesta: "Nervio frénico." },
-          { pregunta: "¿Componentes del Sistema Nervioso Central?", respuesta: "Encéfalo y Médula espinal." },
-          { pregunta: "¿Qué es el periostio?", respuesta: "Membrana de tejido conectivo que cubre los huesos exteriormente." },
-          { pregunta: "¿Dónde ocurre el intercambio gaseoso?", respuesta: "En los alvéolos pulmonares." },
-          { pregunta: "¿Hormona secretada por células beta del páncreas?", respuesta: "Insulina." },
-          { pregunta: "¿Células que transportan el oxígeno?", respuesta: "Eritrocitos (Glóbulos rojos)." },
-          { pregunta: "¿Capas de las meninges?", respuesta: "Duramadre, Aracnoides, Piamadre." },
-          { pregunta: "¿Estructura que conecta amígdala e hipocampo?", respuesta: "Fórnix." },
+          { pregunta: "¿Para qué sirven las Flashcards?", respuesta: "Las flashcards son tarjetas de memoria que ayudan a repasar conceptos clave de forma rápida y efectiva." },
+          { pregunta: "¿Cómo funciona el sistema de estudio?", respuesta: "Te mostramos la pregunta. Pensás la respuesta y luego la volteás para ver si acertaste." },
+          { pregunta: "Aquí puedes colocar preguntas", respuesta: "Aquí pondrías la respuesta correcta que debes memorizar." },
+          { pregunta: "¿Qué evalúa este modo de estudio?", respuesta: "Evalúa tu retención activa, obligándote a recordar el concepto antes de leerlo." },
+          { pregunta: "¿Cómo me ayuda la IA con esto?", respuesta: "Puedes abrir el chat con la IA y pedirle que genere flashcards automáticamente a partir de tus apuntes." },
         ].map((c, i) => ({
           id: `mock-card-1-${i}`,
           ...c,
@@ -159,11 +149,11 @@ export default function Flashcards() {
       }
 
       const formulasMocks = [
-        { pregunta: "Fórmula de la Media Simple", respuesta: "Suma de todos los valores dividida por N." },
-        { pregunta: "¿Qué mide la Desviación Estándar?", respuesta: "La dispersión promedio de los datos respecto a la media." },
-        { pregunta: "Varianza", respuesta: "El cuadrado de la desviación estándar." },
-        { pregunta: "¿Qué es la Mediana?", respuesta: "El valor central de un conjunto de datos ordenados." },
-        { pregunta: "Moda", respuesta: "El valor que más se repite." },
+        { pregunta: "¿Por qué estudiar en bloques pequeños?", respuesta: "Mejora la atención y evita la fatiga, técnica conocida como Pomodoro." },
+        { pregunta: "¿Qué es el repaso espaciado?", respuesta: "Repasar la información en intervalos cada vez mayores para fijarla a largo plazo." },
+        { pregunta: "Aquí puedes colocar tips", respuesta: "Y aquí la explicación de cómo aplicarlos en tu día a día." },
+        { pregunta: "¿Por qué es importante dormir bien?", respuesta: "El sueño consolida la memoria de lo aprendido durante el día." },
+        { pregunta: "¿Cómo empezar a organizarse?", respuesta: "Utiliza la vista de Calendario de Tabe para planificar tus sesiones y no procrastinar." },
       ].map((c, i) => ({
         id: `mock-card-2-${i}`,
         ...c,

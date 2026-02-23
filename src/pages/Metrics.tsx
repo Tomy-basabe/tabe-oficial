@@ -64,8 +64,8 @@ export default function Metrics() {
 
       setSessions(mockSessions);
       setSubjects([
-        { id: "mock-sub-1", nombre: "Anatomía" },
-        { id: "mock-sub-2", nombre: "Cálculo Integral" }
+        { id: "mock-sub-1", nombre: "Uso de Tablero" },
+        { id: "mock-sub-2", nombre: "Técnicas de Estudio" }
       ]);
       setLoading(false);
       return;
