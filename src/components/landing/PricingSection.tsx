@@ -4,7 +4,7 @@ export function PricingSection() {
     const whatsappUrl = "https://wa.me/5492617737367?text=Hola,%20quiero%20el%20acceso%20único%20a%20TABE%20por%20$7.000";
 
     const benefits = [
-        "Acceso ilimitado a todo el contenido de Matemática y Física",
+        "Acceso ilimitado a todo el contenido de la plataforma",
         "Metodología guiada paso a paso",
         "Simuladores de parciales y flashcards",
         "Estadísticas de rendimiento y gamificación (Mi Bosque)",
@@ -62,7 +62,7 @@ export function PricingSection() {
                             href={whatsappUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-neon-cyan/25 transition-all hover:scale-105"
+                            className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-bold text-lg hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0"
                         >
                             Comprar Acceso
                             <ArrowRight className="w-5 h-5" />

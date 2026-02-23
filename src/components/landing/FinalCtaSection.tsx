@@ -24,7 +24,7 @@ export function FinalCtaSection() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Link
                         to="/auth"
-                        className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-xl flex items-center justify-center gap-3 hover:shadow-[0_0_40px_rgba(0,255,170,0.5)] transition-all hover:scale-105"
+                        className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-xl flex items-center justify-center gap-3 hover:shadow-[0_0_40px_rgba(0,255,170,0.4)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0"
                     >
                         Acceder a TABE ahora
                         <ArrowRight className="w-6 h-6" />

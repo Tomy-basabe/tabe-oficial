@@ -21,7 +21,7 @@ export function FaqSection() {
         },
         {
             q: "¿Sirve para cualquier carrera?",
-            a: "El contenido está enfocado en Matemática Universitaria y Física Aplicada (por ej. Álgebra, Análisis Matemático, Física I y II). Esto es común en Ingenierías, Exactas, Económicas y carreras afines."
+            a: "Sí. La plataforma se adapta a las materias filtro de tu carrera, ya sea en Ingeniería, Económicas, Ciencias Médicas o Humanidades."
         }
     ];
 

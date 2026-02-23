@@ -74,11 +74,7 @@ const AppRoutes = () => (
   <Routes>
     <Route
       path="/"
-      element={
-        <PublicRoute>
-          <Landing />
-        </PublicRoute>
-      }
+      element={<Landing />}
     />
     <Route
       path="/auth"

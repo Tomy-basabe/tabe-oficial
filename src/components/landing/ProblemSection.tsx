@@ -4,7 +4,7 @@ export function ProblemSection() {
     const problems = [
         {
             title: "Falta de Bases Sólidas",
-            description: "Muchos estudiantes ingresan a la universidad sin los fundamentos matemáticos necesarios, dificultando el avance en temas complejos.",
+            description: "Muchos estudiantes ingresan a la universidad sin los fundamentos necesarios, dificultando el avance en temas complejos.",
             icon: BookX,
             color: "text-red-500",
             bg: "bg-red-500/10",
@@ -12,7 +12,7 @@ export function ProblemSection() {
         },
         {
             title: "Métodos de Estudio Pasivos",
-            description: "Leer apuntes o ver videos no es suficiente para Ciencias Exactas. La falta de práctica activa condena al fracaso en el parcial.",
+            description: "Leer apuntes o ver videos no es suficiente para las materias filtro. La falta de práctica activa condena al fracaso en el parcial.",
             icon: AlertTriangle,
             color: "text-orange-500",
             bg: "bg-orange-500/10",
@@ -28,7 +28,7 @@ export function ProblemSection() {
         },
         {
             title: "Alta Tasa de Deserción",
-            description: "Matemática y Física actúan como grandes filtros, llevando a frustración, demoras en la carrera y, frecuentemente, al abandono.",
+            description: "Las materias filtro actúan como grandes obstáculos, llevando a frustración, demoras en la carrera y, frecuentemente, al abandono.",
             icon: TrendingDown,
             color: "text-rose-500",
             bg: "bg-rose-500/10",
@@ -44,7 +44,7 @@ export function ProblemSection() {
                         El sistema actual <span className="text-destructive">está fallando</span>
                     </h2>
                     <p className="text-lg text-muted-foreground">
-                        Aprobar materias exactas en la universidad requiere más que solo asistir y tomar nota.
+                        Aprobar materias difíciles en la universidad requiere más que solo asistir y tomar nota.
                         Identificamos por qué la mayoría se queda en el camino.
                     </p>
                 </div>

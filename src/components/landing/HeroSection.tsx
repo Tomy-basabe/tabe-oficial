@@ -4,7 +4,7 @@ export function HeroSection() {
     const whatsappUrl = "https://wa.me/5492617737367?text=Hola,%20quiero%20formar%20parte%20de%20TABE%20y%20mejorar%20mi%20rendimiento%20en%20exactas!";
 
     return (
-        <section className="relative min-h-screen pt-32 pb-20 flex items-center overflow-hidden">
+        <section className="relative min-h-[100dvh] pt-24 pb-12 flex items-center overflow-hidden">
             {/* Background gradients */}
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] -z-10" />
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] -z-10" />
@@ -19,12 +19,12 @@ export function HeroSection() {
                         </div>
 
                         <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-bold leading-[1.1] tracking-tight">
-                            Domina Matemática y Física con un{" "}
+                            Domina tus materias con un{" "}
                             <span className="gradient-text">método universitario real.</span>
                         </h1>
 
                         <p className="text-xl text-muted-foreground max-w-lg leading-relaxed">
-                            No dejes tu rendimiento al azar. Preparación estratégica, resolución guiada y tecnología interactiva para estudiantes de Ciencias Exactas.
+                            No dejes tu rendimiento al azar. Preparación estratégica, resolución guiada y tecnología interactiva para estudiantes exigentes.
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -32,7 +32,7 @@ export function HeroSection() {
                                 href={whatsappUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-neon-cyan/25 transition-all hover:scale-105"
+                                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-bold text-lg hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0"
                             >
                                 Quiero formar parte
                                 <ArrowRight className="w-5 h-5" />

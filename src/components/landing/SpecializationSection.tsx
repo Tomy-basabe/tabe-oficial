@@ -6,10 +6,10 @@ export function SpecializationSection() {
             <div className="container mx-auto px-4 md:px-6">
                 <div className="text-center max-w-2xl mx-auto mb-16">
                     <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                        Especialistas en Ciencias Exactas
+                        Formación Universitaria Integral
                     </h2>
                     <p className="text-lg text-muted-foreground">
-                        No enseñamos de todo. Nos enfocamos exclusivamente en las materias filtro que definen tu futuro universitario.
+                        Dominá cualquier materia con nuestro método. Nos enfocamos en darte las herramientas para superar los filtros de tu carrera.
                     </p>
                 </div>
 
@@ -21,12 +21,12 @@ export function SpecializationSection() {
                             <div className="w-16 h-16 rounded-2xl bg-neon-cyan/10 flex items-center justify-center mb-6">
                                 <FunctionSquare className="w-8 h-8 text-neon-cyan" />
                             </div>
-                            <h3 className="text-2xl font-bold mb-4">Matemática Universitaria</h3>
+                            <h3 className="text-2xl font-bold mb-4">Materias Analíticas</h3>
                             <p className="text-muted-foreground mb-6">
-                                Desde Álgebra Lineal hasta Análisis Matemático avanzado. Dejamos de lado la abstracción innecesaria para enfocarnos en la intuición de las fórmulas y teoremas.
+                                Desde Álgebra Lineal hasta Análisis de Datos y Finanzas. Dejamos de lado la abstracción innecesaria para enfocarnos en la intuición y resolución práctica.
                             </p>
                             <ul className="space-y-3">
-                                {["Límites y Derivadas", "Integrales Múltiples", "Ecuaciones Diferenciales", "Álgebra Vectorial"].map((item, i) => (
+                                {["Resolución de Problemas", "Análisis Lógico", "Interpretación de Datos", "Ejercicios Prácticos"].map((item, i) => (
                                     <li key={i} className="flex items-center gap-3 text-sm font-medium">
                                         <Zap className="w-4 h-4 text-neon-cyan" />
                                         {item}
@@ -43,12 +43,12 @@ export function SpecializationSection() {
                             <div className="w-16 h-16 rounded-2xl bg-neon-purple/10 flex items-center justify-center mb-6">
                                 <Atom className="w-8 h-8 text-neon-purple" />
                             </div>
-                            <h3 className="text-2xl font-bold mb-4">Física Aplicada</h3>
+                            <h3 className="text-2xl font-bold mb-4">Materias Teóricas</h3>
                             <p className="text-muted-foreground mb-6">
-                                Dejás de memorizar ecuaciones de memoria para empezar a visualizar fenómenos. Conectamos los números con la realidad física mediante esquemas simples.
+                                Dejás de memorizar conceptos de memoria para empezar a visualizar y analizar la información. Conectamos la teoría con la realidad mediante esquemas simples.
                             </p>
                             <ul className="space-y-3">
-                                {["Cinemática y Dinámica", "Termodinámica", "Electromagnetismo", "Óptica y Fluidos"].map((item, i) => (
+                                {["Conexión de Conceptos", "Aplicación a la Realidad", "Casos de Estudio", "Mapas Conceptuales"].map((item, i) => (
                                     <li key={i} className="flex items-center gap-3 text-sm font-medium">
                                         <Lightbulb className="w-4 h-4 text-neon-purple" />
                                         {item}
