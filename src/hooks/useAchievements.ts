@@ -118,10 +118,10 @@ export function useAchievements() {
   }, [fetchAchievements]);
 
   useEffect(() => {
-    if (user) {
+    if (user || isGuest) {
       fetchUserAchievements();
     }
-  }, [user, fetchUserAchievements]);
+  }, [user, isGuest, fetchUserAchievements]);
 
   // Suscripción a cambios en user_achievements
   useRealtimeSubscription({
