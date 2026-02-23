@@ -216,7 +216,7 @@ serve(async (req) => {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: "llama3-groq-70b-8192-tool-use-preview", // Best model for function calling on Groq
+            model: "llama-3.3-70b-versatile", // Best model for function calling on Groq
             messages: groqMessages,
             tools: tools,
             tool_choice: "auto",
