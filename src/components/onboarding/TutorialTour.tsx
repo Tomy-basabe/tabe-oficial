@@ -19,13 +19,44 @@ export function TutorialTour() {
         }
     }, [user, isGuest]);
 
+    // Hack: Force Joyride to re-calculate its overlay mask when scrolling Radix's viewport
+    useEffect(() => {
+        if (!run) return;
+        const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
+        const handleScroll = () => {
+            window.dispatchEvent(new Event('resize'));
+        };
+        if (viewport) {
+            viewport.addEventListener('scroll', handleScroll);
+            return () => viewport.removeEventListener('scroll', handleScroll);
+        }
+    }, [run]);
+
     const handleJoyrideCallback = (data: CallBackProps) => {
-        const { status } = data;
+        const { status, type, step } = data;
         const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
         if (finishedStatuses.includes(status)) {
             setRun(false);
             localStorage.setItem("tabe-tutorial-seen", "true");
+        }
+
+        // Before step renders, manually scroll the Radix viewport so the target is perfectly centered
+        if (type === 'step:before') {
+            const targetEl = document.querySelector(step.target as string);
+            const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
+
+            if (targetEl && viewport && viewport.contains(targetEl)) {
+                // Determine vertical scroll tracking offset
+                const targetRect = targetEl.getBoundingClientRect();
+                const viewportRect = viewport.getBoundingClientRect();
+
+                // Only scroll if it's outside the viewable area or close to edges
+                if (targetRect.top < viewportRect.top + 50 || targetRect.bottom > viewportRect.bottom - 50) {
+                    const scrollTop = viewport.scrollTop + targetRect.top - viewportRect.top - (viewportRect.height / 2) + (targetRect.height / 2);
+                    viewport.scrollTo({ top: scrollTop, behavior: 'instant' });
+                }
+            }
         }
     };
 
