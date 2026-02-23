@@ -141,20 +141,34 @@ export function useSubjects() {
     if (user) {
       fetchData(true);
     } else if (isGuest) {
-      setSubjects([
+      const storedSubjects = localStorage.getItem('tabe-guest-subjects');
+      const storedStatuses = localStorage.getItem('tabe-guest-statuses');
+      const storedDeps = localStorage.getItem('tabe-guest-dependencies');
+
+      setSubjects(storedSubjects ? JSON.parse(storedSubjects) : [
         { id: "s1", nombre: "Uso de Tablero", codigo: "TAB1", año: 1, numero_materia: 1 },
         { id: "s2", nombre: "Técnicas de Estudio", codigo: "EST1", año: 1, numero_materia: 2 },
         { id: "s3", nombre: "Organización", codigo: "ORG1", año: 1, numero_materia: 3 }
       ]);
-      setUserStatuses([
+      setUserStatuses(storedStatuses ? JSON.parse(storedStatuses) : [
         { id: "st1", subject_id: "s1", estado: "aprobada", nota: 10, fecha_aprobacion: "2024-01-01" },
         { id: "st2", subject_id: "s2", estado: "regular", nota: null, fecha_aprobacion: null },
         { id: "st3", subject_id: "s3", estado: "cursable", nota: null, fecha_aprobacion: null }
       ]);
-      setDependencies([]);
+      setDependencies(storedDeps ? JSON.parse(storedDeps) : []);
       setLoading(false);
+      isInitialLoad.current = false;
     }
   }, [user, isGuest, fetchData]);
+
+  // Sincronizar estado local en modo invitado a localStorage
+  useEffect(() => {
+    if (isGuest && !loading) {
+      localStorage.setItem('tabe-guest-subjects', JSON.stringify(subjects));
+      localStorage.setItem('tabe-guest-statuses', JSON.stringify(userStatuses));
+      localStorage.setItem('tabe-guest-dependencies', JSON.stringify(dependencies));
+    }
+  }, [subjects, userStatuses, dependencies, isGuest, loading]);
 
   // Debounced refetch for realtime — avoids cascade re-renders
   const debouncedRefetch = useCallback(() => {
@@ -308,7 +322,21 @@ export function useSubjects() {
     estado: SubjectStatus,
     nota?: number
   ) => {
-    if (!user) return;
+    if (!user) {
+      if (isGuest) {
+        setUserStatuses(prev => {
+          const existing = prev.find(s => s.subject_id === subjectId);
+          if (existing) {
+            return prev.map(s => s.subject_id === subjectId ? { ...s, estado, nota: nota ?? null, fecha_aprobacion: estado === "aprobada" ? new Date().toISOString().split('T')[0] : null } : s);
+          } else {
+            return [...prev, { id: `st_${Date.now()}`, subject_id: subjectId, estado, nota: nota ?? null, fecha_aprobacion: estado === "aprobada" ? new Date().toISOString().split('T')[0] : null } as UserSubjectStatus];
+          }
+        });
+        toast.success("Estado actualizado (Modo Invitado)");
+        return;
+      }
+      return;
+    }
 
     try {
       const existingStatus = userStatuses.find(s => s.subject_id === subjectId);
@@ -401,7 +429,32 @@ export function useSubjects() {
   };
 
   const createSubject = async (data: CreateSubjectData) => {
-    if (!user) return;
+    if (!user) {
+      if (isGuest) {
+        const subjectsInYear = subjects.filter(s => s.año === data.año);
+        const nextNumero = subjectsInYear.length > 0
+          ? Math.max(...subjectsInYear.map(s => s.numero_materia)) + 1
+          : 1;
+        const newSubject: Subject = { id: `s_${Date.now()}`, nombre: data.nombre, codigo: data.codigo, año: data.año, numero_materia: nextNumero };
+
+        setSubjects(prev => [...prev, newSubject]);
+
+        const newDeps: Dependency[] = [];
+        if (data.requiere_regular && data.requiere_regular.length > 0) {
+          data.requiere_regular.forEach(reqId => newDeps.push({ id: `dep_${Math.random()}`, subject_id: newSubject.id, requiere_regular: reqId, requiere_aprobada: null }));
+        }
+        if (data.requiere_aprobada && data.requiere_aprobada.length > 0) {
+          data.requiere_aprobada.forEach(reqId => newDeps.push({ id: `dep_${Math.random()}`, subject_id: newSubject.id, requiere_regular: null, requiere_aprobada: reqId }));
+        }
+
+        if (newDeps.length > 0) {
+          setDependencies(prev => [...prev, ...newDeps]);
+        }
+        toast.success("Materia creada (Modo Invitado)");
+        return newSubject as any;
+      }
+      return;
+    }
 
     try {
       // Get the next numero_materia for the year
@@ -467,6 +520,21 @@ export function useSubjects() {
     requiere_regular: string[],
     requiere_aprobada: string[]
   ) => {
+    if (!user) {
+      if (isGuest) {
+        setDependencies(prev => {
+          const filtered = prev.filter(d => d.subject_id !== subjectId);
+          const newDeps: Dependency[] = [];
+          requiere_regular.forEach(reqId => newDeps.push({ id: `dep_${Math.random()}`, subject_id: subjectId, requiere_regular: reqId, requiere_aprobada: null }));
+          requiere_aprobada.forEach(reqId => newDeps.push({ id: `dep_${Math.random()}`, subject_id: subjectId, requiere_aprobada: reqId, requiere_regular: null }));
+          return [...filtered, ...newDeps];
+        });
+        toast.success("Correlativas actualizadas (Modo Invitado)");
+        return;
+      }
+      return;
+    }
+
     try {
       // Delete existing dependencies
       const { error: deleteError } = await supabase
@@ -505,6 +573,17 @@ export function useSubjects() {
   };
 
   const deleteSubject = async (subjectId: string) => {
+    if (!user) {
+      if (isGuest) {
+        setDependencies(prev => prev.filter(d => d.subject_id !== subjectId));
+        setUserStatuses(prev => prev.filter(s => s.subject_id !== subjectId));
+        setSubjects(prev => prev.filter(s => s.id !== subjectId));
+        toast.success("Materia eliminada (Modo Invitado)");
+        return;
+      }
+      return;
+    }
+
     try {
       // Delete dependencies first
       await supabase
@@ -536,7 +615,20 @@ export function useSubjects() {
   };
 
   const updatePartialGrades = async (subjectId: string, grades: PartialGrades) => {
-    if (!user) return;
+    if (!user) {
+      if (isGuest) {
+        setUserStatuses(prev => {
+          const existing = prev.find(s => s.subject_id === subjectId);
+          if (existing) {
+            return prev.map(s => s.subject_id === subjectId ? { ...s, ...grades } : s);
+          } else {
+            return [...prev, { id: `st_${Date.now()}`, subject_id: subjectId, estado: "cursable", ...grades } as UserSubjectStatus];
+          }
+        });
+        return;
+      }
+      return;
+    }
 
     try {
       const existingStatus = userStatuses.find(s => s.subject_id === subjectId);
@@ -592,7 +684,13 @@ export function useSubjects() {
 
   // Initialize user statuses for 1st and 2nd year (all approved except Inglés II)
   const initializeDefaultStatuses = async () => {
-    if (!user) return;
+    if (!user) {
+      if (isGuest) {
+        toast.info("No disponible en modo invitado");
+        return;
+      }
+      return;
+    }
 
     try {
       // Get subjects from 1st and 2nd year
