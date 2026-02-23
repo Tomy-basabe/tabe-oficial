@@ -41,21 +41,13 @@ export function TutorialTour() {
             localStorage.setItem("tabe-tutorial-seen", "true");
         }
 
-        // Before step renders, manually scroll the Radix viewport so the target is perfectly centered
+        // Before step renders, ensure the target is scrolled into the ScrollArea viewport
         if (type === 'step:before') {
             const targetEl = document.querySelector(step.target as string);
             const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
 
             if (targetEl && viewport && viewport.contains(targetEl)) {
-                // Determine vertical scroll tracking offset
-                const targetRect = targetEl.getBoundingClientRect();
-                const viewportRect = viewport.getBoundingClientRect();
-
-                // Only scroll if it's outside the viewable area or close to edges
-                if (targetRect.top < viewportRect.top + 50 || targetRect.bottom > viewportRect.bottom - 50) {
-                    const scrollTop = viewport.scrollTop + targetRect.top - viewportRect.top - (viewportRect.height / 2) + (targetRect.height / 2);
-                    viewport.scrollTo({ top: scrollTop, behavior: 'instant' });
-                }
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
     };
@@ -80,6 +72,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-plan',
@@ -87,6 +80,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-notion',
@@ -94,6 +88,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-flashcards',
@@ -101,6 +96,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-cuestionarios',
@@ -108,6 +104,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-marketplace',
@@ -115,6 +112,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-biblioteca',
@@ -122,6 +120,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-calendar',
@@ -129,6 +128,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-pomodoro',
@@ -136,6 +136,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-metricas',
@@ -143,6 +144,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-bosque',
@@ -150,6 +152,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-discord',
@@ -157,6 +160,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-logros',
@@ -164,6 +168,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-amigos',
@@ -171,6 +176,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-asistenteia',
@@ -178,6 +184,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-sidebar-configuracion',
@@ -185,6 +192,7 @@ export function TutorialTour() {
             placement: 'right',
             locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
             disableScrolling: true,
+            isFixed: true,
         },
         {
             target: '.tour-header-ai',
