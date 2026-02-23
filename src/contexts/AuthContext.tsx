@@ -141,9 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginAsGuest = () => {
     setIsGuest(true);
-    // Guest dummy profile
-    setProfile({ active_theme: 'theme-cyan', active_badge: null });
-    applyTheme('theme-cyan');
+    // Guest dummy profile - null active_theme defaults to the dark (purple) theme
+    setProfile({ active_theme: null, active_badge: null });
+    applyTheme(null);
   };
 
   return (

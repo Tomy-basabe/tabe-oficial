@@ -34,15 +34,15 @@ import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
 import { Button } from "@/components/ui/button";
 
 const baseNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
+  { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
   { icon: NotionIcon, label: "Notion", path: "/notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios" },
   { icon: Store, label: "Marketplace", path: "/marketplace" },
   { icon: Library, label: "Biblioteca", path: "/biblioteca" },
-  { icon: Calendar, label: "Calendario", path: "/calendario" },
-  { icon: Timer, label: "Pomodoro", path: "/pomodoro" },
+  { icon: Calendar, label: "Calendario", path: "/calendario", tourClass: "tour-sidebar-calendar" },
+  { icon: Timer, label: "Pomodoro", path: "/pomodoro", tourClass: "tour-sidebar-pomodoro" },
   { icon: BarChart3, label: "Métricas", path: "/metricas" },
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque" },
   { icon: DiscordIcon, label: "Discord", path: "/discord" },
@@ -178,11 +178,7 @@ export function MainLayout() {
                     isActive
                       ? "bg-primary/10 text-primary border border-primary/30"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    // Add Joyride targets
-                    item.path === "/dashboard" && "tour-sidebar-dashboard",
-                    item.path === "/carrera" && "tour-sidebar-plan",
-                    item.path === "/calendario" && "tour-sidebar-calendar",
-                    item.path === "/pomodoro" && "tour-sidebar-pomodoro"
+                    (item as any).tourClass // Add Joyride target if it exists
                   )}
                   title={isCollapsed ? item.label : undefined}
                 >
