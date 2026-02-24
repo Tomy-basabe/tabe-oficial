@@ -15,8 +15,8 @@ export default function Landing() {
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-neon-cyan/30 selection:text-neon-cyan overflow-x-hidden">
             <LandingNavbar />
-            <HeroSection />
             <TabeAnimationSection />
+            <HeroSection />
             <ProblemSection />
             <MethodologySection />
             <SpecializationSection />

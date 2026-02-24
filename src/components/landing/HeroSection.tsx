@@ -12,33 +12,8 @@ export function HeroSection() {
 
             <div className="container mx-auto px-4 md:px-6 relative z-20 flex flex-col items-center text-center">
 
-                {/* Interactive App Carousel - NOW THE VERY FIRST ELEMENT */}
-                <div className="w-full max-w-6xl mx-auto mb-16 z-20 animate-fade-in-up">
-                    <HeroCarousel />
-                </div>
-
                 {/* Text Content */}
                 <div className="max-w-4xl space-y-8 animate-fade-in-up flex flex-col items-center" style={{ animationDelay: "0.2s" }}>
-                    {/* T.A.B.E. Acronym Meaning */}
-                    <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-2">
-                        <div className="flex flex-col items-center group transition-all duration-300 hover:-translate-y-1">
-                            <span className="text-3xl md:text-4xl font-display font-black text-neon-cyan drop-shadow-[0_0_15px_rgba(0,255,255,0.3)]">T</span>
-                            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">Tomas</span>
-                        </div>
-                        <div className="flex flex-col items-center group transition-all duration-300 hover:-translate-y-1">
-                            <span className="text-3xl md:text-4xl font-display font-black text-neon-purple drop-shadow-[0_0_15px_rgba(188,19,254,0.3)]">A</span>
-                            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">Aprendizaje</span>
-                        </div>
-                        <div className="flex flex-col items-center group transition-all duration-300 hover:-translate-y-1">
-                            <span className="text-3xl md:text-4xl font-display font-black text-neon-cyan drop-shadow-[0_0_15px_rgba(0,255,255,0.3)]">B</span>
-                            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">Basado en</span>
-                        </div>
-                        <div className="flex flex-col items-center group transition-all duration-300 hover:-translate-y-1">
-                            <span className="text-3xl md:text-4xl font-display font-black text-neon-purple drop-shadow-[0_0_15px_rgba(188,19,254,0.3)]">E</span>
-                            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">Experiencia</span>
-                        </div>
-                    </div>
-
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border text-sm font-medium text-muted-foreground">
                         <Sparkles className="w-4 h-4 text-neon-gold" />
                         <span>Plataforma Educativa de Alto Rendimiento</span>
@@ -75,6 +50,11 @@ export function HeroSection() {
                             Validado por alumnos
                         </div>
                     </div>
+                </div>
+
+                {/* Interactive App Carousel - SCROLLING APP PREVIEWS */}
+                <div className="mt-16 w-full max-w-6xl mx-auto z-20 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+                    <HeroCarousel />
                 </div>
             </div>
 
