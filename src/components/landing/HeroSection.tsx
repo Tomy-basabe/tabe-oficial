@@ -13,6 +13,25 @@ export function HeroSection() {
             <div className="container mx-auto px-4 md:px-6 relative z-20 flex flex-col items-center text-center">
                 {/* Text Content */}
                 <div className="max-w-4xl space-y-8 animate-fade-in-up flex flex-col items-center">
+                    {/* Acronym Breakdown */}
+                    <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-4">
+                        {[
+                            { l: "T", w: "Tomas" },
+                            { l: "A", w: "Aprendizaje" },
+                            { l: "B", w: "Basado en" },
+                            { l: "E", w: "Experiencia" }
+                        ].map((item, i) => (
+                            <div key={i} className="flex flex-col items-center group">
+                                <span className="text-4xl md:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 group-hover:to-neon-cyan transition-all duration-300">
+                                    {item.l}
+                                </span>
+                                <span className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-muted-foreground/60 font-medium">
+                                    {item.w}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border text-sm font-medium text-muted-foreground">
                         <Sparkles className="w-4 h-4 text-neon-gold" />
                         <span>Plataforma Educativa de Alto Rendimiento</span>
