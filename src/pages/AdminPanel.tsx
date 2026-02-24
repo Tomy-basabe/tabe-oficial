@@ -7,13 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Mail, Check, Clock, Trash2, Shield } from "lucide-react";
+import { UserPlus, Mail, Check, Clock, Trash2, Shield, Star } from "lucide-react";
 
 interface InvitedUser {
   id: string;
   email: string;
   created_at: string;
   accepted_at: string | null;
+}
+
+interface UserReview {
+  id: string;
+  user_id: string;
+  name: string;
+  career: string;
+  rating: number;
+  description: string;
+  created_at: string;
 }
 
 const AdminPanel = () => {
@@ -23,6 +33,10 @@ const AdminPanel = () => {
   const [invitedUsers, setInvitedUsers] = useState<InvitedUser[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [inviting, setInviting] = useState(false);
+
+  // Reviews state
+  const [reviews, setReviews] = useState<UserReview[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   useEffect(() => {
     checkAdminStatus();
@@ -47,6 +61,7 @@ const AdminPanel = () => {
 
       if (data) {
         fetchInvitedUsers();
+        fetchReviews();
       }
     } catch (error) {
       console.error("Error checking admin status:", error);
@@ -69,9 +84,27 @@ const AdminPanel = () => {
     }
   };
 
+  const fetchReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const { data, error } = await supabase
+        .from("user_reviews")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setReviews(data || []);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      toast.error("Error al cargar las valoraciones");
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newEmail.trim()) {
       toast.error("Ingresa un email válido");
       return;
@@ -134,6 +167,25 @@ const AdminPanel = () => {
     } catch (error) {
       console.error("Error deleting invitation:", error);
       toast.error("Error al eliminar la invitación");
+    }
+  };
+
+  const handleDeleteReview = async (id: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar esta valoración?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("user_reviews")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success("Valoración eliminada");
+      fetchReviews();
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      toast.error("Error al eliminar la valoración");
     }
   };
 
@@ -258,6 +310,75 @@ const AdminPanel = () => {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* User Reviews List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5" />
+            Valoraciones de Usuarios
+          </CardTitle>
+          <CardDescription>
+            Comentarios y reseñas dejadas por los estudiantes desde la página de Configuración.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingReviews ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : reviews.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No hay valoraciones de usuarios aún.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="p-4 rounded-xl border bg-card hover:border-primary/50 transition-colors"
+                >
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground">{review.name}</span>
+                        <Badge variant="outline" className="text-xs bg-secondary/50">
+                          {review.career}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-4 h-4 ${review.rating >= star
+                              ? "text-neon-gold fill-neon-gold"
+                              : "text-muted-foreground/30"
+                              }`}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-muted-foreground text-sm mt-2 italic">"{review.description}"</p>
+                      <p className="text-xs text-muted-foreground/60 mt-2">
+                        {new Date(review.created_at).toLocaleDateString("es-AR")}
+                      </p>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                      onClick={() => handleDeleteReview(review.id)}
+                      title="Eliminar valoración"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}

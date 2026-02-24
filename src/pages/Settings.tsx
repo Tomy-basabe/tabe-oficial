@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Bell, Calendar, Link, LogOut, Moon, Sun, ChevronRight, ChevronDown } from "lucide-react";
+import { Bell, Calendar, Link, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
+import { ReviewForm } from "@/components/settings/ReviewForm";
 import { useTheme } from "@/hooks/useTheme";
 
 const STORAGE_KEY = "pomodoro-settings";
@@ -304,6 +305,38 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Review Section (Hidden for guests) */}
+      {!isGuest && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-muted-foreground px-1">Valorar T.A.B.E.</h3>
+          <div className="card-gamer rounded-xl p-4 space-y-4">
+            <div
+              className="flex items-center gap-4 cursor-pointer hover:bg-secondary/50 p-2 -mx-2 rounded-lg transition-colors"
+              onClick={() => toggleSection("review")}
+            >
+              <div className="w-10 h-10 rounded-xl bg-neon-gold/20 flex items-center justify-center flex-shrink-0">
+                <Star className="w-5 h-5 text-neon-gold" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Dejar una valoración</p>
+                <p className="text-xs text-muted-foreground">Comparte tu experiencia con otros estudiantes</p>
+              </div>
+              {expandedSection === "review" ? (
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+
+            {expandedSection === "review" && (
+              <div className="pt-4 border-t border-border mt-2 animate-in fade-in slide-in-from-top-2">
+                <ReviewForm userName={userName!} userId={user?.id!} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Logout */}
       <button
