@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { UserPlus, Mail, Check, Clock, Trash2, Shield, Star } from "lucide-react";
+import { UserPlus, Mail, Check, Clock, Trash2, Shield, Star, Download } from "lucide-react";
 
 interface InvitedUser {
   id: string;
@@ -33,10 +34,14 @@ const AdminPanel = () => {
   const [invitedUsers, setInvitedUsers] = useState<InvitedUser[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [extracting, setExtracting] = useState(false);
 
   // Reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+
+  // Template states
+  const [useSistemasTemplate, setUseSistemasTemplate] = useState(false);
 
   useEffect(() => {
     checkAdminStatus();
@@ -102,6 +107,43 @@ const AdminPanel = () => {
     }
   };
 
+  const handleExtractTemplate = async () => {
+    setExtracting(true);
+    try {
+      const [subjectsResult, depsResult] = await Promise.all([
+        supabase.from("subjects").select("*").order("año", { ascending: true }).order("numero_materia", { ascending: true }),
+        supabase.from("subject_dependencies").select("*")
+      ]);
+
+      if (subjectsResult.error) throw subjectsResult.error;
+      if (depsResult.error) throw depsResult.error;
+
+      // Ensure we clean the dependencies array
+      const cleanedDeps = depsResult.data.map(d => ({
+        subject_id: d.subject_id,
+        requiere_aprobada: d.requiere_aprobada,
+        requiere_regular: d.requiere_regular
+      }));
+
+      const templateData = {
+        subjects: subjectsResult.data,
+        dependencies: cleanedDeps
+      };
+
+      const jsonString = JSON.stringify(templateData, null, 2);
+      await navigator.clipboard.writeText(jsonString);
+
+      toast.success("Plantilla copiada al portapapeles. Pégala en el chat.", {
+        duration: 8000
+      });
+    } catch (error) {
+      console.error("Error extracting template:", error);
+      toast.error("Error al extraer plantilla");
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -133,17 +175,21 @@ const AdminPanel = () => {
         return;
       }
 
+      const templateValue = useSistemasTemplate ? 'sistemas' : 'none';
+
       const { error } = await supabase
         .from("invited_users")
         .insert({
           email: newEmail.toLowerCase(),
-          invited_by: user!.id
+          invited_by: user!.id,
+          template: templateValue
         });
 
       if (error) throw error;
 
-      toast.success(`Invitación creada para ${newEmail}`);
+      toast.success(`Invitación creada para ${newEmail} ${useSistemasTemplate ? '(Ing. Sistemas)' : ''}`);
       setNewEmail("");
+      setUseSistemasTemplate(false);
       fetchInvitedUsers();
     } catch (error: any) {
       console.error("Error inviting user:", error);
@@ -211,14 +257,30 @@ const AdminPanel = () => {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Shield className="h-8 w-8 text-primary" />
-          Panel de Administración
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Gestiona los usuarios que pueden acceder a la aplicación
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Shield className="h-8 w-8 text-primary" />
+            Panel de Administración
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Gestiona los usuarios que pueden acceder a la aplicación
+          </p>
+        </div>
+
+        <Button
+          variant="outline"
+          onClick={handleExtractTemplate}
+          disabled={extracting}
+          className="border-neon-gold text-neon-gold hover:bg-neon-gold/10"
+        >
+          {extracting ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neon-gold mr-2" />
+          ) : (
+            <Download className="w-4 h-4 mr-2" />
+          )}
+          Copiar Plantilla Actual
+        </Button>
       </div>
 
       {/* Invite User Form */}
@@ -233,28 +295,44 @@ const AdminPanel = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleInviteUser} className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <Label htmlFor="email" className="sr-only">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="ejemplo@email.com"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                disabled={inviting}
-              />
+          <form onSubmit={handleInviteUser} className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Label htmlFor="email" className="sr-only">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="ejemplo@email.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  disabled={inviting}
+                />
+              </div>
+              <Button type="submit" disabled={inviting}>
+                {inviting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Invitar
+                  </>
+                )}
+              </Button>
             </div>
-            <Button type="submit" disabled={inviting}>
-              {inviting ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-              ) : (
-                <>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Invitar
-                </>
-              )}
-            </Button>
+
+            <div className="flex items-center space-x-2 bg-secondary/30 p-3 rounded-lg border border-border mt-2">
+              <Switch
+                id="template-mode"
+                checked={useSistemasTemplate}
+                onCheckedChange={setUseSistemasTemplate}
+              />
+              <Label htmlFor="template-mode" className="cursor-pointer">
+                Plantilla: <span className="font-semibold text-neon-cyan">Ingeniería en Sistemas</span>
+              </Label>
+              <p className="text-xs text-muted-foreground ml-2 hidden sm:block">
+                (El usuario recibirá el plan de estudios cargado automáticamente).
+              </p>
+            </div>
           </form>
         </CardContent>
       </Card>
