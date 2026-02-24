@@ -193,7 +193,7 @@ const AdminPanel = () => {
       fetchInvitedUsers();
     } catch (error: any) {
       console.error("Error inviting user:", error);
-      toast.error("Error al crear la invitación");
+      toast.error(`Error al crear la invitación: ${error.message || error.details || "Error desconocido"}`);
     } finally {
       setInviting(false);
     }
