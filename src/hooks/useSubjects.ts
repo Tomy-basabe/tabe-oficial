@@ -137,29 +137,104 @@ export function useSubjects() {
     }
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchData(true);
-    } else if (isGuest) {
-      const storedSubjects = localStorage.getItem('tabe-guest-subjects');
-      const storedStatuses = localStorage.getItem('tabe-guest-statuses');
-      const storedDeps = localStorage.getItem('tabe-guest-dependencies');
+  const loadTemplateIfPending = useCallback(async () => {
+    if (!user || isGuest) return false;
 
-      setSubjects(storedSubjects ? JSON.parse(storedSubjects) : [
-        { id: "s1", nombre: "Uso de Tablero", codigo: "TAB1", año: 1, numero_materia: 1 },
-        { id: "s2", nombre: "Técnicas de Estudio", codigo: "EST1", año: 1, numero_materia: 2 },
-        { id: "s3", nombre: "Organización", codigo: "ORG1", año: 1, numero_materia: 3 }
-      ]);
-      setUserStatuses(storedStatuses ? JSON.parse(storedStatuses) : [
-        { id: "st1", subject_id: "s1", estado: "aprobada", nota: 10, fecha_aprobacion: "2024-01-01" },
-        { id: "st2", subject_id: "s2", estado: "regular", nota: null, fecha_aprobacion: null },
-        { id: "st3", subject_id: "s3", estado: "cursable", nota: null, fecha_aprobacion: null }
-      ]);
-      setDependencies(storedDeps ? JSON.parse(storedDeps) : []);
-      setLoading(false);
-      isInitialLoad.current = false;
+    const pendingTemplate = localStorage.getItem('tabe_pending_template');
+    if (pendingTemplate === 'sistemas') {
+      try {
+        setLoading(true);
+        // First, check if user already has subjects to avoid double insertion
+        const { data: existingSubjects } = await supabase
+          .from("subjects")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1);
+
+        if (existingSubjects && existingSubjects.length > 0) {
+          localStorage.removeItem('tabe_pending_template');
+          return false;
+        }
+
+        toast.loading("Cargando plan de estudios de Ingeniería en Sistemas...", { id: 'load-template' });
+
+        const templateModule = await import('@/data/sistemas_template.json');
+        const templateData = templateModule.default;
+
+        const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
+        const idMap = new Map<string, string>();
+
+        const newSubjects = tplSubjects.map((s: any) => {
+          const newId = crypto.randomUUID();
+          idMap.set(s.id, newId);
+          return {
+            id: newId,
+            nombre: s.nombre,
+            codigo: s.codigo,
+            año: s.año,
+            numero_materia: s.numero_materia,
+            user_id: user.id
+          };
+        });
+
+        const { error: subError } = await supabase.from('subjects').insert(newSubjects);
+        if (subError) throw subError;
+
+        const newDeps = tplDependencies.map((d: any) => ({
+          subject_id: idMap.get(d.subject_id),
+          requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
+          requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
+          user_id: user.id
+        })).filter((d: any) => d.subject_id);
+
+        if (newDeps.length > 0) {
+          const { error: depError } = await supabase.from('subject_dependencies').insert(newDeps);
+          if (depError) throw depError;
+        }
+
+        toast.success("¡Plan de estudios de Sistemas cargado exitosamente!", { id: 'load-template' });
+        localStorage.removeItem('tabe_pending_template');
+        return true;
+      } catch (error) {
+        console.error("Error loading template:", error);
+        toast.error("Hubo un error al cargar el plan de estudios.", { id: 'load-template' });
+        return false;
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [user, isGuest, fetchData]);
+    return false;
+  }, [user, isGuest]);
+
+  useEffect(() => {
+    const initData = async () => {
+      if (user) {
+        const loadedTemplate = await loadTemplateIfPending();
+        // If template was loaded, fetchData will be called to get the new data.
+        // Even if not, we fetch the data.
+        fetchData(true);
+      } else if (isGuest) {
+        const storedSubjects = localStorage.getItem('tabe-guest-subjects');
+        const storedStatuses = localStorage.getItem('tabe-guest-statuses');
+        const storedDeps = localStorage.getItem('tabe-guest-dependencies');
+
+        setSubjects(storedSubjects ? JSON.parse(storedSubjects) : [
+          { id: "s1", nombre: "Uso de Tablero", codigo: "TAB1", año: 1, numero_materia: 1 },
+          { id: "s2", nombre: "Técnicas de Estudio", codigo: "EST1", año: 1, numero_materia: 2 },
+          { id: "s3", nombre: "Organización", codigo: "ORG1", año: 1, numero_materia: 3 }
+        ]);
+        setUserStatuses(storedStatuses ? JSON.parse(storedStatuses) : [
+          { id: "st1", subject_id: "s1", estado: "aprobada", nota: 10, fecha_aprobacion: "2024-01-01" },
+          { id: "st2", subject_id: "s2", estado: "regular", nota: null, fecha_aprobacion: null },
+          { id: "st3", subject_id: "s3", estado: "cursable", nota: null, fecha_aprobacion: null }
+        ]);
+        setDependencies(storedDeps ? JSON.parse(storedDeps) : []);
+        setLoading(false);
+        isInitialLoad.current = false;
+      }
+    };
+    initData();
+  }, [user, isGuest, fetchData, loadTemplateIfPending]);
 
   // Sincronizar estado local en modo invitado a localStorage
   useEffect(() => {
@@ -471,6 +546,7 @@ export function useSubjects() {
           codigo: data.codigo,
           año: data.año,
           numero_materia: nextNumero,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -482,6 +558,7 @@ export function useSubjects() {
         const regularDeps = data.requiere_regular.map(reqId => ({
           subject_id: newSubject.id,
           requiere_regular: reqId,
+          user_id: user.id,
         }));
 
         const { error: regError } = await supabase
@@ -496,6 +573,7 @@ export function useSubjects() {
         const approvedDeps = data.requiere_aprobada.map(reqId => ({
           subject_id: newSubject.id,
           requiere_aprobada: reqId,
+          user_id: user.id,
         }));
 
         const { error: aprError } = await supabase
@@ -545,14 +623,14 @@ export function useSubjects() {
       if (deleteError) throw deleteError;
 
       // Create new dependencies
-      const newDeps: { subject_id: string; requiere_regular?: string; requiere_aprobada?: string }[] = [];
+      const newDeps: { subject_id: string; requiere_regular?: string; requiere_aprobada?: string; user_id: string }[] = [];
 
       requiere_regular.forEach(reqId => {
-        newDeps.push({ subject_id: subjectId, requiere_regular: reqId });
+        newDeps.push({ subject_id: subjectId, requiere_regular: reqId, user_id: user.id });
       });
 
       requiere_aprobada.forEach(reqId => {
-        newDeps.push({ subject_id: subjectId, requiere_aprobada: reqId });
+        newDeps.push({ subject_id: subjectId, requiere_aprobada: reqId, user_id: user.id });
       });
 
       if (newDeps.length > 0) {

@@ -1,0 +1,697 @@
+{
+    "subjects": [
+        {
+            "id": "11111111-0001-0001-0001-000000000001",
+            "nombre": "Análisis Matemático I",
+            "codigo": "AM1",
+            "año": 1,
+            "numero_materia": 1,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0001-000000000002",
+            "nombre": "Álgebra y Geometría Analítica",
+            "codigo": "AGA",
+            "año": 1,
+            "numero_materia": 2,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0001-000000000003",
+            "nombre": "Física I",
+            "codigo": "F1",
+            "año": 1,
+            "numero_materia": 3,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0001-000000000004",
+            "nombre": "Inglés I",
+            "codigo": "ING1",
+            "año": 1,
+            "numero_materia": 4,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0001-000000000005",
+            "nombre": "Lógica y Estructuras Discretas",
+            "codigo": "LED",
+            "año": 1,
+            "numero_materia": 5,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0001-000000000006",
+            "nombre": "Algoritmo y Estructura de Datos",
+            "codigo": "AED",
+            "año": 1,
+            "numero_materia": 6,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0001-000000000007",
+            "nombre": "Arquitectura de Computadoras",
+            "codigo": "AC",
+            "año": 1,
+            "numero_materia": 7,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0001-000000000008",
+            "nombre": "Sistemas y Procesos de Negocio",
+            "codigo": "SPN",
+            "año": 1,
+            "numero_materia": 8,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0002-000000000009",
+            "nombre": "Análisis Matemático II",
+            "codigo": "AM2",
+            "año": 2,
+            "numero_materia": 9,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0002-000000000010",
+            "nombre": "Física II",
+            "codigo": "F2",
+            "año": 2,
+            "numero_materia": 10,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0002-000000000011",
+            "nombre": "Ingeniería y Sociedad",
+            "codigo": "IYS",
+            "año": 2,
+            "numero_materia": 11,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0002-000000000012",
+            "nombre": "Inglés II",
+            "codigo": "ING2",
+            "año": 2,
+            "numero_materia": 12,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0002-000000000013",
+            "nombre": "Sintaxis y Semántica de los Lenguajes",
+            "codigo": "SSL",
+            "año": 2,
+            "numero_materia": 13,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0002-000000000014",
+            "nombre": "Paradigmas de Programación",
+            "codigo": "PP",
+            "año": 2,
+            "numero_materia": 14,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0002-000000000015",
+            "nombre": "Sistemas Operativos",
+            "codigo": "SO",
+            "año": 2,
+            "numero_materia": 15,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0002-000000000016",
+            "nombre": "Análisis de Sistemas de Información",
+            "codigo": "ASI",
+            "año": 2,
+            "numero_materia": 16,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0003-000000000017",
+            "nombre": "Probabilidad y Estadística",
+            "codigo": "PYE",
+            "año": 3,
+            "numero_materia": 17,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0003-000000000018",
+            "nombre": "Economía",
+            "codigo": "ECO",
+            "año": 3,
+            "numero_materia": 18,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0003-000000000019",
+            "nombre": "Base de Datos",
+            "codigo": "BD",
+            "año": 3,
+            "numero_materia": 19,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0003-000000000020",
+            "nombre": "Desarrollo de Software",
+            "codigo": "DS",
+            "año": 3,
+            "numero_materia": 20,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0003-000000000021",
+            "nombre": "Comunicación de Datos",
+            "codigo": "CD",
+            "año": 3,
+            "numero_materia": 21,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0003-000000000022",
+            "nombre": "Análisis Numérico",
+            "codigo": "AN",
+            "año": 3,
+            "numero_materia": 22,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0003-000000000023",
+            "nombre": "Diseño de Sistemas de Información",
+            "codigo": "DSI",
+            "año": 3,
+            "numero_materia": 23,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "a498b0fa-38cb-4c9e-a8b5-c3a600e1553c",
+            "nombre": "Legislación",
+            "codigo": "LEG",
+            "año": 4,
+            "numero_materia": 24,
+            "created_at": "2026-02-16T20:39:56.826474+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0004-000000000024",
+            "nombre": "Ingeniería y Calidad de Software",
+            "codigo": "ICS",
+            "año": 4,
+            "numero_materia": 25,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0004-000000000025",
+            "nombre": "Redes de Datos",
+            "codigo": "RD",
+            "año": 4,
+            "numero_materia": 26,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0004-000000000026",
+            "nombre": "Investigación Operativa",
+            "codigo": "IO",
+            "año": 4,
+            "numero_materia": 27,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0004-000000000027",
+            "nombre": "Simulación",
+            "codigo": "SIM",
+            "año": 4,
+            "numero_materia": 28,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0004-000000000028",
+            "nombre": "Tecnología para la Automatización",
+            "codigo": "TA",
+            "año": 4,
+            "numero_materia": 29,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0004-000000000029",
+            "nombre": "Administración de Sistemas de Información",
+            "codigo": "ADSI",
+            "año": 4,
+            "numero_materia": 30,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0004-000000000030",
+            "nombre": "Seminario Integrador",
+            "codigo": "SI",
+            "año": 4,
+            "numero_materia": 37,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0005-000000000034",
+            "nombre": "Inteligencia Artificial",
+            "codigo": "IA",
+            "año": 5,
+            "numero_materia": 31,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0005-000000000035",
+            "nombre": "Ciencia de Datos",
+            "codigo": "CDAT",
+            "año": 5,
+            "numero_materia": 32,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0005-000000000031",
+            "nombre": "Sistemas de Gestión",
+            "codigo": "SG",
+            "año": 5,
+            "numero_materia": 33,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0005-000000000032",
+            "nombre": "Gestión Gerencial",
+            "codigo": "GG",
+            "año": 5,
+            "numero_materia": 34,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0005-000000000033",
+            "nombre": "Seguridad en los Sistemas de Información",
+            "codigo": "SSI",
+            "año": 5,
+            "numero_materia": 35,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        },
+        {
+            "id": "11111111-0001-0001-0005-000000000036",
+            "nombre": "Proyecto Final",
+            "codigo": "PF",
+            "año": 5,
+            "numero_materia": 36,
+            "created_at": "2026-02-11T17:28:48.36557+00:00"
+        }
+    ],
+    "dependencies": [
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000009",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000001"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000009",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000002"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000010",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000001"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000010",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000003"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000012",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000004"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000013",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000005"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000013",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000006"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000014",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000005"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000014",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000006"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000015",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000007"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000016",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000006"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0002-000000000016",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000008"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000017",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000001"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000017",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000002"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000018",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000001",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000018",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000002",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000019",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000013"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000019",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000016"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000019",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000005",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000019",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000006",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000020",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000014"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000020",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000016"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000020",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000005",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000020",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000006",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000021",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000003"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000021",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0001-000000000007"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000022",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000009"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000022",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000001",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000022",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000002",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000023",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000014"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000023",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000016"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000023",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000004",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000023",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000006",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0003-000000000023",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000008",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "a498b0fa-38cb-4c9e-a8b5-c3a600e1553c",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000011"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000024",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000019"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000024",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000020"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000024",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000023"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000024",
+            "requiere_aprobada": "11111111-0001-0001-0002-000000000013",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000024",
+            "requiere_aprobada": "11111111-0001-0001-0002-000000000014",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000025",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000015"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000025",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000021"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000026",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000017"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000026",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000022"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000027",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000017"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000027",
+            "requiere_aprobada": "11111111-0001-0001-0002-000000000009",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000028",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000010"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000028",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000022"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000028",
+            "requiere_aprobada": "11111111-0001-0001-0002-000000000009",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000029",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000018"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000029",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000023"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000029",
+            "requiere_aprobada": "11111111-0001-0001-0002-000000000016",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000030",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0002-000000000016"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000030",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000006",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000030",
+            "requiere_aprobada": "11111111-0001-0001-0001-000000000008",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000030",
+            "requiere_aprobada": "11111111-0001-0001-0002-000000000013",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0004-000000000030",
+            "requiere_aprobada": "11111111-0001-0001-0002-000000000014",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000034",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000027"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000034",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000017",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000034",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000022",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000035",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000027"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000035",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000017",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000035",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000019",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000031",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0003-000000000018"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000031",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000026"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000031",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000023",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000032",
+            "requiere_aprobada": null,
+            "requiere_regular": "a498b0fa-38cb-4c9e-a8b5-c3a600e1553c"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000032",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000029"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000032",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000018",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000033",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000025"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000033",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000029"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000033",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000020",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000033",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000021",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000036",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000024"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000036",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000025"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000036",
+            "requiere_aprobada": null,
+            "requiere_regular": "11111111-0001-0001-0004-000000000029"
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000036",
+            "requiere_aprobada": "11111111-0001-0001-0002-000000000012",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000036",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000020",
+            "requiere_regular": null
+        },
+        {
+            "subject_id": "11111111-0001-0001-0005-000000000036",
+            "requiere_aprobada": "11111111-0001-0001-0003-000000000023",
+            "requiere_regular": null
+        }
+    ]
+}

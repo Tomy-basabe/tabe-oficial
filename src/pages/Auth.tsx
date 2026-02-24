@@ -61,6 +61,10 @@ export default function Auth() {
           return;
         }
 
+        if (invited.template && invited.template !== 'none') {
+          localStorage.setItem('tabe_pending_template', invited.template);
+        }
+
         const { error } = await signUp(email, password, nombre);
         if (error) {
           toast.error(error.message);

@@ -608,6 +608,7 @@ export type Database = {
           email: string
           id: string
           invited_by: string
+          template: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -615,6 +616,7 @@ export type Database = {
           email: string
           id?: string
           invited_by: string
+          template?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -622,6 +624,7 @@ export type Database = {
           email?: string
           id?: string
           invited_by?: string
+          template?: string | null
         }
         Relationships: []
       }
@@ -1126,6 +1129,7 @@ export type Database = {
           requiere_aprobada: string | null
           requiere_regular: string | null
           subject_id: string
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -1133,6 +1137,7 @@ export type Database = {
           requiere_aprobada?: string | null
           requiere_regular?: string | null
           subject_id: string
+          user_id?: string
         }
         Update: {
           created_at?: string
@@ -1140,6 +1145,7 @@ export type Database = {
           requiere_aprobada?: string | null
           requiere_regular?: string | null
           subject_id?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -1173,6 +1179,7 @@ export type Database = {
           id: string
           nombre: string
           numero_materia: number
+          user_id: string
         }
         Insert: {
           año: number
@@ -1181,6 +1188,7 @@ export type Database = {
           id?: string
           nombre: string
           numero_materia: number
+          user_id?: string
         }
         Update: {
           año?: number
@@ -1189,6 +1197,7 @@ export type Database = {
           id?: string
           nombre?: string
           numero_materia?: number
+          user_id?: string
         }
         Relationships: []
       }
