@@ -56,6 +56,27 @@ export function HeroSection() {
                 <div className="mt-16 w-full max-w-6xl mx-auto z-20 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
                     <HeroCarousel />
                 </div>
+
+                {/* Secondary CTA Below Carousel */}
+                <div className="mt-20 z-20 animate-fade-in-up pb-10" style={{ animationDelay: "0.6s" }}>
+                    <div className="relative group">
+                        {/* Glow effect */}
+                        <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full blur opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+
+                        <a
+                            href="/auth"
+                            className="relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-background border border-border/50 text-foreground rounded-full font-bold text-xl hover:bg-muted/50 transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden"
+                        >
+                            {/* Hover shine effect */}
+                            <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+                            <span className="relative z-10 bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent drop-shadow-sm">
+                                Entrar a la App
+                            </span>
+                            <ArrowRight className="relative z-10 w-6 h-6 text-neon-cyan group-hover:translate-x-1.5 transition-transform" />
+                        </a>
+                    </div>
+                </div>
             </div>
 
             {/* Grid overlay */}
