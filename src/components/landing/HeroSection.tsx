@@ -5,31 +5,38 @@ export function HeroSection() {
     const whatsappUrl = "https://wa.me/5492617737367?text=Hola,%20quiero%20formar%20parte%20de%20TABE%20y%20mejorar%20mi%20rendimiento%20en%20exactas!";
 
     return (
-        <section className="relative min-h-[100dvh] pt-32 pb-20 flex flex-col items-center overflow-hidden">
+        <section className="relative min-h-[100dvh] pt-28 pb-20 flex flex-col items-center overflow-hidden">
             {/* Background gradients */}
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] -z-10" />
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] -z-10" />
 
             <div className="container mx-auto px-4 md:px-6 relative z-20 flex flex-col items-center text-center">
+
+                {/* Interactive App Carousel - NOW THE VERY FIRST ELEMENT */}
+                <div className="w-full max-w-6xl mx-auto mb-16 z-20 animate-fade-in-up">
+                    <HeroCarousel />
+                </div>
+
                 {/* Text Content */}
-                <div className="max-w-4xl space-y-8 animate-fade-in-up flex flex-col items-center">
-                    {/* Acronym Breakdown */}
-                    <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-4">
-                        {[
-                            { l: "T", w: "Tomas" },
-                            { l: "A", w: "Aprendizaje" },
-                            { l: "B", w: "Basado en" },
-                            { l: "E", w: "Experiencia" }
-                        ].map((item, i) => (
-                            <div key={i} className="flex flex-col items-center group">
-                                <span className="text-4xl md:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 group-hover:to-neon-cyan transition-all duration-300">
-                                    {item.l}
-                                </span>
-                                <span className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-muted-foreground/60 font-medium">
-                                    {item.w}
-                                </span>
-                            </div>
-                        ))}
+                <div className="max-w-4xl space-y-8 animate-fade-in-up flex flex-col items-center" style={{ animationDelay: "0.2s" }}>
+                    {/* T.A.B.E. Acronym Meaning */}
+                    <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-2">
+                        <div className="flex flex-col items-center group transition-all duration-300 hover:-translate-y-1">
+                            <span className="text-3xl md:text-4xl font-display font-black text-neon-cyan drop-shadow-[0_0_15px_rgba(0,255,255,0.3)]">T</span>
+                            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">Tomas</span>
+                        </div>
+                        <div className="flex flex-col items-center group transition-all duration-300 hover:-translate-y-1">
+                            <span className="text-3xl md:text-4xl font-display font-black text-neon-purple drop-shadow-[0_0_15px_rgba(188,19,254,0.3)]">A</span>
+                            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">Aprendizaje</span>
+                        </div>
+                        <div className="flex flex-col items-center group transition-all duration-300 hover:-translate-y-1">
+                            <span className="text-3xl md:text-4xl font-display font-black text-neon-cyan drop-shadow-[0_0_15px_rgba(0,255,255,0.3)]">B</span>
+                            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">Basado en</span>
+                        </div>
+                        <div className="flex flex-col items-center group transition-all duration-300 hover:-translate-y-1">
+                            <span className="text-3xl md:text-4xl font-display font-black text-neon-purple drop-shadow-[0_0_15px_rgba(188,19,254,0.3)]">E</span>
+                            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">Experiencia</span>
+                        </div>
                     </div>
 
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border text-sm font-medium text-muted-foreground">
@@ -68,11 +75,6 @@ export function HeroSection() {
                             Validado por alumnos
                         </div>
                     </div>
-                </div>
-
-                {/* Interactive App Carousel - THE CENTERPIECE */}
-                <div className="mt-16 w-full max-w-6xl mx-auto z-20 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-                    <HeroCarousel />
                 </div>
             </div>
 
