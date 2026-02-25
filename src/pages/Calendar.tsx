@@ -13,9 +13,15 @@ const eventTypeColors: Record<EventType, string> = {
   P1: "bg-neon-cyan/20 border-neon-cyan text-neon-cyan",
   P2: "bg-neon-purple/20 border-neon-purple text-neon-purple",
   Global: "bg-neon-gold/20 border-neon-gold text-neon-gold",
-  Recuperatorio: "bg-neon-red/20 border-neon-red text-neon-red",
+  "Recuperatorio P1": "bg-red-500/20 border-red-500 text-red-400",
+  "Recuperatorio P2": "bg-red-500/20 border-red-500 text-red-400",
+  "Recuperatorio Global": "bg-red-500/20 border-red-500 text-red-400",
   Final: "bg-neon-green/20 border-neon-green text-neon-green",
-  Estudio: "bg-secondary border-muted-foreground text-muted-foreground",
+  Estudio: "bg-muted border-muted-foreground/50 text-muted-foreground",
+  TP: "bg-orange-500/20 border-orange-500 text-orange-400",
+  Entrega: "bg-pink-500/20 border-pink-500 text-pink-400",
+  Clase: "bg-blue-500/20 border-blue-500 text-blue-400",
+  Otro: "bg-gray-500/20 border-gray-500 text-gray-400",
 };
 
 const recurrenceLabels: Record<string, string> = {

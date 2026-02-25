@@ -40,7 +40,7 @@ export default function Dashboard() {
     return {
       id: event.id,
       subject: event.subject_nombre || event.titulo,
-      type: event.tipo_examen as "P1" | "P2" | "Global" | "Recuperatorio" | "Final",
+      type: event.tipo_examen as "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "TP" | "Entrega" | "Clase" | "Otro",
       date: eventDate,
       daysLeft: Math.max(0, daysLeft),
     };

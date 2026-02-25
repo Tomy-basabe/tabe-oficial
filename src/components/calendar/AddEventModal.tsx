@@ -25,9 +25,15 @@ const eventTypes: { value: EventType; label: string; color: string; hex: string 
   { value: "P1", label: "Parcial 1", color: "bg-neon-cyan/20 text-neon-cyan border-neon-cyan", hex: "#00d9ff" },
   { value: "P2", label: "Parcial 2", color: "bg-neon-purple/20 text-neon-purple border-neon-purple", hex: "#a855f7" },
   { value: "Global", label: "Global", color: "bg-neon-gold/20 text-neon-gold border-neon-gold", hex: "#fbbf24" },
-  { value: "Recuperatorio", label: "Recuperatorio", color: "bg-neon-red/20 text-neon-red border-neon-red", hex: "#ef4444" },
+  { value: "Recuperatorio P1", label: "Recup. P1", color: "bg-red-500/20 text-red-400 border-red-500", hex: "#ef4444" },
+  { value: "Recuperatorio P2", label: "Recup. P2", color: "bg-red-500/20 text-red-400 border-red-500", hex: "#ef4444" },
+  { value: "Recuperatorio Global", label: "Recup. Global", color: "bg-red-500/20 text-red-400 border-red-500", hex: "#ef4444" },
   { value: "Final", label: "Final", color: "bg-neon-green/20 text-neon-green border-neon-green", hex: "#22c55e" },
-  { value: "Estudio", label: "Sesión de Estudio", color: "bg-muted text-muted-foreground border-muted-foreground", hex: "#6b7280" },
+  { value: "TP", label: "TP", color: "bg-orange-500/20 text-orange-400 border-orange-500", hex: "#f97316" },
+  { value: "Entrega", label: "Entrega", color: "bg-pink-500/20 text-pink-400 border-pink-500", hex: "#ec4899" },
+  { value: "Clase", label: "Clase", color: "bg-blue-500/20 text-blue-400 border-blue-500", hex: "#3b82f6" },
+  { value: "Estudio", label: "Estudio", color: "bg-muted text-muted-foreground border-muted-foreground", hex: "#6b7280" },
+  { value: "Otro", label: "Otro", color: "bg-gray-500/20 text-gray-400 border-gray-500", hex: "#9ca3af" },
 ];
 
 const PRESET_COLORS = [
@@ -233,7 +239,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
             {/* Event Type */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo de evento</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-1.5">
                 {eventTypes.map((type) => (
                   <button
                     key={type.value}

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 interface Exam {
   id: string;
   subject: string;
-  type: "P1" | "P2" | "Global" | "Recuperatorio" | "Final";
+  type: "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "TP" | "Entrega" | "Clase" | "Otro";
   date: Date;
   daysLeft: number;
 }
@@ -17,8 +17,14 @@ const examTypeConfig = {
   P1: { label: "Parcial 1", color: "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30" },
   P2: { label: "Parcial 2", color: "bg-neon-purple/20 text-neon-purple border-neon-purple/30" },
   Global: { label: "Global", color: "bg-neon-gold/20 text-neon-gold border-neon-gold/30" },
-  Recuperatorio: { label: "Recuperatorio", color: "bg-neon-red/20 text-neon-red border-neon-red/30" },
+  "Recuperatorio P1": { label: "Recup. P1", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  "Recuperatorio P2": { label: "Recup. P2", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  "Recuperatorio Global": { label: "Recup. Global", color: "bg-red-500/20 text-red-400 border-red-500/30" },
   Final: { label: "Final", color: "bg-neon-green/20 text-neon-green border-neon-green/30" },
+  TP: { label: "TP", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+  Entrega: { label: "Entrega", color: "bg-pink-500/20 text-pink-400 border-pink-500/30" },
+  Clase: { label: "Clase", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  Otro: { label: "Otro", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
 };
 
 export function UpcomingExams({ exams }: UpcomingExamsProps) {

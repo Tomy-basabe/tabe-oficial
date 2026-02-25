@@ -34,18 +34,30 @@ const eventTypeLabels: Record<EventType, string> = {
     P1: "Parcial 1",
     P2: "Parcial 2",
     Global: "Global",
-    Recuperatorio: "Recuperatorio",
+    "Recuperatorio P1": "Recuperatorio P1",
+    "Recuperatorio P2": "Recuperatorio P2",
+    "Recuperatorio Global": "Recuperatorio Global",
     Final: "Final",
     Estudio: "Sesión de Estudio",
+    TP: "Trabajo Práctico",
+    Entrega: "Entrega",
+    Clase: "Clase",
+    Otro: "Otro",
 };
 
 const eventTypeColors: Record<EventType, string> = {
     P1: "text-neon-cyan bg-neon-cyan/10",
     P2: "text-neon-purple bg-neon-purple/10",
     Global: "text-neon-gold bg-neon-gold/10",
-    Recuperatorio: "text-neon-red bg-neon-red/10",
+    "Recuperatorio P1": "text-red-400 bg-red-500/10",
+    "Recuperatorio P2": "text-red-400 bg-red-500/10",
+    "Recuperatorio Global": "text-red-400 bg-red-500/10",
     Final: "text-neon-green bg-neon-green/10",
-    Estudio: "text-muted-foreground bg-secondary",
+    Estudio: "text-muted-foreground bg-muted",
+    TP: "text-orange-400 bg-orange-500/10",
+    Entrega: "text-pink-400 bg-pink-500/10",
+    Clase: "text-blue-400 bg-blue-500/10",
+    Otro: "text-gray-400 bg-gray-500/10",
 };
 
 export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetailsModalProps) {

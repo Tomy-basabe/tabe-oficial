@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
-export type EventType = "P1" | "P2" | "Global" | "Recuperatorio" | "Final" | "Estudio";
+export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Clase" | "Otro";
 export type RecurrenceRule = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
 
 export interface CalendarEvent {
@@ -362,9 +362,15 @@ function getColorForType(type: EventType): string {
     P1: "#00d9ff",
     P2: "#a855f7",
     Global: "#fbbf24",
-    Recuperatorio: "#ef4444",
+    "Recuperatorio P1": "#ef4444",
+    "Recuperatorio P2": "#ef4444",
+    "Recuperatorio Global": "#ef4444",
     Final: "#22c55e",
     Estudio: "#6b7280",
+    TP: "#f97316",
+    Entrega: "#ec4899",
+    Clase: "#3b82f6",
+    Otro: "#9ca3af",
   };
-  return colors[type];
+  return colors[type] || "#6b7280";
 }
