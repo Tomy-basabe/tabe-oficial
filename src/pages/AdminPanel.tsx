@@ -29,6 +29,7 @@ interface UserReview {
 
 interface Profile {
   id: string;
+  user_id: string;
   email: string | null;
   nombre: string | null;
   created_at: string;
@@ -425,9 +426,9 @@ const AdminPanel = () => {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteUser(profile.id, profile.email || 'Desconocido')}
-                      disabled={profile.id === user?.id}
-                      title={profile.id === user?.id ? "No puedes borrarte a ti mismo" : "Borrar usuario completo y en cascada"}
+                      onClick={() => handleDeleteUser(profile.user_id, profile.email || 'Desconocido')}
+                      disabled={profile.user_id === user?.id}
+                      title={profile.user_id === user?.id ? "No puedes borrarte a ti mismo" : "Borrar usuario completo y en cascada"}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
