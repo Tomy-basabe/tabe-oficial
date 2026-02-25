@@ -111,7 +111,7 @@ export function DiscordChannelSidebar({
   // bg-card/30 backdrop-blur-xl border-r border-border
 
   return (
-    <div className="w-60 bg-card/30 backdrop-blur-xl border-r border-border flex flex-col h-full shrink-0">
+    <div className="md:w-60 w-full bg-card/30 backdrop-blur-xl md:border-r border-border flex flex-col h-full shrink-0">
       {/* Server Header */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

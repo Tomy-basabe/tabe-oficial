@@ -72,7 +72,7 @@ export function DiscordServerList({
     setJoining(false);
   };
   return (
-    <div className="w-[72px] bg-background/95 backdrop-blur border-r border-border py-3 flex flex-col items-center gap-2 overflow-y-auto discord-scrollbar shrink-0 z-50">
+    <div className="md:w-[72px] w-full bg-background/95 backdrop-blur border-r md:border-r border-border md:py-3 py-3 flex md:flex-col flex-row items-center md:gap-2 gap-3 overflow-x-auto md:overflow-y-auto md:overflow-x-hidden discord-scrollbar shrink-0 z-50 px-3 md:px-0">
       {/* Home Button (Direct Messages) */}
       <div className="relative group mb-1">
         <div className={cn(
