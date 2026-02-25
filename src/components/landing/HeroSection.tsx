@@ -5,7 +5,7 @@ export function HeroSection() {
     const whatsappUrl = "https://wa.me/5492617737367?text=Hola,%20quiero%20formar%20parte%20de%20TABE%20y%20mejorar%20mi%20rendimiento%20en%20exactas!";
 
     return (
-        <section className="relative min-h-[100dvh] pt-28 pb-20 flex flex-col items-center overflow-hidden">
+        <section id="hero" className="relative min-h-[100dvh] pt-28 pb-20 flex flex-col items-center overflow-hidden">
             {/* Background gradients */}
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] -z-10" />
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] -z-10" />
