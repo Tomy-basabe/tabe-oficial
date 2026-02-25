@@ -187,14 +187,25 @@ export function HeroCarousel() {
 
     // Calculate visual offset for drag feedback
     const getSlideStyle = (index: number) => {
-        const isActive = index === current;
-        const dragPercent = containerRef.current ? (dragOffset / containerRef.current.clientWidth) * 100 : 0;
+        const diff = index - current;
+
+        // Handle wrapping for a smooth loop (show prev/curr/next)
+        let normalizedDiff = diff;
+        if (diff > slides.length / 2) normalizedDiff = diff - slides.length;
+        if (diff < -slides.length / 2) normalizedDiff = diff + slides.length;
+
+        const isVisible = Math.abs(normalizedDiff) <= 1;
+
+        // 1:1 translation when dragging
+        const translatePercent = normalizedDiff * 100;
+        const dragPx = isDragging ? dragOffset : 0;
 
         return {
-            opacity: isActive ? 1 : 0,
-            transform: isActive ? `translateX(${dragPercent * 0.3}px)` : 'translateX(0)',
-            transition: isDragging ? 'none' : 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-            zIndex: isActive ? 10 : 0,
+            display: isVisible ? 'flex' : 'none',
+            opacity: isVisible ? 1 : 0,
+            transform: `translateX(calc(${translatePercent}% + ${dragPx}px))`,
+            transition: isDragging ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease',
+            zIndex: index === current ? 20 : 10,
         };
     };
 
@@ -240,8 +251,8 @@ export function HeroCarousel() {
                             {/* Fallback */}
                             <div className="absolute inset-x-0 bottom-0 top-0 flex items-center justify-center flex-col text-center p-6 border-b border-transparent">
                                 <slide.icon className={`w-24 h-24 mb-6 opacity-20 bg-gradient-to-br ${slide.color} rounded-3xl p-4`} />
-                                <div className="text-xl font-bold opacity-30">Pega aquí tu captura de pantalla</div>
-                                <div className="text-sm font-mono text-muted-foreground mt-2 opacity-50">public{slide.image}</div>
+                                <div className="text-xl font-bold opacity-30">Cargando interfaz...</div>
+                                <div className="text-sm font-mono text-muted-foreground mt-2 opacity-50">TABE {slide.title}</div>
                             </div>
 
                             {/* actual image */}
@@ -257,18 +268,22 @@ export function HeroCarousel() {
                     ))}
                 </div>
 
-                {/* Left/Right Controls */}
+                {/* Left/Right Controls - Using onPointerDown to avoid event stealing from container */}
                 <button
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-background/90 border border-border/50 text-foreground backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-secondary hover:scale-110 active:scale-95 pointer-events-auto"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-background/95 border border-border/50 text-foreground shadow-xl backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-secondary hover:scale-110 active:scale-90 pointer-events-auto"
+                    aria-label="Anterior"
                 >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-background/90 border border-border/50 text-foreground backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-secondary hover:scale-110 active:scale-95 pointer-events-auto"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-background/95 border border-border/50 text-foreground shadow-xl backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-secondary hover:scale-110 active:scale-90 pointer-events-auto"
+                    aria-label="Siguiente"
                 >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-6 h-6" />
                 </button>
 
                 {/* Swipe hint on mobile */}
