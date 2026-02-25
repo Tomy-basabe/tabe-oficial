@@ -51,11 +51,9 @@ export default function Landing() {
         <div className="min-h-screen bg-background text-foreground selection:bg-neon-cyan/30 selection:text-neon-cyan">
             <LandingNavbar />
 
-            <TabeAnimationSection />
+            <HeroSection />
 
-            <ScrollReveal>
-                <HeroSection />
-            </ScrollReveal>
+            <TabeAnimationSection />
 
             <ScrollReveal delay={50}>
                 <ProblemSection />
