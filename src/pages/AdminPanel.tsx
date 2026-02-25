@@ -27,6 +27,13 @@ interface UserReview {
   created_at: string;
 }
 
+interface Profile {
+  id: string;
+  email: string | null;
+  nombre: string | null;
+  created_at: string;
+}
+
 const AdminPanel = () => {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -35,10 +42,12 @@ const AdminPanel = () => {
   const [newEmail, setNewEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [extracting, setExtracting] = useState(false);
-
-  // Reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+
+  // Registered Users state
+  const [registeredUsers, setRegisteredUsers] = useState<Profile[]>([]);
+  const [loadingRegisteredUsers, setLoadingRegisteredUsers] = useState(false);
 
   // Template states
   const [useSistemasTemplate, setUseSistemasTemplate] = useState(false);
@@ -67,6 +76,7 @@ const AdminPanel = () => {
       if (data) {
         fetchInvitedUsers();
         fetchReviews();
+        fetchRegisteredUsers();
       }
     } catch (error) {
       console.error("Error checking admin status:", error);
@@ -104,6 +114,45 @@ const AdminPanel = () => {
       toast.error("Error al cargar las valoraciones");
     } finally {
       setLoadingReviews(false);
+    }
+  };
+
+  const fetchRegisteredUsers = async () => {
+    setLoadingRegisteredUsers(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setRegisteredUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching registered users:", error);
+    } finally {
+      setLoadingRegisteredUsers(false);
+    }
+  };
+
+  const handleDeleteUser = async (id: string, email: string) => {
+    if (!confirm(`¿Estás COMPLETAMENTE SEGURO de eliminar al usuario ${email || 'con ID ' + id}? Esta acción destruirá toda su información de TABE y es IRREVERSIBLE.`)) return;
+
+    try {
+      // 1. Llamar a la función RPC privilegiada para borrar auth.users
+      const { error } = await supabase.rpc('delete_user_by_admin', {
+        user_id_to_delete: id
+      });
+
+      if (error) throw error;
+
+      toast.success(`Usuario ${email || id} eliminado correctamente`);
+
+      // En caso de que el email elimine la invitación también, refrescamos ambas tablas
+      fetchRegisteredUsers();
+      fetchInvitedUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(`Error al eliminar usuario: ${error.message}`);
     }
   };
 
@@ -257,6 +306,7 @@ const AdminPanel = () => {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      {/* ... Headers ... */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -283,7 +333,7 @@ const AdminPanel = () => {
         </Button>
       </div>
 
-      {/* Invite User Form */}
+      {/* Invite User Form ... existing ... */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -334,6 +384,58 @@ const AdminPanel = () => {
               </p>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Registered Users List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Usuarios Registrados</CardTitle>
+          <CardDescription>
+            Cuentas existosas dentro de la base de datos de TABE
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingRegisteredUsers ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : registeredUsers.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No hay usuarios registrados
+            </p>
+          ) : (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+              {registeredUsers.map((profile) => (
+                <div
+                  key={profile.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                >
+                  <div className="flex items-center gap-3">
+                    <UserPlus className="h-4 w-4 text-neon-cyan" />
+                    <div>
+                      <p className="font-medium">{profile.nombre || 'Sin nombre'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {profile.email || 'Sin email'} • Reg: {new Date(profile.created_at).toLocaleDateString("es-AR")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteUser(profile.id, profile.email || 'Desconocido')}
+                      disabled={profile.id === user?.id}
+                      title={profile.id === user?.id ? "No puedes borrarte a ti mismo" : "Borrar usuario completo y en cascada"}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -60,7 +60,7 @@ export function ReviewForm({ userName, userId }: ReviewFormProps) {
         try {
             if (hasSubmitted) {
                 // Determine if we should update or not (for now we let them update)
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from("user_reviews")
                     .update({
                         name: userName,
@@ -68,9 +68,12 @@ export function ReviewForm({ userName, userId }: ReviewFormProps) {
                         rating,
                         description
                     })
-                    .eq("user_id", userId);
+                    .eq("user_id", userId)
+                    .select();
 
                 if (error) throw error;
+                if (!data || data.length === 0) throw new Error("La base de datos bloqueó la actualización (Probablemente falte la política UPDATE en Supabase).");
+
                 toast.success("Valoración actualizada correctamente. ¡Gracias!");
             } else {
                 const { error } = await supabase
@@ -111,8 +114,8 @@ export function ReviewForm({ userName, userId }: ReviewFormProps) {
                         >
                             <Star
                                 className={`w-6 h-6 ${(hoveredRating || rating) >= star
-                                        ? "text-neon-gold fill-neon-gold"
-                                        : "text-muted-foreground"
+                                    ? "text-neon-gold fill-neon-gold"
+                                    : "text-muted-foreground"
                                     } transition-colors duration-200`}
                             />
                         </button>

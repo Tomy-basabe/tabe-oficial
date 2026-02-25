@@ -1480,9 +1480,14 @@ export type Database = {
       check_invitation_status: {
         Args: { check_email: string }
         Returns: {
-          accepted_at: string
+          accepted_at: string | null
           id: string
+          template: string | null
         }[]
+      }
+      delete_user_by_admin: {
+        Args: { user_id_to_delete: string }
+        Returns: undefined
       }
       find_user_for_friend_request: {
         Args: { identifier: string }
