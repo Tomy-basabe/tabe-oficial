@@ -65,15 +65,15 @@ export function HeroSection() {
 
                         <a
                             href="/auth"
-                            className="relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-background border border-border/50 text-foreground rounded-full font-bold text-xl hover:bg-muted/50 transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden"
+                            className="relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-full font-bold text-xl hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden"
                         >
                             {/* Hover shine effect */}
-                            <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                            <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-                            <span className="relative z-10 bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent drop-shadow-sm">
+                            <span className="relative z-10 font-bold">
                                 Entrar a la App
                             </span>
-                            <ArrowRight className="relative z-10 w-6 h-6 text-neon-cyan group-hover:translate-x-1.5 transition-transform" />
+                            <ArrowRight className="relative z-10 w-6 h-6 text-white group-hover:translate-x-1.5 transition-transform" />
                         </a>
                     </div>
                 </div>

@@ -25,7 +25,7 @@ export function TabeAnimationSection() {
     ];
 
     return (
-        <section className="relative h-screen bg-foreground flex items-center justify-center overflow-hidden">
+        <section className="relative h-screen bg-[#0a0a1a] flex items-center justify-center overflow-hidden">
 
             {/* Background glow */}
             <div
