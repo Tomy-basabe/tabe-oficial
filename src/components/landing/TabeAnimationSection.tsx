@@ -10,8 +10,6 @@ export function TabeAnimationSection() {
             const rect = containerRef.current.getBoundingClientRect();
             const windowHeight = window.innerHeight;
 
-            // Calculate how far we've scrolled through the element
-            // 0 = just entered viewport, 1 = leaving viewport
             const totalScrollable = rect.height + windowHeight;
             const scrolled = windowHeight - rect.top;
 
@@ -20,8 +18,8 @@ export function TabeAnimationSection() {
             setScrollProgress(progress);
         };
 
-        window.addEventListener("scroll", handleScroll);
-        handleScroll(); // init
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        handleScroll();
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
@@ -35,38 +33,69 @@ export function TabeAnimationSection() {
     return (
         <section
             ref={containerRef}
-            className="relative min-h-[120vh] bg-foreground text-background overflow-hidden"
+            className="relative min-h-[150vh] bg-foreground text-background overflow-hidden"
         >
             <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden">
 
-                {/* Abstract Background Effects */}
+                {/* Animated Background Orbs */}
                 <div
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 blur-[120px] mix-blend-screen"
+                    className="absolute top-1/2 left-1/2 w-[600px] h-[600px] md:w-[900px] md:h-[900px] rounded-full bg-gradient-to-br from-neon-cyan/30 to-neon-purple/30 blur-[150px] mix-blend-screen"
                     style={{
-                        transform: `translate(-50%, -50%) scale(${0.5 + scrollProgress * 1.5})`,
-                        opacity: scrollProgress > 0.8 ? 0 : 1
+                        transform: `translate(-50%, -50%) scale(${0.3 + scrollProgress * 2}) rotate(${scrollProgress * 90}deg)`,
+                        opacity: scrollProgress > 0.85 ? Math.max(0, 1 - (scrollProgress - 0.85) * 7) : Math.min(1, scrollProgress * 3),
+                    }}
+                />
+                <div
+                    className="absolute top-1/3 right-1/4 w-[300px] h-[300px] md:w-[500px] md:h-[500px] rounded-full bg-gradient-to-tr from-neon-gold/20 to-neon-cyan/10 blur-[100px] mix-blend-screen"
+                    style={{
+                        transform: `translate(${scrollProgress * 100}px, ${-scrollProgress * 50}px) scale(${0.5 + scrollProgress})`,
+                        opacity: scrollProgress > 0.85 ? 0 : scrollProgress * 0.8,
                     }}
                 />
 
-                <div className="container px-4">
-                    <div className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16">
+                {/* Particle lines */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    {[...Array(6)].map((_, i) => (
+                        <div
+                            key={i}
+                            className="absolute h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent"
+                            style={{
+                                width: `${40 + i * 10}%`,
+                                top: `${15 + i * 14}%`,
+                                left: `${-20 + scrollProgress * (40 + i * 5)}%`,
+                                opacity: scrollProgress > 0.1 && scrollProgress < 0.85 ? 0.4 : 0,
+                                transition: 'opacity 0.5s',
+                            }}
+                        />
+                    ))}
+                </div>
+
+                <div className="container px-4 relative z-10">
+                    <div className="flex flex-col md:flex-row justify-center items-center gap-6 md:gap-12 lg:gap-20">
                         {letters.map((item, index) => {
-                            // Calculate individual delays for each letter based on scroll
-                            const appearStart = index * 0.1;
-                            const appearEnd = appearStart + 0.15;
+                            const appearStart = 0.08 + index * 0.08;
+                            const appearEnd = appearStart + 0.12;
 
                             let opacity = 0;
-                            let yOffset = 50;
+                            let yOffset = 80;
+                            let scale = 0.5;
+                            let blur = 10;
 
                             if (scrollProgress >= appearStart) {
                                 const localProgress = Math.min(1, (scrollProgress - appearStart) / (appearEnd - appearStart));
-                                opacity = localProgress;
-                                yOffset = 50 * (1 - localProgress);
+                                // Easing: cubic ease-out
+                                const eased = 1 - Math.pow(1 - localProgress, 3);
+                                opacity = eased;
+                                yOffset = 80 * (1 - eased);
+                                scale = 0.5 + 0.5 * eased;
+                                blur = 10 * (1 - eased);
                             }
 
                             // Fade out at the end
-                            if (scrollProgress > 0.8) {
-                                opacity = Math.max(0, 1 - (scrollProgress - 0.8) * 5);
+                            if (scrollProgress > 0.75) {
+                                const fadeOut = Math.max(0, 1 - (scrollProgress - 0.75) * 4);
+                                opacity *= fadeOut;
+                                scale += (1 - fadeOut) * 0.3;
                             }
 
                             return (
@@ -75,13 +104,15 @@ export function TabeAnimationSection() {
                                     className="flex flex-col items-center"
                                     style={{
                                         opacity,
-                                        transform: `translateY(${yOffset}px)`,
+                                        transform: `translateY(${yOffset}px) scale(${scale})`,
+                                        filter: `blur(${blur}px)`,
+                                        willChange: 'transform, opacity, filter',
                                     }}
                                 >
-                                    <span className="text-7xl md:text-9xl font-display font-black bg-gradient-to-br from-neon-cyan to-neon-purple text-transparent bg-clip-text">
+                                    <span className="text-8xl md:text-[10rem] lg:text-[12rem] font-display font-black bg-gradient-to-br from-neon-cyan via-white to-neon-purple text-transparent bg-clip-text leading-none drop-shadow-[0_0_60px_rgba(0,255,170,0.3)]">
                                         {item.letter}
                                     </span>
-                                    <span className="text-xl md:text-3xl font-bold mt-4 tracking-widest text-background/80 uppercase">
+                                    <span className="text-lg md:text-2xl lg:text-3xl font-bold mt-2 md:mt-4 tracking-[0.3em] text-background/70 uppercase">
                                         {item.word}
                                     </span>
                                 </div>
@@ -89,16 +120,20 @@ export function TabeAnimationSection() {
                         })}
                     </div>
 
+                    {/* Tagline */}
                     <div
-                        className="absolute bottom-20 left-1/2 -translate-x-1/2 text-center"
+                        className="absolute bottom-16 md:bottom-20 left-1/2 -translate-x-1/2 text-center w-full px-4"
                         style={{
-                            opacity: scrollProgress > 0.7 && scrollProgress < 0.9 ? 1 : 0,
-                            transform: `translate(-50%, ${scrollProgress > 0.7 ? 0 : 20}px)`,
-                            transition: 'all 0.5s ease-out'
+                            opacity: scrollProgress > 0.55 && scrollProgress < 0.85 ? Math.min(1, (scrollProgress - 0.55) * 5) : 0,
+                            transform: `translate(-50%, ${scrollProgress > 0.55 ? 0 : 30}px)`,
+                            transition: 'opacity 0.6s ease-out, transform 0.6s ease-out'
                         }}
                     >
-                        <p className="text-2xl md:text-4xl font-display font-bold text-white">
-                            No es un curso. Es un <span className="text-neon-cyan">ecosistema</span>.
+                        <p className="text-2xl md:text-4xl lg:text-5xl font-display font-bold text-white">
+                            No es un curso. Es un <span className="bg-gradient-to-r from-neon-cyan to-neon-purple text-transparent bg-clip-text">ecosistema</span>.
+                        </p>
+                        <p className="text-base md:text-lg text-white/40 mt-3 font-medium">
+                            Scrolleá para descubrir
                         </p>
                     </div>
                 </div>
