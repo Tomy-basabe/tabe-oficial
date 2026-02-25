@@ -33,7 +33,7 @@ export function TabeAnimationSection() {
     return (
         <section
             ref={containerRef}
-            className="relative min-h-[150vh] bg-foreground text-background overflow-hidden"
+            className="relative min-h-[150vh] bg-foreground text-background"
         >
             <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden">
 

@@ -9,11 +9,17 @@
   html {
     scroll-behavior: smooth;
     scroll-padding-top: 5rem;
-    overflow-x: hidden;
   }
 
   body {
     overflow-x: hidden;
+    min-height: 100dvh;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent #root from creating secondary scroll context */
+  #root {
+    overflow: visible;
   }
 
   :root {
