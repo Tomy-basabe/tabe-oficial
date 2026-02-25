@@ -39,8 +39,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground">Cargando...</p>
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center animate-pulse">
+            <span className="font-display font-bold text-white text-lg">T</span>
+          </div>
+          <p className="text-muted-foreground text-sm">Cargando T.A.B.E...</p>
         </div>
       </div>
     );
@@ -59,7 +61,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center animate-pulse">
+          <span className="font-display font-bold text-white text-lg">T</span>
+        </div>
       </div>
     );
   }
