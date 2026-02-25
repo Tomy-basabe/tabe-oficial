@@ -1,0 +1,36 @@
+{
+    "name": "T.A.B.E. — Tu Asistente de Bolsillo Estudiantil",
+    "short_name": "T.A.B.E.",
+    "description": "La plataforma todo-en-uno para estudiantes de exactas. Materias, flashcards, quizzes con IA, calendario, Pomodoro, métricas y mucho más.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0f",
+    "theme_color": "#00FFAA",
+    "lang": "es",
+    "scope": "/",
+    "orientation": "portrait",
+    "categories": [
+        "education",
+        "productivity"
+    ],
+    "icons": [
+        {
+            "src": "/pwa-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [],
+    "prefer_related_applications": false
+}

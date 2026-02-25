@@ -10,6 +10,14 @@
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- PWA Mobile -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="T.A.B.E." />
+  <meta name="theme-color" content="#0a0a0f" />
 
   <meta property="og:title" content="T.A.B.E. — Tu Asistente de Bolsillo Estudiantil" />
   <meta property="og:description"
@@ -40,6 +48,13 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () { });
+      });
+    }
+  </script>
 </body>
 
 </html>
