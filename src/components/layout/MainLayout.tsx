@@ -36,7 +36,7 @@ import { Button } from "@/components/ui/button";
 const baseNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
-  { icon: NotionIcon, label: "Notion", path: "/notion", tourClass: "tour-sidebar-notion" },
+  { icon: NotionIcon, label: "Apuntes", path: "/notion", tourClass: "tour-sidebar-notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
   { icon: Store, label: "Marketplace", path: "/marketplace", tourClass: "tour-sidebar-marketplace" },
@@ -45,7 +45,7 @@ const baseNavItems = [
   { icon: Timer, label: "Pomodoro", path: "/pomodoro", tourClass: "tour-sidebar-pomodoro" },
   { icon: BarChart3, label: "Métricas", path: "/metricas", tourClass: "tour-sidebar-metricas" },
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
-  { icon: DiscordIcon, label: "Discord", path: "/discord", tourClass: "tour-sidebar-discord" },
+  { icon: DiscordIcon, label: "Comunidad", path: "/discord", tourClass: "tour-sidebar-discord" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
   { icon: Bot, label: "Asistente IA", path: "/asistente", tourClass: "tour-sidebar-asistenteia" },

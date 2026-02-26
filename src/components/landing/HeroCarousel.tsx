@@ -20,8 +20,8 @@ const slides = [
     },
     {
         id: 3,
-        title: "Tus Apuntes (Notion)",
-        description: "Un espacio de trabajo completo estilo Notion para tomar tus apuntes integrados.",
+        title: "Tus Apuntes",
+        description: "Un espacio de trabajo completo para tomar tus apuntes integrados.",
         icon: BookOpen,
         color: "from-slate-300 to-slate-500",
         image: "/screenshots/notion.png"

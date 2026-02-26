@@ -1,18 +1,31 @@
 import { cn } from "@/lib/utils";
 
-interface NotionIconProps {
+interface ApuntesIconProps {
   className?: string;
 }
 
-export function NotionIcon({ className }: NotionIconProps) {
+/**
+ * Custom "Apuntes" icon (replaces Notion logo).
+ * A notebook with a pencil — represents notes & documents.
+ */
+export function NotionIcon({ className }: ApuntesIconProps) {
   return (
-    <svg 
-      viewBox="0 0 24 24" 
-      fill="currentColor"
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       className={cn("w-5 h-5", className)}
     >
-      {/* Official Notion logo */}
-      <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.047-.326L18.02 2.05c-.467-.373-.98-.7-2.1-.607l-12.8.936c-.467.047-.56.28-.374.513l1.713 1.316Zm.792 3.04v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.84-.047.934-.56.934-1.167V6.341c0-.606-.234-.933-.747-.886l-15.177.886c-.56.047-.747.327-.747.907Zm14.337.746c.094.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.747 0-.934-.234-1.495-.933l-4.577-7.186v6.952l1.449.327s0 .84-1.168.84l-3.228.187c-.094-.187 0-.653.327-.746l.84-.28V9.854L7.36 9.62c-.094-.42.14-.98.794-1.027l3.461-.234 4.763 7.28v-6.44l-1.215-.14c-.094-.514.28-.887.747-.933l3.228-.187Zm-13.63-7.467-.467-.047c-.467-.047-.56.28-.373.513l1.713 1.316c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.047-.326l-2.033-1.506c-.467-.373-.98-.7-2.1-.607l-12.8.937-.536.047Z" />
+      {/* Notebook */}
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      {/* Lines on page */}
+      <line x1="9" y1="7" x2="16" y2="7" />
+      <line x1="9" y1="11" x2="14" y2="11" />
+      <line x1="9" y1="15" x2="12" y2="15" />
     </svg>
   );
 }
