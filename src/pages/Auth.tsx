@@ -64,7 +64,7 @@ export default function Auth() {
           toast.error(error.message);
         } else {
           toast.success("¡Bienvenido de vuelta!");
-          navigate("/");
+          navigate("/dashboard");
         }
       } else {
         // Check if email is in invited_users list using secure RPC function
@@ -99,7 +99,7 @@ export default function Auth() {
           toast.error(error.message);
         } else {
           toast.success("¡Cuenta creada exitosamente!");
-          navigate("/");
+          navigate("/dashboard");
         }
       }
     } finally {
