@@ -3,6 +3,7 @@ import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { MethodologySection } from "@/components/landing/MethodologySection";
+import { FeaturesShowcase } from "@/components/landing/FeaturesShowcase";
 import { SpecializationSection } from "@/components/landing/SpecializationSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { TabeAnimationSection } from "@/components/landing/TabeAnimationSection";
@@ -61,6 +62,10 @@ export default function Landing() {
 
             <ScrollReveal delay={50}>
                 <MethodologySection />
+            </ScrollReveal>
+
+            <ScrollReveal delay={50}>
+                <FeaturesShowcase />
             </ScrollReveal>
 
             <ScrollReveal delay={50}>

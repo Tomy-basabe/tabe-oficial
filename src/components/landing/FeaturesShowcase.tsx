@@ -1,0 +1,343 @@
+import { useState } from "react";
+import {
+    LayoutDashboard, GraduationCap, FileText, Layers, ClipboardList,
+    ShoppingBag, BookOpen, CalendarDays, Timer, BarChart3,
+    TreePine, MessageSquare, Trophy, Users, Bot, Settings,
+    ChevronDown, ChevronUp, Sparkles, Eye
+} from "lucide-react";
+
+interface FeaturePhoto {
+    src: string;
+    label: string;
+}
+
+interface FeatureSection {
+    id: string;
+    title: string;
+    description: string;
+    icon: React.ElementType;
+    color: string;
+    glowColor: string;
+    mainImage: string;
+    features: FeaturePhoto[];
+}
+
+const sections: FeatureSection[] = [
+    {
+        id: "dashboard",
+        title: "Dashboard",
+        description: "Panel principal con vista 360° de tu progreso académico: materias aprobadas, horas de estudio, racha, promedio general y próximos exámenes.",
+        icon: LayoutDashboard,
+        color: "text-neon-cyan",
+        glowColor: "from-neon-cyan/20 to-neon-cyan/5",
+        mainImage: "/features/dashboard.png",
+        features: [],
+    },
+    {
+        id: "plan-carrera",
+        title: "Plan de Carrera",
+        description: "Mapa interactivo de correlatividades. Visualizá qué materias podés cursar, cuáles aprobaste y tu progreso año por año.",
+        icon: GraduationCap,
+        color: "text-neon-purple",
+        glowColor: "from-neon-purple/20 to-neon-purple/5",
+        mainImage: "/features/plan-carrera.png",
+        features: [],
+    },
+    {
+        id: "apuntes",
+        title: "Apuntes",
+        description: "Editor de documentos potente con bloques, listas, títulos y formato enriquecido. Organizá tus apuntes por materia y accedé desde cualquier dispositivo.",
+        icon: FileText,
+        color: "text-neon-cyan",
+        glowColor: "from-neon-cyan/20 to-neon-cyan/5",
+        mainImage: "/features/apuntes.png",
+        features: [
+            { src: "/features/apuntes-editor.png", label: "Editor avanzado de bloques con formato enriquecido" },
+        ],
+    },
+    {
+        id: "flashcards",
+        title: "Flashcards",
+        description: "Creá mazos de tarjetas interactivas y estudialas con repetición espaciada. Animaciones 3D, temporizador y estadísticas de cada sesión.",
+        icon: Layers,
+        color: "text-neon-purple",
+        glowColor: "from-neon-purple/20 to-neon-purple/5",
+        mainImage: "/features/flashcards.png",
+        features: [
+            { src: "/features/flashcards-crear.png", label: "Creación y edición de tarjetas" },
+            { src: "/features/flashcards-estudio.png", label: "Modo estudio con animación 3D" },
+            { src: "/features/flashcards-respuesta.png", label: "Sistema de calificación de respuestas" },
+            { src: "/features/flashcards-resultados.png", label: "Resumen de sesión con estadísticas" },
+        ],
+    },
+    {
+        id: "cuestionarios",
+        title: "Cuestionarios",
+        description: "Generá quizzes con IA a partir de tus apuntes o PDFs. Elegí tema, dificultad y cantidad de preguntas. Resolvelos con temporizador.",
+        icon: ClipboardList,
+        color: "text-neon-green",
+        glowColor: "from-neon-green/20 to-neon-green/5",
+        mainImage: "/features/cuestionarios.png",
+        features: [
+            { src: "/features/cuestionarios-generar.png", label: "Generación de quiz con IA" },
+            { src: "/features/cuestionarios-resolver.png", label: "Resolución con opciones múltiples y timer" },
+        ],
+    },
+    {
+        id: "marketplace",
+        title: "Marketplace",
+        description: "Tienda de recursos académicos donde podés encontrar y compartir material de estudio con otros estudiantes.",
+        icon: ShoppingBag,
+        color: "text-amber-400",
+        glowColor: "from-amber-400/20 to-amber-400/5",
+        mainImage: "/features/marketplace.png",
+        features: [],
+    },
+    {
+        id: "biblioteca",
+        title: "Biblioteca",
+        description: "Organizá tus archivos y recursos por año y materia. Subí PDFs, links y documentos. El visor integrado te permite generar Flashcards, Quizzes y Resúmenes con IA directo del PDF.",
+        icon: BookOpen,
+        color: "text-neon-cyan",
+        glowColor: "from-neon-cyan/20 to-neon-cyan/5",
+        mainImage: "/features/biblioteca.png",
+        features: [
+            { src: "/features/biblioteca-carpeta.png", label: "Contenido organizado en carpetas" },
+            { src: "/features/biblioteca-visor.png", label: "Visor PDF con IA: Flashcards, Quiz y Resumen" },
+        ],
+    },
+    {
+        id: "calendario",
+        title: "Calendario",
+        description: "Calendario académico con vista mensual. Agendá exámenes, TPs y eventos. Cada evento tiene su detalle con materia, tipo y horario.",
+        icon: CalendarDays,
+        color: "text-neon-purple",
+        glowColor: "from-neon-purple/20 to-neon-purple/5",
+        mainImage: "/features/calendario.png",
+        features: [
+            { src: "/features/calendario-evento.png", label: "Detalle de evento con materia y tipo" },
+        ],
+    },
+    {
+        id: "pomodoro",
+        title: "Pomodoro",
+        description: "Temporizador Pomodoro con círculo de progreso animado. Seleccioná la materia, configurá la duración y medí tu productividad.",
+        icon: Timer,
+        color: "text-neon-green",
+        glowColor: "from-neon-green/20 to-neon-green/5",
+        mainImage: "/features/pomodoro.png",
+        features: [],
+    },
+    {
+        id: "metricas",
+        title: "Métricas",
+        description: "Dashboard analítico completo: gráficos de horas, distribución por materia, racha de estudio, productividad semanal y tendencias de rendimiento.",
+        icon: BarChart3,
+        color: "text-neon-cyan",
+        glowColor: "from-neon-cyan/20 to-neon-cyan/5",
+        mainImage: "/features/metricas.png",
+        features: [],
+    },
+    {
+        id: "bosque",
+        title: "Mi Bosque",
+        description: "Tu bosque virtual crece con cada sesión Pomodoro completada. Cada árbol representa tu esfuerzo — una forma visual y motivadora de ver tu progreso.",
+        icon: TreePine,
+        color: "text-emerald-400",
+        glowColor: "from-emerald-400/20 to-emerald-400/5",
+        mainImage: "/features/bosque.png",
+        features: [],
+    },
+    {
+        id: "comunidad",
+        title: "Comunidad",
+        description: "Servidores de estudio con canales de texto y voz en tiempo real. Conectá con compañeros, compartí recursos y estudiá en grupo.",
+        icon: MessageSquare,
+        color: "text-neon-purple",
+        glowColor: "from-neon-purple/20 to-neon-purple/5",
+        mainImage: "/features/comunidad.png",
+        features: [],
+    },
+    {
+        id: "logros",
+        title: "Logros",
+        description: "Sistema de medallas y objetivos desbloqueables. Ganá logros por racha de estudio, materias aprobadas, horas acumuladas y más.",
+        icon: Trophy,
+        color: "text-amber-400",
+        glowColor: "from-amber-400/20 to-amber-400/5",
+        mainImage: "/features/logros.png",
+        features: [],
+    },
+    {
+        id: "amigos",
+        title: "Amigos",
+        description: "Ranking social con tus compañeros. Compará rachas, XP semanal y logros. Invitá amigos con tu código personal.",
+        icon: Users,
+        color: "text-neon-cyan",
+        glowColor: "from-neon-cyan/20 to-neon-cyan/5",
+        mainImage: "/features/amigos.png",
+        features: [],
+    },
+    {
+        id: "asistente-ia",
+        title: "Asistente IA",
+        description: "Chat inteligente con T.A.B.E. IA. Acciones rápidas: explicar temas, simulacros, planear estudios, agendar y ver progreso. Creá IAs personalizadas con nombre, emoji y personalidad.",
+        icon: Bot,
+        color: "text-neon-purple",
+        glowColor: "from-neon-purple/20 to-neon-purple/5",
+        mainImage: "/features/asistente-ia.png",
+        features: [
+            { src: "/features/asistente-personajes.png", label: "Selección de personalidad IA" },
+            { src: "/features/asistente-crear.png", label: "Crear IA personalizada con nombre y emoji" },
+            { src: "/features/asistente-chat.png", label: "Conversación en vivo con la IA" },
+            { src: "/features/asistente-respuesta.png", label: "Respuestas detalladas paso a paso" },
+        ],
+    },
+    {
+        id: "configuracion",
+        title: "Configuración",
+        description: "Personalizá tu experiencia: perfil, tema, notificaciones, integración con Google Calendar y exportación de datos.",
+        icon: Settings,
+        color: "text-muted-foreground",
+        glowColor: "from-muted/20 to-muted/5",
+        mainImage: "/features/configuracion.png",
+        features: [
+            { src: "/features/configuracion-opciones.png", label: "Opciones avanzadas e integraciones" },
+        ],
+    },
+];
+
+function FeatureCard({ section, index }: { section: FeatureSection; index: number }) {
+    const [expanded, setExpanded] = useState(false);
+    const [lightbox, setLightbox] = useState<string | null>(null);
+    const Icon = section.icon;
+    const isEven = index % 2 === 0;
+    const hasFeatures = section.features.length > 0;
+
+    return (
+        <>
+            <div
+                id={`feature-${section.id}`}
+                className={`grid lg:grid-cols-2 gap-8 lg:gap-12 items-center ${isEven ? "" : "lg:[direction:rtl]"}`}
+            >
+                {/* Text side */}
+                <div className={`space-y-5 ${isEven ? "" : "lg:[direction:ltr]"}`}>
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border text-sm font-medium ${section.color}`}>
+                        <Icon className="w-4 h-4" />
+                        {section.title}
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-display font-bold leading-tight">
+                        {section.title}
+                    </h3>
+                    <p className="text-muted-foreground text-base leading-relaxed">
+                        {section.description}
+                    </p>
+                    {hasFeatures && (
+                        <button
+                            onClick={() => setExpanded(!expanded)}
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-secondary/40 hover:bg-secondary/80 transition-all text-sm font-medium ${section.color}`}
+                        >
+                            <Sparkles className="w-4 h-4" />
+                            {expanded ? "Ocultar funciones" : `Ver ${section.features.length} funciones`}
+                            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                    )}
+                </div>
+
+                {/* Image side */}
+                <div className={`relative group ${isEven ? "" : "lg:[direction:ltr]"}`}>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${section.glowColor} rounded-2xl blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10`} />
+                    <div
+                        className="relative rounded-2xl border border-border overflow-hidden shadow-2xl shadow-black/20 cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
+                        onClick={() => setLightbox(section.mainImage)}
+                    >
+                        <img
+                            src={section.mainImage}
+                            alt={section.title}
+                            className="w-full h-auto"
+                            loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                            <span className="flex items-center gap-1.5 text-xs font-medium text-white/90 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                                <Eye className="w-3 h-3" /> Click para ampliar
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Expanded features grid */}
+            {hasFeatures && expanded && (
+                <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                    {section.features.map((feat, i) => (
+                        <div
+                            key={i}
+                            className="group/feat relative rounded-xl border border-border bg-card overflow-hidden cursor-pointer transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+                            onClick={() => setLightbox(feat.src)}
+                        >
+                            <img
+                                src={feat.src}
+                                alt={feat.label}
+                                className="w-full h-40 object-cover object-top"
+                                loading="lazy"
+                            />
+                            <div className="p-3">
+                                <p className="text-xs font-medium text-muted-foreground leading-snug flex items-start gap-1.5">
+                                    <Sparkles className={`w-3 h-3 mt-0.5 flex-shrink-0 ${section.color}`} />
+                                    {feat.label}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Lightbox */}
+            {lightbox && (
+                <div
+                    className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+                    onClick={() => setLightbox(null)}
+                >
+                    <img
+                        src={lightbox}
+                        alt="Vista ampliada"
+                        className="max-w-full max-h-[90vh] rounded-xl shadow-2xl border border-white/10"
+                    />
+                </div>
+            )}
+        </>
+    );
+}
+
+export function FeaturesShowcase() {
+    return (
+        <section id="funcionalidades" className="py-24 relative overflow-hidden bg-background">
+            {/* Background decoration */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neon-purple/3 via-transparent to-transparent pointer-events-none" />
+
+            <div className="container mx-auto px-4 md:px-6 relative z-10">
+                {/* Section header */}
+                <div className="text-center max-w-3xl mx-auto mb-20">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neon-purple/10 border border-neon-purple/20 text-sm font-medium text-neon-purple mb-6">
+                        <Sparkles className="w-4 h-4" />
+                        Explorá la Plataforma
+                    </div>
+                    <h2 className="text-3xl md:text-5xl font-display font-bold mb-5">
+                        Todo lo que necesitás para{" "}
+                        <span className="gradient-text">aprobar</span>
+                    </h2>
+                    <p className="text-lg text-muted-foreground">
+                        Cada herramienta fue diseñada para que estudies menos tiempo pero de forma más inteligente. Hacé click en cada imagen para verla en detalle.
+                    </p>
+                </div>
+
+                {/* Features list */}
+                <div className="space-y-20 lg:space-y-28">
+                    {sections.map((section, i) => (
+                        <FeatureCard key={section.id} section={section} index={i} />
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+}
