@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
     LayoutDashboard, GraduationCap, FileText, Layers, ClipboardList,
     ShoppingBag, BookOpen, CalendarDays, Timer, BarChart3,
     TreePine, MessageSquare, Trophy, Users, Bot, Settings,
-    ChevronDown, ChevronUp, Sparkles, Eye
+    ChevronDown, ChevronUp, Sparkles, X
 } from "lucide-react";
 
 interface FeaturePhoto {
@@ -96,7 +96,7 @@ const sections: FeatureSection[] = [
     {
         id: "biblioteca",
         title: "Biblioteca",
-        description: "Organizá tus archivos y recursos por año y materia. Subí PDFs, links y documentos. El visor integrado te permite generar Flashcards, Quizzes y Resúmenes con IA directo del PDF.",
+        description: "Organizá tus archivos y recursos por año y materia. Subí PDFs, links y documentos. El visor integrado genera Flashcards, Quizzes y Resúmenes con IA directo del PDF.",
         icon: BookOpen,
         color: "text-neon-cyan",
         glowColor: "from-neon-cyan/20 to-neon-cyan/5",
@@ -109,7 +109,7 @@ const sections: FeatureSection[] = [
     {
         id: "calendario",
         title: "Calendario",
-        description: "Calendario académico con vista mensual. Agendá exámenes, TPs y eventos. Cada evento tiene su detalle con materia, tipo y horario.",
+        description: "Calendario académico con vista mensual. Agendá exámenes, TPs y eventos con detalle de materia, tipo y horario.",
         icon: CalendarDays,
         color: "text-neon-purple",
         glowColor: "from-neon-purple/20 to-neon-purple/5",
@@ -131,7 +131,7 @@ const sections: FeatureSection[] = [
     {
         id: "metricas",
         title: "Métricas",
-        description: "Dashboard analítico completo: gráficos de horas, distribución por materia, racha de estudio, productividad semanal y tendencias de rendimiento.",
+        description: "Dashboard analítico: gráficos de horas, distribución por materia, racha de estudio, productividad semanal y tendencias.",
         icon: BarChart3,
         color: "text-neon-cyan",
         glowColor: "from-neon-cyan/20 to-neon-cyan/5",
@@ -141,7 +141,7 @@ const sections: FeatureSection[] = [
     {
         id: "bosque",
         title: "Mi Bosque",
-        description: "Tu bosque virtual crece con cada sesión Pomodoro completada. Cada árbol representa tu esfuerzo — una forma visual y motivadora de ver tu progreso.",
+        description: "Tu bosque virtual crece con cada sesión Pomodoro completada. Cada árbol representa tu esfuerzo de estudio.",
         icon: TreePine,
         color: "text-emerald-400",
         glowColor: "from-emerald-400/20 to-emerald-400/5",
@@ -151,7 +151,7 @@ const sections: FeatureSection[] = [
     {
         id: "comunidad",
         title: "Comunidad",
-        description: "Servidores de estudio con canales de texto y voz en tiempo real. Conectá con compañeros, compartí recursos y estudiá en grupo.",
+        description: "Servidores de estudio con canales de texto y voz en tiempo real. Conectá con compañeros y estudiá en grupo.",
         icon: MessageSquare,
         color: "text-neon-purple",
         glowColor: "from-neon-purple/20 to-neon-purple/5",
@@ -161,7 +161,7 @@ const sections: FeatureSection[] = [
     {
         id: "logros",
         title: "Logros",
-        description: "Sistema de medallas y objetivos desbloqueables. Ganá logros por racha de estudio, materias aprobadas, horas acumuladas y más.",
+        description: "Sistema de medallas y objetivos desbloqueables por racha, materias aprobadas y horas acumuladas.",
         icon: Trophy,
         color: "text-amber-400",
         glowColor: "from-amber-400/20 to-amber-400/5",
@@ -171,7 +171,7 @@ const sections: FeatureSection[] = [
     {
         id: "amigos",
         title: "Amigos",
-        description: "Ranking social con tus compañeros. Compará rachas, XP semanal y logros. Invitá amigos con tu código personal.",
+        description: "Ranking social con tus compañeros. Compará rachas, XP semanal y logros. Invitá amigos con tu código.",
         icon: Users,
         color: "text-neon-cyan",
         glowColor: "from-neon-cyan/20 to-neon-cyan/5",
@@ -181,7 +181,7 @@ const sections: FeatureSection[] = [
     {
         id: "asistente-ia",
         title: "Asistente IA",
-        description: "Chat inteligente con T.A.B.E. IA. Acciones rápidas: explicar temas, simulacros, planear estudios, agendar y ver progreso. Creá IAs personalizadas con nombre, emoji y personalidad.",
+        description: "Chat inteligente con T.A.B.E. IA. Explicar temas, simulacros, planear estudios, agendar y ver progreso. Creá IAs personalizadas.",
         icon: Bot,
         color: "text-neon-purple",
         glowColor: "from-neon-purple/20 to-neon-purple/5",
@@ -196,7 +196,7 @@ const sections: FeatureSection[] = [
     {
         id: "configuracion",
         title: "Configuración",
-        description: "Personalizá tu experiencia: perfil, tema, notificaciones, integración con Google Calendar y exportación de datos.",
+        description: "Personalizá tu experiencia: perfil, tema, notificaciones, Google Calendar y exportación de datos.",
         icon: Settings,
         color: "text-muted-foreground",
         glowColor: "from-muted/20 to-muted/5",
@@ -207,20 +207,50 @@ const sections: FeatureSection[] = [
     },
 ];
 
-function FeatureCard({ section, index }: { section: FeatureSection; index: number }) {
+/* ── Lightbox global ── */
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+    return (
+        <div
+            className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={onClose}
+        >
+            <button
+                onClick={onClose}
+                className="absolute top-6 right-6 z-[10000] p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+                <X className="w-6 h-6 text-white" />
+            </button>
+            <img
+                src={src}
+                alt="Vista ampliada"
+                className="max-w-[95vw] max-h-[90vh] rounded-xl shadow-2xl border border-white/10 object-contain"
+                onClick={(e) => e.stopPropagation()}
+            />
+        </div>
+    );
+}
+
+/* ── Feature Card ── */
+function FeatureCard({
+    section,
+    index,
+    onImageClick,
+}: {
+    section: FeatureSection;
+    index: number;
+    onImageClick: (src: string) => void;
+}) {
     const [expanded, setExpanded] = useState(false);
-    const [lightbox, setLightbox] = useState<string | null>(null);
     const Icon = section.icon;
     const isEven = index % 2 === 0;
     const hasFeatures = section.features.length > 0;
 
     return (
-        <>
+        <div className="space-y-6">
             <div
-                id={`feature-${section.id}`}
                 className={`grid lg:grid-cols-2 gap-8 lg:gap-12 items-center ${isEven ? "" : "lg:[direction:rtl]"}`}
             >
-                {/* Text side */}
+                {/* Text */}
                 <div className={`space-y-5 ${isEven ? "" : "lg:[direction:ltr]"}`}>
                     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border text-sm font-medium ${section.color}`}>
                         <Icon className="w-4 h-4" />
@@ -244,42 +274,36 @@ function FeatureCard({ section, index }: { section: FeatureSection; index: numbe
                     )}
                 </div>
 
-                {/* Image side */}
-                <div className={`relative group ${isEven ? "" : "lg:[direction:ltr]"}`}>
+                {/* Image */}
+                <div className={`relative group cursor-pointer ${isEven ? "" : "lg:[direction:ltr]"}`} onClick={() => onImageClick(section.mainImage)}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${section.glowColor} rounded-2xl blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10`} />
-                    <div
-                        className="relative rounded-2xl border border-border overflow-hidden shadow-2xl shadow-black/20 cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
-                        onClick={() => setLightbox(section.mainImage)}
-                    >
+                    <div className="relative rounded-2xl border border-border overflow-hidden shadow-2xl shadow-black/20 transition-transform duration-300 hover:scale-[1.02]">
                         <img
                             src={section.mainImage}
                             alt={section.title}
                             className="w-full h-auto"
                             loading="lazy"
+                            decoding="async"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
-                            <span className="flex items-center gap-1.5 text-xs font-medium text-white/90 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                                <Eye className="w-3 h-3" /> Click para ampliar
-                            </span>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Expanded features grid */}
+            {/* Expanded features */}
             {hasFeatures && expanded && (
-                <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {section.features.map((feat, i) => (
                         <div
                             key={i}
                             className="group/feat relative rounded-xl border border-border bg-card overflow-hidden cursor-pointer transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-                            onClick={() => setLightbox(feat.src)}
+                            onClick={() => onImageClick(feat.src)}
                         >
                             <img
                                 src={feat.src}
                                 alt={feat.label}
                                 className="w-full h-40 object-cover object-top"
                                 loading="lazy"
+                                decoding="async"
                             />
                             <div className="p-3">
                                 <p className="text-xs font-medium text-muted-foreground leading-snug flex items-start gap-1.5">
@@ -291,53 +315,59 @@ function FeatureCard({ section, index }: { section: FeatureSection; index: numbe
                     ))}
                 </div>
             )}
-
-            {/* Lightbox */}
-            {lightbox && (
-                <div
-                    className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
-                    onClick={() => setLightbox(null)}
-                >
-                    <img
-                        src={lightbox}
-                        alt="Vista ampliada"
-                        className="max-w-full max-h-[90vh] rounded-xl shadow-2xl border border-white/10"
-                    />
-                </div>
-            )}
-        </>
+        </div>
     );
 }
 
+/* ── Main Section ── */
 export function FeaturesShowcase() {
+    const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+    const openLightbox = useCallback((src: string) => {
+        setLightboxSrc(src);
+    }, []);
+
+    const closeLightbox = useCallback(() => {
+        setLightboxSrc(null);
+    }, []);
+
     return (
-        <section id="funcionalidades" className="py-24 relative overflow-hidden bg-background">
-            {/* Background decoration */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neon-purple/3 via-transparent to-transparent pointer-events-none" />
+        <>
+            <section id="funcionalidades" className="py-24 relative overflow-hidden bg-background">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neon-purple/3 via-transparent to-transparent pointer-events-none" />
 
-            <div className="container mx-auto px-4 md:px-6 relative z-10">
-                {/* Section header */}
-                <div className="text-center max-w-3xl mx-auto mb-20">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neon-purple/10 border border-neon-purple/20 text-sm font-medium text-neon-purple mb-6">
-                        <Sparkles className="w-4 h-4" />
-                        Explorá la Plataforma
+                <div className="container mx-auto px-4 md:px-6 relative z-10">
+                    {/* Header */}
+                    <div className="text-center max-w-3xl mx-auto mb-20">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neon-purple/10 border border-neon-purple/20 text-sm font-medium text-neon-purple mb-6">
+                            <Sparkles className="w-4 h-4" />
+                            Explorá la Plataforma
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-display font-bold mb-5">
+                            Todo lo que necesitás para{" "}
+                            <span className="gradient-text">aprobar</span>
+                        </h2>
+                        <p className="text-lg text-muted-foreground">
+                            Cada herramienta fue diseñada para que estudies menos tiempo pero de forma más inteligente. Hacé click en cada imagen para verla en detalle.
+                        </p>
                     </div>
-                    <h2 className="text-3xl md:text-5xl font-display font-bold mb-5">
-                        Todo lo que necesitás para{" "}
-                        <span className="gradient-text">aprobar</span>
-                    </h2>
-                    <p className="text-lg text-muted-foreground">
-                        Cada herramienta fue diseñada para que estudies menos tiempo pero de forma más inteligente. Hacé click en cada imagen para verla en detalle.
-                    </p>
-                </div>
 
-                {/* Features list */}
-                <div className="space-y-20 lg:space-y-28">
-                    {sections.map((section, i) => (
-                        <FeatureCard key={section.id} section={section} index={i} />
-                    ))}
+                    {/* Features list */}
+                    <div className="space-y-20 lg:space-y-28">
+                        {sections.map((section, i) => (
+                            <FeatureCard
+                                key={section.id}
+                                section={section}
+                                index={i}
+                                onImageClick={openLightbox}
+                            />
+                        ))}
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            {/* Single global lightbox */}
+            {lightboxSrc && <Lightbox src={lightboxSrc} onClose={closeLightbox} />}
+        </>
     );
 }

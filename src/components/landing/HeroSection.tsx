@@ -1,11 +1,11 @@
 import { Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
-import { HeroCarousel } from "./HeroCarousel";
+import { FeaturesShowcase } from "./FeaturesShowcase";
 
 export function HeroSection() {
     const whatsappUrl = "https://wa.me/5492617737367?text=Hola,%20quiero%20formar%20parte%20de%20TABE%20y%20mejorar%20mi%20rendimiento%20en%20exactas!";
 
     return (
-        <section id="hero" className="relative min-h-[100dvh] pt-28 pb-20 flex flex-col items-center overflow-hidden">
+        <section id="hero" className="relative pt-28 pb-0 flex flex-col items-center overflow-hidden">
             {/* Background gradients */}
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] -z-10" />
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] -z-10" />
@@ -51,36 +51,30 @@ export function HeroSection() {
                         </div>
                     </div>
                 </div>
-
-                {/* Interactive App Carousel - SCROLLING APP PREVIEWS */}
-                <div className="mt-16 w-full max-w-6xl mx-auto z-20 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-                    <HeroCarousel />
-                </div>
-
-                {/* Secondary CTA Below Carousel */}
-                <div className="mt-20 z-20 animate-fade-in-up pb-10" style={{ animationDelay: "0.6s" }}>
-                    <div className="relative group">
-                        {/* Glow effect */}
-                        <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full blur opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-
-                        <a
-                            href="/auth"
-                            className="relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-full font-bold text-xl hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden"
-                        >
-                            {/* Hover shine effect */}
-                            <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-                            <span className="relative z-10 font-bold">
-                                Entrar a la App
-                            </span>
-                            <ArrowRight className="relative z-10 w-6 h-6 text-white group-hover:translate-x-1.5 transition-transform" />
-                        </a>
-                    </div>
-                </div>
             </div>
 
             {/* Grid overlay */}
             <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10 pointer-events-none" />
+
+            {/* Features Showcase (replaces old carousel) */}
+            <FeaturesShowcase />
+
+            {/* CTA: Entrar a la App */}
+            <div className="py-16 z-20">
+                <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full blur opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+                    <a
+                        href="/auth"
+                        className="relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-full font-bold text-xl hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden"
+                    >
+                        <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                        <span className="relative z-10 font-bold">
+                            Entrar a la App
+                        </span>
+                        <ArrowRight className="relative z-10 w-6 h-6 text-white group-hover:translate-x-1.5 transition-transform" />
+                    </a>
+                </div>
+            </div>
         </section>
     );
 }
