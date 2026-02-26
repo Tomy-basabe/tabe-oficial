@@ -1,5 +1,5 @@
 {
-    "name": "T.A.B.E. — Tu Asistente de Bolsillo Estudiantil",
+    "name": "T.A.B.E.",
     "short_name": "T.A.B.E.",
     "description": "La plataforma todo-en-uno para estudiantes de exactas. Materias, flashcards, quizzes con IA, calendario, Pomodoro, métricas y mucho más.",
     "start_url": "/auth",
