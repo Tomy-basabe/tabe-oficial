@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Zap, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { TabeLogo } from "@/components/ui/TabeLogo";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,6 +16,34 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, loginAsGuest } = useAuth();
   const navigate = useNavigate();
+
+  // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    // Check if already installed as PWA
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const result = await installPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      setIsInstalled(true);
+      toast.success('¡App instalada!');
+    }
+    setInstallPrompt(null);
+  };
 
   const handleGuestLogin = () => {
     loginAsGuest();
@@ -90,12 +119,10 @@ export default function Auth() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center glow-cyan">
-              <Zap className="w-8 h-8 text-background" />
-            </div>
+            <TabeLogo size={56} />
             <div className="text-left">
               <h1 className="font-display font-bold text-3xl gradient-text">T.A.B.E.</h1>
-              <p className="text-xs text-muted-foreground">Sistema Académico</p>
+              <p className="text-xs text-muted-foreground">Tomas Aprendizaje Basado en Experiencia</p>
             </div>
           </div>
           <p className="text-muted-foreground">
@@ -215,6 +242,20 @@ export default function Auth() {
                 Probar como Invitado
               </button>
             </div>
+
+            {/* Install App Button - only on web, not when already installed */}
+            {!isInstalled && installPrompt && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleInstall}
+                  className="w-full py-3 bg-gradient-to-r from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 text-foreground font-medium rounded-xl hover:from-neon-cyan/30 hover:to-neon-purple/30 transition-all flex items-center justify-center gap-2"
+                >
+                  <Download className="w-5 h-5 text-neon-cyan" />
+                  Descargar App
+                </button>
+              </div>
+            )}
           </form>
         </div>
 

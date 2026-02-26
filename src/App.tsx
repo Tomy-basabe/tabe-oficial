@@ -29,6 +29,7 @@ import Marketplace from "@/pages/Marketplace";
 import CorrelativityMap from "@/pages/CorrelativityMap";
 import Landing from "@/pages/Landing";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
+import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
 
 const queryClient = new QueryClient();
 
@@ -134,6 +135,7 @@ const App = () => (
             <DiscordVoiceProvider>
               <AppRoutes />
               <GlobalDiscordVoiceWidget />
+              <PWAInstallBanner />
             </DiscordVoiceProvider>
           </BrowserRouter>
         </PomodoroProvider>
