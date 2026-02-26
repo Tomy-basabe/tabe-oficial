@@ -384,7 +384,7 @@ export default function Notion() {
                 onClickSubject={closeDocument}
               />
             ) : (
-              <span style={{ fontWeight: 500 }}>Notion</span>
+              <span style={{ fontWeight: 500 }}>Apuntes</span>
             )}
           </div>
 
@@ -539,7 +539,7 @@ export default function Notion() {
                 className="text-2xl font-bold mb-2"
                 style={{ color: "hsl(var(--foreground))" }}
               >
-                Notion — Tus Apuntes
+                Apuntes — Tus Documentos
               </h2>
               <p
                 className="mb-6 max-w-md"
