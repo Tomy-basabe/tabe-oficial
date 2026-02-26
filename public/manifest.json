@@ -8,7 +8,7 @@
     "theme_color": "#00FFAA",
     "lang": "es",
     "scope": "/",
-    "orientation": "portrait",
+    "orientation": "any",
     "categories": [
         "education",
         "productivity"
