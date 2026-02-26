@@ -30,7 +30,7 @@ const sections: FeatureSection[] = [
         icon: LayoutDashboard,
         color: "text-neon-cyan",
         glowColor: "from-neon-cyan/20 to-neon-cyan/5",
-        mainImage: "/features/dashboard.png",
+        mainImage: "/features/dashboard.webp",
         features: [],
     },
     {
@@ -40,7 +40,7 @@ const sections: FeatureSection[] = [
         icon: GraduationCap,
         color: "text-neon-purple",
         glowColor: "from-neon-purple/20 to-neon-purple/5",
-        mainImage: "/features/plan-carrera.png",
+        mainImage: "/features/plan-carrera.webp",
         features: [],
     },
     {
@@ -50,9 +50,9 @@ const sections: FeatureSection[] = [
         icon: FileText,
         color: "text-neon-cyan",
         glowColor: "from-neon-cyan/20 to-neon-cyan/5",
-        mainImage: "/features/apuntes.png",
+        mainImage: "/features/apuntes.webp",
         features: [
-            { src: "/features/apuntes-editor.png", label: "Editor avanzado de bloques con formato enriquecido" },
+            { src: "/features/apuntes-editor.webp", label: "Editor avanzado de bloques con formato enriquecido" },
         ],
     },
     {
@@ -62,12 +62,12 @@ const sections: FeatureSection[] = [
         icon: Layers,
         color: "text-neon-purple",
         glowColor: "from-neon-purple/20 to-neon-purple/5",
-        mainImage: "/features/flashcards.png",
+        mainImage: "/features/flashcards.webp",
         features: [
-            { src: "/features/flashcards-crear.png", label: "Creación y edición de tarjetas" },
-            { src: "/features/flashcards-estudio.png", label: "Modo estudio con animación 3D" },
-            { src: "/features/flashcards-respuesta.png", label: "Sistema de calificación de respuestas" },
-            { src: "/features/flashcards-resultados.png", label: "Resumen de sesión con estadísticas" },
+            { src: "/features/flashcards-crear.webp", label: "Creación y edición de tarjetas" },
+            { src: "/features/flashcards-estudio.webp", label: "Modo estudio con animación 3D" },
+            { src: "/features/flashcards-respuesta.webp", label: "Sistema de calificación de respuestas" },
+            { src: "/features/flashcards-resultados.webp", label: "Resumen de sesión con estadísticas" },
         ],
     },
     {
@@ -77,10 +77,10 @@ const sections: FeatureSection[] = [
         icon: ClipboardList,
         color: "text-neon-green",
         glowColor: "from-neon-green/20 to-neon-green/5",
-        mainImage: "/features/cuestionarios.png",
+        mainImage: "/features/cuestionarios.webp",
         features: [
-            { src: "/features/cuestionarios-generar.png", label: "Generación de quiz con IA" },
-            { src: "/features/cuestionarios-resolver.png", label: "Resolución con opciones múltiples y timer" },
+            { src: "/features/cuestionarios-generar.webp", label: "Generación de quiz con IA" },
+            { src: "/features/cuestionarios-resolver.webp", label: "Resolución con opciones múltiples y timer" },
         ],
     },
     {
@@ -90,7 +90,7 @@ const sections: FeatureSection[] = [
         icon: ShoppingBag,
         color: "text-amber-400",
         glowColor: "from-amber-400/20 to-amber-400/5",
-        mainImage: "/features/marketplace.png",
+        mainImage: "/features/marketplace.webp",
         features: [],
     },
     {
@@ -100,10 +100,10 @@ const sections: FeatureSection[] = [
         icon: BookOpen,
         color: "text-neon-cyan",
         glowColor: "from-neon-cyan/20 to-neon-cyan/5",
-        mainImage: "/features/biblioteca.png",
+        mainImage: "/features/biblioteca.webp",
         features: [
-            { src: "/features/biblioteca-carpeta.png", label: "Contenido organizado en carpetas" },
-            { src: "/features/biblioteca-visor.png", label: "Visor PDF con IA: Flashcards, Quiz y Resumen" },
+            { src: "/features/biblioteca-carpeta.webp", label: "Contenido organizado en carpetas" },
+            { src: "/features/biblioteca-visor.webp", label: "Visor PDF con IA: Flashcards, Quiz y Resumen" },
         ],
     },
     {
@@ -113,9 +113,9 @@ const sections: FeatureSection[] = [
         icon: CalendarDays,
         color: "text-neon-purple",
         glowColor: "from-neon-purple/20 to-neon-purple/5",
-        mainImage: "/features/calendario.png",
+        mainImage: "/features/calendario.webp",
         features: [
-            { src: "/features/calendario-evento.png", label: "Detalle de evento con materia y tipo" },
+            { src: "/features/calendario-evento.webp", label: "Detalle de evento con materia y tipo" },
         ],
     },
     {
@@ -125,7 +125,7 @@ const sections: FeatureSection[] = [
         icon: Timer,
         color: "text-neon-green",
         glowColor: "from-neon-green/20 to-neon-green/5",
-        mainImage: "/features/pomodoro.png",
+        mainImage: "/features/pomodoro.webp",
         features: [],
     },
     {
@@ -135,7 +135,7 @@ const sections: FeatureSection[] = [
         icon: BarChart3,
         color: "text-neon-cyan",
         glowColor: "from-neon-cyan/20 to-neon-cyan/5",
-        mainImage: "/features/metricas.png",
+        mainImage: "/features/metricas.webp",
         features: [],
     },
     {
@@ -145,7 +145,7 @@ const sections: FeatureSection[] = [
         icon: TreePine,
         color: "text-emerald-400",
         glowColor: "from-emerald-400/20 to-emerald-400/5",
-        mainImage: "/features/bosque.png",
+        mainImage: "/features/bosque.webp",
         features: [],
     },
     {
@@ -155,7 +155,7 @@ const sections: FeatureSection[] = [
         icon: MessageSquare,
         color: "text-neon-purple",
         glowColor: "from-neon-purple/20 to-neon-purple/5",
-        mainImage: "/features/comunidad.png",
+        mainImage: "/features/comunidad.webp",
         features: [],
     },
     {
@@ -165,7 +165,7 @@ const sections: FeatureSection[] = [
         icon: Trophy,
         color: "text-amber-400",
         glowColor: "from-amber-400/20 to-amber-400/5",
-        mainImage: "/features/logros.png",
+        mainImage: "/features/logros.webp",
         features: [],
     },
     {
@@ -175,7 +175,7 @@ const sections: FeatureSection[] = [
         icon: Users,
         color: "text-neon-cyan",
         glowColor: "from-neon-cyan/20 to-neon-cyan/5",
-        mainImage: "/features/amigos.png",
+        mainImage: "/features/amigos.webp",
         features: [],
     },
     {
@@ -185,12 +185,12 @@ const sections: FeatureSection[] = [
         icon: Bot,
         color: "text-neon-purple",
         glowColor: "from-neon-purple/20 to-neon-purple/5",
-        mainImage: "/features/asistente-ia.png",
+        mainImage: "/features/asistente-ia.webp",
         features: [
-            { src: "/features/asistente-personajes.png", label: "Selección de personalidad IA" },
-            { src: "/features/asistente-crear.png", label: "Crear IA personalizada con nombre y emoji" },
-            { src: "/features/asistente-chat.png", label: "Conversación en vivo con la IA" },
-            { src: "/features/asistente-respuesta.png", label: "Respuestas detalladas paso a paso" },
+            { src: "/features/asistente-personajes.webp", label: "Selección de personalidad IA" },
+            { src: "/features/asistente-crear.webp", label: "Crear IA personalizada con nombre y emoji" },
+            { src: "/features/asistente-chat.webp", label: "Conversación en vivo con la IA" },
+            { src: "/features/asistente-respuesta.webp", label: "Respuestas detalladas paso a paso" },
         ],
     },
     {
@@ -200,9 +200,9 @@ const sections: FeatureSection[] = [
         icon: Settings,
         color: "text-muted-foreground",
         glowColor: "from-muted/20 to-muted/5",
-        mainImage: "/features/configuracion.png",
+        mainImage: "/features/configuracion.webp",
         features: [
-            { src: "/features/configuracion-opciones.png", label: "Opciones avanzadas e integraciones" },
+            { src: "/features/configuracion-opciones.webp", label: "Opciones avanzadas e integraciones" },
         ],
     },
 ];
