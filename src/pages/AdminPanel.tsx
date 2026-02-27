@@ -8,14 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { UserPlus, Mail, Check, Clock, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays } from "lucide-react";
-
-interface InvitedUser {
-  id: string;
-  email: string;
-  created_at: string;
-  accepted_at: string | null;
-}
+import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock } from "lucide-react";
 
 interface UserReview {
   id: string;
@@ -49,9 +42,6 @@ const AdminPanel = () => {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [invitedUsers, setInvitedUsers] = useState<InvitedUser[]>([]);
-  const [newEmail, setNewEmail] = useState("");
-  const [inviting, setInviting] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
@@ -59,9 +49,6 @@ const AdminPanel = () => {
   // Registered Users state
   const [registeredUsers, setRegisteredUsers] = useState<Profile[]>([]);
   const [loadingRegisteredUsers, setLoadingRegisteredUsers] = useState(false);
-
-  // Template states
-  const [useSistemasTemplate, setUseSistemasTemplate] = useState(false);
 
   // Subscription modal states
   const [activatingUser, setActivatingUser] = useState<Profile | null>(null);
@@ -89,7 +76,6 @@ const AdminPanel = () => {
       setIsAdmin(!!data);
 
       if (data) {
-        fetchInvitedUsers();
         fetchReviews();
         fetchRegisteredUsers();
       }
@@ -100,19 +86,7 @@ const AdminPanel = () => {
     }
   };
 
-  const fetchInvitedUsers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("invited_users")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setInvitedUsers(data || []);
-    } catch (error) {
-      console.error("Error fetching invited users:", error);
-    }
-  };
 
   const fetchReviews = async () => {
     setLoadingReviews(true);
@@ -161,7 +135,6 @@ const AdminPanel = () => {
 
       toast.success(`Usuario ${email || id} eliminado correctamente`);
       fetchRegisteredUsers();
-      fetchInvitedUsers();
     } catch (error: any) {
       console.error("Error deleting user:", error);
       toast.error(`Error al eliminar usuario: ${error.message}`);
@@ -276,77 +249,7 @@ const AdminPanel = () => {
     }
   };
 
-  const handleInviteUser = async (e: React.FormEvent) => {
-    e.preventDefault();
 
-    if (!newEmail.trim()) {
-      toast.error("Ingresa un email válido");
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail)) {
-      toast.error("El formato del email no es válido");
-      return;
-    }
-
-    setInviting(true);
-
-    try {
-      // Check if already invited
-      const { data: existing } = await supabase
-        .from("invited_users")
-        .select("id")
-        .eq("email", newEmail.toLowerCase())
-        .maybeSingle();
-
-      if (existing) {
-        toast.error("Este email ya fue invitado");
-        setInviting(false);
-        return;
-      }
-
-      const templateValue = useSistemasTemplate ? 'sistemas' : 'none';
-
-      const { error } = await supabase
-        .from("invited_users")
-        .insert({
-          email: newEmail.toLowerCase(),
-          invited_by: user!.id,
-          template: templateValue
-        });
-
-      if (error) throw error;
-
-      toast.success(`Invitación creada para ${newEmail} ${useSistemasTemplate ? '(Ing. Sistemas)' : ''}`);
-      setNewEmail("");
-      setUseSistemasTemplate(false);
-      fetchInvitedUsers();
-    } catch (error: any) {
-      console.error("Error inviting user:", error);
-      toast.error(`Error al crear la invitación: ${error.message || error.details || "Error desconocido"}`);
-    } finally {
-      setInviting(false);
-    }
-  };
-
-  const handleDeleteInvitation = async (id: string, email: string) => {
-    try {
-      const { error } = await supabase
-        .from("invited_users")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      toast.success(`Invitación para ${email} eliminada`);
-      fetchInvitedUsers();
-    } catch (error) {
-      console.error("Error deleting invitation:", error);
-      toast.error("Error al eliminar la invitación");
-    }
-  };
 
   const handleDeleteReview = async (id: string) => {
     if (!confirm("¿Estás seguro de que deseas eliminar esta valoración?")) return;
@@ -416,60 +319,6 @@ const AdminPanel = () => {
         </Button>
       </div>
 
-      {/* Invite User Form ... existing ... */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Invitar Nuevo Usuario
-          </CardTitle>
-          <CardDescription>
-            Ingresa el email del usuario que deseas invitar. Solo los usuarios invitados podrán registrarse.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleInviteUser} className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <Label htmlFor="email" className="sr-only">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="ejemplo@email.com"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  disabled={inviting}
-                />
-              </div>
-              <Button type="submit" disabled={inviting}>
-                {inviting ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4 mr-2" />
-                    Invitar
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <div className="flex items-center space-x-2 bg-secondary/30 p-3 rounded-lg border border-border mt-2">
-              <Switch
-                id="template-mode"
-                checked={useSistemasTemplate}
-                onCheckedChange={setUseSistemasTemplate}
-              />
-              <Label htmlFor="template-mode" className="cursor-pointer">
-                Plantilla: <span className="font-semibold text-neon-cyan">Ingeniería en Sistemas</span>
-              </Label>
-              <p className="text-xs text-muted-foreground ml-2 hidden sm:block">
-                (El usuario recibirá el plan de estudios cargado automáticamente).
-              </p>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
       {/* Registered Users + Subscription Management */}
       <Card>
         <CardHeader>
@@ -503,16 +352,16 @@ const AdminPanel = () => {
                   <div
                     key={profile.id}
                     className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border bg-card gap-3 ${status === "active" ? "border-neon-gold/30" :
-                        status === "expiring" ? "border-amber-500/40" :
-                          status === "expired" ? "border-destructive/30" :
-                            "border-border"
+                      status === "expiring" ? "border-amber-500/40" :
+                        status === "expired" ? "border-destructive/30" :
+                          "border-border"
                       }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${status === "active" ? "bg-neon-gold/20" :
-                          status === "expiring" ? "bg-amber-500/20" :
-                            status === "expired" ? "bg-destructive/20" :
-                              "bg-secondary"
+                        status === "expiring" ? "bg-amber-500/20" :
+                          status === "expired" ? "bg-destructive/20" :
+                            "bg-secondary"
                         }`}>
                         {status === "active" || status === "expiring" ? (
                           <Crown className={`h-5 w-5 ${status === "active" ? "text-neon-gold" : "text-amber-500"}`} />
@@ -610,128 +459,73 @@ const AdminPanel = () => {
       </Card>
 
       {/* ── Activation Modal ── */}
-      {activatingUser && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setActivatingUser(null)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-6" onClick={(e) => e.stopPropagation()}>
-            <div>
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <Crown className="h-5 w-5 text-neon-gold" />
-                Activar Plan Premium
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Para: <span className="font-semibold text-foreground">{activatingUser.nombre || activatingUser.email}</span>
-              </p>
-            </div>
+      {
+        activatingUser && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setActivatingUser(null)}>
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-6" onClick={(e) => e.stopPropagation()}>
+              <div>
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-neon-gold" />
+                  Activar Plan Premium
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Para: <span className="font-semibold text-foreground">{activatingUser.nombre || activatingUser.email}</span>
+                </p>
+              </div>
 
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Seleccionar plan:</Label>
-              {Object.entries(PLAN_PRICES).map(([key, val]) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedPlanType(key)}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedPlanType === key
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Seleccionar plan:</Label>
+                {Object.entries(PLAN_PRICES).map(([key, val]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedPlanType(key)}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedPlanType === key
                       ? "border-neon-gold bg-neon-gold/10 shadow-[0_0_20px_rgba(255,215,0,0.1)]"
                       : "border-border bg-secondary/20 hover:border-muted-foreground/30"
-                    }`}
-                >
-                  <div className="text-left">
-                    <p className="font-bold">{val.label}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {val.months} mes{val.months > 1 ? "es" : ""} de acceso
-                    </p>
-                  </div>
-                  <span className={`text-lg font-bold ${selectedPlanType === key ? "text-neon-gold" : "text-foreground"}`}>
-                    {val.price}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border text-sm">
-              <CalendarDays className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">
-                Vence el:{" "}
-                <span className="font-semibold text-foreground">
-                  {(() => {
-                    const d = new Date();
-                    d.setMonth(d.getMonth() + PLAN_PRICES[selectedPlanType].months);
-                    return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
-                  })()}
-                </span>
-              </span>
-            </div>
-
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setActivatingUser(null)}>
-                Cancelar
-              </Button>
-              <Button className="flex-1 bg-gradient-to-r from-neon-gold to-amber-500 text-black font-bold hover:opacity-90" onClick={handleActivatePlan}>
-                <Crown className="h-4 w-4 mr-2" />
-                Activar {PLAN_PRICES[selectedPlanType].price}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Invited Users List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Usuarios Invitados</CardTitle>
-          <CardDescription>
-            Lista de todos los usuarios que han sido invitados
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {invitedUsers.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No hay usuarios invitados aún
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {invitedUsers.map((invited) => (
-                <div
-                  key={invited.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                >
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">{invited.email}</p>
+                      }`}
+                  >
+                    <div className="text-left">
+                      <p className="font-bold">{val.label}</p>
                       <p className="text-xs text-muted-foreground">
-                        Invitado el {new Date(invited.created_at).toLocaleDateString("es-AR")}
+                        {val.months} mes{val.months > 1 ? "es" : ""} de acceso
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {invited.accepted_at ? (
-                      <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/30">
-                        <Check className="h-3 w-3 mr-1" />
-                        Registrado
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Pendiente
-                      </Badge>
-                    )}
-                    {!invited.accepted_at && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteInvitation(invited.id, invited.email)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                    <span className={`text-lg font-bold ${selectedPlanType === key ? "text-neon-gold" : "text-foreground"}`}>
+                      {val.price}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border text-sm">
+                <CalendarDays className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground">
+                  Vence el:{" "}
+                  <span className="font-semibold text-foreground">
+                    {(() => {
+                      const d = new Date();
+                      d.setMonth(d.getMonth() + PLAN_PRICES[selectedPlanType].months);
+                      return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+                    })()}
+                  </span>
+                </span>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setActivatingUser(null)}>
+                  Cancelar
+                </Button>
+                <Button className="flex-1 bg-gradient-to-r from-neon-gold to-amber-500 text-black font-bold hover:opacity-90" onClick={handleActivatePlan}>
+                  <Crown className="h-4 w-4 mr-2" />
+                  Activar {PLAN_PRICES[selectedPlanType].price}
+                </Button>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )
+      }
+
+      {/* Invited Users List */}
 
       {/* User Reviews List */}
       <Card>
@@ -801,7 +595,7 @@ const AdminPanel = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 };
 
