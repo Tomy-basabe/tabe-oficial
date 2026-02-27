@@ -121,7 +121,7 @@ export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetai
                                     {format(eventDate, "EEEE, d 'de' MMMM", { locale: es })}
                                 </p>
                                 <p className="text-xs">
-                                    {event.hora ? `A las ${event.hora}` : "Todo el día"}
+                                    {event.hora ? `De ${event.hora} a ${event.hora_fin || '...'}` : "Todo el día"}
                                 </p>
                             </div>
                         </div>

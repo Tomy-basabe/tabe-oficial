@@ -159,6 +159,7 @@ export type Database = {
           created_at: string
           fecha: string
           hora: string | null
+          hora_fin: string | null
           id: string
           is_all_day: boolean | null
           notas: string | null
@@ -177,6 +178,7 @@ export type Database = {
           created_at?: string
           fecha: string
           hora?: string | null
+          hora_fin?: string | null
           id?: string
           is_all_day?: boolean | null
           notas?: string | null
@@ -195,6 +197,7 @@ export type Database = {
           created_at?: string
           fecha?: string
           hora?: string | null
+          hora_fin?: string | null
           id?: string
           is_all_day?: boolean | null
           notas?: string | null

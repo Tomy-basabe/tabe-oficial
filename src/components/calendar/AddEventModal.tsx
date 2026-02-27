@@ -45,6 +45,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
   const [titulo, setTitulo] = useState("");
   const [fecha, setFecha] = useState<Date | undefined>(new Date());
   const [hora, setHora] = useState("");
+  const [horaFin, setHoraFin] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
   const [tipoExamen, setTipoExamen] = useState<EventType>("P1");
   const [subjectId, setSubjectId] = useState<string>("");
@@ -73,6 +74,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
       setTitulo(editEvent.titulo);
       setFecha(new Date(editEvent.fecha + "T12:00:00"));
       setHora(editEvent.hora || "");
+      setHoraFin(editEvent.hora_fin || "");
       setIsAllDay(editEvent.is_all_day || (!editEvent.hora));
       setTipoExamen(editEvent.tipo_examen);
       setSubjectId(editEvent.subject_id || "");
@@ -95,6 +97,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
       setTitulo("");
       setFecha(initialDate || new Date());
       setHora("");
+      setHoraFin("");
       setIsAllDay(false);
       setTipoExamen("P1");
       setSubjectId("");
@@ -124,6 +127,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
         titulo: titulo.trim(),
         fecha: fecha.toISOString().split('T')[0],
         hora: isAllDay ? undefined : (hora || undefined),
+        hora_fin: isAllDay ? undefined : (horaFin || undefined),
         is_all_day: isAllDay,
         tipo_examen: tipoExamen,
         subject_id: subjectId || undefined,
@@ -348,12 +352,22 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                   </div>
                 </div>
                 {!isAllDay && (
-                  <input
-                    type="time"
-                    value={hora}
-                    onChange={(e) => setHora(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      title="Hora de inicio"
+                      type="time"
+                      value={hora}
+                      onChange={(e) => setHora(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                    />
+                    <input
+                      title="Hora de fin"
+                      type="time"
+                      value={horaFin}
+                      onChange={(e) => setHoraFin(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                    />
+                  </div>
                 )}
               </div>
             </div>

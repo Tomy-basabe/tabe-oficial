@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
-export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Clase" | "Otro";
+export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Cursado" | "Otro";
 export type RecurrenceRule = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
 
 export interface CalendarEvent {
@@ -11,6 +11,7 @@ export interface CalendarEvent {
   titulo: string;
   fecha: string;
   hora: string | null;
+  hora_fin: string | null;
   tipo_examen: EventType;
   subject_id: string | null;
   subject_nombre?: string;
@@ -29,6 +30,7 @@ export interface CreateEventData {
   titulo: string;
   fecha: string;
   hora?: string;
+  hora_fin?: string;
   tipo_examen: EventType;
   subject_id?: string;
   notas?: string;
@@ -99,6 +101,7 @@ export function useCalendarEvents() {
           titulo: "Parcial de Análisis Matemático",
           fecha: today,
           hora: "10:30",
+          hora_fin: "12:30",
           tipo_examen: "P1",
           subject_id: null,
           subject_nombre: "Análisis I",
@@ -115,6 +118,7 @@ export function useCalendarEvents() {
           titulo: "Entrega Trabajo Práctico",
           fecha: tomorrow,
           hora: "18:00",
+          hora_fin: "18:00",
           tipo_examen: "Global",
           subject_id: null,
           subject_nombre: "Física II",
@@ -164,6 +168,9 @@ export function useCalendarEvents() {
         ...event,
         tipo_examen: event.tipo_examen as EventType,
         recurrence_rule: (event.recurrence_rule || null) as RecurrenceRule,
+        hora: (event.hora as string | null) || null,
+        hora_fin: (event.hora_fin as string | null) || null,
+        color: event.color as string,
         subject_nombre: event.subject_id ? subjectsMap[event.subject_id]?.nombre : undefined,
         subject_codigo: event.subject_id ? subjectsMap[event.subject_id]?.codigo : undefined,
       }));
@@ -175,7 +182,7 @@ export function useCalendarEvents() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   useEffect(() => {
     fetchEvents();
@@ -219,6 +226,7 @@ export function useCalendarEvents() {
         titulo: data.titulo,
         fecha: data.fecha,
         hora: data.hora || null,
+        hora_fin: data.hora_fin || null,
         tipo_examen: data.tipo_examen,
         subject_id: data.subject_id || null,
         notas: data.notas || null,
@@ -256,6 +264,7 @@ export function useCalendarEvents() {
         titulo: event.titulo + " (copia)",
         fecha: event.fecha,
         hora: event.hora,
+        hora_fin: event.hora_fin,
         tipo_examen: event.tipo_examen,
         subject_id: event.subject_id,
         notas: event.notas,
@@ -286,6 +295,8 @@ export function useCalendarEvents() {
         .from("calendar_events")
         .update({
           ...data,
+          hora: data.hora === undefined ? undefined : data.hora || null, // Ensure null if explicitly set to empty string
+          hora_fin: data.hora_fin === undefined ? undefined : data.hora_fin || null, // Ensure null if explicitly set to empty string
           color: data.color || (data.tipo_examen ? getColorForType(data.tipo_examen) : undefined),
         })
         .eq("id", eventId)
@@ -369,7 +380,7 @@ function getColorForType(type: EventType): string {
     Estudio: "#6b7280",
     TP: "#f97316",
     Entrega: "#ec4899",
-    Clase: "#3b82f6",
+    Cursado: "#3b82f6",
     Otro: "#9ca3af",
   };
   return colors[type] || "#6b7280";
