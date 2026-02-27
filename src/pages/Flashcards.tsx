@@ -628,7 +628,7 @@ export default function Flashcards() {
           >
             Todos
           </button>
-          {[1, 2, 3, 4, 5].map(year => (
+          {[1, 2, 3, 4, 5, 6].map(year => (
             <button
               key={year}
               onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
@@ -726,7 +726,7 @@ export default function Flashcards() {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Seleccionar Año</label>
               <div className="flex gap-2 mt-2">
-                {[1, 2, 3, 4, 5].map(year => (
+                {[1, 2, 3, 4, 5, 6].map(year => (
                   <button
                     key={year}
                     onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
@@ -953,7 +953,7 @@ export default function Flashcards() {
                   >
                     Todos
                   </button>
-                  {[1, 2, 3, 4, 5].map(year => (
+                  {[1, 2, 3, 4, 5, 6].map(year => (
                     <button
                       key={year}
                       onClick={() => { setImportSourceYear(year); setImportSourceSubject(null); }}

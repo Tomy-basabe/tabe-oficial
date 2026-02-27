@@ -757,7 +757,7 @@ export function useSubjects() {
 
   const getYears = useCallback((): number[] => {
     const years = [...new Set(subjects.map(s => s.año))].sort((a, b) => a - b);
-    return years.length > 0 ? years : [1, 2, 3, 4, 5];
+    return years.length > 0 ? years : [1, 2, 3, 4, 5, 6];
   }, [subjects]);
 
   // Initialize user statuses for 1st and 2nd year (all approved except Inglés II)

@@ -70,7 +70,7 @@ const folderColors = [
   { name: "Red", value: "#ef4444" },
 ];
 
-const years = [1, 2, 3, 4, 5];
+const years = [1, 2, 3, 4, 5, 6];
 
 export default function Library() {
   const { user, isGuest } = useAuth();

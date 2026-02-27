@@ -605,7 +605,7 @@ export default function Notion() {
                 <div>
                   <label className="text-sm font-medium mb-2 block">Año</label>
                   <div className="flex gap-2 flex-wrap">
-                    {[1, 2, 3, 4, 5].map((year) => (
+                    {[1, 2, 3, 4, 5, 6].map((year) => (
                       <button
                         key={year}
                         onClick={() => {
