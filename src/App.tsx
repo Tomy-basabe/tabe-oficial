@@ -107,7 +107,7 @@ const AppRoutes = () => (
       <Route path="/asistente" element={<PremiumGate feature="Asistente IA"><AIAssistant /></PremiumGate>} />
       <Route path="/flashcards" element={<PremiumGate feature="Flashcards"><Flashcards /></PremiumGate>} />
       <Route path="/cuestionarios" element={<PremiumGate feature="Cuestionarios"><Quizzes /></PremiumGate>} />
-      <Route path="/marketplace" element={<Marketplace />} />
+      <Route path="/marketplace" element={<PremiumGate feature="Marketplace"><Marketplace /></PremiumGate>} />
       <Route path="/biblioteca" element={<PremiumGate feature="Biblioteca"><Library /></PremiumGate>} />
       <Route path="/logros" element={<Achievements />} />
       <Route path="/notion" element={<PremiumGate feature="Apuntes"><Notion /></PremiumGate>} />
