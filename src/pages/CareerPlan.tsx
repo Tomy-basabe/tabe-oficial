@@ -78,23 +78,15 @@ export default function CareerPlan() {
   }), [subjects]);
 
   const handleSubjectClick = useCallback((subject: SubjectWithStatus) => {
-    if (!isPremium) {
-      toast.error("🔒 Necesitás el plan Premium para modificar materias y cargar notas. Contactanos por WhatsApp.", { duration: 5000 });
-      return;
-    }
     setSelectedSubject(subject);
     setShowStatusModal(true);
-  }, [isPremium]);
+  }, []);
 
   const handleEditDependencies = useCallback((subject: SubjectWithStatus) => {
-    if (!isPremium) {
-      toast.error("🔒 Necesitás el plan Premium para editar correlatividades.", { duration: 5000 });
-      return;
-    }
     setSelectedSubject(subject);
     setShowStatusModal(false);
     setShowDepsModal(true);
-  }, [isPremium]);
+  }, []);
 
   const handleCloseStatusModal = useCallback(() => {
     setShowStatusModal(false);
@@ -111,12 +103,8 @@ export default function CareerPlan() {
   }, []);
 
   const handleOpenAddModal = useCallback(() => {
-    if (!isPremium) {
-      toast.error("🔒 Necesitás el plan Premium para agregar materias. Contactanos por WhatsApp.", { duration: 5000 });
-      return;
-    }
     setShowAddModal(true);
-  }, [isPremium]);
+  }, []);
 
   if (loading) {
     return (

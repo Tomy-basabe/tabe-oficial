@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 
 interface QuizDeck {
     id: string;
@@ -49,6 +50,7 @@ interface Subject {
 
 export default function Quizzes() {
     const { user, isGuest } = useAuth();
+    const { canUse, incrementUsage, isPremium } = useUsageLimits();
     const [decks, setDecks] = useState<QuizDeck[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [loading, setLoading] = useState(true);
@@ -204,6 +206,12 @@ export default function Quizzes() {
 
     const createDeck = async () => {
         if (!newDeckName.trim() || !user) return;
+
+        // Check monthly quiz limit for free users
+        if (!isPremium && !canUse('cuestionarios')) {
+            return;
+        }
+
         const { error } = await supabase.from("quiz_decks").insert({
             user_id: user.id,
             nombre: newDeckName.trim(),
@@ -212,6 +220,7 @@ export default function Quizzes() {
         });
         if (error) { toast.error("Error al crear cuestionario"); return; }
         toast.success("Cuestionario creado");
+        await incrementUsage('cuestionarios');
         setNewDeckName("");
         setNewDeckSubject("");
         setShowCreateDeck(false);
@@ -220,6 +229,16 @@ export default function Quizzes() {
 
     const addQuestion = async () => {
         if (!newQuestion.trim() || !manageDeck || !user) return;
+
+        // Check per-quiz question limit for free users (5 per quiz)
+        if (!isPremium) {
+            const currentQuestions = manageDeck.total_questions || 0;
+            if (currentQuestions >= 5) {
+                toast.error('Alcanzaste el límite de 5 preguntas por cuestionario. Hacete Premium para agregar más ✨', { duration: 5000 });
+                return;
+            }
+        }
+
         const filledOptions = newOptions.filter(o => o.trim());
         if (filledOptions.length < 2) { toast.error("Al menos 2 opciones son necesarias"); return; }
 

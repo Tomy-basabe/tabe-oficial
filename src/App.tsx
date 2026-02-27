@@ -104,13 +104,13 @@ const AppRoutes = () => (
       <Route path="/calendario" element={<Calendar />} />
       <Route path="/pomodoro" element={<Pomodoro />} />
       <Route path="/metricas" element={<Metrics />} />
-      <Route path="/asistente" element={<PremiumGate feature="Asistente IA"><AIAssistant /></PremiumGate>} />
-      <Route path="/flashcards" element={<PremiumGate feature="Flashcards"><Flashcards /></PremiumGate>} />
-      <Route path="/cuestionarios" element={<PremiumGate feature="Cuestionarios"><Quizzes /></PremiumGate>} />
+      <Route path="/asistente" element={<AIAssistant />} />
+      <Route path="/flashcards" element={<Flashcards />} />
+      <Route path="/cuestionarios" element={<Quizzes />} />
       <Route path="/marketplace" element={<PremiumGate feature="Marketplace"><Marketplace /></PremiumGate>} />
-      <Route path="/biblioteca" element={<PremiumGate feature="Biblioteca"><Library /></PremiumGate>} />
+      <Route path="/biblioteca" element={<Library />} />
       <Route path="/logros" element={<Achievements />} />
-      <Route path="/notion" element={<PremiumGate feature="Apuntes"><Notion /></PremiumGate>} />
+      <Route path="/notion" element={<Notion />} />
       <Route path="/amigos" element={<Friends />} />
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/admin" element={<AdminPanel />} />

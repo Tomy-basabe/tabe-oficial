@@ -12,6 +12,7 @@ import { FlashcardDeck } from "@/components/flashcards/FlashcardDeck";
 import { StudyMode } from "@/components/flashcards/StudyMode";
 import { CompletionScreen } from "@/components/flashcards/CompletionScreen";
 import { useAchievements } from "@/hooks/useAchievements";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 interface Deck {
   id: string;
   nombre: string;
@@ -40,6 +41,7 @@ type StudyState = "browsing" | "studying" | "completed";
 export default function Flashcards() {
   const { user, isGuest } = useAuth();
   const { checkAndUnlockAchievements } = useAchievements();
+  const { canUse, incrementUsage, getRemaining, isPremium } = useUsageLimits();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [decks, setDecks] = useState<Deck[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
@@ -179,6 +181,11 @@ export default function Flashcards() {
   const createDeck = async () => {
     if (!user || !selectedSubject || !newDeckName.trim()) return;
 
+    // Check monthly deck limit for free users
+    if (!isPremium && !canUse('flashcard_mazos')) {
+      return;
+    }
+
     const { error } = await supabase
       .from("flashcard_decks")
       .insert({
@@ -191,6 +198,7 @@ export default function Flashcards() {
       toast.error("Error al crear el mazo");
     } else {
       toast.success("¡Mazo creado exitosamente!");
+      await incrementUsage('flashcard_mazos');
       setNewDeckName("");
       setShowNewDeckModal(false);
       fetchDecks();
@@ -201,6 +209,15 @@ export default function Flashcards() {
 
   const createCard = async () => {
     if (!user || !selectedDeck || !newCardQuestion.trim() || !newCardAnswer.trim()) return;
+
+    // Check per-deck card limit for free users (10 per deck)
+    if (!isPremium) {
+      const currentCards = selectedDeck.total_cards || 0;
+      if (currentCards >= 10) {
+        toast.error('Alcanzaste el límite de 10 tarjetas por mazo. Hacete Premium para agregar más ✨', { duration: 5000 });
+        return;
+      }
+    }
 
     const { error } = await supabase
       .from("flashcards")

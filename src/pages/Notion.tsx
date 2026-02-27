@@ -22,6 +22,7 @@ import { JSONContent } from "@tiptap/core";
 import { tipTapTemplates, TipTapTemplate } from "@/lib/tipTapTemplates";
 import { ensureTipTapFormat } from "@/lib/contentMigration";
 import "@/components/notion/notion-editor.css";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 
 interface Subject {
   id: string;
@@ -42,6 +43,7 @@ export default function Notion() {
     refetch,
   } = useNotionDocuments();
   const { checkAndUnlockAchievements } = useAchievements();
+  const { canUse, incrementUsage, isPremium } = useUsageLimits();
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [activeDocument, setActiveDocument] = useState<NotionDocument | null>(null);
@@ -208,6 +210,11 @@ export default function Notion() {
         return;
       }
 
+      // Check monthly document limit for free users
+      if (!isPremium && !canUse('apuntes')) {
+        return;
+      }
+
       const templateContent = selectedTemplate.content;
       const title =
         selectedTemplate.name === "En blanco" ? "Sin título" : selectedTemplate.name;
@@ -228,6 +235,7 @@ export default function Notion() {
         setShowNewDocModal(false);
         setNewDocSubjectId(null);
         setSelectedTemplate(tipTapTemplates[0]);
+        await incrementUsage('apuntes');
         checkAndUnlockAchievements();
       }
     },
@@ -238,6 +246,9 @@ export default function Notion() {
       updateDocument,
       openDocument,
       checkAndUnlockAchievements,
+      isPremium,
+      canUse,
+      incrementUsage,
     ]
   );
 
@@ -297,16 +308,23 @@ export default function Notion() {
         toast.error("No hay materias disponibles");
         return;
       }
+
+      // Check monthly document limit for free users
+      if (!isPremium && !canUse('apuntes')) {
+        return;
+      }
+
       const newDoc = await createDocument(targetSubjectId, title);
       if (newDoc) {
         await updateDocument(newDoc.id, { contenido: content });
         await refetch();
         openDocument({ ...newDoc, contenido: content, titulo: title });
         checkAndUnlockAchievements();
+        await incrementUsage('apuntes');
         toast.success("Documento importado");
       }
     },
-    [subjects, createDocument, updateDocument, refetch, openDocument, checkAndUnlockAchievements]
+    [subjects, createDocument, updateDocument, refetch, openDocument, checkAndUnlockAchievements, isPremium, canUse, incrementUsage]
   );
 
   // Save indicator text

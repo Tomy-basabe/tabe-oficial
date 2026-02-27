@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InviteFriendsModal } from "./InviteFriendsModal";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 
 interface DiscordChannelSidebarProps {
   server: DiscordServer;
@@ -74,6 +75,7 @@ export function DiscordChannelSidebar({
   isSpeaking,
 }: DiscordChannelSidebarProps) {
   const { user } = useAuth();
+  const { canUse, incrementUsage, isPremium } = useUsageLimits();
   const [showCreateText, setShowCreateText] = useState(false);
   const [showCreateVoice, setShowCreateVoice] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -87,8 +89,13 @@ export function DiscordChannelSidebar({
 
   const handleCreateText = async () => {
     if (!channelName.trim()) return;
+    // Check monthly channel limit for free users
+    if (!isPremium && !canUse('discord_canales')) {
+      return;
+    }
     setCreating(true);
     await onCreateChannel(channelName.trim(), "text");
+    await incrementUsage('discord_canales');
     setChannelName("");
     setShowCreateText(false);
     setCreating(false);
@@ -96,8 +103,13 @@ export function DiscordChannelSidebar({
 
   const handleCreateVoice = async () => {
     if (!channelName.trim()) return;
+    // Check monthly channel limit for free users
+    if (!isPremium && !canUse('discord_canales')) {
+      return;
+    }
     setCreating(true);
     await onCreateChannel(channelName.trim(), "voice");
+    await incrementUsage('discord_canales');
     setChannelName("");
     setShowCreateVoice(false);
     setCreating(false);
