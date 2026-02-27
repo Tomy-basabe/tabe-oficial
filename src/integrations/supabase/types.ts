@@ -793,6 +793,10 @@ export type Database = {
           email: string | null
           id: string
           nombre: string | null
+          plan: string
+          plan_activated_at: string | null
+          plan_expires_at: string | null
+          plan_type: string | null
           updated_at: string
           user_id: string
           username: string | null
@@ -806,6 +810,10 @@ export type Database = {
           email?: string | null
           id?: string
           nombre?: string | null
+          plan?: string
+          plan_activated_at?: string | null
+          plan_expires_at?: string | null
+          plan_type?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
@@ -819,6 +827,10 @@ export type Database = {
           email?: string | null
           id?: string
           nombre?: string | null
+          plan?: string
+          plan_activated_at?: string | null
+          plan_expires_at?: string | null
+          plan_type?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null

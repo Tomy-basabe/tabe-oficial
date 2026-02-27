@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { UserPlus, Mail, Check, Clock, Trash2, Shield, Star, Download } from "lucide-react";
+import { UserPlus, Mail, Check, Clock, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays } from "lucide-react";
 
 interface InvitedUser {
   id: string;
@@ -33,7 +33,17 @@ interface Profile {
   email: string | null;
   nombre: string | null;
   created_at: string;
+  plan?: string;
+  plan_expires_at?: string | null;
+  plan_activated_at?: string | null;
+  plan_type?: string | null;
 }
+
+const PLAN_PRICES: Record<string, { label: string; price: string; months: number }> = {
+  mensual: { label: "Mensual", price: "$5.000", months: 1 },
+  semestral: { label: "Semestral", price: "$25.000", months: 6 },
+  anual: { label: "Anual", price: "$45.000", months: 12 },
+};
 
 const AdminPanel = () => {
   const { user } = useAuth();
@@ -52,6 +62,10 @@ const AdminPanel = () => {
 
   // Template states
   const [useSistemasTemplate, setUseSistemasTemplate] = useState(false);
+
+  // Subscription modal states
+  const [activatingUser, setActivatingUser] = useState<Profile | null>(null);
+  const [selectedPlanType, setSelectedPlanType] = useState<string>("mensual");
 
   useEffect(() => {
     checkAdminStatus();
@@ -139,7 +153,6 @@ const AdminPanel = () => {
     if (!confirm(`¿Estás COMPLETAMENTE SEGURO de eliminar al usuario ${email || 'con ID ' + id}? Esta acción destruirá toda su información de TABE y es IRREVERSIBLE.`)) return;
 
     try {
-      // 1. Llamar a la función RPC privilegiada para borrar auth.users
       const { error } = await supabase.rpc('delete_user_by_admin', {
         user_id_to_delete: id
       });
@@ -147,14 +160,83 @@ const AdminPanel = () => {
       if (error) throw error;
 
       toast.success(`Usuario ${email || id} eliminado correctamente`);
-
-      // En caso de que el email elimine la invitación también, refrescamos ambas tablas
       fetchRegisteredUsers();
       fetchInvitedUsers();
     } catch (error: any) {
       console.error("Error deleting user:", error);
       toast.error(`Error al eliminar usuario: ${error.message}`);
     }
+  };
+
+  // ── Subscription Management ──
+  const handleActivatePlan = async () => {
+    if (!activatingUser) return;
+
+    const planInfo = PLAN_PRICES[selectedPlanType];
+    if (!planInfo) return;
+
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setMonth(expiresAt.getMonth() + planInfo.months);
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          plan: "premium",
+          plan_type: selectedPlanType,
+          plan_activated_at: now.toISOString(),
+          plan_expires_at: expiresAt.toISOString(),
+        })
+        .eq("user_id", activatingUser.user_id);
+
+      if (error) throw error;
+
+      toast.success(
+        `✅ Plan ${planInfo.label} (${planInfo.price}) activado para ${activatingUser.nombre || activatingUser.email}. Vence el ${expiresAt.toLocaleDateString("es-AR")}`
+      );
+
+      setActivatingUser(null);
+      fetchRegisteredUsers();
+    } catch (error: any) {
+      console.error("Error activating plan:", error);
+      toast.error(`Error al activar plan: ${error.message}`);
+    }
+  };
+
+  const handleDeactivatePlan = async (profile: Profile) => {
+    if (!confirm(`¿Desactivar el plan Premium de ${profile.nombre || profile.email}?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          plan: "free",
+          plan_type: null,
+          plan_activated_at: null,
+          plan_expires_at: null,
+        })
+        .eq("user_id", profile.user_id);
+
+      if (error) throw error;
+
+      toast.success(`Plan desactivado para ${profile.nombre || profile.email}`);
+      fetchRegisteredUsers();
+    } catch (error: any) {
+      console.error("Error deactivating plan:", error);
+      toast.error(`Error: ${error.message}`);
+    }
+  };
+
+  const getPlanStatus = (profile: Profile) => {
+    if (profile.plan !== "premium") return "free";
+    if (!profile.plan_expires_at) return "free";
+    const now = new Date();
+    const expires = new Date(profile.plan_expires_at);
+    if (now > expires) return "expired";
+    const daysLeft = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysLeft <= 7) return "expiring";
+    return "active";
   };
 
   const handleExtractTemplate = async () => {
@@ -388,12 +470,15 @@ const AdminPanel = () => {
         </CardContent>
       </Card>
 
-      {/* Registered Users List */}
+      {/* Registered Users + Subscription Management */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuarios Registrados</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-neon-gold" />
+            Usuarios y Suscripciones
+          </CardTitle>
           <CardDescription>
-            Cuentas existosas dentro de la base de datos de TABE
+            Gestioná los planes Premium de cada usuario. Cuando un plan vence, se bloquea automáticamente.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -406,39 +491,188 @@ const AdminPanel = () => {
               No hay usuarios registrados
             </p>
           ) : (
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-              {registeredUsers.map((profile) => (
-                <div
-                  key={profile.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                >
-                  <div className="flex items-center gap-3">
-                    <UserPlus className="h-4 w-4 text-neon-cyan" />
-                    <div>
-                      <p className="font-medium">{profile.nombre || 'Sin nombre'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {profile.email || 'Sin email'} • Reg: {new Date(profile.created_at).toLocaleDateString("es-AR")}
-                      </p>
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+              {registeredUsers.map((profile) => {
+                const status = getPlanStatus(profile);
+                const expiresDate = profile.plan_expires_at ? new Date(profile.plan_expires_at) : null;
+                const daysLeft = expiresDate
+                  ? Math.ceil((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                  : null;
+
+                return (
+                  <div
+                    key={profile.id}
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border bg-card gap-3 ${status === "active" ? "border-neon-gold/30" :
+                        status === "expiring" ? "border-amber-500/40" :
+                          status === "expired" ? "border-destructive/30" :
+                            "border-border"
+                      }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${status === "active" ? "bg-neon-gold/20" :
+                          status === "expiring" ? "bg-amber-500/20" :
+                            status === "expired" ? "bg-destructive/20" :
+                              "bg-secondary"
+                        }`}>
+                        {status === "active" || status === "expiring" ? (
+                          <Crown className={`h-5 w-5 ${status === "active" ? "text-neon-gold" : "text-amber-500"}`} />
+                        ) : status === "expired" ? (
+                          <Ban className="h-5 w-5 text-destructive" />
+                        ) : (
+                          <UserPlus className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{profile.nombre || 'Sin nombre'}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {profile.email || 'Sin email'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Plan Badge */}
+                      {status === "free" && (
+                        <Badge variant="secondary" className="text-xs">Free</Badge>
+                      )}
+                      {status === "active" && (
+                        <Badge className="bg-neon-gold/20 text-neon-gold border-neon-gold/30 text-xs">
+                          <Crown className="h-3 w-3 mr-1" />
+                          Premium {profile.plan_type ? `(${PLAN_PRICES[profile.plan_type]?.label})` : ""}
+                        </Badge>
+                      )}
+                      {status === "expiring" && (
+                        <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs animate-pulse">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Vence en {daysLeft} día{daysLeft !== 1 ? "s" : ""}
+                        </Badge>
+                      )}
+                      {status === "expired" && (
+                        <Badge variant="destructive" className="text-xs">
+                          <Ban className="h-3 w-3 mr-1" />
+                          Expirado
+                        </Badge>
+                      )}
+
+                      {/* Expiration date */}
+                      {expiresDate && status !== "free" && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <CalendarDays className="h-3 w-3" />
+                          {expiresDate.toLocaleDateString("es-AR")}
+                        </span>
+                      )}
+
+                      {/* Activate / Deactivate buttons */}
+                      {(status === "free" || status === "expired") && (
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs bg-neon-gold/20 text-neon-gold border border-neon-gold/30 hover:bg-neon-gold/30"
+                          variant="outline"
+                          onClick={() => {
+                            setActivatingUser(profile);
+                            setSelectedPlanType("mensual");
+                          }}
+                        >
+                          <Crown className="h-3 w-3 mr-1" />
+                          Activar Plan
+                        </Button>
+                      )}
+                      {(status === "active" || status === "expiring") && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeactivatePlan(profile)}
+                        >
+                          <Ban className="h-3 w-3 mr-1" />
+                          Desactivar
+                        </Button>
+                      )}
+
+                      {/* Delete user */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteUser(profile.user_id, profile.email || 'Desconocido')}
+                        disabled={profile.user_id === user?.id}
+                        title={profile.user_id === user?.id ? "No puedes borrarte a ti mismo" : "Borrar usuario"}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteUser(profile.user_id, profile.email || 'Desconocido')}
-                      disabled={profile.user_id === user?.id}
-                      title={profile.user_id === user?.id ? "No puedes borrarte a ti mismo" : "Borrar usuario completo y en cascada"}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* ── Activation Modal ── */}
+      {activatingUser && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setActivatingUser(null)}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-6" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <Crown className="h-5 w-5 text-neon-gold" />
+                Activar Plan Premium
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Para: <span className="font-semibold text-foreground">{activatingUser.nombre || activatingUser.email}</span>
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Seleccionar plan:</Label>
+              {Object.entries(PLAN_PRICES).map(([key, val]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedPlanType(key)}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedPlanType === key
+                      ? "border-neon-gold bg-neon-gold/10 shadow-[0_0_20px_rgba(255,215,0,0.1)]"
+                      : "border-border bg-secondary/20 hover:border-muted-foreground/30"
+                    }`}
+                >
+                  <div className="text-left">
+                    <p className="font-bold">{val.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {val.months} mes{val.months > 1 ? "es" : ""} de acceso
+                    </p>
+                  </div>
+                  <span className={`text-lg font-bold ${selectedPlanType === key ? "text-neon-gold" : "text-foreground"}`}>
+                    {val.price}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border text-sm">
+              <CalendarDays className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-muted-foreground">
+                Vence el:{" "}
+                <span className="font-semibold text-foreground">
+                  {(() => {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() + PLAN_PRICES[selectedPlanType].months);
+                    return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+                  })()}
+                </span>
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setActivatingUser(null)}>
+                Cancelar
+              </Button>
+              <Button className="flex-1 bg-gradient-to-r from-neon-gold to-amber-500 text-black font-bold hover:opacity-90" onClick={handleActivatePlan}>
+                <Crown className="h-4 w-4 mr-2" />
+                Activar {PLAN_PRICES[selectedPlanType].price}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invited Users List */}
       <Card>
