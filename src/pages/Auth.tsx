@@ -90,29 +90,13 @@ export default function Auth() {
           navigate("/dashboard");
         }
       } else {
-        const { data: invited, error: checkError } = await supabase
+        // Obtenemos si estaba invitado para aplicarle un template (opcional)
+        // pero NO bloqueamos si no estaba invitado.
+        const { data: invited } = await supabase
           .rpc("check_invitation_status", { check_email: email.toLowerCase() })
           .maybeSingle();
 
-        if (checkError) {
-          toast.error("Error al verificar invitación");
-          setLoading(false);
-          return;
-        }
-
-        if (!invited) {
-          toast.error("Este email no está autorizado para registrarse. Contacta al administrador.");
-          setLoading(false);
-          return;
-        }
-
-        if (invited.accepted_at) {
-          toast.error("Este email ya fue registrado anteriormente.");
-          setLoading(false);
-          return;
-        }
-
-        if (invited.template && invited.template !== 'none') {
+        if (invited?.template && invited.template !== 'none') {
           localStorage.setItem('tabe_pending_template', invited.template);
         }
 
