@@ -1,7 +1,7 @@
 {
-    "name": "T.A.B.E.",
+    "name": "T.A.B.E. - Tu Asistente de Bolsillo Estudiantil",
     "short_name": "T.A.B.E.",
-    "description": "La plataforma todo-en-uno para estudiantes de exactas. Materias, flashcards, quizzes con IA, calendario, Pomodoro, métricas y mucho más.",
+    "description": "La plataforma definitiva todo-en-uno para estudiantes universitarios. Organización de materias, generación de apuntes con IA, flashcards inteligentes, quizzes, calendario, método Pomodoro y métricas avanzadas.",
     "start_url": "/auth",
     "display": "standalone",
     "background_color": "#0a0a0f",
