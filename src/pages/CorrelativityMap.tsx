@@ -21,8 +21,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, RefreshCw, ZoomIn, ZoomOut, Zap, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useSubjects } from "@/hooks/useSubjects";
-import dagre from 'dagre';
+import { useSubjects, Subject } from "@/hooks/useSubjects";
 import { Loader2 } from "lucide-react";
 import { SubjectNode } from "@/components/correlativity/SubjectNode";
 
@@ -66,33 +65,51 @@ const nodeTypes = {
 const nodeWidth = 190;
 const nodeHeight = 80;
 
-const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
-    const dagreGraph = new dagre.graphlib.Graph();
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
+const getLayoutedElements = (nodes: Node[], edges: Edge[], subjects: Subject[]) => {
+    // We group nodes by year.
+    const nodesByYear = new Map<number, Node[]>();
 
-    dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 120 });
-
-    nodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    nodes.forEach(node => {
+        const subject = subjects.find(s => s.id === node.id);
+        const year = subject?.año || 1;
+        if (!nodesByYear.has(year)) {
+            nodesByYear.set(year, []);
+        }
+        nodesByYear.get(year)?.push(node);
     });
 
-    edges.forEach((edge) => {
-        dagreGraph.setEdge(edge.source, edge.target);
-    });
+    const newNodes: Node[] = [];
+    const xSpacing = 350;
+    const ySpacing = 120;
 
-    dagre.layout(dagreGraph);
+    // Get all unique years and sort them
+    const years = Array.from(nodesByYear.keys()).sort((a, b) => a - b);
 
-    const newNodes = nodes.map((node) => {
-        const nodeWithPosition = dagreGraph.node(node.id);
-        return {
-            ...node,
-            targetPosition: Position.Left,
-            sourcePosition: Position.Right,
-            position: {
-                x: nodeWithPosition.x - nodeWidth / 2,
-                y: nodeWithPosition.y - nodeHeight / 2,
-            },
-        };
+    years.forEach((year, yearIndex) => {
+        const yearNodes = nodesByYear.get(year) || [];
+
+        // Sort nodes within the same year by numero_materia or alphabetically
+        yearNodes.sort((a, b) => {
+            const subA = subjects.find(s => s.id === a.id);
+            const subB = subjects.find(s => s.id === b.id);
+            return (subA?.numero_materia || 0) - (subB?.numero_materia || 0);
+        });
+
+        // Calculate a starting Y so they are centered roughly (optional)
+        const totalHeight = yearNodes.length * ySpacing;
+        let startY = -totalHeight / 2;
+
+        yearNodes.forEach((node, idx) => {
+            newNodes.push({
+                ...node,
+                targetPosition: Position.Left,
+                sourcePosition: Position.Right,
+                position: {
+                    x: yearIndex * xSpacing,
+                    y: startY + idx * ySpacing,
+                },
+            });
+        });
     });
 
     return { nodes: newNodes, edges };
@@ -158,7 +175,8 @@ function CorrelativityMapContent() {
 
             const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
                 flowNodes,
-                flowEdges
+                flowEdges,
+                subjects
             );
 
             setNodes(layoutedNodes);
