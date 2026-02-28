@@ -155,8 +155,8 @@ function CorrelativityMapContent() {
                             target: subject.id,
                             type: 'smoothstep',
                             animated: true,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: '#4ade80', width: 14, height: 14 },
-                            style: { stroke: '#4ade80', strokeWidth: 1.5, opacity: 0.6 },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: '#fbbf24', width: 14, height: 14 },
+                            style: { stroke: '#fbbf24', strokeWidth: 1.5, opacity: 0.6 },
                         });
                     }
                     if (dep.requiere_regular) {
@@ -166,8 +166,8 @@ function CorrelativityMapContent() {
                             target: subject.id,
                             type: 'smoothstep',
                             animated: true,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: '#22d3ee', width: 14, height: 14 },
-                            style: { stroke: '#22d3ee', strokeWidth: 1.5, strokeDasharray: '6,4', opacity: 0.5 },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: '#00d9ff', width: 14, height: 14 },
+                            style: { stroke: '#00d9ff', strokeWidth: 1.5, strokeDasharray: '6,4', opacity: 0.5 },
                         });
                     }
                 });
@@ -209,9 +209,9 @@ function CorrelativityMapContent() {
             {/* Legend */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
                 <Card className="px-5 py-2.5 bg-background/70 backdrop-blur-xl border-border/30 shadow-2xl flex gap-5 text-xs rounded-full">
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]"></div><span className="text-muted-foreground">Aprobada</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]"></div><span className="text-muted-foreground">Regular</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]"></div><span className="text-muted-foreground">Cursable</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-gold shadow-[0_0_8px_rgba(251,191,36,0.5)]"></div><span className="text-muted-foreground">Aprobada</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-cyan shadow-[0_0_8px_rgba(0,217,255,0.5)]"></div><span className="text-muted-foreground">Regular</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-green shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div><span className="text-muted-foreground">Cursable</span></div>
                     <div className="flex items-center gap-1.5 opacity-40"><div className="w-2 h-2 rounded-full bg-zinc-500"></div><span className="text-muted-foreground">Bloqueada</span></div>
                 </Card>
             </div>
