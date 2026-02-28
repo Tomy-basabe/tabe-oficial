@@ -352,21 +352,27 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                   </div>
                 </div>
                 {!isAllDay && (
-                  <div className="flex gap-2">
-                    <input
-                      title="Hora de inicio"
-                      type="time"
-                      value={hora}
-                      onChange={(e) => setHora(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                    />
-                    <input
-                      title="Hora de fin"
-                      type="time"
-                      value={horaFin}
-                      onChange={(e) => setHoraFin(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                    />
+                  <div className="flex gap-2 mt-2">
+                    <div className="w-full flex space-x-2 items-center">
+                      <label className="text-xs text-muted-foreground w-10">Inicio</label>
+                      <input
+                        type="time"
+                        value={hora}
+                        onChange={(e) => setHora(e.target.value)}
+                        required={tipoExamen === "Clase"}
+                        className="flex-1 px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                      />
+                    </div>
+                    <div className="w-full flex space-x-2 items-center">
+                      <label className="text-xs text-muted-foreground w-6">Fin</label>
+                      <input
+                        type="time"
+                        value={horaFin}
+                        onChange={(e) => setHoraFin(e.target.value)}
+                        required={tipoExamen === "Clase"}
+                        className="flex-1 px-4 py-2.5 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                      />
+                    </div>
                   </div>
                 )}
               </div>

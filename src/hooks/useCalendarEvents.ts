@@ -339,7 +339,13 @@ export function useCalendarEvents() {
 
   const getEventsForDate = (date: Date): CalendarEvent[] => {
     const dateStr = date.toISOString().split('T')[0];
-    return events.filter(event => event.fecha === dateStr);
+    return events
+      .filter(event => event.fecha === dateStr)
+      .sort((a, b) => {
+        if (!a.hora) return 1; // All day events go at the bottom or top depending on preference (top usually, let's say bottom for now or top if we do -1)
+        if (!b.hora) return -1;
+        return a.hora.localeCompare(b.hora);
+      });
   };
 
   const getUpcomingExams = (limit = 5): CalendarEvent[] => {
