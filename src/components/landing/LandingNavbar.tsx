@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { GraduationCap, Moon, Sun, Menu, X } from "lucide-react";
+import { GraduationCap, Moon, Sun, Menu, X, Instagram } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 
 export function LandingNavbar() {
@@ -125,6 +125,15 @@ export function LandingNavbar() {
 
                 {/* Actions */}
                 <div className="hidden md:flex items-center gap-4">
+                    <a
+                        href="https://www.instagram.com/tabe_oficial/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-full hover:bg-secondary transition-all duration-300 hover:scale-110 active:scale-95 text-muted-foreground hover:text-neon-purple"
+                        aria-label="Instagram"
+                    >
+                        <Instagram className="w-5 h-5" />
+                    </a>
                     <button
                         onClick={toggleTheme}
                         className="p-2 rounded-full hover:bg-secondary transition-all duration-300 hover:scale-110 active:scale-95"
@@ -188,7 +197,17 @@ export function LandingNavbar() {
                             </Link>
                         )
                     ))}
-                    <div className="h-px bg-border my-3" />
+                    <div className="flex items-center justify-between px-4 py-2">
+                        <span className="font-medium">Redes</span>
+                        <a
+                            href="https://www.instagram.com/tabe_oficial/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2.5 rounded-xl bg-secondary hover:scale-110 active:scale-95 transition-all duration-300 text-neon-purple"
+                        >
+                            <Instagram className="w-5 h-5" />
+                        </a>
+                    </div>
                     <div className="flex items-center justify-between px-4 py-2">
                         <span className="font-medium">Tema</span>
                         <button

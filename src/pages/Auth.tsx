@@ -128,7 +128,7 @@ export default function Auth() {
             <TabeLogo size={56} />
             <div className="text-left">
               <h1 className="font-display font-bold text-3xl gradient-text">T.A.B.E.</h1>
-              <p className="text-xs text-muted-foreground">Tu Asistente Virtual de Bolsillo</p>
+              <p className="text-xs text-muted-foreground">Tu Asistente de Bolsillo Estudiantil</p>
             </div>
           </div>
           <p className="text-muted-foreground">

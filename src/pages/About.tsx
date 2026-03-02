@@ -20,7 +20,7 @@ export default function About() {
                         Acerca de <span className="gradient-text">TABE</span>
                     </h1>
                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                        Tu Asistente Virtual de Bolsillo: La plataforma integral creada por y para estudiantes.
+                        Tu Asistente de Bolsillo Estudiantil: La plataforma integral creada por y para estudiantes.
                     </p>
                 </div>
 
@@ -39,11 +39,11 @@ export default function About() {
                             <h3 className="font-bold text-lg mb-2">¿Qué significa TABE?</h3>
                             <p className="text-sm text-muted-foreground">
                                 <strong className="text-foreground">T</strong>u<br />
-                                <strong className="text-foreground">A</strong>sistente<br />
-                                <strong className="text-foreground">B</strong>irtual d<strong className="text-foreground">e</strong><br />
-                                Bolsillo<br />
+                                <strong className="text-foreground">A</strong>sistente de<br />
+                                <strong className="text-foreground">B</strong>olsillo<br />
+                                <strong className="text-foreground">E</strong>studiantil<br />
                             </p>
-                            <p className="text-sm mt-4 text-muted-foreground">Originalmente nacido como &quot;Tu Asistente de Bolsillo Estudiantil&quot;, el proyecto evolucionó a un sistema integral de aprendizaje.</p>
+                            <p className="text-sm mt-4 text-muted-foreground">La plataforma con todo lo que necesitás para tener éxito en tu carrera universitaria.</p>
                         </div>
                     </section>
 
