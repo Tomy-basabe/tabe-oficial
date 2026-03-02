@@ -18,10 +18,10 @@ export function TabeAnimationSection() {
     }, []);
 
     const letters = [
-        { letter: "T", word: "Tomas", index: 1 },
-        { letter: "A", word: "Aprendizaje", index: 2 },
-        { letter: "B", word: "Basado en", index: 3 },
-        { letter: "E", word: "Experiencia", index: 4 },
+        { letter: "T", word: "Tu", index: 1 },
+        { letter: "A", word: "Asistente de", index: 2 },
+        { letter: "B", word: "Bolsillo", index: 3 },
+        { letter: "E", word: "Estudiantil", index: 4 },
     ];
 
     return (

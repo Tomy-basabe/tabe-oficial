@@ -3,7 +3,7 @@ import { Brain, Target, Compass, Users } from "lucide-react";
 export function MethodologySection() {
     const pillars = [
         {
-            title: "Aprendizaje Basado en Experiencia",
+            title: "Aprendizaje Activo",
             desc: "No más teoría al vacío. Aprende resolviendo problemas reales, enfrentando los parches comunes que traban a los estudiantes.",
             icon: Brain,
         },
