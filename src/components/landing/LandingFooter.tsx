@@ -1,4 +1,5 @@
 import { GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function LandingFooter() {
     const currentYear = new Date().getFullYear();
@@ -14,16 +15,16 @@ export function LandingFooter() {
                         <span className="font-display font-bold text-xl tracking-tight">TABE</span>
                     </div>
 
-                    <div className="flex gap-6 text-sm font-medium text-muted-foreground">
-                        <a href="https://wa.me/5492617737367" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                    <div className="flex flex-wrap gap-4 sm:gap-6 text-sm font-medium text-muted-foreground">
+                        <Link to="/acerca-de" className="hover:text-foreground transition-colors">
+                            Acerca de
+                        </Link>
+                        <Link to="/contacto" className="hover:text-foreground transition-colors">
                             Contacto
-                        </a>
-                        <a href="#faq" className="hover:text-foreground transition-colors">
-                            FAQ
-                        </a>
-                        <a href="#planes" className="hover:text-foreground transition-colors">
-                            Planes
-                        </a>
+                        </Link>
+                        <Link to="/privacidad" className="hover:text-foreground transition-colors">
+                            Privacidad
+                        </Link>
                     </div>
 
                     <p className="text-sm text-muted-foreground">

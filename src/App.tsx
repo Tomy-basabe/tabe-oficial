@@ -28,6 +28,9 @@ import Friends from "@/pages/Friends";
 import Marketplace from "@/pages/Marketplace";
 import CorrelativityMap from "@/pages/CorrelativityMap";
 import Landing from "@/pages/Landing";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
+import Privacy from "@/pages/Privacy";
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
 import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
@@ -83,6 +86,9 @@ const AppRoutes = () => (
       path="/"
       element={<Landing />}
     />
+    <Route path="/acerca-de" element={<About />} />
+    <Route path="/contacto" element={<Contact />} />
+    <Route path="/privacidad" element={<Privacy />} />
     <Route
       path="/auth"
       element={
