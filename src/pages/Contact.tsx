@@ -32,13 +32,13 @@ export default function Contact() {
                         </p>
 
                         <div className="space-y-6">
-                            <a href="mailto:soporte@tabe.com.ar" className="flex items-center gap-4 card-gamer p-4 rounded-xl hover:scale-[1.02] transition-transform">
+                            <a href="mailto:soporte.tabe@gmail.com" className="flex items-center gap-4 card-gamer p-4 rounded-xl hover:scale-[1.02] transition-transform">
                                 <div className="w-12 h-12 rounded-full bg-neon-cyan/20 flex items-center justify-center">
                                     <Mail className="w-6 h-6 text-neon-cyan" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-foreground">Email</h3>
-                                    <p className="text-sm text-neon-cyan/80">soporte@tabe.com.ar</p>
+                                    <p className="text-sm text-neon-cyan/80">soporte.tabe@gmail.com</p>
                                 </div>
                             </a>
 
@@ -66,7 +66,7 @@ export default function Contact() {
 
                     <div className="card-gamer p-8 rounded-2xl border border-border">
                         <h2 className="text-2xl font-display font-bold mb-6">Envíanos un mensaje</h2>
-                        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); window.location.href = "mailto:soporte@tabe.com.ar"; }}>
+                        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); window.location.href = "mailto:soporte.tabe@gmail.com"; }}>
                             <div>
                                 <label className="block text-sm font-medium mb-2">Nombre</label>
                                 <input type="text" className="w-full bg-secondary border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-neon-cyan/50" placeholder="Tu nombre" required />

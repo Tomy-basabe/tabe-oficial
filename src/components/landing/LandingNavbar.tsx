@@ -50,10 +50,13 @@ export function LandingNavbar() {
     }, []);
 
     const navLinks = [
-        { label: "El Problema", href: "#problema" },
-        { label: "Metodología", href: "#metodologia" },
-        { label: "Planes", href: "#planes" },
-        { label: "FAQ", href: "#faq" },
+        { label: "El Problema", href: "/#problema", isScroll: true },
+        { label: "Metodología", href: "/#metodologia", isScroll: true },
+        { label: "Planes", href: "/#planes", isScroll: true },
+        { label: "FAQ", href: "/#faq", isScroll: true },
+        { label: "Acerca de", href: "/acerca-de", isScroll: false },
+        { label: "Contacto", href: "/contacto", isScroll: false },
+        { label: "Privacidad", href: "/privacidad", isScroll: false },
     ];
 
     return (
@@ -75,23 +78,46 @@ export function LandingNavbar() {
                 {/* Desktop Links */}
                 <div className="hidden md:flex items-center gap-1">
                     {navLinks.map((link) => (
-                        <a
-                            key={link.label}
-                            href={link.href}
-                            onClick={(e) => scrollToSection(e, link.href)}
-                            className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
-                                ${activeSection === link.href.replace("#", "")
-                                    ? "text-foreground"
-                                    : "text-muted-foreground hover:text-foreground"
-                                }`}
-                        >
-                            {link.label}
-                            {/* Active indicator */}
-                            <span
-                                className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full transition-all duration-300
-                                    ${activeSection === link.href.replace("#", "") ? "w-6 opacity-100" : "w-0 opacity-0"}`}
-                            />
-                        </a>
+                        link.isScroll ? (
+                            <a
+                                key={link.label}
+                                href={link.href}
+                                onClick={(e) => {
+                                    if (window.location.pathname === "/") {
+                                        scrollToSection(e, link.href);
+                                    } else {
+                                        window.location.href = link.href;
+                                    }
+                                }}
+                                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                                    ${activeSection === link.href.replace("/#", "") && window.location.pathname === "/"
+                                        ? "text-foreground"
+                                        : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                            >
+                                {link.label}
+                                <span
+                                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full transition-all duration-300
+                                        ${activeSection === link.href.replace("/#", "") && window.location.pathname === "/" ? "w-6 opacity-100" : "w-0 opacity-0"}`}
+                                />
+                            </a>
+                        ) : (
+                            <Link
+                                key={link.label}
+                                to={link.href}
+                                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                                    ${window.location.pathname === link.href
+                                        ? "text-foreground"
+                                        : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                            >
+                                {link.label}
+                                <span
+                                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full transition-all duration-300
+                                        ${window.location.pathname === link.href ? "w-6 opacity-100" : "w-0 opacity-0"}`}
+                                />
+                            </Link>
+                        )
                     ))}
                 </div>
 
@@ -132,15 +158,33 @@ export function LandingNavbar() {
             >
                 <div className="py-4 px-4 flex flex-col gap-1">
                     {navLinks.map((link, i) => (
-                        <a
-                            key={link.label}
-                            href={link.href}
-                            onClick={(e) => scrollToSection(e, link.href)}
-                            className={`font-medium px-4 py-3 hover:bg-secondary rounded-xl transition-all duration-300 ${activeSection === link.href.replace("#", "") ? "bg-secondary/50 text-foreground" : "text-muted-foreground"}`}
-                            style={{ transitionDelay: mobileMenuOpen ? `${i * 50}ms` : "0ms" }}
-                        >
-                            {link.label}
-                        </a>
+                        link.isScroll ? (
+                            <a
+                                key={link.label}
+                                href={link.href}
+                                onClick={(e) => {
+                                    if (window.location.pathname === "/") {
+                                        scrollToSection(e, link.href);
+                                    } else {
+                                        window.location.href = link.href;
+                                    }
+                                }}
+                                className={`font-medium px-4 py-3 hover:bg-secondary rounded-xl transition-all duration-300 ${activeSection === link.href.replace("/#", "") && window.location.pathname === "/" ? "bg-secondary/50 text-foreground" : "text-muted-foreground"}`}
+                                style={{ transitionDelay: mobileMenuOpen ? `${i * 50}ms` : "0ms" }}
+                            >
+                                {link.label}
+                            </a>
+                        ) : (
+                            <Link
+                                key={link.label}
+                                to={link.href}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`font-medium px-4 py-3 hover:bg-secondary rounded-xl transition-all duration-300 ${window.location.pathname === link.href ? "bg-secondary/50 text-foreground" : "text-muted-foreground"}`}
+                                style={{ transitionDelay: mobileMenuOpen ? `${i * 50}ms` : "0ms" }}
+                            >
+                                {link.label}
+                            </Link>
+                        )
                     ))}
                     <div className="h-px bg-border my-3" />
                     <div className="flex items-center justify-between px-4 py-2">
