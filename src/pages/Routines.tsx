@@ -4,7 +4,7 @@ import { es } from "date-fns/locale";
 import {
     ChevronLeft, ChevronRight, Plus, Pencil, Trash2,
     CheckCircle, XCircle, MinusCircle, CalendarDays, Flame,
-    BarChart2, TrendingUp, RotateCcw, Clock, StopCircle
+    BarChart2, TrendingUp, RotateCcw, Clock, StopCircle, BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSubjects, type Subject } from "@/hooks/useSubjects";
 import { Slider } from "@/components/ui/slider";
 import {
     useRoutines,
@@ -37,13 +39,15 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; cl
 interface RoutineFormDialogProps {
     open: boolean;
     initial?: Routine | null;
+    subjects: Subject[];
     onClose: () => void;
     onSave: (data: Parameters<ReturnType<typeof useRoutines>["createRoutine"]>[0]) => void;
 }
 
-function RoutineFormDialog({ open, initial, onClose, onSave }: RoutineFormDialogProps) {
+function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: RoutineFormDialogProps) {
     const [name, setName] = useState(initial?.name ?? "");
     const [desc, setDesc] = useState(initial?.description ?? "");
+    const [subjectId, setSubjectId] = useState<string>(initial?.subject_id ?? "none");
     const [category, setCategory] = useState(initial?.category ?? "general");
     const [color, setColor] = useState(initial?.color ?? "#00FFAA");
     const [days, setDays] = useState<number[]>(initial?.days_of_week ?? []);
@@ -60,6 +64,7 @@ function RoutineFormDialog({ open, initial, onClose, onSave }: RoutineFormDialog
             name: name.trim(),
             description: desc.trim() || undefined,
             category,
+            subject_id: subjectId === "none" ? null : subjectId,
             color,
             days_of_week: days,
             start_date: startDate,
@@ -86,6 +91,24 @@ function RoutineFormDialog({ open, initial, onClose, onSave }: RoutineFormDialog
                     <div>
                         <Label>Descripción (opcional)</Label>
                         <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Notas o detalles..." className="mt-1 h-20 resize-none" />
+                    </div>
+
+                    {/* Subject (Optional) */}
+                    <div>
+                        <Label>Materia relacionada (opcional)</Label>
+                        <Select value={subjectId} onValueChange={setSubjectId}>
+                            <SelectTrigger className="w-full mt-1 bg-background">
+                                <SelectValue placeholder="Seleccionar materia..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Ninguna (General)</SelectItem>
+                                {subjects.map((sub) => (
+                                    <SelectItem key={sub.id} value={sub.id}>
+                                        {sub.nombre}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Category */}
@@ -357,6 +380,7 @@ export default function Routines() {
         getRoutinesForDate, getLogForRoutineAndDate, weekStats, getRoutineStreak,
         goToPrevWeek, goToNextWeek, goToCurrentWeek,
     } = useRoutines();
+    const { subjects } = useSubjects();
 
     const [formOpen, setFormOpen] = useState(false);
     const [editRoutine, setEditRoutine] = useState<Routine | null>(null);
@@ -537,6 +561,12 @@ export default function Routines() {
                                                 <h3 className="font-semibold truncate">{r.name}</h3>
                                                 <span className="text-xs text-muted-foreground">{cat?.emoji}</span>
                                             </div>
+                                            {r.subject_id && (
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1 mb-0.5">
+                                                    <BookOpen className="w-3 h-3 text-primary" />
+                                                    {subjects.find(s => s.id === r.subject_id)?.nombre || "Materia"}
+                                                </p>
+                                            )}
                                             <p className="text-xs text-muted-foreground">{dayNames}</p>
                                             {r.end_date && (
                                                 <p className="text-xs text-muted-foreground">
@@ -584,6 +614,7 @@ export default function Routines() {
             <RoutineFormDialog
                 open={formOpen}
                 initial={editRoutine}
+                subjects={subjects}
                 onClose={() => { setFormOpen(false); setEditRoutine(null); }}
                 onSave={handleSave}
             />

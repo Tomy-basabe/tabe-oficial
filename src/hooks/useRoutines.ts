@@ -10,6 +10,7 @@ export interface Routine {
     name: string;
     description: string | null;
     category: string;
+    subject_id: string | null;
     color: string;
     days_of_week: number[];
     start_date: string;
@@ -33,6 +34,7 @@ export type RoutineFormData = {
     name: string;
     description?: string;
     category: string;
+    subject_id?: string | null;
     color: string;
     days_of_week: number[];
     start_date: string;
