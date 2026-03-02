@@ -20,7 +20,7 @@ export default function About() {
                         Acerca de <span className="gradient-text">TABE</span>
                     </h1>
                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                        Tomas Aprendizaje Basado en Experiencia: La plataforma integral creada por y para estudiantes.
+                        Tu Asistente Virtual de Bolsillo: La plataforma integral creada por y para estudiantes.
                     </p>
                 </div>
 
@@ -38,10 +38,10 @@ export default function About() {
                         <div className="card-gamer p-8 rounded-2xl bg-gradient-to-br from-neon-cyan/5 to-neon-purple/5 border border-border">
                             <h3 className="font-bold text-lg mb-2">¿Qué significa TABE?</h3>
                             <p className="text-sm text-muted-foreground">
-                                <strong className="text-foreground">T</strong>omas<br />
-                                <strong className="text-foreground">A</strong>prendizaje<br />
-                                <strong className="text-foreground">B</strong>asado en<br />
-                                <strong className="text-foreground">E</strong>xperiencia<br />
+                                <strong className="text-foreground">T</strong>u<br />
+                                <strong className="text-foreground">A</strong>sistente<br />
+                                <strong className="text-foreground">B</strong>irtual d<strong className="text-foreground">e</strong><br />
+                                Bolsillo<br />
                             </p>
                             <p className="text-sm mt-4 text-muted-foreground">Originalmente nacido como &quot;Tu Asistente de Bolsillo Estudiantil&quot;, el proyecto evolucionó a un sistema integral de aprendizaje.</p>
                         </div>

@@ -40,8 +40,10 @@ export function LandingNavbar() {
     }, []);
 
     const scrollToSection = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+        if (window.location.pathname !== "/") return; // Let default navigation happen if not on home
+
         e.preventDefault();
-        const targetId = href.replace("#", "");
+        const targetId = href.replace("/#", "");
         const el = document.getElementById(targetId);
         if (el) {
             el.scrollIntoView({ behavior: "smooth", block: "start" });

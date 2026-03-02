@@ -37,7 +37,7 @@ export function MethodologySection() {
                             Aprobar no es suerte, es <span className="gradient-text">metodología.</span>
                         </h2>
                         <p className="text-lg text-muted-foreground">
-                            El sistema TABE (Tomas Aprendizaje Basado en Experiencia) está diseñado para transformar estudiantes con bases débiles en alumnos destacados sin importar su carrera.
+                            El sistema TABE (Tu Asistente Virtual de Bolsillo) está diseñado para transformar estudiantes con bases débiles en alumnos destacados sin importar su carrera.
                         </p>
 
                         <div className="pt-8 grid gap-8">

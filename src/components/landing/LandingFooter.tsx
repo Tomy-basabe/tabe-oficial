@@ -1,4 +1,4 @@
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Instagram } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function LandingFooter() {
@@ -15,7 +15,7 @@ export function LandingFooter() {
                         <span className="font-display font-bold text-xl tracking-tight">TABE</span>
                     </div>
 
-                    <div className="flex flex-wrap gap-4 sm:gap-6 text-sm font-medium text-muted-foreground">
+                    <div className="flex flex-wrap gap-4 sm:gap-6 text-sm font-medium text-muted-foreground items-center">
                         <Link to="/acerca-de" className="hover:text-foreground transition-colors">
                             Acerca de
                         </Link>
@@ -25,6 +25,10 @@ export function LandingFooter() {
                         <Link to="/privacidad" className="hover:text-foreground transition-colors">
                             Privacidad
                         </Link>
+                        <a href="https://www.instagram.com/tabe_oficial/" target="_blank" rel="noopener noreferrer" className="hover:text-neon-purple transition-colors flex items-center gap-1">
+                            <Instagram className="w-4 h-4" />
+                            <span className="sr-only">Instagram</span>
+                        </a>
                     </div>
 
                     <p className="text-sm text-muted-foreground">
