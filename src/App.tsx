@@ -27,6 +27,7 @@ import NotFound from "@/pages/NotFound";
 import Friends from "@/pages/Friends";
 import Marketplace from "@/pages/Marketplace";
 import CorrelativityMap from "@/pages/CorrelativityMap";
+import Routines from "@/pages/Routines";
 import Landing from "@/pages/Landing";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
@@ -121,6 +122,7 @@ const AppRoutes = () => (
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/admin" element={<AdminPanel />} />
       <Route path="/bosque" element={<Forest />} />
+      <Route path="/rutinas" element={<Routines />} />
       <Route path="/discord" element={<Discord />} />
       <Route path="/mapa" element={<CorrelativityMap />} />
     </Route>
