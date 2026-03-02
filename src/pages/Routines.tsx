@@ -4,7 +4,7 @@ import { es } from "date-fns/locale";
 import {
     ChevronLeft, ChevronRight, Plus, Pencil, Trash2,
     CheckCircle, XCircle, MinusCircle, CalendarDays, Flame,
-    BarChart2, TrendingUp, RotateCcw, Clock
+    BarChart2, TrendingUp, RotateCcw, Clock, StopCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -181,6 +181,34 @@ function RoutineFormDialog({ open, initial, onClose, onSave }: RoutineFormDialog
 
 // ─────────────────────────────────────────── Log Dialog ───────────────────────
 
+// Map rating 1-10 to status/percentage
+function ratingToLog(rating: number): { status: "completed" | "partial" | "missed"; completion_percentage: number } {
+    if (rating === 0) return { status: "missed", completion_percentage: 0 };
+    if (rating === 10) return { status: "completed", completion_percentage: 100 };
+    return { status: "partial", completion_percentage: Math.round(rating * 10) };
+}
+
+function logToRating(log?: RoutineLog): number {
+    if (!log || log.status === "pending") return -1;
+    if (log.status === "missed") return 0;
+    if (log.status === "completed") return 10;
+    return Math.round(log.completion_percentage / 10);
+}
+
+const RATING_COLORS: Record<number, string> = {
+    0: "bg-destructive/20 border-destructive text-destructive",
+    1: "bg-red-900/50 border-red-700 text-red-300",
+    2: "bg-orange-900/50 border-orange-700 text-orange-300",
+    3: "bg-orange-800/50 border-orange-600 text-orange-200",
+    4: "bg-yellow-900/50 border-yellow-700 text-yellow-300",
+    5: "bg-yellow-800/50 border-yellow-600 text-yellow-200",
+    6: "bg-lime-900/50 border-lime-700 text-lime-300",
+    7: "bg-lime-800/50 border-lime-500 text-lime-200",
+    8: "bg-green-800/50 border-green-600 text-green-200",
+    9: "bg-green-700/50 border-green-500 text-green-100",
+    10: "bg-neon-green/20 border-neon-green text-neon-green font-bold",
+};
+
 interface RoutineLogDialogProps {
     open: boolean;
     routine: Routine | null;
@@ -192,16 +220,20 @@ interface RoutineLogDialogProps {
 }
 
 function RoutineLogDialog({ open, routine, dateStr, existingLog, prevLogs, onClose, onLog }: RoutineLogDialogProps) {
-    const [status, setStatus] = useState<"completed" | "partial" | "missed">(
-        (existingLog?.status as any) === "pending" || !existingLog ? "completed" : existingLog.status as any
-    );
-    const [pct, setPct] = useState(existingLog?.completion_percentage ?? 100);
+    const [rating, setRating] = useState<number>(() => logToRating(existingLog));
     const [notes, setNotes] = useState(existingLog?.notes ?? "");
 
     if (!routine) return null;
 
     const cat = CATEGORIES.find((c) => c.id === routine.category);
     const isFut = isFuture(parseISO(dateStr + "T23:59:59"));
+
+    const handleSubmit = () => {
+        if (rating === -1) return;
+        const logData = ratingToLog(rating);
+        onLog(routine.id, dateStr, { ...logData, notes: notes || undefined });
+        onClose();
+    };
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -221,43 +253,50 @@ function RoutineLogDialog({ open, routine, dateStr, existingLog, prevLogs, onClo
                         📅 Esta fecha está en el futuro. Podrás registrarla cuando llegue el día.
                     </p>
                 ) : (
-                    <div className="space-y-4 pt-2">
-                        {/* Status buttons */}
+                    <div className="space-y-5 pt-2">
+                        {/* Rating 0-10 */}
                         <div>
-                            <Label>Estado</Label>
-                            <div className="mt-2 grid grid-cols-3 gap-2">
-                                {(["completed", "partial", "missed"] as const).map((s) => {
-                                    const cfg = STATUS_CONFIG[s];
-                                    const Icon = cfg.icon;
-                                    return (
+                            <Label className="mb-3 block">
+                                ¿Cuánto cumpliste esta rutina?
+                                {rating >= 0 && (
+                                    <span className="ml-2 font-bold">
+                                        {rating === 0 ? "❌ No cumplí" : rating === 10 ? "✅ Completa!" : `${rating}/10`}
+                                    </span>
+                                )}
+                            </Label>
+                            <div className="flex flex-col gap-2">
+                                {/* No cumplí */}
+                                <button
+                                    onClick={() => setRating(0)}
+                                    className={cn(
+                                        "w-full py-2 rounded-xl border-2 text-sm font-semibold transition-all",
+                                        rating === 0
+                                            ? RATING_COLORS[0]
+                                            : "border-border text-muted-foreground hover:border-destructive/50 hover:text-destructive"
+                                    )}
+                                >
+                                    ❌ No la cumplí
+                                </button>
+                                {/* 1–10 grid */}
+                                <div className="grid grid-cols-5 gap-1.5">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                                         <button
-                                            key={s}
-                                            onClick={() => { setStatus(s); if (s === "completed") setPct(100); if (s === "missed") setPct(0); }}
+                                            key={n}
+                                            onClick={() => setRating(n)}
                                             className={cn(
-                                                "flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-xs font-medium transition-all",
-                                                status === s ? `border-current ${cfg.cls}` : "border-border text-muted-foreground hover:border-primary/50"
+                                                "py-2.5 rounded-xl border-2 text-sm font-bold transition-all hover:scale-105",
+                                                rating === n
+                                                    ? RATING_COLORS[n]
+                                                    : "border-border text-muted-foreground hover:border-primary/50"
                                             )}
                                         >
-                                            <Icon className="w-5 h-5" />
-                                            {cfg.label}
+                                            {n === 10 ? "✓" : n}
                                         </button>
-                                    );
-                                })}
+                                    ))}
+                                </div>
+                                <p className="text-xs text-muted-foreground text-center">1 = casi nada &nbsp;·&nbsp; 5 = mitad &nbsp;·&nbsp; 10 = completa</p>
                             </div>
                         </div>
-
-                        {/* Partial percentage */}
-                        {status === "partial" && (
-                            <div>
-                                <Label>Porcentaje completado: <strong>{pct}%</strong></Label>
-                                <Slider
-                                    value={[pct]}
-                                    onValueChange={([v]) => setPct(v)}
-                                    min={1} max={99} step={1}
-                                    className="mt-3"
-                                />
-                            </div>
-                        )}
 
                         {/* Notes */}
                         <div>
@@ -273,15 +312,20 @@ function RoutineLogDialog({ open, routine, dateStr, existingLog, prevLogs, onClo
                         {/* History */}
                         {prevLogs.length > 0 && (
                             <div>
-                                <Label>Últimos registros</Label>
-                                <div className="mt-2 flex gap-1.5 flex-wrap">
+                                <Label className="mb-2 block">Historial reciente</Label>
+                                <div className="flex gap-1.5 flex-wrap">
                                     {prevLogs.slice(0, 7).map((l) => {
-                                        const cfg = STATUS_CONFIG[l.status];
-                                        const Icon = cfg.icon;
+                                        const r = logToRating(l);
                                         return (
-                                            <div key={l.id} className={cn("flex items-center gap-1 px-2 py-1 rounded-lg text-xs", cfg.cls)}>
-                                                <Icon className="w-3 h-3" />
-                                                {l.status === "partial" ? `${l.completion_percentage}%` : format(parseISO(l.log_date), "d/M")}
+                                            <div
+                                                key={l.id}
+                                                className={cn(
+                                                    "flex flex-col items-center px-2 py-1 rounded-lg text-xs border",
+                                                    r >= 0 ? RATING_COLORS[r] : "bg-muted/30 border-border"
+                                                )}
+                                            >
+                                                <span className="font-bold">{r === -1 ? "—" : r === 0 ? "✗" : r === 10 ? "✓" : r}</span>
+                                                <span className="text-[9px] opacity-70">{format(parseISO(l.log_date), "d/M")}</span>
                                             </div>
                                         );
                                     })}
@@ -294,8 +338,8 @@ function RoutineLogDialog({ open, routine, dateStr, existingLog, prevLogs, onClo
                 <DialogFooter className="mt-2">
                     <Button variant="outline" onClick={onClose}>Cancelar</Button>
                     {!isFut && (
-                        <Button onClick={() => { onLog(routine.id, dateStr, { status, completion_percentage: pct, notes: notes || undefined }); onClose(); }}>
-                            Registrar
+                        <Button onClick={handleSubmit} disabled={rating === -1}>
+                            Guardar
                         </Button>
                     )}
                 </DialogFooter>
@@ -309,7 +353,7 @@ function RoutineLogDialog({ open, routine, dateStr, existingLog, prevLogs, onClo
 export default function Routines() {
     const {
         routines, logs, loading, currentWeekStart,
-        createRoutine, updateRoutine, deleteRoutine, logRoutine,
+        createRoutine, updateRoutine, deleteRoutine, stopRoutine, logRoutine,
         getRoutinesForDate, getLogForRoutineAndDate, weekStats, getRoutineStreak,
         goToPrevWeek, goToNextWeek, goToCurrentWeek,
     } = useRoutines();
@@ -318,6 +362,7 @@ export default function Routines() {
     const [editRoutine, setEditRoutine] = useState<Routine | null>(null);
     const [logTarget, setLogTarget] = useState<{ routine: Routine; dateStr: string } | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [confirmStop, setConfirmStop] = useState<Routine | null>(null);
 
     const weekDays = useMemo(() =>
         Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)),
@@ -520,6 +565,9 @@ export default function Routines() {
                                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditRoutine(r); setFormOpen(true); }}>
                                                 <Pencil className="w-3.5 h-3.5" />
                                             </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-orange-400 hover:text-orange-500" title="Cortar rutina" onClick={() => setConfirmStop(r)}>
+                                                <StopCircle className="w-3.5 h-3.5" />
+                                            </Button>
                                             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(r.id)}>
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </Button>
@@ -550,6 +598,27 @@ export default function Routines() {
                 onClose={() => setLogTarget(null)}
                 onLog={logRoutine}
             />
+
+            {/* Stop Confirm Dialog */}
+            <Dialog open={!!confirmStop} onOpenChange={() => setConfirmStop(null)}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <StopCircle className="w-4 h-4 text-orange-400" />
+                            Cortar rutina
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-muted-foreground text-sm">
+                        La rutina <strong>"{confirmStop?.name}"</strong> quedará finalizada hoy. No aparecerá en días futuros pero se mantienen todos sus registros pasados. Podés reactivarla editando su fecha de fin.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setConfirmStop(null)}>Cancelar</Button>
+                        <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => { if (confirmStop) stopRoutine(confirmStop.id); setConfirmStop(null); }}>
+                            <StopCircle className="w-4 h-4 mr-1" /> Cortar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Delete Confirm Dialog */}
             <Dialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>

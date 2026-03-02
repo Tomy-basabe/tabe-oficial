@@ -135,6 +135,20 @@ export function useRoutines() {
         fetchLogsForWeek(currentWeekStart);
     };
 
+    // Stops a routine at today (sets end_date = today), keeping all logs
+    const stopRoutine = async (id: string) => {
+        if (!user) return;
+        const today = format(new Date(), "yyyy-MM-dd");
+        const { error } = await supabase
+            .from("routines")
+            .update({ end_date: today })
+            .eq("id", id)
+            .eq("user_id", user.id);
+        if (error) { toast.error("Error al cortar rutina"); return; }
+        toast.success("⏹️ Rutina cortada — no aparecerá a partir de mañana");
+        fetchRoutines();
+    };
+
     const logRoutine = async (
         routineId: string,
         logDate: string,
@@ -262,6 +276,7 @@ export function useRoutines() {
         createRoutine,
         updateRoutine,
         deleteRoutine,
+        stopRoutine,
         logRoutine,
         getRoutinesForDate,
         getLogForRoutineAndDate,
