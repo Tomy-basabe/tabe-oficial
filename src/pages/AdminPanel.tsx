@@ -315,8 +315,24 @@ const AdminPanel = () => {
         if (depError) throw depError;
       }
 
+      // Update user profile with the new career info
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          facultad: "UTN",
+          carrera: career.label
+        })
+        .eq("user_id", careerUser.user_id);
+
+      if (profileError) {
+        console.error("Error updating profile with career info:", profileError);
+        // We don't throw here to avoid failing the whole process if only this step fails,
+        // but it's noted in the console.
+      }
+
       toast.success(`✅ Plan de ${career.label} cargado para ${careerUser.nombre || careerUser.email}`);
       setCareerUser(null);
+      fetchRegisteredUsers(); // Refresh the list to show the new info if needed
     } catch (error: any) {
       console.error("Error loading career template:", error);
       toast.error(`Error al cargar carrera: ${error.message}`);
@@ -633,8 +649,8 @@ const AdminPanel = () => {
                   key={c.id}
                   onClick={() => setSelectedCareer(c.id)}
                   className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedCareer === c.id
-                      ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_20px_rgba(0,217,255,0.1)]"
-                      : "border-border bg-secondary/20 hover:border-muted-foreground/30"
+                    ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_20px_rgba(0,217,255,0.1)]"
+                    : "border-border bg-secondary/20 hover:border-muted-foreground/30"
                     }`}
                 >
                   <div className="text-left">

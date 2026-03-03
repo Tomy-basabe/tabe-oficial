@@ -20,6 +20,8 @@ interface PublicDeck {
     display_id: number;
     nombre: string | null;
     nivel: number;
+    facultad?: string | null;
+    carrera?: string | null;
   };
   subject?: {
     nombre: string;
@@ -38,6 +40,8 @@ interface ProfileData {
   username: string | null;
   display_id: number;
   nombre: string | null;
+  facultad: string | null;
+  carrera: string | null;
 }
 
 interface SubjectData {
@@ -97,7 +101,7 @@ export function useMarketplace() {
     const subjectIds = [...new Set((decks || []).map(d => d.subject_id))];
 
     const [profilesResult, statsResult, subjectsResult] = await Promise.all([
-      supabase.from("profiles").select("user_id, username, display_id, nombre").in("user_id", userIds),
+      supabase.from("profiles").select("user_id, username, display_id, nombre, facultad, carrera").in("user_id", userIds),
       supabase.from("user_stats").select("user_id, nivel").in("user_id", userIds),
       supabase.from("subjects").select("id, nombre, año").in("id", subjectIds)
     ]);
@@ -122,7 +126,9 @@ export function useMarketplace() {
           username: profile.username || "Usuario",
           display_id: profile.display_id,
           nombre: profile.nombre || (profile.username ? null : "Usuario"),
-          nivel: stats?.nivel || 1
+          nivel: stats?.nivel || 1,
+          facultad: profile.facultad || null,
+          carrera: profile.carrera || null,
         } : undefined,
         subject: subject ? {
           nombre: subject.nombre,

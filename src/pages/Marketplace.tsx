@@ -33,8 +33,6 @@ export default function Marketplace() {
     setCategoryFilter,
     yearFilter,
     setYearFilter,
-    subjectFilter,
-    setSubjectFilter,
     getCategories,
     publishDeck,
     unpublishDeck,
@@ -244,7 +242,6 @@ export default function Marketplace() {
             <div className="flex flex-col md:flex-row gap-4">
               <Select value={yearFilter?.toString() || "all"} onValueChange={(v) => {
                 setYearFilter(v === "all" ? null : parseInt(v));
-                setSubjectFilter(null); // Reset subject when year changes
               }}>
                 <SelectTrigger className="w-full md:w-48">
                   <Calendar className="w-4 h-4 mr-2" />
@@ -258,34 +255,13 @@ export default function Marketplace() {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={subjectFilter || "all"}
-                onValueChange={(v) => setSubjectFilter(v === "all" ? null : v)}
-              >
-                <SelectTrigger className="w-full md:w-64">
-                  <GraduationCap className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Materia" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px] overflow-y-auto">
-                  <SelectItem value="all">Todas las materias</SelectItem>
-                  {subjects
-                    .filter(s => !yearFilter || s.year === yearFilter)
-                    .map((subject) => (
-                      <SelectItem key={subject.id} value={subject.id}>
-                        {subject.nombre}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-
               {/* Clear filters button */}
-              {(yearFilter || subjectFilter || categoryFilter) && (
+              {(yearFilter || categoryFilter) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setYearFilter(null);
-                    setSubjectFilter(null);
                     setCategoryFilter(null);
                   }}
                   className="w-full md:w-auto"
@@ -375,10 +351,17 @@ export default function Marketplace() {
                     {deck.creator && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4 pb-4 border-b border-border">
                         <User className="w-4 h-4" />
-                        <span>
-                          {deck.creator.nombre || deck.creator.username || `#${deck.creator.display_id}`}
-                        </span>
-                        <Badge variant="secondary" className="text-xs ml-auto">
+                        <div className="flex-1 min-w-0">
+                          <span>
+                            {deck.creator.nombre || deck.creator.username || `#${deck.creator.display_id}`}
+                          </span>
+                          {deck.creator.facultad && (
+                            <p className="text-xs text-muted-foreground/70 truncate">
+                              {deck.creator.facultad}{deck.creator.carrera ? ` · ${deck.creator.carrera}` : ''}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="secondary" className="text-xs ml-auto flex-shrink-0">
                           Nv. {deck.creator.nivel}
                         </Badge>
                       </div>
