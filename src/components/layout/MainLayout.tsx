@@ -27,7 +27,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NotionIcon } from "@/components/icons/NotionIcon";
-import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
@@ -47,7 +46,6 @@ const baseNavItems = [
   { icon: Timer, label: "Pomodoro", path: "/pomodoro", tourClass: "tour-sidebar-pomodoro" },
   { icon: BarChart3, label: "Métricas", path: "/metricas", tourClass: "tour-sidebar-metricas" },
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
-  { icon: DiscordIcon, label: "Comunidad", path: "/discord", tourClass: "tour-sidebar-discord" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
   { icon: Bot, label: "Asistente IA", path: "/asistente", tourClass: "tour-sidebar-asistenteia" },

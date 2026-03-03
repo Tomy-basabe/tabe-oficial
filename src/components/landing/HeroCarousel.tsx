@@ -44,7 +44,7 @@ const slides = [
     },
     {
         id: 6,
-        title: "Marketplace de Comunidad",
+        title: "Marketplace",
         description: "Adquiere mazos de estudio, temas y pócimas gastando tus XP ganados.",
         icon: Store,
         color: "from-orange-500 to-red-500",
@@ -91,14 +91,6 @@ const slides = [
         image: "/screenshots/forest.png"
     },
     {
-        id: 12,
-        title: "Integración Comunitaria",
-        description: "Estudia junto a otros estudiantes, comparte voz y pantalla en salas de estudio en vivo.",
-        icon: Users,
-        color: "from-[#5865F2] to-blue-600",
-        image: "/screenshots/discord.png"
-    },
-    {
         id: 13,
         title: "Logros e Insignias",
         description: "Desbloquea logros académicos y demuestra tu nivel en la plataforma.",
@@ -108,7 +100,7 @@ const slides = [
     },
     {
         id: 14,
-        title: "Comunidad y Amigos",
+        title: "Amigos",
         description: "Añade amigos, compara XP semanal y motivaciónate en equipo.",
         icon: Users,
         color: "from-neon-gold to-yellow-500",

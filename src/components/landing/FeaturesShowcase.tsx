@@ -148,16 +148,7 @@ const sections: FeatureSection[] = [
         mainImage: "/features/bosque.webp",
         features: [],
     },
-    {
-        id: "comunidad",
-        title: "Comunidad",
-        description: "Servidores de estudio con canales de texto y voz en tiempo real. Conectá con compañeros y estudiá en grupo.",
-        icon: MessageSquare,
-        color: "text-neon-purple",
-        glowColor: "from-neon-purple/20 to-neon-purple/5",
-        mainImage: "/features/comunidad.webp",
-        features: [],
-    },
+
     {
         id: "logros",
         title: "Logros",

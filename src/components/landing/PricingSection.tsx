@@ -37,7 +37,6 @@ export function PricingSection() {
         "Flashcards, Cuestionarios y Apuntes ilimitados",
         "Visor PDF con IA integrada",
         "Estadísticas avanzadas y gamificación",
-        "Comunidad y salas de estudio",
     ];
 
     return (
@@ -60,8 +59,8 @@ export function PricingSection() {
                         <div
                             key={plan.id}
                             className={`relative rounded-2xl overflow-hidden border flex flex-col transition-all duration-300 hover:-translate-y-1 ${plan.highlight
-                                    ? "border-neon-cyan shadow-[0_0_30px_rgba(0,255,170,0.15)] bg-card scale-[1.03]"
-                                    : "border-border bg-card/80 hover:border-muted-foreground/30"
+                                ? "border-neon-cyan shadow-[0_0_30px_rgba(0,255,170,0.15)] bg-card scale-[1.03]"
+                                : "border-border bg-card/80 hover:border-muted-foreground/30"
                                 }`}
                         >
                             {/* Top glow line */}
@@ -132,8 +131,8 @@ export function PricingSection() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${plan.highlight
-                                            ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-white hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] hover:-translate-y-0.5"
-                                            : "bg-secondary hover:bg-secondary/80 text-foreground border border-border"
+                                        ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-white hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] hover:-translate-y-0.5"
+                                        : "bg-secondary hover:bg-secondary/80 text-foreground border border-border"
                                         }`}
                                 >
                                     <Crown className="w-4 h-4" />

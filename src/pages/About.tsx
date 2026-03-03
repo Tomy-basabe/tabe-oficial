@@ -60,7 +60,7 @@ export default function About() {
                             </div>
                             <div className="card-gamer p-6 rounded-xl text-center">
                                 <Users className="w-8 h-8 text-neon-purple mx-auto mb-4" />
-                                <h3 className="font-bold mb-2">Comunidad</h3>
+                                <h3 className="font-bold mb-2">Colaboración</h3>
                                 <p className="text-sm text-muted-foreground">El aprendizaje no debe ser un camino solitario. Fomentamos la colaboración y el espíritu de equipo estudiantil.</p>
                             </div>
                             <div className="card-gamer p-6 rounded-xl text-center">
