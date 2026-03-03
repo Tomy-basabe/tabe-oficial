@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { format, addDays, isToday, isFuture, parseISO } from "date-fns";
+import { format, addDays, isToday, isFuture, isPast, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
     ChevronLeft, ChevronRight, Plus, Pencil, Trash2,
-    CheckCircle, XCircle, MinusCircle, CalendarDays, Flame,
-    BarChart2, TrendingUp, RotateCcw, Clock, StopCircle, BookOpen
+    CheckCircle, XCircle, CalendarDays, Flame,
+    TrendingUp, RotateCcw, Clock, StopCircle, BookOpen,
+    Filter, Check, Percent
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13,50 +14,63 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSubjects, type Subject } from "@/hooks/useSubjects";
 import { Slider } from "@/components/ui/slider";
+import { useSubjects, type Subject } from "@/hooks/useSubjects";
 import {
     useRoutines,
     type Routine,
+    type ResolvedRoutine,
     type RoutineLog,
     CATEGORIES,
     COLOR_OPTIONS,
     DAY_LABELS,
-    DAY_LABELS_FULL,
+    TIME_BLOCKS,
 } from "@/hooks/useRoutines";
 
-// ─────────────────────────────────────────── helpers ──────────────────────────
+// ─────────────────────────────── Time Helpers ────────────────────────────────
 
-const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; cls: string }> = {
-    pending: { label: "Pendiente", icon: Clock, cls: "text-muted-foreground bg-muted/30" },
-    completed: { label: "Cumplida", icon: CheckCircle, cls: "text-neon-green bg-neon-green/10" },
-    partial: { label: "Parcial", icon: MinusCircle, cls: "text-neon-gold bg-neon-gold/10" },
-    missed: { label: "No cumplida", icon: XCircle, cls: "text-destructive bg-destructive/10" },
-};
+const TIME_OPTIONS: string[] = [];
+for (let h = 0; h < 24; h++) {
+    TIME_OPTIONS.push(`${String(h).padStart(2, "0")}:00`);
+    TIME_OPTIONS.push(`${String(h).padStart(2, "0")}:30`);
+}
 
-// ─────────────────────────────────────────── Form Dialog ──────────────────────
+function timeToBlockIndex(time: string): number {
+    const [h] = time.split(":").map(Number);
+    // blocks: 08,10,12,14,16,18,20,22,00  (indices 0-8)
+    if (h < 8) return 8; // midnight block
+    return Math.floor((h - 8) / 2);
+}
 
-interface RoutineFormDialogProps {
+function timeLabel(t: string): string {
+    return t.slice(0, 5);
+}
+
+// ─────────────────────────────── Form Dialog ─────────────────────────────────
+
+interface FormDialogProps {
     open: boolean;
     initial?: Routine | null;
     subjects: Subject[];
     onClose: () => void;
-    onSave: (data: Parameters<ReturnType<typeof useRoutines>["createRoutine"]>[0]) => void;
+    onSave: (data: any) => void;
 }
 
-function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: RoutineFormDialogProps) {
+function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDialogProps) {
     const [name, setName] = useState(initial?.name ?? "");
     const [desc, setDesc] = useState(initial?.description ?? "");
-    const [subjectId, setSubjectId] = useState<string>(initial?.subject_id ?? "none");
     const [category, setCategory] = useState(initial?.category ?? "general");
+    const [subjectId, setSubjectId] = useState<string>(initial?.subject_id ?? "none");
     const [color, setColor] = useState(initial?.color ?? "#00FFAA");
+    const [startTime, setStartTime] = useState(initial?.start_time?.slice(0, 5) ?? "08:00");
+    const [endTime, setEndTime] = useState(initial?.end_time?.slice(0, 5) ?? "10:00");
     const [days, setDays] = useState<number[]>(initial?.days_of_week ?? []);
     const [startDate, setStartDate] = useState(initial?.start_date ?? format(new Date(), "yyyy-MM-dd"));
     const [hasEnd, setHasEnd] = useState(!!initial?.end_date);
     const [endDate, setEndDate] = useState(initial?.end_date ?? "");
 
     const toggleDay = (d: number) =>
-        setDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
+        setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort());
 
     const handleSave = () => {
         if (!name.trim() || days.length === 0) return;
@@ -66,12 +80,24 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: Routine
             category,
             subject_id: subjectId === "none" ? null : subjectId,
             color,
+            start_time: startTime,
+            end_time: endTime,
             days_of_week: days,
             start_date: startDate,
             end_date: hasEnd ? endDate : undefined,
         });
         onClose();
     };
+
+    // Group subjects by año
+    const subjectsByYear = useMemo(() => {
+        const map: Record<number, Subject[]> = {};
+        subjects.forEach(s => {
+            if (!map[s.año]) map[s.año] = [];
+            map[s.año].push(s);
+        });
+        return map;
+    }, [subjects]);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -84,28 +110,50 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: Routine
                     {/* Name */}
                     <div>
                         <Label>Nombre *</Label>
-                        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Hacer ejercicio" className="mt-1" />
+                        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Estudiar Análisis" className="mt-1" />
                     </div>
 
                     {/* Description */}
                     <div>
                         <Label>Descripción (opcional)</Label>
-                        <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Notas o detalles..." className="mt-1 h-20 resize-none" />
+                        <Textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Notas..." className="mt-1 h-16 resize-none" />
                     </div>
 
-                    {/* Subject (Optional) */}
+                    {/* Time range */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <Label>Hora inicio *</Label>
+                            <Select value={startTime} onValueChange={setStartTime}>
+                                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                <SelectContent className="max-h-48">
+                                    {TIME_OPTIONS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Hora fin *</Label>
+                            <Select value={endTime} onValueChange={setEndTime}>
+                                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                <SelectContent className="max-h-48">
+                                    {TIME_OPTIONS.filter(t => t > startTime).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Materia */}
                     <div>
-                        <Label>Materia relacionada (opcional)</Label>
+                        <Label>Materia (opcional)</Label>
                         <Select value={subjectId} onValueChange={setSubjectId}>
-                            <SelectTrigger className="w-full mt-1 bg-background">
-                                <SelectValue placeholder="Seleccionar materia..." />
-                            </SelectTrigger>
+                            <SelectTrigger className="mt-1 bg-background"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="none">Ninguna (General)</SelectItem>
-                                {subjects.map((sub) => (
-                                    <SelectItem key={sub.id} value={sub.id}>
-                                        {sub.nombre}
-                                    </SelectItem>
+                                <SelectItem value="none">General (sin materia)</SelectItem>
+                                {Object.entries(subjectsByYear).sort(([a], [b]) => Number(a) - Number(b)).map(([año, subs]) => (
+                                    subs.map(sub => (
+                                        <SelectItem key={sub.id} value={sub.id}>
+                                            {año}° — {sub.nombre}
+                                        </SelectItem>
+                                    ))
                                 ))}
                             </SelectContent>
                         </Select>
@@ -115,16 +163,11 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: Routine
                     <div>
                         <Label>Categoría</Label>
                         <div className="mt-1 flex flex-wrap gap-2">
-                            {CATEGORIES.map((c) => (
-                                <button
-                                    key={c.id}
-                                    onClick={() => setCategory(c.id)}
+                            {CATEGORIES.map(c => (
+                                <button key={c.id} onClick={() => setCategory(c.id)}
                                     className={cn("px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
-                                        category === c.id
-                                            ? "border-primary bg-primary/20 text-primary"
-                                            : "border-border text-muted-foreground hover:border-primary/50"
-                                    )}
-                                >
+                                        category === c.id ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                                    )}>
                                     {c.emoji} {c.label}
                                 </button>
                             ))}
@@ -135,15 +178,11 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: Routine
                     <div>
                         <Label>Color</Label>
                         <div className="mt-1 flex flex-wrap gap-2">
-                            {COLOR_OPTIONS.map((c) => (
-                                <button
-                                    key={c}
-                                    onClick={() => setColor(c)}
+                            {COLOR_OPTIONS.map(c => (
+                                <button key={c} onClick={() => setColor(c)}
                                     className={cn("w-7 h-7 rounded-full border-2 transition-transform hover:scale-110",
                                         color === c ? "border-foreground scale-110" : "border-transparent"
-                                    )}
-                                    style={{ backgroundColor: c }}
-                                />
+                                    )} style={{ backgroundColor: c }} />
                             ))}
                         </div>
                     </div>
@@ -153,16 +192,10 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: Routine
                         <Label>Días de la semana *</Label>
                         <div className="mt-1 flex gap-1">
                             {DAY_LABELS.map((label, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => toggleDay(i)}
-                                    className={cn(
-                                        "flex-1 py-2 rounded-lg text-xs font-semibold border transition-all",
-                                        days.includes(i)
-                                            ? "border-primary bg-primary/20 text-primary"
-                                            : "border-border text-muted-foreground hover:border-primary/50"
-                                    )}
-                                >
+                                <button key={i} onClick={() => toggleDay(i)}
+                                    className={cn("flex-1 py-2 rounded-lg text-xs font-semibold border transition-all",
+                                        days.includes(i) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                                    )}>
                                     {label}
                                 </button>
                             ))}
@@ -173,20 +206,13 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: Routine
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <Label>Fecha de inicio</Label>
-                            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1" />
+                            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1" />
                         </div>
                         <div>
                             <Label className="flex items-center gap-2">
-                                Fecha fin
-                                <input type="checkbox" checked={hasEnd} onChange={(e) => setHasEnd(e.target.checked)} className="ml-1" />
+                                Fecha fin <input type="checkbox" checked={hasEnd} onChange={e => setHasEnd(e.target.checked)} className="ml-1" />
                             </Label>
-                            <Input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                disabled={!hasEnd}
-                                className="mt-1"
-                            />
+                            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} disabled={!hasEnd} className="mt-1" />
                         </div>
                     </div>
                 </div>
@@ -202,176 +228,144 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: Routine
     );
 }
 
-// ─────────────────────────────────────────── Log Dialog ───────────────────────
+// ────────────────────────────── Log Dialog ────────────────────────────────────
 
-// Map rating 1-10 to status/percentage
-function ratingToLog(rating: number): { status: "completed" | "partial" | "missed"; completion_percentage: number } {
-    if (rating === 0) return { status: "missed", completion_percentage: 0 };
-    if (rating === 10) return { status: "completed", completion_percentage: 100 };
-    return { status: "partial", completion_percentage: Math.round(rating * 10) };
-}
-
-function logToRating(log?: RoutineLog): number {
-    if (!log || log.status === "pending") return -1;
-    if (log.status === "missed") return 0;
-    if (log.status === "completed") return 10;
-    return Math.round(log.completion_percentage / 10);
-}
-
-const RATING_COLORS: Record<number, string> = {
-    0: "bg-destructive/20 border-destructive text-destructive",
-    1: "bg-red-900/50 border-red-700 text-red-300",
-    2: "bg-orange-900/50 border-orange-700 text-orange-300",
-    3: "bg-orange-800/50 border-orange-600 text-orange-200",
-    4: "bg-yellow-900/50 border-yellow-700 text-yellow-300",
-    5: "bg-yellow-800/50 border-yellow-600 text-yellow-200",
-    6: "bg-lime-900/50 border-lime-700 text-lime-300",
-    7: "bg-lime-800/50 border-lime-500 text-lime-200",
-    8: "bg-green-800/50 border-green-600 text-green-200",
-    9: "bg-green-700/50 border-green-500 text-green-100",
-    10: "bg-neon-green/20 border-neon-green text-neon-green font-bold",
-};
-
-interface RoutineLogDialogProps {
+interface LogDialogProps {
     open: boolean;
-    routine: Routine | null;
+    routine: ResolvedRoutine | null;
     dateStr: string;
     existingLog?: RoutineLog;
-    prevLogs: RoutineLog[];
     onClose: () => void;
-    onLog: (routineId: string, dateStr: string, data: { status: "completed" | "partial" | "missed"; completion_percentage: number; notes?: string }) => void;
+    onLog: (routineId: string, date: string, data: any) => void;
 }
 
-function RoutineLogDialog({ open, routine, dateStr, existingLog, prevLogs, onClose, onLog }: RoutineLogDialogProps) {
-    const [rating, setRating] = useState<number>(() => logToRating(existingLog));
+function RoutineLogDialog({ open, routine, dateStr, existingLog, onClose, onLog }: LogDialogProps) {
+    const [mode, setMode] = useState<"check" | "percentage">(existingLog ? (existingLog.completed ? "check" : "percentage") : "check");
+    const [completed, setCompleted] = useState(existingLog?.completed ?? false);
+    const [pct, setPct] = useState(existingLog?.completion_percentage ?? 50);
     const [notes, setNotes] = useState(existingLog?.notes ?? "");
 
     if (!routine) return null;
 
-    const cat = CATEGORIES.find((c) => c.id === routine.category);
-    const isFut = isFuture(parseISO(dateStr + "T23:59:59"));
+    const cat = CATEGORIES.find(c => c.id === routine.category);
 
     const handleSubmit = () => {
-        if (rating === -1) return;
-        const logData = ratingToLog(rating);
-        onLog(routine.id, dateStr, { ...logData, notes: notes || undefined });
+        if (mode === "check") {
+            onLog(routine.id, dateStr, { completed, completion_percentage: completed ? 100 : 0, notes: notes || undefined });
+        } else {
+            onLog(routine.id, dateStr, { completed: pct === 100, completion_percentage: pct, notes: notes || undefined });
+        }
         onClose();
     };
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-sm">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: routine.color }} />
                         {routine.name}
                     </DialogTitle>
                     <p className="text-sm text-muted-foreground">
-                        {cat?.emoji} {cat?.label} · {format(parseISO(dateStr), "EEEE d 'de' MMMM", { locale: es })}
+                        {cat?.emoji} {timeLabel(routine.start_time)}–{timeLabel(routine.end_time)} · {format(parseISO(dateStr), "EEEE d MMM", { locale: es })}
                     </p>
                 </DialogHeader>
 
-                {isFut ? (
-                    <p className="text-muted-foreground text-sm py-4 text-center">
-                        📅 Esta fecha está en el futuro. Podrás registrarla cuando llegue el día.
-                    </p>
-                ) : (
-                    <div className="space-y-5 pt-2">
-                        {/* Rating 0-10 */}
-                        <div>
-                            <Label className="mb-3 block">
-                                ¿Cuánto cumpliste esta rutina?
-                                {rating >= 0 && (
-                                    <span className="ml-2 font-bold">
-                                        {rating === 0 ? "❌ No cumplí" : rating === 10 ? "✅ Completa!" : `${rating}/10`}
-                                    </span>
-                                )}
-                            </Label>
-                            <div className="flex flex-col gap-2">
-                                {/* No cumplí */}
-                                <button
-                                    onClick={() => setRating(0)}
-                                    className={cn(
-                                        "w-full py-2 rounded-xl border-2 text-sm font-semibold transition-all",
-                                        rating === 0
-                                            ? RATING_COLORS[0]
-                                            : "border-border text-muted-foreground hover:border-destructive/50 hover:text-destructive"
-                                    )}
-                                >
-                                    ❌ No la cumplí
-                                </button>
-                                {/* 1–10 grid */}
-                                <div className="grid grid-cols-5 gap-1.5">
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                                        <button
-                                            key={n}
-                                            onClick={() => setRating(n)}
-                                            className={cn(
-                                                "py-2.5 rounded-xl border-2 text-sm font-bold transition-all hover:scale-105",
-                                                rating === n
-                                                    ? RATING_COLORS[n]
-                                                    : "border-border text-muted-foreground hover:border-primary/50"
-                                            )}
-                                        >
-                                            {n === 10 ? "✓" : n}
-                                        </button>
-                                    ))}
-                                </div>
-                                <p className="text-xs text-muted-foreground text-center">1 = casi nada &nbsp;·&nbsp; 5 = mitad &nbsp;·&nbsp; 10 = completa</p>
-                            </div>
-                        </div>
-
-                        {/* Notes */}
-                        <div>
-                            <Label>Notas (opcional)</Label>
-                            <Textarea
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                placeholder="¿Cómo te fue? ¿Algo a mejorar?"
-                                className="mt-1 h-20 resize-none"
-                            />
-                        </div>
-
-                        {/* History */}
-                        {prevLogs.length > 0 && (
-                            <div>
-                                <Label className="mb-2 block">Historial reciente</Label>
-                                <div className="flex gap-1.5 flex-wrap">
-                                    {prevLogs.slice(0, 7).map((l) => {
-                                        const r = logToRating(l);
-                                        return (
-                                            <div
-                                                key={l.id}
-                                                className={cn(
-                                                    "flex flex-col items-center px-2 py-1 rounded-lg text-xs border",
-                                                    r >= 0 ? RATING_COLORS[r] : "bg-muted/30 border-border"
-                                                )}
-                                            >
-                                                <span className="font-bold">{r === -1 ? "—" : r === 0 ? "✗" : r === 10 ? "✓" : r}</span>
-                                                <span className="text-[9px] opacity-70">{format(parseISO(l.log_date), "d/M")}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
+                <div className="space-y-4 pt-2">
+                    {/* Mode tabs */}
+                    <div className="flex bg-secondary rounded-xl p-1">
+                        <button onClick={() => setMode("check")}
+                            className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1",
+                                mode === "check" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+                            <Check className="w-4 h-4" /> Sí/No
+                        </button>
+                        <button onClick={() => setMode("percentage")}
+                            className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1",
+                                mode === "percentage" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+                            <Percent className="w-4 h-4" /> Porcentaje
+                        </button>
                     </div>
-                )}
+
+                    {mode === "check" ? (
+                        <div className="grid grid-cols-2 gap-3">
+                            <button onClick={() => setCompleted(true)}
+                                className={cn("flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                                    completed ? "border-neon-green bg-neon-green/10 text-neon-green" : "border-border text-muted-foreground hover:border-neon-green/50")}>
+                                <CheckCircle className="w-8 h-8" />
+                                <span className="text-sm font-semibold">Cumplida</span>
+                            </button>
+                            <button onClick={() => setCompleted(false)}
+                                className={cn("flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                                    !completed ? "border-destructive bg-destructive/10 text-destructive" : "border-border text-muted-foreground hover:border-destructive/50")}>
+                                <XCircle className="w-8 h-8" />
+                                <span className="text-sm font-semibold">No cumplida</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <Label>Cumplimiento</Label>
+                                <span className={cn("text-2xl font-display font-bold",
+                                    pct >= 80 ? "text-neon-green" : pct >= 50 ? "text-neon-gold" : "text-destructive"
+                                )}>{pct}%</span>
+                            </div>
+                            <Slider value={[pct]} onValueChange={([v]) => setPct(v)} min={0} max={100} step={5} className="mt-2" />
+                            <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
+                                <span>0%</span><span>50%</span><span>100%</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Notes */}
+                    <div>
+                        <Label>Notas (opcional)</Label>
+                        <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="¿Algo a destacar?" className="mt-1 h-16 resize-none" />
+                    </div>
+                </div>
 
                 <DialogFooter className="mt-2">
                     <Button variant="outline" onClick={onClose}>Cancelar</Button>
-                    {!isFut && (
-                        <Button onClick={handleSubmit} disabled={rating === -1}>
-                            Guardar
-                        </Button>
-                    )}
+                    <Button onClick={handleSubmit}>Guardar</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     );
 }
 
-// ─────────────────────────────────────────── Main Page ────────────────────────
+// ───────────────────────────── Routine Block ─────────────────────────────────
+
+function RoutineBlock({ routine, log, onClick }: { routine: ResolvedRoutine; log?: RoutineLog; onClick: () => void }) {
+    const isDone = log?.completed;
+    const hasPct = log && !log.completed && log.completion_percentage > 0;
+
+    return (
+        <button onClick={onClick}
+            className={cn(
+                "w-full text-left rounded-lg px-2 py-1.5 border transition-all hover:scale-[1.02] hover:shadow-md group relative overflow-hidden",
+                isDone ? "border-neon-green/50 bg-neon-green/10" :
+                    hasPct ? "border-neon-gold/50 bg-neon-gold/10" :
+                        "border-border/50 bg-card/80 hover:border-primary/30"
+            )}>
+            {/* Color strip */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg" style={{ backgroundColor: routine.color }} />
+
+            <div className="pl-2">
+                <p className={cn("text-xs font-semibold truncate",
+                    isDone ? "text-neon-green" : hasPct ? "text-neon-gold" : "text-foreground"
+                )}>
+                    {isDone && <CheckCircle className="w-3 h-3 inline mr-1" />}
+                    {routine.name}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                    {timeLabel(routine.start_time)}–{timeLabel(routine.end_time)}
+                    {hasPct && <span className="ml-1 text-neon-gold">{log!.completion_percentage}%</span>}
+                </p>
+            </div>
+        </button>
+    );
+}
+
+// ────────────────────────────── Main Page ─────────────────────────────────────
 
 export default function Routines() {
     const {
@@ -384,9 +378,13 @@ export default function Routines() {
 
     const [formOpen, setFormOpen] = useState(false);
     const [editRoutine, setEditRoutine] = useState<Routine | null>(null);
-    const [logTarget, setLogTarget] = useState<{ routine: Routine; dateStr: string } | null>(null);
+    const [logTarget, setLogTarget] = useState<{ routine: ResolvedRoutine; dateStr: string } | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [confirmStop, setConfirmStop] = useState<Routine | null>(null);
+
+    // Filter state
+    const [filterYear, setFilterYear] = useState<string>("all");
+    const [filterSubject, setFilterSubject] = useState<string>("all");
 
     const weekDays = useMemo(() =>
         Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)),
@@ -394,6 +392,29 @@ export default function Routines() {
     );
 
     const stats = weekStats();
+
+    // Build year options from subjects
+    const yearOptions = useMemo(() => {
+        const years = new Set(subjects.map(s => s.año));
+        return Array.from(years).sort();
+    }, [subjects]);
+
+    // Filtered subjects by year
+    const filteredSubjects = useMemo(() => {
+        if (filterYear === "all") return subjects;
+        return subjects.filter(s => s.año === Number(filterYear));
+    }, [subjects, filterYear]);
+
+    // Filter routines for display
+    const filterRoutine = (r: ResolvedRoutine): boolean => {
+        if (filterSubject !== "all") return r.subject_id === filterSubject;
+        if (filterYear !== "all") {
+            if (!r.subject_id) return false;
+            const sub = subjects.find(s => s.id === r.subject_id);
+            return sub?.año === Number(filterYear);
+        }
+        return true;
+    };
 
     const handleSave = (data: any) => {
         if (editRoutine) {
@@ -404,211 +425,223 @@ export default function Routines() {
         setEditRoutine(null);
     };
 
-    const logTargetPrevLogs = useMemo(() => {
-        if (!logTarget) return [];
-        return logs
-            .filter((l) => l.routine_id === logTarget.routine.id && l.log_date !== logTarget.dateStr)
-            .sort((a, b) => b.log_date.localeCompare(a.log_date));
-    }, [logs, logTarget]);
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
+    // Time blocks for the grid: 08-24 in 2h steps
+    const gridBlocks = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"];
 
     return (
-        <div className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="p-4 lg:p-8 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                    <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
+                        Mis Rutinas
+                    </h1>
+                    <p className="text-muted-foreground mt-1">Organiza tu semana y registra tu cumplimiento</p>
+                </div>
+                <Button onClick={() => { setEditRoutine(null); setFormOpen(true); }}
+                    className="bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90">
+                    <Plus className="w-4 h-4 mr-2" /> Nueva Rutina
+                </Button>
+            </div>
 
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                    <div>
-                        <h1 className="text-3xl font-display font-bold gradient-text">Rutinas</h1>
-                        <p className="text-muted-foreground text-sm mt-1">Construí hábitos consistentes semana a semana</p>
-                    </div>
-                    <Button onClick={() => { setEditRoutine(null); setFormOpen(true); }} className="gap-2 self-start sm:self-auto">
-                        <Plus className="w-4 h-4" /> Nueva Rutina
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3 card-gamer rounded-xl p-3">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <Select value={filterYear} onValueChange={v => { setFilterYear(v); setFilterSubject("all"); }}>
+                    <SelectTrigger className="w-[140px] h-9 bg-background text-sm">
+                        <SelectValue placeholder="Año" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos los años</SelectItem>
+                        {yearOptions.map(y => <SelectItem key={y} value={String(y)}>{y}° año</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select value={filterSubject} onValueChange={setFilterSubject}>
+                    <SelectTrigger className="w-[180px] h-9 bg-background text-sm">
+                        <SelectValue placeholder="Materia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todas las materias</SelectItem>
+                        {filteredSubjects.map(s => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                {(filterYear !== "all" || filterSubject !== "all") && (
+                    <Button variant="ghost" size="sm" onClick={() => { setFilterYear("all"); setFilterSubject("all"); }}
+                        className="text-xs text-muted-foreground">
+                        <RotateCcw className="w-3 h-3 mr-1" /> Limpiar
+                    </Button>
+                )}
+            </div>
+
+            {/* Week navigation */}
+            <div className="flex items-center justify-between card-gamer rounded-xl p-3">
+                <Button variant="ghost" size="icon" onClick={goToPrevWeek}>
+                    <ChevronLeft className="w-5 h-5" />
+                </Button>
+                <div className="flex items-center gap-3">
+                    <CalendarDays className="w-5 h-5 text-primary" />
+                    <span className="font-display font-semibold text-sm lg:text-base">
+                        {format(currentWeekStart, "d MMM", { locale: es })} — {format(addDays(currentWeekStart, 6), "d MMM yyyy", { locale: es })}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={goToCurrentWeek} className="text-xs">
+                        Hoy
                     </Button>
                 </div>
+                <Button variant="ghost" size="icon" onClick={goToNextWeek}>
+                    <ChevronRight className="w-5 h-5" />
+                </Button>
+            </div>
 
-                {/* Week navigation */}
-                <div className="flex items-center justify-between mb-4 gap-2">
-                    <Button variant="outline" size="icon" onClick={goToPrevWeek}><ChevronLeft className="w-4 h-4" /></Button>
-                    <div className="text-center">
-                        <p className="font-semibold">
-                            {format(currentWeekStart, "d MMM", { locale: es })} — {format(addDays(currentWeekStart, 6), "d MMM yyyy", { locale: es })}
-                        </p>
-                        <button onClick={goToCurrentWeek} className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 mx-auto mt-0.5">
-                            <RotateCcw className="w-3 h-3" /> Semana actual
-                        </button>
-                    </div>
-                    <Button variant="outline" size="icon" onClick={goToNextWeek}><ChevronRight className="w-4 h-4" /></Button>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-3 gap-3">
+                <div className="card-gamer rounded-xl p-4 text-center">
+                    <p className={cn("text-2xl font-display font-bold",
+                        stats.pct >= 70 ? "text-neon-green" : stats.pct >= 40 ? "text-neon-gold" : "text-destructive"
+                    )}>{stats.pct}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">Cumplimiento</p>
                 </div>
-
-                {/* Weekly progress bar */}
-                <div className="card-gamer rounded-2xl p-4 mb-6 border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium flex items-center gap-1.5">
-                            <BarChart2 className="w-4 h-4 text-primary" /> Progreso semanal
-                        </span>
-                        <span className="text-sm font-bold">{stats.pct}%</span>
-                    </div>
-                    <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
-                        <div
-                            className="absolute left-0 top-0 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${stats.pct}%`, background: "linear-gradient(to right, var(--neon-cyan), var(--neon-purple))" }}
-                        />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                        {Math.round(stats.done)} de {stats.scheduled} rutinas completadas esta semana
-                    </p>
+                <div className="card-gamer rounded-xl p-4 text-center">
+                    <p className="text-2xl font-display font-bold text-neon-cyan">{stats.scheduled}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Programadas</p>
                 </div>
+                <div className="card-gamer rounded-xl p-4 text-center">
+                    <p className="text-2xl font-display font-bold text-neon-gold">{stats.done}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Completadas</p>
+                </div>
+            </div>
 
-                {/* Weekly grid */}
-                {routines.length === 0 ? (
-                    <div className="card-gamer rounded-2xl p-12 text-center border border-dashed border-border mb-8">
-                        <CalendarDays className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                        <h3 className="font-bold text-lg mb-2">Sin rutinas todavía</h3>
-                        <p className="text-muted-foreground text-sm mb-4">Creá tu primera rutina y empezá a construir hábitos consistentes.</p>
-                        <Button onClick={() => setFormOpen(true)} className="gap-2">
-                            <Plus className="w-4 h-4" /> Crear mi primera rutina
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-7 gap-1.5 mb-8">
-                        {weekDays.map((day) => {
-                            const dateStr = format(day, "yyyy-MM-dd");
-                            const dayRoutines = getRoutinesForDate(day);
-                            const today = isToday(day);
-                            const future = isFuture(new Date(dateStr + "T23:59:59"));
-
-                            return (
-                                <div key={dateStr} className={cn("rounded-xl p-2 min-h-[140px] border transition-colors", today ? "border-primary/50 bg-primary/5" : "border-border bg-card/50")}>
-                                    <div className="text-center mb-2">
-                                        <p className={cn("text-xs font-semibold", today ? "text-primary" : "text-muted-foreground")}>
-                                            {DAY_LABELS[(day.getDay())]}
-                                        </p>
-                                        <p className={cn("text-sm font-bold", today ? "text-primary" : "")}>
-                                            {format(day, "d")}
-                                        </p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        {dayRoutines.length === 0 && (
-                                            <p className="text-[10px] text-muted-foreground/50 text-center mt-2">—</p>
-                                        )}
-                                        {dayRoutines.map((r) => {
-                                            const log = getLogForRoutineAndDate(r.id, dateStr);
-                                            const cfg = STATUS_CONFIG[log?.status ?? "pending"];
-                                            const Icon = cfg.icon;
-                                            return (
-                                                <button
-                                                    key={r.id}
-                                                    onClick={() => setLogTarget({ routine: r, dateStr })}
-                                                    className={cn(
-                                                        "w-full text-left rounded-lg px-1.5 py-1 text-[10px] font-medium border transition-all hover:scale-[1.02]",
-                                                        log?.status === "completed" ? "border-neon-green/30 bg-neon-green/10"
-                                                            : log?.status === "partial" ? "border-neon-gold/30 bg-neon-gold/10"
-                                                                : log?.status === "missed" ? "border-destructive/30 bg-destructive/10"
-                                                                    : future ? "border-border/50 bg-muted/10 opacity-50"
-                                                                        : "border-border bg-muted/20 hover:border-primary/40"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
-                                                        <span className="truncate flex-1">{r.name}</span>
-                                                        <Icon className="w-2.5 h-2.5 flex-shrink-0" />
-                                                    </div>
-                                                    {log?.status === "partial" && (
-                                                        <div className="h-0.5 bg-secondary rounded-full mt-1 overflow-hidden">
-                                                            <div className="h-full bg-neon-gold" style={{ width: `${log.completion_percentage}%` }} />
-                                                        </div>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+            {loading ? (
+                <div className="flex items-center justify-center py-20">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+            ) : (
+                <>
+                    {/* Weekly Calendar Grid */}
+                    <div className="card-gamer rounded-xl overflow-hidden">
+                        {/* Day headers */}
+                        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border">
+                            <div className="p-2 border-r border-border" />
+                            {weekDays.map((day, i) => (
+                                <div key={i} className={cn(
+                                    "p-2 text-center border-r last:border-r-0 border-border",
+                                    isToday(day) && "bg-primary/10"
+                                )}>
+                                    <p className="text-xs text-muted-foreground">{DAY_LABELS[day.getDay()]}</p>
+                                    <p className={cn("text-sm font-bold",
+                                        isToday(day) ? "text-primary" : "text-foreground"
+                                    )}>{format(day, "d")}</p>
                                 </div>
-                            );
-                        })}
-                    </div>
-                )}
+                            ))}
+                        </div>
 
-                {/* Routine list & stats */}
-                {routines.length > 0 && (
-                    <div>
-                        <h2 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-primary" /> Mis Rutinas
-                        </h2>
-                        <div className="space-y-3">
-                            {routines.map((r) => {
-                                const streak = getRoutineStreak(r.id);
-                                const cat = CATEGORIES.find((c) => c.id === r.category);
-                                const dayNames = r.days_of_week.map((d) => DAY_LABELS[d]).join(", ");
-                                // total logs for this routine
-                                const routineLogs = logs.filter((l) => l.routine_id === r.id);
-                                const avgPct = routineLogs.length > 0
-                                    ? Math.round(routineLogs.reduce((s, l) => s + l.completion_percentage, 0) / routineLogs.length)
-                                    : 0;
+                        {/* Time blocks */}
+                        {gridBlocks.map((block, blockIdx) => (
+                            <div key={block} className={cn(
+                                "grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 border-border min-h-[64px]",
+                                blockIdx % 2 === 0 ? "bg-background" : "bg-muted/20"
+                            )}>
+                                {/* Time label */}
+                                <div className="p-1 border-r border-border flex items-start justify-end pr-2">
+                                    <span className="text-[10px] text-muted-foreground font-mono">{block}</span>
+                                </div>
 
-                                return (
-                                    <div key={r.id} className="card-gamer rounded-xl p-4 border border-border flex items-center gap-4">
-                                        <div className="w-3 h-full min-h-[40px] rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold truncate">{r.name}</h3>
-                                                <span className="text-xs text-muted-foreground">{cat?.emoji}</span>
-                                            </div>
-                                            {r.subject_id && (
-                                                <p className="text-xs text-muted-foreground flex items-center gap-1 mb-0.5">
-                                                    <BookOpen className="w-3 h-3 text-primary" />
-                                                    {subjects.find(s => s.id === r.subject_id)?.nombre || "Materia"}
-                                                </p>
-                                            )}
-                                            <p className="text-xs text-muted-foreground">{dayNames}</p>
-                                            {r.end_date && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    hasta {format(parseISO(r.end_date), "d MMM yyyy", { locale: es })}
-                                                </p>
-                                            )}
+                                {/* Day cells */}
+                                {weekDays.map((day, dayIdx) => {
+                                    const dateStr = format(day, "yyyy-MM-dd");
+                                    const dayRoutines = getRoutinesForDate(day)
+                                        .filter(filterRoutine)
+                                        .filter(r => {
+                                            const rBlock = timeToBlockIndex(r.start_time);
+                                            return rBlock === blockIdx;
+                                        })
+                                        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+                                    return (
+                                        <div key={dayIdx} className={cn(
+                                            "p-1 border-r last:border-r-0 border-border space-y-1",
+                                            isToday(day) && "bg-primary/5"
+                                        )}>
+                                            {dayRoutines.map(r => (
+                                                <RoutineBlock
+                                                    key={r.id}
+                                                    routine={r}
+                                                    log={getLogForRoutineAndDate(r.id, dateStr)}
+                                                    onClick={() => setLogTarget({ routine: r, dateStr })}
+                                                />
+                                            ))}
                                         </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
 
-                                        {/* Stats */}
-                                        <div className="hidden sm:flex items-center gap-4 text-center">
-                                            <div>
+                    {/* Routine List */}
+                    {routines.length > 0 && (
+                        <div>
+                            <h2 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-primary" /> Mis Rutinas
+                            </h2>
+                            <div className="space-y-3">
+                                {routines.map(r => {
+                                    const streak = getRoutineStreak(r.id);
+                                    const cat = CATEGORIES.find(c => c.id === r.category);
+                                    const dayNames = r.days_of_week.map(d => DAY_LABELS[d]).join(", ");
+                                    const sub = r.subject_id ? subjects.find(s => s.id === r.subject_id) : null;
+
+                                    return (
+                                        <div key={r.id} className="card-gamer rounded-xl p-4 border border-border flex items-center gap-4">
+                                            <div className="w-1.5 h-full min-h-[48px] rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-semibold truncate">{r.name}</h3>
+                                                    <span className="text-xs text-muted-foreground">{cat?.emoji}</span>
+                                                </div>
+                                                {sub && (
+                                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                        <BookOpen className="w-3 h-3 text-primary" /> {sub.nombre}
+                                                    </p>
+                                                )}
+                                                <p className="text-xs text-muted-foreground">
+                                                    <Clock className="w-3 h-3 inline mr-1" />
+                                                    {timeLabel(r.start_time)}–{timeLabel(r.end_time)} · {dayNames}
+                                                </p>
+                                                {r.end_date && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        hasta {format(parseISO(r.end_date), "d MMM yyyy", { locale: es })}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Streak */}
+                                            <div className="hidden sm:block text-center">
                                                 <p className="text-sm font-bold flex items-center gap-1">
                                                     <Flame className={cn("w-3 h-3", streak > 0 ? "text-orange-400" : "text-muted-foreground")} />
                                                     {streak}
                                                 </p>
                                                 <p className="text-[10px] text-muted-foreground">Racha</p>
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-bold">{avgPct}%</p>
-                                                <p className="text-[10px] text-muted-foreground">Promedio</p>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditRoutine(r); setFormOpen(true); }}>
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-orange-400 hover:text-orange-500" title="Cortar rutina" onClick={() => setConfirmStop(r)}>
+                                                    <StopCircle className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(r.id)}>
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
                                             </div>
                                         </div>
-
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-1 flex-shrink-0">
-                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditRoutine(r); setFormOpen(true); }}>
-                                                <Pencil className="w-3.5 h-3.5" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-orange-400 hover:text-orange-500" title="Cortar rutina" onClick={() => setConfirmStop(r)}>
-                                                <StopCircle className="w-3.5 h-3.5" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(r.id)}>
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </>
+            )}
 
             {/* Form Dialog */}
             <RoutineFormDialog
@@ -625,7 +658,6 @@ export default function Routines() {
                 routine={logTarget?.routine ?? null}
                 dateStr={logTarget?.dateStr ?? ""}
                 existingLog={logTarget ? getLogForRoutineAndDate(logTarget.routine.id, logTarget.dateStr) : undefined}
-                prevLogs={logTargetPrevLogs}
                 onClose={() => setLogTarget(null)}
                 onLog={logRoutine}
             />
@@ -635,12 +667,11 @@ export default function Routines() {
                 <DialogContent className="max-w-sm">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <StopCircle className="w-4 h-4 text-orange-400" />
-                            Cortar rutina
+                            <StopCircle className="w-4 h-4 text-orange-400" /> Cortar rutina
                         </DialogTitle>
                     </DialogHeader>
                     <p className="text-muted-foreground text-sm">
-                        La rutina <strong>"{confirmStop?.name}"</strong> quedará finalizada hoy. No aparecerá en días futuros pero se mantienen todos sus registros pasados. Podés reactivarla editando su fecha de fin.
+                        La rutina <strong>"{confirmStop?.name}"</strong> quedará finalizada hoy. Se mantienen todos los registros pasados.
                     </p>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setConfirmStop(null)}>Cancelar</Button>
