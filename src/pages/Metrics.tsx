@@ -83,7 +83,8 @@ export default function Metrics() {
 
       const { data: subjectData } = await supabase
         .from("subjects")
-        .select("id, nombre");
+        .select("id, nombre")
+        .eq("user_id", user.id);
 
       setSessions(sessionData || []);
       setSubjects(subjectData || []);

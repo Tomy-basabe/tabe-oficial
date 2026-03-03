@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, Re
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ICE_SERVERS } from "@/lib/webrtc-config";
 
 export interface StudyRoom {
   id: string;
@@ -56,13 +57,7 @@ interface SignalingMessage {
   data?: any;
 }
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-  ],
-};
+// ICE_SERVERS imported from @/lib/webrtc-config
 
 interface StudyRoomContextType {
   // Room state

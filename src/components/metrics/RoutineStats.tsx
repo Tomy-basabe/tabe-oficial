@@ -18,17 +18,21 @@ interface RoutineForMetrics {
     color: string;
 }
 
-interface RoutineLogForMetrics {
-    routine_id: string;
-    log_date: string;
-    completed: boolean;
-    completion_percentage: number;
-}
-
 interface SubjectInfo {
     id: string;
     nombre: string;
     año: number;
+}
+
+interface RoutineOverride {
+    id: string;
+    routine_id: string;
+    effective_from: string;
+    days_of_week: number[] | null;
+    start_time: string | null;
+    end_time: string | null;
+    name: string | null;
+    is_cancelled: boolean;
 }
 
 interface Props {
@@ -38,6 +42,7 @@ interface Props {
 export function RoutineStats({ dateRange }: Props) {
     const { user, isGuest } = useAuth();
     const [routines, setRoutines] = useState<RoutineForMetrics[]>([]);
+    const [overrides, setOverrides] = useState<RoutineOverride[]>([]);
     const [logs, setLogs] = useState<RoutineLogForMetrics[]>([]);
     const [subjects, setSubjects] = useState<SubjectInfo[]>([]);
     const [loading, setLoading] = useState(true);
@@ -47,9 +52,32 @@ export function RoutineStats({ dateRange }: Props) {
         setLoading(true);
 
         if (isGuest) {
-            setRoutines([]);
-            setLogs([]);
-            setSubjects([]);
+            // Mock data for guests to see how it looks
+            const today = new Date();
+            const mockRoutines: RoutineForMetrics[] = [
+                { id: "r1", name: "Estudio Mañana", subject_id: "s1", days_of_week: [1, 2, 3, 4, 5], start_date: format(subDays(today, 60), "yyyy-MM-dd"), end_date: null, is_active: true, color: "#00FFAA" },
+                { id: "r2", name: "Gimnasio", subject_id: null, days_of_week: [1, 3, 5], start_date: format(subDays(today, 60), "yyyy-MM-dd"), end_date: null, is_active: true, color: "#B026FF" },
+            ];
+            const mockLogs: RoutineLogForMetrics[] = [];
+
+            // Generate some random logs for the last 7 days
+            for (let i = 0; i < 14; i++) {
+                const date = subDays(today, i);
+                const dateStr = format(date, "yyyy-MM-dd");
+                const dow = date.getDay();
+
+                if (mockRoutines[0].days_of_week.includes(dow) && Math.random() > 0.2) {
+                    mockLogs.push({ routine_id: "r1", log_date: dateStr, completed: Math.random() > 0.3, completion_percentage: 100 });
+                }
+                if (mockRoutines[1].days_of_week.includes(dow) && Math.random() > 0.4) {
+                    mockLogs.push({ routine_id: "r2", log_date: dateStr, completed: true, completion_percentage: 100 });
+                }
+            }
+
+            setRoutines(mockRoutines);
+            setOverrides([]);
+            setLogs(mockLogs);
+            setSubjects([{ id: "s1", nombre: "Análisis Matemático I", año: 1 }]);
             setLoading(false);
             return;
         }
@@ -58,13 +86,15 @@ export function RoutineStats({ dateRange }: Props) {
             const fromStr = format(dateRange.from, "yyyy-MM-dd");
             const toStr = format(dateRange.to, "yyyy-MM-dd");
 
-            const [rRes, lRes, sRes] = await Promise.all([
+            const [rRes, oRes, lRes, sRes] = await Promise.all([
                 supabase.from("routines").select("id, name, subject_id, days_of_week, start_date, end_date, is_active, color").eq("user_id", user!.id),
+                supabase.from("routine_overrides").select("*"),
                 supabase.from("routine_logs").select("routine_id, log_date, completed, completion_percentage").eq("user_id", user!.id).gte("log_date", fromStr).lte("log_date", toStr),
-                supabase.from("subjects").select("id, nombre, año"),
+                supabase.from("subjects").select("id, nombre, año").eq("user_id", user!.id),
             ]);
 
             setRoutines((rRes.data as RoutineForMetrics[]) || []);
+            setOverrides((oRes.data as RoutineOverride[]) || []);
             setLogs((lRes.data as RoutineLogForMetrics[]) || []);
             setSubjects((sRes.data as SubjectInfo[]) || []);
         } catch (error) {
@@ -79,6 +109,19 @@ export function RoutineStats({ dateRange }: Props) {
     }, [user, isGuest, fetchData]);
 
     // ─── Calculations ─────────────────────────────
+
+    const resolveRoutineForDate = (routine: RoutineForMetrics, dateStr: string) => {
+        const applicable = overrides
+            .filter(o => o.routine_id === routine.id && o.effective_from <= dateStr)
+            .sort((a, b) => b.effective_from.localeCompare(a.effective_from));
+        const override = applicable[0];
+        if (override?.is_cancelled) return null;
+        return {
+            ...routine,
+            name: override?.name ?? routine.name,
+            days_of_week: override?.days_of_week ?? routine.days_of_week,
+        };
+    };
 
     const { generalPct, bySubject, weeklyEvolution } = useMemo(() => {
         const fromStr = format(dateRange.from, "yyyy-MM-dd");
@@ -95,10 +138,12 @@ export function RoutineStats({ dateRange }: Props) {
             const dateStr = format(day, "yyyy-MM-dd");
             const dow = day.getDay();
 
-            for (const r of routines) {
-                if (r.start_date > dateStr) continue;
-                if (r.end_date && r.end_date < dateStr) continue;
-                if (!r.days_of_week.includes(dow)) continue;
+            for (const rBase of routines) {
+                if (rBase.start_date > dateStr) continue;
+                if (rBase.end_date && rBase.end_date < dateStr) continue;
+
+                const r = resolveRoutineForDate(rBase, dateStr);
+                if (!r || !r.days_of_week.includes(dow)) continue;
 
                 totalScheduled++;
                 const log = logs.find(l => l.routine_id === r.id && l.log_date === dateStr);
@@ -141,10 +186,12 @@ export function RoutineStats({ dateRange }: Props) {
             for (const day of weekDays) {
                 const dateStr = format(day, "yyyy-MM-dd");
                 const dow = day.getDay();
-                for (const r of routines) {
-                    if (r.start_date > dateStr) continue;
-                    if (r.end_date && r.end_date < dateStr) continue;
-                    if (!r.days_of_week.includes(dow)) continue;
+                for (const rBase of routines) {
+                    if (rBase.start_date > dateStr) continue;
+                    if (rBase.end_date && rBase.end_date < dateStr) continue;
+
+                    const r = resolveRoutineForDate(rBase, dateStr);
+                    if (!r || !r.days_of_week.includes(dow)) continue;
                     wSched++;
                     const log = logs.find(l => l.routine_id === r.id && l.log_date === dateStr);
                     wComp += log ? (log.completed ? 1 : log.completion_percentage / 100) : 0;

@@ -63,7 +63,8 @@ export function useForest() {
         { id: "mock-1", user_id: "guest", plant_type: "oak", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo20.toISOString(), last_watered_at: daysAgo10.toISOString(), completed_at: daysAgo10.toISOString(), died_at: null },
         { id: "mock-2", user_id: "guest", plant_type: "cherry", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo10.toISOString(), last_watered_at: daysAgo5.toISOString(), completed_at: daysAgo5.toISOString(), died_at: null },
         { id: "mock-3", user_id: "guest", plant_type: "pine", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo10.toISOString(), last_watered_at: daysAgo2.toISOString(), completed_at: daysAgo2.toISOString(), died_at: null },
-        { id: "mock-4", user_id: "guest", plant_type: "maple", growth_percentage: 95, is_alive: true, is_completed: false, planted_at: daysAgo5.toISOString(), last_watered_at: now.toISOString(), completed_at: null, died_at: null },
+        // Static active plant: last_watered_at always = now so it never dies or grows in guest mode
+        { id: "mock-4", user_id: "guest", plant_type: "maple", growth_percentage: 65, is_alive: true, is_completed: false, planted_at: daysAgo5.toISOString(), last_watered_at: now.toISOString(), completed_at: null, died_at: null },
       ];
       setPlants(mockPlants);
       setCurrentPlant(mockPlants.find(p => p.is_alive && !p.is_completed) || null);
@@ -100,7 +101,7 @@ export function useForest() {
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
 
-      // Fetch study sessions from the last 7 days - include ALL session types
+      // Fetch study sessions from the last 7 days for totals
       const { data: sessions, error } = await supabase
         .from("study_sessions")
         .select("fecha, duracion_segundos, created_at")
@@ -120,16 +121,32 @@ export function useForest() {
       const studyMinutesToday = Math.floor(studySecToday / 60);
       const studyMinutesThisWeek = Math.floor(studySecThisWeek / 60);
 
-      // Calculate days since last study - use the most recent session's created_at for accuracy
-      let daysSinceLastStudy = 7;
-      if (sessions && sessions.length > 0) {
-        // Use created_at timestamp for more accurate calculation
-        const lastStudyTimestamp = new Date(sessions[0].created_at);
+      // BUG FIX: query the MOST RECENT session of all time (not just last 7 days)
+      // to accurately calculate daysSinceLastStudy even after 7+ days of inactivity
+      let daysSinceLastStudy = 999; // default = never studied
+      if (weekSessions.length > 0) {
+        // Has session in the last 7 days — use the most recent one
+        const lastStudyTimestamp = new Date(weekSessions[0].created_at);
         const diffTime = now.getTime() - lastStudyTimestamp.getTime();
         daysSinceLastStudy = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      } else {
+        // No session in last 7 days — query for the most recent session ever
+        const { data: lastSession } = await supabase
+          .from("study_sessions")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (lastSession) {
+          const lastStudyTimestamp = new Date(lastSession.created_at);
+          const diffTime = now.getTime() - lastStudyTimestamp.getTime();
+          daysSinceLastStudy = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+        // If lastSession is null → user never studied → daysSinceLastStudy stays 999
       }
 
-      // hasStudiedToday should be true if there's ANY study time today (even 1 second counts for plant)
       const hasStudiedToday = studySecToday > 0;
       const hasStudiedThisWeek = studySecThisWeek > 0;
 
@@ -148,17 +165,20 @@ export function useForest() {
   const checkAndUpdatePlants = useCallback(async () => {
     if (!user || !currentPlant) return;
 
-    // Calculate days since the plant was planted
+    // BUG FIX: use last_watered_at (not planted_at) to measure actual inactivity duration
+    // planted_at is when the plant was created — but the relevant metric is "when did the user last water it?"
+    const lastWateredDate = new Date(currentPlant.last_watered_at);
+    const msSinceWatered = now.getTime() - lastWateredDate.getTime();
+    const daysSinceWatered = msSinceWatered / (1000 * 60 * 60 * 24);
+
+    // Grace period: first 2 days after planting (based on planted_at)
     const plantedDate = new Date(currentPlant.planted_at);
-    const now = new Date();
     const msSincePlanted = now.getTime() - plantedDate.getTime();
     const daysSincePlanted = msSincePlanted / (1000 * 60 * 60 * 24);
+    const isInGracePeriod = daysSincePlanted < 2;
 
-    // IMPORTANT: Don't check for death if plant is less than 7 days old
-    // This prevents newly planted seeds from dying immediately
-    const isInGracePeriod = daysSincePlanted < 7;
-
-    if (!isInGracePeriod && studyActivity.daysSinceLastStudy >= 7 && currentPlant.is_alive) {
+    // Kill plant if: not in grace AND no study in 7+ actual days (measured from last watered)
+    if (!isInGracePeriod && daysSinceWatered >= 7 && currentPlant.is_alive) {
       // Plant is old enough AND user hasn't studied in 7 days - kill it
       const { error } = await supabase
         .from("user_plants")

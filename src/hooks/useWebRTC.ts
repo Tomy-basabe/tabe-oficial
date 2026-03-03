@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ICE_SERVERS } from "@/lib/webrtc-config";
 
 interface PeerConnection {
   peerId: string;
@@ -15,32 +16,7 @@ interface SignalingMessage {
   data?: any;
 }
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun3.l.google.com:19302" },
-    { urls: "stun:stun4.l.google.com:19302" },
-    { urls: "stun:global.stun.twilio.com:3478" },
-    // Free OpenRelay TURN servers (Use with caution in production)
-    {
-      urls: "turn:openrelay.metered.ca:80",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443?transport=tcp",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-  ],
-};
+// ICE_SERVERS imported from @/lib/webrtc-config
 
 export function useWebRTC(roomId: string | null) {
   const { user } = useAuth();

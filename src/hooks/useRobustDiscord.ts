@@ -3,19 +3,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { ICE_SERVERS } from '@/lib/webrtc-config';
 
 // ICE: STUN + TURN for cross-network
-const ICE_SERVERS: RTCConfiguration = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'turn:a.relay.metered.ca:80', username: 'e8dd65b92f535845a3b1a528', credential: 'yIJOkLHEPc/MmhJJ' },
-        { urls: 'turn:a.relay.metered.ca:80?transport=tcp', username: 'e8dd65b92f535845a3b1a528', credential: 'yIJOkLHEPc/MmhJJ' },
-        { urls: 'turn:a.relay.metered.ca:443', username: 'e8dd65b92f535845a3b1a528', credential: 'yIJOkLHEPc/MmhJJ' },
-        { urls: 'turns:a.relay.metered.ca:443?transport=tcp', username: 'e8dd65b92f535845a3b1a528', credential: 'yIJOkLHEPc/MmhJJ' },
-    ],
-    iceCandidatePoolSize: 10,
-};
+// ICE_SERVERS imported from @/lib/webrtc-config
 
 // ═══ Global cleanup on tab close/refresh ═══
 const activeStreams = new Set<MediaStream>();

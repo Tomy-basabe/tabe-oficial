@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ICE_SERVERS } from "@/lib/webrtc-config";
 
 export interface DiscordServer {
   id: string;
@@ -63,29 +64,7 @@ export interface DiscordVoiceParticipant {
   };
 }
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    // Free OpenRelay TURN servers for testing
-    {
-      urls: "turn:openrelay.metered.ca:80",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443?transport=tcp",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-  ],
-};
+// ICE_SERVERS imported from @/lib/webrtc-config
 
 export function useDiscord() {
   console.log("[Discord] Hook initialized v4.0 (Force Redeploy)");
