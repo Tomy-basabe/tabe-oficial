@@ -58,10 +58,17 @@ const AdminPanel = () => {
   // Career template loading
   const [careerUser, setCareerUser] = useState<Profile | null>(null);
   const [careerLoading, setCareerLoading] = useState(false);
+  const [selectedFacultad, setSelectedFacultad] = useState<string>("UTN");
   const [selectedCareer, setSelectedCareer] = useState<string>("sistemas");
 
+  const AVAILABLE_FACULTADES = [
+    { id: "UTN", label: "Universidad Tecnológica Nacional (UTN)" },
+  ];
+
   const AVAILABLE_CAREERS = [
-    { id: "sistemas", label: "Ingeniería en Sistemas de Información", file: "sistemas_template" },
+    { id: "sistemas", label: "Ingeniería en Sistemas de Información", file: "sistemas_template", facultad: "UTN" },
+    { id: "civil", label: "Ingeniería Civil (Plan 2023)", file: "civil_template", facultad: "UTN" },
+    { id: "electromecanica", label: "Ingeniería Electromecánica (Plan 2023)", file: "electromecanica_template", facultad: "UTN" },
   ];
 
   useEffect(() => {
@@ -319,7 +326,7 @@ const AdminPanel = () => {
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          facultad: "UTN",
+          facultad: career.facultad,
           carrera: career.label
         })
         .eq("user_id", careerUser.user_id);

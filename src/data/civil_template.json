@@ -1,0 +1,1558 @@
+{
+  "subjects": [
+    {
+      "id": "c1",
+      "codigo": "C1",
+      "nombre": "Análisis Matemático I",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "c2",
+      "codigo": "C2",
+      "nombre": "Álgebra y Geometría Analítica",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "c3",
+      "codigo": "C3",
+      "nombre": "Ingeniería y Sociedad",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "c4",
+      "codigo": "C4",
+      "nombre": "Ingeniería Civil I",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "c5",
+      "codigo": "C5",
+      "nombre": "Sistema de Representación",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "c6",
+      "codigo": "C6",
+      "nombre": "Química General",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "c7",
+      "codigo": "C7",
+      "nombre": "Física I",
+      "numero_materia": 7,
+      "año": 1
+    },
+    {
+      "id": "c8",
+      "codigo": "C8",
+      "nombre": "Fundamentos de Informática",
+      "numero_materia": 8,
+      "año": 1
+    },
+    {
+      "id": "c9",
+      "codigo": "C9",
+      "nombre": "Análisis Matemático II",
+      "numero_materia": 9,
+      "año": 2
+    },
+    {
+      "id": "c10",
+      "codigo": "C10",
+      "nombre": "Estabilidad",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "c11",
+      "codigo": "C11",
+      "nombre": "Ingeniería Civil II",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "c12",
+      "codigo": "C12",
+      "nombre": "Tecnología de los Materiales",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "c13",
+      "codigo": "C13",
+      "nombre": "Física II",
+      "numero_materia": 13,
+      "año": 2
+    },
+    {
+      "id": "c14",
+      "codigo": "C14",
+      "nombre": "Probabilidad y Estadística",
+      "numero_materia": 14,
+      "año": 2
+    },
+    {
+      "id": "c15",
+      "codigo": "C15",
+      "nombre": "Inglés I",
+      "numero_materia": 15,
+      "año": 2
+    },
+    {
+      "id": "c16",
+      "codigo": "C16",
+      "nombre": "Resistencia de Materiales",
+      "numero_materia": 16,
+      "año": 3
+    },
+    {
+      "id": "c17",
+      "codigo": "C17",
+      "nombre": "Tecnología del Hormigón",
+      "numero_materia": 17,
+      "año": 3
+    },
+    {
+      "id": "c18",
+      "codigo": "C18",
+      "nombre": "Tecnología de la Construcción",
+      "numero_materia": 18,
+      "año": 3
+    },
+    {
+      "id": "c19",
+      "codigo": "C19",
+      "nombre": "Geotopografía",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "c20",
+      "codigo": "C20",
+      "nombre": "Hidráulica General y Aplicada",
+      "numero_materia": 20,
+      "año": 3
+    },
+    {
+      "id": "c21",
+      "codigo": "C21",
+      "nombre": "Cálculo Avanzado",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
+      "id": "c22",
+      "codigo": "C22",
+      "nombre": "Instalaciones Eléctricas y Acústica",
+      "numero_materia": 22,
+      "año": 3
+    },
+    {
+      "id": "c23",
+      "codigo": "C23",
+      "nombre": "Instalaciones Termomecánicas",
+      "numero_materia": 23,
+      "año": 3
+    },
+    {
+      "id": "c24",
+      "codigo": "C24",
+      "nombre": "Economía",
+      "numero_materia": 24,
+      "año": 3
+    },
+    {
+      "id": "c25",
+      "codigo": "C25",
+      "nombre": "Materia Electiva / Faltante",
+      "numero_materia": 25,
+      "año": 3
+    },
+    {
+      "id": "c26",
+      "codigo": "C26",
+      "nombre": "Geotecnia",
+      "numero_materia": 26,
+      "año": 4
+    },
+    {
+      "id": "c27",
+      "codigo": "C27",
+      "nombre": "Instalaciones Sanitarias y de gas",
+      "numero_materia": 27,
+      "año": 4
+    },
+    {
+      "id": "c28",
+      "codigo": "C28",
+      "nombre": "Diseño arquitectónico, Planeamiento y Urbanismo",
+      "numero_materia": 28,
+      "año": 4
+    },
+    {
+      "id": "c29",
+      "codigo": "C29",
+      "nombre": "Análisis Estructural I",
+      "numero_materia": 29,
+      "año": 4
+    },
+    {
+      "id": "c30",
+      "codigo": "C30",
+      "nombre": "Estructuras de hormigón",
+      "numero_materia": 30,
+      "año": 4
+    },
+    {
+      "id": "c31",
+      "codigo": "C31",
+      "nombre": "Hidrología y Obras hidráulicas",
+      "numero_materia": 31,
+      "año": 4
+    },
+    {
+      "id": "c32",
+      "codigo": "C32",
+      "nombre": "Ingeniería legal",
+      "numero_materia": 32,
+      "año": 4
+    },
+    {
+      "id": "c33",
+      "codigo": "C33",
+      "nombre": "Construcciones Metálicas y de Madera",
+      "numero_materia": 33,
+      "año": 5
+    },
+    {
+      "id": "c34",
+      "codigo": "C34",
+      "nombre": "Cimentaciones",
+      "numero_materia": 34,
+      "año": 5
+    },
+    {
+      "id": "c35",
+      "codigo": "C35",
+      "nombre": "Ingeniería Sanitaria",
+      "numero_materia": 35,
+      "año": 5
+    },
+    {
+      "id": "c36",
+      "codigo": "C36",
+      "nombre": "Organización y Cond. de Obras",
+      "numero_materia": 36,
+      "año": 5
+    },
+    {
+      "id": "c37",
+      "codigo": "C37",
+      "nombre": "Vías de Comunicación I",
+      "numero_materia": 37,
+      "año": 5
+    },
+    {
+      "id": "c38",
+      "codigo": "C38",
+      "nombre": "Análisis Estructural II",
+      "numero_materia": 38,
+      "año": 5
+    },
+    {
+      "id": "c39",
+      "codigo": "C39",
+      "nombre": "Vías de Comunicación II",
+      "numero_materia": 39,
+      "año": 5
+    },
+    {
+      "id": "c40",
+      "codigo": "C40",
+      "nombre": "Gestión Ambiental y Desarrollo Sustentable",
+      "numero_materia": 40,
+      "año": 5
+    },
+    {
+      "id": "c41",
+      "codigo": "C41",
+      "nombre": "Proyecto Final",
+      "numero_materia": 41,
+      "año": 6
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "c9",
+      "dependency_id": "c1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c9",
+      "dependency_id": "c2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c10",
+      "dependency_id": "c1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c10",
+      "dependency_id": "c2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c10",
+      "dependency_id": "c5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c10",
+      "dependency_id": "c7",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c10",
+      "dependency_id": "c8",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c11",
+      "dependency_id": "c3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c11",
+      "dependency_id": "c4",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c11",
+      "dependency_id": "c5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c11",
+      "dependency_id": "c8",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c12",
+      "dependency_id": "c1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c12",
+      "dependency_id": "c5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c12",
+      "dependency_id": "c6",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c12",
+      "dependency_id": "c7",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c13",
+      "dependency_id": "c1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c13",
+      "dependency_id": "c7",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c14",
+      "dependency_id": "c1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c14",
+      "dependency_id": "c2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c15",
+      "dependency_id": "c3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c16",
+      "dependency_id": "c10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c16",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c16",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c16",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c16",
+      "dependency_id": "c8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c17",
+      "dependency_id": "c12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c17",
+      "dependency_id": "c14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c17",
+      "dependency_id": "c15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c17",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c17",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c17",
+      "dependency_id": "c6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c17",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c18",
+      "dependency_id": "c8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c19",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c20",
+      "dependency_id": "c8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c21",
+      "dependency_id": "c8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c22",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c23",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c24",
+      "dependency_id": "c11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c24",
+      "dependency_id": "c14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c24",
+      "dependency_id": "c15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c24",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c24",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c24",
+      "dependency_id": "c3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c24",
+      "dependency_id": "c4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c24",
+      "dependency_id": "c8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c26",
+      "dependency_id": "c14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c27",
+      "dependency_id": "c12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c23",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c28",
+      "dependency_id": "c15",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c29",
+      "dependency_id": "c16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c29",
+      "dependency_id": "c17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c29",
+      "dependency_id": "c9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c29",
+      "dependency_id": "c10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c29",
+      "dependency_id": "c11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c29",
+      "dependency_id": "c14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c30",
+      "dependency_id": "c14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c31",
+      "dependency_id": "c14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c32",
+      "dependency_id": "c8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c33",
+      "dependency_id": "c21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c33",
+      "dependency_id": "c29",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c33",
+      "dependency_id": "c16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c33",
+      "dependency_id": "c17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c33",
+      "dependency_id": "c18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c33",
+      "dependency_id": "c19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c29",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c31",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c34",
+      "dependency_id": "c20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c35",
+      "dependency_id": "c26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c35",
+      "dependency_id": "c27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c35",
+      "dependency_id": "c31",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c35",
+      "dependency_id": "c18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c35",
+      "dependency_id": "c19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c35",
+      "dependency_id": "c20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c28",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c31",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c22",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c23",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c24",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c36",
+      "dependency_id": "c25",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c37",
+      "dependency_id": "c15",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c29",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c31",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c38",
+      "dependency_id": "c25",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c31",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c32",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c37",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c39",
+      "dependency_id": "c24",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c40",
+      "dependency_id": "c26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c40",
+      "dependency_id": "c28",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c40",
+      "dependency_id": "c31",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c40",
+      "dependency_id": "c32",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c40",
+      "dependency_id": "c20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c40",
+      "dependency_id": "c24",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c40",
+      "dependency_id": "c25",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c28",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c29",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c31",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c32",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c15",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c22",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c23",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c24",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "c41",
+      "dependency_id": "c25",
+      "requiere_regular": false
+    }
+  ]
+}

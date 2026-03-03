@@ -791,9 +791,11 @@ export type Database = {
           active_theme: string | null
           avatar_url: string | null
           calendar_feed_token: string | null
+          carrera: string | null
           created_at: string
           display_id: number
           email: string | null
+          facultad: string | null
           id: string
           nombre: string | null
           plan: string
@@ -808,9 +810,11 @@ export type Database = {
           active_theme?: string | null
           avatar_url?: string | null
           calendar_feed_token?: string | null
+          carrera?: string | null
           created_at?: string
           display_id?: number
           email?: string | null
+          facultad?: string | null
           id?: string
           nombre?: string | null
           plan?: string
@@ -825,9 +829,11 @@ export type Database = {
           active_theme?: string | null
           avatar_url?: string | null
           calendar_feed_token?: string | null
+          carrera?: string | null
           created_at?: string
           display_id?: number
           email?: string | null
+          facultad?: string | null
           id?: string
           nombre?: string | null
           plan?: string
@@ -1055,6 +1061,150 @@ export type Database = {
           },
         ]
       }
+      routine_logs: {
+        Row: {
+          completed: boolean
+          completion_percentage: number
+          created_at: string | null
+          id: string
+          log_date: string
+          notes: string | null
+          routine_id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completion_percentage?: number
+          created_at?: string | null
+          id?: string
+          log_date?: string
+          notes?: string | null
+          routine_id: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completion_percentage?: number
+          created_at?: string | null
+          id?: string
+          log_date?: string
+          notes?: string | null
+          routine_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_logs_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routine_overrides: {
+        Row: {
+          created_at: string | null
+          days_of_week: number[] | null
+          effective_from: string
+          end_time: string | null
+          id: string
+          is_cancelled: boolean
+          name: string | null
+          routine_id: string
+          start_time: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          days_of_week?: number[] | null
+          effective_from: string
+          end_time?: string | null
+          id?: string
+          is_cancelled?: boolean
+          name?: string | null
+          routine_id: string
+          start_time?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          days_of_week?: number[] | null
+          effective_from?: string
+          end_time?: string | null
+          id?: string
+          is_cancelled?: boolean
+          name?: string | null
+          routine_id?: string
+          start_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_overrides_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routines: {
+        Row: {
+          category: string
+          color: string
+          created_at: string | null
+          days_of_week: number[]
+          description: string | null
+          end_date: string | null
+          end_time: string
+          id: string
+          is_active: boolean
+          name: string
+          start_date: string
+          start_time: string
+          subject_id: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          color?: string
+          created_at?: string | null
+          days_of_week?: number[]
+          description?: string | null
+          end_date?: string | null
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          start_date?: string
+          start_time?: string
+          subject_id?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          color?: string
+          created_at?: string | null
+          days_of_week?: number[]
+          description?: string | null
+          end_date?: string | null
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          start_date?: string
+          start_time?: string
+          subject_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routines_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_rooms: {
         Row: {
           created_at: string
@@ -1144,7 +1294,7 @@ export type Database = {
           requiere_aprobada: string | null
           requiere_regular: string | null
           subject_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1152,7 +1302,7 @@ export type Database = {
           requiere_aprobada?: string | null
           requiere_regular?: string | null
           subject_id: string
-          user_id?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1160,7 +1310,7 @@ export type Database = {
           requiere_aprobada?: string | null
           requiere_regular?: string | null
           subject_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1194,7 +1344,7 @@ export type Database = {
           id: string
           nombre: string
           numero_materia: number
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           año: number
@@ -1203,7 +1353,7 @@ export type Database = {
           id?: string
           nombre: string
           numero_materia: number
-          user_id?: string
+          user_id?: string | null
         }
         Update: {
           año?: number
@@ -1212,7 +1362,7 @@ export type Database = {
           id?: string
           nombre?: string
           numero_materia?: number
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1475,6 +1625,33 @@ export type Database = {
           },
         ]
       }
+      user_usage: {
+        Row: {
+          count: number | null
+          created_at: string | null
+          feature: string
+          id: string
+          period_start: string
+          user_id: string
+        }
+        Insert: {
+          count?: number | null
+          created_at?: string | null
+          feature: string
+          id?: string
+          period_start?: string
+          user_id: string
+        }
+        Update: {
+          count?: number | null
+          created_at?: string | null
+          feature?: string
+          id?: string
+          period_start?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1495,9 +1672,9 @@ export type Database = {
       check_invitation_status: {
         Args: { check_email: string }
         Returns: {
-          accepted_at: string | null
+          accepted_at: string
           id: string
-          template: string | null
+          template: string
         }[]
       }
       delete_user_by_admin: {
@@ -1532,12 +1709,20 @@ export type Database = {
           username: string
         }[]
       }
+      get_usage: {
+        Args: { p_feature: string; p_user_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_usage: {
+        Args: { p_feature: string; p_user_id: string }
+        Returns: number
       }
       is_server_member: {
         Args: { server_id: string; user_id: string }
@@ -1568,116 +1753,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
