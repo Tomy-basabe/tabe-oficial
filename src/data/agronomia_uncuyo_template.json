@@ -1,0 +1,839 @@
+{
+  "subjects": [
+    {
+      "id": "ua1",
+      "codigo": "UA1",
+      "nombre": "Introducción a las Ciencias Agrarias",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "ua2",
+      "codigo": "UA2",
+      "nombre": "Matemática",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "ua3",
+      "codigo": "UA3",
+      "nombre": "Química General",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "ua4",
+      "codigo": "UA4",
+      "nombre": "Botánica I",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "ua5",
+      "codigo": "UA5",
+      "nombre": "Informática Aplicada",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "ua6",
+      "codigo": "UA6",
+      "nombre": "Física I",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "ua7",
+      "codigo": "UA7",
+      "nombre": "Química Inorgánica",
+      "numero_materia": 7,
+      "año": 1
+    },
+    {
+      "id": "ua8",
+      "codigo": "UA8",
+      "nombre": "Botánica II",
+      "numero_materia": 8,
+      "año": 1
+    },
+    {
+      "id": "ua9",
+      "codigo": "UA9",
+      "nombre": "Dibujo",
+      "numero_materia": 9,
+      "año": 1
+    },
+    {
+      "id": "ua10",
+      "codigo": "UA10",
+      "nombre": "Química Analítica e Instrumental",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "ua11",
+      "codigo": "UA11",
+      "nombre": "Física II",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "ua12",
+      "codigo": "UA12",
+      "nombre": "Química Orgánica y Biológica",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "ua13",
+      "codigo": "UA13",
+      "nombre": "Estadística y Diseño Experimental",
+      "numero_materia": 13,
+      "año": 2
+    },
+    {
+      "id": "ua14",
+      "codigo": "UA14",
+      "nombre": "Inglés",
+      "numero_materia": 14,
+      "año": 2
+    },
+    {
+      "id": "ua15",
+      "codigo": "UA15",
+      "nombre": "Introducción a la Zootecnia",
+      "numero_materia": 15,
+      "año": 2
+    },
+    {
+      "id": "ua16",
+      "codigo": "UA16",
+      "nombre": "Microbiología",
+      "numero_materia": 16,
+      "año": 2
+    },
+    {
+      "id": "ua17",
+      "codigo": "UA17",
+      "nombre": "Fisiología Vegetal",
+      "numero_materia": 17,
+      "año": 2
+    },
+    {
+      "id": "ua18",
+      "codigo": "UA18",
+      "nombre": "Meteorología Agrícola",
+      "numero_materia": 18,
+      "año": 2
+    },
+    {
+      "id": "ua19",
+      "codigo": "UA19",
+      "nombre": "Edafología",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "ua20",
+      "codigo": "UA20",
+      "nombre": "Genética General y Aplicada",
+      "numero_materia": 20,
+      "año": 3
+    },
+    {
+      "id": "ua21",
+      "codigo": "UA21",
+      "nombre": "Topografía Agrícola",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
+      "id": "ua22",
+      "codigo": "UA22",
+      "nombre": "Propagación Vegetal",
+      "numero_materia": 22,
+      "año": 3
+    },
+    {
+      "id": "ua23",
+      "codigo": "UA23",
+      "nombre": "Talleres de Campo e Industria",
+      "numero_materia": 23,
+      "año": 3
+    },
+    {
+      "id": "ua24",
+      "codigo": "UA24",
+      "nombre": "Química Agrícola",
+      "numero_materia": 24,
+      "año": 3
+    },
+    {
+      "id": "ua25",
+      "codigo": "UA25",
+      "nombre": "Fitopatología",
+      "numero_materia": 25,
+      "año": 3
+    },
+    {
+      "id": "ua26",
+      "codigo": "UA26",
+      "nombre": "Mecánica y Maquinaria Agrícola",
+      "numero_materia": 26,
+      "año": 3
+    },
+    {
+      "id": "ua27",
+      "codigo": "UA27",
+      "nombre": "Zoología Agrícola",
+      "numero_materia": 27,
+      "año": 3
+    },
+    {
+      "id": "ua28",
+      "codigo": "UA28",
+      "nombre": "Hidrología Agrícola",
+      "numero_materia": 28,
+      "año": 4
+    },
+    {
+      "id": "ua29",
+      "codigo": "UA29",
+      "nombre": "Fruticultura",
+      "numero_materia": 29,
+      "año": 4
+    },
+    {
+      "id": "ua30",
+      "codigo": "UA30",
+      "nombre": "Ecología Agrícola y Protección Ambiental",
+      "numero_materia": 30,
+      "año": 4
+    },
+    {
+      "id": "ua31",
+      "codigo": "UA31",
+      "nombre": "Introducción al Conocimiento Científico",
+      "numero_materia": 31,
+      "año": 4
+    },
+    {
+      "id": "ua32",
+      "codigo": "UA32",
+      "nombre": "Viticultura",
+      "numero_materia": 32,
+      "año": 4
+    },
+    {
+      "id": "ua33",
+      "codigo": "UA33",
+      "nombre": "Dasonomía",
+      "numero_materia": 33,
+      "año": 4
+    },
+    {
+      "id": "ua34",
+      "codigo": "UA34",
+      "nombre": "Agricultura Especial",
+      "numero_materia": 34,
+      "año": 4
+    },
+    {
+      "id": "ua35",
+      "codigo": "UA35",
+      "nombre": "Horticultura y Floricultura",
+      "numero_materia": 35,
+      "año": 4
+    },
+    {
+      "id": "ua36",
+      "codigo": "UA36",
+      "nombre": "Enología I",
+      "numero_materia": 36,
+      "año": 5
+    },
+    {
+      "id": "ua37",
+      "codigo": "UA37",
+      "nombre": "Economía y Política Agraria",
+      "numero_materia": 37,
+      "año": 5
+    },
+    {
+      "id": "ua38",
+      "codigo": "UA38",
+      "nombre": "Talleres Básicos Agronómicos",
+      "numero_materia": 38,
+      "año": 5
+    },
+    {
+      "id": "ua39",
+      "codigo": "UA39",
+      "nombre": "Prácticas en Bodega",
+      "numero_materia": 39,
+      "año": 5
+    },
+    {
+      "id": "ua40",
+      "codigo": "UA40",
+      "nombre": "Industrias Agrarias",
+      "numero_materia": 40,
+      "año": 5
+    },
+    {
+      "id": "ua41",
+      "codigo": "UA41",
+      "nombre": "Enología II",
+      "numero_materia": 41,
+      "año": 5
+    },
+    {
+      "id": "ua42",
+      "codigo": "UA42",
+      "nombre": "Espacios Verdes",
+      "numero_materia": 42,
+      "año": 5
+    },
+    {
+      "id": "ua43",
+      "codigo": "UA43",
+      "nombre": "Terapéutica Vegetal",
+      "numero_materia": 43,
+      "año": 5
+    },
+    {
+      "id": "ua44",
+      "codigo": "UA44",
+      "nombre": "Malezas",
+      "numero_materia": 44,
+      "año": 5
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "ua5",
+      "dependency_id": "ua1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua6",
+      "dependency_id": "ua2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua7",
+      "dependency_id": "ua3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua8",
+      "dependency_id": "ua4",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua10",
+      "dependency_id": "ua7",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua11",
+      "dependency_id": "ua6",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua12",
+      "dependency_id": "ua7",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua13",
+      "dependency_id": "ua2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua15",
+      "dependency_id": "ua1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua16",
+      "dependency_id": "ua12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua17",
+      "dependency_id": "ua12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua17",
+      "dependency_id": "ua8",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua17",
+      "dependency_id": "ua6",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua18",
+      "dependency_id": "ua11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua19",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua20",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua21",
+      "dependency_id": "ua11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua22",
+      "dependency_id": "ua8",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua23",
+      "dependency_id": "ua2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua23",
+      "dependency_id": "ua1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua24",
+      "dependency_id": "ua12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua24",
+      "dependency_id": "ua10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua25",
+      "dependency_id": "ua12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua25",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua26",
+      "dependency_id": "ua11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua27",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua28",
+      "dependency_id": "ua18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua28",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua28",
+      "dependency_id": "ua19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua28",
+      "dependency_id": "ua21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua29",
+      "dependency_id": "ua22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua29",
+      "dependency_id": "ua25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua29",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua29",
+      "dependency_id": "ua26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua30",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua30",
+      "dependency_id": "ua18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua30",
+      "dependency_id": "ua16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua30",
+      "dependency_id": "ua20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua30",
+      "dependency_id": "ua19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua30",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua31",
+      "dependency_id": "ua5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua31",
+      "dependency_id": "ua13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua31",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua32",
+      "dependency_id": "ua22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua32",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua32",
+      "dependency_id": "ua26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua32",
+      "dependency_id": "ua25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua33",
+      "dependency_id": "ua21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua33",
+      "dependency_id": "ua22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua33",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua33",
+      "dependency_id": "ua25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua34",
+      "dependency_id": "ua19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua34",
+      "dependency_id": "ua26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua34",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua34",
+      "dependency_id": "ua25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua35",
+      "dependency_id": "ua20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua35",
+      "dependency_id": "ua22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua35",
+      "dependency_id": "ua25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua35",
+      "dependency_id": "ua28",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua35",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua35",
+      "dependency_id": "ua26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua36",
+      "dependency_id": "ua32",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua36",
+      "dependency_id": "ua16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua28",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua37",
+      "dependency_id": "ua15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua23",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua38",
+      "dependency_id": "ua15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua39",
+      "dependency_id": "ua36",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua40",
+      "dependency_id": "ua16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua40",
+      "dependency_id": "ua29",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua40",
+      "dependency_id": "ua35",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua41",
+      "dependency_id": "ua36",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua41",
+      "dependency_id": "ua32",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua42",
+      "dependency_id": "ua22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua42",
+      "dependency_id": "ua28",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua42",
+      "dependency_id": "ua26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua42",
+      "dependency_id": "ua30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua43",
+      "dependency_id": "ua26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua43",
+      "dependency_id": "ua25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua43",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua43",
+      "dependency_id": "ua30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua44",
+      "dependency_id": "ua35",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua44",
+      "dependency_id": "ua26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua44",
+      "dependency_id": "ua25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua44",
+      "dependency_id": "ua27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ua44",
+      "dependency_id": "ua30",
+      "requiere_regular": true
+    }
+  ]
+}

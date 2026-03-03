@@ -63,6 +63,7 @@ const AdminPanel = () => {
 
   const AVAILABLE_FACULTADES = [
     { id: "UTN", label: "Universidad Tecnológica Nacional (UTN)" },
+    { id: "UNCUYO", label: "Universidad Nacional de Cuyo (UNCUYO)" },
   ];
 
   const AVAILABLE_CAREERS = [
@@ -72,6 +73,8 @@ const AdminPanel = () => {
     { id: "quimica", label: "Ingeniería Química (Plan 2023)", file: "quimica_template", facultad: "UTN" },
     { id: "telecomunicaciones", label: "Ingeniería en Telecomunicaciones", file: "telecomunicaciones_template", facultad: "UTN" },
     { id: "electronica", label: "Ingeniería Electrónica (Plan 2023)", file: "electronica_template", facultad: "UTN" },
+    // UNCUYO
+    { id: "agronomia_uncuyo", label: "Ingeniería Agronómica", file: "agronomia_uncuyo_template", facultad: "UNCUYO" },
   ];
 
   useEffect(() => {
