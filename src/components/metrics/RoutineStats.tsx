@@ -35,6 +35,13 @@ interface RoutineOverride {
     is_cancelled: boolean;
 }
 
+interface RoutineLogForMetrics {
+    routine_id: string;
+    log_date: string;
+    completed: boolean;
+    completion_percentage: number;
+}
+
 interface Props {
     dateRange: DateRange;
 }
@@ -86,19 +93,36 @@ export function RoutineStats({ dateRange }: Props) {
             const fromStr = format(dateRange.from, "yyyy-MM-dd");
             const toStr = format(dateRange.to, "yyyy-MM-dd");
 
-            const [rRes, oRes, lRes, sRes] = await Promise.all([
-                supabase.from("routines").select("id, name, subject_id, days_of_week, start_date, end_date, is_active, color").eq("user_id", user!.id),
-                supabase.from("routine_overrides").select("*"),
-                supabase.from("routine_logs").select("routine_id, log_date, completed, completion_percentage").eq("user_id", user!.id).gte("log_date", fromStr).lte("log_date", toStr),
+            // 1. Fetch routines and subjects first
+            const [rRes, sRes] = await Promise.all([
+                supabase.from("routines").select("id, name, subject_id, days_of_week, start_date, end_date, is_active, color").eq("user_id", user!.id).eq("is_active", true),
                 supabase.from("subjects").select("id, nombre, año").eq("user_id", user!.id),
             ]);
 
-            setRoutines((rRes.data as RoutineForMetrics[]) || []);
+            const routinesData = (rRes.data as RoutineForMetrics[]) || [];
+            const subjectsData = (sRes.data as SubjectInfo[]) || [];
+
+            setRoutines(routinesData);
+            setSubjects(subjectsData);
+
+            if (routinesData.length === 0) {
+                setOverrides([]);
+                setLogs([]);
+                setLoading(false);
+                return;
+            }
+
+            // 2. Fetch overrides and logs based on the routines found
+            const routineIds = routinesData.map(r => r.id);
+            const [oRes, lRes] = await Promise.all([
+                supabase.from("routine_overrides").select("*").in("routine_id", routineIds),
+                supabase.from("routine_logs").select("routine_id, log_date, completed, completion_percentage").eq("user_id", user!.id).gte("log_date", fromStr).lte("log_date", toStr).in("routine_id", routineIds),
+            ]);
+
             setOverrides((oRes.data as RoutineOverride[]) || []);
             setLogs((lRes.data as RoutineLogForMetrics[]) || []);
-            setSubjects((sRes.data as SubjectInfo[]) || []);
         } catch (error) {
-            console.error("Error fetching routine metrics:", error);
+            console.error("Error fetching metrics data:", error);
         } finally {
             setLoading(false);
         }

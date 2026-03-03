@@ -138,14 +138,24 @@ export function useRoutines() {
 
     const fetchRoutines = useCallback(async () => {
         if (!user) return;
-        const [rRes, oRes] = await Promise.all([
-            supabase.from("routines").select("*").eq("user_id", user.id).eq("is_active", true).order("start_time"),
-            supabase.from("routine_overrides").select("*"),
-        ]);
-        if (rRes.error) { console.error(rRes.error); return; }
-        if (oRes.error) { console.error(oRes.error); return; }
-        setRoutines((rRes.data as Routine[]) || []);
-        setOverrides((oRes.data as RoutineOverride[]) || []);
+        try {
+            const rRes = await supabase.from("routines").select("*").eq("user_id", user.id).eq("is_active", true).order("start_time");
+            if (rRes.error) { console.error(rRes.error); return; }
+
+            const routinesData = (rRes.data as Routine[]) || [];
+            setRoutines(routinesData);
+
+            if (routinesData.length > 0) {
+                const routineIds = routinesData.map(r => r.id);
+                const oRes = await supabase.from("routine_overrides").select("*").in("routine_id", routineIds);
+                if (oRes.error) { console.error(oRes.error); }
+                setOverrides((oRes.data as RoutineOverride[]) || []);
+            } else {
+                setOverrides([]);
+            }
+        } catch (error) {
+            console.error("Error fetching routines:", error);
+        }
     }, [user]);
 
     const fetchLogsForWeek = useCallback(async (weekStart: Date) => {
@@ -323,11 +333,17 @@ export function useRoutines() {
     useEffect(() => {
         const load = async () => {
             setLoading(true);
-            await Promise.all([fetchRoutines(), fetchLogsForWeek(currentWeekStart)]);
-            setLoading(false);
+            try {
+                await Promise.all([fetchRoutines(), fetchLogsForWeek(currentWeekStart)]);
+            } catch (error) {
+                console.error("Error initializing routines:", error);
+            } finally {
+                setLoading(false);
+            }
         };
         if (user) load();
-    }, [user]);
+        else setLoading(false);
+    }, [user, fetchRoutines, fetchLogsForWeek, currentWeekStart]);
 
     return {
         routines, overrides, logs, loading, currentWeekStart,
