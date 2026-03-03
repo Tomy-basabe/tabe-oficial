@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, GraduationCap, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 
 export function TabeAnimationSection() {
     const [phase, setPhase] = useState(0);
@@ -27,16 +26,7 @@ export function TabeAnimationSection() {
 
     return (
         <section className="relative h-screen bg-[#0a0a1a] flex items-center justify-center overflow-hidden">
-            {/* Top Shortcut / Skip */}
-            <div className="absolute top-8 right-8 z-30 flex items-center gap-4 animate-fade-in" style={{ animationDelay: "1s" }}>
-                <Link
-                    to="/auth"
-                    className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-xl text-white font-bold transition-all hover:scale-105 active:scale-95"
-                >
-                    <GraduationCap className="w-5 h-5 text-neon-cyan" />
-                    Entrar a la App
-                </Link>
-            </div>
+
 
             {/* Background glow */}
             <div
