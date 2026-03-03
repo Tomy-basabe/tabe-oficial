@@ -62,8 +62,9 @@ const AdminPanel = () => {
   const [selectedCareer, setSelectedCareer] = useState<string>("sistemas");
 
   const AVAILABLE_FACULTADES = [
-    { id: "UTN", label: "Universidad Tecnológica Nacional (UTN)" },
-    { id: "UNCUYO", label: "Universidad Nacional de Cuyo (UNCUYO)" },
+    { id: "UTN", label: "UTN", fullLabel: "Universidad Tecnológica Nacional (UTN)" },
+    { id: "UNCUYO", label: "UNCUYO", fullLabel: "Universidad Nacional de Cuyo (UNCUYO)" },
+    { id: "OTROS", label: "Otros Institutos", fullLabel: "Institutos / Tecnicaturas" },
   ];
 
   const AVAILABLE_CAREERS = [
@@ -75,6 +76,8 @@ const AdminPanel = () => {
     { id: "electronica", label: "Ingeniería Electrónica (Plan 2023)", file: "electronica_template", facultad: "UTN" },
     // UNCUYO
     { id: "agronomia_uncuyo", label: "Ingeniería Agronómica", file: "agronomia_uncuyo_template", facultad: "UNCUYO" },
+    // Otros
+    { id: "contactologia", label: "Tecnicatura en Contactología", file: "contactologia_template", facultad: "OTROS" },
   ];
 
   useEffect(() => {
@@ -644,62 +647,99 @@ const AdminPanel = () => {
       {/* ── Career Template Modal ── */}
       {careerUser && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !careerLoading && setCareerUser(null)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5" onClick={e => e.stopPropagation()}>
-            <div>
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-neon-cyan" />
-                Cargar Plan de Carrera
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Para: <span className="font-semibold text-foreground">{careerUser.nombre || careerUser.email || 'Usuario'}</span>
-              </p>
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col" style={{ maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 p-5 border-b border-border flex-shrink-0">
+              <BookOpen className="h-5 w-5 text-neon-cyan flex-shrink-0" />
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold">Cargar Plan de Carrera</h3>
+                <p className="text-xs text-muted-foreground truncate">
+                  Para: <span className="font-semibold text-foreground">{careerUser.nombre || careerUser.email || 'Usuario'}</span>
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Seleccionar carrera:</label>
-              {AVAILABLE_CAREERS.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedCareer(c.id)}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedCareer === c.id
-                    ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_20px_rgba(0,217,255,0.1)]"
-                    : "border-border bg-secondary/20 hover:border-muted-foreground/30"
-                    }`}
+            {/* Body: sidebar + career list */}
+            <div className="flex flex-1 min-h-0" style={{ overflow: 'hidden' }}>
+
+              {/* Left sidebar — University tabs */}
+              <div className="w-36 flex-shrink-0 border-r border-border flex flex-col bg-secondary/30">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 pt-3 pb-1">Universidad</p>
+                {AVAILABLE_FACULTADES.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => {
+                      setSelectedFacultad(f.id);
+                      const first = AVAILABLE_CAREERS.find(c => c.facultad === f.id);
+                      if (first) setSelectedCareer(first.id);
+                    }}
+                    className={`text-left px-3 py-3 text-xs transition-all border-l-2 ${selectedFacultad === f.id
+                        ? "border-neon-cyan text-neon-cyan bg-neon-cyan/10 font-bold"
+                        : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Right: scrollable career list */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-3 pb-1 flex-shrink-0">
+                  {AVAILABLE_FACULTADES.find(f => f.id === selectedFacultad)?.fullLabel || selectedFacultad}
+                </p>
+                <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2 pr-2" style={{ scrollbarWidth: 'thin' }}>
+                  {AVAILABLE_CAREERS.filter(c => c.facultad === selectedFacultad).map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedCareer(c.id)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${selectedCareer === c.id
+                          ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_12px_rgba(0,217,255,0.15)]"
+                          : "border-border bg-secondary/20 hover:border-muted-foreground/40 hover:bg-secondary/40"
+                        }`}
+                    >
+                      <span className={`font-medium text-sm leading-snug ${selectedCareer === c.id ? "text-neon-cyan" : ""}`}>
+                        {c.label}
+                      </span>
+                      {selectedCareer === c.id && <BookOpen className="h-4 w-4 text-neon-cyan flex-shrink-0 ml-2" />}
+                    </button>
+                  ))}
+                  {AVAILABLE_CAREERS.filter(c => c.facultad === selectedFacultad).length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-8">Sin carreras disponibles aún</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-border space-y-3 flex-shrink-0">
+              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <span className="text-amber-400 text-xs">
+                  ⚠️ Se insertarán todas las materias y correlatividades del plan seleccionado en la cuenta del usuario.
+                </span>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setCareerUser(null)} disabled={careerLoading}>
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-bold hover:opacity-90"
+                  onClick={handleLoadCareerForUser}
+                  disabled={careerLoading}
                 >
-                  <div className="text-left">
-                    <p className="font-bold">{c.label}</p>
-                    <p className="text-xs text-muted-foreground">Incluye materias y correlatividades</p>
-                  </div>
-                  <BookOpen className={`h-5 w-5 ${selectedCareer === c.id ? "text-neon-cyan" : "text-muted-foreground"}`} />
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
-              <span className="text-amber-400 text-xs">
-                ⚠️ Esto insertará todas las materias y correlatividades del plan en la cuenta del usuario.
-              </span>
-            </div>
-
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setCareerUser(null)} disabled={careerLoading}>
-                Cancelar
-              </Button>
-              <Button
-                className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-bold hover:opacity-90"
-                onClick={handleLoadCareerForUser}
-                disabled={careerLoading}
-              >
-                {careerLoading ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Cargando...</>
-                ) : (
-                  <><BookOpen className="h-4 w-4 mr-2" /> Cargar Carrera</>
-                )}
-              </Button>
+                  {careerLoading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Cargando...</>
+                  ) : (
+                    <><BookOpen className="h-4 w-4 mr-2" /> Cargar Carrera</>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
 
       {/* Invited Users List */}
 

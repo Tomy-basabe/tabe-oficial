@@ -1,0 +1,384 @@
+{
+  "subjects": [
+    {
+      "id": "co1",
+      "codigo": "CO1",
+      "nombre": "Matemática",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "co2",
+      "codigo": "CO2",
+      "nombre": "Física",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "co3",
+      "codigo": "CO3",
+      "nombre": "Química General, Inorgánica y Orgánica",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "co4",
+      "codigo": "CO4",
+      "nombre": "Introducción a la Óptica",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "co5",
+      "codigo": "CO5",
+      "nombre": "Informática Aplicada",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "co6",
+      "codigo": "CO6",
+      "nombre": "Diseño y Geometría",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "co7",
+      "codigo": "CO7",
+      "nombre": "Inglés General",
+      "numero_materia": 7,
+      "año": 1
+    },
+    {
+      "id": "co8",
+      "codigo": "CO8",
+      "nombre": "Práctica Profesionalizante I",
+      "numero_materia": 8,
+      "año": 1
+    },
+    {
+      "id": "co9",
+      "codigo": "CO9",
+      "nombre": "Anatomía Ocular",
+      "numero_materia": 9,
+      "año": 2
+    },
+    {
+      "id": "co10",
+      "codigo": "CO10",
+      "nombre": "Óptica Oftálmica General",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "co11",
+      "codigo": "CO11",
+      "nombre": "Óptica Instrumental",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "co12",
+      "codigo": "CO12",
+      "nombre": "Óptica Oftálmica Especial",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "co13",
+      "codigo": "CO13",
+      "nombre": "Inglés Técnico",
+      "numero_materia": 13,
+      "año": 2
+    },
+    {
+      "id": "co14",
+      "codigo": "CO14",
+      "nombre": "Gestión de Costos",
+      "numero_materia": 14,
+      "año": 2
+    },
+    {
+      "id": "co15",
+      "codigo": "CO15",
+      "nombre": "Histología y Fisiología Ocular",
+      "numero_materia": 15,
+      "año": 2
+    },
+    {
+      "id": "co16",
+      "codigo": "CO16",
+      "nombre": "Práctica Profesionalizante II",
+      "numero_materia": 16,
+      "año": 2
+    },
+    {
+      "id": "co17",
+      "codigo": "CO17",
+      "nombre": "Óptica Oftálmica Aplicada",
+      "numero_materia": 17,
+      "año": 3
+    },
+    {
+      "id": "co18",
+      "codigo": "CO18",
+      "nombre": "Patología Ocular",
+      "numero_materia": 18,
+      "año": 3
+    },
+    {
+      "id": "co19",
+      "codigo": "CO19",
+      "nombre": "Adaptación de Lentes de Contacto",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "co20",
+      "codigo": "CO20",
+      "nombre": "Gabinete de Contactología",
+      "numero_materia": 20,
+      "año": 3
+    },
+    {
+      "id": "co21",
+      "codigo": "CO21",
+      "nombre": "Ergonomía, Higiene y Seguridad",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
+      "id": "co22",
+      "codigo": "CO22",
+      "nombre": "Organización, Administración y Comercialización",
+      "numero_materia": 22,
+      "año": 3
+    },
+    {
+      "id": "co23",
+      "codigo": "CO23",
+      "nombre": "Ética y Legislación Profesional",
+      "numero_materia": 23,
+      "año": 3
+    },
+    {
+      "id": "co24",
+      "codigo": "CO24",
+      "nombre": "Práctica Profesionalizante III",
+      "numero_materia": 24,
+      "año": 3
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "co9",
+      "dependency_id": "co4",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co10",
+      "dependency_id": "co2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co11",
+      "dependency_id": "co1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co12",
+      "dependency_id": "co10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co13",
+      "dependency_id": "co7",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co14",
+      "dependency_id": "co1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co15",
+      "dependency_id": "co3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co15",
+      "dependency_id": "co9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co15",
+      "dependency_id": "co2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co16",
+      "dependency_id": "co10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co17",
+      "dependency_id": "co12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co18",
+      "dependency_id": "co15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co19",
+      "dependency_id": "co12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co19",
+      "dependency_id": "co17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co20",
+      "dependency_id": "co12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co20",
+      "dependency_id": "co17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co21",
+      "dependency_id": "co17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co22",
+      "dependency_id": "co14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co23",
+      "dependency_id": "co14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co4",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co6",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co7",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co8",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co23",
+      "requiere_regular": true
+    }
+  ]
+}
