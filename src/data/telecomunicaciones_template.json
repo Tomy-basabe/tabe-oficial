@@ -1,0 +1,390 @@
+{
+  "subjects": [
+    {
+      "id": "t1",
+      "codigo": "T1",
+      "nombre": "Informática I",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "t2",
+      "codigo": "T2",
+      "nombre": "Álgebra y Geometría Analítica",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "t3",
+      "codigo": "T3",
+      "nombre": "Análisis Matemático I",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "t4",
+      "codigo": "T4",
+      "nombre": "Ingeniería y Sociedad",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "t5",
+      "codigo": "T5",
+      "nombre": "Diseño Asistido por Computadoras",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "t6",
+      "codigo": "T6",
+      "nombre": "Física I",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "t7",
+      "codigo": "T7",
+      "nombre": "Técnicas Digitales",
+      "numero_materia": 7,
+      "año": 1
+    },
+    {
+      "id": "t8",
+      "codigo": "T8",
+      "nombre": "Química General",
+      "numero_materia": 8,
+      "año": 1
+    },
+    {
+      "id": "t9",
+      "codigo": "T9",
+      "nombre": "Física II",
+      "numero_materia": 9,
+      "año": 2
+    },
+    {
+      "id": "t10",
+      "codigo": "T10",
+      "nombre": "Análisis de Señales y Sistemas",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "t11",
+      "codigo": "T11",
+      "nombre": "Análisis Matemático II",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "t12",
+      "codigo": "T12",
+      "nombre": "Taller de Redes y Comunicaciones",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "t13",
+      "codigo": "T13",
+      "nombre": "Informática II",
+      "numero_materia": 13,
+      "año": 2
+    },
+    {
+      "id": "t14",
+      "codigo": "T14",
+      "nombre": "Inglés I",
+      "numero_materia": 14,
+      "año": 2
+    },
+    {
+      "id": "t15",
+      "codigo": "T15",
+      "nombre": "Probabilidad y Estadística",
+      "numero_materia": 15,
+      "año": 2
+    },
+    {
+      "id": "t16",
+      "codigo": "T16",
+      "nombre": "Teoría de los Circuitos",
+      "numero_materia": 16,
+      "año": 2
+    },
+    {
+      "id": "t17",
+      "codigo": "T17",
+      "nombre": "Dispositivos Electrónicos y Electrónica General",
+      "numero_materia": 17,
+      "año": 3
+    },
+    {
+      "id": "t18",
+      "codigo": "T18",
+      "nombre": "Física Electrónica",
+      "numero_materia": 18,
+      "año": 3
+    },
+    {
+      "id": "t19",
+      "codigo": "T19",
+      "nombre": "Medios de Enlace",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "t20",
+      "codigo": "T20",
+      "nombre": "Sistemas de Comunicaciones",
+      "numero_materia": 20,
+      "año": 3
+    },
+    {
+      "id": "t21",
+      "codigo": "T21",
+      "nombre": "Redes de Comunicaciones y Datos",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
+      "id": "t22",
+      "codigo": "T22",
+      "nombre": "Inglés II",
+      "numero_materia": 22,
+      "año": 3
+    },
+    {
+      "id": "t23",
+      "codigo": "T23",
+      "nombre": "Seguridad Higiene y Medio Ambiente",
+      "numero_materia": 23,
+      "año": 3
+    },
+    {
+      "id": "t24",
+      "codigo": "T24",
+      "nombre": "Medidas Electrónicas",
+      "numero_materia": 24,
+      "año": 3
+    },
+    {
+      "id": "t25",
+      "codigo": "T25",
+      "nombre": "Legislación para Comunicaciones",
+      "numero_materia": 25,
+      "año": 3
+    },
+    {
+      "id": "t26",
+      "codigo": "T26",
+      "nombre": "Tecnología Electrónica e Introducción al Control",
+      "numero_materia": 26,
+      "año": 3
+    },
+    {
+      "id": "t27",
+      "codigo": "T27",
+      "nombre": "Administración de Redes de Datos",
+      "numero_materia": 27,
+      "año": 4
+    },
+    {
+      "id": "t28",
+      "codigo": "T28",
+      "nombre": "Electrónica Aplicada a las Comunicaciones",
+      "numero_materia": 28,
+      "año": 4
+    },
+    {
+      "id": "t29",
+      "codigo": "T29",
+      "nombre": "Telecomunicaciones Móviles",
+      "numero_materia": 29,
+      "año": 4
+    },
+    {
+      "id": "t30",
+      "codigo": "T30",
+      "nombre": "Sistemas Operativos de Red",
+      "numero_materia": 30,
+      "año": 4
+    },
+    {
+      "id": "t31",
+      "codigo": "T31",
+      "nombre": "Organización Industrial",
+      "numero_materia": 31,
+      "año": 4
+    },
+    {
+      "id": "t32",
+      "codigo": "T32",
+      "nombre": "Comunicaciones Ópticas",
+      "numero_materia": 32,
+      "año": 4
+    },
+    {
+      "id": "t33",
+      "codigo": "T33",
+      "nombre": "Sistemas Multimedia, Audio y Video Digital",
+      "numero_materia": 33,
+      "año": 4
+    },
+    {
+      "id": "t34",
+      "codigo": "T34",
+      "nombre": "Antenas y Propagación Electromagnética",
+      "numero_materia": 34,
+      "año": 4
+    },
+    {
+      "id": "t35",
+      "codigo": "T35",
+      "nombre": "Comunicaciones y Protocolos Industriales",
+      "numero_materia": 35,
+      "año": 5
+    },
+    {
+      "id": "t36",
+      "codigo": "T36",
+      "nombre": "Economía",
+      "numero_materia": 36,
+      "año": 5
+    },
+    {
+      "id": "t37",
+      "codigo": "T37",
+      "nombre": "Proyecto Final",
+      "numero_materia": 37,
+      "año": 5
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "t25",
+      "dependency_id": "t13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t25",
+      "dependency_id": "t4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t31",
+      "dependency_id": "t20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t32",
+      "dependency_id": "t24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t32",
+      "dependency_id": "t26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t32",
+      "dependency_id": "t19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t32",
+      "dependency_id": "t20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t32",
+      "dependency_id": "t21",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t33",
+      "dependency_id": "t24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t33",
+      "dependency_id": "t26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t33",
+      "dependency_id": "t17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t33",
+      "dependency_id": "t20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t34",
+      "dependency_id": "t27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t34",
+      "dependency_id": "t28",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t34",
+      "dependency_id": "t19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t34",
+      "dependency_id": "t20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t35",
+      "dependency_id": "t24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t35",
+      "dependency_id": "t26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t35",
+      "dependency_id": "t17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t35",
+      "dependency_id": "t20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t36",
+      "dependency_id": "t25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t36",
+      "dependency_id": "t4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "t37",
+      "dependency_id": "t24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t37",
+      "dependency_id": "t28",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "t37",
+      "dependency_id": "t31",
+      "requiere_regular": true
+    }
+  ]
+}
