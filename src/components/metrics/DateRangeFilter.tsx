@@ -50,7 +50,7 @@ const presets = [
     label: "Este mes",
     getValue: () => ({
       from: startOfMonth(new Date()),
-      to: new Date(),
+      to: endOfMonth(new Date()),
       label: "Este mes",
     }),
   },
@@ -92,8 +92,8 @@ const presets = [
   {
     label: "Todo el historial",
     getValue: () => ({
-      from: new Date(2020, 0, 1), // Arbitrary old date
-      to: new Date(),
+      from: new Date(2024, 0, 1),
+      to: endOfMonth(new Date()),
       label: "Todo el historial",
     }),
   },
@@ -168,7 +168,7 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
         <PopoverContent className="w-auto p-0" align="end">
           <div className="p-4 space-y-4">
             <h4 className="font-medium text-sm">Seleccionar rango</h4>
-            
+
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">Desde</p>
@@ -176,7 +176,6 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
                   mode="single"
                   selected={customFrom}
                   onSelect={setCustomFrom}
-                  disabled={(date) => date > new Date()}
                   className="rounded-md border pointer-events-auto"
                   locale={es}
                 />
@@ -187,7 +186,7 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
                   mode="single"
                   selected={customTo}
                   onSelect={setCustomTo}
-                  disabled={(date) => date > new Date() || (customFrom && date < customFrom)}
+                  disabled={(date) => customFrom ? date < customFrom : false}
                   className="rounded-md border pointer-events-auto"
                   locale={es}
                 />

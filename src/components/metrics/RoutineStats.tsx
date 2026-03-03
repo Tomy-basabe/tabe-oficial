@@ -100,7 +100,7 @@ export function RoutineStats({ dateRange }: Props) {
             ]);
 
             const routinesData = (rRes.data as RoutineForMetrics[]) || [];
-            const subjectsData = (sRes.data as SubjectInfo[]) || [];
+            const subjectsData = (sRes.data as unknown as SubjectInfo[]) || [];
 
             setRoutines(routinesData);
             setSubjects(subjectsData);
@@ -171,7 +171,7 @@ export function RoutineStats({ dateRange }: Props) {
 
                 totalScheduled++;
                 const log = logs.find(l => l.routine_id === r.id && l.log_date === dateStr);
-                const score = log ? (log.completed ? 1 : log.completion_percentage / 100) : 0;
+                const score = log ? (log.completed ? 1 : (log.completion_percentage || 0) / 100) : 0;
                 totalCompleted += score;
 
                 if (r.subject_id) {
@@ -218,7 +218,7 @@ export function RoutineStats({ dateRange }: Props) {
                     if (!r || !r.days_of_week.includes(dow)) continue;
                     wSched++;
                     const log = logs.find(l => l.routine_id === r.id && l.log_date === dateStr);
-                    wComp += log ? (log.completed ? 1 : log.completion_percentage / 100) : 0;
+                    wComp += log ? (log.completed ? 1 : (log.completion_percentage || 0) / 100) : 0;
                 }
             }
             weeklyEvolution.push({
