@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { subDays, eachDayOfInterval, format, startOfWeek, endOfWeek, addDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CheckCircle, TrendingUp, BookOpen, Calendar, Target } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, TrendingUp, BookOpen, Calendar, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { DateRange } from "@/components/metrics/DateRangeFilter";
 
 interface RoutineForMetrics {
@@ -51,6 +52,8 @@ export function RoutineStats({ dateRange }: Props) {
     const [routines, setRoutines] = useState<RoutineForMetrics[]>([]);
     const [overrides, setOverrides] = useState<RoutineOverride[]>([]);
     const [logs, setLogs] = useState<RoutineLogForMetrics[]>([]);
+    const [chartOffset, setChartOffset] = useState(0);
+    const WEEKS_PER_PAGE = 5;
     const [subjects, setSubjects] = useState<SubjectInfo[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -127,6 +130,10 @@ export function RoutineStats({ dateRange }: Props) {
             setLoading(false);
         }
     }, [user, isGuest, dateRange]);
+
+    useEffect(() => {
+        setChartOffset(0);
+    }, [dateRange]);
 
     useEffect(() => {
         if (user || isGuest) fetchData();
@@ -277,11 +284,35 @@ export function RoutineStats({ dateRange }: Props) {
             <div className="grid lg:grid-cols-2 gap-6">
                 {/* Weekly evolution chart */}
                 <div className="card-gamer rounded-xl p-6">
-                    <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-primary" /> Evolución semanal
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-display font-semibold flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-primary" /> Evolución semanal
+                        </h3>
+                        {weeklyEvolution.length > WEEKS_PER_PAGE && (
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setChartOffset(prev => Math.max(0, prev - 1))}
+                                    disabled={chartOffset === 0}
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setChartOffset(prev => Math.min(weeklyEvolution.length - WEEKS_PER_PAGE, prev + 1))}
+                                    disabled={chartOffset >= weeklyEvolution.length - WEEKS_PER_PAGE}
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                     <div className="flex items-end justify-between gap-1 h-40">
-                        {weeklyEvolution.map((w, i) => (
+                        {weeklyEvolution.slice(chartOffset, chartOffset + WEEKS_PER_PAGE).map((w, i) => (
                             <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
                                 <div className="w-full rounded-t-lg transition-all duration-500 relative group"
                                     style={{

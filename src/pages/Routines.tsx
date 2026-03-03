@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format, addDays, isToday, isFuture, isPast, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -68,6 +68,23 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
     const [startDate, setStartDate] = useState(initial?.start_date ?? format(new Date(), "yyyy-MM-dd"));
     const [hasEnd, setHasEnd] = useState(!!initial?.end_date);
     const [endDate, setEndDate] = useState(initial?.end_date ?? "");
+
+    // Sync state when 'initial' changes or dialog opens
+    useEffect(() => {
+        if (open) {
+            setName(initial?.name ?? "");
+            setDesc(initial?.description ?? "");
+            setCategory(initial?.category ?? "general");
+            setSubjectId(initial?.subject_id ?? "none");
+            setColor(initial?.color ?? "#00FFAA");
+            setStartTime(initial?.start_time?.slice(0, 5) ?? "08:00");
+            setEndTime(initial?.end_time?.slice(0, 5) ?? "10:00");
+            setDays(initial?.days_of_week ?? []);
+            setStartDate(initial?.start_date ?? format(new Date(), "yyyy-MM-dd"));
+            setHasEnd(!!initial?.end_date);
+            setEndDate(initial?.end_date ?? "");
+        }
+    }, [initial, open]);
 
     const toggleDay = (d: number) =>
         setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort());
