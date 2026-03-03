@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock } from "lucide-react";
+import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock, BookOpen, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface UserReview {
   id: string;
@@ -53,6 +54,15 @@ const AdminPanel = () => {
   // Subscription modal states
   const [activatingUser, setActivatingUser] = useState<Profile | null>(null);
   const [selectedPlanType, setSelectedPlanType] = useState<string>("mensual");
+
+  // Career template loading
+  const [careerUser, setCareerUser] = useState<Profile | null>(null);
+  const [careerLoading, setCareerLoading] = useState(false);
+  const [selectedCareer, setSelectedCareer] = useState<string>("sistemas");
+
+  const AVAILABLE_CAREERS = [
+    { id: "sistemas", label: "Ingeniería en Sistemas de Información", file: "sistemas_template" },
+  ];
 
   useEffect(() => {
     checkAdminStatus();
@@ -249,6 +259,72 @@ const AdminPanel = () => {
     }
   };
 
+  // ── Career Template Loading ──
+  const handleLoadCareerForUser = async () => {
+    if (!careerUser) return;
+    setCareerLoading(true);
+
+    try {
+      // Check if user already has subjects
+      const { data: existingSubjects } = await supabase
+        .from("subjects")
+        .select("id")
+        .eq("user_id", careerUser.user_id)
+        .limit(1);
+
+      if (existingSubjects && existingSubjects.length > 0) {
+        if (!confirm(`${careerUser.nombre || careerUser.email} ya tiene materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar). ¿Continuar?`)) {
+          setCareerLoading(false);
+          return;
+        }
+      }
+
+      const career = AVAILABLE_CAREERS.find(c => c.id === selectedCareer);
+      if (!career) throw new Error("Carrera no encontrada");
+
+      const templateModule = await import(`@/data/${career.file}.json`);
+      const templateData = templateModule.default;
+      const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
+
+      const idMap = new Map<string, string>();
+      const newSubjects = tplSubjects.map((s: any) => {
+        const newId = crypto.randomUUID();
+        idMap.set(s.id, newId);
+        return {
+          id: newId,
+          nombre: s.nombre,
+          codigo: s.codigo,
+          año: s.año,
+          numero_materia: s.numero_materia,
+          user_id: careerUser.user_id,
+        };
+      });
+
+      const { error: subError } = await supabase.from("subjects").insert(newSubjects);
+      if (subError) throw subError;
+
+      const newDeps = tplDependencies.map((d: any) => ({
+        subject_id: idMap.get(d.subject_id),
+        requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
+        requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
+        user_id: careerUser.user_id,
+      })).filter((d: any) => d.subject_id);
+
+      if (newDeps.length > 0) {
+        const { error: depError } = await supabase.from("subject_dependencies").insert(newDeps);
+        if (depError) throw depError;
+      }
+
+      toast.success(`✅ Plan de ${career.label} cargado para ${careerUser.nombre || careerUser.email}`);
+      setCareerUser(null);
+    } catch (error: any) {
+      console.error("Error loading career template:", error);
+      toast.error(`Error al cargar carrera: ${error.message}`);
+    } finally {
+      setCareerLoading(false);
+    }
+  };
+
 
 
   const handleDeleteReview = async (id: string) => {
@@ -438,6 +514,17 @@ const AdminPanel = () => {
                         </Button>
                       )}
 
+                      {/* Load career */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-neon-cyan/40 text-neon-cyan hover:bg-neon-cyan/10"
+                        onClick={() => { setCareerUser(profile); setSelectedCareer("sistemas"); }}
+                      >
+                        <BookOpen className="h-3 w-3 mr-1" />
+                        Carrera
+                      </Button>
+
                       {/* Delete user */}
                       <Button
                         variant="ghost"
@@ -524,6 +611,66 @@ const AdminPanel = () => {
           </div>
         )
       }
+
+      {/* ── Career Template Modal ── */}
+      {careerUser && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !careerLoading && setCareerUser(null)}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5" onClick={e => e.stopPropagation()}>
+            <div>
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-neon-cyan" />
+                Cargar Plan de Carrera
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Para: <span className="font-semibold text-foreground">{careerUser.nombre || careerUser.email || 'Usuario'}</span>
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Seleccionar carrera:</label>
+              {AVAILABLE_CAREERS.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCareer(c.id)}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedCareer === c.id
+                      ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_20px_rgba(0,217,255,0.1)]"
+                      : "border-border bg-secondary/20 hover:border-muted-foreground/30"
+                    }`}
+                >
+                  <div className="text-left">
+                    <p className="font-bold">{c.label}</p>
+                    <p className="text-xs text-muted-foreground">Incluye materias y correlatividades</p>
+                  </div>
+                  <BookOpen className={`h-5 w-5 ${selectedCareer === c.id ? "text-neon-cyan" : "text-muted-foreground"}`} />
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+              <span className="text-amber-400 text-xs">
+                ⚠️ Esto insertará todas las materias y correlatividades del plan en la cuenta del usuario.
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setCareerUser(null)} disabled={careerLoading}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-bold hover:opacity-90"
+                onClick={handleLoadCareerForUser}
+                disabled={careerLoading}
+              >
+                {careerLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Cargando...</>
+                ) : (
+                  <><BookOpen className="h-4 w-4 mr-2" /> Cargar Carrera</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invited Users List */}
 
