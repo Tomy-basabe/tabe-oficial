@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, GraduationCap, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function TabeAnimationSection() {
     const [phase, setPhase] = useState(0);
@@ -26,6 +27,16 @@ export function TabeAnimationSection() {
 
     return (
         <section className="relative h-screen bg-[#0a0a1a] flex items-center justify-center overflow-hidden">
+            {/* Top Shortcut / Skip */}
+            <div className="absolute top-8 right-8 z-30 flex items-center gap-4 animate-fade-in" style={{ animationDelay: "1s" }}>
+                <Link
+                    to="/auth"
+                    className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-xl text-white font-bold transition-all hover:scale-105 active:scale-95"
+                >
+                    <GraduationCap className="w-5 h-5 text-neon-cyan" />
+                    Entrar a la App
+                </Link>
+            </div>
 
             {/* Background glow */}
             <div
@@ -80,12 +91,25 @@ export function TabeAnimationSection() {
                         transform: phase >= 6 ? 'translateY(0)' : 'translateY(10px)',
                     }}
                 >
-                    <a href="#hero" className="flex flex-col items-center gap-1 text-white/40 hover:text-white/70 transition-colors">
-                        <span className="text-xs uppercase tracking-widest">Descubrí más</span>
-                        <ChevronDown className="w-5 h-5 animate-bounce" />
+                    <a href="#hero" className="flex flex-col items-center gap-1 text-white/40 hover:text-white/70 transition-colors group">
+                        <span className="text-[10px] uppercase tracking-widest font-bold">Descubrí más</span>
+                        <ChevronDown className="w-5 h-5 animate-bounce group-hover:text-neon-cyan transition-colors" />
                     </a>
                 </div>
             </div>
+
+            {/* Bottom Left: Instagram quick link */}
+            <div className="absolute bottom-10 left-10 z-30 animate-fade-in" style={{ animationDelay: "2s" }}>
+                <a
+                    href="https://www.instagram.com/tabe_oficial/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-white/30 hover:text-white/70 transition-all hover:scale-105"
+                >
+                    <span className="text-[10px] uppercase tracking-widest font-bold">@tabe_oficial</span>
+                </a>
+            </div>
+
         </section>
     );
 }

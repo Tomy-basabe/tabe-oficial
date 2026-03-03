@@ -1,4 +1,5 @@
-import { Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, CheckCircle2, GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 import { FeaturesShowcase } from "./FeaturesShowcase";
 
 export function HeroSection() {
@@ -28,15 +29,23 @@ export function HeroSection() {
                         No dejes tu rendimiento al azar. Preparación estratégica, resolución guiada y tecnología interactiva para estudiantes exigentes.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <div className="flex flex-col sm:flex-row gap-4 pt-4 w-full sm:w-auto">
+                        <Link
+                            to="/auth"
+                            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-xl hover:shadow-[0_0_40px_rgba(0,255,170,0.4)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0 relative overflow-hidden group/btn"
+                        >
+                            <div className="absolute inset-0 -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                            Entrar a la App
+                            <ArrowRight className="w-6 h-6 text-white group-hover/btn:translate-x-1.5 transition-transform" />
+                        </Link>
                         <a
                             href={whatsappUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-bold text-lg hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0"
+                            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-secondary text-foreground border border-border rounded-2xl font-bold text-lg hover:bg-secondary/80 transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0"
                         >
                             Quiero formar parte
-                            <ArrowRight className="w-5 h-5" />
+                            <GraduationCap className="w-5 h-5 text-neon-purple" />
                         </a>
                     </div>
 

@@ -129,10 +129,11 @@ export function LandingNavbar() {
                         href="https://www.instagram.com/tabe_oficial/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-full hover:bg-secondary transition-all duration-300 hover:scale-110 active:scale-95 text-muted-foreground hover:text-neon-purple"
+                        className="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 border border-border/50 hover:border-neon-purple/50 transition-all duration-300 hover:scale-105 active:scale-95 text-muted-foreground hover:text-foreground"
                         aria-label="Instagram"
                     >
-                        <Instagram className="w-5 h-5" />
+                        <Instagram className="w-4 h-4 transition-colors group-hover:text-neon-purple" />
+                        <span className="text-xs font-bold uppercase tracking-wider hidden lg:inline">Instagram</span>
                     </a>
                     <button
                         onClick={toggleTheme}
@@ -143,9 +144,9 @@ export function LandingNavbar() {
                     </button>
                     <Link
                         to="/auth"
-                        className="px-5 py-2.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-neon-cyan/25 transition-all duration-300 hover:scale-105 active:scale-95"
+                        className="px-6 py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-bold text-sm hover:shadow-[0_0_20px_rgba(0,255,170,0.3)] transition-all duration-300 hover:scale-105 active:scale-95"
                     >
-                        Acceder a TABE
+                        Entrar a la App
                     </Link>
                 </div>
 
@@ -167,7 +168,18 @@ export function LandingNavbar() {
                 className={`md:hidden absolute top-full left-0 w-full bg-background/95 backdrop-blur-xl border-b border-border shadow-xl transition-all duration-400 overflow-hidden ${mobileMenuOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
                     }`}
             >
-                <div className="py-4 px-4 flex flex-col gap-1">
+                <div className="py-6 px-4 flex flex-col gap-1">
+                    {/* Top Shortcut for Mobile */}
+                    <Link
+                        to="/auth"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="w-full flex items-center justify-center gap-2 px-5 py-4 mb-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-lg active:scale-95 transition-transform shadow-lg shadow-neon-cyan/20"
+                    >
+                        Entrar a la App
+                        <GraduationCap className="w-5 h-5" />
+                    </Link>
+
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold px-4 mb-2">Menú</div>
                     {navLinks.map((link, i) => (
                         link.isScroll ? (
                             <a
@@ -197,15 +209,16 @@ export function LandingNavbar() {
                             </Link>
                         )
                     ))}
-                    <div className="flex items-center justify-between px-4 py-2">
-                        <span className="font-medium">Redes</span>
+                    <div className="flex items-center justify-between px-4 py-3 mt-2 bg-secondary/30 rounded-2xl">
+                        <span className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Seguinos</span>
                         <a
                             href="https://www.instagram.com/tabe_oficial/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-2.5 rounded-xl bg-secondary hover:scale-110 active:scale-95 transition-all duration-300 text-neon-purple"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all duration-300"
                         >
                             <Instagram className="w-5 h-5" />
+                            <span>Instagram</span>
                         </a>
                     </div>
                     <div className="flex items-center justify-between px-4 py-2">
