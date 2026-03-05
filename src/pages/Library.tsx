@@ -105,6 +105,8 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  const [isDraggingExternal, setIsDraggingExternal] = useState(false);
 
   useEffect(() => {
     if (user || isGuest) {
@@ -1052,7 +1054,77 @@ export default function Library() {
           </div>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 tour-library-grid">
+        <div
+          className={cn(
+            "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 tour-library-grid relative rounded-xl transition-all",
+            isDraggingExternal && "ring-2 ring-primary ring-dashed bg-primary/5 p-4"
+          )}
+          onDragOver={(e) => {
+            // Accept external file drops on the grid area
+            if (e.dataTransfer.types.includes("Files")) {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDraggingExternal(true);
+            }
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setIsDraggingExternal(false);
+            }
+          }}
+          onDrop={async (e) => {
+            setIsDraggingExternal(false);
+            // Only handle external files (not internal drags)
+            if (!e.dataTransfer.types.includes("Files") || e.dataTransfer.getData("fileId") || e.dataTransfer.getData("folderId")) return;
+            e.preventDefault();
+            const droppedFiles = e.dataTransfer.files;
+            if (!droppedFiles.length || !user) return;
+
+            setUploading(true);
+            const toastId = toast.loading(`Subiendo ${droppedFiles.length} archivo(s)...`);
+            let uploaded = 0;
+
+            for (let i = 0; i < droppedFiles.length; i++) {
+              const file = droppedFiles[i];
+              if (file.name.startsWith(".")) continue;
+
+              let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
+              if (file.type === "application/pdf") tipo = "pdf";
+              else if (file.type.startsWith("image/")) tipo = "imagen";
+              else if (file.type.startsWith("video/")) tipo = "video";
+
+              const fileExt = file.name.split(".").pop();
+              const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+              const filePath = `${user.id}/${fileName}`;
+
+              const { error: uploadError } = await supabase.storage
+                .from("library-files")
+                .upload(filePath, file);
+
+              if (uploadError) { console.error(uploadError); continue; }
+
+              const signedUrl = await getSignedUrl(filePath);
+              if (!signedUrl) continue;
+
+              await supabase.from("library_files").insert({
+                user_id: user.id,
+                subject_id: selectedSubjectId || null,
+                folder_id: currentFolderId,
+                nombre: file.name,
+                tipo,
+                url: signedUrl,
+                storage_path: filePath,
+                tamaño_bytes: file.size,
+              });
+              uploaded++;
+              toast.loading(`Subiendo (${uploaded}/${droppedFiles.length})...`, { id: toastId });
+            }
+
+            toast.success(`¡${uploaded} archivo(s) subido(s)!`, { id: toastId });
+            setUploading(false);
+            fetchFiles();
+          }}
+        >
           {/* Folders */}
           {currentFolders.map(folder => {
             const folderFilesCount = files.filter(f => f.folder_id === folder.id).length;
@@ -1062,7 +1134,88 @@ export default function Library() {
               <div
                 key={folder.id}
                 onClick={() => navigateToFolder(folder.id)}
-                className="card-gamer rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-all group relative"
+                className={cn(
+                  "card-gamer rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-all group relative",
+                  dragOverFolderId === folder.id && "ring-2 ring-neon-cyan bg-neon-cyan/10 scale-[1.02]"
+                )}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragOverFolderId(folder.id);
+                }}
+                onDragLeave={() => setDragOverFolderId(null)}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragOverFolderId(null);
+                  setIsDraggingExternal(false);
+
+                  const fileId = e.dataTransfer.getData("fileId");
+                  const folderId = e.dataTransfer.getData("folderId");
+
+                  if (fileId) {
+                    // Move file into this folder
+                    const { error } = await supabase
+                      .from("library_files")
+                      .update({ folder_id: folder.id })
+                      .eq("id", fileId);
+                    if (!error) {
+                      toast.success("Archivo movido");
+                      fetchFiles();
+                    } else {
+                      toast.error("Error al mover archivo");
+                    }
+                  } else if (folderId && folderId !== folder.id) {
+                    // Move folder into this folder (avoid self-nesting)
+                    const { error } = await supabase
+                      .from("library_folders")
+                      .update({ parent_folder_id: folder.id })
+                      .eq("id", folderId);
+                    if (!error) {
+                      toast.success("Carpeta movida");
+                      fetchFolders();
+                    } else {
+                      toast.error("Error al mover carpeta");
+                    }
+                  } else if (e.dataTransfer.types.includes("Files")) {
+                    // External files dropped onto a folder — upload into it
+                    const droppedFiles = e.dataTransfer.files;
+                    if (!droppedFiles.length || !user) return;
+                    setUploading(true);
+                    const toastId = toast.loading(`Subiendo a ${folder.nombre}...`);
+                    let uploaded = 0;
+
+                    for (let i = 0; i < droppedFiles.length; i++) {
+                      const file = droppedFiles[i];
+                      if (file.name.startsWith(".")) continue;
+                      let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
+                      if (file.type === "application/pdf") tipo = "pdf";
+                      else if (file.type.startsWith("image/")) tipo = "imagen";
+                      else if (file.type.startsWith("video/")) tipo = "video";
+                      const fileExt = file.name.split(".").pop();
+                      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                      const filePath = `${user.id}/${fileName}`;
+                      const { error: uploadError } = await supabase.storage.from("library-files").upload(filePath, file);
+                      if (uploadError) { console.error(uploadError); continue; }
+                      const signedUrl = await getSignedUrl(filePath);
+                      if (!signedUrl) continue;
+                      await supabase.from("library_files").insert({
+                        user_id: user.id, subject_id: selectedSubjectId || null,
+                        folder_id: folder.id, nombre: file.name, tipo,
+                        url: signedUrl, storage_path: filePath, tamaño_bytes: file.size,
+                      });
+                      uploaded++;
+                    }
+                    toast.success(`¡${uploaded} archivo(s) subido(s) a ${folder.nombre}!`, { id: toastId });
+                    setUploading(false);
+                    fetchFiles();
+                  }
+                }}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("folderId", folder.id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -1097,7 +1250,15 @@ export default function Library() {
             const canPreview = file.tipo === "pdf" || file.tipo === "imagen";
 
             return (
-              <div key={file.id} className="card-gamer rounded-xl p-4 group relative">
+              <div
+                key={file.id}
+                className="card-gamer rounded-xl p-4 group relative cursor-grab active:cursor-grabbing"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("fileId", file.id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+              >
                 {/* Preview thumbnail for images */}
                 {file.tipo === "imagen" && (
                   <div
