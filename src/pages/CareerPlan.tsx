@@ -31,6 +31,7 @@ export default function CareerPlan() {
     updateSubjectDependencies,
     deleteSubject,
     importCareerPlan,
+    deleteAllSubjects,
     getYears
   } = useSubjects();
 
@@ -152,6 +153,20 @@ export default function CareerPlan() {
           >
             <BookOpen className="w-4 h-4" />
             Importar Plan
+          </button>
+          <button
+            onClick={() => {
+              const confirm1 = window.confirm("¿Estás SEGURO de que quieres borrar TODAS tus materias y progreso?");
+              if (confirm1) {
+                const confirm2 = window.confirm("ESTA ACCIÓN ES IRREVERSIBLE. ¿Realmente quieres eliminar todo?");
+                if (confirm2) {
+                  deleteAllSubjects();
+                }
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-medium hover:bg-destructive/20 transition-all"
+          >
+            Borrar Todo
           </button>
           <div className="card-gamer rounded-lg px-3 py-1.5 flex items-center gap-2">
             <GraduationCap className="w-4 h-4 text-neon-gold" />

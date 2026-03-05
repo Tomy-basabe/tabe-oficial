@@ -761,104 +761,149 @@ export function useSubjects() {
     return years.length > 0 ? years : [1, 2, 3, 4, 5, 6];
   }, [subjects]);
 
-};
+  const importCareerPlan = async (careerId: string) => {
+    if (!user || isGuest) return;
 
-const importCareerPlan = async (careerId: string) => {
-  if (!user || isGuest) return;
+    const career = AVAILABLE_CAREERS.find(c => c.id === careerId);
+    if (!career) {
+      toast.error("Carrera no encontrada");
+      return;
+    }
 
-  const career = AVAILABLE_CAREERS.find(c => c.id === careerId);
-  if (!career) {
-    toast.error("Carrera no encontrada");
-    return;
-  }
+    try {
+      setLoading(true);
 
-  try {
-    setLoading(true);
+      // Check if user already has subjects
+      const { data: existingSubjects } = await supabase
+        .from("subjects")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
 
-    // Check if user already has subjects
-    const { data: existingSubjects } = await supabase
-      .from("subjects")
-      .select("id")
-      .eq("user_id", user.id)
-      .limit(1);
+      if (existingSubjects && existingSubjects.length > 0) {
+        const confirmImport = window.confirm("Ya tienes materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar). ¿Deseas continuar?");
+        if (!confirmImport) {
+          setLoading(false);
+          return;
+        }
+      }
 
-    if (existingSubjects && existingSubjects.length > 0) {
-      const confirmImport = window.confirm("Ya tienes materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar). ¿Deseas continuar?");
-      if (!confirmImport) {
-        setLoading(false);
+      toast.loading(`Cargando plan de ${career.label}...`, { id: 'import-career' });
+
+      // @ts-ignore - dynamic import
+      const templateModule = await import(`../data/${career.file}.json`);
+      const templateData = templateModule.default;
+      const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
+
+      const idMap = new Map<string, string>();
+      const newSubjects = tplSubjects.map((s: any) => {
+        const newId = crypto.randomUUID();
+        idMap.set(s.id, newId);
+        return {
+          id: newId,
+          nombre: s.nombre,
+          codigo: s.codigo,
+          año: s.año,
+          numero_materia: s.numero_materia,
+          user_id: user.id,
+        };
+      });
+
+      const { error: subError } = await supabase.from("subjects").insert(newSubjects);
+      if (subError) throw subError;
+
+      const newDeps = tplDependencies.map((d: any) => ({
+        subject_id: idMap.get(d.subject_id),
+        requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
+        requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
+        user_id: user.id,
+      })).filter((d: any) => d.subject_id);
+
+      if (newDeps.length > 0) {
+        const { error: depError } = await supabase.from("subject_dependencies").insert(newDeps);
+        if (depError) throw depError;
+      }
+
+      // Update user profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          facultad: career.facultad,
+          carrera: career.label
+        })
+        .eq("user_id", user.id);
+
+      if (profileError) console.error("Error updating profile:", profileError);
+
+      toast.success(`¡Plan de ${career.label} cargado exitosamente!`, { id: 'import-career' });
+      await fetchData(false);
+    } catch (error: any) {
+      console.error("Error importing career plan:", error);
+      toast.error(`Error al importar carrera: ${error.message}`, { id: 'import-career' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteAllSubjects = async () => {
+    if (!user) {
+      if (isGuest) {
+        setSubjects([]);
+        setUserStatuses([]);
+        setDependencies([]);
+        toast.success("Todas las materias han sido eliminadas (Modo Invitado)");
         return;
       }
+      return;
     }
 
-    toast.loading(`Cargando plan de ${career.label}...`, { id: 'import-career' });
+    try {
+      setLoading(true);
 
-    // @ts-ignore - dynamic import
-    const templateModule = await import(`../data/${career.file}.json`);
-    const templateData = templateModule.default;
-    const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
-
-    const idMap = new Map<string, string>();
-    const newSubjects = tplSubjects.map((s: any) => {
-      const newId = crypto.randomUUID();
-      idMap.set(s.id, newId);
-      return {
-        id: newId,
-        nombre: s.nombre,
-        codigo: s.codigo,
-        año: s.año,
-        numero_materia: s.numero_materia,
-        user_id: user.id,
-      };
-    });
-
-    const { error: subError } = await supabase.from("subjects").insert(newSubjects);
-    if (subError) throw subError;
-
-    const newDeps = tplDependencies.map((d: any) => ({
-      subject_id: idMap.get(d.subject_id),
-      requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
-      requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
-      user_id: user.id,
-    })).filter((d: any) => d.subject_id);
-
-    if (newDeps.length > 0) {
-      const { error: depError } = await supabase.from("subject_dependencies").insert(newDeps);
+      // Delete all dependencies for this user
+      const { error: depError } = await supabase
+        .from("subject_dependencies")
+        .delete()
+        .eq("user_id", user.id);
       if (depError) throw depError;
+
+      // Delete all statuses for this user
+      const { error: statusError } = await supabase
+        .from("user_subject_status")
+        .delete()
+        .eq("user_id", user.id);
+      if (statusError) throw statusError;
+
+      // Delete all subjects for this user
+      const { error: subError } = await supabase
+        .from("subjects")
+        .delete()
+        .eq("user_id", user.id);
+      if (subError) throw subError;
+
+      await fetchData(false);
+      toast.success("Todas las materias han sido eliminadas correctamente");
+    } catch (error: any) {
+      console.error("Error deleting all subjects:", error);
+      toast.error(`Error al eliminar las materias: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Update user profile
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({
-        facultad: career.facultad,
-        carrera: career.label
-      })
-      .eq("user_id", user.id);
-
-    if (profileError) console.error("Error updating profile:", profileError);
-
-    toast.success(`¡Plan de ${career.label} cargado exitosamente!`, { id: 'import-career' });
-    await fetchData(false);
-  } catch (error: any) {
-    console.error("Error importing career plan:", error);
-    toast.error(`Error al importar carrera: ${error.message}`, { id: 'import-career' });
-  } finally {
-    setLoading(false);
-  }
+  return {
+    subjects: subjectsWithStatus,
+    rawSubjects: subjects,
+    dependencies,
+    loading,
+    updateSubjectStatus,
+    updatePartialGrades,
+    createSubject,
+    updateSubjectDependencies,
+    deleteSubject,
+    importCareerPlan,
+    deleteAllSubjects,
+    refetch: fetchData,
+    getYears,
+  };
 };
-
-return {
-  subjects: subjectsWithStatus,
-  rawSubjects: subjects,
-  dependencies,
-  loading,
-  updateSubjectStatus,
-  updatePartialGrades,
-  createSubject,
-  updateSubjectDependencies,
-  deleteSubject,
-  importCareerPlan,
-  refetch: fetchData,
-  getYears,
-};
-}
