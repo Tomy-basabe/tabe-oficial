@@ -1,12 +1,13 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Filter, GraduationCap, Search, Plus, Loader2, Zap } from "lucide-react";
+import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen } from "lucide-react";
 import { SubjectCard } from "@/components/dashboard/SubjectCard";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import { SubjectStatusModal } from "@/components/subjects/SubjectStatusModal";
 import { AddSubjectModal } from "@/components/subjects/AddSubjectModal";
 import { EditDependenciesModal } from "@/components/subjects/EditDependenciesModal";
+import { ImportCareerModal } from "@/components/subjects/ImportCareerModal";
 import { useSubjects, SubjectWithStatus, SubjectStatus } from "@/hooks/useSubjects";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ export default function CareerPlan() {
     updateSubjectDependencies,
     deleteSubject,
     initializeDefaultStatuses,
+    importCareerPlan,
     getYears
   } = useSubjects();
 
@@ -44,6 +46,7 @@ export default function CareerPlan() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDepsModal, setShowDepsModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const years = getYears();
 
@@ -143,6 +146,13 @@ export default function CareerPlan() {
           >
             <Zap className="w-4 h-4 text-neon-gold" />
             Ver Mapa
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan font-medium hover:bg-neon-cyan/20 transition-all"
+          >
+            <BookOpen className="w-4 h-4" />
+            Importar Plan
           </button>
           <div className="card-gamer rounded-lg px-3 py-1.5 flex items-center gap-2">
             <GraduationCap className="w-4 h-4 text-neon-gold" />
@@ -275,41 +285,47 @@ export default function CareerPlan() {
         ))}
       </div>
 
-      {subjects.length > 0 && stats.aprobadas === 0 && stats.regulares === 0 && (
-        <div className="card-gamer rounded-xl p-6 text-center border border-neon-cyan/30">
-          <Zap className="w-12 h-12 mx-auto mb-4 text-neon-cyan" />
-          <p className="text-foreground font-medium mb-2">¿Primera vez?</p>
-          <p className="text-sm text-muted-foreground mb-4">
-            Inicializa tu progreso con 1º y 2º año aprobados (excepto Inglés II)
-          </p>
-          <button
-            onClick={initializeDefaultStatuses}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
-          >
-            Inicializar mi progreso
-          </button>
-        </div>
-      )}
+      {
+        subjects.length > 0 && stats.aprobadas === 0 && stats.regulares === 0 && (
+          <div className="card-gamer rounded-xl p-6 text-center border border-neon-cyan/30">
+            <Zap className="w-12 h-12 mx-auto mb-4 text-neon-cyan" />
+            <p className="text-foreground font-medium mb-2">¿Primera vez?</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Inicializa tu progreso con 1º y 2º año aprobados (excepto Inglés II)
+            </p>
+            <button
+              onClick={initializeDefaultStatuses}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
+            >
+              Inicializar mi progreso
+            </button>
+          </div>
+        )
+      }
 
-      {subjects.length === 0 && (
-        <div className="text-center py-12">
-          <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground mb-4">No hay materias cargadas todavía</p>
-          <button
-            onClick={handleOpenAddModal}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
-          >
-            Agregar tu primera materia
-          </button>
-        </div>
-      )}
+      {
+        subjects.length === 0 && (
+          <div className="text-center py-12">
+            <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground mb-4">No hay materias cargadas todavía</p>
+            <button
+              onClick={handleOpenAddModal}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
+            >
+              Agregar tu primera materia
+            </button>
+          </div>
+        )
+      }
 
-      {subjects.length > 0 && filteredSubjects.length === 0 && (
-        <div className="text-center py-12">
-          <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground">No se encontraron materias con los filtros seleccionados</p>
-        </div>
-      )}
+      {
+        subjects.length > 0 && filteredSubjects.length === 0 && (
+          <div className="text-center py-12">
+            <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">No se encontraron materias con los filtros seleccionados</p>
+          </div>
+        )
+      }
 
       {/* Modals */}
       <SubjectStatusModal
@@ -337,7 +353,13 @@ export default function CareerPlan() {
         onUpdate={updateSubjectDependencies}
         allSubjects={rawSubjects}
       />
-    </div>
+
+      <ImportCareerModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={importCareerPlan}
+      />
+    </div >
   );
 }
 

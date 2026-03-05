@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock, BookOpen, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
 
 interface UserReview {
   id: string;
@@ -61,24 +62,6 @@ const AdminPanel = () => {
   const [selectedFacultad, setSelectedFacultad] = useState<string>("UTN");
   const [selectedCareer, setSelectedCareer] = useState<string>("sistemas");
 
-  const AVAILABLE_FACULTADES = [
-    { id: "UTN", label: "UTN", fullLabel: "Universidad Tecnológica Nacional (UTN)" },
-    { id: "UNCUYO", label: "UNCUYO", fullLabel: "Universidad Nacional de Cuyo (UNCUYO)" },
-    { id: "OTROS", label: "Otros Institutos", fullLabel: "Institutos / Tecnicaturas" },
-  ];
-
-  const AVAILABLE_CAREERS = [
-    { id: "sistemas", label: "Ingeniería en Sistemas de Información", file: "sistemas_template", facultad: "UTN" },
-    { id: "civil", label: "Ingeniería Civil (Plan 2023)", file: "civil_template", facultad: "UTN" },
-    { id: "electromecanica", label: "Ingeniería Electromecánica (Plan 2023)", file: "electromecanica_template", facultad: "UTN" },
-    { id: "quimica", label: "Ingeniería Química (Plan 2023)", file: "quimica_template", facultad: "UTN" },
-    { id: "telecomunicaciones", label: "Ingeniería en Telecomunicaciones", file: "telecomunicaciones_template", facultad: "UTN" },
-    { id: "electronica", label: "Ingeniería Electrónica (Plan 2023)", file: "electronica_template", facultad: "UTN" },
-    // UNCUYO
-    { id: "agronomia_uncuyo", label: "Ingeniería Agronómica", file: "agronomia_uncuyo_template", facultad: "UNCUYO" },
-    // Otros
-    { id: "contactologia", label: "Tecnicatura en Contactología", file: "contactologia_template", facultad: "OTROS" },
-  ];
 
   useEffect(() => {
     checkAdminStatus();
@@ -675,8 +658,8 @@ const AdminPanel = () => {
                       if (first) setSelectedCareer(first.id);
                     }}
                     className={`text-left px-3 py-3 text-xs transition-all border-l-2 ${selectedFacultad === f.id
-                        ? "border-neon-cyan text-neon-cyan bg-neon-cyan/10 font-bold"
-                        : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      ? "border-neon-cyan text-neon-cyan bg-neon-cyan/10 font-bold"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                       }`}
                   >
                     {f.label}
@@ -695,8 +678,8 @@ const AdminPanel = () => {
                       key={c.id}
                       onClick={() => setSelectedCareer(c.id)}
                       className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${selectedCareer === c.id
-                          ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_12px_rgba(0,217,255,0.15)]"
-                          : "border-border bg-secondary/20 hover:border-muted-foreground/40 hover:bg-secondary/40"
+                        ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_12px_rgba(0,217,255,0.15)]"
+                        : "border-border bg-secondary/20 hover:border-muted-foreground/40 hover:bg-secondary/40"
                         }`}
                     >
                       <span className={`font-medium text-sm leading-snug ${selectedCareer === c.id ? "text-neon-cyan" : ""}`}>
