@@ -2,263 +2,854 @@
   "subjects": [
     {
       "id": "el1",
-      "codigo": "EL1",
-      "nombre": "Informática",
+      "codigo": "1",
+      "nombre": "Informática I",
       "numero_materia": 1,
       "año": 1
     },
     {
       "id": "el2",
-      "codigo": "EL2",
+      "codigo": "2",
       "nombre": "Álgebra y Geometría Analítica",
       "numero_materia": 2,
       "año": 1
     },
     {
       "id": "el3",
-      "codigo": "EL3",
+      "codigo": "3",
       "nombre": "Análisis Matemático I",
       "numero_materia": 3,
       "año": 1
     },
     {
       "id": "el4",
-      "codigo": "EL4",
+      "codigo": "4",
       "nombre": "Ingeniería y Sociedad",
       "numero_materia": 4,
       "año": 1
     },
     {
       "id": "el5",
-      "codigo": "EL5",
-      "nombre": "Física I",
+      "codigo": "5",
+      "nombre": "Análisis Matemático II",
       "numero_materia": 5,
       "año": 1
     },
     {
       "id": "el6",
-      "codigo": "EL6",
-      "nombre": "Diseño Asistido por Computadoras",
+      "codigo": "6",
+      "nombre": "Física I",
       "numero_materia": 6,
       "año": 1
     },
     {
       "id": "el7",
-      "codigo": "EL7",
-      "nombre": "Química",
+      "codigo": "7",
+      "nombre": "Diseño asistido por computadora",
       "numero_materia": 7,
       "año": 1
     },
     {
       "id": "el8",
-      "codigo": "EL8",
-      "nombre": "Análisis Matemático II",
+      "codigo": "8",
+      "nombre": "Informática II",
       "numero_materia": 8,
       "año": 2
     },
     {
       "id": "el9",
-      "codigo": "EL9",
-      "nombre": "Informática II",
+      "codigo": "9",
+      "nombre": "Análisis de Señales y Sistemas",
       "numero_materia": 9,
       "año": 2
     },
     {
       "id": "el10",
-      "codigo": "EL10",
-      "nombre": "Análisis de Señales y Sistemas",
+      "codigo": "10",
+      "nombre": "Química General",
       "numero_materia": 10,
       "año": 2
     },
     {
       "id": "el11",
-      "codigo": "EL11",
+      "codigo": "11",
       "nombre": "Física II",
       "numero_materia": 11,
       "año": 2
     },
     {
       "id": "el12",
-      "codigo": "EL12",
+      "codigo": "12",
       "nombre": "Probabilidad y Estadística",
       "numero_materia": 12,
       "año": 2
     },
     {
       "id": "el13",
-      "codigo": "EL13",
-      "nombre": "Técnicas Digitales I",
+      "codigo": "13",
+      "nombre": "Física Electrónica",
       "numero_materia": 13,
       "año": 2
     },
     {
       "id": "el14",
-      "codigo": "EL14",
-      "nombre": "Seguridad, Higiene y Medio Ambiente",
+      "codigo": "14",
+      "nombre": "Inglés I",
       "numero_materia": 14,
       "año": 2
     },
     {
       "id": "el15",
-      "codigo": "EL15",
-      "nombre": "Inglés I",
+      "codigo": "15",
+      "nombre": "Teoría de los Circuitos I",
       "numero_materia": 15,
       "año": 3
     },
     {
       "id": "el16",
-      "codigo": "EL16",
-      "nombre": "Física Electrónica",
+      "codigo": "16",
+      "nombre": "Técnicas Digitales I",
       "numero_materia": 16,
       "año": 3
     },
     {
       "id": "el17",
-      "codigo": "EL17",
-      "nombre": "Teoría de los Circuitos I",
+      "codigo": "17",
+      "nombre": "Dispositivos Electrónicos",
       "numero_materia": 17,
       "año": 3
     },
     {
       "id": "el18",
-      "codigo": "EL18",
-      "nombre": "Dispositivos Electrónicos",
+      "codigo": "18",
+      "nombre": "Legislación",
       "numero_materia": 18,
       "año": 3
     },
     {
+      "id": "el21",
+      "codigo": "21",
+      "nombre": "Inglés II",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
       "id": "el19",
-      "codigo": "EL19",
-      "nombre": "Legislación",
+      "codigo": "19",
+      "nombre": "Electrónica Aplicada I",
       "numero_materia": 19,
       "año": 3
     },
     {
       "id": "el20",
-      "codigo": "EL20",
-      "nombre": "Electrónica Aplicada I",
+      "codigo": "20",
+      "nombre": "Medios de Enlace",
       "numero_materia": 20,
       "año": 3
     },
     {
-      "id": "el21",
-      "codigo": "EL21",
-      "nombre": "Medios de Enlace",
-      "numero_materia": 21,
-      "año": 3
-    },
-    {
       "id": "el22",
-      "codigo": "EL22",
-      "nombre": "Inglés II",
+      "codigo": "22",
+      "nombre": "Técnicas Digitales II",
       "numero_materia": 22,
       "año": 4
     },
     {
       "id": "el23",
-      "codigo": "EL23",
-      "nombre": "Técnicas Digitales II",
+      "codigo": "23",
+      "nombre": "Medidas Electrónicas I",
       "numero_materia": 23,
       "año": 4
     },
     {
       "id": "el24",
-      "codigo": "EL24",
-      "nombre": "Medidas Electrónicas I",
+      "codigo": "24",
+      "nombre": "Teoría de los Circuitos II",
       "numero_materia": 24,
       "año": 4
     },
     {
       "id": "el25",
-      "codigo": "EL25",
-      "nombre": "Teoría de los Circuitos II",
+      "codigo": "25",
+      "nombre": "Máquinas e Instalaciones Eléctricas",
       "numero_materia": 25,
       "año": 4
     },
     {
       "id": "el26",
-      "codigo": "EL26",
-      "nombre": "Máquinas e Instalaciones Eléctricas",
+      "codigo": "26",
+      "nombre": "Sistemas de Comunicaciones",
       "numero_materia": 26,
       "año": 4
     },
     {
       "id": "el27",
-      "codigo": "EL27",
-      "nombre": "Sistemas de Comunicaciones",
+      "codigo": "27",
+      "nombre": "Electrónica Aplicada II",
       "numero_materia": 27,
       "año": 4
     },
     {
       "id": "el28",
-      "codigo": "EL28",
-      "nombre": "Electrónica Aplicada II",
+      "codigo": "28",
+      "nombre": "Seguridad, Higiene y Medio Ambiente",
       "numero_materia": 28,
       "año": 4
     },
     {
       "id": "el29",
-      "codigo": "EL29",
+      "codigo": "29",
       "nombre": "Técnicas Digitales III",
       "numero_materia": 29,
       "año": 5
     },
     {
       "id": "el30",
-      "codigo": "EL30",
+      "codigo": "30",
       "nombre": "Medidas Electrónicas II",
       "numero_materia": 30,
       "año": 5
     },
     {
       "id": "el31",
-      "codigo": "EL31",
+      "codigo": "31",
       "nombre": "Sistemas de Control",
       "numero_materia": 31,
       "año": 5
     },
     {
       "id": "el32",
-      "codigo": "EL32",
+      "codigo": "32",
       "nombre": "Electrónica Aplicada III",
       "numero_materia": 32,
       "año": 5
     },
     {
       "id": "el33",
-      "codigo": "EL33",
+      "codigo": "33",
       "nombre": "Tecnología Electrónica",
       "numero_materia": 33,
       "año": 5
     },
     {
       "id": "el34",
-      "codigo": "EL34",
+      "codigo": "34",
       "nombre": "Electrónica de Potencia",
       "numero_materia": 34,
       "año": 5
     },
     {
       "id": "el35",
-      "codigo": "EL35",
+      "codigo": "35",
       "nombre": "Organización Industrial",
       "numero_materia": 35,
       "año": 5
     },
     {
       "id": "el36",
-      "codigo": "EL36",
+      "codigo": "36",
       "nombre": "Economía",
       "numero_materia": 36,
       "año": 6
     },
     {
       "id": "el37",
-      "codigo": "EL37",
+      "codigo": "37",
       "nombre": "Proyecto Final",
       "numero_materia": 37,
       "año": 6
     }
   ],
-  "dependencies": []
+  "dependencies": [
+    {
+      "subject_id": "el5",
+      "dependency_id": "el2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el5",
+      "dependency_id": "el3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el8",
+      "dependency_id": "el1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el8",
+      "dependency_id": "el2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el8",
+      "dependency_id": "el3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el9",
+      "dependency_id": "el5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el9",
+      "dependency_id": "el2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el9",
+      "dependency_id": "el3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el11",
+      "dependency_id": "el3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el11",
+      "dependency_id": "el6",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el12",
+      "dependency_id": "el2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el12",
+      "dependency_id": "el3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el13",
+      "dependency_id": "el11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el13",
+      "dependency_id": "el2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el13",
+      "dependency_id": "el3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el13",
+      "dependency_id": "el6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el15",
+      "dependency_id": "el5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el15",
+      "dependency_id": "el11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el15",
+      "dependency_id": "el3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el15",
+      "dependency_id": "el6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el16",
+      "dependency_id": "el1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el16",
+      "dependency_id": "el2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el17",
+      "dependency_id": "el1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el17",
+      "dependency_id": "el3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el17",
+      "dependency_id": "el10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el18",
+      "dependency_id": "el8",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el18",
+      "dependency_id": "el4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el21",
+      "dependency_id": "el14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el19",
+      "dependency_id": "el10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el19",
+      "dependency_id": "el11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el19",
+      "dependency_id": "el1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el19",
+      "dependency_id": "el3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el19",
+      "dependency_id": "el6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el20",
+      "dependency_id": "el5",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el20",
+      "dependency_id": "el11",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el20",
+      "dependency_id": "el2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el20",
+      "dependency_id": "el3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el20",
+      "dependency_id": "el6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el22",
+      "dependency_id": "el8",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el22",
+      "dependency_id": "el16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el22",
+      "dependency_id": "el19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el22",
+      "dependency_id": "el10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el22",
+      "dependency_id": "el11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el23",
+      "dependency_id": "el9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el23",
+      "dependency_id": "el15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el23",
+      "dependency_id": "el16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el23",
+      "dependency_id": "el19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el23",
+      "dependency_id": "el5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el23",
+      "dependency_id": "el10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el23",
+      "dependency_id": "el11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el24",
+      "dependency_id": "el9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el24",
+      "dependency_id": "el15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el24",
+      "dependency_id": "el5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el24",
+      "dependency_id": "el11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el25",
+      "dependency_id": "el9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el25",
+      "dependency_id": "el15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el25",
+      "dependency_id": "el5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el25",
+      "dependency_id": "el11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el26",
+      "dependency_id": "el9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el26",
+      "dependency_id": "el12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el26",
+      "dependency_id": "el19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el26",
+      "dependency_id": "el20",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el26",
+      "dependency_id": "el5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el26",
+      "dependency_id": "el11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el27",
+      "dependency_id": "el9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el27",
+      "dependency_id": "el13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el27",
+      "dependency_id": "el15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el27",
+      "dependency_id": "el17",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el27",
+      "dependency_id": "el19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el27",
+      "dependency_id": "el5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el27",
+      "dependency_id": "el11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el27",
+      "dependency_id": "el14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el28",
+      "dependency_id": "el4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el28",
+      "dependency_id": "el10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el29",
+      "dependency_id": "el22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el29",
+      "dependency_id": "el8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el29",
+      "dependency_id": "el16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el29",
+      "dependency_id": "el19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el23",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el15",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el30",
+      "dependency_id": "el21",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el31",
+      "dependency_id": "el24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el31",
+      "dependency_id": "el25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el31",
+      "dependency_id": "el13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el31",
+      "dependency_id": "el15",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el32",
+      "dependency_id": "el24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el32",
+      "dependency_id": "el26",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el32",
+      "dependency_id": "el27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el32",
+      "dependency_id": "el13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el32",
+      "dependency_id": "el15",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el32",
+      "dependency_id": "el19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el33",
+      "dependency_id": "el23",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el33",
+      "dependency_id": "el13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el33",
+      "dependency_id": "el16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el33",
+      "dependency_id": "el19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el34",
+      "dependency_id": "el23",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el34",
+      "dependency_id": "el25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el34",
+      "dependency_id": "el27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el34",
+      "dependency_id": "el13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el34",
+      "dependency_id": "el16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el34",
+      "dependency_id": "el19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el35",
+      "dependency_id": "el18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el36",
+      "dependency_id": "el8",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el36",
+      "dependency_id": "el4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el37",
+      "dependency_id": "el29",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el37",
+      "dependency_id": "el30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el37",
+      "dependency_id": "el32",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "el37",
+      "dependency_id": "el22",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el37",
+      "dependency_id": "el23",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el37",
+      "dependency_id": "el25",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "el37",
+      "dependency_id": "el27",
+      "requiere_regular": false
+    }
+  ]
 }

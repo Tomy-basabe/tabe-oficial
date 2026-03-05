@@ -2,290 +2,290 @@
   "subjects": [
     {
       "id": "e1",
-      "codigo": "E1",
-      "nombre": "Análisis Matemático",
+      "codigo": "1",
+      "nombre": "Ingeniería Electromecánica I",
       "numero_materia": 1,
       "año": 1
     },
     {
       "id": "e2",
-      "codigo": "E2",
-      "nombre": "Química General",
+      "codigo": "2",
+      "nombre": "Análisis Matemático I",
       "numero_materia": 2,
       "año": 1
     },
     {
       "id": "e3",
-      "codigo": "E3",
-      "nombre": "Física I",
+      "codigo": "3",
+      "nombre": "Álgebra y Geometría Analítica",
       "numero_materia": 3,
       "año": 1
     },
     {
       "id": "e4",
-      "codigo": "E4",
-      "nombre": "Ingeniería Electromecánica I",
+      "codigo": "4",
+      "nombre": "Sistemas de Representación",
       "numero_materia": 4,
       "año": 1
     },
     {
       "id": "e5",
-      "codigo": "E5",
-      "nombre": "Algebra y Geometría Analítica",
+      "codigo": "5",
+      "nombre": "Química General",
       "numero_materia": 5,
       "año": 1
     },
     {
       "id": "e6",
-      "codigo": "E6",
-      "nombre": "Ingeniería y Sociedad",
+      "codigo": "6",
+      "nombre": "Física I",
       "numero_materia": 6,
       "año": 1
     },
     {
       "id": "e7",
-      "codigo": "E7",
-      "nombre": "Sistemas de Representación",
+      "codigo": "7",
+      "nombre": "Representación Gráfica",
       "numero_materia": 7,
       "año": 1
     },
     {
       "id": "e8",
-      "codigo": "E8",
-      "nombre": "Representación Gráfica",
+      "codigo": "8",
+      "nombre": "Ingeniería y Sociedad",
       "numero_materia": 8,
       "año": 1
     },
     {
       "id": "e9",
-      "codigo": "E9",
-      "nombre": "Fisica II",
+      "codigo": "9",
+      "nombre": "Ingeniería Electromecánica II",
       "numero_materia": 9,
       "año": 2
     },
     {
       "id": "e10",
-      "codigo": "E10",
+      "codigo": "10",
       "nombre": "Estabilidad",
       "numero_materia": 10,
       "año": 2
     },
     {
       "id": "e11",
-      "codigo": "E11",
-      "nombre": "Ingeniería Electromecánica II",
+      "codigo": "11",
+      "nombre": "Conocimiento de Materiales",
       "numero_materia": 11,
       "año": 2
     },
     {
       "id": "e12",
-      "codigo": "E12",
-      "nombre": "Conocimiento de Materiales",
+      "codigo": "12",
+      "nombre": "Análisis Matemático II",
       "numero_materia": 12,
       "año": 2
     },
     {
       "id": "e13",
-      "codigo": "E13",
-      "nombre": "Análisis Matemático II",
+      "codigo": "13",
+      "nombre": "Física II",
       "numero_materia": 13,
       "año": 2
     },
     {
       "id": "e14",
-      "codigo": "E14",
-      "nombre": "Programación en Computación",
+      "codigo": "14",
+      "nombre": "Probabilidad y Estadística",
       "numero_materia": 14,
       "año": 2
     },
     {
       "id": "e15",
-      "codigo": "E15",
-      "nombre": "Probabilidad y Estadística",
+      "codigo": "15",
+      "nombre": "Programación en Computación",
       "numero_materia": 15,
       "año": 2
     },
     {
-      "id": "e16",
-      "codigo": "E16",
+      "id": "e22",
+      "codigo": "22",
       "nombre": "Inglés I",
+      "numero_materia": 22,
+      "año": 2
+    },
+    {
+      "id": "e16",
+      "codigo": "16",
+      "nombre": "Ingeniería Electromecánica III",
       "numero_materia": 16,
       "año": 3
     },
     {
       "id": "e17",
-      "codigo": "E17",
-      "nombre": "Tecnología Mecánica",
+      "codigo": "17",
+      "nombre": "Mecánica y Mecanismos",
       "numero_materia": 17,
       "año": 3
     },
     {
       "id": "e18",
-      "codigo": "E18",
-      "nombre": "Ingeniería Electromecánica III",
+      "codigo": "18",
+      "nombre": "Electrotecnia",
       "numero_materia": 18,
       "año": 3
     },
     {
       "id": "e19",
-      "codigo": "E19",
-      "nombre": "Mecánica y Mecanismos",
+      "codigo": "19",
+      "nombre": "Tecnología Mecánica",
       "numero_materia": 19,
       "año": 3
     },
     {
       "id": "e20",
-      "codigo": "E20",
-      "nombre": "Electrotecnia",
+      "codigo": "20",
+      "nombre": "Termodinámica Técnica",
       "numero_materia": 20,
       "año": 3
     },
     {
       "id": "e21",
-      "codigo": "E21",
-      "nombre": "Termodinámica Técnica",
+      "codigo": "21",
+      "nombre": "Matemática para Ing. Electromecánica",
       "numero_materia": 21,
       "año": 3
     },
     {
-      "id": "e22",
-      "codigo": "E22",
-      "nombre": "Matemática para Ing. Electromecánica",
-      "numero_materia": 22,
+      "id": "e32",
+      "codigo": "32",
+      "nombre": "Inglés II",
+      "numero_materia": 32,
       "año": 3
     },
     {
       "id": "e23",
-      "codigo": "E23",
+      "codigo": "23",
       "nombre": "Higiene y Seguridad Industrial",
       "numero_materia": 23,
       "año": 3
     },
     {
-      "id": "e24",
-      "codigo": "E24",
-      "nombre": "Materia Faltante 24",
-      "numero_materia": 24,
+      "id": "e41",
+      "codigo": "41",
+      "nombre": "Oleohidráulica y Neumática",
+      "numero_materia": 41,
       "año": 3
+    },
+    {
+      "id": "e24",
+      "codigo": "24",
+      "nombre": "Elementos de Máquinas",
+      "numero_materia": 24,
+      "año": 4
     },
     {
       "id": "e25",
-      "codigo": "E25",
-      "nombre": "Materia Faltante 25",
+      "codigo": "25",
+      "nombre": "Mecánica de los Fluidos y Máquinas Fluidodinámicas",
       "numero_materia": 25,
-      "año": 3
+      "año": 4
     },
     {
       "id": "e26",
-      "codigo": "E26",
-      "nombre": "Elementos de Máquinas",
+      "codigo": "26",
+      "nombre": "Máquinas Térmicas",
       "numero_materia": 26,
       "año": 4
     },
     {
       "id": "e27",
-      "codigo": "E27",
-      "nombre": "Electrónica Industrial",
+      "codigo": "27",
+      "nombre": "Máquinas Eléctricas",
       "numero_materia": 27,
       "año": 4
     },
     {
       "id": "e28",
-      "codigo": "E28",
-      "nombre": "Mecánica de los Fluidos y Máquinas Fluidodinámicas",
+      "codigo": "28",
+      "nombre": "Mediciones Eléctricas",
       "numero_materia": 28,
       "año": 4
     },
     {
       "id": "e29",
-      "codigo": "E29",
-      "nombre": "Maquinarias Eléctricas",
+      "codigo": "29",
+      "nombre": "Legislación",
       "numero_materia": 29,
       "año": 4
     },
     {
       "id": "e30",
-      "codigo": "E30",
-      "nombre": "Mediciones Eléctricas",
+      "codigo": "30",
+      "nombre": "Electrónica Industrial",
       "numero_materia": 30,
       "año": 4
     },
     {
       "id": "e31",
-      "codigo": "E31",
-      "nombre": "Máquinas Térmicas",
+      "codigo": "31",
+      "nombre": "Economía",
       "numero_materia": 31,
       "año": 4
     },
     {
-      "id": "e32",
-      "codigo": "E32",
-      "nombre": "Economía",
-      "numero_materia": 32,
-      "año": 4
-    },
-    {
       "id": "e33",
-      "codigo": "E33",
-      "nombre": "Legislación",
+      "codigo": "33",
+      "nombre": "Redes de Distribución e Instalaciones Eléctricas",
       "numero_materia": 33,
       "año": 5
     },
     {
       "id": "e34",
-      "codigo": "E34",
-      "nombre": "Redes de Distribución e Instalaciones Eléctricas",
+      "codigo": "34",
+      "nombre": "Máquinas y Equipos de Transporte",
       "numero_materia": 34,
       "año": 5
     },
     {
       "id": "e35",
-      "codigo": "E35",
-      "nombre": "Instalaciones Térmicas, Mecánicas y Frigoríficas",
+      "codigo": "35",
+      "nombre": "Gestión y Mantenimiento Electromecánico",
       "numero_materia": 35,
       "año": 5
     },
     {
       "id": "e36",
-      "codigo": "E36",
-      "nombre": "Máquinas y Equipos de Transporte",
+      "codigo": "36",
+      "nombre": "Instalaciones Térmicas y Mecánicas",
       "numero_materia": 36,
       "año": 5
     },
     {
       "id": "e37",
-      "codigo": "E37",
-      "nombre": "Materia Faltante 37",
+      "codigo": "37",
+      "nombre": "Automatización y Control Industrial",
       "numero_materia": 37,
       "año": 5
     },
     {
       "id": "e38",
-      "codigo": "E38",
-      "nombre": "Gestión y Mantenimiento Electromecánico",
+      "codigo": "38",
+      "nombre": "Centrales y Sistemas de Transmisión",
       "numero_materia": 38,
       "año": 5
     },
     {
       "id": "e39",
-      "codigo": "E39",
+      "codigo": "39",
       "nombre": "Organización Industrial",
       "numero_materia": 39,
       "año": 5
     },
     {
       "id": "e40",
-      "codigo": "E40",
-      "nombre": "Automatización y Control Industrial",
+      "codigo": "40",
+      "nombre": "Proyecto Final",
       "numero_materia": 40,
       "año": 5
-    },
-    {
-      "id": "e41",
-      "codigo": "E41",
-      "nombre": "Proyecto Final",
-      "numero_materia": 41,
-      "año": 6
     }
   ],
   "dependencies": [
@@ -296,12 +296,17 @@
     },
     {
       "subject_id": "e9",
+      "dependency_id": "e2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e9",
       "dependency_id": "e3",
       "requiere_regular": true
     },
     {
       "subject_id": "e10",
-      "dependency_id": "e1",
+      "dependency_id": "e2",
       "requiere_regular": true
     },
     {
@@ -311,17 +316,7 @@
     },
     {
       "subject_id": "e10",
-      "dependency_id": "e5",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e11",
-      "dependency_id": "e1",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e11",
-      "dependency_id": "e4",
+      "dependency_id": "e6",
       "requiere_regular": true
     },
     {
@@ -335,49 +330,89 @@
       "requiere_regular": true
     },
     {
-      "subject_id": "e13",
-      "dependency_id": "e1",
+      "subject_id": "e12",
+      "dependency_id": "e3",
       "requiere_regular": true
     },
     {
       "subject_id": "e13",
-      "dependency_id": "e5",
+      "dependency_id": "e2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e13",
+      "dependency_id": "e6",
       "requiere_regular": true
     },
     {
       "subject_id": "e14",
-      "dependency_id": "e1",
+      "dependency_id": "e2",
       "requiere_regular": true
     },
     {
       "subject_id": "e14",
-      "dependency_id": "e5",
+      "dependency_id": "e3",
       "requiere_regular": true
     },
     {
       "subject_id": "e15",
+      "dependency_id": "e2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e15",
+      "dependency_id": "e3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e16",
+      "dependency_id": "e9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e16",
+      "dependency_id": "e12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e16",
+      "dependency_id": "e13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e16",
       "dependency_id": "e1",
-      "requiere_regular": true
+      "requiere_regular": false
     },
     {
-      "subject_id": "e15",
-      "dependency_id": "e5",
+      "subject_id": "e16",
+      "dependency_id": "e2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e16",
+      "dependency_id": "e3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e16",
+      "dependency_id": "e6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e17",
+      "dependency_id": "e7",
       "requiere_regular": true
     },
     {
       "subject_id": "e17",
-      "dependency_id": "e9",
+      "dependency_id": "e10",
       "requiere_regular": true
     },
     {
       "subject_id": "e17",
       "dependency_id": "e12",
       "requiere_regular": true
-    },
-    {
-      "subject_id": "e17",
-      "dependency_id": "e1",
-      "requiere_regular": false
     },
     {
       "subject_id": "e17",
@@ -391,52 +426,42 @@
     },
     {
       "subject_id": "e17",
-      "dependency_id": "e8",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e18",
-      "dependency_id": "e9",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e18",
-      "dependency_id": "e11",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e18",
-      "dependency_id": "e13",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e18",
-      "dependency_id": "e1",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e18",
-      "dependency_id": "e3",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e18",
       "dependency_id": "e4",
       "requiere_regular": false
     },
     {
+      "subject_id": "e17",
+      "dependency_id": "e6",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "e18",
-      "dependency_id": "e5",
+      "dependency_id": "e13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e18",
+      "dependency_id": "e12",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e18",
+      "dependency_id": "e2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e18",
+      "dependency_id": "e6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e18",
+      "dependency_id": "e3",
       "requiere_regular": false
     },
     {
       "subject_id": "e19",
-      "dependency_id": "e8",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e19",
-      "dependency_id": "e10",
+      "dependency_id": "e11",
       "requiere_regular": true
     },
     {
@@ -446,17 +471,17 @@
     },
     {
       "subject_id": "e19",
-      "dependency_id": "e1",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e19",
-      "dependency_id": "e3",
+      "dependency_id": "e2",
       "requiere_regular": false
     },
     {
       "subject_id": "e19",
       "dependency_id": "e5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e19",
+      "dependency_id": "e6",
       "requiere_regular": false
     },
     {
@@ -466,73 +491,68 @@
     },
     {
       "subject_id": "e20",
-      "dependency_id": "e9",
+      "dependency_id": "e13",
       "requiere_regular": true
     },
     {
       "subject_id": "e20",
-      "dependency_id": "e3",
+      "dependency_id": "e2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e20",
+      "dependency_id": "e6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e21",
+      "dependency_id": "e2",
       "requiere_regular": true
     },
     {
-      "subject_id": "e20",
-      "dependency_id": "e1",
+      "subject_id": "e21",
+      "dependency_id": "e6",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e21",
+      "dependency_id": "e2",
       "requiere_regular": false
     },
     {
-      "subject_id": "e20",
+      "subject_id": "e21",
       "dependency_id": "e3",
       "requiere_regular": false
     },
     {
-      "subject_id": "e20",
+      "subject_id": "e32",
+      "dependency_id": "e13",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e32",
+      "dependency_id": "e2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e32",
       "dependency_id": "e5",
       "requiere_regular": false
     },
     {
-      "subject_id": "e21",
-      "dependency_id": "e9",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e21",
-      "dependency_id": "e1",
+      "subject_id": "e32",
+      "dependency_id": "e6",
       "requiere_regular": false
     },
     {
-      "subject_id": "e21",
-      "dependency_id": "e3",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e22",
-      "dependency_id": "e1",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e22",
-      "dependency_id": "e3",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e22",
-      "dependency_id": "e1",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e22",
-      "dependency_id": "e5",
+      "subject_id": "e32",
+      "dependency_id": "e8",
       "requiere_regular": false
     },
     {
       "subject_id": "e23",
-      "dependency_id": "e9",
+      "dependency_id": "e13",
       "requiere_regular": true
-    },
-    {
-      "subject_id": "e23",
-      "dependency_id": "e1",
-      "requiere_regular": false
     },
     {
       "subject_id": "e23",
@@ -541,207 +561,252 @@
     },
     {
       "subject_id": "e23",
-      "dependency_id": "e3",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e23",
       "dependency_id": "e6",
       "requiere_regular": false
     },
     {
-      "subject_id": "e26",
+      "subject_id": "e41",
+      "dependency_id": "e22",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e24",
+      "dependency_id": "e19",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e24",
+      "dependency_id": "e16",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e24",
       "dependency_id": "e17",
       "requiere_regular": true
     },
     {
-      "subject_id": "e26",
-      "dependency_id": "e18",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e26",
-      "dependency_id": "e19",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e26",
-      "dependency_id": "e9",
+      "subject_id": "e24",
+      "dependency_id": "e13",
       "requiere_regular": false
     },
     {
-      "subject_id": "e26",
+      "subject_id": "e24",
       "dependency_id": "e10",
       "requiere_regular": false
     },
     {
-      "subject_id": "e26",
+      "subject_id": "e24",
+      "dependency_id": "e9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e24",
       "dependency_id": "e11",
       "requiere_regular": false
     },
     {
-      "subject_id": "e26",
+      "subject_id": "e24",
       "dependency_id": "e12",
       "requiere_regular": false
     },
     {
-      "subject_id": "e26",
-      "dependency_id": "e13",
+      "subject_id": "e24",
+      "dependency_id": "e15",
       "requiere_regular": false
     },
     {
-      "subject_id": "e26",
-      "dependency_id": "e14",
+      "subject_id": "e24",
+      "dependency_id": "e22",
       "requiere_regular": false
     },
     {
-      "subject_id": "e26",
-      "dependency_id": "e16",
-      "requiere_regular": false
+      "subject_id": "e25",
+      "dependency_id": "e17",
+      "requiere_regular": true
     },
     {
-      "subject_id": "e27",
+      "subject_id": "e25",
       "dependency_id": "e20",
       "requiere_regular": true
     },
     {
-      "subject_id": "e27",
-      "dependency_id": "e9",
+      "subject_id": "e25",
+      "dependency_id": "e13",
       "requiere_regular": false
     },
     {
-      "subject_id": "e28",
-      "dependency_id": "e19",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e28",
-      "dependency_id": "e21",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e28",
-      "dependency_id": "e9",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e28",
+      "subject_id": "e25",
       "dependency_id": "e10",
       "requiere_regular": false
     },
     {
-      "subject_id": "e28",
-      "dependency_id": "e13",
+      "subject_id": "e25",
+      "dependency_id": "e12",
       "requiere_regular": false
     },
     {
-      "subject_id": "e28",
-      "dependency_id": "e14",
+      "subject_id": "e25",
+      "dependency_id": "e15",
       "requiere_regular": false
     },
     {
-      "subject_id": "e28",
-      "dependency_id": "e22",
+      "subject_id": "e25",
+      "dependency_id": "e21",
       "requiere_regular": false
     },
     {
-      "subject_id": "e29",
+      "subject_id": "e26",
       "dependency_id": "e20",
       "requiere_regular": true
     },
     {
-      "subject_id": "e29",
-      "dependency_id": "e9",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e29",
-      "dependency_id": "e22",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e30",
-      "dependency_id": "e20",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e30",
-      "dependency_id": "e22",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e30",
-      "dependency_id": "e9",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e30",
+      "subject_id": "e26",
       "dependency_id": "e13",
       "requiere_regular": false
     },
     {
-      "subject_id": "e30",
-      "dependency_id": "e22",
+      "subject_id": "e26",
+      "dependency_id": "e21",
       "requiere_regular": false
     },
     {
-      "subject_id": "e31",
+      "subject_id": "e27",
+      "dependency_id": "e18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e27",
+      "dependency_id": "e13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e27",
+      "dependency_id": "e21",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e28",
+      "dependency_id": "e18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e28",
       "dependency_id": "e21",
       "requiere_regular": true
     },
     {
+      "subject_id": "e28",
+      "dependency_id": "e13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e28",
+      "dependency_id": "e12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e28",
+      "dependency_id": "e21",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e29",
+      "dependency_id": "e9",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e29",
+      "dependency_id": "e8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e30",
+      "dependency_id": "e18",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e30",
+      "dependency_id": "e13",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "e31",
       "dependency_id": "e9",
-      "requiere_regular": false
+      "requiere_regular": true
     },
     {
       "subject_id": "e31",
-      "dependency_id": "e22",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e32",
-      "dependency_id": "e11",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e32",
-      "dependency_id": "e6",
+      "dependency_id": "e8",
       "requiere_regular": false
     },
     {
       "subject_id": "e33",
-      "dependency_id": "e11",
+      "dependency_id": "e25",
       "requiere_regular": true
     },
     {
       "subject_id": "e33",
-      "dependency_id": "e6",
+      "dependency_id": "e27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e33",
+      "dependency_id": "e18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e33",
+      "dependency_id": "e21",
       "requiere_regular": false
     },
     {
       "subject_id": "e34",
-      "dependency_id": "e28",
+      "dependency_id": "e24",
       "requiere_regular": true
     },
     {
       "subject_id": "e34",
-      "dependency_id": "e29",
+      "dependency_id": "e25",
       "requiere_regular": true
     },
     {
       "subject_id": "e34",
-      "dependency_id": "e20",
-      "requiere_regular": false
+      "dependency_id": "e30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e34",
+      "dependency_id": "e41",
+      "requiere_regular": true
     },
     {
       "subject_id": "e34",
       "dependency_id": "e22",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e34",
+      "dependency_id": "e19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e34",
+      "dependency_id": "e16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e34",
+      "dependency_id": "e21",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e34",
+      "dependency_id": "e23",
       "requiere_regular": false
     },
     {
       "subject_id": "e35",
-      "dependency_id": "e27",
+      "dependency_id": "e41",
       "requiere_regular": true
     },
     {
@@ -751,7 +816,32 @@
     },
     {
       "subject_id": "e35",
+      "dependency_id": "e25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e35",
+      "dependency_id": "e27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e35",
       "dependency_id": "e19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e35",
+      "dependency_id": "e16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e35",
+      "dependency_id": "e17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e35",
+      "dependency_id": "e18",
       "requiere_regular": false
     },
     {
@@ -761,103 +851,113 @@
     },
     {
       "subject_id": "e35",
-      "dependency_id": "e22",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e36",
-      "dependency_id": "e24",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e36",
-      "dependency_id": "e26",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e36",
-      "dependency_id": "e27",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e36",
-      "dependency_id": "e28",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e36",
-      "dependency_id": "e16",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e36",
-      "dependency_id": "e17",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e36",
-      "dependency_id": "e18",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e36",
-      "dependency_id": "e22",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e36",
       "dependency_id": "e23",
       "requiere_regular": false
     },
     {
-      "subject_id": "e38",
-      "dependency_id": "e24",
+      "subject_id": "e36",
+      "dependency_id": "e30",
       "requiere_regular": true
     },
     {
-      "subject_id": "e38",
-      "dependency_id": "e27",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e38",
+      "subject_id": "e36",
       "dependency_id": "e28",
       "requiere_regular": true
     },
     {
-      "subject_id": "e38",
-      "dependency_id": "e29",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e38",
+      "subject_id": "e36",
       "dependency_id": "e17",
       "requiere_regular": false
     },
     {
-      "subject_id": "e38",
-      "dependency_id": "e18",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e38",
-      "dependency_id": "e19",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e38",
+      "subject_id": "e36",
       "dependency_id": "e20",
       "requiere_regular": false
     },
     {
-      "subject_id": "e38",
-      "dependency_id": "e22",
+      "subject_id": "e36",
+      "dependency_id": "e21",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e21",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e24",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e30",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e25",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e27",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e23",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e37",
+      "dependency_id": "e27",
       "requiere_regular": false
     },
     {
       "subject_id": "e38",
-      "dependency_id": "e23",
+      "dependency_id": "e33",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "e38",
+      "dependency_id": "e25",
       "requiere_regular": false
+    },
+    {
+      "subject_id": "e38",
+      "dependency_id": "e27",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e38",
+      "dependency_id": "e21",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e38",
+      "dependency_id": "e28",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e39",
+      "dependency_id": "e26",
+      "requiere_regular": true
     },
     {
       "subject_id": "e39",
@@ -866,116 +966,61 @@
     },
     {
       "subject_id": "e39",
+      "dependency_id": "e9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e39",
+      "dependency_id": "e14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e40",
       "dependency_id": "e32",
       "requiere_regular": true
     },
     {
-      "subject_id": "e39",
-      "dependency_id": "e11",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e39",
-      "dependency_id": "e15",
-      "requiere_regular": false
-    },
-    {
       "subject_id": "e40",
-      "dependency_id": "e22",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e40",
-      "dependency_id": "e26",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e40",
-      "dependency_id": "e27",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e40",
-      "dependency_id": "e28",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e40",
-      "dependency_id": "e29",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e40",
-      "dependency_id": "e19",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e40",
-      "dependency_id": "e20",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e40",
-      "dependency_id": "e21",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e40",
-      "dependency_id": "e23",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e41",
-      "dependency_id": "e25",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e41",
-      "dependency_id": "e27",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e41",
-      "dependency_id": "e28",
-      "requiere_regular": true
-    },
-    {
-      "subject_id": "e41",
       "dependency_id": "e30",
       "requiere_regular": true
     },
     {
-      "subject_id": "e41",
-      "dependency_id": "e17",
-      "requiere_regular": false
+      "subject_id": "e40",
+      "dependency_id": "e25",
+      "requiere_regular": true
     },
     {
-      "subject_id": "e41",
-      "dependency_id": "e18",
-      "requiere_regular": false
+      "subject_id": "e40",
+      "dependency_id": "e28",
+      "requiere_regular": true
     },
     {
-      "subject_id": "e41",
+      "subject_id": "e40",
       "dependency_id": "e19",
       "requiere_regular": false
     },
     {
-      "subject_id": "e41",
-      "dependency_id": "e20",
+      "subject_id": "e40",
+      "dependency_id": "e16",
       "requiere_regular": false
     },
     {
-      "subject_id": "e41",
+      "subject_id": "e40",
+      "dependency_id": "e17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e40",
+      "dependency_id": "e18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "e40",
       "dependency_id": "e21",
       "requiere_regular": false
     },
     {
-      "subject_id": "e41",
-      "dependency_id": "e22",
-      "requiere_regular": false
-    },
-    {
-      "subject_id": "e41",
+      "subject_id": "e40",
       "dependency_id": "e23",
       "requiere_regular": false
     }
