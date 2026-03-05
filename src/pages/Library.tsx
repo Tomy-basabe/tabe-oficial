@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
-  ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2
+  ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2,
+  CheckCircle2, Square, CheckSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -114,6 +115,7 @@ export default function Library() {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [isDraggingExternal, setIsDraggingExternal] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Edit Folder States
   const [showEditFolderModal, setShowEditFolderModal] = useState(false);
@@ -147,6 +149,21 @@ export default function Library() {
       setSubjects(data);
     }
   };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  useEffect(() => {
+    clearSelection();
+  }, [currentFolderId, selectedYear, selectedSubjectId]);
 
   const fetchFolders = async () => {
     if (isGuest) {
@@ -299,6 +316,40 @@ export default function Library() {
     } catch (error: any) {
       console.error("Error updating folder:", error);
       toast.error(`Error al actualizar: ${error.message || "Error desconocido"}`);
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+
+    const confirmDelete = window.confirm(`¿Estás seguro de que quieres eliminar ${selectedIds.size} elementos?`);
+    if (!confirmDelete) return;
+
+    const idsArray = Array.from(selectedIds);
+    setLoading(true);
+
+    try {
+      const { error: foldersError } = await supabase
+        .from("library_folders")
+        .delete()
+        .in("id", idsArray);
+
+      const { error: filesError } = await supabase
+        .from("library_files")
+        .delete()
+        .in("id", idsArray);
+
+      if (foldersError || filesError) throw foldersError || filesError;
+
+      toast.success(`${selectedIds.size} elementos eliminados`);
+      setSelectedIds(new Set());
+      fetchFolders();
+      fetchFiles();
+    } catch (error) {
+      console.error("Error deleting selected items:", error);
+      toast.error("Error al eliminar los elementos seleccionados");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1291,6 +1342,20 @@ export default function Library() {
                   e.dataTransfer.effectAllowed = "move";
                 }}
               >
+                <div
+                  className={cn(
+                    "absolute top-2 left-2 z-10 transition-opacity",
+                    selectedIds.has(folder.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  )}
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(folder.id); }}
+                >
+                  {selectedIds.has(folder.id) ? (
+                    <CheckSquare className="w-5 h-5 text-neon-cyan fill-neon-cyan/20" />
+                  ) : (
+                    <Square className="w-5 h-5 text-muted-foreground hover:text-neon-cyan" />
+                  )}
+                </div>
+
                 <div className="flex items-center gap-3">
                   <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center"
@@ -1356,6 +1421,20 @@ export default function Library() {
                   e.dataTransfer.effectAllowed = "move";
                 }}
               >
+                <div
+                  className={cn(
+                    "absolute top-2 left-2 z-10 transition-opacity",
+                    selectedIds.has(file.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  )}
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(file.id); }}
+                >
+                  {selectedIds.has(file.id) ? (
+                    <CheckSquare className="w-5 h-5 text-neon-cyan fill-neon-cyan/20" />
+                  ) : (
+                    <Square className="w-5 h-5 text-muted-foreground hover:text-neon-cyan" />
+                  )}
+                </div>
+
                 {/* Preview thumbnail for images */}
                 {file.tipo === "imagen" && (
                   <div
@@ -1830,6 +1909,36 @@ export default function Library() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Actions Floating Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-card/80 backdrop-blur-xl border border-primary/20 shadow-2xl shadow-primary/20 rounded-2xl p-4 flex items-center gap-6 min-w-[300px]">
+            <div className="flex items-center gap-3 pr-6 border-r border-border">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold">
+                {selectedIds.size}
+              </div>
+              <span className="text-sm font-medium">seleccionados</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={deleteSelected}
+                className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-xl text-sm font-semibold transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Eliminar
+              </button>
+              <button
+                onClick={clearSelection}
+                className="px-4 py-2 text-sm font-medium hover:bg-secondary rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Folder Modal */}
       <Dialog open={showEditFolderModal} onOpenChange={setShowEditFolderModal}>
