@@ -296,9 +296,9 @@ export default function Library() {
       setShowEditFolderModal(false);
       setEditingFolder(null);
       fetchFolders();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating folder:", error);
-      toast.error("Error al actualizar la carpeta");
+      toast.error(`Error al actualizar: ${error.message || "Error desconocido"}`);
     }
   };
 

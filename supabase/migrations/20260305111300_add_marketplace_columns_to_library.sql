@@ -32,3 +32,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Policies for updating resources
+CREATE POLICY "Allow individual update for library_folders" ON public.library_folders
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Allow individual update for library_files" ON public.library_files
+    FOR UPDATE USING (auth.uid() = user_id);
+
