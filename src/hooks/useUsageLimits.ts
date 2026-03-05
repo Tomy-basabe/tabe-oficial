@@ -6,12 +6,13 @@ import { toast } from "sonner";
 
 // Monthly limits for free users
 export const FREE_LIMITS = {
-    apuntes: 6,            // documentos por mes
-    flashcard_mazos: 3,    // mazos por mes
-    flashcard_tarjetas: 10, // tarjetas por mazo
-    cuestionarios: 5,      // cuestionarios por mes
-    cuestionario_preguntas: 5, // preguntas por cuestionario
-    discord_canales: 3,    // canales por mes
+    apuntes: 15,            // documentos por mes
+    flashcard_mazos: 10,    // mazos por mes
+    flashcard_tarjetas: 35, // por mazo
+    cuestionarios: 14,      // cuestionarios por mes
+    cuestionario_preguntas: 20, // preguntas por cuestionario
+    storage_mb: 500,        // total (500MB)
+    ia_daily: 5,            // diario
 } as const;
 
 type FeatureKey = keyof typeof FREE_LIMITS;
@@ -27,21 +28,48 @@ export function useUsageLimits() {
 
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
         .toISOString().split("T")[0];
+    const todayStart = new Date().toISOString().split("T")[0];
+
+    // Query for total storage used in bytes
+    const { data: storageUsed = 0 } = useQuery({
+        queryKey: ["user_storage", user?.id],
+        queryFn: async () => {
+            if (!user?.id) return 0;
+            const { data, error } = await supabase
+                .from("library_files")
+                .select("tamaño_bytes")
+                .eq("user_id", user.id);
+
+            if (error) return 0;
+            return data.reduce((sum, file) => sum + (file["tamaño_bytes"] || 0), 0);
+        },
+        enabled: !!user?.id,
+    });
 
     const { data: usageData = {} } = useQuery<UsageData>({
-        queryKey: ["user_usage", user?.id, monthStart],
+        queryKey: ["user_usage", user?.id, monthStart, todayStart],
         queryFn: async () => {
             if (!user?.id) return {};
             const { data, error } = await supabase
                 .from("user_usage")
-                .select("feature, count")
+                .select("feature, count, period_start")
                 .eq("user_id", user.id)
-                .eq("period_start", monthStart);
+                .or(`period_start.eq.${monthStart},period_start.eq.${todayStart}`);
 
             if (error) return {};
             const result: UsageData = {};
             data?.forEach((row: any) => {
-                result[row.feature] = row.count;
+                // If it's a daily feature, only use today's count
+                if (row.feature === "ia_daily") {
+                    if (row.period_start === todayStart) {
+                        result[row.feature] = row.count;
+                    }
+                } else {
+                    // For monthly features, use monthStart count
+                    if (row.period_start === monthStart) {
+                        result[row.feature] = row.count;
+                    }
+                }
             });
             return result;
         },
@@ -50,6 +78,9 @@ export function useUsageLimits() {
     });
 
     const getUsage = (feature: FeatureKey): number => {
+        if (feature === "storage_mb") {
+            return Math.round(storageUsed / (1024 * 1024));
+        }
         return usageData[feature] || 0;
     };
 
@@ -62,8 +93,15 @@ export function useUsageLimits() {
         return Math.max(0, getLimit(feature) - getUsage(feature));
     };
 
-    const canUse = (feature: FeatureKey): boolean => {
+    const canUse = (feature: FeatureKey, currentValue: number = 0): boolean => {
         if (isPremium || isGuest) return true;
+
+        if (feature === "storage_mb") {
+            const currentMB = Math.round(storageUsed / (1024 * 1024));
+            const additionalMB = Math.round(currentValue / (1024 * 1024));
+            return (currentMB + additionalMB) < getLimit(feature);
+        }
+
         return getUsage(feature) < getLimit(feature);
     };
 
@@ -99,10 +137,12 @@ export function useUsageLimits() {
             flashcard_tarjetas: "tarjetas por mazo",
             cuestionarios: "cuestionarios",
             cuestionario_preguntas: "preguntas por cuestionario",
-            discord_canales: "canales",
+            storage_mb: "almacenamiento (500MB)",
+            ia_daily: "uso de IA diario (5 créditos)",
         };
+        const unit = feature === "storage_mb" ? "MB" : "";
         toast.error(
-            `Alcanzaste tu límite mensual de ${getLimit(feature)} ${names[feature]}. Hacete Premium para acceso ilimitado ✨`,
+            `Alcanzaste tu límite ${feature === "ia_daily" ? "diario" : feature === "storage_mb" ? "total" : "mensual"} de ${getLimit(feature)}${unit} ${names[feature]}. Hacete Premium para acceso ilimitado ✨`,
             { duration: 5000 }
         );
     };

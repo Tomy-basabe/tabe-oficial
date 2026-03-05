@@ -5,8 +5,9 @@ import {
   FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
   ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2,
-  CheckCircle2, Square, CheckSquare
+  CheckCircle2, Square, CheckSquare, Repeat2
 } from "lucide-react";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useMarketplace } from "@/hooks/useMarketplace";
@@ -77,6 +78,7 @@ const years = [1, 2, 3, 4, 5, 6];
 
 export default function Library() {
   const { user, isGuest } = useAuth();
+  const { canUse, incrementUsage, getUsage, getLimit } = useUsageLimits();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [folders, setFolders] = useState<LibraryFolder[]>([]);
   const [files, setFiles] = useState<LibraryFile[]>([]);
@@ -447,12 +449,16 @@ export default function Library() {
         // Upload files
         let uploaded = 0;
         for (const [path, zipEntry] of entries) {
+          const blob = await zipEntry.async("blob");
+          if (!canUse("apuntes") || !canUse("storage_mb", blob.size)) {
+            toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.", { id: toastId });
+            break;
+          }
+
           const parts = path.split("/");
           const fileName = parts[parts.length - 1];
           const parentDirPath = parts.slice(0, -1).join("/");
           const folderId = folderMap.get(parentDirPath) || currentFolderId;
-
-          const blob = await zipEntry.async("blob");
 
           let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
           if (fileName.toLowerCase().endsWith(".pdf")) tipo = "pdf";
@@ -475,7 +481,7 @@ export default function Library() {
           const signedUrl = await getSignedUrl(filePath);
           if (!signedUrl) continue;
 
-          await supabase.from("library_files").insert({
+          const { error: fileError } = await supabase.from("library_files").insert({
             user_id: user.id,
             subject_id: uploadSubject || selectedSubjectId || null,
             folder_id: folderId,
@@ -485,6 +491,13 @@ export default function Library() {
             storage_path: filePath,
             tamaño_bytes: blob.size,
           });
+
+          if (fileError) {
+            console.error(`Error saving ${fileName} to DB:`, fileError);
+            continue;
+          }
+
+          await incrementUsage("apuntes");
 
           uploaded++;
           toast.loading(`Subiendo ZIP (${uploaded}/${entries.length} archivos)...`, { id: toastId });
@@ -506,6 +519,12 @@ export default function Library() {
     }
 
     // Normal single-file upload
+    if (!canUse("apuntes") || !canUse("storage_mb", file.size)) {
+      toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.");
+      setUploading(false);
+      return;
+    }
+
     setUploading(true);
     try {
       let tipo: "pdf" | "imagen" | "otro" = "otro";
@@ -541,6 +560,7 @@ export default function Library() {
         });
 
       if (error) throw error;
+      await incrementUsage("apuntes");
 
       toast.success("¡Archivo subido!");
       fetchFiles();
@@ -607,12 +627,17 @@ export default function Library() {
         folderMap.set(dirPath, data.id);
       }
 
-      // Upload all files
-      let uploaded = 0;
+      // Create and upload files
+      let uploadedCount = 0;
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
         // Skip system files
         if (file.name.startsWith(".")) continue;
+
+        if (!canUse("apuntes") || !canUse("storage_mb", file.size)) {
+          toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.", { id: toastId });
+          break;
+        }
 
         const relPath = file.webkitRelativePath;
         const parts = relPath.split("/");

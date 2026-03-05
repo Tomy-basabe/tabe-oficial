@@ -230,11 +230,11 @@ export default function Quizzes() {
     const addQuestion = async () => {
         if (!newQuestion.trim() || !manageDeck || !user) return;
 
-        // Check per-quiz question limit for free users (5 per quiz)
+        // Check per-quiz question limit for free users (20 per quiz)
         if (!isPremium) {
             const currentQuestions = manageDeck.total_questions || 0;
-            if (currentQuestions >= 5) {
-                toast.error('Alcanzaste el límite de 5 preguntas por cuestionario. Hacete Premium para agregar más ✨', { duration: 5000 });
+            if (currentQuestions >= 20) {
+                toast.error('Alcanzaste el límite de 20 preguntas por cuestionario. Hacete Premium para agregar más ✨', { duration: 5000 });
                 return;
             }
         }

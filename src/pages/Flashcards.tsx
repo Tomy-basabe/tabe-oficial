@@ -210,11 +210,11 @@ export default function Flashcards() {
   const createCard = async () => {
     if (!user || !selectedDeck || !newCardQuestion.trim() || !newCardAnswer.trim()) return;
 
-    // Check per-deck card limit for free users (10 per deck)
+    // Check per-deck card limit for free users (35 per deck)
     if (!isPremium) {
       const currentCards = selectedDeck.total_cards || 0;
-      if (currentCards >= 10) {
-        toast.error('Alcanzaste el límite de 10 tarjetas por mazo. Hacete Premium para agregar más ✨', { duration: 5000 });
+      if (currentCards >= 35) {
+        toast.error('Alcanzaste el límite de 35 tarjetas por mazo. Hacete Premium para agregar más ✨', { duration: 5000 });
         return;
       }
     }

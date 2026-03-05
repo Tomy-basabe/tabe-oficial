@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useStreamingChat } from "@/hooks/useStreamingChat";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { useAIPersonas, AIPersona, AIChatMessage } from "@/hooks/useAIPersonas";
 import { PersonaSidebar } from "@/components/ai/PersonaSidebar";
 import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
@@ -56,6 +57,7 @@ export default function AIAssistant() {
     loadMessages,
     saveMessage,
   } = useAIPersonas();
+  const { canUse, incrementUsage } = useUsageLimits();
 
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -202,6 +204,10 @@ export default function AIAssistant() {
   const handleSend = async () => {
     if (!inputValue.trim() || isStreaming || (!user && !isGuest) || !activePersona) return;
 
+    if (!canUse("ia_daily")) {
+      return;
+    }
+
     const userMessage: DisplayMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -231,6 +237,7 @@ export default function AIAssistant() {
 
     // Save user message to DB
     await saveMessage(sessionId, "user", inputValue);
+    await incrementUsage("ia_daily");
 
     // Prepare conversation for the AI
     const conversationHistory = newMessages
