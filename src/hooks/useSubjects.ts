@@ -761,151 +761,104 @@ export function useSubjects() {
     return years.length > 0 ? years : [1, 2, 3, 4, 5, 6];
   }, [subjects]);
 
-  // Initialize user statuses for 1st and 2nd year (all approved except Inglés II)
-  const initializeDefaultStatuses = async () => {
-    if (!user) {
-      if (isGuest) {
-        toast.info("No disponible en modo invitado");
+};
+
+const importCareerPlan = async (careerId: string) => {
+  if (!user || isGuest) return;
+
+  const career = AVAILABLE_CAREERS.find(c => c.id === careerId);
+  if (!career) {
+    toast.error("Carrera no encontrada");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    // Check if user already has subjects
+    const { data: existingSubjects } = await supabase
+      .from("subjects")
+      .select("id")
+      .eq("user_id", user.id)
+      .limit(1);
+
+    if (existingSubjects && existingSubjects.length > 0) {
+      const confirmImport = window.confirm("Ya tienes materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar). ¿Deseas continuar?");
+      if (!confirmImport) {
+        setLoading(false);
         return;
       }
-      return;
     }
 
-    try {
-      // Get subjects from 1st and 2nd year
-      const subjectsToApprove = subjects.filter(s =>
-        (s.año === 1 || s.año === 2) && s.codigo !== "ING2"
-      );
+    toast.loading(`Cargando plan de ${career.label}...`, { id: 'import-career' });
 
-      // Check which ones don't have a status yet
-      const statusesToCreate = subjectsToApprove.filter(s =>
-        !userStatuses.some(us => us.subject_id === s.id)
-      );
+    // @ts-ignore - dynamic import
+    const templateModule = await import(`../data/${career.file}.json`);
+    const templateData = templateModule.default;
+    const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
 
-      if (statusesToCreate.length === 0) {
-        toast.info("Los estados ya están inicializados");
-        return;
-      }
-
-      // Create statuses for all subjects
-      const newStatuses = statusesToCreate.map(s => ({
+    const idMap = new Map<string, string>();
+    const newSubjects = tplSubjects.map((s: any) => {
+      const newId = crypto.randomUUID();
+      idMap.set(s.id, newId);
+      return {
+        id: newId,
+        nombre: s.nombre,
+        codigo: s.codigo,
+        año: s.año,
+        numero_materia: s.numero_materia,
         user_id: user.id,
-        subject_id: s.id,
-        estado: "aprobada" as const,
-        nota: 7, // Default grade
-        fecha_aprobacion: new Date().toISOString().split('T')[0],
-      }));
+      };
+    });
 
-      const { error } = await supabase
-        .from("user_subject_status")
-        .insert(newStatuses);
+    const { error: subError } = await supabase.from("subjects").insert(newSubjects);
+    if (subError) throw subError;
 
-      if (error) throw error;
-      await fetchData(false);
-      toast.success(`Se inicializaron ${statusesToCreate.length} materias como aprobadas`);
-    } catch (error) {
-      console.error("Error initializing statuses:", error);
-      toast.error("Error al inicializar los estados");
-    }
-  };
+    const newDeps = tplDependencies.map((d: any) => ({
+      subject_id: idMap.get(d.subject_id),
+      requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
+      requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
+      user_id: user.id,
+    })).filter((d: any) => d.subject_id);
 
-  const importCareerPlan = async (careerId: string) => {
-    if (!user || isGuest) return;
-
-    const career = AVAILABLE_CAREERS.find(c => c.id === careerId);
-    if (!career) {
-      toast.error("Carrera no encontrada");
-      return;
+    if (newDeps.length > 0) {
+      const { error: depError } = await supabase.from("subject_dependencies").insert(newDeps);
+      if (depError) throw depError;
     }
 
-    try {
-      setLoading(true);
+    // Update user profile
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        facultad: career.facultad,
+        carrera: career.label
+      })
+      .eq("user_id", user.id);
 
-      // Check if user already has subjects
-      const { data: existingSubjects } = await supabase
-        .from("subjects")
-        .select("id")
-        .eq("user_id", user.id)
-        .limit(1);
+    if (profileError) console.error("Error updating profile:", profileError);
 
-      if (existingSubjects && existingSubjects.length > 0) {
-        const confirmImport = window.confirm("Ya tienes materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar). ¿Deseas continuar?");
-        if (!confirmImport) {
-          setLoading(false);
-          return;
-        }
-      }
+    toast.success(`¡Plan de ${career.label} cargado exitosamente!`, { id: 'import-career' });
+    await fetchData(false);
+  } catch (error: any) {
+    console.error("Error importing career plan:", error);
+    toast.error(`Error al importar carrera: ${error.message}`, { id: 'import-career' });
+  } finally {
+    setLoading(false);
+  }
+};
 
-      toast.loading(`Cargando plan de ${career.label}...`, { id: 'import-career' });
-
-      // @ts-ignore - dynamic import
-      const templateModule = await import(`../data/${career.file}.json`);
-      const templateData = templateModule.default;
-      const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
-
-      const idMap = new Map<string, string>();
-      const newSubjects = tplSubjects.map((s: any) => {
-        const newId = crypto.randomUUID();
-        idMap.set(s.id, newId);
-        return {
-          id: newId,
-          nombre: s.nombre,
-          codigo: s.codigo,
-          año: s.año,
-          numero_materia: s.numero_materia,
-          user_id: user.id,
-        };
-      });
-
-      const { error: subError } = await supabase.from("subjects").insert(newSubjects);
-      if (subError) throw subError;
-
-      const newDeps = tplDependencies.map((d: any) => ({
-        subject_id: idMap.get(d.subject_id),
-        requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
-        requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
-        user_id: user.id,
-      })).filter((d: any) => d.subject_id);
-
-      if (newDeps.length > 0) {
-        const { error: depError } = await supabase.from("subject_dependencies").insert(newDeps);
-        if (depError) throw depError;
-      }
-
-      // Update user profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          facultad: career.facultad,
-          carrera: career.label
-        })
-        .eq("user_id", user.id);
-
-      if (profileError) console.error("Error updating profile:", profileError);
-
-      toast.success(`¡Plan de ${career.label} cargado exitosamente!`, { id: 'import-career' });
-      await fetchData(false);
-    } catch (error: any) {
-      console.error("Error importing career plan:", error);
-      toast.error(`Error al importar carrera: ${error.message}`, { id: 'import-career' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    subjects: subjectsWithStatus,
-    rawSubjects: subjects,
-    dependencies,
-    loading,
-    updateSubjectStatus,
-    updatePartialGrades,
-    createSubject,
-    updateSubjectDependencies,
-    deleteSubject,
-    initializeDefaultStatuses,
-    importCareerPlan,
-    refetch: fetchData,
-    getYears,
-  };
+return {
+  subjects: subjectsWithStatus,
+  rawSubjects: subjects,
+  dependencies,
+  loading,
+  updateSubjectStatus,
+  updatePartialGrades,
+  createSubject,
+  updateSubjectDependencies,
+  deleteSubject,
+  importCareerPlan,
+  refetch: fetchData,
+  getYears,
+};
 }
