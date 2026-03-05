@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
-  ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag
+  ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -114,6 +114,14 @@ export default function Library() {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [isDraggingExternal, setIsDraggingExternal] = useState(false);
+
+  // Edit Folder States
+  const [showEditFolderModal, setShowEditFolderModal] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<LibraryFolder | null>(null);
+  const [editFolderName, setEditFolderName] = useState("");
+  const [editFolderColor, setEditFolderColor] = useState("");
+  const [editFolderSubject, setEditFolderSubject] = useState<string>("");
+  const [editFolderYear, setEditFolderYear] = useState<number | null>(null);
 
   useEffect(() => {
     if (user || isGuest) {
@@ -253,6 +261,44 @@ export default function Library() {
     } catch (error) {
       console.error("Error deleting folder:", error);
       toast.error("Error al eliminar la carpeta");
+    }
+  };
+
+  const openEditFolder = (folder: LibraryFolder) => {
+    setEditingFolder(folder);
+    setEditFolderName(folder.nombre);
+    setEditFolderColor(folder.color);
+    setEditFolderSubject(folder.subject_id || "");
+
+    // Find subject year if exists
+    const subject = subjects.find(s => s.id === folder.subject_id);
+    setEditFolderYear(subject ? subject.año : null);
+
+    setShowEditFolderModal(true);
+  };
+
+  const updateFolder = async () => {
+    if (!user || !editingFolder || !editFolderName.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from("library_folders")
+        .update({
+          nombre: editFolderName.trim(),
+          color: editFolderColor,
+          subject_id: editFolderSubject || null,
+        } as any)
+        .eq("id", editingFolder.id);
+
+      if (error) throw error;
+
+      toast.success("Carpeta actualizada");
+      setShowEditFolderModal(false);
+      setEditingFolder(null);
+      fetchFolders();
+    } catch (error) {
+      console.error("Error updating folder:", error);
+      toast.error("Error al actualizar la carpeta");
     }
   };
 
@@ -1265,6 +1311,16 @@ export default function Library() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      openEditFolder(folder);
+                    }}
+                    className="p-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30"
+                    title="Editar carpeta"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setPublishingResource({ id: folder.id, type: "folder", nombre: folder.nombre });
                       setShowPublishModal(true);
                     }}
@@ -1772,6 +1828,105 @@ export default function Library() {
               Agregar Link
             </button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Folder Modal */}
+      <Dialog open={showEditFolderModal} onOpenChange={setShowEditFolderModal}>
+        <DialogContent className="bg-card border-border sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Carpeta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nombre de la carpeta</label>
+              <input
+                type="text"
+                value={editFolderName}
+                onChange={(e) => setEditFolderName(e.target.value)}
+                placeholder="Nombre de la carpeta"
+                className="w-full p-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Color</label>
+              <div className="flex gap-2">
+                {folderColors.map((color) => (
+                  <button
+                    key={color.value}
+                    onClick={() => setEditFolderColor(color.value)}
+                    className={cn(
+                      "w-8 h-8 rounded-full transition-transform active:scale-90",
+                      editFolderColor === color.value && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-110"
+                    )}
+                    style={{ backgroundColor: color.value }}
+                    title={color.name}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Año (opcional)</label>
+                <Select
+                  value={editFolderYear ? editFolderYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setEditFolderYear(year);
+                    setEditFolderSubject("");
+                  }}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {years.map(y => (
+                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
+                <Select
+                  value={editFolderSubject || "none"}
+                  onValueChange={(val) => setEditFolderSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="mt-2 bg-secondary border-border">
+                    <SelectValue placeholder="Sin materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                    {subjects
+                      .filter(s => !editFolderYear || s.año === editFolderYear)
+                      .map(subject => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.nombre} ({subject.año}°)
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setShowEditFolderModal(false)}
+              className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={updateFolder}
+              disabled={!editFolderName.trim()}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/25 hover:scale-105 transition-all active:scale-95 disabled:opacity-50"
+            >
+              Guardar cambios
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
