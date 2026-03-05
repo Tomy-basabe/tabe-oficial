@@ -812,12 +812,34 @@ export function useSubjects() {
       const { error: subError } = await supabase.from("subjects").insert(newSubjects);
       if (subError) throw subError;
 
-      const newDeps = tplDependencies.map((d: any) => ({
-        subject_id: idMap.get(d.subject_id),
-        requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
-        requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
-        user_id: user.id,
-      })).filter((d: any) => d.subject_id);
+      const newDeps: any[] = [];
+
+      tplDependencies.forEach((d: any) => {
+        const subjectId = idMap.get(d.subject_id);
+        if (!subjectId) return;
+
+        // Format A: requiere_regular / requiere_aprobada as IDs (Sistemas)
+        if (typeof d.requiere_regular === 'string' || typeof d.requiere_aprobada === 'string') {
+          newDeps.push({
+            subject_id: subjectId,
+            requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
+            requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
+            user_id: user.id,
+          });
+        }
+        // Format B: dependency_id + requiere_regular as boolean (Civil, Química, etc.)
+        else if (d.dependency_id) {
+          const depId = idMap.get(d.dependency_id);
+          if (depId) {
+            newDeps.push({
+              subject_id: subjectId,
+              requiere_regular: d.requiere_regular ? depId : null,
+              requiere_aprobada: !d.requiere_regular ? depId : null,
+              user_id: user.id,
+            });
+          }
+        }
+      });
 
       if (newDeps.length > 0) {
         const { error: depError } = await supabase.from("subject_dependencies").insert(newDeps);
