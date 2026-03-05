@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
-  ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap
+  ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useMarketplace } from "@/hooks/useMarketplace";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -103,6 +104,12 @@ export default function Library() {
   const [showGenOptions, setShowGenOptions] = useState<'flashcards' | 'quiz' | null>(null);
   const [genCount, setGenCount] = useState(10);
   const [loading, setLoading] = useState(true);
+  const { publishResource } = useMarketplace();
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishingResource, setPublishingResource] = useState<{ id: string; type: "file" | "folder"; nombre: string } | null>(null);
+  const [pubDescription, setPubDescription] = useState("");
+  const [pubCategory, setPubCategory] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -246,6 +253,27 @@ export default function Library() {
     } catch (error) {
       console.error("Error deleting folder:", error);
       toast.error("Error al eliminar la carpeta");
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!publishingResource || !pubDescription || !pubCategory) {
+      toast.error("Por favor completa todos los campos");
+      return;
+    }
+
+    const success = await publishResource(
+      publishingResource.type,
+      publishingResource.id,
+      pubDescription,
+      pubCategory
+    );
+
+    if (success) {
+      setShowPublishModal(false);
+      setPublishingResource(null);
+      setPubDescription("");
+      setPubCategory("");
     }
   };
 
@@ -1233,12 +1261,25 @@ export default function Library() {
                   </div>
                 </div>
 
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
-                  className="absolute top-2 right-2 p-2 bg-destructive/20 text-destructive rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/30"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPublishingResource({ id: folder.id, type: "folder", nombre: folder.nombre });
+                      setShowPublishModal(true);
+                    }}
+                    className="p-2 bg-neon-cyan/20 text-neon-cyan rounded-lg hover:bg-neon-cyan/30"
+                    title="Publicar en Marketplace"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
+                    className="p-2 bg-destructive/20 text-destructive rounded-lg hover:bg-destructive/30"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -1293,6 +1334,16 @@ export default function Library() {
                 </div>
 
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  <button
+                    onClick={() => {
+                      setPublishingResource({ id: file.id, type: "file", nombre: file.nombre });
+                      setShowPublishModal(true);
+                    }}
+                    className="p-2 bg-neon-cyan/20 text-neon-cyan rounded-lg hover:bg-neon-cyan/30"
+                    title="Publicar en Marketplace"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                  </button>
                   {canPreview && (
                     <button
                       onClick={() => openPreview(file)}
@@ -1723,6 +1774,62 @@ export default function Library() {
           </div>
         </DialogContent>
       </Dialog>
-    </div >
+
+      {/* Marketplace Publish Modal */}
+      <Dialog open={showPublishModal} onOpenChange={setShowPublishModal}>
+        <DialogContent className="bg-card border-border sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-neon-cyan" />
+              Publicar a Marketplace
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-secondary/50 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Recurso a publicar</p>
+              <p className="font-medium">{publishingResource?.nombre}</p>
+              <p className="text-xs text-muted-foreground italic">
+                {publishingResource?.type === "folder" ? "Toda la estructura y archivos internos se harán públicos" : "Este archivo individual se hará público"}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descripción</label>
+              <textarea
+                value={pubDescription}
+                onChange={(e) => setPubDescription(e.target.value)}
+                placeholder="Explica qué contiene este recurso..."
+                className="w-full h-24 p-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-1 focus:ring-primary text-sm resize-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Categoría</label>
+              <input
+                type="text"
+                value={pubCategory}
+                onChange={(e) => setPubCategory(e.target.value)}
+                placeholder="Ej: Resúmenes, Apunte, Modelos de Examen..."
+                className="w-full p-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <button
+              onClick={() => setShowPublishModal(false)}
+              className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handlePublish}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/25 hover:scale-105 transition-all active:scale-95"
+            >
+              Publicar ahora
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
