@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   FileText, Image, Link as LinkIcon, Upload, Plus,
-  Trash2, ExternalLink, FolderOpen, Folder, FolderPlus,
+  Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
   ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -103,6 +103,7 @@ export default function Library() {
   const [genCount, setGenCount] = useState(10);
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user || isGuest) {
@@ -309,6 +310,118 @@ export default function Library() {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = event.target.files;
+    if (!fileList || fileList.length === 0 || !user) return;
+
+    setUploading(true);
+    const toastId = toast.loading(`Subiendo carpeta (0/${fileList.length} archivos)...`);
+
+    try {
+      // Build a map of relative folder paths to their created IDs
+      const folderMap = new Map<string, string>();
+      // The root parent is wherever the user currently is
+      folderMap.set("", currentFolderId || "");
+
+      // Collect all unique directory paths from the file list
+      const dirPaths = new Set<string>();
+      for (let i = 0; i < fileList.length; i++) {
+        const relPath = fileList[i].webkitRelativePath;
+        const parts = relPath.split("/");
+        // All but the last part are directories
+        for (let j = 1; j < parts.length; j++) {
+          dirPaths.add(parts.slice(0, j).join("/"));
+        }
+      }
+
+      // Sort paths by depth so parents are created first
+      const sortedPaths = Array.from(dirPaths).sort(
+        (a, b) => a.split("/").length - b.split("/").length
+      );
+
+      // Create folders in order
+      for (const dirPath of sortedPaths) {
+        const parts = dirPath.split("/");
+        const folderName = parts[parts.length - 1];
+        const parentPath = parts.slice(0, -1).join("/");
+        const parentId = folderMap.get(parentPath) || null;
+
+        const { data, error } = await supabase
+          .from("library_folders")
+          .insert({
+            user_id: user.id,
+            nombre: folderName,
+            color: folderColors[Math.floor(Math.random() * folderColors.length)].value,
+            parent_folder_id: parentId || currentFolderId,
+            subject_id: selectedSubjectId || null,
+          })
+          .select("id")
+          .single();
+
+        if (error) throw error;
+        folderMap.set(dirPath, data.id);
+      }
+
+      // Upload all files
+      let uploaded = 0;
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        // Skip system files
+        if (file.name.startsWith(".")) continue;
+
+        const relPath = file.webkitRelativePath;
+        const parts = relPath.split("/");
+        const parentDirPath = parts.slice(0, -1).join("/");
+        const folderId = folderMap.get(parentDirPath) || currentFolderId;
+
+        let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
+        if (file.type === "application/pdf") tipo = "pdf";
+        else if (file.type.startsWith("image/")) tipo = "imagen";
+        else if (file.type.startsWith("video/")) tipo = "video";
+
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("library-files")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error(`Error uploading ${file.name}:`, uploadError);
+          continue; // Skip failed files, continue with the rest
+        }
+
+        const signedUrl = await getSignedUrl(filePath);
+        if (!signedUrl) continue;
+
+        await supabase.from("library_files").insert({
+          user_id: user.id,
+          subject_id: selectedSubjectId || null,
+          folder_id: folderId,
+          nombre: file.name,
+          tipo,
+          url: signedUrl,
+          storage_path: filePath,
+          tamaño_bytes: file.size,
+        });
+
+        uploaded++;
+        toast.loading(`Subiendo carpeta (${uploaded}/${fileList.length} archivos)...`, { id: toastId });
+      }
+
+      toast.success(`¡Carpeta subida! ${uploaded} archivos en ${sortedPaths.length} carpetas.`, { id: toastId });
+      fetchFolders();
+      fetchFiles();
+    } catch (error) {
+      console.error("Error uploading folder:", error);
+      toast.error("Error al subir la carpeta", { id: toastId });
+    } finally {
+      setUploading(false);
+      if (folderInputRef.current) folderInputRef.current.value = "";
     }
   };
 
@@ -627,6 +740,14 @@ export default function Library() {
             <span className="hidden sm:inline">Agregar Link</span>
           </button>
           <button
+            onClick={() => folderInputRef.current?.click()}
+            disabled={uploading || isGuest}
+            className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+          >
+            <FolderUp className="w-4 h-4" />
+            <span className="hidden sm:inline">Subir Carpeta</span>
+          </button>
+          <button
             onClick={() => setShowUploadModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
@@ -634,6 +755,15 @@ export default function Library() {
             Subir Archivo
           </button>
         </div>
+        {/* Hidden folder input */}
+        <input
+          ref={folderInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFolderUpload}
+          {...({ webkitdirectory: "", directory: "" } as any)}
+          multiple
+        />
       </div>
 
       {/* Year and Subject Filters */}
