@@ -230,14 +230,7 @@ export default function Quizzes() {
     const addQuestion = async () => {
         if (!newQuestion.trim() || !manageDeck || !user) return;
 
-        // Check per-quiz question limit for free users (20 per quiz)
-        if (!isPremium) {
-            const currentQuestions = manageDeck.total_questions || 0;
-            if (currentQuestions >= 20) {
-                toast.error('Alcanzaste el límite de 20 preguntas por cuestionario. Hacete Premium para agregar más ✨', { duration: 5000 });
-                return;
-            }
-        }
+        // No per-quiz question limit - unlimited questions per quiz
 
         const filledOptions = newOptions.filter(o => o.trim());
         if (filledOptions.length < 2) { toast.error("Al menos 2 opciones son necesarias"); return; }
@@ -269,12 +262,12 @@ export default function Quizzes() {
             updated_at: new Date().toISOString()
         }).eq("id", manageDeck.id);
 
-        toast.success("Pregunta agregada");
+        toast.success("¡Pregunta agregada! Podés seguir creando más.");
         setNewQuestion("");
         setNewExplanation("");
         setNewOptions(["", "", "", "", ""]);
         setCorrectOption(0);
-        setShowAddQuestion(false);
+        // Keep modal open so user can continue creating questions
         setManageDeck({ ...manageDeck, total_questions: (manageDeck.total_questions || 0) + 1 });
         fetchQuestions(manageDeck.id);
         fetchDecks();

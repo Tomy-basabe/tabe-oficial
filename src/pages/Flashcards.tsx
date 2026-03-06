@@ -210,14 +210,7 @@ export default function Flashcards() {
   const createCard = async () => {
     if (!user || !selectedDeck || !newCardQuestion.trim() || !newCardAnswer.trim()) return;
 
-    // Check per-deck card limit for free users (35 per deck)
-    if (!isPremium) {
-      const currentCards = selectedDeck.total_cards || 0;
-      if (currentCards >= 35) {
-        toast.error('Alcanzaste el límite de 35 tarjetas por mazo. Hacete Premium para agregar más ✨', { duration: 5000 });
-        return;
-      }
-    }
+    // No per-deck card limit - unlimited cards per deck
 
     const { error } = await supabase
       .from("flashcards")
@@ -231,10 +224,10 @@ export default function Flashcards() {
     if (error) {
       toast.error("Error al crear la tarjeta");
     } else {
-      toast.success("¡Tarjeta agregada!");
+      toast.success("¡Tarjeta agregada! Podés seguir creando más.");
       setNewCardQuestion("");
       setNewCardAnswer("");
-      setShowNewCardModal(false);
+      // Keep modal open so user can continue creating cards
 
       // Update deck card count
       const updatedCards = await fetchCards(selectedDeck.id);
@@ -243,6 +236,8 @@ export default function Flashcards() {
         .update({ total_cards: updatedCards.length })
         .eq("id", selectedDeck.id);
 
+      // Update selectedDeck in memory to reflect new card count
+      setSelectedDeck({ ...selectedDeck, total_cards: updatedCards.length });
       fetchDecks();
       // Verificar logros después de crear una tarjeta
       checkAndUnlockAchievements();

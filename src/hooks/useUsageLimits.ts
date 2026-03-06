@@ -10,7 +10,7 @@ export const FREE_LIMITS = {
     flashcard_mazos: 10,    // mazos por mes
     flashcard_tarjetas: 500, // por mazo (sin limite practico)
     cuestionarios: 14,      // cuestionarios por mes
-    cuestionario_preguntas: 20, // preguntas por cuestionario
+    cuestionario_preguntas: 500, // por cuestionario (sin limite practico)
     storage_mb: 500,        // total (500MB)
     ia_daily: 5,            // diario
 } as const;
