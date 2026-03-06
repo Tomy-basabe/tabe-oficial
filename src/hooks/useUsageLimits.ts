@@ -8,7 +8,7 @@ import { toast } from "sonner";
 export const FREE_LIMITS = {
     apuntes: 15,            // documentos TOTAL (no mensual)
     flashcard_mazos: 10,    // mazos por mes
-    flashcard_tarjetas: 35, // por mazo
+    flashcard_tarjetas: 500, // por mazo (sin limite practico)
     cuestionarios: 14,      // cuestionarios por mes
     cuestionario_preguntas: 20, // preguntas por cuestionario
     storage_mb: 500,        // total (500MB)

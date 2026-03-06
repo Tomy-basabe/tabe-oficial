@@ -516,17 +516,28 @@ export default function AIAssistant() {
                 )}
               </Button>
 
-              <input
-                type="text"
+              <textarea
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  // Auto-resize
+                  e.target.style.height = "auto";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder={
                   isUploading
                     ? "Procesando archivo..."
-                    : `Preguntale a ${activePersona?.name || "tu IA"}...`
+                    : `Preguntale a ${activePersona?.name || "tu IA"}... (Shift+Enter para nueva línea)`
                 }
-                className="flex-1 px-4 py-3 bg-transparent border-none focus:outline-none text-sm placeholder:text-muted-foreground/50 max-h-32"
+                className="flex-1 px-4 py-3 bg-transparent border-none focus:outline-none text-sm placeholder:text-muted-foreground/50 resize-none overflow-y-auto"
+                style={{ minHeight: "44px", maxHeight: "200px" }}
+                rows={1}
                 disabled={isStreaming || isUploading}
               />
 
