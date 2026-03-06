@@ -7,6 +7,51 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 
+// Translate Supabase Auth errors to Spanish
+function translateAuthError(message: string): string {
+  const translations: Record<string, string> = {
+    "Invalid login credentials": "Email o contraseña incorrectos",
+    "Email not confirmed": "Tu email aún no fue confirmado. Revisá tu bandeja de entrada.",
+    "User already registered": "Este email ya está registrado. ¿Querés iniciar sesión?",
+    "Signup requires a valid password": "La contraseña debe tener al menos 6 caracteres",
+    "Password should be at least 6 characters": "La contraseña debe tener al menos 6 caracteres",
+    "Unable to validate email address: invalid format": "El formato del email no es válido",
+    "Email rate limit exceeded": "Demasiados intentos de envío de email. Esperá unos minutos.",
+    "For security purposes, you can only request this once every 60 seconds": "Por seguridad, solo podés solicitar esto cada 60 segundos",
+    "New password should be different from the old password.": "La nueva contraseña debe ser diferente a la anterior",
+    "Auth session missing!": "Tu sesión expiró. Por favor, volvé a iniciar sesión.",
+    "Email link is invalid or has expired": "El enlace del email es inválido o expiró",
+    "Token has expired or is invalid": "El enlace expiró o no es válido",
+    "User not found": "No se encontró un usuario con ese email",
+  };
+
+  // Exact match
+  if (translations[message]) return translations[message];
+
+  // Partial match
+  for (const [key, value] of Object.entries(translations)) {
+    if (message.toLowerCase().includes(key.toLowerCase())) return value;
+  }
+
+  // Rate limit catch-all
+  if (message.toLowerCase().includes("rate limit")) {
+    return "Demasiados intentos. Por favor, esperá unos minutos.";
+  }
+
+  // Email sending errors
+  if (message.toLowerCase().includes("email") && (message.toLowerCase().includes("send") || message.toLowerCase().includes("smtp"))) {
+    return "Error al enviar el email. Intentá de nuevo en unos minutos.";
+  }
+
+  // Network errors
+  if (message.toLowerCase().includes("fetch") || message.toLowerCase().includes("network")) {
+    return "Error de conexión. Verificá tu internet e intentá de nuevo.";
+  }
+
+  // Fallback: return a generic Spanish message instead of the English one
+  return "Ocurrió un error. Por favor, intentá de nuevo.";
+}
+
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -66,7 +111,7 @@ export default function Auth() {
         redirectTo: `${window.location.origin}/auth`,
       });
       if (error) {
-        toast.error(error.message);
+        toast.error(translateAuthError(error.message));
       } else {
         toast.success("📧 Te enviamos un email con el enlace para restablecer tu contraseña. Revisá tu bandeja de entrada y spam.", { duration: 8000 });
         setResetMode(false);
@@ -84,13 +129,7 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          if (error.message.includes("rate limit")) {
-            toast.error("Demasiados intentos. Por favor, espera unos minutos.");
-          } else if (error.message.includes("Invalid login credentials")) {
-            toast.error("Email o contraseña incorrectos");
-          } else {
-            toast.error(error.message);
-          }
+          toast.error(translateAuthError(error.message));
         } else {
           toast.success("¡Bienvenido de vuelta!");
           navigate("/dashboard");
@@ -108,13 +147,7 @@ export default function Auth() {
 
         const { error } = await signUp(email, password, nombre);
         if (error) {
-          if (error.message.includes("rate limit")) {
-            toast.error("Has intentado registrarte demasiadas veces. Por favor, espera unos minutos antes de volver a intentarlo.");
-          } else if (error.message.includes("User already registered")) {
-            toast.error("Este email ya está registrado. ¿Querés iniciar sesión?");
-          } else {
-            toast.error(error.message);
-          }
+          toast.error(translateAuthError(error.message));
         } else {
           toast.success("¡Cuenta creada exitosamente!");
           navigate("/dashboard");
