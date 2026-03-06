@@ -220,9 +220,25 @@ serve(async (req) => {
       ? "\n=== METRICAS ESTUDIO (EN CURSO) ===\n" + metricasStr + "\n"
       : "";
 
+    // Build date context with day of week and upcoming days reference
+    const now = new Date();
+    const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const hoyStr = now.toISOString().split("T")[0];
+    const hoyDia = diasSemana[now.getDay()];
+    
+    // Generate next 14 days as reference for the AI
+    const proximosDias: string[] = [];
+    for (let i = 0; i <= 13; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() + i);
+      const label = i === 0 ? "HOY" : i === 1 ? "MAÑANA" : "";
+      proximosDias.push(`${d.toISOString().split("T")[0]} ${diasSemana[d.getDay()]}${label ? " (" + label + ")" : ""}`);
+    }
+
     const sysPrompt = "Sos " + personaName + ", asistente academico de " + userName + ".\n" +
       "Personalidad: " + personalityPrompt + "\n" +
-      "Fecha actual: " + new Date().toISOString().split("T")[0] + contextLine + "\n\n" +
+      "HOY: " + hoyStr + " (" + hoyDia + ")" + contextLine + "\n" +
+      "CALENDARIO PROXIMOS DIAS:\n" + proximosDias.join("\n") + "\n\n" +
       "=== RESUMEN ===\n" +
       "Promedio: " + promedio + " | Progreso: " + aprobadas.length + "/" + subjects.length + " (" + progreso + "%)\n" +
       "Aprobadas: " + aprobadas.length + (aprobadas.length > 0 ? " (" + aprobadas.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
