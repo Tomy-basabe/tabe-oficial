@@ -1009,3 +1009,46 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ========================================
+   CROSS-BROWSER COMPATIBILITY (Firefox, Safari, etc.)
+   ======================================== */
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(1px)) {
+  [class*="backdrop-blur"] {
+    background-color: hsl(var(--background) / 0.95) !important;
+  }
+}
+
+/* dvh fallback for older browsers */
+@supports not (min-height: 100dvh) {
+  body {
+    min-height: 100vh;
+  }
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+/* Webkit scrollbar styling (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}

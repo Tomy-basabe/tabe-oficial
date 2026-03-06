@@ -351,7 +351,7 @@ export default function Settings() {
 
       {/* Version */}
       <p className="text-right text-xs text-muted-foreground/40 mt-4 pr-2">
-        T.A.B.E. v2.7.0
+        T.A.B.E. v2.8.0
       </p>
     </div>
   );
