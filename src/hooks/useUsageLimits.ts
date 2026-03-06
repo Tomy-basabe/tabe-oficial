@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-// Monthly limits for free users
+// Limits for free users
 export const FREE_LIMITS = {
-    apuntes: 15,            // documentos por mes
+    apuntes: 15,            // documentos TOTAL (no mensual)
     flashcard_mazos: 10,    // mazos por mes
     flashcard_tarjetas: 35, // por mazo
     cuestionarios: 14,      // cuestionarios por mes
@@ -46,6 +46,22 @@ export function useUsageLimits() {
         enabled: !!user?.id,
     });
 
+    // Query for total file count (apuntes limit is TOTAL, not monthly)
+    const { data: totalFileCount = 0 } = useQuery({
+        queryKey: ["user_file_count", user?.id],
+        queryFn: async () => {
+            if (!user?.id) return 0;
+            const { count, error } = await supabase
+                .from("library_files")
+                .select("id", { count: "exact", head: true })
+                .eq("user_id", user.id);
+
+            if (error) return 0;
+            return count || 0;
+        },
+        enabled: !!user?.id,
+    });
+
     const { data: usageData = {} } = useQuery<UsageData>({
         queryKey: ["user_usage", user?.id, monthStart, todayStart],
         queryFn: async () => {
@@ -81,6 +97,9 @@ export function useUsageLimits() {
         if (feature === "storage_mb") {
             return Math.round(storageUsed / (1024 * 1024));
         }
+        if (feature === "apuntes") {
+            return totalFileCount;
+        }
         return usageData[feature] || 0;
     };
 
@@ -100,6 +119,10 @@ export function useUsageLimits() {
             const currentMB = Math.round(storageUsed / (1024 * 1024));
             const additionalMB = Math.round(currentValue / (1024 * 1024));
             return (currentMB + additionalMB) < getLimit(feature);
+        }
+
+        if (feature === "apuntes") {
+            return totalFileCount < getLimit(feature);
         }
 
         return getUsage(feature) < getLimit(feature);
@@ -126,13 +149,14 @@ export function useUsageLimits() {
 
         // Invalidate cache so UI updates
         queryClient.invalidateQueries({ queryKey: ["user_usage", user.id] });
+        queryClient.invalidateQueries({ queryKey: ["user_file_count", user.id] });
 
         return true;
     };
 
     const showLimitReached = (feature: FeatureKey) => {
         const names: Record<FeatureKey, string> = {
-            apuntes: "apuntes",
+            apuntes: "archivos en la biblioteca (15 máximo)",
             flashcard_mazos: "mazos de flashcards",
             flashcard_tarjetas: "tarjetas por mazo",
             cuestionarios: "cuestionarios",
@@ -141,8 +165,9 @@ export function useUsageLimits() {
             ia_daily: "uso de IA diario (5 créditos)",
         };
         const unit = feature === "storage_mb" ? "MB" : "";
+        const periodLabel = feature === "ia_daily" ? "diario" : feature === "storage_mb" || feature === "apuntes" ? "total" : "mensual";
         toast.error(
-            `Alcanzaste tu límite ${feature === "ia_daily" ? "diario" : feature === "storage_mb" ? "total" : "mensual"} de ${getLimit(feature)}${unit} ${names[feature]}. Hacete Premium para acceso ilimitado ✨`,
+            `Alcanzaste tu límite ${periodLabel} de ${getLimit(feature)}${unit} ${names[feature]}. Hacete Premium para acceso ilimitado ✨`,
             { duration: 5000 }
         );
     };
