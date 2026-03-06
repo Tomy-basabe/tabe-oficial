@@ -348,6 +348,7 @@ export default function Friends() {
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-medium">
+                                {stat.profile.nombre || stat.profile.username || `Usuario #${stat.profile.display_id}`}
                               </p>
                               {/* @ts-ignore */}
                               {(stat.profile as any).active_badge === 'badge_supporter' && (

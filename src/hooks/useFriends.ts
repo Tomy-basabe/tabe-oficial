@@ -144,8 +144,8 @@ export function useFriends() {
       p.user_id,
       {
         ...p,
-        nombre: p.nombre || (p.username ? null : `Usuario #${p.display_id}`),
-        username: p.username || `Usuario #${p.display_id}`
+        nombre: p.nombre || p.username || `Usuario #${p.display_id}`,
+        username: p.username || null
       }
     ]));
 
