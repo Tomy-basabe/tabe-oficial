@@ -350,8 +350,8 @@ export default function Settings() {
       </button>
 
       {/* Version */}
-      <p className="text-center text-xs text-muted-foreground">
-        StudyHub v1.0.0 • Tu compañero de estudio
+      <p className="text-right text-xs text-muted-foreground/40 mt-4 pr-2">
+        T.A.B.E. v2.5.0
       </p>
     </div>
   );
