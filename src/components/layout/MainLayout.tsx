@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from "react";
+import { TabeLogo } from "@/components/ui/TabeLogo";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -80,6 +80,7 @@ export function MainLayout() {
   };
 
   const logoPath = getLogoPath();
+  const isDefaultLogo = logoPath === "/logos/logo-purple.png";
 
   // Check if user is admin
   useEffect(() => {
@@ -137,8 +138,12 @@ export function MainLayout() {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-card/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-card/50 flex items-center justify-center p-0.5 border border-border/50 overflow-hidden shadow-lg">
-            <img src={logoPath} alt="T.A.B.E Logo" className="w-full h-full object-cover scale-110" />
+          <div className="w-8 h-8 rounded-lg bg-card/50 flex items-center justify-center p-0 border border-border/50 overflow-hidden shadow-lg">
+            {isDefaultLogo ? (
+              <TabeLogo size={24} />
+            ) : (
+              <img src={logoPath} alt="T.A.B.E Logo" className="w-full h-full object-cover scale-[1.3] bg-black" />
+            )}
           </div>
           <span className="font-display font-bold text-lg gradient-text">T.A.B.E.</span>
         </Link>
@@ -172,7 +177,11 @@ export function MainLayout() {
         {/* Logo */}
         <div className={cn("h-16 flex items-center border-b border-sidebar-border flex-shrink-0 transition-all overflow-hidden", isCollapsed ? "justify-center px-0" : "justify-start px-6 gap-3")}>
           <div className="w-10 h-10 rounded-xl bg-card/50 flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)] flex-shrink-0 p-0 border border-border/50 overflow-hidden">
-            <img src={logoPath} alt="T.A.B.E Logo" className="w-full h-full object-cover scale-110" />
+            {isDefaultLogo ? (
+              <TabeLogo size={32} />
+            ) : (
+              <img src={logoPath} alt="T.A.B.E Logo" className="w-full h-full object-cover scale-[1.3] bg-black" />
+            )}
           </div>
           {!isCollapsed && (
             <div className="min-w-0">
