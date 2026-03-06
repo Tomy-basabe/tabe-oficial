@@ -32,6 +32,7 @@ import Landing from "@/pages/Landing";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import Privacy from "@/pages/Privacy";
+import EmailVerified from "@/pages/EmailVerified";
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
 import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
@@ -90,6 +91,7 @@ const AppRoutes = () => (
     <Route path="/acerca-de" element={<About />} />
     <Route path="/contacto" element={<Contact />} />
     <Route path="/privacidad" element={<Privacy />} />
+    <Route path="/email-verificado" element={<EmailVerified />} />
     <Route
       path="/auth"
       element={
