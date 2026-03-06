@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
 import { AVAILABLE_CAREERS } from "@/lib/careerData";
+import { generateId } from "@/lib/utils/id";
 
 // Hook para verificar logros (se llama externamente)
 export const checkAchievementsAfterSubjectUpdate = async (userId: string) => {
@@ -99,14 +100,6 @@ export function useSubjects() {
   const [loading, setLoading] = useState(true);
   const isInitialLoad = useRef(true);
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const generateId = useCallback(() => {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-    // Fallback for non-secure contexts (mobile via IP)
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  }, []);
 
   const fetchData = useCallback(async (showLoading = true) => {
     try {

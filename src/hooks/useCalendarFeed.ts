@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { generateId } from "@/lib/utils/id";
 
 export function useCalendarFeed() {
     const { user } = useAuth();
@@ -40,7 +41,7 @@ export function useCalendarFeed() {
     const generateToken = useCallback(async () => {
         if (!user) return;
         try {
-            const newToken = crypto.randomUUID();
+            const newToken = generateId();
             const { error } = await supabase
                 .from("profiles")
                 .update({ calendar_feed_token: newToken })
@@ -61,7 +62,7 @@ export function useCalendarFeed() {
     const regenerateToken = useCallback(async () => {
         if (!user) return;
         try {
-            const newToken = crypto.randomUUID();
+            const newToken = generateId();
             const { error } = await supabase
                 .from("profiles")
                 .update({ calendar_feed_token: newToken })

@@ -2,6 +2,7 @@
  * Parser for ICS (iCalendar) files
  * Supports parsing events from Google Calendar exports
  */
+import { generateId } from "./utils/id";
 
 export interface ICSEvent {
   uid: string;
@@ -17,28 +18,28 @@ export interface ICSEvent {
 export function parseICSFile(icsContent: string): ICSEvent[] {
   const events: ICSEvent[] = [];
   const lines = icsContent.split(/\r?\n/);
-  
+
   let currentEvent: Partial<ICSEvent> | null = null;
   let currentKey = "";
-  
+
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
-    
+
     // Handle line folding (lines that start with space/tab are continuations)
     while (i + 1 < lines.length && (lines[i + 1].startsWith(" ") || lines[i + 1].startsWith("\t"))) {
       i++;
       line += lines[i].substring(1);
     }
-    
+
     if (line.startsWith("BEGIN:VEVENT")) {
       currentEvent = {};
       continue;
     }
-    
+
     if (line.startsWith("END:VEVENT") && currentEvent) {
       if (currentEvent.title && currentEvent.date) {
         events.push({
-          uid: currentEvent.uid || crypto.randomUUID(),
+          uid: currentEvent.uid || generateId(),
           title: currentEvent.title,
           description: currentEvent.description,
           date: currentEvent.date,
@@ -51,9 +52,9 @@ export function parseICSFile(icsContent: string): ICSEvent[] {
       currentEvent = null;
       continue;
     }
-    
+
     if (!currentEvent) continue;
-    
+
     // Parse different fields
     if (line.startsWith("UID:")) {
       currentEvent.uid = line.substring(4);
@@ -73,7 +74,7 @@ export function parseICSFile(icsContent: string): ICSEvent[] {
       currentEvent.endTime = time;
     }
   }
-  
+
   return events;
 }
 
@@ -95,12 +96,12 @@ function unescapeICS(text: string): string {
 function parseDateTimeField(line: string): { date: string; time?: string } {
   const colonIndex = line.indexOf(":");
   if (colonIndex === -1) return { date: "" };
-  
+
   const value = line.substring(colonIndex + 1).trim();
-  
+
   // Check if it's a date-only value (VALUE=DATE)
   const isDateOnly = line.includes("VALUE=DATE") && !line.includes("VALUE=DATE-TIME");
-  
+
   if (isDateOnly || value.length === 8) {
     // Format: YYYYMMDD
     const year = value.substring(0, 4);
@@ -108,23 +109,23 @@ function parseDateTimeField(line: string): { date: string; time?: string } {
     const day = value.substring(6, 8);
     return { date: `${year}-${month}-${day}` };
   }
-  
+
   // Format: YYYYMMDDTHHMMSS or YYYYMMDDTHHMMSSZ
   if (value.includes("T")) {
     const [datePart, timePart] = value.split("T");
     const year = datePart.substring(0, 4);
     const month = datePart.substring(4, 6);
     const day = datePart.substring(6, 8);
-    
+
     const hours = timePart.substring(0, 2);
     const minutes = timePart.substring(2, 4);
-    
+
     return {
       date: `${year}-${month}-${day}`,
       time: `${hours}:${minutes}`,
     };
   }
-  
+
   return { date: "" };
 }
 

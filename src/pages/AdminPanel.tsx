@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock, BookOpen, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { generateId } from "@/lib/utils/id";
 
 interface UserReview {
   id: string;
@@ -287,7 +288,7 @@ const AdminPanel = () => {
 
       const idMap = new Map<string, string>();
       const newSubjects = tplSubjects.map((s: any) => {
-        const newId = crypto.randomUUID();
+        const newId = generateId();
         idMap.set(s.id, newId);
         return {
           id: newId,

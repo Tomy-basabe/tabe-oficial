@@ -6,6 +6,7 @@ import { Send, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { generateId } from "@/lib/utils/id";
 
 interface ChatMessage {
   id: string;
@@ -82,7 +83,7 @@ export function RoomChat({ roomId, isOpen, onToggle }: RoomChatProps) {
     if (!newMessage.trim() || !user || !channelRef.current) return;
 
     const message: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       user_id: user.id,
       username,
       message: newMessage.trim(),
