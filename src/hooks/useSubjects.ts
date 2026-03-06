@@ -101,7 +101,7 @@ export function useSubjects() {
   const isInitialLoad = useRef(true);
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchData = useCallback(async (showLoading = true) => {
+  const fetchData = useCallback(async (showLoading = true, retries = 2) => {
     try {
       if (showLoading) setLoading(true);
 
@@ -132,6 +132,11 @@ export function useSubjects() {
       setDependencies(depsResult.data || []);
     } catch (error) {
       console.error("Error fetching subjects:", error);
+      if (retries > 0) {
+        console.log(`Retrying fetchData... (${retries} left)`);
+        await new Promise(r => setTimeout(r, 1000));
+        return fetchData(false, retries - 1);
+      }
       toast.error("Error al cargar las materias");
     } finally {
       setLoading(false);

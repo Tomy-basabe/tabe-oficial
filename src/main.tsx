@@ -4,10 +4,15 @@ import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import "./index.css";
 
-// Clear stale service workers that may cache broken builds
+// Clear stale service workers and caches that may serve broken builds
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(registrations => {
         registrations.forEach(reg => reg.unregister());
+    });
+}
+if ('caches' in window) {
+    caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
     });
 }
 

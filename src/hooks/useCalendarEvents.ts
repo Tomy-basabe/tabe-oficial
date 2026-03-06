@@ -88,7 +88,7 @@ export function useCalendarEvents() {
   const [rawEvents, setRawEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchEvents = useCallback(async () => {
+  const fetchEvents = useCallback(async (retries = 2) => {
     if (!user && !isGuest) return;
 
     if (isGuest) {
@@ -140,7 +140,7 @@ export function useCalendarEvents() {
       const { data: eventsData, error } = await supabase
         .from("calendar_events")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", user!.id)
         .order("fecha", { ascending: true });
 
       if (error) throw error;
@@ -178,6 +178,11 @@ export function useCalendarEvents() {
       setRawEvents(eventsWithSubjects);
     } catch (error) {
       console.error("Error fetching events:", error);
+      if (retries > 0) {
+        console.log(`Retrying fetchEvents... (${retries} left)`);
+        await new Promise(r => setTimeout(r, 1000));
+        return fetchEvents(retries - 1);
+      }
       toast.error("Error al cargar los eventos");
     } finally {
       setLoading(false);
