@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bot, Sparkles, ArrowRight, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Bot, Sparkles, ArrowRight, Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +85,16 @@ export function PersonaOnboarding({ onComplete, onCancel }: PersonaOnboardingPro
     const [name, setName] = useState("");
     const [emoji, setEmoji] = useState("🤖");
     const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [editedPrompt, setEditedPrompt] = useState("");
+    const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+
+    // When reaching confirmation step, generate the prompt
+    const isConfirmStep = step > PERSONALITY_QUESTIONS.length;
+    useEffect(() => {
+        if (step === PERSONALITY_QUESTIONS.length + 1 && !editedPrompt) {
+            setEditedPrompt(buildPersonalityPrompt(answers));
+        }
+    }, [step]);
 
     const handleAnswer = (questionId: string, value: string) => {
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -96,7 +106,6 @@ export function PersonaOnboarding({ onComplete, onCancel }: PersonaOnboardingPro
     };
 
     const handleFinish = () => {
-        const prompt = buildPersonalityPrompt(answers);
         const descriptions: string[] = [];
         PERSONALITY_QUESTIONS.forEach((q) => {
             const answer = q.options.find((o) => o.value === answers[q.id]);
@@ -107,8 +116,14 @@ export function PersonaOnboarding({ onComplete, onCancel }: PersonaOnboardingPro
             name: name.trim() || "Mi IA",
             avatar_emoji: emoji,
             description: descriptions.join(", "),
-            personality_prompt: prompt,
+            personality_prompt: editedPrompt || buildPersonalityPrompt(answers),
         });
+    };
+
+    // Regenerate prompt from answers (reset edits)
+    const handleRegenerate = () => {
+        setEditedPrompt(buildPersonalityPrompt(answers));
+        setIsEditingPrompt(false);
     };
 
     // Step 0: Name + Emoji
@@ -244,8 +259,7 @@ export function PersonaOnboarding({ onComplete, onCancel }: PersonaOnboardingPro
         );
     }
 
-    // Step 4: Confirmation
-    const personalityPrompt = buildPersonalityPrompt(answers);
+    // Step 4: Confirmation with editable personality
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-card border border-border/50 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-300">
@@ -258,18 +272,49 @@ export function PersonaOnboarding({ onComplete, onCancel }: PersonaOnboardingPro
                 </div>
 
                 <div className="bg-background/50 border border-border/30 rounded-xl p-4 mb-5">
-                    <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wider">
-                        Personalidad
-                    </p>
-                    <p className="text-sm text-foreground/80 leading-relaxed">
-                        {personalityPrompt}
-                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                            Personalidad
+                        </p>
+                        <button
+                            onClick={() => setIsEditingPrompt(!isEditingPrompt)}
+                            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+                        >
+                            <Pencil className="w-3 h-3" />
+                            {isEditingPrompt ? "Listo" : "Editar"}
+                        </button>
+                    </div>
+                    {isEditingPrompt ? (
+                        <div className="space-y-2">
+                            <textarea
+                                value={editedPrompt}
+                                onChange={(e) => setEditedPrompt(e.target.value)}
+                                className="w-full px-3 py-2.5 bg-background border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none leading-relaxed"
+                                rows={5}
+                                placeholder="Describí cómo querés que sea tu IA..."
+                                autoFocus
+                            />
+                            <button
+                                onClick={handleRegenerate}
+                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                ↻ Regenerar desde preguntas
+                            </button>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-foreground/80 leading-relaxed">
+                            {editedPrompt}
+                        </p>
+                    )}
                 </div>
 
                 <div className="flex gap-3">
                     <Button
                         variant="ghost"
-                        onClick={() => setStep(PERSONALITY_QUESTIONS.length - 1)}
+                        onClick={() => {
+                            setStep(PERSONALITY_QUESTIONS.length);
+                            setEditedPrompt("");
+                        }}
                         className="flex-1"
                     >
                         Ajustar
