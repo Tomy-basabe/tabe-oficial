@@ -418,22 +418,39 @@ serve(async (req) => {
 
     if (GROQ_API_KEY) {
       try {
-        console.log("[AI] Usando GROQ API con Llama 3. Messages: " + groqMessages.length + ", SysPrompt chars: " + truncatedSysPrompt.length);
+        // Ensure first message after system is "user" (Groq/Llama requirement)
+        // Remove leading assistant messages
+        while (groqMessages.length > 1 && groqMessages[1].role === "assistant") {
+          groqMessages.splice(1, 1);
+        }
+        
+        // Ensure no empty content
+        for (const msg of groqMessages) {
+          if (!msg.content || msg.content.trim() === "") {
+            msg.content = "(vacío)";
+          }
+        }
+
+        console.log("[AI] Usando GROQ. Messages: " + groqMessages.length + ", SysPrompt: " + truncatedSysPrompt.length + " chars");
+        console.log("[AI] Message roles: " + groqMessages.map((m: any) => m.role).join(" -> "));
+        
+        const requestBody = {
+          model: "llama-3.3-70b-versatile",
+          messages: groqMessages,
+          tools: tools,
+          tool_choice: "auto",
+          temperature: 0.5,
+          max_tokens: 8192,
+          stream: false
+        };
+        
         const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${GROQ_API_KEY}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: groqMessages,
-            tools: tools,
-            tool_choice: "auto",
-            temperature: 0.5,
-            max_tokens: 8192,
-            stream: false
-          })
+          body: JSON.stringify(requestBody)
         });
 
         const status = res.status;
@@ -458,7 +475,7 @@ serve(async (req) => {
         } else {
           const errBody = await res.text();
           errors.push("groq:" + status);
-          console.error("[AI] Groq failed:", status, errBody.slice(0, 300));
+          console.error("[AI] Groq failed:", status, errBody);
         }
       } catch (e: any) {
         errors.push("groq:" + (e.message || String(e)));
