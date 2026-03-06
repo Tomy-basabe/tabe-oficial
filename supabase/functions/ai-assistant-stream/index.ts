@@ -298,8 +298,12 @@ serve(async (req) => {
                     tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, 
                     notas: { type: "string" }, 
                     subject_id: { type: "string", description: "Nombre de la materia" },
-                    recurrence_rule: { type: "string", enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"] },
-                    recurrence_end: { type: "string", description: "YYYY-MM-DD" }
+                    recurrence_rule: { 
+                      type: "string", 
+                      description: "SOLO si el usuario pide repetir. Valores: DAILY, WEEKLY, MONTHLY, YEARLY. NO incluir si no hay repeticion.",
+                      enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"] 
+                    },
+                    recurrence_end: { type: "string", description: "Fecha fin repeticion YYYY-MM-DD. NO incluir si no hay repeticion." }
                   },
                   required: ["titulo", "fecha", "tipo_examen"]
                 }
@@ -474,7 +478,7 @@ serve(async (req) => {
           console.log("[AI] Groq OK text:" + (content.length > 0) + " tool:" + (!!toolCall));
         } else {
           const errBody = await res.text();
-          errors.push("groq:" + status);
+          errors.push("groq:" + status + " - " + errBody.slice(0, 500));
           console.error("[AI] Groq failed:", status, errBody);
         }
       } catch (e: any) {
