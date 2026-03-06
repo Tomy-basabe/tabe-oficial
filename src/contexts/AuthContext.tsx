@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/email-verificado`,
+          emailRedirectTo: 'https://vercel-oficial.vercel.app/email-verificado',
           data: { nombre }
         }
       });
