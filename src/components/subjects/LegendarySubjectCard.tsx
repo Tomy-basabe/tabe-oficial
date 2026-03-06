@@ -38,8 +38,8 @@ export const LegendarySubjectCard = memo(function LegendarySubjectCard({
         compact ? "p-3" : "p-4"
       )}
     >
-      {/* Floating particles */}
-      <div className="legendary-particles">
+      {/* Floating particles - Desktop Only */}
+      <div className="legendary-particles hidden lg:block">
         {particles.map((particle, i) => (
           <span
             key={i}

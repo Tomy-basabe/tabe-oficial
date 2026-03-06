@@ -352,44 +352,53 @@
     will-change: box-shadow;
   }
 
-  /* Animated gold border */
-  .subject-legendary::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 2px;
-    background: linear-gradient(135deg,
-        hsl(45 100% 55%) 0%,
-        hsl(35 100% 65%) 25%,
-        hsl(45 100% 75%) 50%,
-        hsl(35 100% 65%) 75%,
-        hsl(45 100% 55%) 100%);
-    background-size: 200% 200%;
-    animation: legendary-border 3s linear infinite;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
+  /* Animated gold border - Desktop Only */
+  @media (min-width: 1024px) {
+    .subject-legendary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 2px;
+      background: linear-gradient(135deg,
+          hsl(45 100% 55%) 0%,
+          hsl(35 100% 65%) 25%,
+          hsl(45 100% 75%) 50%,
+          hsl(35 100% 65%) 75%,
+          hsl(45 100% 55%) 100%);
+      background-size: 200% 200%;
+      animation: legendary-border 3s linear infinite;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    /* Shimmering overlay effect */
+    .subject-legendary::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg,
+          transparent 30%,
+          hsl(45 100% 70% / 0.1) 45%,
+          hsl(45 100% 90% / 0.2) 50%,
+          hsl(45 100% 70% / 0.1) 55%,
+          transparent 70%);
+      animation: legendary-shine 4s ease-in-out infinite;
+      pointer-events: none;
+      will-change: transform;
+    }
   }
 
-  /* Shimmering overlay effect */
-  .subject-legendary::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg,
-        transparent 30%,
-        hsl(45 100% 70% / 0.1) 45%,
-        hsl(45 100% 90% / 0.2) 50%,
-        hsl(45 100% 70% / 0.1) 55%,
-        transparent 70%);
-    animation: legendary-shine 4s ease-in-out infinite;
-    pointer-events: none;
-    will-change: transform;
+  /* Fallback static border for mobile */
+  @media (max-width: 1023px) {
+    .subject-legendary {
+      border: 1px solid hsl(45 100% 55% / 0.5);
+    }
   }
 
   @keyframes legendary-border {
@@ -477,9 +486,11 @@
     }
   }
 
-  .animate-legendary-glow {
-    animation: legendary-glow 2.5s ease-in-out infinite;
-    will-change: box-shadow;
+  @media (min-width: 1024px) {
+    .animate-legendary-glow {
+      animation: legendary-glow 2.5s ease-in-out infinite;
+      will-change: box-shadow;
+    }
   }
 
   /* Crown icon animation */

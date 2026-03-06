@@ -84,7 +84,13 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          toast.error(error.message);
+          if (error.message.includes("rate limit")) {
+            toast.error("Demasiados intentos. Por favor, espera unos minutos.");
+          } else if (error.message.includes("Invalid login credentials")) {
+            toast.error("Email o contraseña incorrectos");
+          } else {
+            toast.error(error.message);
+          }
         } else {
           toast.success("¡Bienvenido de vuelta!");
           navigate("/dashboard");
@@ -102,7 +108,13 @@ export default function Auth() {
 
         const { error } = await signUp(email, password, nombre);
         if (error) {
-          toast.error(error.message);
+          if (error.message.includes("rate limit")) {
+            toast.error("Has intentado registrarte demasiadas veces. Por favor, espera unos minutos antes de volver a intentarlo.");
+          } else if (error.message.includes("User already registered")) {
+            toast.error("Este email ya está registrado. ¿Querés iniciar sesión?");
+          } else {
+            toast.error(error.message);
+          }
         } else {
           toast.success("¡Cuenta creada exitosamente!");
           navigate("/dashboard");
