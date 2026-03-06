@@ -155,8 +155,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    setIsGuest(false);
-    await supabase.auth.signOut();
+    try {
+      setLoading(true);
+
+      // Clear react states immediately
+      setIsGuest(false);
+      setProfile(null);
+      setSession(null);
+      setUser(null);
+      applyTheme(null);
+
+      // Clear all storage for a completely clean state
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Attempt to clear caches but don't block
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        }).catch(() => { });
+      }
+
+      // Try server-side logout, but force redirect anyway
+      await supabase.auth.signOut().catch(e => console.warn("Supabase signout failed, ignoring:", e));
+
+      // Final clean sweep and redirect
+      window.location.href = "/auth";
+    } catch (err) {
+      console.error("Critical logout error:", err);
+      window.location.href = "/auth";
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loginAsGuest = () => {
