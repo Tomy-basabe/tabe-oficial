@@ -31,6 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     body.classList.remove(...AVAILABLE_THEMES);
     if (themeClass && AVAILABLE_THEMES.includes(themeClass)) {
       body.classList.add(themeClass);
+      localStorage.setItem("active-theme-color", themeClass);
+    } else {
+      localStorage.removeItem("active-theme-color");
     }
   };
 
@@ -141,9 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginAsGuest = () => {
     setIsGuest(true);
-    // Guest dummy profile - null active_theme defaults to the dark (purple) theme
-    setProfile({ active_theme: null, active_badge: null });
-    applyTheme(null);
+    // Guest dummy profile - check localStorage first
+    const savedTheme = localStorage.getItem("active-theme-color");
+    setProfile({ active_theme: savedTheme, active_badge: null });
+    applyTheme(savedTheme);
   };
 
   return (

@@ -49,7 +49,7 @@ export default function Settings() {
   const { theme, toggleTheme } = useTheme();
 
   // Local state for guest theme representation
-  const [guestActiveTheme, setGuestActiveTheme] = useState<string | null>(null);
+  const [guestActiveTheme, setGuestActiveTheme] = useState<string | null>(() => localStorage.getItem("active-theme-color"));
 
   const userName = user?.user_metadata?.nombre || user?.email?.split("@")[0] || "Usuario";
   const userInitials = userName.slice(0, 2).toUpperCase();
