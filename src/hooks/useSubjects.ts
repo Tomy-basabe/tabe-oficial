@@ -100,6 +100,14 @@ export function useSubjects() {
   const isInitialLoad = useRef(true);
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const generateId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback for non-secure contexts (mobile via IP)
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }, []);
+
   const fetchData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
@@ -166,7 +174,7 @@ export function useSubjects() {
         const idMap = new Map<string, string>();
 
         const newSubjects = tplSubjects.map((s: any) => {
-          const newId = crypto.randomUUID();
+          const newId = generateId();
           idMap.set(s.id, newId);
           return {
             id: newId,
@@ -797,7 +805,7 @@ export function useSubjects() {
 
       const idMap = new Map<string, string>();
       const newSubjects = tplSubjects.map((s: any) => {
-        const newId = crypto.randomUUID();
+        const newId = generateId();
         idMap.set(s.id, newId);
         return {
           id: newId,

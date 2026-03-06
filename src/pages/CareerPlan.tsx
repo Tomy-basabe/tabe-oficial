@@ -40,6 +40,7 @@ export default function CareerPlan() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [hideApproved, setHideApproved] = useState(false);
 
   // Modals
   const [selectedSubject, setSelectedSubject] = useState<SubjectWithStatus | null>(null);
@@ -59,9 +60,10 @@ export default function CareerPlan() {
       const matchesSearch = !query ||
         subject.nombre.toLowerCase().includes(query) ||
         subject.codigo.toLowerCase().includes(query);
-      return matchesYear && matchesStatus && matchesSearch;
+      const matchesHideApproved = !hideApproved || subject.status !== "aprobada";
+      return matchesYear && matchesStatus && matchesSearch && matchesHideApproved;
     });
-  }, [subjects, selectedYear, selectedStatus, searchQuery]);
+  }, [subjects, selectedYear, selectedStatus, searchQuery, hideApproved]);
 
   // Memoize subjects grouped by year
   const subjectsByYear = useMemo(() => {
@@ -261,6 +263,19 @@ export default function CareerPlan() {
             {filter.label}
           </button>
         ))}
+
+        {/* Toggle Hide Approved (Mobile primary) */}
+        <button
+          onClick={() => setHideApproved(!hideApproved)}
+          className={cn(
+            "px-4 py-2 rounded-full text-sm font-medium transition-all border flex items-center gap-2",
+            hideApproved
+              ? "bg-neon-gold/20 border-neon-gold text-neon-gold"
+              : "bg-secondary border-transparent text-muted-foreground hover:bg-secondary/80"
+          )}
+        >
+          {hideApproved ? "Mostrando Pendientes" : "Ocultar Aprobadas"}
+        </button>
       </div>
 
       {/* Subjects Grid by Year */}

@@ -62,7 +62,7 @@ export const LegendarySubjectCard = memo(function LegendarySubjectCard({
               <Crown className="w-5 h-5 text-neon-gold animate-crown drop-shadow-[0_0_8px_hsl(45,100%,55%)]" />
               <Sparkles className="absolute -top-1 -right-1 w-3 h-3 text-neon-gold/80 animate-pulse" />
             </div>
-            <span className="text-xs font-bold legendary-text tracking-wider uppercase">
+            <span className="text-xs font-bold legendary-text lg:animate-text-shimmer tracking-wider uppercase">
               Aprobada
             </span>
           </div>
@@ -97,8 +97,8 @@ export const LegendarySubjectCard = memo(function LegendarySubjectCard({
             <div className="relative">
               <div className="absolute inset-0 bg-neon-gold/30 blur-md rounded-lg" />
               <span className={cn(
-                "relative text-lg font-display font-black legendary-text",
-                "drop-shadow-[0_0_12px_hsl(45,100%,55%)]"
+                "relative text-lg font-display font-black legendary-text lg:animate-text-shimmer",
+                "lg:drop-shadow-[0_0_12px_hsl(45,100%,55%)]"
               )}>
                 {nota}
               </span>

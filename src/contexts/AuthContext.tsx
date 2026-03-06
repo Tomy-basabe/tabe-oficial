@@ -100,9 +100,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsGuest(false);
       }
       setLoading(false);
+    }).catch(err => {
+      console.error("Auth session error:", err);
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs (common on mobile/slow networks)
+    const timeout = setTimeout(() => {
+      setLoading(current => {
+        if (current) {
+          console.warn("Auth initialization timed out, forcing loading to false");
+          return false;
+        }
+        return current;
+      });
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const signUp = async (email: string, password: string, nombre?: string) => {
