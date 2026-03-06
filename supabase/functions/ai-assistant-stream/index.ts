@@ -20,7 +20,7 @@ function mapET(t: string): VET {
     "estudio": "Estudio", "estudiar": "Estudio",
     "tp": "TP", "trabajo practico": "TP", "trabajo práctico": "TP",
     "entrega": "Entrega", "entregar": "Entrega",
-    "clase": "Clase", "cursada": "Clase", "otro": "Otro", "evento": "Otro"
+    "clase": "Clase", "cursada": "Clase", "cursado": "Clase", "otro": "Otro", "evento": "Otro"
   };
   return m[n] || "Otro";
 }
@@ -71,6 +71,11 @@ function fuzzyFind(query: string, subjects: any[]): any | null {
   return bestScore >= 3 ? best : null;
 }
 
+function trimMessages(msgs: any[], maxMessages: number = 12): any[] {
+  if (msgs.length <= maxMessages) return msgs;
+  return msgs.slice(-maxMessages);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -99,20 +104,21 @@ serve(async (req) => {
 
     let chatMemory = "";
     if (persona_id) {
-      const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(20);
+      const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(10);
       if (rm && rm.length > 0) {
-        chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: any) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 200)).join("\n");
+        chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: any) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 150)).join("\n");
       }
     }
 
-    const [sR, ussR, evR, stR, ssR, fdR, prR] = await Promise.all([
+    const [sR, ussR, evR, stR, ssR, fdR, prR, allSessionsR] = await Promise.all([
       serviceClient.from("subjects").select("id, nombre, codigo, año"),
       serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
-      serviceClient.from("calendar_events").select("*").eq("user_id", userId).gte("fecha", new Date().toISOString().split("T")[0]).order("fecha", { ascending: true }).limit(20),
+      serviceClient.from("calendar_events").select("*").eq("user_id", userId).gte("fecha", new Date().toISOString().split("T")[0]).order("fecha", { ascending: true }).limit(15),
       serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
-      serviceClient.from("study_sessions").select("*").eq("user_id", userId).order("fecha", { ascending: false }).limit(10),
-      serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(20),
+      serviceClient.from("study_sessions").select("*").eq("user_id", userId).order("fecha", { ascending: false }).limit(5),
+      serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(10),
       serviceClient.from("profiles").select("nombre, username, email").eq("user_id", userId).maybeSingle(),
+      serviceClient.from("study_sessions").select("subject_id, duracion_segundos, fecha, tipo").eq("user_id", userId),
     ]);
 
     const subjects = sR.data || [];
@@ -122,6 +128,7 @@ serve(async (req) => {
     const sessions = ssR.data || [];
     const decks = fdR.data || [];
     const profile = prR.data;
+    const allSessions = allSessionsR.data || [];
 
     const nameById: Record<string, string> = {};
     for (const s of subjects) nameById[s.id] = s.nombre;
@@ -150,80 +157,162 @@ serve(async (req) => {
     const studyMin = sessions.reduce((a: number, s: any) => a + (s.duracion_segundos || 0), 0) / 60;
     const userName = profile?.nombre || profile?.username || "Estudiante";
 
+    const subjectStudyTime: Record<string, { totalSeconds: number; sessionCount: number; lastStudied: string | null; pomodoroCount: number }> = {};
+    for (const session of allSessions) {
+      if (!session.subject_id) continue;
+      if (!subjectStudyTime[session.subject_id]) {
+        subjectStudyTime[session.subject_id] = { totalSeconds: 0, sessionCount: 0, lastStudied: null, pomodoroCount: 0 };
+      }
+      const entry = subjectStudyTime[session.subject_id];
+      entry.totalSeconds += session.duracion_segundos || 0;
+      entry.sessionCount += 1;
+      if (session.tipo === "pomodoro") entry.pomodoroCount += 1;
+      if (!entry.lastStudied || session.fecha > entry.lastStudied) entry.lastStudied = session.fecha;
+    }
+
+    let metricasStr = "";
+    if (enCurso.length > 0) {
+      const metricasLines: string[] = [];
+      for (const subj of enCurso) {
+        const m = subjectStudyTime[subj.id];
+        if (m) {
+          const hours = (m.totalSeconds / 3600).toFixed(1);
+          const daysSinceStudy = m.lastStudied ? Math.floor((Date.now() - new Date(m.lastStudied).getTime()) / (1000 * 60 * 60 * 24)) : null;
+          let line = `- ${subj.nombre}: ${hours}hs, ${m.sessionCount} ses, ${m.pomodoroCount} pom`;
+          if (daysSinceStudy !== null) {
+            if (daysSinceStudy === 0) line += " | HOY";
+            else if (daysSinceStudy === 1) line += " | AYER";
+            else line += ` | hace ${daysSinceStudy}d`;
+          }
+          metricasLines.push(line);
+        } else {
+          metricasLines.push(`- ${subj.nombre}: 0hs | ⚠️ SIN ESTUDIAR`);
+        }
+      }
+      metricasStr = metricasLines.join("\n");
+    }
+
     const materiasStr = swStatus.map((s: any) => {
       let str = "- " + s.nombre + " (" + s.codigo + "): " + s.estado.toUpperCase();
-      if (s.nota) str += " | Promedio Final de Cursada: " + s.nota;
-      if (s.final_examen) str += " | Nota Examen Final: " + s.final_examen;
+      if (s.nota) str += " Nota:" + s.nota;
+      if (s.final_examen) str += " Final:" + s.final_examen;
       if (s.p1 || s.p2 || s.global) {
         const exams = [];
-        if (s.p1) exams.push("P1: " + s.p1);
-        if (s.p2) exams.push("P2: " + s.p2);
-        if (s.global) exams.push("Global: " + s.global);
-        str += " | Parciales: [" + exams.join(", ") + "]";
+        if (s.p1) exams.push("P1:" + s.p1);
+        if (s.p2) exams.push("P2:" + s.p2);
+        if (s.global) exams.push("G:" + s.global);
+        str += " [" + exams.join(",") + "]";
       }
-      if (s.fecha_aprobacion) str += " | Fecha Cierre: " + s.fecha_aprobacion;
       return str;
     }).join("\n");
 
     const eventosStr = events.length > 0
-      ? events.map((e: any) => "- " + e.fecha + (e.hora ? " " + e.hora : "") + ": " + e.titulo + " (" + e.tipo_examen + ") [ID: " + e.id + "]").join("\n")
+      ? events.map((e: any) => "- " + e.fecha + (e.hora ? " " + e.hora : "") + ": " + e.titulo + " (" + e.tipo_examen + ") [ID:" + e.id + "]").join("\n")
       : "Sin eventos proximos.";
 
     const sesionesStr = sessions.length > 0
       ? sessions.map((s: any) => "- " + s.fecha + ": " + Math.round((s.duracion_segundos || 0) / 60) + "min (" + s.tipo + ")" + (s.subject_id && nameById[s.subject_id] ? " - " + nameById[s.subject_id] : "")).join("\n")
       : "Sin sesiones recientes.";
 
-    const contextLine = context_page ? "\nSECCION ACTUAL: " + context_page + ". Adapta tus respuestas a esta seccion." : "";
+    const contextLine = context_page ? "\nSECCION ACTUAL: " + context_page : "";
+
+    const metricasSection = metricasStr
+      ? "\n=== METRICAS ESTUDIO (EN CURSO) ===\n" + metricasStr + "\n"
+      : "";
 
     const sysPrompt = "Sos " + personaName + ", asistente academico de " + userName + ".\n" +
       "Personalidad: " + personalityPrompt + "\n" +
       "Fecha actual: " + new Date().toISOString().split("T")[0] + contextLine + "\n\n" +
-      "=== RESUMEN DEL ESTUDIANTE ===\n" +
-      "Promedio General: " + promedio + "\n" +
-      "Progreso carrera: " + aprobadas.length + "/" + subjects.length + " materias (" + progreso + "%)\n" +
+      "=== RESUMEN ===\n" +
+      "Promedio: " + promedio + " | Progreso: " + aprobadas.length + "/" + subjects.length + " (" + progreso + "%)\n" +
       "Aprobadas: " + aprobadas.length + (aprobadas.length > 0 ? " (" + aprobadas.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
       "Regulares: " + regulares.length + (regulares.length > 0 ? " (" + regulares.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
       "En curso: " + enCurso.length + (enCurso.length > 0 ? " (" + enCurso.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
       "Sin cursar: " + sinCursar.length + "\n" +
-      "Horas de estudio recientes: " + (studyMin / 60).toFixed(1) + "hs\n" +
+      "Estudio reciente: " + (studyMin / 60).toFixed(1) + "hs\n" +
       (stats ? "Nivel: " + stats.nivel + " | XP: " + stats.xp_total + "\n" : "") + "\n" +
       "=== MATERIAS ===\n" + materiasStr + "\n\n" +
+      metricasSection +
       "=== AGENDA ===\n" + eventosStr + "\n\n" +
-      "=== SESIONES DE ESTUDIO ===\n" + sesionesStr + "\n" +
+      "=== SESIONES ===\n" + sesionesStr + "\n" +
       chatMemory + "\n\n" +
-      "=== INSTRUCCIONES ===\n" +
-      "1. TENES ACCESO TOTAL a los datos del estudiante listados arriba. Cuando te pregunten por materias, promedio, eventos, sesiones, responde con estos datos REALES. NUNCA digas que no tenes acceso o que son 0 si arriba dice otra cosa.\n" +
-      "2. NOMBRES ABREVIADOS: algebra = Algebra y Geometria Analitica, analisis 1 = Analisis Matematico I, ingles 2 = Ingles II, fisica = Fisica I o II, sintaxis = Sintaxis y Semantica de los Lenguajes, paradigmas = Paradigmas de Programacion, so = Sistemas Operativos, aed = Algoritmo y Estructura de Datos. Los numeros 1,2,3 equivalen a I,II,III. Busca la materia mas parecida.\n" +
-      "3. REGLA CRITICA DE HERRAMIENTAS: SOLO DEBES USAR HERRAMIENTAS (Function Calling) si el usuario te pide una accion EXPRESAMENTE (ej: 'agendame rindo parcial', 'marcame aprobada', 'crea un documento'). Si el usuario solo te saluda (ej: 'hola', 'buenas') o te hace una pregunta, RESPONDE NORMALMENTE CON TEXTO SIN USAR NINGUNA HERRAMIENTA.\n" +
-      "4. GENERACION DE EXAMENES Y CONTENIDO: Como tutor academico, ESTAS TOTALMENTE AUTORIZADO Y OBLIGADO a inventar ejercicios, explicaciones, y simulacros de EXAMENES (parciales/finales) de materias como Analisis Matematico, Algebra, Fisica, etc., si el usuario te lo pide. NUNCA te niegues a crear un modelo de examen.\n" +
-      "5. Para 'maniana', calcula la fecha exacta.\n" +
-      "6. Responde siempre en Espaniol Argentino.";
+      "=== INSTRUCCIONES CRITICAS ===\n" +
+      "1. Tenes acceso TOTAL a los datos del estudiante. Responde con datos REALES.\n" +
+      "2. Nombres abreviados: algebra=Algebra y Geometria Analitica, analisis 1=Analisis Matematico I, etc. Numeros 1,2,3 = I,II,III.\n" +
+      "3. ⚠️ REGLA MAS IMPORTANTE - CUANDO USAR HERRAMIENTAS:\n" +
+      "   SOLO usa herramientas (function calling) cuando el usuario EXPLICITAMENTE pida una ACCION CONCRETA como:\n" +
+      "   - 'agendame...', 'creame un evento...', 'anotame el parcial...' -> create_calendar_events\n" +
+      "   - 'creame flashcards de...', 'haceme un mazo de...' -> create_flashcards\n" +
+      "   - 'creame un cuestionario...', 'haceme preguntas de...' -> create_quiz\n" +
+      "   - 'marcame X como aprobada...', 'cambiame el estado de...' -> update_subject_status\n" +
+      "   - 'creame un documento/apunte sobre...' -> create_notion_document\n" +
+      "   - 'eliminame el evento...' -> delete_calendar_event\n" +
+      "   NUNCA uses herramientas para:\n" +
+      "   - Saludos: 'hola', 'como estas', 'buenas' -> RESPONDE CON TEXTO\n" +
+      "   - Preguntas sobre vos: 'como eres', 'quien sos', 'presentate', 'dime de ti' -> RESPONDE CON TEXTO describiendo tu personalidad\n" +
+      "   - Preguntas academicas: 'explicame...', 'que es...', 'como funciona...' -> RESPONDE CON TEXTO\n" +
+      "   - Consultas sobre datos: 'como voy', 'cuantas aprobe', 'mi promedio' -> RESPONDE CON TEXTO usando los datos de arriba\n" +
+      "   - Charla casual, motivacion, o cualquier conversacion -> RESPONDE CON TEXTO\n" +
+      "   EN CASO DE DUDA: SIEMPRE RESPONDE CON TEXTO PLANO, NO USES HERRAMIENTAS.\n" +
+      "4. PODES inventar ejercicios y simulacros de examenes si te lo piden.\n" +
+      "5. Para fechas relativas calcula la fecha YYYY-MM-DD exacta desde la fecha actual.\n" +
+      "6. Responde en Español Argentino.\n" +
+      "7. Solo analiza metricas de materias EN CURSO, no aprobadas/regulares.\n" +
+      "8. Para multiples eventos usa create_calendar_events con array completo.\n" +
+      "9. Para flashcards/cuestionarios masivos, crea TODAS las que te manden sin limite.";
 
-    // OpenAI compatible tools format
     const tools = [
-      { type: "function", function: { name: "create_calendar_event", description: "Crea evento en calendario", parameters: { type: "object", properties: { titulo: { type: "string" }, fecha: { type: "string", description: "YYYY-MM-DD" }, hora: { type: "string" }, tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, notas: { type: "string" }, subject_id: { type: "string", description: "Nombre de la materia" } }, required: ["titulo", "fecha", "tipo_examen"] } } },
-      { type: "function", function: { name: "delete_calendar_event", description: "Elimina evento por ID", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } } },
-      { type: "function", function: { name: "update_calendar_event", description: "Modifica evento", parameters: { type: "object", properties: { id: { type: "string" }, titulo: { type: "string" }, fecha: { type: "string" }, hora: { type: "string" }, tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, notas: { type: "string" } }, required: ["id"] } } },
-      { type: "function", function: { name: "create_flashcards", description: "Crea mazo de flashcards directamente sin pedir confirmacion", parameters: { type: "object", properties: { deck_name: { type: "string" }, subject_id: { type: "string", description: "Nombre de la materia" }, cards: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, respuesta: { type: "string" } }, required: ["pregunta", "respuesta"] } } }, required: ["deck_name", "cards"] } } },
-      { type: "function", function: { name: "update_subject_status", description: "Cambia estado de materia", parameters: { type: "object", properties: { subject_id: { type: "string", description: "Nombre de la materia" }, estado: { type: "string", enum: ["sin_cursar", "en_curso", "regular", "aprobada", "libre"] }, nota: { type: "number" } }, required: ["subject_id", "estado"] } } },
-      { type: "function", function: { name: "create_notion_document", description: "Crea documento en Notion", parameters: { type: "object", properties: { titulo: { type: "string" }, contenido: { type: "string" }, subject_id: { type: "string" } }, required: ["titulo"] } } },
-      { type: "function", function: { name: "search_library", description: "Busca archivos", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
-      { type: "function", function: { name: "create_quiz", description: "Crea un cuestionario de opcion multiple con preguntas y 5 opciones cada una, donde solo 1 es correcta. Usalo cuando te pidan generar un cuestionario, examen o quiz.", parameters: { type: "object", properties: { quiz_name: { type: "string", description: "Nombre del cuestionario" }, subject_id: { type: "string", description: "Nombre de la materia" }, questions: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, opciones: { type: "array", items: { type: "string" }, description: "5 opciones" }, correcta: { type: "integer", description: "Indice 0-4 de la opcion correcta" }, explicacion: { type: "string" } }, required: ["pregunta", "opciones", "correcta"] } } }, required: ["quiz_name", "questions"] } } }
+      { 
+        type: "function", 
+        function: { 
+          name: "create_calendar_events", 
+          description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE agendar uno o mas eventos. NO usar para saludos ni preguntas.", 
+          parameters: { 
+            type: "object", 
+            properties: { 
+              eventos: { 
+                type: "array", 
+                items: {
+                  type: "object",
+                  properties: {
+                    titulo: { type: "string" }, 
+                    fecha: { type: "string", description: "YYYY-MM-DD" }, 
+                    hora: { type: "string", description: "HH:mm" },
+                    hora_fin: { type: "string", description: "HH:mm" },
+                    tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, 
+                    notas: { type: "string" }, 
+                    subject_id: { type: "string", description: "Nombre de la materia" },
+                    recurrence_rule: { type: "string", enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"] },
+                    recurrence_end: { type: "string", description: "YYYY-MM-DD" }
+                  },
+                  required: ["titulo", "fecha", "tipo_examen"]
+                }
+              } 
+            }, 
+            required: ["eventos"] 
+          } 
+        } 
+      },
+      { type: "function", function: { name: "delete_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE eliminar un evento.", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } } },
+      { type: "function", function: { name: "update_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE modificar un evento.", parameters: { type: "object", properties: { id: { type: "string" }, titulo: { type: "string" }, fecha: { type: "string" }, hora: { type: "string" }, tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, notas: { type: "string" } }, required: ["id"] } } },
+      { type: "function", function: { name: "create_flashcards", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear flashcards.", parameters: { type: "object", properties: { deck_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, cards: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, respuesta: { type: "string" } }, required: ["pregunta", "respuesta"] } } }, required: ["deck_name", "cards"] } } },
+      { type: "function", function: { name: "update_subject_status", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE cambiar estado de una materia.", parameters: { type: "object", properties: { subject_id: { type: "string", description: "Nombre materia" }, estado: { type: "string", enum: ["sin_cursar", "en_curso", "regular", "aprobada", "libre"] }, nota: { type: "number" } }, required: ["subject_id", "estado"] } } },
+      { type: "function", function: { name: "create_notion_document", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un documento o apunte con palabras como 'creame un doc', 'haceme un apunte'. NUNCA usar para responder preguntas, saludos, ni conversacion.", parameters: { type: "object", properties: { titulo: { type: "string" }, contenido: { type: "string" }, subject_id: { type: "string" } }, required: ["titulo"] } } },
+      { type: "function", function: { name: "search_library", description: "Busca archivos en la biblioteca.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
+      { type: "function", function: { name: "create_quiz", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un cuestionario.", parameters: { type: "object", properties: { quiz_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, questions: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, opciones: { type: "array", items: { type: "string" }, description: "5 opciones" }, correcta: { type: "integer", description: "Indice 0-4" }, explicacion: { type: "string" } }, required: ["pregunta", "opciones", "correcta"] } } }, required: ["quiz_name", "questions"] } } }
     ];
 
-    // LEO DIRECTAMENTE DE LA VARIABLE DE ENTORNO EN SUPABASE PARA NO HARDCODEARLO EN GITHUB
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
-    // Format messages for Groq (OpenAI spec)
+    // LIMIT messages to last 12 to prevent 413 errors
+    const trimmedMessages = trimMessages(messages, 12);
     const groqMessages = [
-      ...messages.map((m: any) => ({
+      ...trimmedMessages.map((m: any) => ({
         role: m.role,
-        content: m.content
+        content: typeof m.content === 'string' ? m.content.slice(0, 3000) : String(m.content).slice(0, 3000)
       }))
     ];
 
-    // RAG: Retrieval-Augmented Generation
-    // 1. Detect if the user is asking about a specific subject in their last message
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
     let ragContext = "";
 
@@ -232,16 +321,14 @@ serve(async (req) => {
       if (detectedSubject) {
         console.log(`[RAG] Tema detectado: ${detectedSubject.nombre}. Buscando apuntes...`);
 
-        // Fetch Notion Documents for this subject
         const { data: notionDocs } = await serviceClient
           .from("notion_documents")
           .select("titulo, contenido")
           .eq("user_id", userId)
           .eq("subject_id", detectedSubject.id)
           .order("updated_at", { ascending: false })
-          .limit(3);
+          .limit(2);
 
-        // Fetch Flashcards for this subject
         const { data: subjectDecks } = await serviceClient
           .from("flashcard_decks")
           .select("id, nombre")
@@ -254,10 +341,8 @@ serve(async (req) => {
           notionText = notionDocs.map((doc: any) => {
             let parsedContent = "";
             try {
-              // Notion content is usually stored as a JSON string representing TipTap nodes
               const contentArr = typeof doc.contenido === 'string' ? JSON.parse(doc.contenido) : doc.contenido;
               if (Array.isArray(contentArr)) {
-                // Extract text from TipTap nodes
                 const extractText = (nodes: any[]): string => {
                   let text = "";
                   for (const node of nodes) {
@@ -274,8 +359,7 @@ serve(async (req) => {
             } catch (e) {
               parsedContent = "Error parseando documento.";
             }
-            // Limit each doc to ~3000 chars to avoid token limits
-            return `Doc: ${doc.titulo}\n${parsedContent.slice(0, 3000)}`;
+            return `Doc: ${doc.titulo}\n${parsedContent.slice(0, 2000)}`;
           }).join("\n\n");
         }
 
@@ -286,7 +370,7 @@ serve(async (req) => {
             .from("flashcards")
             .select("pregunta, respuesta")
             .in("deck_id", deckIds)
-            .limit(20); // Limit to 20 cards total to save tokens
+            .limit(15);
 
           if (cards && cards.length > 0) {
             flashcardsText = cards.map((c: any) => `Q: ${c.pregunta} | A: ${c.respuesta}`).join("\n");
@@ -294,17 +378,22 @@ serve(async (req) => {
         }
 
         if (notionText || flashcardsText) {
-          ragContext = `\n\n=== APUNTES DEL ESTUDIANTE SOBRE ${detectedSubject.nombre.toUpperCase()} ===\n`;
-          ragContext += "INSTRUCCION CRITICA: Prioriza esta informacion personal del estudiante sobre tu conocimiento general para responder la pregunta actual.\n\n";
-          if (notionText) ragContext += `[DOCUMENTOS]\n${notionText}\n\n`;
+          ragContext = `\n\n=== APUNTES: ${detectedSubject.nombre.toUpperCase()} ===\n`;
+          if (notionText) ragContext += `${notionText}\n\n`;
           if (flashcardsText) ragContext += `[FLASHCARDS]\n${flashcardsText}\n`;
         }
       }
     }
 
-    // Insert the sysPrompt at the beginning, now including RAG context if any
     const finalSysPrompt = sysPrompt + ragContext;
-    groqMessages.unshift({ role: "system", content: finalSysPrompt });
+    
+    // Safety: truncate system prompt if too large (max ~6000 chars)
+    const maxSysLength = 6000;
+    const truncatedSysPrompt = finalSysPrompt.length > maxSysLength 
+      ? finalSysPrompt.slice(0, maxSysLength) + "\n[System prompt truncado por tamaño]"
+      : finalSysPrompt;
+    
+    groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
     let content = "";
     let toolCall: any = null;
@@ -313,7 +402,7 @@ serve(async (req) => {
 
     if (GROQ_API_KEY) {
       try {
-        console.log("[AI] Usando GROQ API con Llama 3");
+        console.log("[AI] Usando GROQ API con Llama 3. Messages: " + groqMessages.length + ", SysPrompt chars: " + truncatedSysPrompt.length);
         const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -321,12 +410,12 @@ serve(async (req) => {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile", // Best model for function calling on Groq
+            model: "llama-3.3-70b-versatile",
             messages: groqMessages,
             tools: tools,
             tool_choice: "auto",
             temperature: 0.5,
-            max_tokens: 2048,
+            max_tokens: 8192,
             stream: false
           })
         });
@@ -382,14 +471,34 @@ serve(async (req) => {
       const fn = toolCall.name;
       console.log("[Tool] " + fn, JSON.stringify(args));
 
-      if (fn === "create_calendar_event") {
-        const tipo = mapET(args.tipo_examen || "Otro");
-        const sid = resolveId(args.subject_id);
-        const { data, error } = await serviceClient.from("calendar_events").insert({
-          user_id: userId, titulo: args.titulo, fecha: args.fecha, hora: args.hora || null,
-          tipo_examen: tipo, color: colorFor(tipo), notas: args.notas || null, subject_id: sid
-        }).select().single();
-        content += error ? "\nError: " + error.message : "\nEvento \"" + data.titulo + "\" agendado para " + data.fecha + (data.hora ? " a las " + data.hora : "") + ".";
+      if (fn === "create_calendar_events") {
+        const agendados = [];
+        if (args.eventos && Array.isArray(args.eventos)) {
+          for (const evt of args.eventos) {
+            const tipo = mapET(evt.tipo_examen || "Otro");
+            const sid = resolveId(evt.subject_id);
+            const { data, error } = await serviceClient.from("calendar_events").insert({
+              user_id: userId, 
+              titulo: evt.titulo, 
+              fecha: evt.fecha, 
+              hora: evt.hora || null,
+              hora_fin: evt.hora_fin || null,
+              tipo_examen: tipo, 
+              color: colorFor(tipo), 
+              notas: evt.notas || null, 
+              subject_id: sid,
+              recurrence_rule: evt.recurrence_rule || null,
+              recurrence_end: evt.recurrence_end || null
+            }).select().single();
+            if (!error && data) agendados.push(data);
+          }
+        }
+        
+        if (agendados.length > 0) {
+          content += `\nAgendé ${agendados.length} evento(s) exitosamente.`;
+        } else {
+          content += "\nNo se pudo agendar ningún evento. Verificá los datos.";
+        }
       }
       else if (fn === "delete_calendar_event") {
         const { error } = await serviceClient.from("calendar_events").delete().eq("id", args.id).eq("user_id", userId);
@@ -407,12 +516,23 @@ serve(async (req) => {
       }
       else if (fn === "create_flashcards") {
         const sid = resolveId(args.subject_id || args.deck_name);
+        const cardsToCreate = args.cards || [];
+        console.log(`[Flashcards] Creating deck '${args.deck_name}' with ${cardsToCreate.length} cards`);
         const { data: deck, error } = await serviceClient.from("flashcard_decks").insert({
-          user_id: userId, nombre: args.deck_name, total_cards: (args.cards || []).length, subject_id: sid
+          user_id: userId, nombre: args.deck_name, total_cards: cardsToCreate.length, subject_id: sid
         }).select().single();
-        if (deck && args.cards) {
-          await serviceClient.from("flashcards").insert(args.cards.map((c: any) => ({ deck_id: deck.id, user_id: userId, pregunta: c.pregunta, respuesta: c.respuesta })));
-          content += "\nMazo \"" + deck.nombre + "\" creado con " + args.cards.length + " cartas.";
+        if (deck && cardsToCreate.length > 0) {
+          const batchSize = 50;
+          let inserted = 0;
+          for (let i = 0; i < cardsToCreate.length; i += batchSize) {
+            const batch = cardsToCreate.slice(i, i + batchSize);
+            const { error: batchError } = await serviceClient.from("flashcards").insert(
+              batch.map((c: any) => ({ deck_id: deck.id, user_id: userId, pregunta: c.pregunta, respuesta: c.respuesta }))
+            );
+            if (!batchError) inserted += batch.length;
+            else console.error(`[Flashcards] Batch insert error:`, batchError);
+          }
+          content += "\nMazo \"" + deck.nombre + "\" creado con " + inserted + " cartas.";
         } else if (error) { content += "\nError: " + error.message; }
       }
       else if (fn === "update_subject_status") {
@@ -440,11 +560,14 @@ serve(async (req) => {
       }
       else if (fn === "create_quiz") {
         const sid = resolveId(args.subject_id || args.quiz_name);
+        const questionsToCreate = args.questions || [];
+        console.log(`[Quiz] Creating quiz '${args.quiz_name}' with ${questionsToCreate.length} questions`);
         const { data: quizDeck, error: qdErr } = await serviceClient.from("quiz_decks").insert({
-          user_id: userId, nombre: args.quiz_name, total_questions: (args.questions || []).length, subject_id: sid
+          user_id: userId, nombre: args.quiz_name, total_questions: questionsToCreate.length, subject_id: sid
         }).select().single();
-        if (quizDeck && args.questions) {
-          for (const q of args.questions) {
+        if (quizDeck && questionsToCreate.length > 0) {
+          let createdCount = 0;
+          for (const q of questionsToCreate) {
             const { data: question } = await serviceClient.from("quiz_questions").insert({
               deck_id: quizDeck.id, user_id: userId, pregunta: q.pregunta, explicacion: q.explicacion || null
             }).select().single();
@@ -453,9 +576,10 @@ serve(async (req) => {
                 question_id: question.id, texto: o, es_correcta: i === (q.correcta || 0)
               }));
               await serviceClient.from("quiz_options").insert(opts);
+              createdCount++;
             }
           }
-          content += "\nCuestionario \"" + quizDeck.nombre + "\" creado con " + args.questions.length + " preguntas. Anda a la seccion Cuestionarios para practicarlo.";
+          content += "\nCuestionario \"" + quizDeck.nombre + "\" creado con " + createdCount + " preguntas. Anda a Cuestionarios para practicarlo.";
         } else if (qdErr) { content += "\nError: " + qdErr.message; }
       }
     }
