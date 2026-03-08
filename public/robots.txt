@@ -1,6 +1,12 @@
 User-agent: Googlebot
 Allow: /
 
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
 User-agent: Bingbot
 Allow: /
 
@@ -12,3 +18,24 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /carrera
+Disallow: /calendario
+Disallow: /pomodoro
+Disallow: /metricas
+Disallow: /asistente
+Disallow: /flashcards
+Disallow: /cuestionarios
+Disallow: /biblioteca
+Disallow: /logros
+Disallow: /notion
+Disallow: /amigos
+Disallow: /configuracion
+Disallow: /admin
+Disallow: /bosque
+Disallow: /rutinas
+Disallow: /discord
+Disallow: /mapa
+Disallow: /marketplace
+
+Sitemap: https://tabe-oficial.vercel.app/sitemap.xml
