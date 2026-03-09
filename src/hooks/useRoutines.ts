@@ -175,82 +175,114 @@ export function useRoutines() {
 
     const createRoutine = async (formData: RoutineFormData) => {
         if (!user) return;
-        const { error } = await supabase.from("routines").insert({
-            user_id: user.id,
-            name: formData.name,
-            description: formData.description || null,
-            category: formData.category,
-            subject_id: formData.subject_id || null,
-            color: formData.color,
-            start_time: formData.start_time,
-            end_time: formData.end_time,
-            days_of_week: formData.days_of_week,
-            start_date: formData.start_date,
-            end_date: formData.end_date || null,
-        });
-        if (error) { toast.error("Error al crear rutina"); console.error(error); return; }
-        toast.success("✅ Rutina creada");
-        fetchRoutines();
+        try {
+            const { error } = await supabase.from("routines").insert({
+                user_id: user.id,
+                name: formData.name,
+                description: formData.description || null,
+                category: formData.category,
+                subject_id: formData.subject_id || null,
+                color: formData.color,
+                start_time: formData.start_time,
+                end_time: formData.end_time,
+                days_of_week: formData.days_of_week,
+                start_date: formData.start_date,
+                end_date: formData.end_date || null,
+            });
+            if (error) throw error;
+            toast.success("✅ Rutina creada");
+            await fetchRoutines();
+        } catch (error: any) {
+            toast.error("Error al crear rutina: " + error.message);
+            console.error("Create routine error:", error);
+        }
     };
 
     const updateRoutine = async (id: string, formData: Partial<RoutineFormData>) => {
         if (!user) return;
-        const { error } = await supabase.from("routines").update(formData as any).eq("id", id).eq("user_id", user.id);
-        if (error) { toast.error("Error al actualizar"); return; }
-        toast.success("Rutina actualizada");
-        fetchRoutines();
+        try {
+            const { error } = await supabase.from("routines").update(formData as any).eq("id", id).eq("user_id", user.id);
+            if (error) throw error;
+            toast.success("Rutina actualizada");
+            await fetchRoutines();
+        } catch (error: any) {
+            toast.error("Error al actualizar: " + error.message);
+            console.error("Update routine error:", error);
+        }
     };
 
     /** Create an override that applies changes only from a given date forward */
     const editRoutineFromDate = async (routineId: string, changes: Partial<RoutineFormData>, fromDate: string) => {
         if (!user) return;
-        const { error } = await supabase.from("routine_overrides").insert({
-            routine_id: routineId,
-            effective_from: fromDate,
-            days_of_week: changes.days_of_week ?? null,
-            start_time: changes.start_time ?? null,
-            end_time: changes.end_time ?? null,
-            name: changes.name ?? null,
-            is_cancelled: false,
-        });
-        if (error) { toast.error("Error al crear override"); return; }
-        toast.success("✅ Cambios aplicados desde " + fromDate);
-        fetchRoutines();
+        try {
+            const { error } = await supabase.from("routine_overrides").insert({
+                routine_id: routineId,
+                effective_from: fromDate,
+                days_of_week: changes.days_of_week ?? null,
+                start_time: changes.start_time ?? null,
+                end_time: changes.end_time ?? null,
+                name: changes.name ?? null,
+                is_cancelled: false,
+            });
+            if (error) throw error;
+            toast.success("✅ Cambios aplicados desde " + fromDate);
+            await fetchRoutines();
+        } catch (error: any) {
+            toast.error("Error al crear override: " + error.message);
+            console.error("Override error:", error);
+        }
     };
 
     const stopRoutine = async (id: string) => {
         if (!user) return;
         const today = format(new Date(), "yyyy-MM-dd");
-        const { error } = await supabase.from("routines").update({ end_date: today }).eq("id", id).eq("user_id", user.id);
-        if (error) { toast.error("Error al cortar rutina"); return; }
-        toast.success("⏹️ Rutina cortada");
-        fetchRoutines();
+        try {
+            const { error } = await supabase.from("routines").update({ end_date: today }).eq("id", id).eq("user_id", user.id);
+            if (error) throw error;
+            toast.success("⏹️ Rutina cortada");
+            await fetchRoutines();
+        } catch (error: any) {
+            toast.error("Error al cortar rutina: " + error.message);
+            console.error("Stop routine error:", error);
+        }
     };
 
     const deleteRoutine = async (id: string) => {
         if (!user) return;
-        const { error } = await supabase.from("routines").update({ is_active: false }).eq("id", id).eq("user_id", user.id);
-        if (error) { toast.error("Error al eliminar"); return; }
-        toast.success("Rutina eliminada");
-        fetchRoutines();
-        fetchLogsForWeek(currentWeekStart);
+        try {
+            const { error } = await supabase.from("routines").update({ is_active: false }).eq("id", id).eq("user_id", user.id);
+            if (error) throw error;
+            toast.success("Rutina eliminada");
+            await Promise.all([
+                fetchRoutines(),
+                fetchLogsForWeek(currentWeekStart)
+            ]);
+        } catch (error: any) {
+            toast.error("Error al eliminar: " + error.message);
+            console.error("Delete routine error:", error);
+        }
     };
 
     // ─── Logging ──────────────────────────────────
 
     const logRoutine = async (routineId: string, logDate: string, logData: LogFormData) => {
         if (!user) return;
-        const { error } = await supabase.from("routine_logs").upsert({
-            routine_id: routineId,
-            user_id: user.id,
-            log_date: logDate,
-            completed: logData.completed,
-            completion_percentage: logData.completed ? 100 : logData.completion_percentage,
-            notes: logData.notes || null,
-        }, { onConflict: "routine_id,log_date" });
-        if (error) { toast.error("Error al registrar"); console.error(error); return; }
-        toast.success(logData.completed ? "🎉 ¡Rutina completada!" : `⚡ Registrado al ${logData.completion_percentage}%`);
-        fetchLogsForWeek(currentWeekStart);
+        try {
+            const { error } = await supabase.from("routine_logs").upsert({
+                routine_id: routineId,
+                user_id: user.id,
+                log_date: logDate,
+                completed: logData.completed,
+                completion_percentage: logData.completed ? 100 : logData.completion_percentage,
+                notes: logData.notes || null,
+            }, { onConflict: "routine_id,log_date" });
+            if (error) throw error;
+            toast.success(logData.completed ? "🎉 ¡Rutina completada!" : `⚡ Registrado al ${logData.completion_percentage}%`);
+            await fetchLogsForWeek(currentWeekStart);
+        } catch (error: any) {
+            toast.error("Error al registrar: " + error.message);
+            console.error("Log routine error:", error);
+        }
     };
 
     // ─── Resolvers ────────────────────────────────

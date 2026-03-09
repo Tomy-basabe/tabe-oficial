@@ -469,13 +469,14 @@ export default function Routines() {
         return true;
     };
 
-    const handleSave = (data: any) => {
+    const handleSave = async (data: any) => {
         if (editRoutine) {
-            updateRoutine(editRoutine.id, data);
+            await updateRoutine(editRoutine.id, data);
         } else {
-            createRoutine(data);
+            await createRoutine(data);
         }
         setEditRoutine(null);
+        setFormOpen(false);
     };
 
     const weekDays = useMemo(() =>
