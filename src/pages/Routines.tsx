@@ -35,11 +35,56 @@ for (let h = 0; h < 24; h++) {
     TIME_OPTIONS.push(`${String(h).padStart(2, "0")}:30`);
 }
 
-function timeToBlockIndex(time: string): number {
-    const [h] = time.split(":").map(Number);
-    // blocks: 08,10,12,14,16,18,20,22,00  (indices 0-8)
-    if (h < 8) return 8; // midnight block
-    return Math.floor((h - 8) / 2);
+function timeToMinutes(time: string): number {
+    const [h, m] = time.split(":").map(Number);
+    return h * 60 + m;
+}
+
+function getPositionStyles(start: string, end: string, minHour: number = 8) {
+    const startMin = timeToMinutes(start);
+    const endMin = timeToMinutes(end);
+    const gridStartMin = minHour * 60;
+    
+    // Each hour is 64px (h-16 in tailwind)
+    const top = ((startMin - gridStartMin) / 60) * 64;
+    const height = ((endMin - startMin) / 60) * 64;
+    
+    return {
+        top: `${top}px`,
+        height: `${height}px`,
+        minHeight: '24px'
+    };
+}
+
+// Helper to determine overlap and widths
+function calculateOverlaps(routines: ResolvedRoutine[]) {
+    const sorted = [...routines].sort((a, b) => a.start_time.localeCompare(b.start_time));
+    const groups: ResolvedRoutine[][] = [];
+    
+    sorted.forEach(r => {
+        let placed = false;
+        for (const group of groups) {
+            const lastInGroup = group[group.length - 1];
+            if (r.start_time < lastInGroup.end_time) {
+                group.push(r);
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) groups.push([r]);
+    });
+
+    const results = new Map<string, { width: string, left: string }>();
+    groups.forEach(group => {
+        const width = 100 / group.length;
+        group.forEach((r, i) => {
+            results.set(r.id, {
+                width: `${width}%`,
+                left: `${width * i}%`
+            });
+        });
+    });
+    return results;
 }
 
 function timeLabel(t: string): string {
@@ -351,32 +396,42 @@ function RoutineLogDialog({ open, routine, dateStr, existingLog, onClose, onLog 
 
 // ───────────────────────────── Routine Block ─────────────────────────────────
 
-function RoutineBlock({ routine, log, onClick }: { routine: ResolvedRoutine; log?: RoutineLog; onClick: () => void }) {
+function RoutineBlock({ 
+    routine, 
+    log, 
+    onClick,
+    style 
+}: { 
+    routine: ResolvedRoutine; 
+    log?: RoutineLog; 
+    onClick: () => void;
+    style?: React.CSSProperties;
+}) {
     const isDone = log?.completed;
     const hasPct = log && !log.completed && log.completion_percentage > 0;
 
     return (
         <button onClick={onClick}
+            style={style}
             className={cn(
-                "w-full text-left rounded-lg px-2 py-1.5 border transition-all hover:scale-[1.02] hover:shadow-md group relative overflow-hidden",
-                isDone ? "border-neon-green/50 bg-neon-green/10" :
-                    hasPct ? "border-neon-gold/50 bg-neon-gold/10" :
-                        "border-border/50 bg-card/80 hover:border-primary/30"
+                "absolute rounded-md px-2 py-1 border transition-all hover:z-10 hover:brightness-110 group overflow-hidden shadow-sm",
+                isDone ? "border-neon-green/40 bg-neon-green/10" :
+                    hasPct ? "border-neon-gold/40 bg-neon-gold/10" :
+                        "border-white/10 bg-card/90 hover:border-primary/50"
             )}>
             {/* Color strip */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg" style={{ backgroundColor: routine.color }} />
+            <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: routine.color }} />
 
-            <div className="pl-2">
-                <p className={cn("text-xs font-semibold truncate",
+            <div className="pl-1.5 h-full flex flex-col justify-start overflow-hidden">
+                <p className={cn("text-[11px] font-bold truncate leading-tight",
                     isDone ? "text-neon-green" : hasPct ? "text-neon-gold" : "text-foreground"
                 )}>
-                    {isDone && <CheckCircle className="w-3 h-3 inline mr-1" />}
                     {routine.name}
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-[9px] text-muted-foreground font-mono opacity-80">
                     {timeLabel(routine.start_time)}–{timeLabel(routine.end_time)}
-                    {hasPct && <span className="ml-1 text-neon-gold">{log!.completion_percentage}%</span>}
                 </p>
+                {hasPct && <span className="text-[9px] text-neon-gold font-bold mt-auto mb-0.5">{log!.completion_percentage}%</span>}
             </div>
         </button>
     );
@@ -403,25 +458,6 @@ export default function Routines() {
     const [filterYear, setFilterYear] = useState<string>("all");
     const [filterSubject, setFilterSubject] = useState<string>("all");
 
-    const weekDays = useMemo(() =>
-        Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)),
-        [currentWeekStart]
-    );
-
-    const stats = weekStats();
-
-    // Build year options from subjects
-    const yearOptions = useMemo(() => {
-        const years = new Set(subjects.map(s => s.año));
-        return Array.from(years).sort();
-    }, [subjects]);
-
-    // Filtered subjects by year
-    const filteredSubjects = useMemo(() => {
-        if (filterYear === "all") return subjects;
-        return subjects.filter(s => s.año === Number(filterYear));
-    }, [subjects, filterYear]);
-
     // Filter routines for display
     const filterRoutine = (r: ResolvedRoutine): boolean => {
         if (filterSubject !== "all") return r.subject_id === filterSubject;
@@ -442,12 +478,30 @@ export default function Routines() {
         setEditRoutine(null);
     };
 
-    // Time blocks for the grid: 08-24 in 2h steps
-    const gridBlocks = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"];
+    const weekDays = useMemo(() =>
+        Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)),
+        [currentWeekStart]
+    );
+
+    const stats = weekStats();
+
+    // Build year options from subjects
+    const yearOptions = useMemo(() => {
+        const years = new Set(subjects.map(s => s.año));
+        return Array.from(years).sort();
+    }, [subjects]);
+
+    // Filtered subjects by year
+    const filteredSubjects = useMemo(() => {
+        if (filterYear === "all") return subjects;
+        return subjects.filter(s => s.año === Number(filterYear));
+    }, [subjects, filterYear]);
+    // Hourly blocks for the grid: 08:00 to 24:00
+    const gridHours = Array.from({ length: 17 }, (_, i) => 8 + i); // 8 to 24
 
     return (
         <div className="p-4 lg:p-8 space-y-6">
-            {/* Header */}
+            {/* Header omitted for brevity in chunk - same as before */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                     <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
@@ -456,16 +510,16 @@ export default function Routines() {
                     <p className="text-muted-foreground mt-1">Organiza tu semana y registra tu cumplimiento</p>
                 </div>
                 <Button onClick={() => { setEditRoutine(null); setFormOpen(true); }}
-                    className="bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90">
+                    className="bg-gradient-to-r from-neon-cyan to-neon-purple text-white hover:opacity-90 shadow-lg shadow-primary/20">
                     <Plus className="w-4 h-4 mr-2" /> Nueva Rutina
                 </Button>
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3 card-gamer rounded-xl p-3">
+            <div className="flex flex-wrap items-center gap-3 card-gamer rounded-xl p-3 border-white/5 bg-black/20 backdrop-blur-sm">
                 <Filter className="w-4 h-4 text-muted-foreground" />
                 <Select value={filterYear} onValueChange={v => { setFilterYear(v); setFilterSubject("all"); }}>
-                    <SelectTrigger className="w-[140px] h-9 bg-background text-sm">
+                    <SelectTrigger className="w-[140px] h-9 bg-background/50 text-sm">
                         <SelectValue placeholder="Año" />
                     </SelectTrigger>
                     <SelectContent>
@@ -474,7 +528,7 @@ export default function Routines() {
                     </SelectContent>
                 </Select>
                 <Select value={filterSubject} onValueChange={setFilterSubject}>
-                    <SelectTrigger className="w-[180px] h-9 bg-background text-sm">
+                    <SelectTrigger className="w-[180px] h-9 bg-background/50 text-sm">
                         <SelectValue placeholder="Materia" />
                     </SelectTrigger>
                     <SelectContent>
@@ -484,47 +538,43 @@ export default function Routines() {
                 </Select>
                 {(filterYear !== "all" || filterSubject !== "all") && (
                     <Button variant="ghost" size="sm" onClick={() => { setFilterYear("all"); setFilterSubject("all"); }}
-                        className="text-xs text-muted-foreground">
+                        className="text-xs text-muted-foreground hover:text-foreground">
                         <RotateCcw className="w-3 h-3 mr-1" /> Limpiar
                     </Button>
                 )}
             </div>
 
             {/* Week navigation */}
-            <div className="flex items-center justify-between card-gamer rounded-xl p-3">
-                <Button variant="ghost" size="icon" onClick={goToPrevWeek}>
-                    <ChevronLeft className="w-5 h-5" />
+            <div className="flex items-center justify-between card-gamer rounded-xl p-2 border-white/5 bg-black/20">
+                <Button variant="ghost" size="icon" onClick={goToPrevWeek} className="hover:bg-primary/20">
+                    <ChevronLeft className="w-5 h-5 text-primary" />
                 </Button>
                 <div className="flex items-center gap-3">
                     <CalendarDays className="w-5 h-5 text-primary" />
-                    <span className="font-display font-semibold text-sm lg:text-base">
+                    <span className="font-display font-semibold text-sm lg:text-base tracking-wider uppercase">
                         {format(currentWeekStart, "d MMM", { locale: es })} — {format(addDays(currentWeekStart, 6), "d MMM yyyy", { locale: es })}
                     </span>
-                    <Button variant="outline" size="sm" onClick={goToCurrentWeek} className="text-xs">
+                    <Button variant="secondary" size="sm" onClick={goToCurrentWeek} className="text-[10px] h-7 px-3 uppercase tracking-tighter">
                         Hoy
                     </Button>
                 </div>
-                <Button variant="ghost" size="icon" onClick={goToNextWeek}>
-                    <ChevronRight className="w-5 h-5" />
+                <Button variant="ghost" size="icon" onClick={goToNextWeek} className="hover:bg-primary/20">
+                    <ChevronRight className="w-5 h-5 text-primary" />
                 </Button>
             </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-3 gap-3">
-                <div className="card-gamer rounded-xl p-4 text-center">
-                    <p className={cn("text-2xl font-display font-bold",
-                        stats.pct >= 70 ? "text-neon-green" : stats.pct >= 40 ? "text-neon-gold" : "text-destructive"
-                    )}>{stats.pct}%</p>
-                    <p className="text-xs text-muted-foreground mt-1">Cumplimiento</p>
-                </div>
-                <div className="card-gamer rounded-xl p-4 text-center">
-                    <p className="text-2xl font-display font-bold text-neon-cyan">{stats.scheduled}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Programadas</p>
-                </div>
-                <div className="card-gamer rounded-xl p-4 text-center">
-                    <p className="text-2xl font-display font-bold text-neon-gold">{stats.done}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Completadas</p>
-                </div>
+                {[
+                    { label: "Cumplimiento", val: `${stats.pct}%`, color: stats.pct >= 70 ? "text-neon-green" : stats.pct >= 40 ? "text-neon-gold" : "text-destructive" },
+                    { label: "Programadas", val: stats.scheduled, color: "text-neon-cyan" },
+                    { label: "Completadas", val: stats.done, color: "text-neon-gold" }
+                ].map((s, i) => (
+                    <div key={i} className="card-gamer rounded-xl p-3 text-center border-white/5 bg-black/30">
+                        <p className={cn("text-2xl font-display font-bold leading-none", s.color)}>{s.val}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2">{s.label}</p>
+                    </div>
+                ))}
             </div>
 
             {loading ? (
@@ -534,65 +584,77 @@ export default function Routines() {
             ) : (
                 <>
                     {/* Weekly Calendar Grid */}
-                    <div className="card-gamer rounded-xl overflow-hidden">
-                        {/* Day headers */}
-                        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border">
-                            <div className="p-2 border-r border-border" />
+                    <div className="card-gamer rounded-xl overflow-hidden border-white/10 shadow-2xl bg-black/40">
+                        <div className="grid grid-cols-[60px_repeat(7,1fr)]">
+                            {/* Sticky corner */}
+                            <div className="h-12 border-b border-r border-white/10 bg-black/40" />
+                            
+                            {/* Day headers */}
                             {weekDays.map((day, i) => (
                                 <div key={i} className={cn(
-                                    "p-2 text-center border-r last:border-r-0 border-border",
-                                    isToday(day) && "bg-primary/10"
+                                    "h-12 flex flex-col items-center justify-center border-b border-r last:border-r-0 border-white/10",
+                                    isToday(day) ? "bg-primary/20 shadow-[inset_0_0_20px_rgba(var(--primary),0.1)]" : "bg-black/20"
                                 )}>
-                                    <p className="text-xs text-muted-foreground">{DAY_LABELS[day.getDay()]}</p>
-                                    <p className={cn("text-sm font-bold",
-                                        isToday(day) ? "text-primary" : "text-foreground"
-                                    )}>{format(day, "d")}</p>
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                                        {DAY_LABELS[day.getDay()]}
+                                    </span>
+                                    <span className={cn("text-lg font-display font-bold leading-none",
+                                        isToday(day) ? "text-primary text-glow-cyan" : "text-foreground"
+                                    )}>{format(day, "d")}</span>
                                 </div>
                             ))}
-                        </div>
 
-                        {/* Time blocks */}
-                        {gridBlocks.map((block, blockIdx) => (
-                            <div key={block} className={cn(
-                                "grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 border-border min-h-[64px]",
-                                blockIdx % 2 === 0 ? "bg-background" : "bg-muted/20"
-                            )}>
-                                {/* Time label */}
-                                <div className="p-1 border-r border-border flex items-start justify-end pr-2">
-                                    <span className="text-[10px] text-muted-foreground font-mono">{block}</span>
-                                </div>
+                            {/* Time sidebar */}
+                            <div className="relative border-r border-white/10 bg-black/20">
+                                {gridHours.map(h => (
+                                    <div key={h} className="h-16 flex items-start justify-end pr-2 pt-1 border-b border-white/5 last:border-b-0">
+                                        <span className="text-[10px] text-muted-foreground font-mono font-medium">
+                                            {String(h).padStart(2, "0")}:00
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
 
-                                {/* Day cells */}
-                                {weekDays.map((day, dayIdx) => {
-                                    const dateStr = format(day, "yyyy-MM-dd");
-                                    const dayRoutines = getRoutinesForDate(day)
-                                        .filter(filterRoutine)
-                                        .filter(r => {
-                                            const rBlock = timeToBlockIndex(r.start_time);
-                                            return rBlock === blockIdx;
-                                        })
-                                        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+                            {/* Grid Content */}
+                            {weekDays.map((day, dayIdx) => {
+                                const dateStr = format(day, "yyyy-MM-dd");
+                                const dayRoutines = getRoutinesForDate(day).filter(filterRoutine);
+                                const overlapStyles = calculateOverlaps(dayRoutines);
 
-                                    return (
-                                        <div key={dayIdx} className={cn(
-                                            "p-1 border-r last:border-r-0 border-border space-y-1",
-                                            isToday(day) && "bg-primary/5"
-                                        )}>
-                                            {dayRoutines.map(r => (
+                                return (
+                                    <div key={dayIdx} className={cn(
+                                        "relative border-r last:border-r-0 border-white/10",
+                                        isToday(day) && "bg-primary/[0.03]"
+                                    )}>
+                                        {/* Background horizontal lines */}
+                                        {gridHours.map(h => (
+                                            <div key={h} className="h-16 border-b border-white/5 last:border-b-0" />
+                                        ))}
+                                        
+                                        {/* Routine Blocks */}
+                                        {dayRoutines.map(r => {
+                                            const pos = getPositionStyles(r.start_time, r.end_time);
+                                            const overlap = overlapStyles.get(r.id);
+                                            
+                                            return (
                                                 <RoutineBlock
                                                     key={r.id}
                                                     routine={r}
                                                     log={getLogForRoutineAndDate(r.id, dateStr)}
                                                     onClick={() => setLogTarget({ routine: r, dateStr })}
+                                                    style={{
+                                                        ...pos,
+                                                        width: overlap?.width,
+                                                        left: overlap?.left
+                                                    }}
                                                 />
-                                            ))}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ))}
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
-
                     {/* Routine List */}
                     {routines.length > 0 && (
                         <div>
