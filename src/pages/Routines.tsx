@@ -299,9 +299,10 @@ interface LogDialogProps {
     existingLog?: RoutineLog;
     onClose: () => void;
     onLog: (routineId: string, date: string, data: any) => void;
+    onEdit: (routine: Routine) => void;
 }
 
-function RoutineLogDialog({ open, routine, dateStr, existingLog, onClose, onLog }: LogDialogProps) {
+function RoutineLogDialog({ open, routine, dateStr, existingLog, onClose, onLog, onEdit }: LogDialogProps) {
     const [mode, setMode] = useState<"check" | "percentage">(existingLog ? (existingLog.completed ? "check" : "percentage") : "check");
     const [completed, setCompleted] = useState(existingLog?.completed ?? false);
     const [pct, setPct] = useState(existingLog?.completion_percentage ?? 50);
@@ -324,10 +325,16 @@ function RoutineLogDialog({ open, routine, dateStr, existingLog, onClose, onLog 
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: routine.color }} />
-                        {routine.name}
-                    </DialogTitle>
+                    <div className="flex items-center justify-between">
+                        <DialogTitle className="flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: routine.color }} />
+                            {routine.name}
+                        </DialogTitle>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/20" 
+                            onClick={() => { onEdit(routine); onClose(); }}>
+                            <Pencil className="w-4 h-4 text-primary" />
+                        </Button>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                         {cat?.emoji} {timeLabel(routine.start_time)}–{timeLabel(routine.end_time)} · {format(parseISO(dateStr), "EEEE d MMM", { locale: es })}
                     </p>
@@ -740,6 +747,7 @@ export default function Routines() {
                 existingLog={logTarget ? getLogForRoutineAndDate(logTarget.routine.id, logTarget.dateStr) : undefined}
                 onClose={() => setLogTarget(null)}
                 onLog={logRoutine}
+                onEdit={(r) => { setEditRoutine(r); setFormOpen(true); }}
             />
 
             {/* Stop Confirm Dialog */}
