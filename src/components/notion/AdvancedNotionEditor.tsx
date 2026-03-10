@@ -177,27 +177,69 @@ export function AdvancedNotionEditor({
         class: "notion-editor-content prose dark:prose-invert max-w-none focus:outline-none min-h-[300px]",
       },
       transformPastedText(text) {
-        // Replace single newlines followed by a lowercase letter with a space (often line-wraps in PDFs)
-        // But preserve single newlines followed by an uppercase letter or bullet symbols
-        // And ensure double newlines are treated as true paragraph breaks
-        return text
-          .replace(/([^\n])\n([a-z0-9])/g, '$1 $2') // Connect broken lines inside a paragraph
-          .replace(/\n{2,}/g, '\n\n') // Normalize multiple newlines
-          .trim();
+        // Just normalize some characters, handlePaste will do the heavy lifting
+        return text.replace(/\r/g, '').trim();
       },
       handlePaste: (view, event) => {
         const text = event.clipboardData?.getData('text/plain');
         if (!text) return false;
 
-        // If it's a very long text, we might want to split it by actual paragraphs
-        // This helps Tiptap see them as different blocks
-        if (text.includes('\n\n')) {
-          // Let default behavior handle it if it already has paragraph spacing
-          return false;
+        // If it's short or already has double newlines, let Tiptap handle it normally
+        if (text.length < 10 || text.includes('\n\n')) return false;
+
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length <= 1) return false;
+
+        // Heuristic to detect and fix PDF/Word line breaks
+        let blocks: { type: 'p' | 'li', content: string }[] = [];
+        
+        lines.forEach(line => {
+          // Detect bullet points
+          const bulletMatch = line.match(/^[•●○◦▪■*-]\s*(.*)/);
+          if (bulletMatch) {
+            blocks.push({ type: 'li', content: bulletMatch[1] });
+          } else {
+            const lastBlock = blocks[blocks.length - 1];
+            // If the last block was a paragraph and didn't end with a terminator,
+            // or if this line starts with a lowercase letter, merge it.
+            const endsWithTerminator = lastBlock && /[.:!?]$/.test(lastBlock.content);
+            const startsWithLowercase = /^[a-záéíóú]/.test(line);
+
+            if (lastBlock && lastBlock.type === 'p' && (!endsWithTerminator || startsWithLowercase)) {
+              lastBlock.content += ' ' + line;
+            } else {
+              blocks.push({ type: 'p', content: line });
+            }
+          }
+        });
+
+        // Generate HTML to insert
+        let htmlSnippet = '';
+        let inList = false;
+
+        blocks.forEach(block => {
+          if (block.type === 'li') {
+            if (!inList) {
+              htmlSnippet += '<ul class="notion-bullet-list">';
+              inList = true;
+            }
+            htmlSnippet += `<li><p>${block.content}</p></li>`;
+          } else {
+            if (inList) {
+              htmlSnippet += '</ul>';
+              inList = false;
+            }
+            htmlSnippet += `<p>${block.content}</p>`;
+          }
+        });
+        if (inList) htmlSnippet += '</ul>';
+
+        if (htmlSnippet) {
+          view.dispatch(view.state.tr.deleteSelection());
+          editor?.commands.insertContent(htmlSnippet);
+          return true;
         }
 
-        // If it only has single newlines, it might be a PDF. 
-        // We can try to detect if these single newlines should be paragraphs.
         return false;
       }
     },
