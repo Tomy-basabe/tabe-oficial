@@ -107,6 +107,112 @@ export default function Library() {
   const [viewerZoom, setViewerZoom] = useState(100);
   const [viewerTimer, setViewerTimer] = useState(0);
   const viewerTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Highlights
+  interface FileHighlight {
+    id: string;
+    file_id: string;
+    color: string;
+    text_content: string;
+    source: 'manual' | 'ai';
+    position_data?: any;
+    created_at: string;
+  }
+  const HIGHLIGHT_COLORS = [
+    { name: "Amarillo", value: "#FBBF24" },
+    { name: "Verde", value: "#22C55E" },
+    { name: "Cyan", value: "#06B6D4" },
+    { name: "Rosa", value: "#EC4899" },
+    { name: "Naranja", value: "#F97316" },
+    { name: "Violeta", value: "#8B5CF6" },
+    { name: "Rojo", value: "#EF4444" },
+    { name: "Azul", value: "#3B82F6" },
+  ];
+  const [highlights, setHighlights] = useState<FileHighlight[]>([]);
+  const [showHighlightsPanel, setShowHighlightsPanel] = useState(false);
+  const [highlightColor, setHighlightColor] = useState("#FBBF24");
+  const [manualHighlightText, setManualHighlightText] = useState("");
+  const [highlightingAI, setHighlightingAI] = useState(false);
+
+  const fetchHighlights = async (fileId: string) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("file_highlights")
+      .select("*")
+      .eq("file_id", fileId)
+      .order("created_at", { ascending: false });
+    if (!error && data) setHighlights(data as FileHighlight[]);
+  };
+
+  const addManualHighlight = async () => {
+    if (!user || !fullScreenFile || !manualHighlightText.trim()) return;
+    const { error } = await supabase.from("file_highlights").insert({
+      user_id: user.id,
+      file_id: fullScreenFile.id,
+      color: highlightColor,
+      text_content: manualHighlightText.trim(),
+      source: "manual",
+    });
+    if (error) { toast.error("Error al resaltar"); return; }
+    toast.success("✏️ Resaltado guardado");
+    setManualHighlightText("");
+    await fetchHighlights(fullScreenFile.id);
+  };
+
+  const deleteHighlight = async (id: string) => {
+    const { error } = await supabase.from("file_highlights").delete().eq("id", id);
+    if (error) { toast.error("Error al borrar resaltado"); return; }
+    setHighlights(prev => prev.filter(h => h.id !== id));
+    toast.success("Resaltado eliminado");
+  };
+
+  const clearAllHighlights = async () => {
+    if (!fullScreenFile || !user) return;
+    const { error } = await supabase.from("file_highlights").delete().eq("file_id", fullScreenFile.id).eq("user_id", user.id);
+    if (error) { toast.error("Error al limpiar resaltados"); return; }
+    setHighlights([]);
+    toast.success("Todos los resaltados eliminados");
+  };
+
+  const handleAIHighlight = async () => {
+    if (!fullScreenFile || !user) return;
+    setHighlightingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-study-content', {
+        body: {
+          storagePath: fullScreenFile.storage_path,
+          fileUrl: fullScreenFile.url,
+          fileName: fullScreenFile.nombre,
+          type: 'highlight',
+          count: 15
+        }
+      });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+      const aiHighlights = data.data.highlights;
+      if (!aiHighlights || aiHighlights.length === 0) throw new Error("No se encontraron pasajes importantes");
+
+      const colorMap: Record<string, string> = { high: "#EF4444", medium: "#F97316", low: "#FBBF24" };
+      const rows = aiHighlights.map((h: any) => ({
+        user_id: user.id,
+        file_id: fullScreenFile.id,
+        color: colorMap[h.importance] || "#FBBF24",
+        text_content: h.text + (h.reason ? ` — ${h.reason}` : ""),
+        source: "ai",
+      }));
+      const { error: insertError } = await supabase.from("file_highlights").insert(rows);
+      if (insertError) throw insertError;
+      toast.success(`🤖 ${aiHighlights.length} pasajes resaltados por TABE AI`);
+      await fetchHighlights(fullScreenFile.id);
+      setShowHighlightsPanel(true);
+    } catch (error: any) {
+      toast.error("Error IA: " + (error.message || "Error desconocido"));
+      console.error("AI Highlight error:", error);
+    } finally {
+      setHighlightingAI(false);
+    }
+  };
+
   const [generating, setGenerating] = useState<'flashcards' | 'summary' | 'quiz' | null>(null);
   const [showGenOptions, setShowGenOptions] = useState<'flashcards' | 'quiz' | null>(null);
   const [genCount, setGenCount] = useState(10);
@@ -211,6 +317,9 @@ export default function Library() {
     setFullScreenFile(fileToView);
     setViewerZoom(100);
     setViewerTimer(0);
+    setShowHighlightsPanel(false);
+    setHighlights([]);
+    fetchHighlights(fileToView.id);
     // Start timer
     viewerTimerRef.current = setInterval(() => setViewerTimer(t => t + 1), 1000);
   };
@@ -2307,6 +2416,32 @@ export default function Library() {
               {generating === 'summary' ? "Resumiendo..." : "Resumir"}
             </button>
 
+            {/* Resaltar AI Button */}
+            <button
+              onClick={handleAIHighlight}
+              disabled={highlightingAI || generating !== null}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
+                "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
+              )}
+            >
+              <span className="text-base">{highlightingAI ? '⏳' : '🖍️'}</span>
+              {highlightingAI ? "Resaltando..." : "Resaltar"}
+            </button>
+
+            {/* Toggle highlights panel */}
+            <button
+              onClick={() => setShowHighlightsPanel(!showHighlightsPanel)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                showHighlightsPanel
+                  ? "bg-yellow-500 text-black"
+                  : "bg-secondary hover:bg-secondary/80"
+              )}
+            >
+              📋 {highlights.length > 0 && <span className="bg-background/30 px-1.5 rounded text-xs">{highlights.length}</span>}
+            </button>
+
             {/* Gen count selector */}
             {showGenOptions && (
               <div className="flex items-center gap-2 bg-background/50 rounded-lg px-3 py-1.5 border border-border">
@@ -2332,42 +2467,141 @@ export default function Library() {
             )}
           </div>
 
-          {/* File Content Area */}
-          <div className="flex-1 overflow-auto bg-black/30">
-            <div
-              className="w-full h-full flex items-start justify-center p-4"
-              style={{ transform: `scale(${viewerZoom / 100})`, transformOrigin: 'top center' }}
-            >
-              {fullScreenFile.tipo === "imagen" && (
-                <img
-                  src={fullScreenFile.url}
-                  alt={fullScreenFile.nombre}
-                  className="max-w-full h-auto rounded-lg shadow-2xl"
-                />
-              )}
-              {fullScreenFile.tipo === "pdf" && (
-                <iframe
-                  src={`${fullScreenFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
-                  className="w-full rounded-lg border-0 shadow-2xl"
-                  style={{ minHeight: "calc(100vh - 160px)", height: "100%" }}
-                  title={fullScreenFile.nombre}
-                />
-              )}
-              {fullScreenFile.tipo === "link" && (
-                <div className="text-center py-20">
-                  <LinkIcon className="w-16 h-16 mx-auto mb-4 text-neon-cyan" />
-                  <p className="text-lg font-medium mb-4">{fullScreenFile.nombre}</p>
-                  <a
-                    href={fullScreenFile.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90"
-                  >
-                    Abrir Link ↗
-                  </a>
-                </div>
-              )}
+          {/* File Content Area + Highlights Panel */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Main Content */}
+            <div className="flex-1 overflow-auto bg-black/30">
+              <div
+                className="w-full h-full flex items-start justify-center p-4"
+                style={{ transform: `scale(${viewerZoom / 100})`, transformOrigin: 'top center' }}
+              >
+                {fullScreenFile.tipo === "imagen" && (
+                  <img
+                    src={fullScreenFile.url}
+                    alt={fullScreenFile.nombre}
+                    className="max-w-full h-auto rounded-lg shadow-2xl"
+                  />
+                )}
+                {fullScreenFile.tipo === "pdf" && (
+                  <iframe
+                    src={`${fullScreenFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
+                    className="w-full rounded-lg border-0 shadow-2xl"
+                    style={{ minHeight: "calc(100vh - 160px)", height: "100%" }}
+                    title={fullScreenFile.nombre}
+                  />
+                )}
+                {fullScreenFile.tipo === "link" && (
+                  <div className="text-center py-20">
+                    <LinkIcon className="w-16 h-16 mx-auto mb-4 text-neon-cyan" />
+                    <p className="text-lg font-medium mb-4">{fullScreenFile.nombre}</p>
+                    <a
+                      href={fullScreenFile.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90"
+                    >
+                      Abrir Link ↗
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Highlights Sidebar Panel */}
+            {showHighlightsPanel && (
+              <div className="w-80 border-l border-border bg-card/95 backdrop-blur-xl flex flex-col shrink-0 overflow-hidden">
+                {/* Panel Header */}
+                <div className="p-3 border-b border-border flex items-center justify-between">
+                  <h4 className="font-display font-bold text-sm gradient-text">🖍️ Resaltados ({highlights.length})</h4>
+                  <div className="flex gap-1">
+                    {highlights.length > 0 && (
+                      <button
+                        onClick={clearAllHighlights}
+                        className="text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded"
+                      >
+                        Borrar todo
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowHighlightsPanel(false)}
+                      className="p-1 hover:bg-secondary rounded"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Manual Highlight Input */}
+                <div className="p-3 border-b border-border space-y-2">
+                  <textarea
+                    value={manualHighlightText}
+                    onChange={(e) => setManualHighlightText(e.target.value)}
+                    placeholder="Escribí o pegá el texto a resaltar..."
+                    className="w-full h-16 p-2 bg-secondary rounded-lg border border-border text-xs resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    {HIGHLIGHT_COLORS.map(c => (
+                      <button
+                        key={c.value}
+                        onClick={() => setHighlightColor(c.value)}
+                        className={cn(
+                          "w-5 h-5 rounded-full transition-transform",
+                          highlightColor === c.value && "ring-2 ring-offset-1 ring-offset-background ring-white scale-110"
+                        )}
+                        style={{ backgroundColor: c.value }}
+                        title={c.name}
+                      />
+                    ))}
+                    <button
+                      onClick={addManualHighlight}
+                      disabled={!manualHighlightText.trim()}
+                      className="ml-auto px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold disabled:opacity-50 hover:opacity-90"
+                    >
+                      + Agregar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Highlights List */}
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  {highlights.length === 0 ? (
+                    <div className="text-center text-muted-foreground text-xs py-8">
+                      <p>No hay resaltados aún.</p>
+                      <p className="mt-1">Usá 🖍️ Resaltar para que TABE AI identifique lo importante, o agregá los tuyos manualmente.</p>
+                    </div>
+                  ) : (
+                    highlights.map(h => (
+                      <div
+                        key={h.id}
+                        className="group relative rounded-lg p-2.5 text-xs leading-relaxed border transition-all hover:shadow-md"
+                        style={{
+                          backgroundColor: `${h.color}15`,
+                          borderColor: `${h.color}40`,
+                          borderLeftWidth: '3px',
+                          borderLeftColor: h.color,
+                        }}
+                      >
+                        <div className="flex items-start gap-1.5">
+                          <div className="flex-1">
+                            <p className="text-foreground">{h.text_content}</p>
+                            <span className="text-[10px] text-muted-foreground mt-1 inline-block">
+                              {h.source === 'ai' ? '🤖 TABE AI' : '✏️ Manual'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => deleteHighlight(h.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-destructive hover:bg-destructive/10 rounded transition-opacity shrink-0"
+                            title="Eliminar resaltado"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom Status Bar */}
