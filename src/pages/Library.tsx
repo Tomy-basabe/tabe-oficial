@@ -218,24 +218,53 @@ export default function Library() {
   };
 
   const closeFullScreenViewer = () => {
-    // Stop timer and save study session
+    saveLibraryStudySession();
+    setFullScreenFile(null);
+    viewerTimerRef.current = null;
+  };
+
+  const saveLibraryStudySession = () => {
     if (viewerTimerRef.current) clearInterval(viewerTimerRef.current);
-    if (viewerTimer > 5 && user && fullScreenFile) {
+    
+    // Convert to a local variable for the closure in case state clears
+    const secondsToSave = viewerTimer;
+    const fileToSave = fullScreenFile;
+    
+    if (secondsToSave > 5 && user && fileToSave) {
       supabase.from("study_sessions").insert({
         user_id: user.id,
-        subject_id: fullScreenFile.subject_id,
-        duracion_segundos: viewerTimer,
+        subject_id: fileToSave.subject_id,
+        duracion_segundos: secondsToSave,
         tipo: "biblioteca",
         completada: true,
         fecha: new Date().toISOString().split('T')[0],
       }).then(({ error }) => {
-        if (error) console.error("Error saving session:", error);
-        else toast.success(`⏱️ Sesión de ${formatTime(viewerTimer)} registrada en métricas`);
+        if (error) console.error("Error saving library session:", error);
+        else {
+          console.log(`⏱️ Sesión de ${secondsToSave}s guardada`);
+          // We don't toast on exit-saves to avoid UI glitches during unmount
+          if (document.visibilityState === 'visible') {
+            toast.success(`⏱️ Sesión de ${formatTime(secondsToSave)} registrada`);
+          }
+        }
       });
     }
-    setFullScreenFile(null);
-    viewerTimerRef.current = null;
   };
+
+  // Visibility change listener for Library viewer
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && fullScreenFile) {
+        saveLibraryStudySession();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (fullScreenFile) saveLibraryStudySession();
+    };
+  }, [fullScreenFile, viewerTimer, user]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);

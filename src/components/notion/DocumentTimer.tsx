@@ -80,26 +80,37 @@ export function DocumentTimer({
 
   // Crucial: Save on unmount AND on page visibility change (tab close/switch)
   useEffect(() => {
+    const handleSaveOnExit = () => {
+      const currentSeconds = secondsRef.current;
+      const currentSaved = savedSecondsRef.current;
+      const unsavedSeconds = currentSeconds - currentSaved;
+      
+      if (unsavedSeconds > 0) {
+        // Use local variable to avoid race conditions with state updates during unmount
+        const docId = documentIdRef.current;
+        const subId = subjectIdRef.current;
+        
+        onSaveTimeRef.current(unsavedSeconds, docId, subId);
+        
+        // Update refs immediately so triple-triggers (visibility change + unmount) won't double save
+        savedSecondsRef.current = currentSeconds;
+        setSavedSeconds(currentSeconds);
+      }
+    };
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        const unsavedSeconds = secondsRef.current - savedSecondsRef.current;
-        if (unsavedSeconds > 0) {
-          onSaveTimeRef.current(unsavedSeconds, documentIdRef.current, subjectIdRef.current);
-          setSavedSeconds(secondsRef.current);
-          savedSecondsRef.current = secondsRef.current;
-          lastSaveRef.current = secondsRef.current;
-        }
+        handleSaveOnExit();
       }
     };
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleSaveOnExit);
     
     return () => {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
-      const unsavedSeconds = secondsRef.current - savedSecondsRef.current;
-      if (unsavedSeconds > 0) {
-        onSaveTimeRef.current(unsavedSeconds, documentIdRef.current, subjectIdRef.current);
-      }
+      window.removeEventListener('beforeunload', handleSaveOnExit);
+      handleSaveOnExit();
     };
   }, []);
 
