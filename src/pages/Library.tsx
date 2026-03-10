@@ -5,7 +5,7 @@ import {
   FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
   ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2,
-  CheckCircle2, Square, CheckSquare, Repeat2
+  CheckCircle2, Square, CheckSquare, Repeat2, Clock
 } from "lucide-react";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { cn } from "@/lib/utils";
@@ -103,6 +103,10 @@ export default function Library() {
   const [newFolderSubject, setNewFolderSubject] = useState<string>("");
   const [newFolderYear, setNewFolderYear] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [fullScreenFile, setFullScreenFile] = useState<LibraryFile | null>(null);
+  const [viewerZoom, setViewerZoom] = useState(100);
+  const [viewerTimer, setViewerTimer] = useState(0);
+  const viewerTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [generating, setGenerating] = useState<'flashcards' | 'summary' | 'quiz' | null>(null);
   const [showGenOptions, setShowGenOptions] = useState<'flashcards' | 'quiz' | null>(null);
   const [genCount, setGenCount] = useState(10);
@@ -150,6 +154,94 @@ export default function Library() {
     if (!error && data) {
       setSubjects(data);
     }
+  };
+
+  // ─── Context-aware defaults for uploads ─────────────────────────────
+  const getContextSubjectId = (): string | null => {
+    // Priority 1: Current folder's subject
+    if (currentFolderId) {
+      const currentFolder = folders.find(f => f.id === currentFolderId);
+      if (currentFolder?.subject_id) return currentFolder.subject_id;
+    }
+    // Priority 2: Active filter
+    return selectedSubjectId || null;
+  };
+
+  const getContextYear = (): number | null => {
+    const subjectId = getContextSubjectId();
+    if (subjectId) {
+      const sub = subjects.find(s => s.id === subjectId);
+      if (sub) return sub.año;
+    }
+    return selectedYear;
+  };
+
+  const openUploadModal = () => {
+    const subId = getContextSubjectId();
+    const year = getContextYear();
+    setUploadSubject(subId || "");
+    setUploadYear(year);
+    setShowUploadModal(true);
+  };
+
+  const openLinkModal = () => {
+    const subId = getContextSubjectId();
+    const year = getContextYear();
+    setUploadSubject(subId || "");
+    setUploadYear(year);
+    setShowLinkModal(true);
+  };
+
+  const openFolderModal = () => {
+    const subId = getContextSubjectId();
+    const year = getContextYear();
+    setNewFolderSubject(subId || "");
+    setNewFolderYear(year);
+    setShowFolderModal(true);
+  };
+
+  // ─── Full-Screen Viewer ────────────────────────────────────────────
+  const openFullScreenViewer = async (file: LibraryFile) => {
+    let fileToView = file;
+    if (file.storage_path) {
+      const signedUrl = await getSignedUrl(file.storage_path);
+      if (signedUrl) fileToView = { ...file, url: signedUrl };
+      else { toast.error("Error al cargar el archivo"); return; }
+    }
+    setFullScreenFile(fileToView);
+    setViewerZoom(100);
+    setViewerTimer(0);
+    // Start timer
+    viewerTimerRef.current = setInterval(() => setViewerTimer(t => t + 1), 1000);
+  };
+
+  const closeFullScreenViewer = () => {
+    // Stop timer and save study session
+    if (viewerTimerRef.current) clearInterval(viewerTimerRef.current);
+    if (viewerTimer > 5 && user && fullScreenFile) {
+      supabase.from("study_sessions").insert({
+        user_id: user.id,
+        subject_id: fullScreenFile.subject_id,
+        duracion_segundos: viewerTimer,
+        tipo: "biblioteca",
+        completada: true,
+        fecha: new Date().toISOString().split('T')[0],
+      }).then(({ error }) => {
+        if (error) console.error("Error saving session:", error);
+        else toast.success(`⏱️ Sesión de ${formatTime(viewerTimer)} registrada en métricas`);
+      });
+    }
+    setFullScreenFile(null);
+    viewerTimerRef.current = null;
+  };
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
+    return `${s}s`;
   };
 
   const toggleSelect = (id: string) => {
@@ -618,7 +710,7 @@ export default function Library() {
             nombre: folderName,
             color: folderColors[Math.floor(Math.random() * folderColors.length)].value,
             parent_folder_id: parentId || currentFolderId,
-            subject_id: selectedSubjectId || null,
+            subject_id: getContextSubjectId() || null,
           })
           .select("id")
           .single();
@@ -667,7 +759,7 @@ export default function Library() {
 
         await supabase.from("library_files").insert({
           user_id: user.id,
-          subject_id: selectedSubjectId || null,
+          subject_id: getContextSubjectId() || null,
           folder_id: folderId,
           nombre: file.name,
           tipo,
@@ -676,11 +768,11 @@ export default function Library() {
           tamaño_bytes: file.size,
         });
 
-        uploaded++;
-        toast.loading(`Subiendo carpeta (${uploaded}/${fileList.length} archivos)...`, { id: toastId });
+        uploadedCount++;
+        toast.loading(`Subiendo carpeta (${uploadedCount}/${fileList.length} archivos)...`, { id: toastId });
       }
 
-      toast.success(`¡Carpeta subida! ${uploaded} archivos en ${sortedPaths.length} carpetas.`, { id: toastId });
+      toast.success(`¡Carpeta subida! ${uploadedCount} archivos en ${sortedPaths.length} carpetas.`, { id: toastId });
       fetchFolders();
       fetchFiles();
     } catch (error) {
@@ -993,14 +1085,14 @@ export default function Library() {
         </div>
         <div className="flex gap-2 flex-wrap tour-library-upload">
           <button
-            onClick={() => setShowFolderModal(true)}
+            onClick={openFolderModal}
             className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors"
           >
             <FolderPlus className="w-4 h-4" />
             <span className="hidden sm:inline">Nueva Carpeta</span>
           </button>
           <button
-            onClick={() => setShowLinkModal(true)}
+            onClick={openLinkModal}
             className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors"
           >
             <LinkIcon className="w-4 h-4" />
@@ -1015,7 +1107,7 @@ export default function Library() {
             <span className="hidden sm:inline">Subir Carpeta</span>
           </button>
           <button
-            onClick={() => setShowUploadModal(true)}
+            onClick={openUploadModal}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             <Upload className="w-4 h-4" />
@@ -1190,13 +1282,13 @@ export default function Library() {
           </p>
           <div className="flex gap-3 justify-center">
             <button
-              onClick={() => setShowFolderModal(true)}
+              onClick={() => openFolderModal()}
               className="px-4 py-2 bg-secondary rounded-lg font-medium"
             >
               Crear carpeta
             </button>
             <button
-              onClick={() => setShowUploadModal(true)}
+              onClick={openUploadModal}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
             >
               Subir archivo
@@ -1350,7 +1442,7 @@ export default function Library() {
                       const signedUrl = await getSignedUrl(filePath);
                       if (!signedUrl) continue;
                       await supabase.from("library_files").insert({
-                        user_id: user.id, subject_id: selectedSubjectId || null,
+                        user_id: user.id, subject_id: folder.subject_id || selectedSubjectId || null,
                         folder_id: folder.id, nombre: file.name, tipo,
                         url: signedUrl, storage_path: filePath, tamaño_bytes: file.size,
                       });
@@ -1465,7 +1557,7 @@ export default function Library() {
                   <div
                     className="w-full h-32 rounded-lg mb-3 bg-cover bg-center cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundImage: `url(${file.url})` }}
-                    onClick={() => openPreview(file)}
+                    onClick={() => openFullScreenViewer(file)}
                   />
                 )}
 
@@ -1506,7 +1598,7 @@ export default function Library() {
                   </button>
                   {canPreview && (
                     <button
-                      onClick={() => openPreview(file)}
+                      onClick={() => openFullScreenViewer(file)}
                       className="p-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30"
                       title="Vista previa"
                     >
@@ -2119,6 +2211,179 @@ export default function Library() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Full-Screen File Viewer ─────────────────────────────────── */}
+      {fullScreenFile && (
+        <div className="fixed inset-0 z-[100] bg-background flex flex-col">
+          {/* Top Bar */}
+          <div className="flex items-center justify-between px-4 py-2 bg-card/80 backdrop-blur-xl border-b border-border shadow-lg shrink-0">
+            {/* Left: File info */}
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={closeFullScreenViewer}
+                className="p-2 bg-secondary rounded-lg hover:bg-secondary/80 transition-colors"
+                title="Cerrar y guardar tiempo"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="min-w-0">
+                <h3 className="font-display font-semibold text-sm truncate">{fullScreenFile.nombre}</h3>
+                <p className="text-xs text-muted-foreground truncate">
+                  {fullScreenFile.subject?.nombre || "Sin materia"}
+                </p>
+              </div>
+            </div>
+
+            {/* Center: Timer */}
+            <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
+              <Clock className="w-4 h-4 text-primary animate-pulse" />
+              <span className="font-mono font-bold text-primary text-sm tracking-wider">
+                {formatTime(viewerTimer)}
+              </span>
+            </div>
+
+            {/* Right: Zoom controls */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
+                <button
+                  onClick={() => setViewerZoom(z => Math.max(25, z - 25))}
+                  className="px-2 py-1 hover:bg-background rounded text-sm font-bold"
+                  title="Reducir"
+                >−</button>
+                <span className="px-2 text-xs font-mono font-medium min-w-[3rem] text-center">{viewerZoom}%</span>
+                <button
+                  onClick={() => setViewerZoom(z => Math.min(300, z + 25))}
+                  className="px-2 py-1 hover:bg-background rounded text-sm font-bold"
+                  title="Ampliar"
+                >+</button>
+                <button
+                  onClick={() => setViewerZoom(100)}
+                  className="px-2 py-1 hover:bg-background rounded text-xs"
+                  title="Restablecer"
+                >100%</button>
+              </div>
+              <a
+                href={fullScreenFile.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 bg-secondary rounded-lg hover:bg-secondary/80"
+                title="Abrir en nueva pestaña"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* AI Toolbar */}
+          <div className="bg-card/60 backdrop-blur-sm border-b border-border px-4 py-2 flex items-center justify-center gap-2 flex-wrap shrink-0">
+            <button
+              onClick={() => setShowGenOptions(showGenOptions === 'flashcards' ? null : 'flashcards')}
+              disabled={generating !== null}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
+                showGenOptions === 'flashcards' ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary/20"
+              )}
+            >
+              <span className="text-base">{generating === 'flashcards' ? '⏳' : '✨'}</span>
+              {generating === 'flashcards' ? "Generando..." : "Flashcards"}
+            </button>
+            <button
+              onClick={() => setShowGenOptions(showGenOptions === 'quiz' ? null : 'quiz')}
+              disabled={generating !== null}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
+                showGenOptions === 'quiz' ? "bg-primary text-primary-foreground" : "bg-neon-purple/10 text-neon-purple hover:bg-neon-purple/20"
+              )}
+            >
+              <span className="text-base">{generating === 'quiz' ? '⏳' : '📋'}</span>
+              {generating === 'quiz' ? "Generando..." : "Cuestionario"}
+            </button>
+            <button
+              onClick={() => fullScreenFile && handleGenerateContent(fullScreenFile, 'summary')}
+              disabled={generating !== null}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <span className="text-base">{generating === 'summary' ? '⏳' : '📝'}</span>
+              {generating === 'summary' ? "Resumiendo..." : "Resumir"}
+            </button>
+
+            {/* Gen count selector */}
+            {showGenOptions && (
+              <div className="flex items-center gap-2 bg-background/50 rounded-lg px-3 py-1.5 border border-border">
+                <span className="text-xs text-muted-foreground">
+                  {showGenOptions === 'flashcards' ? 'Tarjetas:' : 'Preguntas:'}
+                </span>
+                {[5, 10, 15, 20, 30].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setGenCount(n)}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-xs font-medium",
+                      genCount === n ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"
+                    )}
+                  >{n}</button>
+                ))}
+                <button
+                  onClick={() => fullScreenFile && handleGenerateContent(fullScreenFile, showGenOptions, genCount)}
+                  disabled={generating !== null}
+                  className="px-3 py-0.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-lg text-xs font-semibold hover:opacity-90"
+                >Generar {genCount}</button>
+              </div>
+            )}
+          </div>
+
+          {/* File Content Area */}
+          <div className="flex-1 overflow-auto bg-black/30">
+            <div
+              className="w-full h-full flex items-start justify-center p-4"
+              style={{ transform: `scale(${viewerZoom / 100})`, transformOrigin: 'top center' }}
+            >
+              {fullScreenFile.tipo === "imagen" && (
+                <img
+                  src={fullScreenFile.url}
+                  alt={fullScreenFile.nombre}
+                  className="max-w-full h-auto rounded-lg shadow-2xl"
+                />
+              )}
+              {fullScreenFile.tipo === "pdf" && (
+                <iframe
+                  src={`${fullScreenFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
+                  className="w-full rounded-lg border-0 shadow-2xl"
+                  style={{ minHeight: "calc(100vh - 160px)", height: "100%" }}
+                  title={fullScreenFile.nombre}
+                />
+              )}
+              {fullScreenFile.tipo === "link" && (
+                <div className="text-center py-20">
+                  <LinkIcon className="w-16 h-16 mx-auto mb-4 text-neon-cyan" />
+                  <p className="text-lg font-medium mb-4">{fullScreenFile.nombre}</p>
+                  <a
+                    href={fullScreenFile.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90"
+                  >
+                    Abrir Link ↗
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Status Bar */}
+          <div className="bg-card/80 backdrop-blur-xl border-t border-border px-4 py-1.5 flex items-center justify-between text-xs text-muted-foreground shrink-0">
+            <span>
+              {fullScreenFile.subject?.nombre
+                ? `📚 ${fullScreenFile.subject.nombre} (${fullScreenFile.subject.año}° año)`
+                : "Sin materia asignada"
+              }
+            </span>
+            <span>
+              {fullScreenFile.tamaño_bytes ? formatFileSize(fullScreenFile.tamaño_bytes) : ""} · Zoom: {viewerZoom}%
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
