@@ -1084,35 +1084,41 @@ export default function Library() {
             Organiza tus recursos de estudio por año y materia
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap tour-library-upload">
-          <button
-            onClick={openFolderModal}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors"
-          >
-            <FolderPlus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nueva Carpeta</span>
-          </button>
-          <button
-            onClick={openLinkModal}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors"
-          >
-            <LinkIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">Agregar Link</span>
-          </button>
-          <button
-            onClick={() => folderInputRef.current?.click()}
-            disabled={uploading || isGuest}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-          >
-            <FolderUp className="w-4 h-4" />
-            <span className="hidden sm:inline">Subir Carpeta</span>
-          </button>
+        <div className="flex gap-3 flex-wrap items-center mt-2 lg:mt-0 tour-library-upload">
+          <div className="flex gap-1.5 bg-black/20 backdrop-blur-md p-1.5 rounded-xl border border-white/5">
+            <button
+              onClick={openFolderModal}
+              title="Nueva Carpeta"
+              className="flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all text-xs font-medium"
+            >
+              <FolderPlus className="w-4 h-4" />
+              <span className="hidden lg:inline">Nueva Carpeta</span>
+            </button>
+            <button
+              onClick={openLinkModal}
+              title="Agregar Link"
+              className="flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all text-xs font-medium"
+            >
+              <LinkIcon className="w-4 h-4" />
+              <span className="hidden lg:inline">Agregar Link</span>
+            </button>
+            <button
+              onClick={() => folderInputRef.current?.click()}
+              disabled={uploading || isGuest}
+              title="Subir Carpeta"
+              className="flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all text-xs font-medium disabled:opacity-50"
+            >
+              <FolderUp className="w-4 h-4" />
+              <span className="hidden lg:inline">Subir Carpeta</span>
+            </button>
+          </div>
           <button
             onClick={openUploadModal}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+            className="group relative flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-neon-purple to-neon-cyan text-white rounded-xl font-bold shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] hover:scale-105 transition-all active:scale-95 overflow-hidden border border-white/20"
           >
-            <Upload className="w-4 h-4" />
-            Subir Archivo
+            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+            <Upload className="w-5 h-5 relative z-10" />
+            <span className="relative z-10 text-sm italic tracking-wide">SUBIR ARCHIVO</span>
           </button>
         </div>
         {/* Hidden folder input */}
@@ -1290,9 +1296,9 @@ export default function Library() {
             </button>
             <button
               onClick={openUploadModal}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
+              className="px-6 py-2.5 bg-gradient-to-r from-neon-purple to-neon-cyan text-white rounded-xl font-bold shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] hover:scale-105 transition-all active:scale-95 border border-white/20"
             >
-              Subir archivo
+              Subir primer archivo
             </button>
           </div>
         </div>
