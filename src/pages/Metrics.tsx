@@ -3,13 +3,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3, Clock, BookOpen,
-  Timer, Layers, Video, Calendar, Library
+  Timer, Layers, Video, Calendar, Library,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
-import { subDays, eachDayOfInterval, format, differenceInDays } from "date-fns";
+import { 
+  subDays, addDays, eachDayOfInterval, format, differenceInDays, 
+  subMonths, addMonths, subYears, addYears,
+  startOfWeek, endOfWeek, startOfMonth, endOfMonth
+} from "date-fns";
 import { cn } from "@/lib/utils";
 import { FlashcardStats } from "@/components/metrics/FlashcardStats";
 import { RoutineStats } from "@/components/metrics/RoutineStats";
-import { DateRangeFilter, DateRange } from "@/components/metrics/DateRangeFilter";
+import { Button } from "@/components/ui/button";
+import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
 
 interface StudySession {
   fecha: string;
@@ -26,9 +32,9 @@ interface SubjectStudyData {
 }
 
 const defaultDateRange: DateRange = {
-  from: subDays(new Date(), 30),
-  to: new Date(),
-  label: "Últimos 30 días",
+  from: startOfWeek(new Date(), WEEK_OPTIONS),
+  to: endOfWeek(new Date(), WEEK_OPTIONS),
+  label: "Esta semana",
 };
 
 export default function Metrics() {
@@ -99,20 +105,56 @@ export default function Metrics() {
     if (user || isGuest) {
       fetchData();
     }
-  }, [user, isGuest, fetchData]);
+  }, [user, isGuest, fetchData])  
+  
+  const handleNavigate = (direction: "prev" | "next") => {
+    const { from, to, label } = dateRange;
+    const daysDiff = differenceInDays(to, from) + 1;
+    let newFrom = from;
+    let newTo = to;
+
+    if (label === "Esta semana" || (daysDiff >= 6 && daysDiff <= 8)) {
+      // Navigate by weeks
+      const offset = direction === "prev" ? -7 : 7;
+      newFrom = addDays(from, offset);
+      newTo = addDays(to, offset);
+    } else if (label === "Este mes" || label === "Mes anterior" || (daysDiff >= 27 && daysDiff <= 31)) {
+      // Navigate by months
+      const offset = direction === "prev" ? -1 : 1;
+      newFrom = startOfMonth(addMonths(from, offset));
+      newTo = endOfMonth(newFrom);
+    } else if (label === "Este año" || daysDiff > 360) {
+      // Navigate by years
+      const offset = direction === "prev" ? -1 : 1;
+      newFrom = subYears(from, -offset);
+      newTo = addYears(to, offset);
+    } else {
+      // Default: Shift by the current range duration
+      const offset = direction === "prev" ? -daysDiff : daysDiff;
+      newFrom = addDays(from, offset);
+      newTo = addDays(to, offset);
+    }
+
+    setDateRange({
+      from: newFrom,
+      to: newTo,
+      label: `${format(newFrom, "dd/MM/yy")} - ${format(newTo, "dd/MM/yy")}`,
+    });
+  };
 
   // Calculate chart data based on date range
   const getChartData = () => {
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
 
-    // If range is <= 14 days, show daily data
-    // If range is <= 90 days, show weekly aggregates
-    // Otherwise, show monthly aggregates
-
-    if (totalDays <= 14) {
-      // Daily view
+    // Daily view
+    if (totalDays <= 7) {
       const allDays = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+      
+      // If it's a natural week (Mon-Sun), ensure we show all 7 days even if empty
+      // but only if it's "This Week" or similar
+      const isNaturalWeek = totalDays === 7 && dateRange.from.getDay() === 1;
+
       return allDays.map(date => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const daySessions = sessions.filter(s => s.fecha === dateStr);
@@ -257,8 +299,28 @@ export default function Metrics() {
             </p>
           </div>
 
-          {/* Date Range Filter */}
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          {/* Date Range Filter & Navigation */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleNavigate("prev")}
+              className="bg-secondary border-border hover:bg-secondary/80 h-10 w-10"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            <DateRangeFilter value={dateRange} onChange={setDateRange} />
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleNavigate("next")}
+              className="bg-secondary border-border hover:bg-secondary/80 h-10 w-10"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Tab Selector */}

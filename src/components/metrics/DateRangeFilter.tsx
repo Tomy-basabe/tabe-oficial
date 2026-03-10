@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CalendarIcon, ChevronDown } from "lucide-react";
-import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear } from "date-fns";
+import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, startOfWeek, endOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,13 +29,15 @@ interface DateRangeFilterProps {
   onChange: (range: DateRange) => void;
 }
 
+export const WEEK_OPTIONS = { locale: es, weekStartsOn: 1 as const }; // Monday
+
 const presets = [
   {
-    label: "Última semana",
+    label: "Esta semana",
     getValue: () => ({
-      from: subDays(new Date(), 7),
-      to: new Date(),
-      label: "Última semana",
+      from: startOfWeek(new Date(), WEEK_OPTIONS),
+      to: endOfWeek(new Date(), WEEK_OPTIONS),
+      label: "Esta semana",
     }),
   },
   {
