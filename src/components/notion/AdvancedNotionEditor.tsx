@@ -177,8 +177,8 @@ export function AdvancedNotionEditor({
         class: "notion-editor-content prose dark:prose-invert max-w-none focus:outline-none min-h-[300px]",
       },
       transformPastedText(text) {
-        // Just normalize some characters, handlePaste will do the heavy lifting
-        return text.replace(/\r/g, '').trim();
+        // Normalize line endings and remove excessive whitespace
+        return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\t/g, ' ');
       },
       handlePaste: (view, event) => {
         const text = event.clipboardData?.getData('text/plain');
