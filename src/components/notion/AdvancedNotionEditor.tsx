@@ -184,10 +184,16 @@ export function AdvancedNotionEditor({
         const text = event.clipboardData?.getData('text/plain');
         if (!text) return false;
 
-        // If it's short or already has double newlines, let Tiptap handle it normally
-        if (text.length < 10 || text.includes('\n\n')) return false;
+        // Clean up common PDF artifacts (multiple spaces, non-breaking spaces)
+        const cleanText = text
+          .replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ')
+          .replace(/ +/g, ' ')
+          .trim();
 
-        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        // If it's short, let Tiptap handle it normally
+        if (cleanText.length < 5) return false;
+
+        const lines = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length <= 1) return false;
 
         // Heuristic to detect and fix PDF/Word line breaks
