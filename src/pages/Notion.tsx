@@ -171,11 +171,12 @@ export default function Notion() {
   }, []);
 
   // === Document operations ===
-  const openDocument = useCallback((doc: NotionDocument) => {
+  const openDocument = useCallback(async (doc: NotionDocument) => {
     // Save current doc first
     if (autoSaveTimerRef.current) {
       window.clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
+      await saveDocument(true);
     }
 
     const content = ensureTipTapFormat(doc.contenido) || {

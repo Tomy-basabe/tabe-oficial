@@ -78,9 +78,24 @@ export function DocumentTimer({
     }
   }, [seconds, savedSeconds, onSaveTime, documentId, subjectId]);
 
-  // Save on unmount - using refs to get current values
+  // Crucial: Save on unmount AND on page visibility change (tab close/switch)
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        const unsavedSeconds = secondsRef.current - savedSecondsRef.current;
+        if (unsavedSeconds > 0) {
+          onSaveTimeRef.current(unsavedSeconds, documentIdRef.current, subjectIdRef.current);
+          setSavedSeconds(secondsRef.current);
+          savedSecondsRef.current = secondsRef.current;
+          lastSaveRef.current = secondsRef.current;
+        }
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    
     return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
       const unsavedSeconds = secondsRef.current - savedSecondsRef.current;
       if (unsavedSeconds > 0) {
         onSaveTimeRef.current(unsavedSeconds, documentIdRef.current, subjectIdRef.current);
@@ -88,14 +103,15 @@ export function DocumentTimer({
     };
   }, []);
 
-  const handleSaveNow = () => {
-    const toSave = seconds - savedSeconds;
+  const handleSaveNow = useCallback(() => {
+    const toSave = secondsRef.current - savedSecondsRef.current;
     if (toSave > 0) {
-      onSaveTime(toSave, documentId, subjectId);
-      setSavedSeconds(seconds);
-      lastSaveRef.current = seconds;
+      onSaveTimeRef.current(toSave, documentIdRef.current, subjectIdRef.current);
+      setSavedSeconds(secondsRef.current);
+      savedSecondsRef.current = secondsRef.current;
+      lastSaveRef.current = secondsRef.current;
     }
-  };
+  }, []);
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
