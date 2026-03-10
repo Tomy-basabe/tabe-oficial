@@ -82,6 +82,8 @@ export default function Flashcards() {
   const [mergeNewDeckName, setMergeNewDeckName] = useState("");
   const [mergeYear, setMergeYear] = useState<number | null>(null);
   const [mergeSubjectId, setMergeSubjectId] = useState<string | null>(null);
+  const [mergeSourceYearFilter, setMergeSourceYearFilter] = useState<number | null>(null);
+  const [mergeSourceSubjectFilter, setMergeSourceSubjectFilter] = useState<string | null>(null);
   const [isMerging, setIsMerging] = useState(false);
 
   useEffect(() => {
@@ -590,6 +592,8 @@ export default function Flashcards() {
     setMergeNewDeckName("");
     setMergeYear(null);
     setMergeSubjectId(null);
+    setMergeSourceYearFilter(null);
+    setMergeSourceSubjectFilter(null);
   };
 
   const toggleMergeDeckSelection = (deckId: string) => {
@@ -1217,37 +1221,88 @@ export default function Flashcards() {
                   Mínimo 2 mazos
                 </span>
               </div>
-              <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
-                {decks.map(deck => (
-                  <div
-                    key={deck.id}
-                    onClick={() => toggleMergeDeckSelection(deck.id)}
+
+              {/* Source Deck Filters */}
+              <div className="space-y-3 bg-secondary/30 p-3 rounded-xl border border-border/50">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  <button
+                    onClick={() => { setMergeSourceYearFilter(null); setMergeSourceSubjectFilter(null); }}
                     className={cn(
-                      "p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group",
-                      selectedDecksToMerge.includes(deck.id)
-                        ? "bg-neon-cyan/10 border-neon-cyan/50"
-                        : "bg-secondary/50 border-border hover:border-neon-cyan/30"
+                      "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap",
+                      !mergeSourceYearFilter
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                    Todos
+                  </button>
+                  {[1, 2, 3, 4, 5, 6].map(year => (
+                    <button
+                      key={year}
+                      onClick={() => { setMergeSourceYearFilter(year); setMergeSourceSubjectFilter(null); }}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap",
+                        mergeSourceYearFilter === year
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                      )}
+                    >
+                      {year}° Año
+                    </button>
+                  ))}
+                </div>
+
+                {mergeSourceYearFilter && (
+                  <select
+                    value={mergeSourceSubjectFilter || ""}
+                    onChange={(e) => setMergeSourceSubjectFilter(e.target.value || null)}
+                    className="w-full px-3 py-1.5 bg-background/50 rounded-lg border border-border text-[11px] outline-none"
+                  >
+                    <option value="">Todas las materias del año</option>
+                    {subjects.filter(s => s.año === mergeSourceYearFilter).map(s => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+                {decks
+                  .filter(deck => {
+                    const matchesYear = !mergeSourceYearFilter || deck.subject?.año === mergeSourceYearFilter;
+                    const matchesSubject = !mergeSourceSubjectFilter || deck.subject_id === mergeSourceSubjectFilter;
+                    return matchesYear && matchesSubject;
+                  })
+                  .map(deck => (
+                    <div
+                      key={deck.id}
+                      onClick={() => toggleMergeDeckSelection(deck.id)}
+                      className={cn(
+                        "p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group",
                         selectedDecksToMerge.includes(deck.id)
-                          ? "bg-neon-cyan border-neon-cyan"
-                          : "border-muted-foreground/30"
-                      )}>
-                        {selectedDecksToMerge.includes(deck.id) && <Plus className="w-3.5 h-3.5 text-background" />}
+                          ? "bg-neon-cyan/10 border-neon-cyan/50"
+                          : "bg-secondary/50 border-border hover:border-neon-cyan/30"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                          selectedDecksToMerge.includes(deck.id)
+                            ? "bg-neon-cyan border-neon-cyan"
+                            : "border-muted-foreground/30"
+                        )}>
+                          {selectedDecksToMerge.includes(deck.id) && <Plus className="w-3.5 h-3.5 text-background" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{deck.nombre}</p>
+                          <p className="text-[10px] text-muted-foreground">{deck.subject?.nombre || "Sin materia"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">{deck.nombre}</p>
-                        <p className="text-[10px] text-muted-foreground">{deck.subject?.nombre || "Sin materia"}</p>
-                      </div>
+                      <span className="text-[11px] font-mono bg-background/40 px-2 py-0.5 rounded text-muted-foreground">
+                        {deck.total_cards} cards
+                      </span>
                     </div>
-                    <span className="text-[11px] font-mono bg-background/40 px-2 py-0.5 rounded text-muted-foreground">
-                      {deck.total_cards} cards
-                    </span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
