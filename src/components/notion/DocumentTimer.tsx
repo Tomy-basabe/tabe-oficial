@@ -3,11 +3,18 @@ import { Play, Pause, Clock, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DocumentTimerProps {
-  onSaveTime: (seconds: number) => void;
+  onSaveTime: (seconds: number, documentId?: string, subjectId?: string) => void;
   autoStart?: boolean;
+  documentId?: string;
+  subjectId?: string;
 }
 
-export function DocumentTimer({ onSaveTime, autoStart = true }: DocumentTimerProps) {
+export function DocumentTimer({ 
+  onSaveTime, 
+  autoStart = true,
+  documentId,
+  subjectId
+}: DocumentTimerProps) {
   const [isRunning, setIsRunning] = useState(autoStart);
   const [seconds, setSeconds] = useState(0);
   const [savedSeconds, setSavedSeconds] = useState(0);
@@ -18,6 +25,8 @@ export function DocumentTimer({ onSaveTime, autoStart = true }: DocumentTimerPro
   const secondsRef = useRef(0);
   const savedSecondsRef = useRef(0);
   const onSaveTimeRef = useRef(onSaveTime);
+  const documentIdRef = useRef(documentId);
+  const subjectIdRef = useRef(subjectId);
   
   // Keep refs in sync
   useEffect(() => {
@@ -31,6 +40,15 @@ export function DocumentTimer({ onSaveTime, autoStart = true }: DocumentTimerPro
   useEffect(() => {
     onSaveTimeRef.current = onSaveTime;
   }, [onSaveTime]);
+
+  useEffect(() => {
+    // Only update if we have a value, to avoid losing it during unmount/cleanup
+    if (documentId) documentIdRef.current = documentId;
+  }, [documentId]);
+
+  useEffect(() => {
+    if (subjectId) subjectIdRef.current = subjectId;
+  }, [subjectId]);
 
   useEffect(() => {
     if (isRunning) {
@@ -53,19 +71,19 @@ export function DocumentTimer({ onSaveTime, autoStart = true }: DocumentTimerPro
     if (seconds > 0 && seconds - lastSaveRef.current >= 30) {
       const toSave = seconds - savedSeconds;
       if (toSave > 0) {
-        onSaveTime(toSave);
+        onSaveTime(toSave, documentId, subjectId);
         setSavedSeconds(seconds);
         lastSaveRef.current = seconds;
       }
     }
-  }, [seconds, savedSeconds, onSaveTime]);
+  }, [seconds, savedSeconds, onSaveTime, documentId, subjectId]);
 
   // Save on unmount - using refs to get current values
   useEffect(() => {
     return () => {
       const unsavedSeconds = secondsRef.current - savedSecondsRef.current;
       if (unsavedSeconds > 0) {
-        onSaveTimeRef.current(unsavedSeconds);
+        onSaveTimeRef.current(unsavedSeconds, documentIdRef.current, subjectIdRef.current);
       }
     };
   }, []);
@@ -73,7 +91,7 @@ export function DocumentTimer({ onSaveTime, autoStart = true }: DocumentTimerPro
   const handleSaveNow = () => {
     const toSave = seconds - savedSeconds;
     if (toSave > 0) {
-      onSaveTime(toSave);
+      onSaveTime(toSave, documentId, subjectId);
       setSavedSeconds(seconds);
       lastSaveRef.current = seconds;
     }

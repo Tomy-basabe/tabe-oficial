@@ -33,6 +33,7 @@ import {
   ExternalLink,
   Columns,
   Bookmark,
+  Smile,
 } from "lucide-react";
 import {
   NOTION_TEXT_COLORS,
@@ -340,6 +341,25 @@ const getSuggestionItems = (): CommandItem[] => [
       if (url) {
         editor.chain().focus().deleteRange(range).setBookmark({ url }).run();
       }
+    },
+  },
+  {
+    title: "Emoticón",
+    description: "Insertar un emoji",
+    icon: <Smile className="w-4 h-4 text-pink-400" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      // In a real app we'd open a picker, here let's just insert one for now or a placeholder
+      editor.chain().focus().deleteRange(range).insertContent("✨ ").run();
+    },
+  },
+  {
+    title: "Tabla de contenidos",
+    description: "Índice de encabezados",
+    icon: <List className="w-4 h-4 text-primary" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertToc().run();
     },
   },
 ];

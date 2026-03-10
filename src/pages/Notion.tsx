@@ -294,9 +294,12 @@ export default function Notion() {
   );
 
   const handleSaveTime = useCallback(
-    async (seconds: number) => {
-      if (!activeDocument) return;
-      await addStudyTime(activeDocument.id, seconds, activeDocument.subject_id);
+    async (seconds: number, docId?: string, subId?: string) => {
+      const targetDocId = docId || activeDocument?.id;
+      const targetSubId = subId || activeDocument?.subject_id;
+      
+      if (!targetDocId) return;
+      await addStudyTime(targetDocId, seconds, targetSubId || null);
     },
     [activeDocument, addStudyTime]
   );
@@ -423,7 +426,11 @@ export default function Notion() {
                 )}
 
                 {/* Timer */}
-                <DocumentTimer onSaveTime={handleSaveTime} />
+                <DocumentTimer 
+                  onSaveTime={handleSaveTime} 
+                  documentId={activeDocument.id}
+                  subjectId={activeDocument.subject_id}
+                />
 
                 {/* Favorite */}
                 <button

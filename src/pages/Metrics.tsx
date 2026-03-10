@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3, Clock, BookOpen,
-  Timer, Layers, Video, Calendar
+  Timer, Layers, Video, Calendar, Library
 } from "lucide-react";
 import { subDays, eachDayOfInterval, format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -231,6 +231,18 @@ export default function Metrics() {
     return "Horas de Estudio por Mes";
   };
 
+  const getSessionTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      pomodoro: "Pomodoro",
+      flashcard: "Flashcards",
+      videocall: "Videollamadas",
+      estudio: "Estudio Libre",
+      apuntes: "Apuntes",
+      biblioteca: "Biblioteca",
+    };
+    return labels[type] || type;
+  };
+
   return (
     <div className="p-4 lg:p-8 space-y-6">
       {/* Header */}
@@ -444,7 +456,8 @@ export default function Metrics() {
                   pomodoro: { label: "Pomodoro", icon: Timer, color: "neon-gold" },
                   flashcard: { label: "Flashcards", icon: Layers, color: "neon-cyan" },
                   videocall: { label: "Videollamadas", icon: Video, color: "neon-purple" },
-                  estudio: { label: "Estudio Libre", icon: BookOpen, color: "neon-green" },
+                  apuntes: { label: "Apuntes", icon: BookOpen, color: "neon-green" },
+                  biblioteca: { label: "Biblioteca", icon: Library, color: "primary" },
                 };
 
                 const typeCounts: Record<string, { count: number; seconds: number }> = {};

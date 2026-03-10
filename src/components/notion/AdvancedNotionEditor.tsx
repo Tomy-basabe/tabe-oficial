@@ -14,6 +14,8 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import BulletList from "@tiptap/extension-bullet-list";
+import { wrappingInputRule, PasteRule } from "@tiptap/core";
 import { common, createLowlight } from "lowlight";
 import { useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,8 @@ import { TextStyle, Color, BackgroundColor } from "./extensions/ColorExtension";
 import { Embed } from "./extensions/EmbedExtension";
 import { ColumnBlock, Column } from "./extensions/ColumnsExtension";
 import { Bookmark } from "./extensions/BookmarkExtension";
+import { TocExtension } from "./extensions/TocExtension";
+import { Indent } from "./extensions/IndentExtension";
 import { ColorPicker } from "./ColorPicker";
 import "tippy.js/dist/tippy.css";
 
@@ -80,6 +84,35 @@ export function AdvancedNotionEditor({
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
         codeBlock: false,
+        bulletList: false, // Disable default to use custom one below
+      }),
+      BulletList.configure({
+        keepMarks: true,
+        keepAttributes: false,
+        HTMLAttributes: { class: "notion-bullet-list" },
+      }).extend({
+        addInputRules() {
+          return [
+            wrappingInputRule({
+              find: /^\s*([*-+•])\s$/,
+              type: this.type,
+            }),
+          ]
+        },
+        addPasteRules() {
+          return [
+            new PasteRule({
+              find: /^\s*([*-+•])\s/gm,
+              handler: ({ state, range, match }) => {
+                const { tr } = state;
+                const start = range.from;
+                const end = range.to;
+                tr.replaceWith(start, end, this.type.create());
+                return tr;
+              },
+            }),
+          ]
+        },
       }),
       Placeholder.configure({
         placeholder: ({ node }) => {
@@ -130,6 +163,8 @@ export function AdvancedNotionEditor({
       ColumnBlock,
       Column,
       Bookmark,
+      TocExtension,
+      Indent,
       DragHandle,
       SlashCommands,
     ],
@@ -141,6 +176,30 @@ export function AdvancedNotionEditor({
       attributes: {
         class: "notion-editor-content prose dark:prose-invert max-w-none focus:outline-none min-h-[300px]",
       },
+      transformPastedText(text) {
+        // Replace single newlines followed by a lowercase letter with a space (often line-wraps in PDFs)
+        // But preserve single newlines followed by an uppercase letter or bullet symbols
+        // And ensure double newlines are treated as true paragraph breaks
+        return text
+          .replace(/([^\n])\n([a-z0-9])/g, '$1 $2') // Connect broken lines inside a paragraph
+          .replace(/\n{2,}/g, '\n\n') // Normalize multiple newlines
+          .trim();
+      },
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData('text/plain');
+        if (!text) return false;
+
+        // If it's a very long text, we might want to split it by actual paragraphs
+        // This helps Tiptap see them as different blocks
+        if (text.includes('\n\n')) {
+          // Let default behavior handle it if it already has paragraph spacing
+          return false;
+        }
+
+        // If it only has single newlines, it might be a PDF. 
+        // We can try to detect if these single newlines should be paragraphs.
+        return false;
+      }
     },
   });
 
@@ -338,12 +397,25 @@ export function AdvancedNotionEditor({
       // === TAB / SHIFT+TAB ===
       if (e.key === "Tab") {
         e.preventDefault();
+        
         if (e.shiftKey) {
-          editor.chain().focus().liftListItem("listItem").run() ||
+          // Priority: Lists/Tasks, then regular indentation
+          if (editor.can().liftListItem("listItem")) {
+            editor.chain().focus().liftListItem("listItem").run();
+          } else if (editor.can().liftListItem("taskItem")) {
             editor.chain().focus().liftListItem("taskItem").run();
+          } else {
+            editor.commands.outdent();
+          }
         } else {
-          editor.chain().focus().sinkListItem("listItem").run() ||
+          // Priority: Lists/Tasks, then regular indentation
+          if (editor.can().sinkListItem("listItem")) {
+            editor.chain().focus().sinkListItem("listItem").run();
+          } else if (editor.can().sinkListItem("taskItem")) {
             editor.chain().focus().sinkListItem("taskItem").run();
+          } else {
+            editor.commands.indent();
+          }
         }
         return;
       }
@@ -362,7 +434,7 @@ export function AdvancedNotionEditor({
         } else if (textBefore === "###") {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).setHeading({ level: 3 }).run();
-        } else if (textBefore === "-" || textBefore === "*" || textBefore === "+") {
+        } else if (textBefore === "-" || textBefore === "*" || textBefore === "+" || textBefore === "•") {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).toggleBulletList().run();
         } else if (/^[1-9]\.$/.test(textBefore)) {

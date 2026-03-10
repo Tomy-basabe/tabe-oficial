@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { markdownToTiptap } from "@/lib/markdownToTiptap";
 import JSZip from "jszip";
 
 interface LibraryFolder {
@@ -949,22 +950,7 @@ export default function Library() {
         const summaryText = data.data.summary;
         if (!summaryText) throw new Error("No summary generated");
 
-        const paragraphs = summaryText.split('\n').filter((p: string) => p.trim());
-        const tiptapContent = {
-          type: "doc",
-          content: paragraphs.map((p: string) => {
-            if (p.startsWith('# ')) {
-              return { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: p.replace('# ', '') }] };
-            }
-            if (p.startsWith('## ')) {
-              return { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: p.replace('## ', '') }] };
-            }
-            if (p.startsWith('- ') || p.startsWith('• ')) {
-              return { type: "paragraph", content: [{ type: "text", text: p }] };
-            }
-            return { type: "paragraph", content: [{ type: "text", text: p }] };
-          })
-        };
+        const tiptapContent = markdownToTiptap(summaryText);
 
         const { error: noteError } = await supabase
           .from("notion_documents")

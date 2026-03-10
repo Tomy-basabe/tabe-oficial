@@ -202,18 +202,26 @@ export function useNotionDocuments() {
     }
 
     // Save to study_sessions for metrics and plant growth
-    // Save all sessions (even short ones) so the plant can track activity
     try {
-      await supabase
+      const { error } = await supabase
         .from("study_sessions")
         .insert({
           user_id: user.id,
           subject_id: subjectId,
           duracion_segundos: seconds,
-          tipo: "estudio",
+          tipo: "apuntes", // Standardized to 'apuntes'
           completada: true,
           fecha: new Date().toISOString().split('T')[0],
         });
+
+      if (error) throw error;
+      
+      // We don't want to spam the user with toasts during auto-save (every 30s)
+      // but showing it on manual save or unmount is good.
+      // However, to keep it simple and helpful:
+      if (seconds >= 60) {
+        toast.success(`⏱️ ${Math.floor(seconds / 60)} min de estudio registrados`);
+      }
     } catch (error) {
       console.error("Error saving notion study session:", error);
     }
