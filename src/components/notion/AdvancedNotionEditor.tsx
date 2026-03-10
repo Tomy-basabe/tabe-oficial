@@ -200,18 +200,22 @@ export function AdvancedNotionEditor({
         let blocks: { type: 'p' | 'li', content: string }[] = [];
         
         lines.forEach(line => {
-          // Detect bullet points
-          const bulletMatch = line.match(/^[•●○◦▪■*-]\s*(.*)/);
+          // Detect bullet points (more comprehensive regex)
+          const bulletMatch = line.match(/^([•●○◦▪■*-]|\d+[.)])\s+(.*)/);
           if (bulletMatch) {
-            blocks.push({ type: 'li', content: bulletMatch[1] });
+            blocks.push({ type: 'li', content: bulletMatch[2] });
           } else {
             const lastBlock = blocks[blocks.length - 1];
-            // If the last block was a paragraph and didn't end with a terminator,
-            // or if this line starts with a lowercase letter, merge it.
-            const endsWithTerminator = lastBlock && /[.:!?]$/.test(lastBlock.content);
-            const startsWithLowercase = /^[a-záéíóú]/.test(line);
+            
+            // Heuristic for merging split sentences:
+            // 1. If previous block wasn't a list item
+            // 2. AND previous block didn't end with sentence-ending punctuation (., !, ?, :)
+            // 3. OR current line starts with lowercase letter or common connecting word
+            const endsWithPunctuation = lastBlock && /[.!?:]\s*$/.test(lastBlock.content);
+            const startsWithLowercase = /^[a-zâêîôûáéíóúàèìòù]/.test(line);
+            const isContinuation = lastBlock && lastBlock.type === 'p' && (!endsWithPunctuation || startsWithLowercase);
 
-            if (lastBlock && lastBlock.type === 'p' && (!endsWithTerminator || startsWithLowercase)) {
+            if (isContinuation) {
               lastBlock.content += ' ' + line;
             } else {
               blocks.push({ type: 'p', content: line });
