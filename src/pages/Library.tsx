@@ -10,6 +10,7 @@ import {
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PdfHighlighter } from "@/components/PdfHighlighter";
 import { useMarketplace } from "@/hooks/useMarketplace";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
@@ -2413,7 +2414,7 @@ export default function Library() {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
               <span className="text-base">{generating === 'summary' ? '⏳' : '📝'}</span>
-              {generating === 'summary' ? "Resumiendo..." : "Resumir"}
+              {generating === 'summary' ? "Resumiendo..." : "Resumir con IA"}
             </button>
 
             {/* Resaltar AI Button */}
@@ -2483,12 +2484,29 @@ export default function Library() {
                   />
                 )}
                 {fullScreenFile.tipo === "pdf" && (
-                  <iframe
-                    src={`${fullScreenFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
-                    className="w-full rounded-lg border-0 shadow-2xl"
-                    style={{ minHeight: "calc(100vh - 160px)", height: "100%" }}
-                    title={fullScreenFile.nombre}
-                  />
+                  <div className="w-full h-full min-h-[calc(100vh-160px)]">
+                    <PdfHighlighter
+                      url={fullScreenFile.url}
+                      highlights={highlights}
+                      fileName={fullScreenFile.nombre}
+                      onAddHighlight={async (text, rects, page) => {
+                        if (!user || !fullScreenFile) return;
+                        const { error } = await supabase.from("file_highlights").insert({
+                          user_id: user.id,
+                          file_id: fullScreenFile.id,
+                          color: highlightColor,
+                          text_content: text,
+                          source: "manual",
+                          position_data: { page, rect: rects[0] } // Usamos el primer rect por simplicidad
+                        });
+                        if (error) {
+                          toast.error("Error al guardar el resaltado");
+                        } else {
+                          fetchHighlights(fullScreenFile.id);
+                        }
+                      }}
+                    />
+                  </div>
                 )}
                 {fullScreenFile.tipo === "link" && (
                   <div className="text-center py-20">
