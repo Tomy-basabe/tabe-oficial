@@ -333,10 +333,11 @@ serve(async (req) => {
       }))
     ];
 
+    // Optimized RAG: if user message is already very long, skip RAG to avoid tokens issues
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
     let ragContext = "";
 
-    if (lastUserMsg) {
+    if (lastUserMsg && lastUserMsg.length < 4000) {
       const detectedSubject = fuzzyFind(lastUserMsg, subjects);
       if (detectedSubject) {
         console.log(`[RAG] Tema detectado: ${detectedSubject.nombre}. Buscando apuntes...`);
@@ -405,226 +406,174 @@ serve(async (req) => {
       }
     }
 
-    const finalSysPrompt = sysPrompt + ragContext;
+    const finalSysPrompt = sysPrompt + ragContext + "\n\n10. ⚠️ REGLA DE CREACION MASIVA: Si el usuario te manda una lista de mas de 15 tarjetas o preguntas, empeza tu respuesta DIRECTAMENTE con la herramienta, sin saludos ni introducciones. Esto evita errores de parsing.";
     
-    // Safety: truncate system prompt if too large (max ~10000 chars)
-    const maxSysLength = 10000;
+    // Safety: truncate system prompt if too large (max ~8000 chars)
+    const maxSysLength = 8000;
     const truncatedSysPrompt = finalSysPrompt.length > maxSysLength 
-      ? finalSysPrompt.slice(0, maxSysLength) + "\n[System prompt truncado por tamaño]"
+      ? finalSysPrompt.slice(0, maxSysLength) + "\n[System prompt truncado]"
       : finalSysPrompt;
     
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
-    let content = "";
-    let toolCall: any = null;
-    let provider = "";
-    const errors: string[] = [];
+    // Stream from Groq
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: groqMessages,
+        tools: tools,
+        tool_choice: "auto",
+        temperature: 0.5,
+        max_tokens: 8192,
+        stream: true
+      })
+    });
 
-    if (GROQ_API_KEY) {
-      try {
-        // Ensure first message after system is "user" (Groq/Llama requirement)
-        // Remove leading assistant messages
-        while (groqMessages.length > 1 && groqMessages[1].role === "assistant") {
-          groqMessages.splice(1, 1);
-        }
-        
-        // Ensure no empty content
-        for (const msg of groqMessages) {
-          if (!msg.content || msg.content.trim() === "") {
-            msg.content = "(vacío)";
-          }
-        }
-
-        console.log("[AI] Usando GROQ. Messages: " + groqMessages.length + ", SysPrompt: " + truncatedSysPrompt.length + " chars");
-        console.log("[AI] Message roles: " + groqMessages.map((m: any) => m.role).join(" -> "));
-        
-        const requestBody = {
-          model: "llama-3.3-70b-versatile",
-          messages: groqMessages,
-          tools: tools,
-          tool_choice: "auto",
-          temperature: 0.5,
-          max_tokens: 8192,
-          stream: false
-        };
-        
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${GROQ_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        const status = res.status;
-        if (res.ok) {
-          const data = await res.json();
-          const choice = data.choices && data.choices[0];
-
-          if (choice && choice.message) {
-            if (choice.message.content) {
-              content = choice.message.content;
-            }
-            if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-              const tc = choice.message.tool_calls[0];
-              toolCall = {
-                name: tc.function.name,
-                args: JSON.parse(tc.function.arguments)
-              };
-            }
-          }
-          provider = "groq";
-          console.log("[AI] Groq OK text:" + (content.length > 0) + " tool:" + (!!toolCall));
-        } else {
-          const errBody = await res.text();
-          errors.push("groq:" + status + " - " + errBody.slice(0, 500));
-          console.error("[AI] Groq failed:", status, errBody);
-        }
-      } catch (e: any) {
-        errors.push("groq:" + (e.message || String(e)));
-        console.error("[AI] Groq exception:", e.message || e);
-      }
-    } else {
-      errors.push("No GROQ_API_KEY set in environment variables");
-      console.error("[AI] No GROQ_API_KEY set");
-    }
-
-    if (!provider) {
-      console.error("[AI] No provider. Errors:", errors.join(" | "));
-      throw new Error("No AI provider available. Errors: " + errors.join(" | "));
-    }
-
-    const resolveId = (raw: string | null | undefined): string | null => {
-      if (!raw) return null;
-      if (/^[0-9a-f]{8}-/.test(raw)) return raw;
-      const found = fuzzyFind(raw, subjects);
-      if (found) { console.log("[Fuzzy] " + raw + " -> " + found.nombre); return found.id; }
-      return null;
-    };
-
-    if (toolCall) {
-      const args = toolCall.args;
-      const fn = toolCall.name;
-      console.log("[Tool] " + fn, JSON.stringify(args));
-
-      if (fn === "create_calendar_events") {
-        const agendados = [];
-        if (args.eventos && Array.isArray(args.eventos)) {
-          for (const evt of args.eventos) {
-            const tipo = mapET(evt.tipo_examen || "Otro");
-            const sid = resolveId(evt.subject_id);
-            const { data, error } = await serviceClient.from("calendar_events").insert({
-              user_id: userId, 
-              titulo: evt.titulo, 
-              fecha: evt.fecha, 
-              hora: evt.hora || null,
-              hora_fin: evt.hora_fin || null,
-              tipo_examen: tipo, 
-              color: colorFor(tipo), 
-              notas: evt.notas || null, 
-              subject_id: sid,
-              recurrence_rule: evt.recurrence_rule || null,
-              recurrence_end: evt.recurrence_end || null
-            }).select().single();
-            if (!error && data) agendados.push(data);
-          }
-        }
-        
-        if (agendados.length > 0) {
-          content += `\nAgendé ${agendados.length} evento(s) exitosamente.`;
-        } else {
-          content += "\nNo se pudo agendar ningún evento. Verificá los datos.";
-        }
-      }
-      else if (fn === "delete_calendar_event") {
-        const { error } = await serviceClient.from("calendar_events").delete().eq("id", args.id).eq("user_id", userId);
-        content += error ? "\nError al eliminar." : "\nEvento eliminado.";
-      }
-      else if (fn === "update_calendar_event") {
-        const up: any = {};
-        if (args.titulo) up.titulo = args.titulo;
-        if (args.fecha) up.fecha = args.fecha;
-        if (args.hora) up.hora = args.hora;
-        if (args.tipo_examen) { up.tipo_examen = mapET(args.tipo_examen); up.color = colorFor(up.tipo_examen); }
-        if (args.notas) up.notas = args.notas;
-        const { error } = await serviceClient.from("calendar_events").update(up).eq("id", args.id).eq("user_id", userId);
-        content += error ? "\nError: " + error.message : "\nEvento actualizado.";
-      }
-      else if (fn === "create_flashcards") {
-        const sid = resolveId(args.subject_id || args.deck_name);
-        const cardsToCreate = args.cards || [];
-        console.log(`[Flashcards] Creating deck '${args.deck_name}' with ${cardsToCreate.length} cards`);
-        const { data: deck, error } = await serviceClient.from("flashcard_decks").insert({
-          user_id: userId, nombre: args.deck_name, total_cards: cardsToCreate.length, subject_id: sid
-        }).select().single();
-        if (deck && cardsToCreate.length > 0) {
-          const batchSize = 50;
-          let inserted = 0;
-          for (let i = 0; i < cardsToCreate.length; i += batchSize) {
-            const batch = cardsToCreate.slice(i, i + batchSize);
-            const { error: batchError } = await serviceClient.from("flashcards").insert(
-              batch.map((c: any) => ({ deck_id: deck.id, user_id: userId, pregunta: c.pregunta, respuesta: c.respuesta }))
-            );
-            if (!batchError) inserted += batch.length;
-            else console.error(`[Flashcards] Batch insert error:`, batchError);
-          }
-          content += "\nMazo \"" + deck.nombre + "\" creado con " + inserted + " cartas.";
-        } else if (error) { content += "\nError: " + error.message; }
-      }
-      else if (fn === "update_subject_status") {
-        const rid = resolveId(args.subject_id);
-        if (!rid) { content += "\nNo encontre esa materia."; }
-        else {
-          const up: any = { user_id: userId, subject_id: rid, estado: args.estado };
-          if (args.nota) up.nota = args.nota;
-          if (args.estado === "aprobada") up.fecha_aprobacion = new Date().toISOString().split("T")[0];
-          const { error } = await serviceClient.from("user_subject_status").upsert(up, { onConflict: "user_id,subject_id" });
-          content += error ? "\nError: " + error.message : "\n" + (nameById[rid] || args.subject_id) + " actualizada a " + args.estado.toUpperCase() + (args.nota ? " con nota " + args.nota : "") + ".";
-        }
-      }
-      else if (fn === "create_notion_document") {
-        const sid = resolveId(args.subject_id);
-        const { data, error } = await serviceClient.from("notion_documents").insert({
-          user_id: userId, titulo: args.titulo, emoji: "memo",
-          contenido: args.contenido ? JSON.stringify([{ type: "paragraph", content: args.contenido }]) : "[]",
-          subject_id: sid, is_favorite: false, total_time_seconds: 0
-        }).select().single();
-        content += error ? "\nError: " + error.message : "\nDocumento \"" + data.titulo + "\" creado.";
-      }
-      else if (fn === "search_library") {
-        content += "\nBusqueda no disponible en este momento.";
-      }
-      else if (fn === "create_quiz") {
-        const sid = resolveId(args.subject_id || args.quiz_name);
-        const questionsToCreate = args.questions || [];
-        console.log(`[Quiz] Creating quiz '${args.quiz_name}' with ${questionsToCreate.length} questions`);
-        const { data: quizDeck, error: qdErr } = await serviceClient.from("quiz_decks").insert({
-          user_id: userId, nombre: args.quiz_name, total_questions: questionsToCreate.length, subject_id: sid
-        }).select().single();
-        if (quizDeck && questionsToCreate.length > 0) {
-          let createdCount = 0;
-          for (const q of questionsToCreate) {
-            const { data: question } = await serviceClient.from("quiz_questions").insert({
-              deck_id: quizDeck.id, user_id: userId, pregunta: q.pregunta, explicacion: q.explicacion || null
-            }).select().single();
-            if (question && q.opciones) {
-              const opts = q.opciones.map((o: string, i: number) => ({
-                question_id: question.id, texto: o, es_correcta: i === (q.correcta || 0)
-              }));
-              await serviceClient.from("quiz_options").insert(opts);
-              createdCount++;
-            }
-          }
-          content += "\nCuestionario \"" + quizDeck.nombre + "\" creado con " + createdCount + " preguntas. Anda a Cuestionarios para practicarlo.";
-        } else if (qdErr) { content += "\nError: " + qdErr.message; }
-      }
+    if (!groqRes.ok) {
+      const err = await groqRes.text();
+      throw new Error(`Groq API Error: ${groqRes.status} - ${err}`);
     }
 
     const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    
     const body = new ReadableStream({
-      start(ctrl) {
-        ctrl.enqueue(encoder.encode("data: " + JSON.stringify({ choices: [{ delta: { content: content } }] }) + "\n\n"));
+      async start(ctrl) {
+        const reader = groqRes.body?.getReader();
+        if (!reader) {
+          ctrl.close();
+          return;
+        }
+
+        let fullContent = "";
+        let toolCallId = "";
+        let toolCallName = "";
+        let toolCallArgs = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ") && line !== "data: [DONE]") {
+              try {
+                const data = JSON.parse(line.slice(6));
+                const delta = data.choices[0].delta;
+
+                if (delta.content) {
+                  fullContent += delta.content;
+                  ctrl.enqueue(encoder.encode("data: " + JSON.stringify(data) + "\n\n"));
+                }
+
+                if (delta.tool_calls && delta.tool_calls[0]) {
+                  const tc = delta.tool_calls[0];
+                  if (tc.id) toolCallId = tc.id;
+                  if (tc.function?.name) toolCallName = tc.function.name;
+                  if (tc.function?.arguments) toolCallArgs += tc.function.arguments;
+                }
+              } catch (e) {
+                // Ignore parse errors from partial chunks
+              }
+            }
+          }
+        }
+
+        // Handle tool call if present
+        if (toolCallName && toolCallArgs) {
+          try {
+            const args = JSON.parse(toolCallArgs);
+            console.log(`[Tool] Executing ${toolCallName}`, args);
+            
+            let toolResult = "";
+            const resolveId = (raw: string | null | undefined): string | null => {
+              if (!raw) return null;
+              if (subjects.find((s: any) => s.id === raw)) return raw;
+              const found = fuzzyFind(raw, subjects);
+              return found ? found.id : null;
+            };
+
+            if (toolCallName === "create_calendar_events") {
+              const agendados = [];
+              if (args.eventos && Array.isArray(args.eventos)) {
+                for (const evt of args.eventos) {
+                  const tipo = mapET(evt.tipo_examen || "Otro");
+                  const sid = resolveId(evt.subject_id);
+                  const { data, error } = await serviceClient.from("calendar_events").insert({
+                    user_id: userId, titulo: evt.titulo, fecha: evt.fecha, hora: evt.hora || null,
+                    hora_fin: evt.hora_fin || null, tipo_examen: tipo, color: colorFor(tipo),
+                    notas: evt.notas || null, subject_id: sid, recurrence_rule: evt.recurrence_rule || null,
+                    recurrence_end: evt.recurrence_end || null
+                  }).select().single();
+                  if (!error && data) agendados.push(data);
+                }
+              }
+              toolResult = `\nAgendé ${agendados.length} evento(s).`;
+            }
+            else if (toolCallName === "create_flashcards") {
+              const sid = resolveId(args.subject_id || args.deck_name);
+              const cardsToCreate = args.cards || [];
+              const { data: deck } = await serviceClient.from("flashcard_decks").insert({
+                user_id: userId, nombre: args.deck_name, total_cards: cardsToCreate.length, subject_id: sid
+              }).select().single();
+              if (deck && cardsToCreate.length > 0) {
+                const batchSize = 50;
+                let inserted = 0;
+                for (let i = 0; i < cardsToCreate.length; i += batchSize) {
+                  const { error: batchError } = await serviceClient.from("flashcards").insert(
+                    cardsToCreate.slice(i, i + batchSize).map((c: any) => ({ deck_id: deck.id, user_id: userId, pregunta: c.pregunta, respuesta: c.respuesta }))
+                  );
+                  if (!batchError) inserted += Math.min(batchSize, cardsToCreate.length - i);
+                }
+                toolResult = `\nMazo "${deck.nombre}" creado con ${inserted} cartas.`;
+              }
+            }
+            else if (toolCallName === "update_subject_status") {
+              const rid = resolveId(args.subject_id);
+              if (rid) {
+                const up: any = { user_id: userId, subject_id: rid, estado: args.estado };
+                if (args.nota) up.nota = args.nota;
+                await serviceClient.from("user_subject_status").upsert(up, { onConflict: "user_id,subject_id" });
+                toolResult = `\nEstatus de ${args.subject_id} actualizado.`;
+              }
+            }
+            else if (toolCallName === "create_quiz") {
+              const sid = resolveId(args.subject_id || args.quiz_name);
+              const questionsToCreate = args.questions || [];
+              const { data: quizDeck } = await serviceClient.from("quiz_decks").insert({
+                user_id: userId, nombre: args.quiz_name, total_questions: questionsToCreate.length, subject_id: sid
+              }).select().single();
+              if (quizDeck && questionsToCreate.length > 0) {
+                for (const q of questionsToCreate) {
+                  const { data: question } = await serviceClient.from("quiz_questions").insert({
+                    deck_id: quizDeck.id, user_id: userId, pregunta: q.pregunta, explicacion: q.explicacion || null
+                  }).select().single();
+                  if (question && q.opciones) {
+                    const opts = q.opciones.map((o: string, i: number) => ({
+                      question_id: question.id, texto: o, es_correcta: i === (q.correcta || 0)
+                    }));
+                    await serviceClient.from("quiz_options").insert(opts);
+                  }
+                }
+                toolResult = `\nCuestionario "${quizDeck.nombre}" creado con ${questionsToCreate.length} preguntas.`;
+              }
+            }
+
+            if (toolResult) {
+              ctrl.enqueue(encoder.encode("data: " + JSON.stringify({ choices: [{ delta: { content: toolResult } }] }) + "\n\n"));
+            }
+          } catch (e) {
+            console.error("[Tool Error]", e);
+          }
+        }
+
         ctrl.enqueue(encoder.encode("data: [DONE]\n\n"));
         ctrl.close();
       }
@@ -632,7 +581,7 @@ serve(async (req) => {
 
     return new Response(body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
   } catch (e: any) {
-    console.error("AI Error:", e.message || e);
+    console.error("Global AI Error:", e.message || e);
     return new Response(JSON.stringify({ error: e.message || String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

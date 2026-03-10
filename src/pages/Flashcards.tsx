@@ -76,6 +76,14 @@ export default function Flashcards() {
   const [importSourceCards, setImportSourceCards] = useState<Flashcard[]>([]);
   const [selectedImportCards, setSelectedImportCards] = useState<string[]>([]);
 
+  // Merge Decks State
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [selectedDecksToMerge, setSelectedDecksToMerge] = useState<string[]>([]);
+  const [mergeNewDeckName, setMergeNewDeckName] = useState("");
+  const [mergeYear, setMergeYear] = useState<number | null>(null);
+  const [mergeSubjectId, setMergeSubjectId] = useState<string | null>(null);
+  const [isMerging, setIsMerging] = useState(false);
+
   useEffect(() => {
     if (user || isGuest) {
       fetchSubjects();
@@ -507,6 +515,91 @@ export default function Flashcards() {
     );
   };
 
+  const handleMergeDecks = async () => {
+    if (!user || selectedDecksToMerge.length < 2 || !mergeNewDeckName.trim() || !mergeSubjectId) {
+      toast.error("Completa todos los campos y selecciona al menos 2 mazos");
+      return;
+    }
+
+    setIsMerging(true);
+    try {
+      // 1. Create the new deck
+      const { data: newDeck, error: deckError } = await supabase
+        .from("flashcard_decks")
+        .insert({
+          user_id: user.id,
+          subject_id: mergeSubjectId,
+          nombre: mergeNewDeckName.trim(),
+        })
+        .select()
+        .single();
+
+      if (deckError) throw deckError;
+
+      // 2. Fetch all cards from selected decks
+      const { data: allSourceCards, error: cardsError } = await supabase
+        .from("flashcards")
+        .select("pregunta, respuesta")
+        .in("deck_id", selectedDecksToMerge);
+
+      if (cardsError) throw cardsError;
+
+      if (!allSourceCards || allSourceCards.length === 0) {
+        toast.error("Los mazos seleccionados no tienen tarjetas.");
+        setIsMerging(false);
+        return;
+      }
+
+      // 3. Clone cards into the new deck
+      const cardsToInsert = allSourceCards.map(c => ({
+        user_id: user.id,
+        deck_id: newDeck.id,
+        pregunta: c.pregunta,
+        respuesta: c.respuesta,
+        veces_correcta: 0,
+        veces_incorrecta: 0
+      }));
+
+      const { error: insertError } = await supabase
+        .from("flashcards")
+        .insert(cardsToInsert);
+
+      if (insertError) throw insertError;
+
+      // 4. Update the total_cards count for the new deck
+      await supabase
+        .from("flashcard_decks")
+        .update({ total_cards: cardsToInsert.length })
+        .eq("id", newDeck.id);
+
+      toast.success(`¡Mazo "${mergeNewDeckName}" creado con ${cardsToInsert.length} tarjetas!`);
+      setShowMergeModal(false);
+      resetMergeState();
+      fetchDecks();
+      checkAndUnlockAchievements();
+    } catch (error) {
+      console.error("Error merging decks:", error);
+      toast.error("Error al combinar los mazos");
+    } finally {
+      setIsMerging(false);
+    }
+  };
+
+  const resetMergeState = () => {
+    setSelectedDecksToMerge([]);
+    setMergeNewDeckName("");
+    setMergeYear(null);
+    setMergeSubjectId(null);
+  };
+
+  const toggleMergeDeckSelection = (deckId: string) => {
+    setSelectedDecksToMerge(prev =>
+      prev.includes(deckId)
+        ? prev.filter(id => id !== deckId)
+        : [...prev, deckId]
+    );
+  };
+
   const selectAllImportCards = () => {
     if (selectedImportCards.length === importSourceCards.length) {
       setSelectedImportCards([]);
@@ -573,13 +666,22 @@ export default function Flashcards() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowNewDeckModal(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold hover:shadow-lg hover:shadow-neon-cyan/25 transition-all hover:scale-105"
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Mazo
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowMergeModal(true)}
+            className="flex items-center gap-2 px-5 py-3 bg-secondary text-foreground border border-border rounded-xl font-semibold hover:bg-secondary/80 transition-all hover:scale-105"
+          >
+            <Layers className="w-5 h-5 text-neon-cyan" />
+            Juntar Mazos
+          </button>
+          <button
+            onClick={() => setShowNewDeckModal(true)}
+            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold hover:shadow-lg hover:shadow-neon-cyan/25 transition-all hover:scale-105"
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo Mazo
+          </button>
+        </div>
       </div>
 
       {/* Stats bar */}
@@ -1092,6 +1194,144 @@ export default function Flashcards() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge Decks Modal */}
+      <Dialog open={showMergeModal} onOpenChange={setShowMergeModal}>
+        <DialogContent className="sm:max-w-xl bg-card border-border max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
+              <Layers className="w-6 h-6 text-neon-cyan" />
+              Combinar Mazos de Flashcards
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto py-4 space-y-6 pr-1">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-muted-foreground">
+                  1. Seleccionar Mazos ({selectedDecksToMerge.length} seleccionados)
+                </label>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                  Mínimo 2 mazos
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+                {decks.map(deck => (
+                  <div
+                    key={deck.id}
+                    onClick={() => toggleMergeDeckSelection(deck.id)}
+                    className={cn(
+                      "p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group",
+                      selectedDecksToMerge.includes(deck.id)
+                        ? "bg-neon-cyan/10 border-neon-cyan/50"
+                        : "bg-secondary/50 border-border hover:border-neon-cyan/30"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                        selectedDecksToMerge.includes(deck.id)
+                          ? "bg-neon-cyan border-neon-cyan"
+                          : "border-muted-foreground/30"
+                      )}>
+                        {selectedDecksToMerge.includes(deck.id) && <Plus className="w-3.5 h-3.5 text-background" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{deck.nombre}</p>
+                        <p className="text-[10px] text-muted-foreground">{deck.subject?.nombre || "Sin materia"}</p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-mono bg-background/40 px-2 py-0.5 rounded text-muted-foreground">
+                      {deck.total_cards} cards
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2 border-t border-border/50">
+              <label className="text-sm font-semibold text-muted-foreground block">
+                2. Configurar Nuevo Mazo
+              </label>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground ml-1">Año</label>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    {[1, 2, 3, 4, 5, 6].map(year => (
+                      <button
+                        key={year}
+                        type="button"
+                        onClick={() => { setMergeYear(year); setMergeSubjectId(null); }}
+                        className={cn(
+                          "w-8 h-8 rounded-lg text-xs font-bold transition-all",
+                          mergeYear === year
+                            ? "bg-neon-cyan text-background"
+                            : "bg-secondary hover:bg-secondary/80 text-muted-foreground"
+                        )}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground ml-1">Materia</label>
+                  <select
+                    value={mergeSubjectId || ""}
+                    onChange={(e) => setMergeSubjectId(e.target.value)}
+                    className="w-full px-3 py-2 bg-secondary/50 rounded-lg border border-border text-xs focus:ring-1 focus:ring-neon-cyan outline-none"
+                    disabled={!mergeYear}
+                  >
+                    <option value="">Seleccionar...</option>
+                    {subjects.filter(s => s.año === mergeYear).map(s => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground ml-1">Nombre del Mazo Combinado</label>
+                <input
+                  type="text"
+                  value={mergeNewDeckName}
+                  onChange={(e) => setMergeNewDeckName(e.target.value)}
+                  placeholder="Ej: Final - Repaso General"
+                  className="w-full px-4 py-3 bg-secondary/50 rounded-xl border border-border text-sm focus:ring-1 focus:ring-neon-cyan outline-none transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 mt-auto border-t border-border flex gap-3">
+            <button
+              onClick={() => setShowMergeModal(false)}
+              className="flex-1 py-3 text-sm font-semibold hover:bg-secondary/50 rounded-xl transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleMergeDecks}
+              disabled={isMerging || selectedDecksToMerge.length < 2 || !mergeNewDeckName.trim() || !mergeSubjectId}
+              className="flex-[2] py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-neon-cyan/20 flex items-center justify-center gap-2"
+            >
+              {isMerging ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
+                  Combinando...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Confirmar Combinación
+                </>
+              )}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
 
