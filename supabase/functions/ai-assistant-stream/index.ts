@@ -329,7 +329,7 @@ serve(async (req) => {
     const groqMessages = [
       ...trimmedMessages.map((m: any) => ({
         role: m.role,
-        content: typeof m.content === 'string' ? m.content.slice(0, 3000) : String(m.content).slice(0, 3000)
+        content: typeof m.content === 'string' ? m.content.slice(0, 20000) : String(m.content).slice(0, 20000)
       }))
     ];
 
@@ -407,8 +407,8 @@ serve(async (req) => {
 
     const finalSysPrompt = sysPrompt + ragContext;
     
-    // Safety: truncate system prompt if too large (max ~6000 chars)
-    const maxSysLength = 6000;
+    // Safety: truncate system prompt if too large (max ~10000 chars)
+    const maxSysLength = 10000;
     const truncatedSysPrompt = finalSysPrompt.length > maxSysLength 
       ? finalSysPrompt.slice(0, maxSysLength) + "\n[System prompt truncado por tamaño]"
       : finalSysPrompt;
