@@ -109,6 +109,25 @@ export const Details = Node.create<DetailsOptions>({
     ];
   },
 
+  addKeyboardShortcuts() {
+    return {
+      Backspace: () => {
+        const { empty, $from } = this.editor.state.selection;
+
+        if (!empty) {
+          return false;
+        }
+
+        // Check if we are at the very beginning of the DetailsSummary
+        if ($from.parent.type.name === 'detailsSummary' && $from.parentOffset === 0) {
+          return this.editor.commands.lift(this.name);
+        }
+
+        return false;
+      },
+    };
+  },
+
   addNodeView() {
     return ({ node, HTMLAttributes, getPos, editor }) => {
       const dom = document.createElement("details");
