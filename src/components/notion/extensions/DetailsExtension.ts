@@ -29,6 +29,21 @@ export const Details = Node.create<DetailsOptions>({
 
   defining: true,
 
+  addAttributes() {
+    return {
+      open: {
+        default: true,
+        parseHTML: element => element.hasAttribute('open'),
+        renderHTML: attributes => {
+          if (attributes.open) {
+            return { open: '' }
+          }
+          return {}
+        },
+      },
+    }
+  },
+
   parseHTML() {
     return [
       {
@@ -55,6 +70,7 @@ export const Details = Node.create<DetailsOptions>({
           return chain()
             .insertContent({
               type: this.name,
+              attrs: { open: true },
               content: [
                 {
                   type: "detailsSummary",
@@ -88,7 +104,7 @@ export const Details = Node.create<DetailsOptions>({
       wrappingInputRule({
         find: /^>\s$/,
         type: this.type,
-        getAttributes: () => ({}),
+        getAttributes: () => ({ open: true }),
       }),
     ];
   },
@@ -98,22 +114,25 @@ export const Details = Node.create<DetailsOptions>({
       const dom = document.createElement("details");
       dom.className = "notion-details";
       
-      // Preserve open state through re-renders
-      dom.open = true;
+      if (node.attrs.open) {
+        dom.open = true;
+      }
 
-      const contentDOM = document.createElement("div");
-      contentDOM.className = "notion-details-wrapper";
-
-      dom.appendChild(contentDOM);
-
-      // Handle toggle clicks properly
       dom.addEventListener("toggle", (e) => {
-        e.stopPropagation();
+        if (typeof getPos === 'function') {
+          editor.commands.command(({ tr }) => {
+            tr.setNodeMarkup(getPos(), undefined, {
+              ...node.attrs,
+              open: dom.open,
+            })
+            return true
+          })
+        }
       });
 
       return {
         dom,
-        contentDOM,
+        contentDOM: dom,
         ignoreMutation: (mutation: MutationRecord) => {
           return mutation.type === "attributes" && mutation.attributeName === "open";
         },

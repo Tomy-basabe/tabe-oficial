@@ -375,8 +375,8 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
 
           {/* Card spread */}
           <div className="relative flex justify-center items-end min-h-[280px] lg:min-h-[340px] w-full max-w-3xl mx-auto mb-6">
-            {remainingIndices.slice(0, 12).map((cardIdx, posIdx) => {
-              const totalRemaining = Math.min(remainingIndices.length, 12);
+            {remainingIndices.map((cardIdx, posIdx) => {
+              const totalRemaining = remainingIndices.length;
               const mid = (totalRemaining - 1) / 2;
               const offset = posIdx - mid;
               const angle = offset * (totalRemaining <= 5 ? 8 : totalRemaining <= 10 ? 5 : 3);

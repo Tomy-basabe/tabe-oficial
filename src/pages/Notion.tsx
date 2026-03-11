@@ -248,6 +248,9 @@ export default function Notion() {
       await saveDocument(true);
     }
 
+    // Save study time for the previous document before switching
+    handleSaveOnExit();
+
     const content = ensureTipTapFormat(doc.contenido) || {
       type: "doc",
       content: [{ type: "paragraph" }],
@@ -256,9 +259,16 @@ export default function Notion() {
     setEditorContent(content);
     editorContentRef.current = content;
     setLocalTitle(doc.titulo);
+    
+    // Reset time tracking state for the new document
+    totalSecondsRef.current = 0;
+    savedSecondsRef.current = 0;
+    setSessionSeconds(0);
+    lastActivityRef.current = Date.now();
+
     setActiveDocument(doc);
     setLastSaved(null);
-  }, []);
+  }, [saveDocument, handleSaveOnExit]);
 
   const closeDocument = useCallback(() => {
     if (autoSaveTimerRef.current) {
