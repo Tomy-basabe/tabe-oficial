@@ -198,6 +198,27 @@ export function AdvancedNotionEditor({
         return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\t/g, ' ');
       },
       handlePaste: (view, event) => {
+        // === IMAGE HANDLING (Base64) ===
+        if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
+          Array.from(event.clipboardData.files).forEach((file) => {
+            if (file.type.startsWith('image/')) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const base64Src = e.target?.result as string;
+                if (base64Src && editor) {
+                  editor.chain().focus().setImage({ src: base64Src }).run();
+                }
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+          // Retornamos true si manejamos al menos un archivo (asumimos que sí si llegamos acá)
+          if (Array.from(event.clipboardData.files).some(f => f.type.startsWith('image/'))) {
+             event.preventDefault();
+             return true;
+          }
+        }
+
         const text = event.clipboardData?.getData('text/plain');
         if (!text) return false;
 

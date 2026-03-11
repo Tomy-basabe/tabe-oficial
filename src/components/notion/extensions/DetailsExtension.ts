@@ -166,8 +166,56 @@ export const Details = Node.create<DetailsOptions>({
 
         return false;
       },
+      Enter: () => {
+        const { state, chain } = this.editor;
+        const { selection } = state;
+        const { $from, empty } = selection;
+
+        if (!empty) {
+          return false;
+        }
+
+        // Check if we are inside a details block
+        let detailsDepth = 0;
+        for (let i = $from.depth; i > 0; i--) {
+          if ($from.node(i).type.name === this.name) {
+            detailsDepth = i;
+            break;
+          }
+        }
+
+        if (detailsDepth > 0) {
+          // Si estamos en un detailsSummary vacio, no atrapar el enter aca
+          if ($from.parent.type.name === 'detailsSummary') {
+             return false;
+          }
+          
+          // Verificar si estamos al final de un párrafo vacío y si ese párrafo es el último hijo
+          const parent = $from.parent;
+          
+          // Si es un párrafo vacío
+          if (parent.type.name === 'paragraph' && parent.content.size === 0) {
+            const detailsPos = $from.before(detailsDepth);
+            const detailsNode = $from.node(detailsDepth);
+            const endOfDetails = detailsPos + detailsNode.nodeSize;
+            
+            // Si el bloque actual está pegado al final del details (con margen de error por cerramientos HTML)
+            if ($from.pos >= endOfDetails - 4) {
+              chain()
+                .deleteRange({ from: $from.before(), to: $from.after() }) // Borrar el párrafo vacío actual
+                .insertContentAt(endOfDetails, { type: 'paragraph' }) // Crear nuevo párrafo fuera
+                .setTextSelection(endOfDetails + 1) // Mover cursor al nuevo párrafo
+                .run();
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      }
     };
   },
+
 
   addNodeView() {
     return ({ node, HTMLAttributes, getPos, editor }) => {
