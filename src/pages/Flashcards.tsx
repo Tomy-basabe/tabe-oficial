@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -86,6 +86,15 @@ export default function Flashcards() {
   const [mergeSourceSubjectFilter, setMergeSourceSubjectFilter] = useState<string | null>(null);
   const [isMerging, setIsMerging] = useState(false);
 
+  // Refs for exit-save (same pattern as DocumentTimer)
+  const studyTimeRef = useRef(0);
+  const selectedDeckRef = useRef<Deck | null>(null);
+  const studyStateRef = useRef<StudyState>("browsing");
+
+  useEffect(() => { studyTimeRef.current = studyTime; }, [studyTime]);
+  useEffect(() => { selectedDeckRef.current = selectedDeck; }, [selectedDeck]);
+  useEffect(() => { studyStateRef.current = studyState; }, [studyState]);
+
   useEffect(() => {
     if (user || isGuest) {
       fetchSubjects();
@@ -103,6 +112,36 @@ export default function Flashcards() {
     }
     return () => clearInterval(interval);
   }, [studyState]);
+
+  // Save study session on tab switch / page close / navigate away
+  useEffect(() => {
+    const handleExitSave = () => {
+      if (studyStateRef.current === "studying" && studyTimeRef.current > 0 && user && selectedDeckRef.current) {
+        const deck = selectedDeckRef.current;
+        supabase.from("study_sessions").insert({
+          user_id: user.id,
+          subject_id: deck.subject_id,
+          duracion_segundos: studyTimeRef.current,
+          tipo: "flashcard",
+          completada: false,
+          fecha: new Date().toISOString().split('T')[0],
+        });
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleExitSave();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleExitSave);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleExitSave);
+    };
+  }, [user]);
 
   const fetchSubjects = async () => {
     const { data, error } = await supabase

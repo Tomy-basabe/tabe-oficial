@@ -512,14 +512,15 @@ export default function Metrics() {
           {/* Session Type Breakdown */}
           <div className="card-gamer rounded-xl p-6">
             <h3 className="font-display font-semibold mb-4">Tipos de Sesión</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {(() => {
                 const types = {
                   pomodoro: { label: "Pomodoro", icon: Timer, color: "neon-gold" },
                   flashcard: { label: "Flashcards", icon: Layers, color: "neon-cyan" },
-                  videocall: { label: "Videollamadas", icon: Video, color: "neon-purple" },
+                  cuestionario: { label: "Cuestionarios", icon: BookOpen, color: "neon-red" },
                   apuntes: { label: "Apuntes", icon: BookOpen, color: "neon-green" },
                   biblioteca: { label: "Biblioteca", icon: Library, color: "primary" },
+                  videocall: { label: "Videollamadas", icon: Video, color: "neon-purple" },
                 };
 
                 const typeCounts: Record<string, { count: number; seconds: number }> = {};

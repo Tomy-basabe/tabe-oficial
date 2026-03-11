@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -83,6 +83,15 @@ export default function Quizzes() {
     const [finished, setFinished] = useState(false);
     const [studyTime, setStudyTime] = useState(0);
 
+    // Refs for exit-save
+    const studyTimeRef = useRef(0);
+    const studyDeckRef = useRef<QuizDeck | null>(null);
+    const finishedRef = useRef(false);
+
+    useEffect(() => { studyTimeRef.current = studyTime; }, [studyTime]);
+    useEffect(() => { studyDeckRef.current = studyDeck; }, [studyDeck]);
+    useEffect(() => { finishedRef.current = finished; }, [finished]);
+
     // Timer
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -93,6 +102,36 @@ export default function Quizzes() {
         }
         return () => clearInterval(interval);
     }, [studyDeck, finished, studyQuestions]);
+
+    // Save study session on tab switch / page close / navigate away
+    useEffect(() => {
+        const handleExitSave = () => {
+            if (studyDeckRef.current && studyTimeRef.current > 0 && !finishedRef.current && user) {
+                const deck = studyDeckRef.current;
+                supabase.from("study_sessions").insert({
+                    user_id: user.id,
+                    subject_id: deck.subject_id,
+                    duracion_segundos: studyTimeRef.current,
+                    tipo: "cuestionario",
+                    completada: false,
+                    fecha: new Date().toISOString().split('T')[0],
+                });
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                handleExitSave();
+            }
+        };
+
+        window.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('beforeunload', handleExitSave);
+        return () => {
+            window.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('beforeunload', handleExitSave);
+        };
+    }, [user]);
 
     const saveStudySession = async (isCompleted: boolean) => {
         if (isGuest) return;

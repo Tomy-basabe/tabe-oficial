@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -203,11 +203,35 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         } catch (e) { console.error("Save error", e); }
     };
 
+    // Reliable alarm using Web Audio API (no external dependencies)
+    const playAlarm = useCallback(() => {
+        try {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const playBeep = (time: number, freq: number, duration: number) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.3, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+                osc.start(time);
+                osc.stop(time + duration);
+            };
+            // Play 3 beeps: ascending tones
+            playBeep(ctx.currentTime, 880, 0.2);
+            playBeep(ctx.currentTime + 0.3, 1100, 0.2);
+            playBeep(ctx.currentTime + 0.6, 1320, 0.3);
+        } catch (e) {
+            console.error("Audio error", e);
+        }
+    }, []);
+
     const handleTimerComplete = () => {
         setIsActive(false);
         if (soundEnabled) {
-            const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-            audio.play().catch(e => console.error("Audio error", e));
+            playAlarm();
         }
 
         if (mode === "work") {
@@ -215,7 +239,6 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             toast.success(`Pomodoro terminado!`, {
                 description: MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)],
             });
-            // Auto switch logic could go here, but keep it manual for now or auto-suggest
         } else {
             toast.info("Descanso terminado. ¡A volver!");
             setMode("work");
