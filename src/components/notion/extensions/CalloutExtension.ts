@@ -46,7 +46,7 @@ export const Callout = Node.create<CalloutOptions>({
   parseHTML() {
     return [
       {
-        tag: 'div[data-type="callout"]',
+        tag: 'div[data-notion-type="callout"]',
       },
     ];
   },
@@ -54,11 +54,11 @@ export const Callout = Node.create<CalloutOptions>({
   renderHTML({ node, HTMLAttributes }) {
     const type = node.attrs.type as CalloutType;
     const typeClasses: Record<CalloutType, string> = {
-      info: "callout-info",
-      success: "callout-success",
-      warning: "callout-warning",
-      danger: "callout-danger",
-      tip: "callout-tip",
+      info: "notion-callout-info",
+      success: "notion-callout-success",
+      warning: "notion-callout-warning",
+      danger: "notion-callout-danger",
+      tip: "notion-callout-tip",
     };
 
     const icons: Record<CalloutType, string> = {
@@ -72,11 +72,11 @@ export const Callout = Node.create<CalloutOptions>({
     return [
       "div",
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        "data-type": "callout",
-        class: `callout ${typeClasses[type]}`,
+        "data-notion-type": "callout",
+        class: `notion-callout ${typeClasses[type]}`,
       }),
-      ["span", { class: "callout-icon", contenteditable: "false" }, icons[type]],
-      ["div", { class: "callout-content" }, 0],
+      ["span", { class: "notion-callout-icon", contenteditable: "false" }, icons[type]],
+      ["div", { class: "notion-callout-content" }, 0],
     ];
   },
 

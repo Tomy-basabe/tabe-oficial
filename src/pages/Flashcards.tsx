@@ -86,6 +86,11 @@ export default function Flashcards() {
   const [mergeSourceSubjectFilter, setMergeSourceSubjectFilter] = useState<string | null>(null);
   const [isMerging, setIsMerging] = useState(false);
 
+  // Pagination State
+  const [managePage, setManagePage] = useState(1);
+  const [importPage, setImportPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
   // Refs for exit-save (same pattern as DocumentTimer)
   const studyTimeRef = useRef(0);
   const selectedDeckRef = useRef<Deck | null>(null);
@@ -358,6 +363,7 @@ export default function Flashcards() {
 
   const handleManageCards = async (deck: Deck) => {
     setSelectedDeck(deck);
+    setManagePage(1); // Reset to first page
     await fetchCards(deck.id);
     setShowManageCardsModal(true);
   };
@@ -511,6 +517,7 @@ export default function Flashcards() {
     setImportSourceDeck(sourceDeck);
     const cards = await fetchCards(sourceDeck.id);
     setImportSourceCards(cards || []);
+    setImportPage(1); // Reset to first page
     setImportStep(2);
   };
 
@@ -1001,29 +1008,55 @@ export default function Flashcards() {
                 <p>Este mazo no tiene tarjetas</p>
               </div>
             ) : (
-              cards.map((card) => (
-                <div
-                  key={card.id}
-                  className="p-4 bg-secondary rounded-xl border border-border group hover:border-neon-cyan/30 transition-colors"
-                >
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm line-clamp-2">{card.pregunta}</p>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
-                      <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                        <span className="text-neon-green">✓ {card.veces_correcta}</span>
-                        <span className="text-destructive">✗ {card.veces_incorrecta}</span>
+              <>
+                <div className="space-y-3">
+                  {cards.slice((managePage - 1) * ITEMS_PER_PAGE, managePage * ITEMS_PER_PAGE).map((card) => (
+                    <div
+                      key={card.id}
+                      className="p-4 bg-secondary rounded-xl border border-border group hover:border-neon-cyan/30 transition-colors"
+                    >
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm line-clamp-2">{card.pregunta}</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
+                          <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                            <span className="text-neon-green">✓ {card.veces_correcta}</span>
+                            <span className="text-destructive">✗ {card.veces_incorrecta}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteCard(card.id)}
+                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
+                  ))}
+                </div>
+
+                {cards.length > ITEMS_PER_PAGE && (
+                  <div className="flex items-center justify-between gap-4 mt-6 px-1">
                     <button
-                      onClick={() => deleteCard(card.id)}
-                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      disabled={managePage === 1}
+                      onClick={() => setManagePage(p => p - 1)}
+                      className="flex-1 py-2 bg-secondary rounded-xl text-sm font-medium disabled:opacity-30"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Anterior
+                    </button>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Página {managePage} de {Math.ceil(cards.length / ITEMS_PER_PAGE)}
+                    </span>
+                    <button
+                      disabled={managePage === Math.ceil(cards.length / ITEMS_PER_PAGE)}
+                      onClick={() => setManagePage(p => p + 1)}
+                      className="flex-1 py-2 bg-secondary rounded-xl text-sm font-medium disabled:opacity-30"
+                    >
+                      Siguiente
                     </button>
                   </div>
-                </div>
-              ))
+                )}
+              </>
             )}
           </div>
           <div className="pt-4 border-t border-border">
@@ -1192,37 +1225,63 @@ export default function Flashcards() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              <div className="flex-1 overflow-y-auto pr-1">
                 {importSourceCards.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Este mazo está vacío.
                   </div>
                 ) : (
-                  importSourceCards.map(card => (
-                    <div
-                      key={card.id}
-                      onClick={() => toggleImportCardSelection(card.id)}
-                      className={cn(
-                        "p-3 rounded-xl border border-border cursor-pointer transition-all flex gap-3",
-                        selectedImportCards.includes(card.id)
-                          ? "bg-neon-cyan/10 border-neon-cyan"
-                          : "bg-secondary hover:border-neon-cyan/50"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5",
-                        selectedImportCards.includes(card.id)
-                          ? "bg-neon-cyan border-neon-cyan"
-                          : "border-muted-foreground"
-                      )}>
-                        {selectedImportCards.includes(card.id) && <Plus className="w-3 h-3 text-background" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium line-clamp-2">{card.pregunta}</p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
-                      </div>
+                  <>
+                    <div className="space-y-2">
+                      {importSourceCards.slice((importPage - 1) * ITEMS_PER_PAGE, importPage * ITEMS_PER_PAGE).map(card => (
+                        <div
+                          key={card.id}
+                          onClick={() => toggleImportCardSelection(card.id)}
+                          className={cn(
+                            "p-3 rounded-xl border border-border cursor-pointer transition-all flex gap-3",
+                            selectedImportCards.includes(card.id)
+                              ? "bg-neon-cyan/10 border-neon-cyan"
+                              : "bg-secondary hover:border-neon-cyan/50"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5",
+                            selectedImportCards.includes(card.id)
+                              ? "bg-neon-cyan border-neon-cyan"
+                              : "border-muted-foreground"
+                          )}>
+                            {selectedImportCards.includes(card.id) && <Plus className="w-3 h-3 text-background" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium line-clamp-2">{card.pregunta}</p>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))
+
+                    {importSourceCards.length > ITEMS_PER_PAGE && (
+                      <div className="flex items-center justify-between gap-4 mt-6 mb-2 px-1">
+                        <button
+                          disabled={importPage === 1}
+                          onClick={() => setImportPage(p => p - 1)}
+                          className="flex-1 py-2 bg-secondary rounded-xl text-sm font-medium disabled:opacity-30"
+                        >
+                          Anterior
+                        </button>
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {importPage} / {Math.ceil(importSourceCards.length / ITEMS_PER_PAGE)}
+                        </span>
+                        <button
+                          disabled={importPage === Math.ceil(importSourceCards.length / ITEMS_PER_PAGE)}
+                          onClick={() => setImportPage(p => p + 1)}
+                          className="flex-1 py-2 bg-secondary rounded-xl text-sm font-medium disabled:opacity-30"
+                        >
+                          Siguiente
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
