@@ -1,5 +1,6 @@
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Blockquote from "@tiptap/extension-blockquote";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
@@ -87,6 +88,17 @@ export function AdvancedNotionEditor({
         heading: { levels: [1, 2, 3] },
         codeBlock: false,
         bulletList: false, // Disable default to use custom one below
+        blockquote: false,
+      }),
+      Blockquote.extend({
+        addInputRules() {
+          return [
+            wrappingInputRule({
+              find: /^"\s$/,
+              type: this.type,
+            }),
+          ];
+        },
       }),
       BulletList.configure({
         keepMarks: true,
