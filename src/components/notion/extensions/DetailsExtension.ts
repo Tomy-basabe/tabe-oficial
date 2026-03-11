@@ -118,9 +118,50 @@ export const Details = Node.create<DetailsOptions>({
           return false;
         }
 
-        // Check if we are at the very beginning of the DetailsSummary
+        // Si estamos al principio del título del Toggle (detailsSummary)
         if ($from.parent.type.name === 'detailsSummary' && $from.parentOffset === 0) {
-          return this.editor.commands.lift(this.name);
+          let detailsDepth = 0;
+          for (let i = $from.depth; i > 0; i--) {
+            if ($from.node(i).type.name === this.name) {
+              detailsDepth = i;
+              break;
+            }
+          }
+
+          if (detailsDepth > 0) {
+            const pos = $from.before(detailsDepth);
+            const detailsNode = $from.node(detailsDepth);
+            
+            const summaryNode = detailsNode.child(0);
+            const contentNode = detailsNode.child(1);
+
+            const replacement: any[] = [];
+            
+            // Convertir el resumen en un párrafo normal
+            replacement.push({
+              type: 'paragraph',
+              content: summaryNode.toJSON().content || []
+            });
+
+            // Extraer el contenido interior
+            const contentJSON = contentNode.toJSON().content;
+            if (contentJSON && Array.isArray(contentJSON)) {
+               // Filtrar si es solo el párrafo vacío por defecto para no ensuciar
+               const isSingleEmptyText = contentJSON.length === 1 && contentJSON[0].type === 'paragraph' && !contentJSON[0].content;
+               if (!isSingleEmptyText) {
+                 replacement.push(...contentJSON);
+               }
+            }
+
+            // Desmontar el details e insertar el bloque desarmado
+            this.editor.chain()
+              .deleteRange({ from: pos, to: pos + detailsNode.nodeSize })
+              .insertContentAt(pos, replacement)
+              .setTextSelection(pos)
+              .run();
+
+            return true;
+          }
         }
 
         return false;
