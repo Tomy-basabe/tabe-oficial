@@ -63,6 +63,12 @@ export default function Notion() {
   const editorContentRef = useRef<JSONContent | null>(null);
   const lastSavedContentRef = useRef<string>("");
   const autoSaveTimerRef = useRef<number | null>(null);
+  const activeDocumentRef = useRef<NotionDocument | null>(null);
+
+  // Sync activeDocument to ref to avoid state closure traps in intervals/events
+  useEffect(() => {
+    activeDocumentRef.current = activeDocument;
+  }, [activeDocument]);
 
   // Time tracking state
   const totalSecondsRef = useRef(0);
@@ -151,6 +157,17 @@ export default function Notion() {
     [scheduleAutoSave]
   );
 
+  const handleSaveTime = useCallback(
+    async (seconds: number, docId?: string, subId?: string) => {
+      const targetDocId = docId || activeDocument?.id;
+      const targetSubId = subId || activeDocument?.subject_id;
+      
+      if (!targetDocId) return;
+      await addStudyTime(targetDocId, seconds, targetSubId || null);
+    },
+    [activeDocument, addStudyTime]
+  );
+
   // Time tracking effect
   useEffect(() => {
     if (!activeDocument) {
@@ -172,24 +189,28 @@ export default function Notion() {
         // Auto-save time to DB every 60 seconds
         const unsaved = totalSecondsRef.current - savedSecondsRef.current;
         if (unsaved >= 60) {
-          handleSaveTime(unsaved);
+          const doc = activeDocumentRef.current;
+          if (doc) {
+            handleSaveTime(unsaved, doc.id, doc.subject_id || undefined);
+          }
           savedSecondsRef.current = totalSecondsRef.current;
         }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeDocument]);
+  }, [activeDocument, handleSaveTime]);
 
   // Save on exit logic
   const handleSaveOnExit = useCallback(() => {
-    if (!activeDocument) return;
+    const doc = activeDocumentRef.current;
+    if (!doc) return;
     const unsaved = totalSecondsRef.current - savedSecondsRef.current;
     if (unsaved > 0) {
-      // Use the actual subject_id from activeDocument
+      // Use the actual subject_id from activeDocument using ref
       supabase.from("study_sessions").insert({
         user_id: user?.id,
-        subject_id: activeDocument.subject_id,
+        subject_id: doc.subject_id,
         duracion_segundos: unsaved,
         tipo: "apuntes",
         completada: true,
@@ -199,7 +220,7 @@ export default function Notion() {
       });
       savedSecondsRef.current = totalSecondsRef.current;
     }
-  }, [activeDocument, user]);
+  }, [user]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -374,16 +395,6 @@ export default function Notion() {
     [activeDocument, updateDocument]
   );
 
-  const handleSaveTime = useCallback(
-    async (seconds: number, docId?: string, subId?: string) => {
-      const targetDocId = docId || activeDocument?.id;
-      const targetSubId = subId || activeDocument?.subject_id;
-      
-      if (!targetDocId) return;
-      await addStudyTime(targetDocId, seconds, targetSubId || null);
-    },
-    [activeDocument, addStudyTime]
-  );
 
   const handleImportDocument = useCallback(
     async (content: JSONContent, title: string, subjectId: string | null) => {

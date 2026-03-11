@@ -207,7 +207,7 @@ export function useNotionDocuments() {
         .from("study_sessions")
         .insert({
           user_id: user.id,
-          subject_id: subjectId,
+          subject_id: subjectId || null,
           duracion_segundos: seconds,
           tipo: "apuntes", // Standardized to 'apuntes'
           completada: true,
