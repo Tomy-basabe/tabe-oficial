@@ -110,7 +110,7 @@ serve(async (req) => {
       }
     }
 
-    const [sR, ussR, evR, stR, ssR, fdR, prR, allSessionsR] = await Promise.all([
+    const [sR, ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR] = await Promise.all([
       serviceClient.from("subjects").select("id, nombre, codigo, año"),
       serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
       serviceClient.from("calendar_events").select("*").eq("user_id", userId).gte("fecha", new Date().toISOString().split("T")[0]).order("fecha", { ascending: true }).limit(15),
@@ -119,6 +119,8 @@ serve(async (req) => {
       serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(10),
       serviceClient.from("profiles").select("nombre, username, email").eq("user_id", userId).maybeSingle(),
       serviceClient.from("study_sessions").select("subject_id, duracion_segundos, fecha, tipo").eq("user_id", userId),
+      serviceClient.from("professors").select("*").eq("user_id", userId),
+      serviceClient.from("professor_office_hours").select("*").eq("user_id", userId),
     ]);
 
     const subjects = sR.data || [];
@@ -129,6 +131,8 @@ serve(async (req) => {
     const decks = fdR.data || [];
     const profile = prR.data;
     const allSessions = allSessionsR.data || [];
+    const professorsData = profR.data || [];
+    const officeHoursData = hoursR.data || [];
 
     const nameById: Record<string, string> = {};
     for (const s of subjects) nameById[s.id] = s.nombre;
@@ -214,6 +218,15 @@ serve(async (req) => {
       ? sessions.map((s: any) => "- " + s.fecha + ": " + Math.round((s.duracion_segundos || 0) / 60) + "min (" + s.tipo + ")" + (s.subject_id && nameById[s.subject_id] ? " - " + nameById[s.subject_id] : "")).join("\n")
       : "Sin sesiones recientes.";
 
+    // Format Professors and Hours for Context
+    const profesoresStr = professorsData.length > 0
+      ? professorsData.map((p: any) => {
+          const hours = officeHoursData.filter((h: any) => h.professor_id === p.id);
+          const hoursStr = hours.map((h: any) => `${h.dia} ${h.hora_inicio} a ${h.hora_fin}`).join(", ");
+          return `- ${p.nombre} (${p.rol || "Sin rol"}) [ID:${p.id}] Materia: ${nameById[p.subject_id] || "ID:"+p.subject_id} - Consultas: ${hoursStr || "No cargadas"}`;
+        }).join("\n")
+      : "Sin profesores cargados.";
+
     const contextLine = context_page ? "\nSECCION ACTUAL: " + context_page : "";
 
     const metricasSection = metricasStr
@@ -250,6 +263,7 @@ serve(async (req) => {
       "=== MATERIAS ===\n" + materiasStr + "\n\n" +
       metricasSection +
       "=== AGENDA ===\n" + eventosStr + "\n\n" +
+      "=== PROFESORES Y CONSULTAS ===\n" + profesoresStr + "\n\n" +
       "=== SESIONES ===\n" + sesionesStr + "\n" +
       chatMemory + "\n\n" +
       "=== INSTRUCCIONES CRITICAS ===\n" +
@@ -263,6 +277,8 @@ serve(async (req) => {
       "   - 'marcame X como aprobada...', 'cambiame el estado de...' -> update_subject_status\n" +
       "   - 'creame un documento/apunte sobre...' -> create_notion_document\n" +
       "   - 'eliminame el evento...' -> delete_calendar_event\n" +
+      "   - 'añadí al profesor...', 'borrá al profesor...', 'cambiá el rol del profe...' -> manage_professors\n" +
+      "   - 'agendame la consulta...', 'el profe atiende tal día...', 'eliminá el horario del martes...' -> manage_consultations\n" +
       "   NUNCA uses herramientas para:\n" +
       "   - Saludos: 'hola', 'como estas', 'buenas' -> RESPONDE CON TEXTO\n" +
       "   - Preguntas sobre vos: 'como eres', 'quien sos', 'presentate', 'dime de ti' -> RESPONDE CON TEXTO describiendo tu personalidad\n" +
@@ -275,7 +291,9 @@ serve(async (req) => {
       "6. Responde en Español Argentino.\n" +
       "7. Solo analiza metricas de materias EN CURSO, no aprobadas/regulares.\n" +
       "8. Para multiples eventos usa create_calendar_events con array completo.\n" +
-      "9. Para flashcards/cuestionarios masivos, crea TODAS las que te manden sin limite.";
+      "9. Para flashcards/cuestionarios masivos, crea TODAS las que te manden sin limite.\n" +
+      "10. GESTION DE PROFESORES: Si el usuario menciona un nombre y una materia, buscá siempre el ID de la materia y usá manage_professors.\n" +
+      "11. GESTION DE CONSULTAS: Un profesor puede tener múltiples horarios. Usá manege_consultations para añadir, actualizar o eliminar horarios específicos (lunes, martes, etc.).";
 
     const tools = [
       { 
@@ -319,7 +337,46 @@ serve(async (req) => {
       { type: "function", function: { name: "update_subject_status", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE cambiar estado de una materia.", parameters: { type: "object", properties: { subject_id: { type: "string", description: "Nombre materia" }, estado: { type: "string", enum: ["sin_cursar", "en_curso", "regular", "aprobada", "libre"] }, nota: { type: "number" } }, required: ["subject_id", "estado"] } } },
       { type: "function", function: { name: "create_notion_document", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un documento o apunte con palabras como 'creame un doc', 'haceme un apunte'. NUNCA usar para responder preguntas, saludos, ni conversacion.", parameters: { type: "object", properties: { titulo: { type: "string" }, contenido: { type: "string" }, subject_id: { type: "string" } }, required: ["titulo"] } } },
       { type: "function", function: { name: "search_library", description: "Busca archivos en la biblioteca.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
-      { type: "function", function: { name: "create_quiz", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un cuestionario.", parameters: { type: "object", properties: { quiz_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, questions: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, opciones: { type: "array", items: { type: "string" }, description: "5 opciones" }, correcta: { type: "integer", description: "Indice 0-4" }, explicacion: { type: "string" } }, required: ["pregunta", "opciones", "correcta"] } } }, required: ["quiz_name", "questions"] } } }
+      { type: "function", function: { name: "create_quiz", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un cuestionario.", parameters: { type: "object", properties: { quiz_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, questions: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, opciones: { type: "array", items: { type: "string" }, description: "5 opciones" }, correcta: { type: "integer", description: "Indice 0-4" }, explicacion: { type: "string" } }, required: ["pregunta", "opciones", "correcta"] } } }, required: ["quiz_name", "questions"] } } },
+      {
+        type: "function",
+        function: {
+          name: "manage_professors",
+          description: "Gestiona la lista de profesores de una materia. Permite añadir, actualizar o eliminar profesores.",
+          parameters: {
+            type: "object",
+            properties: {
+              action: { type: "string", enum: ["create", "update", "delete"] },
+              id: { type: "string", description: "ID del profesor (necesario para update/delete)" },
+              nombre: { type: "string" },
+              rol: { type: "string", enum: ["teoria", "practica"] },
+              descripcion: { type: "string" },
+              subject_id: { type: "string", description: "Nombre o ID de la materia" },
+              color_index: { type: "integer", description: "Índice de color (0-10)" }
+            },
+            required: ["action"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "manage_consultations",
+          description: "Gestiona los horarios de consulta de un profesor. Permite añadir, actualizar o eliminar horarios por día.",
+          parameters: {
+            type: "object",
+            properties: {
+              action: { type: "string", enum: ["create", "update", "delete"] },
+              id: { type: "string", description: "ID del horario de consulta (opcional para create)" },
+              professor_id: { type: "string", description: "Nombre o ID del profesor" },
+              dia: { type: "string", enum: ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"] },
+              hora_inicio: { type: "string", description: "Formato HH:mm:ss" },
+              hora_fin: { type: "string", description: "Formato HH:mm:ss" }
+            },
+            required: ["action", "professor_id"]
+          }
+        }
+      }
     ];
 
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
@@ -563,6 +620,54 @@ serve(async (req) => {
                   }
                 }
                 toolResult = `\nCuestionario "${quizDeck.nombre}" creado con ${questionsToCreate.length} preguntas.`;
+              }
+            }
+            else if (toolCallName === "manage_professors") {
+              const sid = resolveId(args.subject_id);
+              if (args.action === "create" && sid) {
+                const { data } = await serviceClient.from("professors").insert({
+                  user_id: userId, nombre: args.nombre, rol: args.rol || null, 
+                  descripcion: args.descripcion || null, subject_id: sid, color_index: args.color_index || 0
+                }).select().single();
+                toolResult = `\nProfesor ${args.nombre} añadido correctamente.`;
+              } else if (args.action === "update" && args.id) {
+                await serviceClient.from("professors").update({
+                  nombre: args.nombre, rol: args.rol, descripcion: args.descripcion, 
+                  color_index: args.color_index
+                }).eq("id", args.id).eq("user_id", userId);
+                toolResult = `\nDatos del profesor actualizados.`;
+              } else if (args.action === "delete" && args.id) {
+                await serviceClient.from("professors").delete().eq("id", args.id).eq("user_id", userId);
+                toolResult = `\nProfesor eliminado.`;
+              }
+            }
+            else if (toolCallName === "manage_consultations") {
+              let pid = args.professor_id;
+              if (pid && !pid.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                const fuzzyProf = professorsData.find((p: any) => norm(p.nombre).includes(norm(pid)));
+                pid = fuzzyProf ? fuzzyProf.id : null;
+              }
+              if (pid) {
+                if (args.action === "create") {
+                  await serviceClient.from("professor_office_hours").insert({
+                    user_id: userId, professor_id: pid, dia: args.dia, 
+                    hora_inicio: args.hora_inicio, hora_fin: args.hora_fin
+                  });
+                  toolResult = `\nNuevo horario de consulta añadido para el profesor.`;
+                } else if (args.action === "update" && args.id) {
+                  await serviceClient.from("professor_office_hours").update({
+                    dia: args.dia, hora_inicio: args.hora_inicio, hora_fin: args.hora_fin
+                  }).eq("id", args.id).eq("user_id", userId);
+                  toolResult = `\nHorario de consulta actualizado.`;
+                } else if (args.action === "delete" && (args.id || args.dia)) {
+                  const query = serviceClient.from("professor_office_hours").delete().eq("professor_id", pid).eq("user_id", userId);
+                  if (args.id) query.eq("id", args.id);
+                  else query.eq("dia", args.dia);
+                  await query;
+                  toolResult = `\nHorario de consulta eliminado.`;
+                }
+              } else {
+                toolResult = `\nNo pude encontrar al profesor "${args.professor_id}".`;
               }
             }
 
