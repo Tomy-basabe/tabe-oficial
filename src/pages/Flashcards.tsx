@@ -91,7 +91,7 @@ export default function Flashcards() {
   const [importPage, setImportPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  // Refs for exit-save (same pattern as DocumentTimer)
+  // Refs for exit-save (to ensure time is saved on unmount/exit)
   const studyTimeRef = useRef(0);
   const selectedDeckRef = useRef<Deck | null>(null);
   const studyStateRef = useRef<StudyState>("browsing");

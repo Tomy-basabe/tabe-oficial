@@ -127,7 +127,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Lista colapsable",
     icon: <ChevronRight className="w-4 h-4" />,
     category: "Listas",
-    shortcut: "> Enter",
+    shortcut: "> espacio",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setDetails().run();
     },

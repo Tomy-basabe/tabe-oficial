@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AdvancedNotionEditor } from "@/components/notion/AdvancedNotionEditor";
-import { DocumentTimer } from "@/components/notion/DocumentTimer";
 import { EmojiPicker } from "@/components/notion/EmojiPicker";
 import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
@@ -64,6 +63,12 @@ export default function Notion() {
   const editorContentRef = useRef<JSONContent | null>(null);
   const lastSavedContentRef = useRef<string>("");
   const autoSaveTimerRef = useRef<number | null>(null);
+
+  // Time tracking state
+  const totalSecondsRef = useRef(0);
+  const savedSecondsRef = useRef(0);
+  const lastActivityRef = useRef<number>(Date.now());
+  const [sessionSeconds, setSessionSeconds] = useState(0);
 
   // Fetch subjects
   useEffect(() => {
@@ -126,10 +131,10 @@ export default function Notion() {
     }, 1500);
   }, [saveDocument]);
 
-  // Content update handler
   const handleContentUpdate = useCallback(
     (content: JSONContent) => {
       if (!activeDocument) return;
+      lastActivityRef.current = Date.now();
       editorContentRef.current = content;
       setEditorContent(content);
       scheduleAutoSave();
@@ -146,9 +151,73 @@ export default function Notion() {
     [scheduleAutoSave]
   );
 
+  // Time tracking effect
+  useEffect(() => {
+    if (!activeDocument) {
+      totalSecondsRef.current = 0;
+      savedSecondsRef.current = 0;
+      setSessionSeconds(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const inactiveMs = now - lastActivityRef.current;
+      
+      // Stop tracking if inactive for more than 2 minutes
+      if (inactiveMs < 120000) {
+        totalSecondsRef.current += 1;
+        setSessionSeconds(totalSecondsRef.current);
+
+        // Auto-save time to DB every 60 seconds
+        const unsaved = totalSecondsRef.current - savedSecondsRef.current;
+        if (unsaved >= 60) {
+          handleSaveTime(unsaved);
+          savedSecondsRef.current = totalSecondsRef.current;
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeDocument]);
+
+  // Save on exit logic
+  const handleSaveOnExit = useCallback(() => {
+    if (!activeDocument) return;
+    const unsaved = totalSecondsRef.current - savedSecondsRef.current;
+    if (unsaved > 0) {
+      // Use the actual subject_id from activeDocument
+      supabase.from("study_sessions").insert({
+        user_id: user?.id,
+        subject_id: activeDocument.subject_id,
+        duracion_segundos: unsaved,
+        tipo: "apuntes",
+        completada: true,
+        fecha: new Date().toISOString().split('T')[0],
+      }).then(({ error }) => {
+        if (error) console.error("Error saving time on exit:", error);
+      });
+      savedSecondsRef.current = totalSecondsRef.current;
+    }
+  }, [activeDocument, user]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') handleSaveOnExit();
+    };
+    window.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('beforeunload', handleSaveOnExit);
+    return () => {
+      window.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('beforeunload', handleSaveOnExit);
+      handleSaveOnExit();
+    };
+  }, [handleSaveOnExit]);
+
   // Global shortcuts: Ctrl+S save, Ctrl+/ shortcuts panel
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      lastActivityRef.current = Date.now();
       if ((e.ctrlKey || e.metaKey) && e.key === "/") {
         e.preventDefault();
         setShowShortcutsModal((v) => !v);
@@ -196,12 +265,13 @@ export default function Notion() {
       window.clearTimeout(autoSaveTimerRef.current);
       saveDocument(true);
     }
+    handleSaveOnExit();
     setActiveDocument(null);
     setEditorContent(null);
     editorContentRef.current = null;
     setLocalTitle("");
     refetch();
-  }, [saveDocument, refetch]);
+  }, [saveDocument, refetch, handleSaveOnExit]);
 
   const handleCreateDocument = useCallback(
     async (subjectId?: string) => {
@@ -426,12 +496,16 @@ export default function Notion() {
                   </span>
                 )}
 
-                {/* Timer */}
-                <DocumentTimer 
-                  onSaveTime={handleSaveTime} 
-                  documentId={activeDocument.id}
-                  subjectId={activeDocument.subject_id}
-                />
+                {/* Timer Display */}
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors bg-secondary text-muted-foreground",
+                  sessionSeconds > 0 && "bg-neon-green/10 text-neon-green"
+                )}>
+                  <Clock className="w-4 h-4" />
+                  <span className="font-mono text-sm tabular-nums">
+                    {Math.floor(sessionSeconds / 60)}:{(sessionSeconds % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
 
                 {/* Favorite */}
                 <button
@@ -554,6 +628,7 @@ export default function Notion() {
               <AdvancedNotionEditor
                 content={editorContent}
                 onUpdate={handleContentUpdate}
+                onActivity={() => lastActivityRef.current = Date.now()}
                 documentId={activeDocument.id}
               />
             </div>

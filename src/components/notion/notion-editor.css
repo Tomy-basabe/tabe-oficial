@@ -762,31 +762,70 @@
 .notion-details {
     margin: 4px 0;
     border-radius: 4px;
+    width: 100%;
 }
 
 .notion-details summary {
     cursor: pointer;
-    padding: 4px 0;
+    padding: 3px 2px;
     font-weight: 500;
     list-style: none;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    border-radius: 3px;
+    transition: background 80ms ease;
+    min-height: 24px;
+    outline: none;
+}
+
+.notion-details summary:hover {
+    background: hsl(var(--secondary) / 0.5);
+}
+
+.notion-details summary::-webkit-details-marker {
+    display: none;
 }
 
 .notion-details summary::before {
-    content: "▶";
-    font-size: 10px;
-    transition: transform 120ms ease;
+    content: "";
+    display: block;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid hsl(var(--foreground) / 0.5);
+    transition: transform 150ms ease;
+    margin-left: 4px;
     flex-shrink: 0;
 }
 
-.notion-details[open] summary::before {
+.notion-details[open] > summary::before {
     transform: rotate(90deg);
 }
 
+.notion-details-summary:empty::before {
+    content: "Mazo (Toggle)";
+    position: absolute;
+    left: 28px;
+    color: hsl(var(--muted-foreground) / 0.4);
+    pointer-events: none;
+}
+
+/* TipTap specific placeholder for the summary */
+.notion-details-summary.is-empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground) / 0.4);
+    pointer-events: none;
+    position: absolute;
+    left: 28px;
+    font-weight: 400;
+}
+
 .notion-details-content {
-    padding-left: 22px;
+    padding-left: 24px;
+    border-left: 1px solid transparent;
+    margin-top: 2px;
 }
 
 /* Highlight */

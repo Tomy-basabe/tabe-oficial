@@ -44,6 +44,7 @@ const lowlight = createLowlight(common);
 interface AdvancedNotionEditorProps {
   content: any;
   onUpdate: (content: any) => void;
+  onActivity?: () => void;
   placeholder?: string;
   documentId?: string;
 }
@@ -74,6 +75,7 @@ function BubbleBtn({
 export function AdvancedNotionEditor({
   content,
   onUpdate,
+  onActivity,
   placeholder = "Escribe '/' para ver comandos...",
   documentId,
 }: AdvancedNotionEditorProps) {
@@ -171,6 +173,7 @@ export function AdvancedNotionEditor({
     content,
     onUpdate: ({ editor }) => {
       onUpdate(editor.getJSON());
+      if (onActivity) onActivity();
     },
     editorProps: {
       attributes: {

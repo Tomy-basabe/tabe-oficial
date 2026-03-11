@@ -1,4 +1,4 @@
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Node, mergeAttributes, wrappingInputRule } from "@tiptap/core";
 
 export interface DetailsOptions {
   HTMLAttributes: Record<string, any>;
@@ -51,14 +51,14 @@ export const Details = Node.create<DetailsOptions>({
     return {
       setDetails:
         () =>
-        ({ commands, chain }) => {
+        ({ chain }) => {
           return chain()
             .insertContent({
               type: this.name,
               content: [
                 {
                   type: "detailsSummary",
-                  content: [{ type: "text", text: "Toggle" }],
+                  content: [], // Empty summary so user sees placeholder
                 },
                 {
                   type: "detailsContent",
@@ -66,6 +66,8 @@ export const Details = Node.create<DetailsOptions>({
                 },
               ],
             })
+            // Focus on the summary we just created
+            .focus()
             .run();
         },
       toggleDetails:
@@ -79,6 +81,16 @@ export const Details = Node.create<DetailsOptions>({
           return commands.lift(this.name);
         },
     };
+  },
+
+  addInputRules() {
+    return [
+      wrappingInputRule({
+        find: /^>\s$/,
+        type: this.type,
+        getAttributes: () => ({}),
+      }),
+    ];
   },
 
   addNodeView() {
@@ -122,7 +134,10 @@ export const DetailsSummary = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["summary", mergeAttributes(HTMLAttributes, { class: "notion-details-summary" }), 0];
+    return ["summary", mergeAttributes(HTMLAttributes, { 
+      class: "notion-details-summary",
+      "data-placeholder": "Mazo (Toggle)" 
+    }), 0];
   },
 });
 
