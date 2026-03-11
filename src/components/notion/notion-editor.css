@@ -636,11 +636,14 @@
 }
 
 /* Blockquote */
+.notion-blockquote,
 .notion-editor-content blockquote {
     border-left: 3px solid hsl(var(--foreground));
-    padding-left: 16px;
-    margin: 4px 0;
+    padding-left: 14px;
+    margin: 6px 0;
     color: hsl(var(--foreground));
+    font-size: 1.1em;
+    opacity: 0.9;
 }
 
 /* Horizontal Rule */

@@ -15,6 +15,7 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import BulletList from "@tiptap/extension-bullet-list";
+import Blockquote from "@tiptap/extension-blockquote";
 import { wrappingInputRule, PasteRule } from "@tiptap/core";
 import { common, createLowlight } from "lowlight";
 import { useEffect, useCallback, useRef } from "react";
@@ -87,6 +88,19 @@ export function AdvancedNotionEditor({
         heading: { levels: [1, 2, 3] },
         codeBlock: false,
         bulletList: false, // Disable default to use custom one below
+        blockquote: false, // Desactivado para no chocar con el inputRule '> ' del Toggle List
+      }),
+      Blockquote.extend({
+        addInputRules() {
+          return [
+            wrappingInputRule({
+              find: /^"(\s)$/, // Cambio de > a " (comilla seguida de espacio)
+              type: this.type,
+            }),
+          ]
+        },
+      }).configure({
+        HTMLAttributes: { class: "notion-blockquote" },
       }),
       BulletList.configure({
         keepMarks: true,
