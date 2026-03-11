@@ -5,12 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type TimerMode = "work" | "shortBreak" | "longBreak";
+export type SoundType = "classic" | "zen" | "arcade";
 
 export interface PomodoroSettings {
     work: number;
     shortBreak: number;
     longBreak: number;
     longBreakInterval: number;
+    soundType: SoundType;
+    continuousAlarm: boolean;
 }
 
 const STORAGE_KEY = "pomodoro-settings";
@@ -20,6 +23,8 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
     shortBreak: 5,
     longBreak: 15,
     longBreakInterval: 4,
+    soundType: 'classic',
+    continuousAlarm: false,
 };
 
 const loadSettings = (): PomodoroSettings => {
@@ -46,10 +51,12 @@ interface PomodoroContextType {
     mode: TimerMode;
     timeLeft: number;
     isActive: boolean;
+    isRinging: boolean;
     soundEnabled: boolean;
     selectedSubject: string | null;
     toggleTimer: () => void;
     resetTimer: () => void;
+    stopAlarm: () => void;
     changeMode: (mode: TimerMode) => void;
     setSoundEnabled: (enabled: boolean) => void;
     setSelectedSubject: (id: string | null) => void;
@@ -68,6 +75,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const [mode, setMode] = useState<TimerMode>("work");
     const [timeLeft, setTimeLeft] = useState(pomodoroSettings.work * 60);
     const [isActive, setIsActive] = useState(false);
+    const [isRinging, setIsRinging] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -75,6 +83,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const alarmIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Load today's stats on init
     useEffect(() => {
@@ -205,27 +214,88 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
     // Reliable alarm using Web Audio API (no external dependencies)
     const playAlarm = useCallback(() => {
-        try {
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const playBeep = (time: number, freq: number, duration: number) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.3, time);
-                gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
-                osc.start(time);
-                osc.stop(time + duration);
-            };
-            // Play 3 beeps: ascending tones
-            playBeep(ctx.currentTime, 880, 0.2);
-            playBeep(ctx.currentTime + 0.3, 1100, 0.2);
-            playBeep(ctx.currentTime + 0.6, 1320, 0.3);
-        } catch (e) {
-            console.error("Audio error", e);
+        const type = pomodoroSettings.soundType || 'classic';
+        const isContinuous = pomodoroSettings.continuousAlarm || false;
+
+        const playSequence = () => {
+            try {
+                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                
+                const playTone = (time: number, freq: number, duration: number, type: OscillatorType = 'sine') => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = type;
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.3, time);
+                    gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+                    osc.start(time);
+                    osc.stop(time + duration);
+                };
+
+                const now = ctx.currentTime;
+
+                if (type === 'classic') {
+                    // 3 beeps
+                    playTone(now, 880, 0.2, 'square');
+                    playTone(now + 0.3, 1100, 0.2, 'square');
+                    playTone(now + 0.6, 1320, 0.3, 'square');
+                } else if (type === 'zen') {
+                    // Soft, long sustaining bowl/bell
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(432, now); // Healing frequency
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.4, now + 0.5); // Slow attack
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 5.0); // Long decay
+                    osc.start(now);
+                    osc.stop(now + 6.0);
+                } else if (type === 'arcade') {
+                    // Fast arpeggio
+                    playTone(now, 440, 0.1, 'sawtooth');
+                    playTone(now + 0.1, 554, 0.1, 'sawtooth');
+                    playTone(now + 0.2, 659, 0.1, 'sawtooth');
+                    playTone(now + 0.3, 880, 0.3, 'sawtooth');
+                }
+
+                // Auto suspend ctx to save resources after sequence finishes
+                setTimeout(() => { if (ctx.state !== 'closed') ctx.close(); }, 7000);
+            } catch (e) {
+                console.error("Audio error", e);
+            }
+        };
+
+        // Play once initially
+        playSequence();
+
+        // If continuous, set up loop
+        if (isContinuous) {
+            setIsRinging(true);
+            const intervalTime = type === 'zen' ? 7000 : 3000;
+            alarmIntervalRef.current = setInterval(() => {
+                playSequence();
+            }, intervalTime);
         }
+
+    }, [pomodoroSettings]);
+
+    const stopAlarm = useCallback(() => {
+        setIsRinging(false);
+        if (alarmIntervalRef.current) {
+            clearInterval(alarmIntervalRef.current);
+            alarmIntervalRef.current = null;
+        }
+    }, []);
+
+    // Clean up interval on unmount
+    useEffect(() => {
+        return () => {
+            if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current);
+        };
     }, []);
 
     const handleTimerComplete = () => {
@@ -251,6 +321,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const resetTimer = () => {
         if (mode === "work" && elapsedSeconds > 60) saveCurrentSession(false);
         setIsActive(false);
+        stopAlarm();
         setTimeLeft(getMinutesForMode(mode, pomodoroSettings) * 60);
         setElapsedSeconds(0);
     };
@@ -259,6 +330,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         if (mode === "work" && isActive && elapsedSeconds > 0) saveCurrentSession(false);
         setMode(newMode);
         setIsActive(false);
+        stopAlarm();
         setTimeLeft(getMinutesForMode(newMode, pomodoroSettings) * 60);
         setElapsedSeconds(0);
     };
@@ -277,10 +349,12 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             mode,
             timeLeft,
             isActive,
+            isRinging,
             soundEnabled,
             selectedSubject,
             toggleTimer,
             resetTimer,
+            stopAlarm,
             changeMode,
             setSoundEnabled,
             setSelectedSubject,

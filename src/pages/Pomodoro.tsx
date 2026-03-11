@@ -49,8 +49,10 @@ export default function Pomodoro() {
     mode,
     timeLeft,
     isActive,
+    isRinging,
     toggleTimer,
     resetTimer,
+    stopAlarm,
     changeMode,
     formatTime,
     progress,
@@ -185,17 +187,31 @@ export default function Pomodoro() {
 
               {/* Timer Content */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <Icon className={cn("w-8 h-8 mb-2", config.color)} />
-                <span className={cn(
-                  "font-display text-5xl lg:text-6xl font-bold",
-                  config.color,
-                  "text-glow-cyan"
-                )}>
-                  {formatTime(timeLeft)}
-                </span>
-                <span className="text-sm text-muted-foreground mt-2">
-                  {config.label}
-                </span>
+                {isRinging ? (
+                  <>
+                    <Target className={cn("w-8 h-8 mb-2 text-neon-red animate-bounce")} />
+                    <span className="font-display text-4xl lg:text-5xl font-bold text-neon-red text-glow-red tracking-widest uppercase animate-pulse">
+                      ¡TIEMPO!
+                    </span>
+                    <span className="text-sm text-neon-red font-medium mt-2 animate-pulse">
+                      Alarma Sonando
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Icon className={cn("w-8 h-8 mb-2", config.color)} />
+                    <span className={cn(
+                      "font-display text-5xl lg:text-6xl font-bold",
+                      config.color,
+                      "text-glow-cyan"
+                    )}>
+                      {formatTime(timeLeft)}
+                    </span>
+                    <span className="text-sm text-muted-foreground mt-2">
+                      {config.label}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -203,36 +219,54 @@ export default function Pomodoro() {
             <div className="flex items-center gap-4 mt-8">
               <button
                 onClick={resetTimer}
-                className="p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
+                disabled={isRinging}
+                className={cn(
+                  "p-3 rounded-xl transition-colors", 
+                  isRinging ? "opacity-30 cursor-not-allowed" : "bg-secondary hover:bg-secondary/80"
+                )}
               >
                 <RotateCcw className="w-6 h-6" />
               </button>
-              <button
-                onClick={toggleTimer}
-                className={cn(
-                  "p-6 rounded-2xl transition-all",
-                  isActive
-                    ? "bg-neon-red/20 text-neon-red hover:bg-neon-red/30"
-                    : cn(config.bgColor, config.color, "hover:opacity-80"),
-                  "glow-cyan"
-                )}
-              >
-                {isActive ? (
-                  <Pause className="w-8 h-8" />
-                ) : (
-                  <Play className="w-8 h-8 ml-1" />
-                )}
-              </button>
+
+              {isRinging ? (
+                <button
+                  onClick={stopAlarm}
+                  className="px-8 py-6 rounded-2xl bg-neon-red/20 text-neon-red hover:bg-neon-red/40 border border-neon-red glow-red flex items-center gap-3 transition-all animate-pulse shadow-[0_0_30px_rgba(255,51,102,0.3)]"
+                >
+                  <Target className="w-6 h-6" />
+                  <span className="font-bold tracking-wider">APAGAR ALARMA</span>
+                </button>
+              ) : (
+                <button
+                  onClick={toggleTimer}
+                  className={cn(
+                    "p-6 rounded-2xl transition-all",
+                    isActive
+                      ? "bg-neon-red/20 text-neon-red hover:bg-neon-red/30"
+                      : cn(config.bgColor, config.color, "hover:opacity-80"),
+                    "glow-cyan"
+                  )}
+                >
+                  {isActive ? (
+                    <Pause className="w-8 h-8" />
+                  ) : (
+                    <Play className="w-8 h-8 ml-1" />
+                  )}
+                </button>
+              )}
+
               <button
                 onClick={() => setShowSettings(!showSettings)}
+                disabled={isRinging}
                 className={cn(
                   "p-3 rounded-xl transition-colors",
-                  showSettings ? "bg-primary/20 text-primary" : "bg-secondary hover:bg-secondary/80"
+                  isRinging ? "opacity-30 cursor-not-allowed" : showSettings ? "bg-primary/20 text-primary" : "bg-secondary hover:bg-secondary/80"
                 )}
               >
                 <Settings className="w-6 h-6" />
               </button>
             </div>
+
 
             {/* Pomodoros Counter */}
             <div className="mt-8 flex items-center gap-2">

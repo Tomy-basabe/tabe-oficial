@@ -1,5 +1,8 @@
-import { Minus, Plus, X } from "lucide-react";
+import { Minus, Plus, X, Volume2, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { SoundType } from "@/contexts/PomodoroContext";
 
 interface PomodoroSettingsProps {
   settings: {
@@ -7,12 +10,16 @@ interface PomodoroSettingsProps {
     shortBreak: number;
     longBreak: number;
     longBreakInterval: number;
+    soundType: SoundType;
+    continuousAlarm: boolean;
   };
   onSettingsChange: (settings: {
     work: number;
     shortBreak: number;
     longBreak: number;
     longBreakInterval: number;
+    soundType: SoundType;
+    continuousAlarm: boolean;
   }) => void;
   onClose: () => void;
   isRunning: boolean;
@@ -24,10 +31,12 @@ export function PomodoroSettings({
   onClose,
   isRunning,
 }: PomodoroSettingsProps) {
-  const updateSetting = (key: keyof typeof settings, delta: number) => {
+  type NumericSettings = Exclude<keyof typeof settings, "soundType" | "continuousAlarm">;
+
+  const updateSetting = (key: NumericSettings, delta: number) => {
     if (isRunning) return;
     
-    const limits: Record<keyof typeof settings, { min: number; max: number }> = {
+    const limits: Record<NumericSettings, { min: number; max: number }> = {
       work: { min: 5, max: 60 },
       shortBreak: { min: 1, max: 15 },
       longBreak: { min: 5, max: 30 },
@@ -99,6 +108,46 @@ export function PomodoroSettings({
             </div>
           </div>
         ))}
+        
+        {/* Sound Type */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <div className="flex items-center gap-2">
+            <Volume2 className="w-4 h-4 text-muted-foreground" />
+            <span className="text-muted-foreground text-sm">Sonido de Alarma</span>
+          </div>
+          <div className="w-32">
+            <Select 
+              value={settings.soundType} 
+              onValueChange={(val: SoundType) => onSettingsChange({ ...settings, soundType: val })}
+              disabled={isRunning}
+            >
+              <SelectTrigger className="h-8 text-xs bg-secondary border-none">
+                <SelectValue placeholder="Sonido" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="classic">Clásico (Beep)</SelectItem>
+                <SelectItem value="zen">Zen (Campana)</SelectItem>
+                <SelectItem value="arcade">Arcade (Despertador)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Continuous Alarm */}
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <Repeat className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground text-sm">Alarma Continua</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground ml-6">Suena hasta que la detengas</span>
+          </div>
+          <Switch 
+            checked={settings.continuousAlarm}
+            onCheckedChange={(checked) => onSettingsChange({ ...settings, continuousAlarm: checked })}
+            disabled={isRunning}
+          />
+        </div>
       </div>
       {isRunning && (
         <p className="text-xs text-muted-foreground mt-3 text-center">
