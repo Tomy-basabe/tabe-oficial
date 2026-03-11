@@ -786,6 +786,27 @@
     background: hsl(var(--secondary) / 0.5);
 }
 
+.notion-details summary.level-1 {
+    font-size: 1.875em; /* text-3xl */
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.notion-details summary.level-2 {
+    font-size: 1.5em; /* text-2xl */
+    font-weight: 600;
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.notion-details summary.level-3 {
+    font-size: 1.25em; /* text-xl */
+    font-weight: 600;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
 .notion-details summary::-webkit-details-marker {
     display: none;
 }

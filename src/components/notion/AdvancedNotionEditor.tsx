@@ -503,13 +503,25 @@ export function AdvancedNotionEditor({
 
         if (textBefore === "#") {
           e.preventDefault();
-          editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setHeading({ level: 1 }).run();
+          if ($from.parent.type.name === 'detailsSummary') {
+            editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).updateAttributes('detailsSummary', { level: 1 }).run();
+          } else {
+            editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setHeading({ level: 1 }).run();
+          }
         } else if (textBefore === "##") {
           e.preventDefault();
-          editor.chain().focus().deleteRange({ from: $from.pos - 2, to: $from.pos }).setHeading({ level: 2 }).run();
+          if ($from.parent.type.name === 'detailsSummary') {
+            editor.chain().focus().deleteRange({ from: $from.pos - 2, to: $from.pos }).updateAttributes('detailsSummary', { level: 2 }).run();
+          } else {
+            editor.chain().focus().deleteRange({ from: $from.pos - 2, to: $from.pos }).setHeading({ level: 2 }).run();
+          }
         } else if (textBefore === "###") {
           e.preventDefault();
-          editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).setHeading({ level: 3 }).run();
+          if ($from.parent.type.name === 'detailsSummary') {
+            editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).updateAttributes('detailsSummary', { level: 3 }).run();
+          } else {
+            editor.chain().focus().deleteRange({ from: $from.pos - 3, to: $from.pos }).setHeading({ level: 3 }).run();
+          }
         } else if (textBefore === "-" || textBefore === "*" || textBefore === "+" || textBefore === "•") {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).toggleBulletList().run();

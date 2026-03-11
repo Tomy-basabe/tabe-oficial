@@ -204,9 +204,27 @@ export const Details = Node.create<DetailsOptions>({
 export const DetailsSummary = Node.create({
   name: "detailsSummary",
 
-  content: "inline*",
+  content: "text* | heading*",
 
   defining: true,
+  isolating: true, // Evita que backspace arrastre texto de afuera
+
+  addAttributes() {
+    return {
+      level: {
+        default: 0, // 0 significa párrafo normal
+        renderHTML: attributes => {
+          if (attributes.level) {
+            return {
+              'data-level': attributes.level,
+              class: `notion-details-summary level-${attributes.level}`
+            }
+          }
+          return { class: "notion-details-summary" }
+        }
+      }
+    }
+  },
 
   parseHTML() {
     return [{ tag: "summary" }];
@@ -214,7 +232,6 @@ export const DetailsSummary = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     return ["summary", mergeAttributes(HTMLAttributes, { 
-      class: "notion-details-summary",
       "data-placeholder": "Mazo (Toggle)" 
     }), 0];
   },
