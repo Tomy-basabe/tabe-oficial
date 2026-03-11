@@ -199,7 +199,7 @@ export default function Notion() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeDocument, handleSaveTime]);
+  }, [activeDocument?.id]);
 
   // Save on exit logic
   const handleSaveOnExit = useCallback(() => {

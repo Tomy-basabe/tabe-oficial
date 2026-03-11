@@ -37,6 +37,7 @@ import { ColumnBlock, Column } from "./extensions/ColumnsExtension";
 import { Bookmark } from "./extensions/BookmarkExtension";
 import { TocExtension } from "./extensions/TocExtension";
 import { Indent } from "./extensions/IndentExtension";
+import { TrailingNode } from "./extensions/TrailingNode";
 import { ColorPicker } from "./ColorPicker";
 import "tippy.js/dist/tippy.css";
 
