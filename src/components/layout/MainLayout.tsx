@@ -22,7 +22,8 @@ import {
   TreeDeciduous,
   PanelLeftClose,
   PanelLeftOpen,
-  Repeat2
+  Repeat2,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -36,6 +37,7 @@ import { Button } from "@/components/ui/button";
 const baseNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
+  { icon: Clock, label: "Consultas", path: "/consultas", tourClass: "tour-sidebar-consultas" },
   { icon: NotionIcon, label: "Apuntes", path: "/notion", tourClass: "tour-sidebar-notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },

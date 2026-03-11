@@ -143,6 +143,13 @@ export default function CareerPlan() {
             Agregar Materia
           </button>
           <button
+            onClick={() => navigate("/consultas")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 border border-border hover:bg-secondary transition-all text-foreground font-medium"
+          >
+            <Zap className="w-4 h-4 text-neon-cyan" />
+            Consultas
+          </button>
+          <button
             onClick={() => navigate("/mapa")}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 border border-border hover:bg-secondary transition-all text-foreground font-medium"
           >
