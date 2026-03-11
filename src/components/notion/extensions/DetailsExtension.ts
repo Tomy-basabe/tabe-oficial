@@ -102,7 +102,7 @@ export const Details = Node.create<DetailsOptions>({
   addInputRules() {
     return [
       wrappingInputRule({
-        find: /^>\s$/,
+        find: /^[>]\s$/,
         type: this.type,
         getAttributes: () => ({ open: true }),
       }),

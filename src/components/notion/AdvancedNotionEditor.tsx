@@ -494,6 +494,13 @@ export function AdvancedNotionEditor({
         const { $from } = editor.state.selection;
         const textBefore = $from.nodeBefore?.textContent || "";
 
+        // Intercept > + space explicitly for the Details (Toggle List)
+        if (textBefore === ">") {
+          e.preventDefault();
+          editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setDetails().run();
+          return;
+        }
+
         if (textBefore === "#") {
           e.preventDefault();
           editor.chain().focus().deleteRange({ from: $from.pos - 1, to: $from.pos }).setHeading({ level: 1 }).run();
