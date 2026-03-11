@@ -204,7 +204,7 @@ export const Details = Node.create<DetailsOptions>({
 export const DetailsSummary = Node.create({
   name: "detailsSummary",
 
-  content: "text* | heading*",
+  content: "inline*",
 
   defining: true,
   isolating: true, // Evita que backspace arrastre texto de afuera
