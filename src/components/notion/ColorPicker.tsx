@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Palette, Type, PaintBucket } from "lucide-react";
+import { Palette, Type, PaintBucket, Highlighter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ColorButtonProps {
@@ -180,6 +180,80 @@ export function ColorPicker({ editor, type = "toolbar" }: ColorPickerProps) {
             </div>
           </TabsContent>
         </Tabs>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function HighlightColorPicker({ editor, type = "toolbar" }: ColorPickerProps) {
+  const [open, setOpen] = useState(false);
+
+  const currentBgColor =
+    editor?.getAttributes("textStyle")?.backgroundColor || null;
+
+  // Detect dark mode
+  const isDarkMode =
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("dark");
+
+  const backgroundColors = isDarkMode
+    ? NOTION_BACKGROUND_COLORS_DARK
+    : NOTION_BACKGROUND_COLORS;
+
+  const setBackgroundColor = useCallback(
+    (color: string | null) => {
+      if (color) {
+        editor?.chain().focus().setBackgroundColor(color).run();
+      } else {
+        editor?.chain().focus().unsetBackgroundColor().run();
+      }
+    },
+    [editor]
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "p-1.5 rounded transition-colors flex items-center gap-1",
+            open || currentBgColor
+              ? "bg-primary/20 text-primary"
+              : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+          )}
+          title="Resaltador de Fondo"
+        >
+          <Highlighter className="w-4 h-4" />
+          {type === "toolbar" && (
+            <div className="w-3 h-3 rounded-sm flex overflow-hidden">
+              <div
+                className="w-full h-full"
+                style={{
+                  backgroundColor: currentBgColor || "transparent",
+                }}
+              />
+            </div>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-3" align="start">
+        <div className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          Colores de Fondo
+        </div>
+        <div className="grid grid-cols-5 gap-1.5">
+          {backgroundColors.map((item) => (
+            <ColorButton
+              key={item.class}
+              color={item.color}
+              name={item.name}
+              isActive={currentBgColor === item.color}
+              onClick={() => {
+                setBackgroundColor(item.color);
+                setOpen(false);
+              }}
+            />
+          ))}
+        </div>
       </PopoverContent>
     </Popover>
   );

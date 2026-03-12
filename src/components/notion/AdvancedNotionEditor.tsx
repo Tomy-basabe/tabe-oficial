@@ -38,7 +38,7 @@ import { Bookmark } from "./extensions/BookmarkExtension";
 import { TocExtension } from "./extensions/TocExtension";
 import { Indent } from "./extensions/IndentExtension";
 import { TrailingNode } from "./extensions/TrailingNode";
-import { ColorPicker } from "./ColorPicker";
+import { ColorPicker, HighlightColorPicker } from "./ColorPicker";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
@@ -692,13 +692,7 @@ export function AdvancedNotionEditor({
 
         <div className="notion-bubble-separator" />
 
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleHighlight().run()}
-          isActive={editor.isActive("highlight")}
-          title="Resaltar"
-        >
-          <Highlighter className="w-4 h-4" />
-        </BubbleBtn>
+        <HighlightColorPicker editor={editor} type="bubble" />
 
         <ColorPicker editor={editor} type="bubble" />
 
