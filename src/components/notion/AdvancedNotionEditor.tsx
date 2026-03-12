@@ -8,7 +8,7 @@ import Typography from "@tiptap/extension-typography";
 import TiptapUnderline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
-import TiptapImage from "@tiptap/extension-image";
+import { ResizableImage } from "./extensions/ResizableImage";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
@@ -158,8 +158,8 @@ export function AdvancedNotionEditor({
         openOnClick: false,
         HTMLAttributes: { class: "notion-link" },
       }),
-      TiptapImage.configure({
-        HTMLAttributes: { class: "notion-image" },
+      ResizableImage.configure({
+        HTMLAttributes: { class: "notion-image shadow-md" },
       }),
       Table.configure({
         resizable: true,

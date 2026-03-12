@@ -711,6 +711,20 @@
     outline-offset: 2px;
 }
 
+.notion-resizable-image-container {
+    display: flex;
+    justify-content: center;
+    margin: 1.5rem 0;
+}
+
+.notion-resizable-image-container.ProseMirror-selectednode {
+    outline: none !important;
+}
+
+.notion-resizable-image {
+    max-width: 100%;
+}
+
 /* Table */
 .notion-table {
     border-collapse: collapse;
