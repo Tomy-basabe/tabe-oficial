@@ -604,6 +604,34 @@ export function AdvancedNotionEditor({
         tippyOptions={{ duration: 100 }}
         className="notion-bubble-menu"
       >
+        {/* Image specific controls */}
+        {editor.isActive("image") && (
+          <>
+            <BubbleBtn
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "left" }).run()}
+              isActive={editor.isActive("image", { align: "left" })}
+              title="Alinear a la izquierda"
+            >
+              <AlignLeft className="w-4 h-4" />
+            </BubbleBtn>
+            <BubbleBtn
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "center" }).run()}
+              isActive={editor.isActive("image", { align: "center" })}
+              title="Centrar"
+            >
+              <AlignCenter className="w-4 h-4" />
+            </BubbleBtn>
+            <BubbleBtn
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "right" }).run()}
+              isActive={editor.isActive("image", { align: "right" })}
+              title="Alinear a la derecha"
+            >
+              <AlignRight className="w-4 h-4" />
+            </BubbleBtn>
+            <div className="notion-bubble-separator" />
+          </>
+        )}
+
         {/* Block type quick toggles */}
         <BubbleBtn
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}

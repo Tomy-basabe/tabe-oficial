@@ -1,4 +1,4 @@
-import { Node, mergeAttributes, nodeViewProps } from "@tiptap/core";
+import { Node, mergeAttributes, NodeViewProps } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
 import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import React, { useCallback, useRef, useState, useEffect } from "react";
@@ -8,6 +8,7 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
   const imageRef = useRef<HTMLImageElement>(null);
   const [resizing, setResizing] = useState(false);
   const [width, setWidth] = useState(node.attrs.width || "100%");
+  const align = node.attrs.align || "center";
 
   useEffect(() => {
     setWidth(node.attrs.width || "100%");
@@ -40,9 +41,23 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
     document.addEventListener("mouseup", onMouseUp);
   }, [updateAttributes, width]);
 
+  const containerStyle: React.CSSProperties = {
+    width: align === "center" ? "100%" : "auto",
+    display: align === "center" ? "flex" : "block",
+    justifyContent: "center",
+    float: align === "left" ? "left" : align === "right" ? "right" : "none",
+    marginRight: align === "left" ? "1.5rem" : "0",
+    marginLeft: align === "right" ? "1.5rem" : "0",
+    marginBottom: align !== "center" ? "0.5rem" : "0",
+    clear: align === "center" ? "both" : "none",
+  };
+
   return (
-    <NodeViewWrapper className={cn("notion-resizable-image-container", selected && "ProseMirror-selectednode")}>
-      <div className="relative inline-block group" style={{ width }}>
+    <NodeViewWrapper
+      className={cn("notion-resizable-image-container", selected && "ProseMirror-selectednode")}
+      style={containerStyle}
+    >
+      <div className="relative inline-block group" style={{ width: align === "center" ? width : width }}>
         <img
           ref={imageRef}
           src={node.attrs.src}
@@ -79,6 +94,13 @@ export const ResizableImage = Image.extend({
         default: "100%",
         renderHTML: (attributes) => ({
           style: `width: ${attributes.width}`,
+        }),
+      },
+      align: {
+        default: "center",
+        parseHTML: (element) => element.getAttribute("data-align") || "center",
+        renderHTML: (attributes) => ({
+          "data-align": attributes.align,
         }),
       },
     };

@@ -712,9 +712,7 @@
 }
 
 .notion-resizable-image-container {
-    display: flex;
-    justify-content: center;
-    margin: 1.5rem 0;
+    margin: 1rem 0;
 }
 
 .notion-resizable-image-container.ProseMirror-selectednode {
@@ -723,6 +721,10 @@
 
 .notion-resizable-image {
     max-width: 100%;
+}
+
+.notion-editor-content p {
+    clear: none;
 }
 
 /* Table */
