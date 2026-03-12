@@ -96,6 +96,9 @@ export function ColorPicker({ editor, type = "toolbar" }: ColorPickerProps) {
     (color: string | null) => {
       if (color) {
         editor?.chain().focus().setBackgroundColor(color).run();
+        try {
+          localStorage.setItem("tabe_last_highlight_color", color);
+        } catch (e) {}
       } else {
         editor?.chain().focus().unsetBackgroundColor().run();
       }
@@ -204,6 +207,9 @@ export function HighlightColorPicker({ editor, type = "toolbar" }: ColorPickerPr
     (color: string | null) => {
       if (color) {
         editor?.chain().focus().setBackgroundColor(color).run();
+        try {
+          localStorage.setItem("tabe_last_highlight_color", color);
+        } catch (e) {}
       } else {
         editor?.chain().focus().unsetBackgroundColor().run();
       }
@@ -221,7 +227,7 @@ export function HighlightColorPicker({ editor, type = "toolbar" }: ColorPickerPr
               ? "bg-primary/20 text-primary"
               : "hover:bg-secondary text-muted-foreground hover:text-foreground"
           )}
-          title="Resaltador de Fondo"
+          title="Resaltador de Fondo (Ctrl+Q)"
         >
           <Highlighter className="w-4 h-4" />
           {type === "toolbar" && (

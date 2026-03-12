@@ -150,6 +150,26 @@ export const BackgroundColor = Extension.create({
         },
     };
   },
+
+  addKeyboardShortcuts() {
+    return {
+      "Mod-q": () => {
+        const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD"; // Default to yellow-bg
+        const currentBgColor = this.editor.getAttributes("textStyle")?.backgroundColor;
+        
+        if (currentBgColor) {
+           this.editor.chain().focus().unsetBackgroundColor().run();
+        } else {
+           this.editor.chain().focus().setBackgroundColor(lastColor).run();
+        }
+        
+        return true;
+      },
+      // Soporte explícito para Ctrl+Q / Cmd+Q
+      "Ctrl-q": () => this.editor.commands.keyboardShortcut("Mod-q"),
+      "Cmd-q": () => this.editor.commands.keyboardShortcut("Mod-q"),
+    };
+  },
 });
 
 export { TextStyle, Color };
