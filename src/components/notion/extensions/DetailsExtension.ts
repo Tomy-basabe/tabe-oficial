@@ -175,36 +175,33 @@ export const Details = Node.create<DetailsOptions>({
           return false;
         }
 
-        // Prevent Enter inside 'detailsSummary' default behavior (which breaks the node layout)
+        // Handle Enter inside 'detailsSummary' to exit the toggle entirely
         if ($from.parent.type.name === 'detailsSummary') {
+          // Si apretan Shift+Enter, queremos permitir un salto de linea suave en el título
+          // ProseMirror lo manejará nativamente si devolvemos false (dependiendo de la conf)
+          
           const detailsDepth = $from.depth - 1;
           const detailsNode = $from.node(detailsDepth);
           
           if (detailsNode && detailsNode.type.name === this.name) {
-            const posAfter = $from.after(detailsDepth);
-            const pType = this.editor.schema.nodes.paragraph;
             
-            if (pType) {
-              this.editor.chain().command(({ tr }) => {
-                const isAtEnd = $from.parentOffset === $from.parent.content.size;
-                
-                if (isAtEnd) {
-                  // Si apretan Enter al final, crear párrafo nuevo ABAJO (como hermano, no adentro)
-                  tr.insert(posAfter, pType.create());
-                } else {
-                  // Si apretan Enter a la mitad, cortar el texto y mandarlo al párrafo de abajo
-                  const cutContent = $from.parent.content.cut($from.parentOffset);
-                  tr.delete($from.pos, $from.pos + cutContent.size);
-                  tr.insert(posAfter, pType.create(null, cutContent));
-                }
-                return true;
-              })
-              .setTextSelection(posAfter + 1)
-              .scrollIntoView()
-              .run();
+            this.editor.chain().command(({ tr }) => {
+              // Create a new empty paragraph
+              const pType = this.editor.schema.nodes.paragraph;
+              if (pType) {
+                 // Insert it right after the entire <details> block
+                 // $from.after(detailsDepth) will give the exact position in the document AFTER the toggle node
+                 tr.insert($from.after(detailsDepth), pType.create());
+              }
               
               return true;
-            }
+            })
+            // Move cursor to the newly created paragraph (it's exactly at $from.after(detailsDepth) + 1 since size of empty p is 2)
+            .setTextSelection($from.after(detailsDepth) + 1)
+            .scrollIntoView()
+            .run();
+            
+            return true;
           }
           
           return false;
