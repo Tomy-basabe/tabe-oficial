@@ -16,6 +16,7 @@ import { FlashcardStats } from "@/components/metrics/FlashcardStats";
 import { RoutineStats } from "@/components/metrics/RoutineStats";
 import { Button } from "@/components/ui/button";
 import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 interface StudySession {
   fecha: string;
@@ -105,8 +106,18 @@ export default function Metrics() {
     if (user || isGuest) {
       fetchData();
     }
-  }, [user, isGuest, fetchData])  
-  
+  }, [user, isGuest, fetchData]);
+
+  // Listen to realtime study sessions updates (e.g. from exit-saves during navigation)
+  useRealtimeSubscription({
+    table: "study_sessions",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
+    onChange: useCallback(() => {
+      fetchData();
+    }, [fetchData]),
+    enabled: !!user,
+  });
+
   const handleNavigate = (direction: "prev" | "next") => {
     const { from, to, label } = dateRange;
     const daysDiff = differenceInDays(to, from) + 1;

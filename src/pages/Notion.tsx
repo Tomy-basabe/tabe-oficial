@@ -202,15 +202,14 @@ export default function Notion() {
     return () => clearInterval(interval);
   }, [activeDocument?.id]);
 
-  // Save on exit logic
   const handleSaveOnExit = useCallback(() => {
     const doc = activeDocumentRef.current;
-    if (!doc) return;
+    if (!doc || !user) return;
     const unsaved = totalSecondsRef.current - savedSecondsRef.current;
     if (unsaved > 0) {
       // Use the actual subject_id from activeDocument using ref
       supabase.from("study_sessions").insert({
-        user_id: user?.id,
+        user_id: user.id,
         subject_id: doc.subject_id,
         duracion_segundos: unsaved,
         tipo: "apuntes",
