@@ -15,6 +15,12 @@ export const NOTION_TEXT_COLORS = [
   { name: "Morado", color: "#9065B0", class: "purple" },
   { name: "Rosa", color: "#C14C8A", class: "pink" },
   { name: "Rojo", color: "#D44C47", class: "red" },
+  { name: "Cian", color: "#0B6E99", class: "cyan" },
+  { name: "Lima", color: "#4D7C0F", class: "lime" },
+  { name: "Añil", color: "#4338CA", class: "indigo" },
+  { name: "Esmeralda", color: "#047857", class: "emerald" },
+  { name: "Lavanda", color: "#7E22CE", class: "lavender" },
+  { name: "Ámbar", color: "#B45309", class: "amber" },
 ];
 
 export const NOTION_BACKGROUND_COLORS = [
@@ -28,6 +34,12 @@ export const NOTION_BACKGROUND_COLORS = [
   { name: "Morado", color: "#E8DEEE", class: "purple-bg" },
   { name: "Rosa", color: "#F4DFEB", class: "pink-bg" },
   { name: "Rojo", color: "#FFE2DD", class: "red-bg" },
+  { name: "Cian", color: "#CFFAFE", class: "cyan-bg" },
+  { name: "Lima", color: "#ECFCCB", class: "lime-bg" },
+  { name: "Añil", color: "#E0E7FF", class: "indigo-bg" },
+  { name: "Esmeralda", color: "#D1FAE5", class: "emerald-bg" },
+  { name: "Lavanda", color: "#F3E8FF", class: "lavender-bg" },
+  { name: "Ámbar", color: "#FEF3C7", class: "amber-bg" },
 ];
 
 // Dark mode variants
@@ -42,6 +54,12 @@ export const NOTION_BACKGROUND_COLORS_DARK = [
   { name: "Morado", color: "#3A2A4A", class: "purple-bg" },
   { name: "Rosa", color: "#4A2A3A", class: "pink-bg" },
   { name: "Rojo", color: "#4A2A2A", class: "red-bg" },
+  { name: "Cian", color: "#164E63", class: "cyan-bg" },
+  { name: "Lima", color: "#365314", class: "lime-bg" },
+  { name: "Añil", color: "#312E81", class: "indigo-bg" },
+  { name: "Esmeralda", color: "#064E3B", class: "emerald-bg" },
+  { name: "Lavanda", color: "#581C87", class: "lavender-bg" },
+  { name: "Ámbar", color: "#78350F", class: "amber-bg" },
 ];
 
 declare module "@tiptap/core" {
