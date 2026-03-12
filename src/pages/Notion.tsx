@@ -22,6 +22,7 @@ import { tipTapTemplates, TipTapTemplate } from "@/lib/tipTapTemplates";
 import { ensureTipTapFormat } from "@/lib/contentMigration";
 import "@/components/notion/notion-editor.css";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
+import { toLocalDateStr } from "@/lib/utils";
 
 interface Subject {
   id: string;
@@ -214,7 +215,7 @@ export default function Notion() {
         duracion_segundos: unsaved,
         tipo: "apuntes",
         completada: true,
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: toLocalDateStr(),
       }).then(({ error }) => {
         if (error) console.error("Error saving time on exit:", error);
       });

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { toLocalDateStr } from "@/lib/utils";
 
 export interface NotionDocument {
   id: string;
@@ -209,19 +210,15 @@ export function useNotionDocuments() {
           user_id: user.id,
           subject_id: subjectId || null,
           duracion_segundos: seconds,
-          tipo: "apuntes", // Standardized to 'apuntes'
+          tipo: "apuntes",
           completada: true,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: toLocalDateStr(),
         });
 
       if (error) throw error;
       
-      // We don't want to spam the user with toasts during auto-save (every 30s)
-      // but showing it on manual save or unmount is good.
-      // However, to keep it simple and helpful:
-      if (seconds >= 60) {
-        toast.success(`⏱️ ${Math.floor(seconds / 60)} min de estudio registrados`);
-      }
+      // Removed noisy toasts for auto-saves. 
+      // Manual/Exit saves usually show feedback elsewhere if needed.
     } catch (error) {
       console.error("Error saving notion study session:", error);
     }

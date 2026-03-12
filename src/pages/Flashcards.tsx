@@ -13,6 +13,7 @@ import { StudyMode } from "@/components/flashcards/StudyMode";
 import { CompletionScreen } from "@/components/flashcards/CompletionScreen";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
+import { toLocalDateStr } from "@/lib/utils";
 interface Deck {
   id: string;
   nombre: string;
@@ -129,7 +130,7 @@ export default function Flashcards() {
           duracion_segundos: studyTimeRef.current,
           tipo: "flashcard",
           completada: false,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: toLocalDateStr(),
         });
       }
     };
@@ -334,7 +335,7 @@ export default function Flashcards() {
           duracion_segundos: studyTime,
           tipo: "flashcard",
           completada: true,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: toLocalDateStr(),
         });
       // Verificar logros después de completar estudio de flashcards
       checkAndUnlockAchievements();
@@ -441,7 +442,7 @@ export default function Flashcards() {
           duracion_segundos: studyTime,
           tipo: "flashcard",
           completada: false,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: toLocalDateStr(),
         });
       toast.success("Sesión guardada");
     }

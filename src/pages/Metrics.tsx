@@ -11,7 +11,7 @@ import {
   subMonths, addMonths, subYears, addYears,
   startOfWeek, endOfWeek, startOfMonth, endOfMonth
 } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, toLocalDateStr } from "@/lib/utils";
 import { FlashcardStats } from "@/components/metrics/FlashcardStats";
 import { RoutineStats } from "@/components/metrics/RoutineStats";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export default function Metrics() {
         const sessionsToday = Math.floor(Math.random() * 3) + 1;
         for (let j = 0; j < sessionsToday; j++) {
           mockSessions.push({
-            fecha: d.toISOString().split('T')[0],
+            fecha: toLocalDateStr(d),
             duracion_segundos: Math.floor(Math.random() * 3600) + 1800,
             tipo: types[Math.floor(Math.random() * types.length)],
             subject_id: j % 2 === 0 ? "mock-sub-1" : "mock-sub-2"
@@ -83,8 +83,8 @@ export default function Metrics() {
         .from("study_sessions")
         .select("fecha, duracion_segundos, tipo, subject_id")
         .eq("user_id", user.id)
-        .gte("fecha", dateRange.from.toISOString().split('T')[0])
-        .lte("fecha", dateRange.to.toISOString().split('T')[0])
+        .gte("fecha", toLocalDateStr(dateRange.from))
+        .lte("fecha", toLocalDateStr(dateRange.to))
         .order("fecha", { ascending: true });
 
       const { data: subjectData } = await supabase

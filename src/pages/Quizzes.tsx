@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, toLocalDateStr } from "@/lib/utils";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 
 interface QuizDeck {
@@ -114,7 +114,7 @@ export default function Quizzes() {
                     duracion_segundos: studyTimeRef.current,
                     tipo: "cuestionario",
                     completada: false,
-                    fecha: new Date().toISOString().split('T')[0],
+                    fecha: toLocalDateStr(),
                 });
             }
         };
@@ -143,7 +143,7 @@ export default function Quizzes() {
                 duracion_segundos: studyTime,
                 tipo: "cuestionario",
                 completada: isCompleted,
-                fecha: new Date().toISOString().split('T')[0],
+                fecha: toLocalDateStr(),
             });
         } catch (e) {
             console.error("Error saving session", e);

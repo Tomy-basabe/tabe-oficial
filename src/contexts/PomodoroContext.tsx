@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toLocalDateStr } from "@/lib/utils";
 
 export type TimerMode = "work" | "shortBreak" | "longBreak";
 export type SoundType = "classic" | "zen" | "arcade";
@@ -93,7 +94,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         }
         if (user) {
             const fetchToday = async () => {
-                const today = new Date().toISOString().split('T')[0];
+                const today = toLocalDateStr();
                 const { data } = await supabase.from("study_sessions").select("completada").eq("fecha", today).eq("tipo", "pomodoro").eq("user_id", user.id);
                 if (data) setCompletedPomodoros(data.filter(s => s.completada).length);
             };
@@ -176,7 +177,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                     duracion_segundos: elapsedSeconds,
                     tipo: "pomodoro",
                     completada: completed,
-                    fecha: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
+                    fecha: toLocalDateStr(),
                 });
 
             if (error) throw error;

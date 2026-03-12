@@ -3,14 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "./useSubjects";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
+import { toLocalDateStr } from "@/lib/utils";
 
-// Helper: format Date as YYYY-MM-DD in local timezone (avoids UTC offset issues)
-const toLocalDateStr = (d: Date): string => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
 interface StudySession {
   id: string;
   duracion_segundos: number;

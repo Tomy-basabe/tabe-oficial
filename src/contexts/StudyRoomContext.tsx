@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ICE_SERVERS } from "@/lib/webrtc-config";
+import { toLocalDateStr } from "@/lib/utils";
 
 export interface StudyRoom {
   id: string;
@@ -718,7 +719,7 @@ export function StudyRoomProvider({ children }: { children: ReactNode }) {
           tipo: "videocall",
           duracion_segundos: duration,
           completada: true,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: toLocalDateStr(),
         });
 
         const { data: stats } = await supabase
