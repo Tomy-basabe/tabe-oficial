@@ -323,6 +323,50 @@ export default function OfficeHours() {
     return { top: `${top}%`, height: `${height}%` };
   };
 
+  // Helper to determine overlap and widths for schedule entries
+  const calculateOverlaps = (entries: ScheduleEntry[]) => {
+    const sorted = [...entries].sort((a, b) => {
+      const aStart = a.startHour * 60 + a.startMinute;
+      const bStart = b.startHour * 60 + b.startMinute;
+      return aStart - bStart || (a.endHour * 60 + a.endMinute) - (b.endHour * 60 + b.endMinute);
+    });
+
+    const groups: ScheduleEntry[][] = [];
+    sorted.forEach(entry => {
+      let placed = false;
+      const entryStart = entry.startHour * 60 + entry.startMinute;
+      
+      for (const group of groups) {
+        // Check if the entry overlaps with the group's time span
+        const overlapsWithGroup = group.some(item => {
+          const itemStart = item.startHour * 60 + item.startMinute;
+          const itemEnd = item.endHour * 60 + item.endMinute;
+          const entryEnd = entry.endHour * 60 + entry.endMinute;
+          return (entryStart < itemEnd && entryEnd > itemStart);
+        });
+
+        if (overlapsWithGroup) {
+          group.push(entry);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) groups.push([entry]);
+    });
+
+    const results = new Map<string, { width: string, left: string }>();
+    groups.forEach(group => {
+      const width = 100 / group.length;
+      group.forEach((entry, i) => {
+        results.set(entry.id, {
+          width: `${width}%`,
+          left: `${width * i}%`
+        });
+      });
+    });
+    return results;
+  };
+
   if (loading || subjectsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -533,6 +577,8 @@ export default function OfficeHours() {
                   {/* Day columns */}
                   {DAYS.map((day) => {
                     const dayEntries = scheduleEntries.filter(e => e.day === day.key);
+                    const overlapStyles = calculateOverlaps(dayEntries);
+                    
                     return (
                       <div key={day.key} className="relative border-l border-border/30" style={{ height: `${HOURS.length * 48}px` }}>
                         {/* Grid lines */}
@@ -546,17 +592,20 @@ export default function OfficeHours() {
                           const startPx = ((entry.startHour - 7) * 60 + entry.startMinute) * (48 / 60);
                           const endPx = ((entry.endHour - 7) * 60 + entry.endMinute) * (48 / 60);
                           const heightPx = endPx - startPx;
+                          const overlap = overlapStyles.get(entry.id);
 
                           return (
                             <div
                               key={entry.id}
                               className={cn(
-                                "absolute left-1 right-1 rounded-lg border-2 flex flex-col justify-center px-2 cursor-pointer transition-all hover:scale-[1.03] hover:z-10 overflow-hidden shadow-sm",
+                                "absolute rounded-lg border-2 flex flex-col justify-center px-2 cursor-pointer transition-all hover:scale-[1.03] hover:z-10 overflow-hidden shadow-sm",
                                 color.bg, color.border
                               )}
                               style={{
                                 top: `${startPx}px`,
                                 height: `${Math.max(heightPx, 24)}px`,
+                                width: overlap?.width || "calc(100% - 8px)",
+                                left: overlap?.left || "4px",
                               }}
                               onMouseEnter={(e) => setTooltip({ entry, x: e.clientX, y: e.clientY })}
                               onMouseLeave={() => setTooltip(null)}
@@ -625,22 +674,29 @@ export default function OfficeHours() {
                   </div>
                 ))}
 
-                {scheduleEntries
-                  .filter(e => e.day === DAYS[mobileDayIndex].key)
-                  .map(entry => {
+                {(() => {
+                  const dayEntries = scheduleEntries.filter(e => e.day === DAYS[mobileDayIndex].key);
+                  const overlapStyles = calculateOverlaps(dayEntries);
+                  return dayEntries.map(entry => {
                     const color = SUBJECT_COLORS[entry.colorIndex % SUBJECT_COLORS.length];
                     const startPx = ((entry.startHour - 7) * 60 + entry.startMinute) * (40 / 60);
                     const endPx = ((entry.endHour - 7) * 60 + entry.endMinute) * (40 / 60);
                     const heightPx = endPx - startPx;
+                    const overlap = overlapStyles.get(entry.id);
 
                     return (
                       <div
                         key={entry.id}
                         className={cn(
-                          "absolute left-14 right-2 rounded-lg border-2 flex flex-col justify-center px-3 overflow-hidden",
+                          "absolute rounded-lg border-2 flex flex-col justify-center px-3 overflow-hidden shadow-sm",
                           color.bg, color.border
                         )}
-                        style={{ top: `${startPx}px`, height: `${Math.max(heightPx, 28)}px` }}
+                        style={{ 
+                          top: `${startPx}px`, 
+                          height: `${Math.max(heightPx, 28)}px`,
+                          width: overlap ? `calc(${overlap.width} - 8px)` : "calc(100% - 64px)",
+                          left: overlap ? `calc(48px + ((${overlap.left}) * (100% - 64px) / 100) + 4px)` : "56px"
+                        }}
                       >
                         <p className={cn("text-sm font-semibold truncate", color.text)}>{entry.professorName}</p>
                         <p className="text-xs text-muted-foreground truncate">
@@ -648,7 +704,8 @@ export default function OfficeHours() {
                         </p>
                       </div>
                     );
-                  })}
+                  });
+                })()}
               </div>
             </div>
           </>
