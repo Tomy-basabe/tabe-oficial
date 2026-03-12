@@ -7,61 +7,53 @@ export interface DragHandleOptions {
   dragHandleWidth: number;
 }
 
-function absoluteRect(node: Element) {
-  const data = node.getBoundingClientRect();
-  return {
-    top: data.top,
-    left: data.left,
-    width: data.width,
-    height: data.height,
-  };
-}
+function getDraggableNodeAtCoords(coords: { x: number; y: number }, view: any) {
+  const result = view.posAtCoords(coords);
+  if (!result) return null;
 
-function nodeDOMAtCoords(coords: { x: number; y: number }) {
-  const elements = document.elementsFromPoint(coords.x, coords.y);
-  
-  for (const elem of elements) {
-    // Check if it's a direct child of ProseMirror or matches specific block types
-    if (
-      elem.parentElement?.matches?.(".ProseMirror") ||
-      elem.matches(
-        [
-          "li",
-          "p",
-          "pre",
-          "blockquote",
-          "h1, h2, h3, h4, h5, h6",
-          "[data-type]",
-          ".notion-details",
-          ".callout",
-          "table",
-          ".notion-task-item",
-        ].join(", ")
-      )
-    ) {
-      return elem;
+  const { pos } = result;
+  const $pos = view.state.doc.resolve(pos);
+
+  // Traverse up the document tree to find the most appropriate draggable block
+  let targetNode = null;
+  let targetPos = null;
+
+  for (let d = $pos.depth; d >= 0; d--) {
+    const node = $pos.node(d);
+
+    if (node.isBlock) {
+      // Skip non-draggable structural nodes
+      if (node.type.name === 'detailsSummary' || node.type.name === 'detailsContent') {
+        continue; // We want to target the parent 'details' block instead
+      }
+      
+      if (node.type.name === 'bulletList' || node.type.name === 'orderedList' || node.type.name === 'taskList') {
+        continue; // We want to target the listItem/taskItem instead of the list wrapper
+      }
+
+      // If we find a paragraph inside a list item, we prefer to drag the list item
+      if (node.type.name === 'paragraph') {
+        const parentNode = $pos.node(d - 1);
+        if (parentNode && (parentNode.type.name === 'listItem' || parentNode.type.name === 'taskItem')) {
+          continue; // Defer to the list item wrapper
+        }
+      }
+
+      targetNode = node;
+      targetPos = $pos.before(d);
+      break;
     }
   }
-  return null;
-}
 
-function nodePosAtDOM(node: Element, view: any) {
-  const boundingRect = node.getBoundingClientRect();
-  const result = view.posAtCoords({
-    left: boundingRect.left + 1,
-    top: boundingRect.top + 1,
-  });
-  return result?.inside ?? result?.pos;
-}
-
-function getNodeAtPos(doc: any, pos: number) {
-  const $pos = doc.resolve(pos);
-  // Get the parent node if we're inside inline content
-  const depth = $pos.depth;
-  for (let d = depth; d >= 0; d--) {
-    const node = $pos.node(d);
-    if (node.isBlock && !node.isTextblock) continue;
-    if (node.isBlock) return { node, pos: $pos.before(d) };
+  if (targetNode && targetPos !== null) {
+    try {
+      const dom = view.nodeDOM(targetPos);
+      if (dom && dom instanceof Element) {
+        return { node: targetNode, pos: targetPos, dom };
+      }
+    } catch {
+      return null;
+    }
   }
   return null;
 }
@@ -137,19 +129,7 @@ export const DragHandle = Extension.create<DragHandleOptions>({
       }
     };
 
-    const findBlockNode = (element: Element | null, view: any): Element | null => {
-      if (!element) return null;
-      
-      // Walk up to find the direct child of ProseMirror
-      let current: Element | null = element;
-      while (current && current.parentElement) {
-        if (current.parentElement.classList?.contains("ProseMirror")) {
-          return current;
-        }
-        current = current.parentElement;
-      }
-      return null;
-    };
+
 
     return [
       new Plugin({
@@ -164,26 +144,28 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               view.dom.classList.add("dragging");
               dragHandleElement?.classList.add("dragging");
               
-              const nodePos = nodePosAtDOM(currentNode, view);
-              if (nodePos != null && nodePos >= 0) {
-                draggedNodePos = nodePos;
-                const node = view.state.doc.nodeAt(nodePos);
-                if (node) {
-                  const selection = NodeSelection.create(view.state.doc, nodePos);
-                  view.dispatch(view.state.tr.setSelection(selection));
-                  
-                  // Set drag data
-                  e.dataTransfer?.setData("text/plain", "");
-                  e.dataTransfer!.effectAllowed = "move";
-                  
-                  // Create a subtle ghost image
-                  const ghost = document.createElement("div");
-                  ghost.style.cssText = "position:fixed;top:-1000px;left:-1000px;padding:8px 16px;background:hsl(var(--primary));color:white;border-radius:4px;font-size:14px;";
-                  ghost.textContent = "Moviendo bloque...";
-                  document.body.appendChild(ghost);
-                  e.dataTransfer?.setDragImage(ghost, 0, 0);
-                  requestAnimationFrame(() => ghost.remove());
-                }
+              // Use our robust getter based on coordinates instead of DOM hacking
+              const rect = currentNode.getBoundingClientRect();
+              const draggable = getDraggableNodeAtCoords({ x: rect.left + 5, y: rect.top + 5 }, view);
+
+              if (draggable && draggable.pos >= 0) {
+                draggedNodePos = draggable.pos;
+                const node = draggable.node;
+                
+                const selection = NodeSelection.create(view.state.doc, draggable.pos);
+                view.dispatch(view.state.tr.setSelection(selection));
+                
+                // Set drag data
+                e.dataTransfer?.setData("text/plain", "");
+                e.dataTransfer!.effectAllowed = "move";
+                
+                // Create a subtle ghost image
+                const ghost = document.createElement("div");
+                ghost.style.cssText = "position:fixed;top:-1000px;left:-1000px;padding:8px 16px;background:hsl(var(--primary));color:white;border-radius:4px;font-size:14px;";
+                ghost.textContent = "Moviendo bloque...";
+                document.body.appendChild(ghost);
+                e.dataTransfer?.setDragImage(ghost, 0, 0);
+                requestAnimationFrame(() => ghost.remove());
               }
             }
           });
@@ -218,30 +200,20 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               // Don't show handle while dragging
               if (draggedNodePos !== null) return false;
 
-              // Find the block element
-              const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
-              let blockNode: Element | null = null;
-              
-              for (const elem of elementsAtPoint) {
-                const found = findBlockNode(elem, view);
-                if (found) {
-                  blockNode = found;
-                  break;
-                }
-              }
+              const draggable = getDraggableNodeAtCoords({ x: event.clientX, y: event.clientY }, view);
 
-              if (!blockNode || !dragHandleElement) {
+              if (!draggable || !dragHandleElement) {
                 hideDragHandle();
                 currentNode = null;
                 return false;
               }
 
               // Avoid unnecessary updates
-              if (blockNode === lastHoveredNode) return false;
-              lastHoveredNode = blockNode;
-              currentNode = blockNode;
+              if (draggable.dom === lastHoveredNode) return false;
+              lastHoveredNode = draggable.dom;
+              currentNode = draggable.dom;
               
-              const rect = blockNode.getBoundingClientRect();
+              const rect = draggable.dom.getBoundingClientRect();
               const editorRect = view.dom.getBoundingClientRect();
               
               // Position handle to the left of the block
@@ -265,18 +237,10 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               event.preventDefault();
               if (draggedNodePos === null) return false;
               
-              const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
-              let targetNode: Element | null = null;
+              const draggable = getDraggableNodeAtCoords({ x: event.clientX, y: event.clientY }, view);
               
-              for (const elem of elementsAtPoint) {
-                const found = findBlockNode(elem, view);
-                if (found && found !== currentNode) {
-                  targetNode = found;
-                  break;
-                }
-              }
-              
-              if (targetNode) {
+              if (draggable && draggable.dom !== currentNode) {
+                const targetNode = draggable.dom;
                 const rect = targetNode.getBoundingClientRect();
                 const midY = rect.top + rect.height / 2;
                 const position = event.clientY < midY ? "before" : "after";
@@ -295,27 +259,20 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               
               if (draggedNodePos === null) return false;
               
-              const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
-              let targetNode: Element | null = null;
+              const draggable = getDraggableNodeAtCoords({ x: event.clientX, y: event.clientY }, view);
               
-              for (const elem of elementsAtPoint) {
-                const found = findBlockNode(elem, view);
-                if (found) {
-                  targetNode = found;
-                  break;
-                }
-              }
-              
-              if (!targetNode) {
+              if (!draggable) {
                 draggedNodePos = null;
                 return false;
               }
               
-              const targetPos = nodePosAtDOM(targetNode, view);
+              const targetPos = draggable.pos;
               if (targetPos == null || targetPos === draggedNodePos) {
                 draggedNodePos = null;
                 return false;
               }
+              
+              const targetNode = draggable.dom;
               
               const rect = targetNode.getBoundingClientRect();
               const midY = rect.top + rect.height / 2;
