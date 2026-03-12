@@ -142,11 +142,39 @@ export const BackgroundColor = Extension.create({
         },
       unsetBackgroundColor:
         () =>
-        ({ chain }) => {
-          return chain()
-            .setMark("textStyle", { backgroundColor: null })
-            .removeEmptyTextStyle()
-            .run();
+        ({ editor, state, dispatch }) => {
+          // This removes the backgroundColor style from the active selection
+          // without affecting the whole document.
+          if (state.selection.empty) {
+            // Si el cursor está vacío pero tiene una marca de estilo, la removemos 
+            return editor.commands.unsetMark('textStyle');
+          }
+
+          if (dispatch) {
+            const tr = state.tr;
+            const { from, to } = state.selection;
+
+            state.doc.nodesBetween(from, to, (node, pos) => {
+              if (node.isText && node.marks) {
+                node.marks.forEach(mark => {
+                  if (mark.type.name === 'textStyle' && mark.attrs.backgroundColor) {
+                     const newAttrs = { ...mark.attrs };
+                     delete newAttrs.backgroundColor;
+                     
+                     // 1. Quitamos la marca original (con el backgroundColor)
+                     tr.removeMark(pos, pos + node.nodeSize, mark.type);
+                     
+                     // 2. Volvemos a añadir la marca con los atributos restantes (si quedó alguno, como el color de texto)
+                     if (Object.keys(newAttrs).length > 0) {
+                        tr.addMark(pos, pos + node.nodeSize, mark.type.create(newAttrs));
+                     }
+                  }
+                });
+              }
+            });
+            dispatch(tr);
+          }
+          return true;
         },
     };
   },
