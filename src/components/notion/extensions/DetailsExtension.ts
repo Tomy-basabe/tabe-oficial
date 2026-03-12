@@ -177,43 +177,34 @@ export const Details = Node.create<DetailsOptions>({
 
         // Prevent Enter inside 'detailsSummary' default behavior (which breaks the node layout)
         if ($from.parent.type.name === 'detailsSummary') {
-          // Si apretan Shift+Enter, queremos permitir un salto de linea suave en el título
-          // ProseMirror lo manejará nativamente si devolvemos false (dependiendo de la conf)
-          // Pero para evitar bugs estructurales, bloqueamos Enter crudo.
-          
           const detailsDepth = $from.depth - 1;
           const detailsNode = $from.node(detailsDepth);
           
           if (detailsNode && detailsNode.type.name === this.name) {
-            const summarySize = detailsNode.child(0).nodeSize;
-            const contentNode = detailsNode.child(1);
+            const posAfter = $from.after(detailsDepth);
+            const pType = this.editor.schema.nodes.paragraph;
             
-            this.editor.chain().command(({ tr }) => {
-              // 1. Abrimos el toggle sí o sí
-              tr.setNodeMarkup($from.before(detailsDepth), undefined, { 
-                ...detailsNode.attrs, 
-                open: true 
-              });
-              
-              const contentStartPos = $from.before(detailsDepth) + 1 + summarySize + 1;
-              
-              // 2. Revisar si el contenido es válido o está totalmente vacío
-              // Si el contenido no tiene nada útil, metemos un párrafo en blanco para que pueda escribir.
-              if (contentNode.content.size === 0) {
-                const pType = this.editor.schema.nodes.paragraph;
-                if (pType) {
-                   tr.insert(contentStartPos, pType.create());
+            if (pType) {
+              this.editor.chain().command(({ tr }) => {
+                const isAtEnd = $from.parentOffset === $from.parent.content.size;
+                
+                if (isAtEnd) {
+                  // Si apretan Enter al final, crear párrafo nuevo ABAJO (como hermano, no adentro)
+                  tr.insert(posAfter, pType.create());
+                } else {
+                  // Si apretan Enter a la mitad, cortar el texto y mandarlo al párrafo de abajo
+                  const cutContent = $from.parent.content.cut($from.parentOffset);
+                  tr.delete($from.pos, $from.pos + cutContent.size);
+                  tr.insert(posAfter, pType.create(null, cutContent));
                 }
-              }
+                return true;
+              })
+              .setTextSelection(posAfter + 1)
+              .scrollIntoView()
+              .run();
               
               return true;
-            })
-            // Movemos el cursor justo al inicio del contenido interno
-            .setTextSelection($from.before(detailsDepth) + 1 + summarySize + 2) // +2 offsets deeper into the paragraph
-            .scrollIntoView()
-            .run();
-            
-            return true;
+            }
           }
           
           return false;
