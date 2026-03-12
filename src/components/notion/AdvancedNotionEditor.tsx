@@ -216,13 +216,20 @@ export function AdvancedNotionEditor({
               reader.readAsDataURL(file);
             }
           });
-          // Retornamos true si manejamos al menos un archivo (asumimos que sí si llegamos acá)
           if (Array.from(event.clipboardData.files).some(f => f.type.startsWith('image/'))) {
              event.preventDefault();
              return true;
           }
         }
 
+        // === INTERNAL HTML PASTE (Copying images from the editor itself) ===
+        const html = event.clipboardData?.getData('text/html');
+        if (html && html.includes('<img')) {
+          // Let Tiptap handle HTML pastes that contain images natively
+          return false;
+        }
+
+        // === TEXT PASTE AND PDF CLEANUP ===
         const text = event.clipboardData?.getData('text/plain');
         if (!text) return false;
 
