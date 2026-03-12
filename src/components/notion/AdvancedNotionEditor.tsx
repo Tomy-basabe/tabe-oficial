@@ -184,6 +184,7 @@ export function AdvancedNotionEditor({
       Indent,
       DragHandle,
       SlashCommands,
+      TrailingNode,
     ],
     content,
     onUpdate: ({ editor }) => {
