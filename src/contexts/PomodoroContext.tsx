@@ -85,6 +85,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const alarmIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const lastTickRef = useRef<number | null>(null);
 
     // Load today's stats on init
     useEffect(() => {
@@ -126,19 +127,40 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             setTimeLeft(getMinutesForMode(mode, newSettings) * 60);
         }
     };
-
-    // Timer Tick
+    // Timer Tick (Background Tab Throttling Safe)
     useEffect(() => {
         if (isActive && timeLeft > 0) {
+            // Only set lastTick if it's the beginning of a active cycle
+            if (!lastTickRef.current) {
+                lastTickRef.current = Date.now();
+            }
+
             timerRef.current = setInterval(() => {
-                setTimeLeft((prev) => prev - 1);
-                setElapsedSeconds((prev) => prev + 1);
-            }, 1000);
-        } else if (timeLeft === 0 && isActive) {
+                if (!lastTickRef.current) return;
+                
+                const now = Date.now();
+                const deltaSeconds = Math.floor((now - lastTickRef.current) / 1000);
+                
+                if (deltaSeconds > 0) {
+                    lastTickRef.current += deltaSeconds * 1000;
+                    
+                    setTimeLeft((prev) => {
+                        const newTimeLeft = Math.max(0, prev - deltaSeconds);
+                        const actualDelta = prev - newTimeLeft;
+                        
+                        setElapsedSeconds((ePrev) => ePrev + actualDelta);
+                        
+                        return newTimeLeft;
+                    });
+                }
+            }, 500); // Check every ~500ms to catch up accurately if 1000ms was skipped
+        } else if (timeLeft <= 0 && isActive) {
             handleTimerComplete();
         } else {
             if (timerRef.current) clearInterval(timerRef.current);
+            lastTickRef.current = null;
         }
+        
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
@@ -325,6 +347,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         stopAlarm();
         setTimeLeft(getMinutesForMode(mode, pomodoroSettings) * 60);
         setElapsedSeconds(0);
+        lastTickRef.current = null;
     };
 
     const changeMode = (newMode: TimerMode) => {
@@ -334,6 +357,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         stopAlarm();
         setTimeLeft(getMinutesForMode(newMode, pomodoroSettings) * 60);
         setElapsedSeconds(0);
+        lastTickRef.current = null;
     };
 
     const formatTime = (seconds: number) => {
