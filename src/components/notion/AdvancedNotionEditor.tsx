@@ -441,18 +441,6 @@ export function AdvancedNotionEditor({
       // === TEXT FORMATTING (Ctrl+key) ===
       if (modKey && !e.altKey && !e.shiftKey) {
         switch (e.key.toLowerCase()) {
-          case "b":
-            e.preventDefault();
-            editor.chain().focus().toggleBold().run();
-            return;
-          case "i":
-            e.preventDefault();
-            editor.chain().focus().toggleItalic().run();
-            return;
-          case "u":
-            e.preventDefault();
-            editor.chain().focus().toggleUnderline().run();
-            return;
           case "e":
             e.preventDefault();
             editor.chain().focus().toggleCode().run();
