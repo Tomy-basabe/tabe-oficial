@@ -152,22 +152,26 @@ export const BackgroundColor = Extension.create({
   },
 
   addKeyboardShortcuts() {
+    const handleHighlightToggle = () => {
+      // Importante: No llamar a `focus()` aquí si rompe el input. 
+      // Si el usuario estaba escribiendo, la selección ya está activa.
+      const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD";
+      const currentBgColor = this.editor.getAttributes("textStyle")?.backgroundColor;
+      
+      if (currentBgColor) {
+         return this.editor.chain().unsetBackgroundColor().run();
+      } else {
+         return this.editor.chain().setBackgroundColor(lastColor).run();
+      }
+    };
+
     return {
-      "Mod-q": () => {
-        const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD"; // Default to yellow-bg
-        const currentBgColor = this.editor.getAttributes("textStyle")?.backgroundColor;
-        
-        if (currentBgColor) {
-           this.editor.chain().focus().unsetBackgroundColor().run();
-        } else {
-           this.editor.chain().focus().setBackgroundColor(lastColor).run();
-        }
-        
-        return true;
-      },
-      // Soporte explícito para Ctrl+Q / Cmd+Q
-      "Ctrl-q": () => this.editor.commands.keyboardShortcut("Mod-q"),
-      "Cmd-q": () => this.editor.commands.keyboardShortcut("Mod-q"),
+      "Mod-q": handleHighlightToggle,
+      "Mod-Q": handleHighlightToggle, // Para cuando está activado el bloqueo de mayúsculas o Shift
+      "Ctrl-q": handleHighlightToggle,
+      "Ctrl-Q": handleHighlightToggle,
+      "Cmd-q": handleHighlightToggle,
+      "Cmd-Q": handleHighlightToggle,
     };
   },
 });
