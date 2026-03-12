@@ -21,6 +21,16 @@ export const NOTION_TEXT_COLORS = [
   { name: "Esmeralda", color: "#047857", class: "emerald" },
   { name: "Lavanda", color: "#7E22CE", class: "lavender" },
   { name: "Ámbar", color: "#B45309", class: "amber" },
+  { name: "Cielo", color: "#0EA5E9", class: "sky" },
+  { name: "Fucsia", color: "#D946EF", class: "fuchsia" },
+  { name: "Oro", color: "#EAB308", class: "gold" },
+  { name: "Pizarra", color: "#475569", class: "slate" },
+  { name: "Menta", color: "#10B981", class: "mint" },
+  { name: "Violeta", color: "#8B5CF6", class: "violet" },
+  { name: "Bronce", color: "#92400E", class: "bronze" },
+  { name: "Turquesa", color: "#06B6D4", class: "turquoise" },
+  { name: "Coral", color: "#F43F5E", class: "coral" },
+  { name: "Burdeos", color: "#991B1B", class: "burgundy" },
 ];
 
 export const NOTION_BACKGROUND_COLORS = [
@@ -40,6 +50,16 @@ export const NOTION_BACKGROUND_COLORS = [
   { name: "Esmeralda", color: "#D1FAE5", class: "emerald-bg" },
   { name: "Lavanda", color: "#F3E8FF", class: "lavender-bg" },
   { name: "Ámbar", color: "#FEF3C7", class: "amber-bg" },
+  { name: "Cielo", color: "#E0F2FE", class: "sky-bg" },
+  { name: "Fucsia", color: "#FDF4FF", class: "fuchsia-bg" },
+  { name: "Oro", color: "#FEFCE8", class: "gold-bg" },
+  { name: "Pizarra", color: "#F1F5F9", class: "slate-bg" },
+  { name: "Menta", color: "#ECFDF5", class: "mint-bg" },
+  { name: "Violeta", color: "#F5F3FF", class: "violet-bg" },
+  { name: "Bronce", color: "#FFF7ED", class: "bronze-bg" },
+  { name: "Turquesa", color: "#ECFEFF", class: "turquoise-bg" },
+  { name: "Coral", color: "#FFF1F2", class: "coral-bg" },
+  { name: "Burdeos", color: "#FEF2F2", class: "burgundy-bg" },
 ];
 
 // Dark mode variants
@@ -60,6 +80,16 @@ export const NOTION_BACKGROUND_COLORS_DARK = [
   { name: "Esmeralda", color: "#064E3B", class: "emerald-bg" },
   { name: "Lavanda", color: "#581C87", class: "lavender-bg" },
   { name: "Ámbar", color: "#78350F", class: "amber-bg" },
+  { name: "Cielo", color: "#0C4A6E", class: "sky-bg" },
+  { name: "Fucsia", color: "#701A75", class: "fuchsia-bg" },
+  { name: "Oro", color: "#713F12", class: "gold-bg" },
+  { name: "Pizarra", color: "#1E293B", class: "slate-bg" },
+  { name: "Menta", color: "#065F46", class: "mint-bg" },
+  { name: "Violeta", color: "#4C1D95", class: "violet-bg" },
+  { name: "Bronce", color: "#7C2D12", class: "bronze-bg" },
+  { name: "Turquesa", color: "#164E63", class: "turquoise-bg" },
+  { name: "Coral", color: "#881337", class: "coral-bg" },
+  { name: "Burdeos", color: "#7F1D1D", class: "burgundy-bg" },
 ];
 
 declare module "@tiptap/core" {
