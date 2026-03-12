@@ -14,32 +14,52 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
     setWidth(node.attrs.width || "100%");
   }, [node.attrs.width]);
 
-  const onMouseDown = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    setResizing(true);
+  const onMouseDown = useCallback(
+    (event: React.MouseEvent, direction: "left" | "right") => {
+      event.preventDefault();
+      event.stopPropagation();
+      setResizing(true);
 
-    const startX = event.clientX;
-    const startWidth = imageRef.current?.clientWidth || 0;
-    const parentWidth = imageRef.current?.parentElement?.clientWidth || 1;
+      const startX = event.clientX;
+      const startWidth = imageRef.current?.clientWidth || 0;
+      // relative to the editor container width for stable percentages
+      const editorWidth = imageRef.current?.closest(".ProseMirror")?.clientWidth || 800;
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const currentX = moveEvent.clientX;
-      const diffX = currentX - startX;
-      const newWidthPx = startWidth + diffX;
-      const newWidthPercent = Math.max(10, Math.min(100, (newWidthPx / parentWidth) * 100));
-      setWidth(`${newWidthPercent}%`);
-    };
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        let diffX = moveEvent.clientX - startX;
+        
+        // Dragging left handle outward means negative diff, which means width increases.
+        if (direction === "left") {
+          diffX = -diffX;
+        }
 
-    const onMouseUp = () => {
-      setResizing(false);
-      updateAttributes({ width });
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
+        const newWidthPx = startWidth + diffX * 2; // multiply by 2 if centered?
+        
+        // If center aligned, pulling one edge expands both sides (in standard block display), so diff is effectively doubled.
+        // If floated left/right, it just grows in that direction.
+        const effectiveDiff = align === "center" ? diffX * 2 : diffX;
+        const finalWidthPx = startWidth + effectiveDiff;
+        
+        const newWidthPercent = Math.max(10, Math.min(100, (finalWidthPx / editorWidth) * 100));
+        setWidth(`${newWidthPercent}%`);
+      };
 
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  }, [updateAttributes, width]);
+      const onMouseUp = () => {
+        setResizing(false);
+        // Persist the width
+        setWidth((currentWidth) => {
+          updateAttributes({ width: currentWidth });
+          return currentWidth;
+        });
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [updateAttributes, align]
+  );
 
   const containerStyle: React.CSSProperties = {
     width: align === "center" ? "100%" : "auto",
@@ -57,24 +77,39 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
       className={cn("notion-resizable-image-container", selected && "ProseMirror-selectednode")}
       style={containerStyle}
     >
-      <div className="relative inline-block group" style={{ width: align === "center" ? width : width }}>
+      <div 
+        className="relative inline-block group" 
+        style={{ width: align === "center" ? width : width }}
+      >
         <img
           ref={imageRef}
           src={node.attrs.src}
           alt={node.attrs.alt}
           title={node.attrs.title}
-          className="notion-resizable-image block w-full h-auto rounded-md transition-shadow"
+          className="notion-resizable-image block max-w-full h-auto rounded-md transition-shadow"
+          style={{ width: "100%" }}
         />
         
-        {/* Resize handle */}
+        {/* Right Resize handle */}
         <div
-          onMouseDown={onMouseDown}
+          onMouseDown={(e) => onMouseDown(e, "right")}
           className={cn(
-            "absolute bottom-2 right-2 w-4 h-4 bg-primary rounded-full cursor-nwse-resize opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg active:scale-125 z-20",
-            resizing && "opacity-100 scale-125"
+            "absolute top-0 right-0 w-4 -mr-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
+            resizing && "opacity-100"
           )}
         >
-            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+          <div className="w-1.5 h-12 bg-black/50 dark:bg-white/50 rounded-full shadow-sm" />
+        </div>
+
+        {/* Left Resize handle */}
+        <div
+          onMouseDown={(e) => onMouseDown(e, "left")}
+          className={cn(
+            "absolute top-0 left-0 w-4 -ml-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
+            resizing && "opacity-100"
+          )}
+        >
+          <div className="w-1.5 h-12 bg-black/50 dark:bg-white/50 rounded-full shadow-sm" />
         </div>
         
         {/* Selection overlay */}
