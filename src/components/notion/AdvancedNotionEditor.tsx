@@ -194,6 +194,8 @@ export function AdvancedNotionEditor({
     editorProps: {
       attributes: {
         class: "notion-editor-content prose dark:prose-invert max-w-none focus:outline-none min-h-[300px]",
+        spellcheck: "true",
+        lang: "es",
       },
       transformPastedText(text) {
         // Normalize line endings and remove excessive whitespace
