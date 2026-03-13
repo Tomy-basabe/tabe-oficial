@@ -12,16 +12,20 @@ export function FaqSection() {
             a: "No obligatoriamente. La plataforma está diseñada para reforzar las bases desde cero, explicando cada paso fundamental antes de avanzar a temas más complejos."
         },
         {
-            q: "¿Cómo recibo mi usuario?",
-            a: "Una vez que tocas el botón de comprar acceso, se abre un chat de WhatsApp con nuestro equipo. Al confirmar tu pago (sólo $7.000), te enviamos inmediatamente tu usuario y contraseña."
+            q: "¿Cómo empiezo a estudiar?",
+            a: "¡Es muy fácil! Podés registrarte gratis en segundos y empezar a usar las herramientas básicas. No necesitás tarjetas ni pagos previos para probar el potencial de la plataforma."
         },
         {
-            q: "¿Cuánto tiempo me dura el acceso?",
-            a: "El pago de $7.000 es un pago único. No hay suscripciones mensuales ni sorpresas. Tienes acceso permanente a los recursos y futuras actualizaciones."
+            q: "¿Qué incluye el acceso Premium?",
+            a: "Tabe Pro te da acceso ilimitado a nuestro asistente con IA, generación automática de cuestionarios y flashcards basadas en tus apuntes, y métricas avanzadas para trackear tu progreso real por materia."
         },
         {
-            q: "¿Sirve para cualquier carrera?",
-            a: "Sí. La plataforma se adapta a las materias filtro de tu carrera, ya sea en Ingeniería, Económicas, Ciencias Médicas o Humanidades."
+            q: "¿Cómo me ayuda la IA de Tabe?",
+            a: "Nuestra IA analiza tus propios apuntes y documentos para generar material de estudio personalizado. Puede crearte resúmenes, cuestionarios y flashcards exactas, ahorrándote horas de trabajo manual."
+        },
+        {
+            q: "¿Sirve para mi carrera?",
+            a: "Sí. Tabe está diseñado para ser flexible. Ya sea que estudies Medicina, Ingeniería, Derecho o cualquier otra carrera, nuestras herramientas de organización y estudio se adaptan a tus necesidades específicas."
         }
     ];
 
