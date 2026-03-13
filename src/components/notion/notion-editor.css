@@ -1221,3 +1221,105 @@
         z-index: 40;
     }
 }
+
+/* === SUB-PAGE BLOCK === */
+.notion-subpage-wrapper {
+    margin: 4px 0;
+}
+
+.notion-subpage-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: hsl(var(--secondary) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.5);
+    cursor: pointer;
+    transition: all 120ms ease;
+    user-select: none;
+}
+
+.notion-subpage-block:hover {
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--border));
+    box-shadow: 0 1px 3px hsl(var(--foreground) / 0.05);
+}
+
+.notion-subpage-block.selected {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 1px;
+}
+
+.notion-subpage-icon {
+    width: 18px;
+    height: 18px;
+    color: hsl(var(--muted-foreground));
+    flex-shrink: 0;
+}
+
+.notion-subpage-title {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notion-subpage-arrow {
+    width: 14px;
+    height: 14px;
+    color: hsl(var(--muted-foreground) / 0.5);
+    flex-shrink: 0;
+    transition: transform 120ms ease;
+}
+
+.notion-subpage-block:hover .notion-subpage-arrow {
+    transform: translateX(2px);
+    color: hsl(var(--muted-foreground));
+}
+
+/* === IMAGE FLOAT / WRAP IMPROVEMENTS === */
+.notion-resizable-image-container[style*="float: left"],
+.notion-resizable-image-container[style*="float: right"] {
+    margin-bottom: 0.5rem;
+    max-width: 50%;
+}
+
+.notion-editor-content .ProseMirror::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/* Clearfix for paragraphs following floated images */
+.notion-editor-content p + .notion-resizable-image-container,
+.notion-resizable-image-container + p {
+    min-height: 1.7em;
+}
+
+/* Ensure columns work with images inside */
+.notion-column img {
+    max-width: 100%;
+    border-radius: 4px;
+}
+
+/* === SIDEBAR SUB-PAGE NESTING === */
+.notion-sidebar-item.notion-sidebar-item--child {
+    padding-left: 28px;
+    font-size: 13px;
+}
+
+.notion-sidebar-item .notion-sidebar-item-children-indicator {
+    width: 16px;
+    height: 16px;
+    color: hsl(var(--muted-foreground) / 0.5);
+    flex-shrink: 0;
+    transition: transform 120ms ease;
+}
+
+.notion-sidebar-item .notion-sidebar-item-children-indicator.open {
+    transform: rotate(90deg);
+}

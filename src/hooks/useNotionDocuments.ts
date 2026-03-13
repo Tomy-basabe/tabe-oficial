@@ -8,6 +8,7 @@ export interface NotionDocument {
   id: string;
   user_id: string;
   subject_id: string | null;
+  parent_id: string | null;
   titulo: string;
   contenido?: any;
   emoji: string;
@@ -44,6 +45,7 @@ export function useNotionDocuments() {
           emoji: "📝",
           cover_url: null,
           is_favorite: true,
+          parent_id: null,
           total_time_seconds: 4500,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -58,6 +60,7 @@ export function useNotionDocuments() {
           emoji: "🤖",
           cover_url: null,
           is_favorite: false,
+          parent_id: null,
           total_time_seconds: 1200,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -70,7 +73,7 @@ export function useNotionDocuments() {
 
     const { data, error } = await supabase
       .from("notion_documents")
-      .select("id, user_id, subject_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at")
+      .select("id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -111,7 +114,7 @@ export function useNotionDocuments() {
     }
   }, [user, isGuest, fetchDocuments]);
 
-  const createDocument = async (subjectId: string, titulo: string = "Sin título") => {
+  const createDocument = async (subjectId: string, titulo: string = "Sin título", parentId: string | null = null) => {
     if (!user) return null;
 
     const { data, error } = await supabase
@@ -119,6 +122,7 @@ export function useNotionDocuments() {
       .insert({
         user_id: user.id,
         subject_id: subjectId,
+        parent_id: parentId,
         titulo,
         contenido: { type: "doc", content: [{ type: "paragraph" }] },
       })

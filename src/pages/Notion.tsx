@@ -361,10 +361,24 @@ export default function Notion() {
       updateDocument,
       openDocument,
       checkAndUnlockAchievements,
-      isPremium,
-      canUse,
-      incrementUsage,
     ]
+  );
+
+  const handleNewSubPage = useCallback(
+    async (parentDoc: NotionDocument) => {
+      if (!isPremium && !canUse('apuntes')) {
+        return;
+      }
+      
+      const newDoc = await createDocument(parentDoc.subject_id || "", "Sin título", parentDoc.id);
+      if (newDoc) {
+        const fullDoc = { ...newDoc, parent_id: parentDoc.id };
+        openDocument(fullDoc);
+        await incrementUsage('apuntes');
+        checkAndUnlockAchievements();
+      }
+    },
+    [createDocument, openDocument, isPremium, canUse, incrementUsage, checkAndUnlockAchievements]
   );
 
   const handleSidebarNewDoc = useCallback(
@@ -471,6 +485,7 @@ export default function Notion() {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         onSelectDocument={openDocument}
         onNewDocument={handleSidebarNewDoc}
+        onNewSubPage={handleNewSubPage}
         onDeleteDocument={(doc) => {
           setDocToDelete(doc);
           setShowDeleteModal(true);
@@ -673,6 +688,10 @@ export default function Notion() {
                     onUpdate={handleContentUpdate}
                     onActivity={() => lastActivityRef.current = Date.now()}
                     documentId={activeDocument.id}
+                    onSubPageClick={(id) => {
+                        const target = documents.find(d => d.id === id);
+                        if (target) openDocument(target);
+                    }}
                   />
                 </>
               )}

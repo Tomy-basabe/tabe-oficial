@@ -744,6 +744,7 @@ export type Database = {
           emoji: string | null
           id: string
           is_favorite: boolean | null
+          parent_id: string | null
           subject_id: string | null
           titulo: string
           total_time_seconds: number | null
@@ -757,6 +758,7 @@ export type Database = {
           emoji?: string | null
           id?: string
           is_favorite?: boolean | null
+          parent_id?: string | null
           subject_id?: string | null
           titulo?: string
           total_time_seconds?: number | null
@@ -770,6 +772,7 @@ export type Database = {
           emoji?: string | null
           id?: string
           is_favorite?: boolean | null
+          parent_id?: string | null
           subject_id?: string | null
           titulo?: string
           total_time_seconds?: number | null
@@ -777,6 +780,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notion_documents_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "notion_documents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notion_documents_subject_id_fkey"
             columns: ["subject_id"]

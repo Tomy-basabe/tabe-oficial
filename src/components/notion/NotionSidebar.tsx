@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
     Search, Plus, ChevronRight, Star, MoreHorizontal,
     Trash2, Heart, ChevronsLeft, GraduationCap, FileText,
@@ -22,6 +22,7 @@ interface NotionSidebarProps {
     onToggleCollapse: () => void;
     onSelectDocument: (doc: NotionDocument) => void;
     onNewDocument: (subjectId: string) => void;
+    onNewSubPage: (parentDoc: NotionDocument) => void;
     onDeleteDocument: (doc: NotionDocument) => void;
     onToggleFavorite: (doc: NotionDocument) => void;
 }
@@ -34,11 +35,13 @@ export function NotionSidebar({
     onToggleCollapse,
     onSelectDocument,
     onNewDocument,
+    onNewSubPage,
     onDeleteDocument,
     onToggleFavorite,
 }: NotionSidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [openSubjects, setOpenSubjects] = useState<Set<string>>(new Set());
+    const [openDocs, setOpenDocs] = useState<Set<string>>(new Set());
     const [contextMenu, setContextMenu] = useState<{ doc: NotionDocument; x: number; y: number } | null>(null);
     const contextMenuRef = useRef<HTMLDivElement>(null);
 
@@ -59,15 +62,30 @@ export function NotionSidebar({
     );
 
     const filteredDocs = useMemo(() => {
-        if (!searchQuery) return documents;
+        const baseDocs = documents.filter(d => !d.parent_id); // Only root-level docs
+        if (!searchQuery) return baseDocs;
         const q = searchQuery.toLowerCase();
-        return documents.filter(
+        return baseDocs.filter(
             (d) =>
                 d.titulo.toLowerCase().includes(q) ||
                 d.subject?.nombre?.toLowerCase().includes(q) ||
                 d.subject?.codigo?.toLowerCase().includes(q)
         );
     }, [documents, searchQuery]);
+
+    // Get children of a document
+    const getChildren = useCallback((parentId: string) => {
+        return documents.filter(d => d.parent_id === parentId);
+    }, [documents]);
+
+    const toggleDoc = (id: string) => {
+        setOpenDocs((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     // Group docs by subject
     const docsBySubject = useMemo(() => {
@@ -111,31 +129,59 @@ export function NotionSidebar({
         setContextMenu({ doc, x: e.clientX, y: e.clientY });
     };
 
-    const renderDocItem = (doc: NotionDocument) => (
-        <div
-            key={doc.id}
-            className={cn("notion-sidebar-item", activeDocId === doc.id && "active")}
-            onClick={() => onSelectDocument(doc)}
-            onContextMenu={(e) => handleContextMenu(e, doc)}
-        >
-            <span className="notion-sidebar-item-emoji"><TabeIconRenderer iconId={doc.emoji || "book"} size={18} /></span>
-            <span className="notion-sidebar-item-title">
-                {doc.titulo || "Sin título"}
-            </span>
-            <div className="notion-sidebar-item-actions">
-                <button
-                    className="notion-sidebar-item-action"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleContextMenu(e, doc);
-                    }}
-                    title="Más opciones"
+    const renderDocItem = (doc: NotionDocument, isChild = false) => {
+        const children = getChildren(doc.id);
+        const hasChildren = children.length > 0;
+        const isDocOpen = openDocs.has(doc.id);
+
+        return (
+            <div key={doc.id}>
+                <div
+                    className={cn("notion-sidebar-item", activeDocId === doc.id && "active", isChild && "notion-sidebar-item--child")}
+                    onClick={() => onSelectDocument(doc)}
+                    onContextMenu={(e) => handleContextMenu(e, doc)}
                 >
-                    <MoreHorizontal className="w-3.5 h-3.5" />
-                </button>
+                    {hasChildren && (
+                        <ChevronRight
+                            className={cn("notion-sidebar-item-children-indicator", isDocOpen && "open")}
+                            onClick={(e) => { e.stopPropagation(); toggleDoc(doc.id); }}
+                        />
+                    )}
+                    <span className="notion-sidebar-item-emoji"><TabeIconRenderer iconId={doc.emoji || "book"} size={18} /></span>
+                    <span className="notion-sidebar-item-title">
+                        {doc.titulo || "Sin título"}
+                    </span>
+                    <div className="notion-sidebar-item-actions">
+                        <button
+                            className="notion-sidebar-item-action"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onNewSubPage(doc);
+                            }}
+                            title="Nueva sub-página"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                            className="notion-sidebar-item-action"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleContextMenu(e, doc);
+                            }}
+                            title="Más opciones"
+                        >
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+                {hasChildren && isDocOpen && (
+                    <div style={{ paddingLeft: 12 }}>
+                        {children.map(child => renderDocItem(child, true))}
+                    </div>
+                )}
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <>
@@ -174,7 +220,7 @@ export function NotionSidebar({
                             <div className="notion-sidebar-section-title">
                                 <Star className="w-3 h-3 mr-1" /> Favoritos
                             </div>
-                            {favorites.map(renderDocItem)}
+                            {favorites.map(d => renderDocItem(d))}
                         </div>
                     )}
 
@@ -233,7 +279,7 @@ export function NotionSidebar({
                                                         </button>
                                                         {isOpen && (
                                                             <div style={{ paddingLeft: 8 }}>
-                                                                {docs.map(renderDocItem)}
+                                                                {docs.map(d => renderDocItem(d))}
                                                                 <button
                                                                     className="notion-sidebar-new-page"
                                                                     onClick={() => onNewDocument(subject.id)}
@@ -255,7 +301,7 @@ export function NotionSidebar({
                             {docsBySubject.unlinked.length > 0 && (
                                 <div style={{ marginTop: 4 }}>
                                     <div className="notion-sidebar-section-title">Sin materia</div>
-                                    {docsBySubject.unlinked.map(renderDocItem)}
+                                    {docsBySubject.unlinked.map(d => renderDocItem(d))}
                                 </div>
                             )}
                         </div>
@@ -265,7 +311,7 @@ export function NotionSidebar({
                             <div className="notion-sidebar-section-title">
                                 Resultados ({filteredDocs.length})
                             </div>
-                            {filteredDocs.map(renderDocItem)}
+                            {filteredDocs.map(d => renderDocItem(d))}
                             {filteredDocs.length === 0 && (
                                 <p
                                     style={{

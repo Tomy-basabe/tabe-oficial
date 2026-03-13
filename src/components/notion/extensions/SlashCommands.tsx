@@ -34,6 +34,8 @@ import {
   Columns,
   Bookmark,
   Smile,
+  LayoutGrid,
+  FileText as FileTextIcon,
 } from "lucide-react";
 import {
   NOTION_TEXT_COLORS,
@@ -360,6 +362,65 @@ const getSuggestionItems = (): CommandItem[] => [
     category: "Avanzado",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).insertToc().run();
+    },
+  },
+  // Gallery / Multi-image
+  {
+    title: "Galería (2 imágenes)",
+    description: "Dos imágenes lado a lado",
+    icon: <LayoutGrid className="w-4 h-4 text-cyan-400" />,
+    category: "Media",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent({
+        type: "columnBlock",
+        attrs: { columns: 2 },
+        content: [
+          { type: "column", content: [{ type: "paragraph", content: [{ type: "text", text: "Click aquí e inserta una imagen con /imagen" }] }] },
+          { type: "column", content: [{ type: "paragraph", content: [{ type: "text", text: "Click aquí e inserta una imagen con /imagen" }] }] },
+        ],
+      }).run();
+    },
+  },
+  {
+    title: "Galería (3 imágenes)",
+    description: "Tres imágenes lado a lado",
+    icon: <LayoutGrid className="w-4 h-4 text-cyan-400" />,
+    category: "Media",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent({
+        type: "columnBlock",
+        attrs: { columns: 3 },
+        content: [
+          { type: "column", content: [{ type: "paragraph", content: [{ type: "text", text: "Imagen 1" }] }] },
+          { type: "column", content: [{ type: "paragraph", content: [{ type: "text", text: "Imagen 2" }] }] },
+          { type: "column", content: [{ type: "paragraph", content: [{ type: "text", text: "Imagen 3" }] }] },
+        ],
+      }).run();
+    },
+  },
+  {
+    title: "4 Columnas",
+    description: "Dividir en 4 columnas",
+    icon: <Columns className="w-4 h-4" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).setColumns(4).run();
+    },
+  },
+  // Sub-page
+  {
+    title: "Página",
+    description: "Insertar enlace a sub-página",
+    icon: <FileTextIcon className="w-4 h-4 text-blue-400" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      const title = window.prompt("Título de la sub-página:", "Sub-página");
+      if (title) {
+        editor.chain().focus().deleteRange(range).insertContent({
+          type: "subPage",
+          attrs: { title, pageId: null },
+        }).run();
+      }
     },
   },
 ];

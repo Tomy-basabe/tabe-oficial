@@ -8,6 +8,8 @@ import Typography from "@tiptap/extension-typography";
 import TiptapUnderline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
+import Superscript from "@tiptap/extension-superscript";
+import Subscript from "@tiptap/extension-subscript";
 import { ResizableImage } from "./extensions/ResizableImage";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
@@ -25,6 +27,7 @@ import {
   Heading1, Heading2, Heading3, List, ListOrdered,
   CheckSquare, Quote, Link as LinkIcon,
   Highlighter, AlignLeft, AlignCenter, AlignRight,
+  Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
 } from "lucide-react";
 
 import { SlashCommands } from "./extensions/SlashCommands";
@@ -38,6 +41,7 @@ import { Bookmark } from "./extensions/BookmarkExtension";
 import { TocExtension } from "./extensions/TocExtension";
 import { Indent } from "./extensions/IndentExtension";
 import { TrailingNode } from "./extensions/TrailingNode";
+import { SubPage } from "./extensions/SubPageBlock";
 import { ColorPicker, HighlightColorPicker } from "./ColorPicker";
 import "tippy.js/dist/tippy.css";
 
@@ -47,6 +51,7 @@ interface AdvancedNotionEditorProps {
   content: any;
   onUpdate: (content: any) => void;
   onActivity?: () => void;
+  onSubPageClick?: (pageId: string | null, title: string) => void;
   placeholder?: string;
   documentId?: string;
 }
@@ -78,6 +83,7 @@ export function AdvancedNotionEditor({
   content,
   onUpdate,
   onActivity,
+  onSubPageClick,
   placeholder = "Escribe '/' para ver comandos...",
   documentId,
 }: AdvancedNotionEditorProps) {
@@ -185,6 +191,9 @@ export function AdvancedNotionEditor({
       DragHandle,
       SlashCommands,
       TrailingNode,
+      Superscript,
+      Subscript,
+      SubPage,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -696,6 +705,20 @@ export function AdvancedNotionEditor({
         >
           <Code className="w-4 h-4" />
         </BubbleBtn>
+        <BubbleBtn
+          onClick={() => editor.chain().focus().toggleSuperscript().run()}
+          isActive={editor.isActive("superscript")}
+          title="Superíndice"
+        >
+          <SuperscriptIcon className="w-4 h-4" />
+        </BubbleBtn>
+        <BubbleBtn
+          onClick={() => editor.chain().focus().toggleSubscript().run()}
+          isActive={editor.isActive("subscript")}
+          title="Subíndice"
+        >
+          <SubscriptIcon className="w-4 h-4" />
+        </BubbleBtn>
 
         <div className="notion-bubble-separator" />
 
@@ -710,6 +733,36 @@ export function AdvancedNotionEditor({
         </BubbleBtn>
 
         <div className="notion-bubble-separator" />
+
+        {/* Block type toggles */}
+        <BubbleBtn
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          isActive={editor.isActive("bulletList")}
+          title="Lista con viñetas"
+        >
+          <List className="w-4 h-4" />
+        </BubbleBtn>
+        <BubbleBtn
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          isActive={editor.isActive("orderedList")}
+          title="Lista numerada"
+        >
+          <ListOrdered className="w-4 h-4" />
+        </BubbleBtn>
+        <BubbleBtn
+          onClick={() => editor.chain().focus().toggleTaskList().run()}
+          isActive={editor.isActive("taskList")}
+          title="Lista de tareas"
+        >
+          <CheckSquare className="w-4 h-4" />
+        </BubbleBtn>
+        <BubbleBtn
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          isActive={editor.isActive("blockquote")}
+          title="Cita"
+        >
+          <Quote className="w-4 h-4" />
+        </BubbleBtn>
 
         {/* Alignment */}
         <BubbleBtn
