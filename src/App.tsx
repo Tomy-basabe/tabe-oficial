@@ -1,6 +1,4 @@
 import { Toaster } from "@/components/ui/toaster";
-import Forest from "./pages/Forest";
-import Discord from "./pages/Discord";
 import { DiscordVoiceProvider } from "@/contexts/DiscordVoiceContext";
 import { GlobalDiscordVoiceWidget } from "@/components/discord/GlobalDiscordVoiceWidget";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,31 +7,39 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { lazy, Suspense } from "react";
+
+// Eagerly loaded (lightweight pages)
 import Dashboard from "@/pages/Dashboard";
-import CareerPlan from "@/pages/CareerPlan";
-import Calendar from "@/pages/Calendar";
-import Pomodoro from "@/pages/Pomodoro";
-import Metrics from "@/pages/Metrics";
-import AIAssistant from "@/pages/AIAssistant";
-import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
-import Flashcards from "@/pages/Flashcards";
-import Quizzes from "@/pages/Quizzes";
-import Library from "@/pages/Library";
-import Achievements from "@/pages/Achievements";
-import Notion from "@/pages/Notion";
-import AdminPanel from "@/pages/AdminPanel";
-import NotFound from "@/pages/NotFound";
-import Friends from "@/pages/Friends";
-import Marketplace from "@/pages/Marketplace";
-import CorrelativityMap from "@/pages/CorrelativityMap";
-import Routines from "@/pages/Routines";
-import OfficeHours from "@/pages/OfficeHours";
 import Landing from "@/pages/Landing";
+import NotFound from "@/pages/NotFound";
+import EmailVerified from "@/pages/EmailVerified";
+import Settings from "@/pages/Settings";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import Privacy from "@/pages/Privacy";
-import EmailVerified from "@/pages/EmailVerified";
+
+// Lazy loaded (heavy pages with large dependencies)
+const Notion = lazy(() => import("@/pages/Notion"));
+const AIAssistant = lazy(() => import("@/pages/AIAssistant"));
+const Flashcards = lazy(() => import("@/pages/Flashcards"));
+const Quizzes = lazy(() => import("@/pages/Quizzes"));
+const Metrics = lazy(() => import("@/pages/Metrics"));
+const Library = lazy(() => import("@/pages/Library"));
+const Calendar = lazy(() => import("@/pages/Calendar"));
+const Pomodoro = lazy(() => import("@/pages/Pomodoro"));
+const CareerPlan = lazy(() => import("@/pages/CareerPlan"));
+const Forest = lazy(() => import("@/pages/Forest"));
+const Discord = lazy(() => import("@/pages/Discord"));
+const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
+const Friends = lazy(() => import("@/pages/Friends"));
+const Marketplace = lazy(() => import("@/pages/Marketplace"));
+const CorrelativityMap = lazy(() => import("@/pages/CorrelativityMap"));
+const Routines = lazy(() => import("@/pages/Routines"));
+const OfficeHours = lazy(() => import("@/pages/OfficeHours"));
+const Achievements = lazy(() => import("@/pages/Achievements"));
+
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
 import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
@@ -83,7 +89,19 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const LazyFallback = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center animate-pulse">
+        <span className="font-display font-bold text-white text-sm">T</span>
+      </div>
+      <p className="text-muted-foreground text-xs">Cargando módulo...</p>
+    </div>
+  </div>
+);
+
 const AppRoutes = () => (
+  <Suspense fallback={<LazyFallback />}>
   <Routes>
     <Route
       path="/"
@@ -132,7 +150,9 @@ const AppRoutes = () => (
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
+  </Suspense>
 );
+
 
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
