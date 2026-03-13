@@ -9,7 +9,7 @@ export interface NotionDocument {
   user_id: string;
   subject_id: string | null;
   titulo: string;
-  contenido: any;
+  contenido?: any;
   emoji: string;
   cover_url: string | null;
   is_favorite: boolean;
@@ -70,7 +70,7 @@ export function useNotionDocuments() {
 
     const { data, error } = await supabase
       .from("notion_documents")
-      .select("*")
+      .select("id, user_id, subject_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -224,6 +224,28 @@ export function useNotionDocuments() {
     }
   };
 
+  const fetchDocumentContent = async (docId: string): Promise<any> => {
+    try {
+      const { data, error } = await supabase
+        .from("notion_documents")
+        .select("contenido")
+        .eq("id", docId)
+        .single();
+
+      if (error) throw error;
+      
+      setDocuments(prev => prev.map(doc => 
+        doc.id === docId ? { ...doc, contenido: data.contenido } : doc
+      ));
+
+      return data.contenido;
+    } catch (error: any) {
+      console.error("Error fetching document content:", error);
+      toast.error("Error al cargar el contenido del documento");
+      return null;
+    }
+  };
+
   return {
     documents,
     loading,
@@ -231,6 +253,7 @@ export function useNotionDocuments() {
     updateDocument,
     deleteDocument,
     addStudyTime,
+    fetchDocumentContent,
     refetch: fetchDocuments,
   };
 }

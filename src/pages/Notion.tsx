@@ -53,10 +53,11 @@ export default function Notion() {
   const [showNewDocModal, setShowNewDocModal] = useState(false);
   const [newDocSubjectId, setNewDocSubjectId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TipTapTemplate>(tipTapTemplates[0]);
-  const [showImportModal, setShowImportModal] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [isOpeningDoc, setIsOpeningDoc] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Editor state
   const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
@@ -272,24 +273,35 @@ export default function Notion() {
     // Save study time for the previous document before switching
     handleSaveOnExit();
 
-    const content = ensureTipTapFormat(doc.contenido) || {
-      type: "doc",
-      content: [{ type: "paragraph" }],
-    };
-    lastSavedContentRef.current = JSON.stringify(content);
-    setEditorContent(content);
-    editorContentRef.current = content;
-    setLocalTitle(doc.titulo);
-    
     // Reset time tracking state for the new document
     totalSecondsRef.current = 0;
     savedSecondsRef.current = 0;
     setSessionSeconds(0);
     lastActivityRef.current = Date.now();
 
+    setLocalTitle(doc.titulo);
     setActiveDocument(doc);
     setLastSaved(null);
-  }, [saveDocument, handleSaveOnExit]);
+
+    // Fetch content if not already loaded (lazy loading)
+    if (!doc.contenido) {
+      setIsOpeningDoc(true);
+      const fullContent = await fetchDocumentContent(doc.id);
+      setIsOpeningDoc(false);
+      
+      if (fullContent) {
+        const content = ensureTipTapFormat(fullContent);
+        lastSavedContentRef.current = JSON.stringify(content);
+        setEditorContent(content);
+        editorContentRef.current = content;
+      }
+    } else {
+      const content = ensureTipTapFormat(doc.contenido);
+      lastSavedContentRef.current = JSON.stringify(content);
+      setEditorContent(content);
+      editorContentRef.current = content;
+    }
+  }, [saveDocument, handleSaveOnExit, fetchDocumentContent]);
 
   const closeDocument = useCallback(() => {
     if (autoSaveTimerRef.current) {
@@ -606,52 +618,63 @@ export default function Notion() {
         <div className="notion-editor-area">
           {activeDocument ? (
             <div className="notion-editor-wrapper tour-notion-list">
-              {/* Cover */}
-              {activeDocument.cover_url && (
-                <div className="notion-cover">
-                  <img src={activeDocument.cover_url} alt="cover" />
+              {isOpeningDoc ? (
+                <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                  <p className="text-muted-foreground animate-pulse font-medium">
+                    Cargando contenido pesado...
+                  </p>
                 </div>
+              ) : (
+                <>
+                  {/* Cover */}
+                  {activeDocument.cover_url && (
+                    <div className="notion-cover">
+                      <img src={activeDocument.cover_url} alt="cover" />
+                    </div>
+                  )}
+
+                  {/* Title area */}
+                  <div className="notion-title-area">
+                    <EmojiPicker
+                      value={activeDocument.emoji}
+                      onChange={handleEmojiUpdate}
+                    />
+
+                    <textarea
+                      value={localTitle}
+                      onChange={(e) => {
+                        handleTitleChange(e.target.value);
+                        // Auto-resize
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                      }}
+                      className="notion-title-input"
+                      placeholder="Sin título"
+                      rows={1}
+                      style={{ overflow: "hidden" }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          // Focus editor
+                          const editor = document.querySelector(
+                            ".ProseMirror"
+                          ) as HTMLElement;
+                          editor?.focus();
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Editor */}
+                  <AdvancedNotionEditor
+                    content={editorContent}
+                    onUpdate={handleContentUpdate}
+                    onActivity={() => lastActivityRef.current = Date.now()}
+                    documentId={activeDocument.id}
+                  />
+                </>
               )}
-
-              {/* Title area */}
-              <div className="notion-title-area">
-                <EmojiPicker
-                  value={activeDocument.emoji}
-                  onChange={handleEmojiUpdate}
-                />
-
-                <textarea
-                  value={localTitle}
-                  onChange={(e) => {
-                    handleTitleChange(e.target.value);
-                    // Auto-resize
-                    e.target.style.height = "auto";
-                    e.target.style.height = e.target.scrollHeight + "px";
-                  }}
-                  className="notion-title-input"
-                  placeholder="Sin título"
-                  rows={1}
-                  style={{ overflow: "hidden" }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      // Focus editor
-                      const editor = document.querySelector(
-                        ".ProseMirror"
-                      ) as HTMLElement;
-                      editor?.focus();
-                    }
-                  }}
-                />
-              </div>
-
-              {/* Editor */}
-              <AdvancedNotionEditor
-                content={editorContent}
-                onUpdate={handleContentUpdate}
-                onActivity={() => lastActivityRef.current = Date.now()}
-                documentId={activeDocument.id}
-              />
             </div>
           ) : (
             /* Empty state / Welcome */
