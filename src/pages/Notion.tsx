@@ -40,6 +40,7 @@ export default function Notion() {
     updateDocument,
     deleteDocument,
     addStudyTime,
+    fetchDocumentContent,
     refetch,
   } = useNotionDocuments();
   const { checkAndUnlockAchievements } = useAchievements();
