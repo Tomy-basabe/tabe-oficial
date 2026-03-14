@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CalendarEvent } from "@/hooks/useCalendarEvents";
 import { Subject } from "@/hooks/useSubjects";
-import { Calendar as CalendarIcon, Clock, Filter, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Filter, AlertCircle, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ExamsListModalProps {
@@ -112,7 +112,9 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-6">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-2xl font-display flex items-center gap-2">
-            <span className="text-3xl">📝</span>
+            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center border border-red-500/30">
+              <GraduationCap className="w-6 h-6 text-red-500" />
+            </div>
             Próximos Exámenes
           </DialogTitle>
           <DialogDescription>
@@ -156,7 +158,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
         <div className="flex-1 overflow-y-auto pr-2 space-y-4">
           {filteredExams.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground border-2 border-dashed border-border rounded-xl">
-              <CalendarIcon className="w-12 h-12 mb-4 opacity-20" />
+              <GraduationCap className="w-12 h-12 mb-4 opacity-20" />
               <p className="font-medium text-lg">No hay exámenes programados</p>
               <p className="text-sm mt-1">
                 Agrega un nuevo evento en el calendario de tipo Parcial o Final para que aparezca aquí.

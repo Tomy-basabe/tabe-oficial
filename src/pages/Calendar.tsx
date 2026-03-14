@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
 import { useSubjects } from "@/hooks/useSubjects";
@@ -255,7 +255,7 @@ export default function Calendar() {
             onClick={() => setShowExamsModal(true)}
             className="px-4 py-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 text-red-400 rounded-lg text-sm font-medium hover:from-red-500/30 hover:to-orange-500/30 transition-all duration-200 flex items-center gap-2 hover:shadow-md hover:shadow-red-500/10"
           >
-            <span className="text-lg leading-none">📝</span>
+            <GraduationCap className="w-5 h-5 text-red-400" />
             Exámenes
           </button>
           <button
