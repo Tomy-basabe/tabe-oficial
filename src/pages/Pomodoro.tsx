@@ -291,73 +291,83 @@ export default function Pomodoro() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Subject Selector */}
-          <div className="card-gamer rounded-xl p-5 tour-pomodoro-stats">
-
-            <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-primary" />
-              Materia Actual
+          <div className="card-gamer rounded-xl p-6 tour-pomodoro-stats border border-white/5 bg-black/40 backdrop-blur-xl">
+            <h3 className="font-display font-semibold mb-6 flex items-center gap-2 text-lg">
+              <BookOpen className="w-5 h-5 text-neon-cyan" />
+              Sesión de Estudio
             </h3>
 
-            {/* Year Filter */}
-            <div className="mb-4">
-              <Select value={yearFilter} onValueChange={setYearFilter}>
-                <SelectTrigger className="w-full bg-secondary border-border">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-4 h-4" />
-                    <SelectValue placeholder="Filtrar por año" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px] overflow-y-auto">
-                  <SelectItem value="all">Todos los años</SelectItem>
-                  {[...new Set(subjects.map(s => s.year))].sort().map(year => (
-                    <SelectItem key={year} value={year.toString()}>Año {year}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-              <button
-                onClick={() => setSelectedSubject(null)}
-                className={cn(
-                  "w-full p-3 rounded-lg text-left text-sm transition-all flex items-center gap-2",
-                  selectedSubject === null
-                    ? "bg-primary/10 text-primary border border-primary/30"
-                    : "bg-secondary hover:bg-secondary/80 border border-transparent"
-                )}
-              >
-                <Filter className="w-4 h-4" />
-                Sin materia específica
-              </button>
-
-              {subjects
-                .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
-                .map((subject) => (
-                  <button
-                    key={subject.id}
-                    onClick={() => setSelectedSubject(subject.id)}
-                    className={cn(
-                      "w-full p-3 rounded-lg text-left text-sm transition-all",
-                      selectedSubject === subject.id
-                        ? "bg-primary/10 text-primary border border-primary/30"
-                        : "bg-secondary hover:bg-secondary/80 border border-transparent"
-                    )}
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-mono text-xs text-muted-foreground bg-background/50 px-1 rounded">
-                        {subject.codigo}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground border border-border px-1 rounded">
-                        Año {subject.year}
-                      </span>
+            <div className="space-y-5">
+              {/* Year Filter */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider ml-1">
+                  Filtrar por Año
+                </label>
+                <Select value={yearFilter} onValueChange={(val) => {
+                  setYearFilter(val);
+                  // Reset subject selection if it doesn't belong to the new year filter
+                  if (val !== "all" && selectedSubject) {
+                    const subj = subjects.find(s => s.id === selectedSubject);
+                    if (subj && subj.year.toString() !== val) {
+                      setSelectedSubject(null);
+                    }
+                  }
+                }}>
+                  <SelectTrigger className="w-full bg-secondary/50 border-white/10 hover:border-neon-cyan/50 transition-colors h-11">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-neon-cyan" />
+                      <SelectValue placeholder="Seleccionar año" />
                     </div>
-                    <span className="font-medium block truncate">{subject.nombre}</span>
-                  </button>
-                ))}
+                  </SelectTrigger>
+                  <SelectContent className="bg-black/90 border-white/10 backdrop-blur-xl">
+                    <SelectItem value="all">Todos los años</SelectItem>
+                    {[...new Set(subjects.map(s => s.year))].sort().map(year => (
+                      <SelectItem key={year} value={year.toString()}>Año {year}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              {subjects.filter(s => yearFilter === "all" || s.year.toString() === yearFilter).length === 0 && (
-                <div className="text-center py-4 text-sm text-muted-foreground">
-                  No hay materias para este año
+              {/* Subject Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider ml-1">
+                  Materia
+                </label>
+                <Select 
+                  value={selectedSubject || "none"} 
+                  onValueChange={(val) => setSelectedSubject(val === "none" ? null : val)}
+                >
+                  <SelectTrigger className="w-full bg-secondary/50 border-white/10 hover:border-neon-purple/50 transition-colors h-11">
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-4 h-4 text-neon-purple" />
+                      <SelectValue placeholder="Seleccionar materia" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-black/90 border-white/10 backdrop-blur-xl max-h-[300px]">
+                    <SelectItem value="none">Sin materia específica</SelectItem>
+                    {subjects
+                      .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
+                      .map((subject) => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          <div className="flex flex-col py-0.5">
+                            <span className="font-medium">{subject.nombre}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              {subject.codigo} • Año {subject.year}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Selection Status */}
+              {selectedSubject && (
+                <div className="mt-4 p-4 rounded-xl bg-neon-cyan/5 border border-neon-cyan/20 flex flex-col gap-1 items-center text-center animate-in fade-in slide-in-from-top-2 duration-300">
+                  <span className="text-[10px] text-neon-cyan font-bold uppercase tracking-widest">Estudiando ahora</span>
+                  <span className="font-display font-bold text-sm text-glow-cyan">
+                    {subjects.find(s => s.id === selectedSubject)?.nombre}
+                  </span>
                 </div>
               )}
             </div>
@@ -365,7 +375,7 @@ export default function Pomodoro() {
 
           {/* Settings Panel */}
           {showSettings && (
-            <div className="card-gamer rounded-xl">
+            <div className="card-gamer rounded-xl overflow-hidden border border-white/5 animate-in zoom-in-95 duration-200">
               <PomodoroSettings
                 settings={pomodoroSettings}
                 onSettingsChange={updateSettings}
@@ -375,9 +385,15 @@ export default function Pomodoro() {
             </div>
           )}
 
-          <div className="card-gamer rounded-xl p-5">
-            <p className="text-xs text-muted-foreground text-center">
-              El timer sigue corriendo aunque navegues a otra sección.
+          <div className="card-gamer rounded-xl p-5 border border-white/5 bg-black/20">
+            <div className="flex items-center gap-3 justify-center mb-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-neon-green animate-pulse" />
+              <p className="text-xs text-muted-foreground">
+                Sincronización en tiempo real activa
+              </p>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 text-center">
+              Tu progreso se guarda automáticamente cada 30 segundos.
             </p>
           </div>
         </div>

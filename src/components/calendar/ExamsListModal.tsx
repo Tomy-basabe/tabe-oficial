@@ -1,0 +1,252 @@
+import { useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CalendarEvent } from "@/hooks/useCalendarEvents";
+import { Subject } from "@/hooks/useSubjects";
+import { Calendar as CalendarIcon, Clock, Filter, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ExamsListModalProps {
+  open: boolean;
+  onClose: () => void;
+  events: CalendarEvent[];
+  subjects: Subject[];
+}
+
+const EXAM_TYPES = [
+  "P1",
+  "P2",
+  "Global",
+  "Recuperatorio P1",
+  "Recuperatorio P2",
+  "Recuperatorio Global",
+  "Final"
+];
+
+const eventTypeColors: Record<string, string> = {
+  P1: "bg-neon-cyan/20 border-neon-cyan text-neon-cyan",
+  P2: "bg-neon-purple/20 border-neon-purple text-neon-purple",
+  Global: "bg-neon-gold/20 border-neon-gold text-neon-gold",
+  "Recuperatorio P1": "bg-red-500/20 border-red-500 text-red-400",
+  "Recuperatorio P2": "bg-red-500/20 border-red-500 text-red-400",
+  "Recuperatorio Global": "bg-red-500/20 border-red-500 text-red-400",
+  Final: "bg-neon-green/20 border-neon-green text-neon-green",
+};
+
+export function ExamsListModal({ open, onClose, events, subjects }: ExamsListModalProps) {
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+
+  // Create a map for quick subject lookup by ID
+  const subjectMap = useMemo(() => {
+    const map = new Map<string, Subject>();
+    subjects.forEach(s => map.set(s.id, s));
+    return map;
+  }, [subjects]);
+
+  // 1. Filter only future/today exams and sort chronologically
+  const upcomingExams = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return events
+      .filter((e) => {
+        // Is it an exam type?
+        if (!EXAM_TYPES.includes(e.tipo_examen)) return false;
+        
+        // Is it today or in the future?
+        const eventDate = new Date(e.fecha);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate.getTime() >= today.getTime();
+      })
+      .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+  }, [events]);
+
+  // 2. Extract unique years and subjects from upcoming exams for filters
+  const { availableYears, availableSubjects } = useMemo(() => {
+    const years = new Set<string>();
+    const filteredSubjectsList = new Map<string, string>(); // id -> name
+
+    upcomingExams.forEach((exam) => {
+      if (exam.subject_id) {
+        const subject = subjectMap.get(exam.subject_id);
+        if (subject) {
+          years.add(subject.año.toString());
+          filteredSubjectsList.set(subject.id, subject.nombre);
+        }
+      }
+    });
+
+    return {
+      availableYears: Array.from(years).sort((a, b) => parseInt(a) - parseInt(b)),
+      availableSubjects: Array.from(filteredSubjectsList.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+    };
+  }, [upcomingExams, subjectMap]);
+
+  // 3. Apply active filters
+  const filteredExams = useMemo(() => {
+    return upcomingExams.filter((exam) => {
+      if (selectedSubject !== "all" && exam.subject_id !== selectedSubject) return false;
+      
+      if (selectedYear !== "all" && exam.subject_id) {
+        const subject = subjectMap.get(exam.subject_id);
+        if (subject && subject.año.toString() !== selectedYear) return false;
+      }
+      
+      return true;
+    });
+  }, [upcomingExams, selectedSubject, selectedYear, subjectMap]);
+
+  // Helper to calculate days remaining
+  const getDaysRemaining = (targetDateStr: string) => {
+    const target = new Date(targetDateStr);
+    target.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = target.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-6">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-2xl font-display flex items-center gap-2">
+            <span className="text-3xl">📝</span>
+            Próximos Exámenes
+          </DialogTitle>
+          <DialogDescription>
+            Visualiza y filtra tus instancias de evaluación (parciales, globales y finales) ordenadas cronológicamente.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 rounded-xl bg-secondary/50 border border-border">
+          <div className="flex items-center gap-2 text-muted-foreground mr-2">
+            <Filter className="w-4 h-4" />
+            <span className="text-sm font-medium whitespace-nowrap">Filtros:</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 w-full">
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm min-w-[120px] focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="all">Todos los años</option>
+              {availableYears.map((y) => (
+                <option key={y} value={y}>{y}° Año</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedSubject}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+              className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm flex-1 md:flex-none min-w-[200px] focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="all">Todas las materias</option>
+              {availableSubjects.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+          {filteredExams.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground border-2 border-dashed border-border rounded-xl">
+              <CalendarIcon className="w-12 h-12 mb-4 opacity-20" />
+              <p className="font-medium text-lg">No hay exámenes programados</p>
+              <p className="text-sm mt-1">
+                Agrega un nuevo evento en el calendario de tipo Parcial o Final para que aparezca aquí.
+              </p>
+            </div>
+          ) : (
+            filteredExams.map((exam) => {
+              const daysRemaining = getDaysRemaining(exam.fecha);
+              const isUrgent = daysRemaining <= 3;
+              const isToday = daysRemaining === 0;
+
+              return (
+                <div 
+                  key={exam.id}
+                  className="card-gamer p-4 rounded-xl transition-all hover:scale-[1.01] flex flex-col md:flex-row gap-4 justify-between"
+                  style={exam.color ? { borderColor: `${exam.color}50` } : {}}
+                >
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span 
+                        className={cn(
+                          "px-2.5 py-0.5 rounded-full text-xs font-semibold border",
+                          !exam.color && eventTypeColors[exam.tipo_examen]
+                        )}
+                        style={exam.color ? { backgroundColor: `${exam.color}20`, borderColor: exam.color, color: exam.color } : undefined}
+                      >
+                        {exam.tipo_examen}
+                      </span>
+                      {exam.subject_nombre && (
+                        <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                          📚 {exam.subject_nombre}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <h4 className="text-lg font-bold" style={exam.color ? { color: exam.color } : {}}>
+                      {exam.titulo}
+                    </h4>
+                    
+                    {exam.notas && (
+                      <p className="text-sm text-muted-foreground italic line-clamp-2">
+                        {exam.notas}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col items-start md:items-end justify-between min-w-[140px] gap-2 md:gap-0 pl-0 md:pl-4 md:border-l border-border/50">
+                    <div className="flex flex-col items-start md:items-end">
+                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <CalendarIcon className="w-4 h-4 opacity-70" />
+                        {new Date(exam.fecha).toLocaleDateString('es-AR', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
+                      {exam.hora && (
+                        <span className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {exam.hora}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={cn(
+                      "flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg w-full md:w-auto mt-2",
+                      isToday 
+                        ? "bg-red-500 text-white animate-pulse" 
+                        : isUrgent 
+                          ? "bg-red-500/20 text-red-500" 
+                          : "bg-primary/10 text-primary"
+                    )}>
+                      {isToday ? (
+                        <>
+                          <AlertCircle className="w-4 h-4" />
+                          <span>¡Es hoy!</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Faltan {daysRemaining} días</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

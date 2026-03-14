@@ -6,6 +6,7 @@ import { useSubjects } from "@/hooks/useSubjects";
 import { AddEventModal } from "@/components/calendar/AddEventModal";
 import { ImportICSModal } from "@/components/calendar/ImportICSModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
+import { ExamsListModal } from "@/components/calendar/ExamsListModal";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import { toast } from "sonner";
 
@@ -47,6 +48,7 @@ export default function Calendar() {
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showExamsModal, setShowExamsModal] = useState(false);
   const [monthTransition, setMonthTransition] = useState<"enter" | "exit" | null>(null);
 
   const year = currentDate.getFullYear();
@@ -248,6 +250,13 @@ export default function Calendar() {
             className="px-4 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-secondary/80 transition-all duration-200 hover:shadow-md"
           >
             Hoy
+          </button>
+          <button
+            onClick={() => setShowExamsModal(true)}
+            className="px-4 py-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 text-red-400 rounded-lg text-sm font-medium hover:from-red-500/30 hover:to-orange-500/30 transition-all duration-200 flex items-center gap-2 hover:shadow-md hover:shadow-red-500/10"
+          >
+            <span className="text-lg leading-none">📝</span>
+            Exámenes
           </button>
           <button
             onClick={() => setShowSyncModal(true)}
@@ -478,6 +487,14 @@ export default function Calendar() {
         open={showSyncModal}
         onClose={() => setShowSyncModal(false)}
         onOpenImport={() => setShowImportModal(true)}
+      />
+
+      {/* Exams Modal */}
+      <ExamsListModal
+        open={showExamsModal}
+        onClose={() => setShowExamsModal(false)}
+        events={events}
+        subjects={rawSubjects}
       />
     </div>
   );
