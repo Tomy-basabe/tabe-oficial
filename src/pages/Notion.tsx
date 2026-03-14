@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
+  Search, Filter, ArrowUpDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -30,6 +31,13 @@ interface Subject {
   codigo: string;
   año: number;
 }
+
+const getGradientFromId = (id: string) => {
+  const hash = id.split('').reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) | 0, 0);
+  const hue1 = Math.abs(hash) % 360;
+  const hue2 = (hue1 + 40) % 360;
+  return `linear-gradient(135deg, hsl(${hue1}, 60%, 40%), hsl(${hue2}, 60%, 30%))`;
+};
 
 export default function Notion() {
   const { user } = useAuth();
@@ -705,59 +713,90 @@ export default function Notion() {
               )}
             </div>
           ) : (
-            /* Empty state / Welcome */
-            <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <div className="text-6xl mb-6">📝</div>
-              <h2
-                className="text-2xl font-bold mb-2"
-                style={{ color: "rgba(255,255,255,0.9)" }}
-              >
-                Apuntes — Tus Documentos
-              </h2>
-              <p
-                className="mb-6 max-w-md"
-                style={{ color: "rgba(255,255,255,0.45)" }}
-              >
-                Seleccioná una página de la barra lateral o creá una nueva para
-                empezar a escribir.
-              </p>
-
-              {/* Stats */}
-              <div className="flex gap-6 mb-8">
-                <div className="text-center">
-                  <p className="text-3xl font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>{documents.length}</p>
-                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
-                    Páginas
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>
-                    {documents.filter((d) => d.is_favorite).length}
-                  </p>
-                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
-                    Favoritos
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>
-                    {new Set(documents.map((d) => d.subject_id).filter(Boolean)).size}
-                  </p>
-                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
-                    Materias
-                  </p>
+            /* Empty state / Gallery View */
+            <div className="flex flex-col h-full bg-[#191919] text-white">
+              {/* Header */}
+              <div className="flex items-center justify-between px-8 md:px-12 py-8 border-b border-white/5">
+                <h1 className="text-3xl font-bold tracking-tight">Tus Apuntes</h1>
+                <div className="flex items-center gap-3">
+                  <div className="hidden md:flex bg-white/5 rounded-md p-1">
+                    <button className="px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-sm transition-colors flex items-center gap-2">
+                      <Search className="w-4 h-4" /> Buscar
+                    </button>
+                    <button className="px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-sm transition-colors flex items-center gap-2">
+                      <Filter className="w-4 h-4" /> Filtros
+                    </button>
+                    <button className="px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-sm transition-colors flex items-center gap-2">
+                      <ArrowUpDown className="w-4 h-4" /> Ordenar
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowNewDocModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all hover:bg-[#2383e2]/90 bg-[#2383e2] text-white text-sm shadow-sm"
+                  >
+                    + Nueva Página
+                  </button>
                 </div>
               </div>
 
-              <button
-                onClick={() => setShowNewDocModal(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:opacity-90"
-                style={{
-                  background: "#2383e2",
-                  color: "white",
-                }}
-              >
-                + Nueva Página
-              </button>
+              {/* Grid */}
+              <div className="flex-1 overflow-y-auto p-8 md:p-12">
+                {documents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 text-white/40">
+                    <p>No tienes apuntes todavía. ¡Creá una nueva página para empezar!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {documents.map((doc) => {
+                      const subject = subjects.find(s => s.id === doc.subject_id);
+                      /* We use a generative gradient for the cover if no image exists */
+                      const coverStyle = doc.cover_url 
+                        ? { backgroundImage: `url(${doc.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                        : { background: getGradientFromId(doc.id) };
+
+                      return (
+                        <div 
+                          key={doc.id}
+                          onClick={() => openDocument(doc)}
+                          className="group flex flex-col bg-[#202020] rounded-xl overflow-hidden border border-white/5 hover:border-white/20 transition-all cursor-pointer hover:shadow-lg hover:shadow-black/20"
+                        >
+                          {/* Cover Image / Gradient */}
+                          <div className="h-32 w-full relative" style={coverStyle}>
+                            <div className="absolute -bottom-6 left-4 text-4xl leading-none filter drop-shadow-md">
+                              {doc.emoji || "📄"}
+                            </div>
+                          </div>
+                          
+                          {/* Info Area */}
+                          <div className="pt-8 pb-5 px-5 flex flex-col flex-1">
+                            <h3 className="font-semibold text-lg text-white/90 truncate mb-1" title={doc.titulo}>
+                              {doc.titulo || "Sin título"}
+                            </h3>
+                            
+                            {/* Badges */}
+                            <div className="flex mt-auto pt-4 gap-2 flex-wrap">
+                              {subject ? (
+                                <>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                    {subject.codigo || subject.nombre}
+                                  </span>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/5 text-white/50 border border-white/10">
+                                    Año {subject.año}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/5 text-white/50 border border-white/10">
+                                  Sin materia
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
