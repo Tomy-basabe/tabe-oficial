@@ -504,15 +504,6 @@ export default function Notion() {
     [subjects, modalYear]
   );
 
-  // Loading
-  if (loading && documents.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   // --- Gallery View Derived State ---
   const filteredAndSortedDocuments = useMemo(() => {
     let result = [...documents];
@@ -542,6 +533,15 @@ export default function Notion() {
 
     return result;
   }, [documents, filterSubject, searchQuery, sortBy]);
+
+  // Loading
+  if (loading && documents.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="notion-app">
