@@ -1,4 +1,4 @@
-import { ChevronRight, GraduationCap } from "lucide-react";
+import { ChevronRight, GraduationCap, ArrowLeft } from "lucide-react";
 import { TabeIconRenderer } from "./TabeIcons";
 
 interface NotionBreadcrumbProps {
@@ -7,6 +7,7 @@ interface NotionBreadcrumbProps {
     documentTitle?: string;
     documentEmoji?: string;
     onClickSubject?: () => void;
+    onBack?: () => void;
 }
 
 export function NotionBreadcrumb({
@@ -15,9 +16,20 @@ export function NotionBreadcrumb({
     documentTitle,
     documentEmoji,
     onClickSubject,
+    onBack,
 }: NotionBreadcrumbProps) {
     return (
         <nav className="notion-breadcrumb">
+            <span
+                 className="notion-breadcrumb-item text-muted-foreground mr-1"
+                 onClick={onBack}
+                 title="Volver a la Galería"
+                 role="button"
+            >
+                <ArrowLeft className="w-3.5 h-3.5" />
+            </span>
+            <ChevronRight className="w-3 h-3 notion-breadcrumb-separator mr-1" />
+
             {subjectCode && (
                 <>
                     <span

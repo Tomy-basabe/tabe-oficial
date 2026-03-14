@@ -8,8 +8,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 const AdvancedNotionEditor = lazy(() => import("@/components/notion/AdvancedNotionEditor").then(m => ({ default: m.AdvancedNotionEditor })));
 import { EmojiPicker } from "@/components/notion/EmojiPicker";
 import { TabeIconRenderer } from "@/components/notion/TabeIcons";
@@ -41,27 +44,36 @@ const extractTextSnippet = (content: any): string => {
   if (!content) return '';
 
   try {
-    // If it's a string, just return a slice
+    let parsedContent = content;
+    // Attempt parsing if it's a string, might be stringified JSON
     if (typeof content === 'string') {
-      return content.substring(0, 150);
+      try {
+        parsedContent = JSON.parse(content);
+      } catch {
+        return content.substring(0, 150);
+      }
     }
 
     // Traverse TipTap JSON recursively
     const extractNodes = (node: any) => {
-      if (node.type === 'text' && node.text) {
+      if (node?.type === 'text' && node?.text) {
         text += node.text + ' ';
       }
-      if (node.content && Array.isArray(node.content)) {
+      // Only iterate content arrays
+      if (node?.content && Array.isArray(node.content)) {
         node.content.forEach(extractNodes);
       }
     };
 
-    extractNodes(content);
+    extractNodes(parsedContent);
   } catch (e) {
     return '';
   }
 
-  return text.trim().substring(0, 150) + (text.length > 150 ? '...' : '');
+  const result = text.trim();
+  if (!result) return '';
+  
+  return result.substring(0, 150) + (result.length > 150 ? '...' : '');
 };
 
 export default function Notion() {
@@ -85,6 +97,12 @@ export default function Notion() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState<NotionDocument | null>(null);
+  
+  // Rename Modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [docToRename, setDocToRename] = useState<NotionDocument | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+
   const [showNewDocModal, setShowNewDocModal] = useState(false);
   const [newDocSubjectId, setNewDocSubjectId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TipTapTemplate>(tipTapTemplates[0]);
@@ -178,6 +196,23 @@ export default function Notion() {
       saveDocument(true);
     }, 1500);
   }, [saveDocument]);
+
+  const handleRenameSubmit = async () => {
+    if (!docToRename || !newTitle.trim()) return;
+    const success = await updateDocument(docToRename.id, { titulo: newTitle.trim() });
+    if (success) {
+      toast.success("Apunte renombrado");
+      setShowRenameModal(false);
+      setDocToRename(null);
+      setNewTitle("");
+      if (activeDocument?.id === docToRename.id) {
+         setActiveDocument({ ...activeDocument, titulo: newTitle.trim() } as NotionDocument);
+         setLocalTitle(newTitle.trim());
+      }
+    } else {
+      toast.error("Error al renombrar");
+    }
+  };
 
   const handleContentUpdate = useCallback(
     (content: JSONContent) => {
@@ -593,6 +628,7 @@ export default function Notion() {
                 documentTitle={localTitle || activeDocument.titulo}
                 documentEmoji={activeDocument.emoji}
                 onClickSubject={closeDocument}
+                onBack={closeDocument}
               />
             ) : (
               <span style={{ fontWeight: 500 }}>Apuntes</span>
@@ -854,6 +890,43 @@ export default function Notion() {
                         >
                           {/* Top Area: Cover Image or Content Snippet */}
                           <div className={cn("h-32 w-full relative border-b border-border/30", !hasCover && "bg-secondary/30 p-4")}>
+                            {/* Card Actions Overlay (Dropdown) */}
+                            <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                     <button
+                                       className="p-1.5 rounded-md bg-background/80 hover:bg-background shadow-sm border border-border/50 text-foreground/70 hover:text-foreground transition-all"
+                                       onClick={(e) => e.stopPropagation()}
+                                     >
+                                        <MoreHorizontal className="w-4 h-4" />
+                                     </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                     <DropdownMenuItem
+                                        onClick={(e) => {
+                                           e.stopPropagation();
+                                           setDocToRename(doc);
+                                           setNewTitle(doc.titulo || "");
+                                           setShowRenameModal(true);
+                                        }}
+                                     >
+                                        Renombrar
+                                     </DropdownMenuItem>
+                                     <DropdownMenuSeparator />
+                                     <DropdownMenuItem
+                                        className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                        onClick={(e) => {
+                                           e.stopPropagation();
+                                           setDocToDelete(doc);
+                                           setShowDeleteModal(true);
+                                        }}
+                                     >
+                                        Eliminar
+                                     </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                               </DropdownMenu>
+                            </div>
+
                             {hasCover ? (
                               <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
                             ) : (
@@ -914,6 +987,32 @@ export default function Notion() {
       </div>
 
       {/* === MODALS === */}
+
+      {/* Rename Document Modal */}
+      <Dialog open={showRenameModal} onOpenChange={setShowRenameModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renombrar Apunte</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+             <div className="space-y-2">
+                <Input
+                  autoFocus
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Título del apunte..."
+                  onKeyDown={(e) => {
+                     if (e.key === "Enter") handleRenameSubmit();
+                  }}
+                />
+             </div>
+          </div>
+          <DialogFooter>
+             <Button variant="outline" onClick={() => setShowRenameModal(false)}>Cancelar</Button>
+             <Button onClick={handleRenameSubmit}>Guardar cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Document Modal */}
       <Dialog open={showNewDocModal} onOpenChange={setShowNewDocModal}>
