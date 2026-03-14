@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock, BookOpen, Loader2 } from "lucide-react";
+import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock, BookOpen, Loader2, Search, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
 import { generateId } from "@/lib/utils/id";
@@ -62,6 +62,7 @@ const AdminPanel = () => {
   const [careerLoading, setCareerLoading] = useState(false);
   const [selectedFacultad, setSelectedFacultad] = useState<string>("UTN");
   const [selectedCareer, setSelectedCareer] = useState<string>("sistemas");
+  const [searchQuery, setSearchQuery] = useState("");
 
 
   useEffect(() => {
@@ -210,6 +211,15 @@ const AdminPanel = () => {
       toast.error(`Error: ${error.message}`);
     }
   };
+
+  const filteredUsers = registeredUsers.filter(profile => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      (profile.nombre?.toLowerCase().includes(searchLower)) ||
+      (profile.email?.toLowerCase().includes(searchLower)) ||
+      (profile.user_id.toLowerCase().includes(searchLower))
+    );
+  });
 
   const getPlanStatus = (profile: Profile) => {
     if (profile.plan !== "premium") return "free";
@@ -419,21 +429,36 @@ const AdminPanel = () => {
             Usuarios y Suscripciones
           </CardTitle>
           <CardDescription>
-            Gestioná los planes Premium de cada usuario. Cuando un plan vence, se bloquea automáticamente.
-          </CardDescription>
+            </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre, email o ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-secondary/20 border-border focus-visible:ring-neon-gold"
+              />
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-secondary/10 whitespace-nowrap">
+              <Users className="h-4 w-4 text-neon-gold" />
+              <span className="text-sm font-medium"> Total: <span className="text-neon-gold font-bold">{registeredUsers.length}</span> usuarios</span>
+            </div>
+          </div>
+
           {loadingRegisteredUsers ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : registeredUsers.length === 0 ? (
+          ) : filteredUsers.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              No hay usuarios registrados
+              {searchQuery ? "No se encontraron usuarios que coincidan con la búsqueda" : "No hay usuarios registrados"}
             </p>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-              {registeredUsers.map((profile) => {
+              {filteredUsers.map((profile) => {
                 const status = getPlanStatus(profile);
                 const expiresDate = profile.plan_expires_at ? new Date(profile.plan_expires_at) : null;
                 const daysLeft = expiresDate

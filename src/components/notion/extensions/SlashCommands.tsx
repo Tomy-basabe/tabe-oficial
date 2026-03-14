@@ -36,7 +36,18 @@ import {
   Smile,
   LayoutGrid,
   FileText as FileTextIcon,
+  FileAudio,
+  Paperclip,
+  Link2,
+  LayoutDashboard,
+  Kanban,
+  GalleryHorizontalEnd,
+  ListFilter,
+  AtSign,
+  Calendar,
+  Calculator,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   NOTION_TEXT_COLORS,
   NOTION_BACKGROUND_COLORS,
@@ -52,7 +63,7 @@ export interface CommandItem {
 }
 
 const getSuggestionItems = (): CommandItem[] => [
-  // Text
+  // ========== 1. BLOQUES BÁSICOS ==========
   {
     title: "Texto",
     description: "Párrafo de texto normal",
@@ -93,12 +104,11 @@ const getSuggestionItems = (): CommandItem[] => [
       editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run();
     },
   },
-  // Lists
   {
     title: "Lista con viñetas",
     description: "Lista desordenada simple",
     icon: <List className="w-4 h-4" />,
-    category: "Listas",
+    category: "Básico",
     shortcut: "- espacio",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).toggleBulletList().run();
@@ -108,7 +118,7 @@ const getSuggestionItems = (): CommandItem[] => [
     title: "Lista numerada",
     description: "Lista ordenada con números",
     icon: <ListOrdered className="w-4 h-4" />,
-    category: "Listas",
+    category: "Básico",
     shortcut: "1. espacio",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).toggleOrderedList().run();
@@ -118,59 +128,64 @@ const getSuggestionItems = (): CommandItem[] => [
     title: "Lista de tareas",
     description: "Checklist con casillas",
     icon: <CheckSquare className="w-4 h-4" />,
-    category: "Listas",
+    category: "Básico",
     shortcut: "[] espacio",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).toggleTaskList().run();
     },
   },
   {
-    title: "Toggle",
-    description: "Lista colapsable",
+    title: "Desplegable",
+    description: "Lista colapsable (toggle)",
     icon: <ChevronRight className="w-4 h-4" />,
-    category: "Listas",
+    category: "Básico",
     shortcut: "> espacio",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setDetails().run();
     },
   },
-  // Blocks
   {
     title: "Cita",
     description: "Bloque de cita",
     icon: <Quote className="w-4 h-4" />,
-    category: "Bloques",
+    category: "Básico",
     shortcut: "\" espacio",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setBlockquote().run();
     },
   },
   {
-    title: "Código",
-    description: "Bloque de código",
-    icon: <Code className="w-4 h-4" />,
-    category: "Bloques",
-    shortcut: "``` Enter",
-    command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).setCodeBlock().run();
-    },
-  },
-  {
     title: "Divisor",
     description: "Línea horizontal separadora",
     icon: <Minus className="w-4 h-4" />,
-    category: "Bloques",
+    category: "Básico",
     shortcut: "--- espacio",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setHorizontalRule().run();
     },
   },
-  // Callouts
+
+  // ========== 2. BLOQUES ESTRUCTURALES Y PÁGINAS ==========
+  {
+    title: "Página",
+    description: "Crear sub-página enlazada",
+    icon: <FileTextIcon className="w-4 h-4 text-blue-400" />,
+    category: "Estructural",
+    command: ({ editor, range }) => {
+      const title = window.prompt("Título de la sub-página:", "Sub-página");
+      if (title) {
+        editor.chain().focus().deleteRange(range).insertContent({
+          type: "subPage",
+          attrs: { title, pageId: null },
+        }).run();
+      }
+    },
+  },
   {
     title: "Nota",
     description: "Callout informativo azul",
     icon: <Info className="w-4 h-4 text-blue-400" />,
-    category: "Callouts",
+    category: "Estructural",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "info" }).run();
     },
@@ -179,7 +194,7 @@ const getSuggestionItems = (): CommandItem[] => [
     title: "Éxito",
     description: "Callout de éxito verde",
     icon: <Sparkles className="w-4 h-4 text-green-400" />,
-    category: "Callouts",
+    category: "Estructural",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "success" }).run();
     },
@@ -188,7 +203,7 @@ const getSuggestionItems = (): CommandItem[] => [
     title: "Advertencia",
     description: "Callout de advertencia amarillo",
     icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
-    category: "Callouts",
+    category: "Estructural",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "warning" }).run();
     },
@@ -197,7 +212,7 @@ const getSuggestionItems = (): CommandItem[] => [
     title: "Peligro",
     description: "Callout de error rojo",
     icon: <AlertCircle className="w-4 h-4 text-red-400" />,
-    category: "Callouts",
+    category: "Estructural",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "danger" }).run();
     },
@@ -206,35 +221,40 @@ const getSuggestionItems = (): CommandItem[] => [
     title: "Tip",
     description: "Callout de consejo morado",
     icon: <Lightbulb className="w-4 h-4 text-purple-400" />,
-    category: "Callouts",
+    category: "Estructural",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "tip" }).run();
     },
   },
-  // Colors - Text
-  ...NOTION_TEXT_COLORS.filter(c => c.color).map(color => ({
-    title: `Texto ${color.name}`,
-    description: `Color de texto ${color.name.toLowerCase()}`,
-    icon: <Palette className="w-4 h-4" style={{ color: color.color || undefined }} />,
-    category: "Colores",
-    command: ({ editor, range }: { editor: any; range: any }) => {
-      editor.chain().focus().deleteRange(range).setColor(color.color!).run();
+  {
+    title: "Tabla",
+    description: "Insertar tabla 3×3",
+    icon: <Table className="w-4 h-4" />,
+    category: "Estructural",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
     },
-  })),
-  // Colors - Background
-  ...NOTION_BACKGROUND_COLORS.filter(c => c.color).map(color => ({
-    title: `Fondo ${color.name}`,
-    description: `Color de fondo ${color.name.toLowerCase()}`,
-    icon: <PaintBucket className="w-4 h-4" style={{ color: color.color || undefined }} />,
-    category: "Colores",
-    command: ({ editor, range }: { editor: any; range: any }) => {
-      editor.chain().focus().deleteRange(range).setBackgroundColor(color.color!).run();
+  },
+  {
+    title: "Enlace a página",
+    description: "Insertar enlace interno a otra página",
+    icon: <Link2 className="w-4 h-4 text-blue-400" />,
+    category: "Estructural",
+    command: ({ editor, range }) => {
+      const title = window.prompt("Título de la página a enlazar:");
+      if (title) {
+        editor.chain().focus().deleteRange(range).insertContent({
+          type: "subPage",
+          attrs: { title, pageId: null },
+        }).run();
+      }
     },
-  })),
-  // Media
+  },
+
+  // ========== 3. CONTENIDO MULTIMEDIA ==========
   {
     title: "Imagen",
-    description: "Insertar imagen desde URL",
+    description: "Insertar imagen desde URL o archivo",
     icon: <Image className="w-4 h-4" />,
     category: "Media",
     command: ({ editor, range }) => {
@@ -245,99 +265,89 @@ const getSuggestionItems = (): CommandItem[] => [
     },
   },
   {
-    title: "Tabla",
-    description: "Insertar tabla 3x3",
-    icon: <Table className="w-4 h-4" />,
+    title: "Video",
+    description: "Insertar video desde URL",
+    icon: <Video className="w-4 h-4 text-purple-500" />,
     category: "Media",
     command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
-    },
-  },
-  // Embeds
-  {
-    title: "YouTube",
-    description: "Insertar video de YouTube",
-    icon: <Youtube className="w-4 h-4 text-red-500" />,
-    category: "Embeds",
-    command: ({ editor, range }) => {
-      const url = window.prompt("URL del video de YouTube:");
+      const url = window.prompt("URL del video (YouTube, Vimeo, MP4, etc.):");
       if (url) {
-        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
+        // Check if it's a direct video file or an embed-compatible URL
+        const isDirectVideo = /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
+        if (isDirectVideo) {
+          editor.chain().focus().deleteRange(range).insertContent(
+            `<div class="notion-video-wrapper"><video controls src="${url}" style="width:100%;max-width:640px;border-radius:8px;"></video></div>`
+          ).run();
+        } else {
+          editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
+        }
       }
     },
   },
   {
-    title: "Twitter / X",
-    description: "Insertar tweet",
-    icon: <Twitter className="w-4 h-4 text-blue-400" />,
-    category: "Embeds",
+    title: "Audio",
+    description: "Insertar audio desde URL",
+    icon: <FileAudio className="w-4 h-4 text-orange-500" />,
+    category: "Media",
     command: ({ editor, range }) => {
-      const url = window.prompt("URL del tweet:");
+      const url = window.prompt("URL del audio (MP3, WAV, OGG, Spotify, etc.):");
       if (url) {
-        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
+        const isDirectAudio = /\.(mp3|wav|ogg|flac|aac|m4a)(\?|$)/i.test(url);
+        if (isDirectAudio) {
+          editor.chain().focus().deleteRange(range).insertContent(
+            `<div class="notion-audio-wrapper"><audio controls src="${url}" style="width:100%;max-width:480px;"></audio></div>`
+          ).run();
+        } else {
+          // Spotify or other embed
+          editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
+        }
       }
     },
   },
   {
-    title: "Vimeo",
-    description: "Insertar video de Vimeo",
-    icon: <Video className="w-4 h-4 text-cyan-500" />,
-    category: "Embeds",
+    title: "Código",
+    description: "Bloque de código formateado",
+    icon: <Code className="w-4 h-4" />,
+    category: "Media",
+    shortcut: "``` Enter",
     command: ({ editor, range }) => {
-      const url = window.prompt("URL del video de Vimeo:");
-      if (url) {
-        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
-      }
+      editor.chain().focus().deleteRange(range).setCodeBlock().run();
     },
   },
   {
-    title: "Spotify",
-    description: "Insertar canción o playlist",
-    icon: <Music className="w-4 h-4 text-green-500" />,
-    category: "Embeds",
+    title: "Archivo",
+    description: "Adjuntar un archivo (subida)",
+    icon: <Paperclip className="w-4 h-4 text-gray-400" />,
+    category: "Media",
     command: ({ editor, range }) => {
-      const url = window.prompt("URL de Spotify (canción o playlist):");
-      if (url) {
-        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
-      }
+      // Create a file input to select a file
+      const input = document.createElement("input");
+      input.type = "file";
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            if (file.type.startsWith("image/")) {
+              editor.chain().focus().deleteRange(range).setImage({ src: dataUrl }).run();
+            } else {
+              editor.chain().focus().deleteRange(range).insertContent(
+                `<p>📎 <a href="${dataUrl}" download="${file.name}" class="notion-link">${file.name}</a> <span style="color:#9B9B9B;font-size:0.85em;">(${(file.size / 1024).toFixed(1)} KB)</span></p>`
+              ).run();
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
     },
   },
   {
-    title: "Embed",
-    description: "Insertar cualquier contenido embebido",
-    icon: <ExternalLink className="w-4 h-4" />,
-    category: "Embeds",
-    command: ({ editor, range }) => {
-      const url = window.prompt("URL para embeber (YouTube, Vimeo, Spotify, Figma, Loom, CodePen, etc.):");
-      if (url) {
-        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
-      }
-    },
-  },
-  // Advanced
-  {
-    title: "2 Columnas",
-    description: "Dividir en 2 columnas",
-    icon: <Columns className="w-4 h-4" />,
-    category: "Avanzado",
-    command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).setColumns(2).run();
-    },
-  },
-  {
-    title: "3 Columnas",
-    description: "Dividir en 3 columnas",
-    icon: <Columns className="w-4 h-4" />,
-    category: "Avanzado",
-    command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).setColumns(3).run();
-    },
-  },
-  {
-    title: "Bookmark",
-    description: "Vista previa de enlace web",
+    title: "Marcador web",
+    description: "Vista previa de enlace web (bookmark)",
     icon: <Bookmark className="w-4 h-4" />,
-    category: "Avanzado",
+    category: "Media",
     command: ({ editor, range }) => {
       const url = window.prompt("URL del enlace:");
       if (url) {
@@ -345,26 +355,6 @@ const getSuggestionItems = (): CommandItem[] => [
       }
     },
   },
-  {
-    title: "Emoticón",
-    description: "Insertar un emoji",
-    icon: <Smile className="w-4 h-4 text-pink-400" />,
-    category: "Avanzado",
-    command: ({ editor, range }) => {
-      // In a real app we'd open a picker, here let's just insert one for now or a placeholder
-      editor.chain().focus().deleteRange(range).insertContent("✨ ").run();
-    },
-  },
-  {
-    title: "Tabla de contenidos",
-    description: "Índice de encabezados",
-    icon: <List className="w-4 h-4 text-primary" />,
-    category: "Avanzado",
-    command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).insertToc().run();
-    },
-  },
-  // Gallery / Multi-image
   {
     title: "Galería (2 imágenes)",
     description: "Dos imágenes lado a lado",
@@ -398,6 +388,194 @@ const getSuggestionItems = (): CommandItem[] => [
       }).run();
     },
   },
+
+  // ========== 4. VISTAS DE BASE DE DATOS (Placeholders) ==========
+  {
+    title: "Vista de tabla",
+    description: "Base de datos como tabla",
+    icon: <LayoutDashboard className="w-4 h-4 text-blue-500" />,
+    category: "Base de Datos",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      toast.info("🗄️ Vista de tabla — Próximamente", { description: "Las vistas de base de datos estarán disponibles pronto." });
+    },
+  },
+  {
+    title: "Vista de tablero",
+    description: "Base de datos estilo Kanban",
+    icon: <Kanban className="w-4 h-4 text-green-500" />,
+    category: "Base de Datos",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      toast.info("📋 Vista de tablero — Próximamente", { description: "Las vistas de base de datos estarán disponibles pronto." });
+    },
+  },
+  {
+    title: "Vista de galería",
+    description: "Base de datos como galería visual",
+    icon: <GalleryHorizontalEnd className="w-4 h-4 text-purple-500" />,
+    category: "Base de Datos",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      toast.info("🖼️ Vista de galería — Próximamente", { description: "Las vistas de base de datos estarán disponibles pronto." });
+    },
+  },
+  {
+    title: "Vista de lista",
+    description: "Base de datos como lista compacta",
+    icon: <ListFilter className="w-4 h-4 text-orange-500" />,
+    category: "Base de Datos",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      toast.info("📝 Vista de lista — Próximamente", { description: "Las vistas de base de datos estarán disponibles pronto." });
+    },
+  },
+
+  // ========== 5. INSERCIONES EN LÍNEA ==========
+  {
+    title: "Mención",
+    description: "Mencionar una página o fuente",
+    icon: <AtSign className="w-4 h-4 text-blue-400" />,
+    category: "Inline",
+    command: ({ editor, range }) => {
+      const mention = window.prompt("Nombre de la página o fuente a mencionar:");
+      if (mention) {
+        editor.chain().focus().deleteRange(range).insertContent(
+          `<span style="background:hsl(var(--primary)/0.15);color:hsl(var(--primary));padding:0 4px;border-radius:4px;font-weight:500;">@${mention}</span> `
+        ).run();
+      }
+    },
+  },
+  {
+    title: "Fecha",
+    description: "Insertar fecha o recordatorio",
+    icon: <Calendar className="w-4 h-4 text-red-400" />,
+    category: "Inline",
+    command: ({ editor, range }) => {
+      const today = new Date();
+      const formatted = today.toLocaleDateString("es-AR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+      editor.chain().focus().deleteRange(range).insertContent(
+        `<span style="background:hsl(var(--secondary));padding:2px 6px;border-radius:4px;font-size:0.9em;">📅 ${formatted}</span> `
+      ).run();
+    },
+  },
+  {
+    title: "Emoticón",
+    description: "Insertar un emoji",
+    icon: <Smile className="w-4 h-4 text-yellow-400" />,
+    category: "Inline",
+    command: ({ editor, range }) => {
+      const emojis = ["😀","😂","🥰","🤔","👍","🎉","🔥","✨","💡","📌","⭐","❤️","🚀","📝","🎯","💪","👀","🤝","📚","🧠"];
+      const emoji = window.prompt(`Elige un emoji o escríbelo:\n\n${emojis.join(" ")}`, "✨");
+      if (emoji) {
+        editor.chain().focus().deleteRange(range).insertContent(emoji + " ").run();
+      }
+    },
+  },
+  {
+    title: "Ecuación",
+    description: "Fórmula matemática (KaTeX)",
+    icon: <Calculator className="w-4 h-4 text-emerald-400" />,
+    category: "Inline",
+    command: ({ editor, range }) => {
+      const formula = window.prompt("Escribe la ecuación (ej: E = mc², x² + y² = r²):", "E = mc²");
+      if (formula) {
+        editor.chain().focus().deleteRange(range).insertContent(
+          `<code style="background:hsl(var(--secondary));color:hsl(var(--foreground));padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:0.9em;">𝑓 ${formula}</code> `
+        ).run();
+      }
+    },
+  },
+
+  // ========== 6. COLORES ==========
+  // Colors - Text
+  ...NOTION_TEXT_COLORS.filter(c => c.color).map(color => ({
+    title: `Texto ${color.name}`,
+    description: `Color de texto ${color.name.toLowerCase()}`,
+    icon: <Palette className="w-4 h-4" style={{ color: color.color || undefined }} />,
+    category: "Colores",
+    command: ({ editor, range }: { editor: any; range: any }) => {
+      editor.chain().focus().deleteRange(range).setColor(color.color!).run();
+    },
+  })),
+  // Colors - Background
+  ...NOTION_BACKGROUND_COLORS.filter(c => c.color).map(color => ({
+    title: `Fondo ${color.name}`,
+    description: `Color de fondo ${color.name.toLowerCase()}`,
+    icon: <PaintBucket className="w-4 h-4" style={{ color: color.color || undefined }} />,
+    category: "Colores",
+    command: ({ editor, range }: { editor: any; range: any }) => {
+      editor.chain().focus().deleteRange(range).setBackgroundColor(color.color!).run();
+    },
+  })),
+
+  // ========== 7. AVANZADO (Embeds, Columnas, etc.) ==========
+  {
+    title: "YouTube",
+    description: "Insertar video de YouTube",
+    icon: <Youtube className="w-4 h-4 text-red-500" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      const url = window.prompt("URL del video de YouTube:");
+      if (url) {
+        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
+      }
+    },
+  },
+  {
+    title: "Twitter / X",
+    description: "Insertar tweet",
+    icon: <Twitter className="w-4 h-4 text-blue-400" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      const url = window.prompt("URL del tweet:");
+      if (url) {
+        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
+      }
+    },
+  },
+  {
+    title: "Spotify",
+    description: "Insertar canción o playlist",
+    icon: <Music className="w-4 h-4 text-green-500" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      const url = window.prompt("URL de Spotify (canción o playlist):");
+      if (url) {
+        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
+      }
+    },
+  },
+  {
+    title: "Embed",
+    description: "Insertar cualquier contenido embebido",
+    icon: <ExternalLink className="w-4 h-4" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      const url = window.prompt("URL para embeber (YouTube, Vimeo, Spotify, Figma, Loom, CodePen, etc.):");
+      if (url) {
+        editor.chain().focus().deleteRange(range).setEmbed({ src: url }).run();
+      }
+    },
+  },
+  {
+    title: "2 Columnas",
+    description: "Dividir en 2 columnas",
+    icon: <Columns className="w-4 h-4" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).setColumns(2).run();
+    },
+  },
+  {
+    title: "3 Columnas",
+    description: "Dividir en 3 columnas",
+    icon: <Columns className="w-4 h-4" />,
+    category: "Avanzado",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).setColumns(3).run();
+    },
+  },
   {
     title: "4 Columnas",
     description: "Dividir en 4 columnas",
@@ -407,20 +585,13 @@ const getSuggestionItems = (): CommandItem[] => [
       editor.chain().focus().deleteRange(range).setColumns(4).run();
     },
   },
-  // Sub-page
   {
-    title: "Página",
-    description: "Insertar enlace a sub-página",
-    icon: <FileTextIcon className="w-4 h-4 text-blue-400" />,
+    title: "Tabla de contenidos",
+    description: "Índice automático de encabezados",
+    icon: <List className="w-4 h-4 text-primary" />,
     category: "Avanzado",
     command: ({ editor, range }) => {
-      const title = window.prompt("Título de la sub-página:", "Sub-página");
-      if (title) {
-        editor.chain().focus().deleteRange(range).insertContent({
-          type: "subPage",
-          attrs: { title, pageId: null },
-        }).run();
-      }
+      editor.chain().focus().deleteRange(range).insertToc().run();
     },
   },
 ];
