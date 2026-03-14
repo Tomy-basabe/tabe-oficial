@@ -25,6 +25,7 @@ interface NotionSidebarProps {
     onNewSubPage: (parentDoc: NotionDocument) => void;
     onDeleteDocument: (doc: NotionDocument) => void;
     onToggleFavorite: (doc: NotionDocument) => void;
+    onHoverDocument?: (doc: NotionDocument) => void;
 }
 
 export function NotionSidebar({
@@ -38,6 +39,7 @@ export function NotionSidebar({
     onNewSubPage,
     onDeleteDocument,
     onToggleFavorite,
+    onHoverDocument,
 }: NotionSidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [openSubjects, setOpenSubjects] = useState<Set<string>>(new Set());
@@ -141,6 +143,7 @@ export function NotionSidebar({
                 <div
                     className={cn("notion-sidebar-item", activeDocId === doc.id && "active", isChild && "notion-sidebar-item--child")}
                     onClick={() => onSelectDocument(doc)}
+                    onMouseEnter={() => onHoverDocument?.(doc)}
                     onContextMenu={(e) => handleContextMenu(e, doc)}
                 >
                     {hasChildren && (

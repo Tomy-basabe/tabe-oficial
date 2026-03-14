@@ -31,6 +31,8 @@ export function useNotionDocuments() {
   // Cache subjects map to avoid refetching on every refetch()
   const subjectsMapRef = useRef<Record<string, { nombre: string; codigo: string; year: number }>>({});
   const cachedSubjectIdsRef = useRef<Set<string>>(new Set());
+  // Persistent content cache - survives refetches
+  const contentCacheRef = useRef<Map<string, any>>(new Map());
 
   const fetchDocuments = useCallback(async () => {
     if (!user && !isGuest) return;
@@ -106,6 +108,8 @@ export function useNotionDocuments() {
       const mapped = data.map((d) => ({
         ...d,
         subject: d.subject_id ? subjectsMap[d.subject_id] : undefined,
+        // Preserve cached content across refetches
+        contenido: contentCacheRef.current.get(d.id) || undefined,
       })) as NotionDocument[];
 
       setDocuments(mapped);
@@ -176,6 +180,11 @@ export function useNotionDocuments() {
       return false;
     }
 
+    // Keep content cache in sync
+    if (updates.contenido) {
+      contentCacheRef.current.set(id, updates.contenido);
+    }
+
     setDocuments(prev =>
       prev.map(doc => doc.id === id ? { ...doc, ...updates } : doc)
     );
@@ -234,6 +243,12 @@ export function useNotionDocuments() {
   };
 
   const fetchDocumentContent = async (docId: string): Promise<any> => {
+    // Return from cache if available
+    const cached = contentCacheRef.current.get(docId);
+    if (cached) {
+      return cached;
+    }
+
     try {
       const { data, error } = await supabase
         .from("notion_documents")
@@ -243,6 +258,11 @@ export function useNotionDocuments() {
 
       if (error) throw error;
       
+      // Store in persistent cache
+      if (data.contenido) {
+        contentCacheRef.current.set(docId, data.contenido);
+      }
+
       setDocuments(prev => prev.map(doc => 
         doc.id === docId ? { ...doc, contenido: data.contenido } : doc
       ));
@@ -255,6 +275,25 @@ export function useNotionDocuments() {
     }
   };
 
+  // Prefetch content on hover (fire-and-forget)
+  const prefetchDocumentContent = (docId: string) => {
+    if (contentCacheRef.current.has(docId)) return; // Already cached
+    // Fire and forget - don't await
+    supabase
+      .from("notion_documents")
+      .select("contenido")
+      .eq("id", docId)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data?.contenido) {
+          contentCacheRef.current.set(docId, data.contenido);
+          setDocuments(prev => prev.map(doc =>
+            doc.id === docId ? { ...doc, contenido: data.contenido } : doc
+          ));
+        }
+      });
+  };
+
   return {
     documents,
     loading,
@@ -263,6 +302,7 @@ export function useNotionDocuments() {
     deleteDocument,
     addStudyTime,
     fetchDocumentContent,
+    prefetchDocumentContent,
     refetch: fetchDocuments,
   };
 }

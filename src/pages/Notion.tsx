@@ -41,6 +41,7 @@ export default function Notion() {
     deleteDocument,
     addStudyTime,
     fetchDocumentContent,
+    prefetchDocumentContent,
     refetch,
   } = useNotionDocuments();
   const { checkAndUnlockAchievements } = useAchievements();
@@ -491,6 +492,7 @@ export default function Notion() {
           setShowDeleteModal(true);
         }}
         onToggleFavorite={handleToggleFavorite}
+        onHoverDocument={(doc) => prefetchDocumentContent(doc.id)}
       />
 
       {/* Mobile overlay */}
