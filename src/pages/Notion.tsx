@@ -710,13 +710,13 @@ export default function Notion() {
               <div className="text-6xl mb-6">📝</div>
               <h2
                 className="text-2xl font-bold mb-2"
-                style={{ color: "hsl(var(--foreground))" }}
+                style={{ color: "rgba(255,255,255,0.9)" }}
               >
                 Apuntes — Tus Documentos
               </h2>
               <p
                 className="mb-6 max-w-md"
-                style={{ color: "hsl(var(--muted-foreground))" }}
+                style={{ color: "rgba(255,255,255,0.45)" }}
               >
                 Seleccioná una página de la barra lateral o creá una nueva para
                 empezar a escribir.
@@ -725,24 +725,24 @@ export default function Notion() {
               {/* Stats */}
               <div className="flex gap-6 mb-8">
                 <div className="text-center">
-                  <p className="text-3xl font-bold">{documents.length}</p>
-                  <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
+                  <p className="text-3xl font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>{documents.length}</p>
+                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
                     Páginas
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold">
+                  <p className="text-3xl font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>
                     {documents.filter((d) => d.is_favorite).length}
                   </p>
-                  <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
+                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
                     Favoritos
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold">
+                  <p className="text-3xl font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>
                     {new Set(documents.map((d) => d.subject_id).filter(Boolean)).size}
                   </p>
-                  <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
+                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
                     Materias
                   </p>
                 </div>
@@ -750,10 +750,10 @@ export default function Notion() {
 
               <button
                 onClick={() => setShowNewDocModal(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:opacity-90"
                 style={{
-                  background: "hsl(var(--primary))",
-                  color: "hsl(var(--primary-foreground))",
+                  background: "#2383e2",
+                  color: "white",
                 }}
               >
                 + Nueva Página
