@@ -6,17 +6,17 @@
 
 /* === NOTION DARK PALETTE (scoped) === */
 .notion-app {
-    --notion-sidebar-bg: #1e1e1e;
-    --notion-main-bg: #191919;
-    --notion-topbar-bg: #202020;
-    --notion-hover: rgba(255,255,255,0.055);
-    --notion-active: rgba(255,255,255,0.08);
-    --notion-border: rgba(255,255,255,0.06);
-    --notion-text: rgba(255,255,255,0.9);
-    --notion-text-secondary: rgba(255,255,255,0.5);
-    --notion-text-tertiary: rgba(255,255,255,0.3);
-    --notion-accent: #2383e2;
-    --notion-search-bg: rgba(255,255,255,0.055);
+    --notion-sidebar-bg: hsl(var(--card));
+    --notion-main-bg: transparent;
+    --notion-topbar-bg: hsl(var(--background) / 0.8);
+    --notion-hover: hsl(var(--secondary));
+    --notion-active: hsl(var(--primary) / 0.15);
+    --notion-border: hsl(var(--border) / 0.5);
+    --notion-text: hsl(var(--foreground));
+    --notion-text-secondary: hsl(var(--foreground) / 0.85);
+    --notion-text-tertiary: hsl(var(--muted-foreground));
+    --notion-accent: hsl(var(--primary));
+    --notion-search-bg: hsl(var(--secondary));
 
     display: flex;
     height: 100vh;
@@ -134,13 +134,13 @@
     width: 22px;
     height: 22px;
     border-radius: 4px;
-    background: linear-gradient(135deg, #e16259, #d94f49);
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7));
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
     font-weight: 700;
-    color: white;
+    color: hsl(var(--primary-foreground));
     flex-shrink: 0;
 }
 

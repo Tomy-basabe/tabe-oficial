@@ -9,8 +9,10 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 const AdvancedNotionEditor = lazy(() => import("@/components/notion/AdvancedNotionEditor").then(m => ({ default: m.AdvancedNotionEditor })));
 import { EmojiPicker } from "@/components/notion/EmojiPicker";
+import { TabeIconRenderer } from "@/components/notion/TabeIcons";
 import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
 import { NotionSidebar } from "@/components/notion/NotionSidebar";
@@ -32,11 +34,34 @@ interface Subject {
   año: number;
 }
 
-const getGradientFromId = (id: string) => {
-  const hash = id.split('').reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) | 0, 0);
-  const hue1 = Math.abs(hash) % 360;
-  const hue2 = (hue1 + 40) % 360;
-  return `linear-gradient(135deg, hsl(${hue1}, 60%, 40%), hsl(${hue2}, 60%, 30%))`;
+// Helper to extract plain text snippet from generic tipap JSON content
+const extractTextSnippet = (content: any): string => {
+  let text = '';
+  
+  if (!content) return '';
+
+  try {
+    // If it's a string, just return a slice
+    if (typeof content === 'string') {
+      return content.substring(0, 150);
+    }
+
+    // Traverse TipTap JSON recursively
+    const extractNodes = (node: any) => {
+      if (node.type === 'text' && node.text) {
+        text += node.text + ' ';
+      }
+      if (node.content && Array.isArray(node.content)) {
+        node.content.forEach(extractNodes);
+      }
+    };
+
+    extractNodes(content);
+  } catch (e) {
+    return '';
+  }
+
+  return text.trim().substring(0, 150) + (text.length > 150 ? '...' : '');
 };
 
 export default function Notion() {
@@ -87,6 +112,11 @@ export default function Notion() {
   const savedSecondsRef = useRef(0);
   const lastActivityRef = useRef<number>(Date.now());
   const [sessionSeconds, setSessionSeconds] = useState(0);
+
+  // Gallery view filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterSubject, setFilterSubject] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"updated" | "alpha_asc" | "alpha_desc">("updated");
 
   // Fetch subjects
   useEffect(() => {
@@ -483,6 +513,36 @@ export default function Notion() {
     );
   }
 
+  // --- Gallery View Derived State ---
+  const filteredAndSortedDocuments = useMemo(() => {
+    let result = [...documents];
+
+    // Filter by subject
+    if (filterSubject !== "all") {
+      result = result.filter(doc => doc.subject_id === filterSubject);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(doc => (doc.titulo || "Sin título").toLowerCase().includes(q));
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      if (sortBy === "alpha_asc") {
+        return (a.titulo || "Sin título").localeCompare(b.titulo || "Sin título");
+      }
+      if (sortBy === "alpha_desc") {
+        return (b.titulo || "Sin título").localeCompare(a.titulo || "Sin título");
+      }
+      // default: updated
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+    return result;
+  }, [documents, filterSubject, searchQuery, sortBy]);
+
   return (
     <div className="notion-app">
       {/* Sidebar */}
@@ -714,25 +774,54 @@ export default function Notion() {
             </div>
           ) : (
             /* Empty state / Gallery View */
-            <div className="flex flex-col h-full bg-[#191919] text-white">
+            <div className="flex flex-col h-full bg-background text-foreground">
               {/* Header */}
-              <div className="flex items-center justify-between px-8 md:px-12 py-8 border-b border-white/5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-8 md:px-12 py-8 border-b border-border/40 gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Tus Apuntes</h1>
-                <div className="flex items-center gap-3">
-                  <div className="hidden md:flex bg-white/5 rounded-md p-1">
-                    <button className="px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-sm transition-colors flex items-center gap-2">
-                      <Search className="w-4 h-4" /> Buscar
-                    </button>
-                    <button className="px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-sm transition-colors flex items-center gap-2">
-                      <Filter className="w-4 h-4" /> Filtros
-                    </button>
-                    <button className="px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-sm transition-colors flex items-center gap-2">
-                      <ArrowUpDown className="w-4 h-4" /> Ordenar
-                    </button>
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                  
+                  {/* Search */}
+                  <div className="relative flex-1 sm:flex-none">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input 
+                      type="text" 
+                      placeholder="Buscar por título..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-4 py-2 text-sm bg-secondary/50 border border-border/50 rounded-md focus:outline-none focus:ring-1 focus:ring-primary w-full sm:w-48 transition-all"
+                    />
                   </div>
+
+                  {/* Filter by Subject */}
+                  <Select value={filterSubject} onValueChange={setFilterSubject}>
+                    <SelectTrigger className="w-full sm:w-[160px] bg-secondary/50 border-border/50 h-9">
+                      <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <SelectValue placeholder="Todas las materias" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las materias</SelectItem>
+                      {subjects.map(sub => (
+                        <SelectItem key={sub.id} value={sub.id}>{sub.codigo || sub.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Sort */}
+                  <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+                    <SelectTrigger className="w-full sm:w-[140px] bg-secondary/50 border-border/50 h-9">
+                      <ArrowUpDown className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <SelectValue placeholder="Ordenar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="updated">Por fecha (recientes)</SelectItem>
+                      <SelectItem value="alpha_asc">Nombre (A a Z)</SelectItem>
+                      <SelectItem value="alpha_desc">Nombre (Z a A)</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <button
                     onClick={() => setShowNewDocModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all hover:bg-[#2383e2]/90 bg-[#2383e2] text-white text-sm shadow-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all hover:bg-primary/90 bg-primary text-primary-foreground text-sm shadow-sm ml-auto sm:ml-0"
                   >
                     + Nueva Página
                   </button>
@@ -742,34 +831,56 @@ export default function Notion() {
               {/* Grid */}
               <div className="flex-1 overflow-y-auto p-8 md:p-12">
                 {documents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-white/40">
+                  <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                     <p>No tienes apuntes todavía. ¡Creá una nueva página para empezar!</p>
+                  </div>
+                ) : filteredAndSortedDocuments.length === 0 ? (
+                   <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                    <p>No hay apuntes que coincidan con la búsqueda.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {documents.map((doc) => {
+                    {filteredAndSortedDocuments.map((doc) => {
                       const subject = subjects.find(s => s.id === doc.subject_id);
-                      /* We use a generative gradient for the cover if no image exists */
-                      const coverStyle = doc.cover_url 
-                        ? { backgroundImage: `url(${doc.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                        : { background: getGradientFromId(doc.id) };
+                      
+                      const hasCover = !!doc.cover_url;
+                      const textSnippet = extractTextSnippet(doc.contenido);
 
                       return (
                         <div 
                           key={doc.id}
                           onClick={() => openDocument(doc)}
-                          className="group flex flex-col bg-[#202020] rounded-xl overflow-hidden border border-white/5 hover:border-white/20 transition-all cursor-pointer hover:shadow-lg hover:shadow-black/20"
+                          className="group flex flex-col bg-card rounded-xl overflow-hidden border border-border/50 hover:border-primary/30 transition-all cursor-pointer hover:shadow-lg"
                         >
-                          {/* Cover Image / Gradient */}
-                          <div className="h-32 w-full relative" style={coverStyle}>
-                            <div className="absolute -bottom-6 left-4 text-4xl leading-none filter drop-shadow-md">
-                              {doc.emoji || "📄"}
+                          {/* Top Area: Cover Image or Content Snippet */}
+                          <div className={cn("h-32 w-full relative border-b border-border/30", !hasCover && "bg-secondary/30 p-4")}>
+                            {hasCover ? (
+                              <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full overflow-hidden">
+                                {textSnippet ? (
+                                   <p className="text-xs text-muted-foreground/70 font-mono leading-relaxed opacity-60">
+                                     {textSnippet}
+                                   </p>
+                                ) : (
+                                  <div className="w-full h-full flex mt-4 justify-center">
+                                     <span className="text-muted-foreground/30 text-xs">— Vacío —</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Icon overlay component */}
+                            <div className="absolute -bottom-6 left-4 bg-card rounded-lg p-1.5 shadow-sm border border-border/50">
+                               <span className="text-xl leading-none flex items-center justify-center w-8 h-8 text-foreground">
+                                  {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={28} /> : "📄"}
+                               </span>
                             </div>
                           </div>
                           
                           {/* Info Area */}
                           <div className="pt-8 pb-5 px-5 flex flex-col flex-1">
-                            <h3 className="font-semibold text-lg text-white/90 truncate mb-1" title={doc.titulo}>
+                            <h3 className="font-semibold text-base text-foreground truncate mb-1" title={doc.titulo}>
                               {doc.titulo || "Sin título"}
                             </h3>
                             
@@ -777,15 +888,15 @@ export default function Notion() {
                             <div className="flex mt-auto pt-4 gap-2 flex-wrap">
                               {subject ? (
                                 <>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
                                     {subject.codigo || subject.nombre}
                                   </span>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/5 text-white/50 border border-white/10">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border border-border/50">
                                     Año {subject.año}
                                   </span>
                                 </>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/5 text-white/50 border border-white/10">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border border-border/50">
                                   Sin materia
                                 </span>
                               )}
