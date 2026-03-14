@@ -297,75 +297,91 @@ export default function Pomodoro() {
               Sesión de Estudio
             </h3>
 
-            <div className="space-y-5">
-              {/* Year Filter */}
-              <div className="space-y-2">
+            <div className="space-y-6">
+              {/* Year Filter (Horizontal Button Group like Flashcards) */}
+              <div className="space-y-3">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider ml-1">
                   Filtrar por Año
                 </label>
-                <Select value={yearFilter} onValueChange={(val) => {
-                  setYearFilter(val);
-                  // Reset subject selection if it doesn't belong to the new year filter
-                  if (val !== "all" && selectedSubject) {
-                    const subj = subjects.find(s => s.id === selectedSubject);
-                    if (subj && subj.year.toString() !== val) {
-                      setSelectedSubject(null);
-                    }
-                  }
-                }}>
-                  <SelectTrigger className="w-full bg-secondary/50 border-white/10 hover:border-neon-cyan/50 transition-colors h-11">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-neon-cyan" />
-                      <SelectValue placeholder="Seleccionar año" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="bg-black/90 border-white/10 backdrop-blur-xl">
-                    <SelectItem value="all">Todos los años</SelectItem>
-                    {[...new Set(subjects.map(s => s.year))].sort().map(year => (
-                      <SelectItem key={year} value={year.toString()}>Año {year}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setYearFilter("all");
+                      // Optionally we don't reset subject if all is selected
+                    }}
+                    className={cn(
+                      "px-3 py-2 rounded-xl text-xs font-bold transition-all",
+                      yearFilter === "all"
+                        ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
+                        : "bg-secondary/50 hover:bg-secondary border border-white/5"
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {[1, 2, 3, 4, 5, 6].map((year) => (
+                    <button
+                      key={year}
+                      onClick={() => {
+                        const val = year.toString();
+                        setYearFilter(val);
+                        if (selectedSubject) {
+                          const subj = subjects.find(s => s.id === selectedSubject);
+                          if (subj && subj.year.toString() !== val) {
+                            setSelectedSubject(null);
+                          }
+                        }
+                      }}
+                      className={cn(
+                        "px-3 py-2 rounded-xl text-xs font-bold transition-all",
+                        yearFilter === year.toString()
+                          ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
+                          : "bg-secondary/50 hover:bg-secondary border border-white/5"
+                      )}
+                    >
+                      {year}°
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Subject Selector */}
-              <div className="space-y-2">
+              {/* Subject Selector (Styled Select like Flashcards) */}
+              <div className="space-y-3">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider ml-1">
                   Materia
                 </label>
-                <Select 
-                  value={selectedSubject || "none"} 
-                  onValueChange={(val) => setSelectedSubject(val === "none" ? null : val)}
+                <select
+                  value={selectedSubject || "none"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedSubject(val === "none" ? null : val);
+                  }}
+                  className="w-full bg-secondary/50 border border-white/10 p-3 rounded-xl text-sm font-medium focus:outline-none focus:border-neon-cyan/50 transition-all appearance-none cursor-pointer"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(255,255,255,0.5)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '16px'
+                  }}
                 >
-                  <SelectTrigger className="w-full bg-secondary/50 border-white/10 hover:border-neon-purple/50 transition-colors h-11">
-                    <div className="flex items-center gap-2">
-                      <Filter className="w-4 h-4 text-neon-purple" />
-                      <SelectValue placeholder="Seleccionar materia" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="bg-black/90 border-white/10 backdrop-blur-xl max-h-[300px]">
-                    <SelectItem value="none">Sin materia específica</SelectItem>
-                    {subjects
-                      .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
-                      .map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          <div className="flex flex-col py-0.5">
-                            <span className="font-medium">{subject.nombre}</span>
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              {subject.codigo} • Año {subject.year}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                  <option value="none" className="bg-black text-white">Sin materia específica</option>
+                  {subjects
+                    .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
+                    .map((subject) => (
+                      <option key={subject.id} value={subject.id} className="bg-black text-white">
+                        {subject.nombre} ({subject.codigo})
+                      </option>
+                    ))}
+                </select>
               </div>
 
-              {/* Selection Status */}
+              {/* Selection Status Indicator */}
               {selectedSubject && (
-                <div className="mt-4 p-4 rounded-xl bg-neon-cyan/5 border border-neon-cyan/20 flex flex-col gap-1 items-center text-center animate-in fade-in slide-in-from-top-2 duration-300">
-                  <span className="text-[10px] text-neon-cyan font-bold uppercase tracking-widest">Estudiando ahora</span>
-                  <span className="font-display font-bold text-sm text-glow-cyan">
+                <div className="mt-2 p-4 rounded-2xl bg-gradient-to-br from-neon-cyan/10 to-neon-purple/5 border border-white/10 flex flex-col items-center gap-1 animate-in fade-in zoom-in-95 duration-300">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse" />
+                    <span className="text-[10px] text-neon-cyan font-bold uppercase tracking-widest">Estudiando ahora</span>
+                  </div>
+                  <span className="font-display font-bold text-sm text-center line-clamp-2">
                     {subjects.find(s => s.id === selectedSubject)?.nombre}
                   </span>
                 </div>
