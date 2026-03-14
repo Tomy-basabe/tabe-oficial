@@ -42,8 +42,10 @@ export function NotionSidebar({
     const [searchQuery, setSearchQuery] = useState("");
     const [openSubjects, setOpenSubjects] = useState<Set<string>>(new Set());
     const [openDocs, setOpenDocs] = useState<Set<string>>(new Set());
+    const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
     const [contextMenu, setContextMenu] = useState<{ doc: NotionDocument; x: number; y: number } | null>(null);
     const contextMenuRef = useRef<HTMLDivElement>(null);
+    const DOCS_PER_SUBJECT_LIMIT = 8;
 
     // Close context menu on outside click
     useEffect(() => {
@@ -279,7 +281,29 @@ export function NotionSidebar({
                                                         </button>
                                                         {isOpen && (
                                                             <div style={{ paddingLeft: 8 }}>
-                                                                {docs.map(d => renderDocItem(d))}
+                                                                {(() => {
+                                                                    const isExpanded = expandedSubjects.has(subject.id);
+                                                                    const visibleDocs = isExpanded ? docs : docs.slice(0, DOCS_PER_SUBJECT_LIMIT);
+                                                                    const hasMore = !isExpanded && docs.length > DOCS_PER_SUBJECT_LIMIT;
+                                                                    return (
+                                                                        <>
+                                                                            {visibleDocs.map(d => renderDocItem(d))}
+                                                                            {hasMore && (
+                                                                                <button
+                                                                                    className="notion-sidebar-new-page"
+                                                                                    onClick={() => setExpandedSubjects(prev => {
+                                                                                        const next = new Set(prev);
+                                                                                        next.add(subject.id);
+                                                                                        return next;
+                                                                                    })}
+                                                                                    style={{ paddingLeft: 20, fontSize: 12, opacity: 0.7 }}
+                                                                                >
+                                                                                    Ver {docs.length - DOCS_PER_SUBJECT_LIMIT} más...
+                                                                                </button>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                                 <button
                                                                     className="notion-sidebar-new-page"
                                                                     onClick={() => onNewDocument(subject.id)}

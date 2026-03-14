@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -8,7 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AdvancedNotionEditor } from "@/components/notion/AdvancedNotionEditor";
+const AdvancedNotionEditor = lazy(() => import("@/components/notion/AdvancedNotionEditor").then(m => ({ default: m.AdvancedNotionEditor })));
 import { EmojiPicker } from "@/components/notion/EmojiPicker";
 import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
@@ -683,16 +683,22 @@ export default function Notion() {
                   </div>
 
                   {/* Editor */}
-                  <AdvancedNotionEditor
-                    content={editorContent}
-                    onUpdate={handleContentUpdate}
-                    onActivity={() => lastActivityRef.current = Date.now()}
-                    documentId={activeDocument.id}
-                    onSubPageClick={(id) => {
-                        const target = documents.find(d => d.id === id);
-                        if (target) openDocument(target);
-                    }}
-                  />
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  }>
+                    <AdvancedNotionEditor
+                      content={editorContent}
+                      onUpdate={handleContentUpdate}
+                      onActivity={() => lastActivityRef.current = Date.now()}
+                      documentId={activeDocument.id}
+                      onSubPageClick={(id) => {
+                          const target = documents.find(d => d.id === id);
+                          if (target) openDocument(target);
+                      }}
+                    />
+                  </Suspense>
                 </>
               )}
             </div>

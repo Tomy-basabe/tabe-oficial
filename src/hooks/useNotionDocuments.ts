@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -28,6 +28,9 @@ export function useNotionDocuments() {
   const { user, isGuest } = useAuth();
   const [documents, setDocuments] = useState<NotionDocument[]>([]);
   const [loading, setLoading] = useState(true);
+  // Cache subjects map to avoid refetching on every refetch()
+  const subjectsMapRef = useRef<Record<string, { nombre: string; codigo: string; year: number }>>({});
+  const cachedSubjectIdsRef = useRef<Set<string>>(new Set());
 
   const fetchDocuments = useCallback(async () => {
     if (!user && !isGuest) return;
@@ -80,23 +83,25 @@ export function useNotionDocuments() {
       console.error("Error fetching documents:", error);
       toast.error("Error al cargar documentos");
     } else if (data) {
-      // Fetch subjects for each document
-      const subjectIds = [...new Set(data.filter(d => d.subject_id).map(d => d.subject_id))] as string[];
-      let subjectsMap: Record<string, { nombre: string; codigo: string; year: number }> = {};
+      // Fetch only NEW subjects that aren't cached yet
+      const allSubjectIds = [...new Set(data.filter(d => d.subject_id).map(d => d.subject_id))] as string[];
+      const newSubjectIds = allSubjectIds.filter(id => !cachedSubjectIdsRef.current.has(id));
 
-      if (subjectIds.length > 0) {
+      if (newSubjectIds.length > 0) {
         const { data: subjectsData } = await supabase
           .from("subjects")
           .select("id, nombre, codigo, año")
-          .in("id", subjectIds);
+          .in("id", newSubjectIds);
 
         if (subjectsData) {
-          subjectsMap = (subjectsData as any[]).reduce((acc, s) => {
-            acc[s.id] = { nombre: s.nombre, codigo: s.codigo, year: s.año };
-            return acc;
-          }, {} as Record<string, { nombre: string; codigo: string; year: number }>);
+          (subjectsData as any[]).forEach(s => {
+            subjectsMapRef.current[s.id] = { nombre: s.nombre, codigo: s.codigo, year: s.año };
+            cachedSubjectIdsRef.current.add(s.id);
+          });
         }
       }
+
+      const subjectsMap = subjectsMapRef.current;
 
       const mapped = data.map((d) => ({
         ...d,
