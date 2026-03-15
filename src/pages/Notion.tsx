@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -39,13 +39,10 @@ interface Subject {
 
 // Helper to extract plain text snippet from generic tipap JSON content
 const extractTextSnippet = (content: any): string => {
-  let text = '';
-  
   if (!content) return '';
-
+  
   try {
     let parsedContent = content;
-    // Attempt parsing if it's a string, might be stringified JSON
     if (typeof content === 'string') {
       try {
         parsedContent = JSON.parse(content);
@@ -54,27 +51,149 @@ const extractTextSnippet = (content: any): string => {
       }
     }
 
-    // Traverse TipTap JSON recursively
+    let text = '';
     const extractNodes = (node: any) => {
       if (node?.type === 'text' && node?.text) {
         text += node.text + ' ';
       }
-      // Only iterate content arrays
       if (node?.content && Array.isArray(node.content)) {
-        node.content.forEach(extractNodes);
+        for (const child of node.content) {
+          extractNodes(child);
+          if (text.length > 200) break; // Early exit for performance
+        }
       }
     };
 
     extractNodes(parsedContent);
+    const result = text.trim();
+    if (!result) return '';
+    return result.substring(0, 150) + (result.length > 150 ? '...' : '');
   } catch (e) {
     return '';
   }
-
-  const result = text.trim();
-  if (!result) return '';
-  
-  return result.substring(0, 150) + (result.length > 150 ? '...' : '');
 };
+
+// Memoized Gallery Card component for performance
+const GalleryCard = ({ 
+  doc, 
+  subject, 
+  onClick, 
+  onRename, 
+  onDelete,
+  onHover 
+}: { 
+  doc: NotionDocument; 
+  subject?: Subject; 
+  onClick: (doc: NotionDocument) => void;
+  onRename: (doc: NotionDocument) => void; 
+  onDelete: (doc: NotionDocument) => void;
+  onHover?: (doc: NotionDocument) => void;
+}) => {
+  const hasCover = !!doc.cover_url;
+  
+  // Memoize snippet extraction so it only runs when content changes
+  const textSnippet = useMemo(() => extractTextSnippet(doc.contenido), [doc.contenido]);
+
+  return (
+    <div 
+      onClick={() => onClick(doc)}
+      onMouseEnter={() => onHover?.(doc)}
+      className="group flex flex-col bg-card rounded-xl overflow-hidden border border-border/50 hover:border-primary/40 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 h-[280px]"
+    >
+      {/* Top Area: Cover Image or Content Snippet */}
+      <div className={cn("h-40 w-full relative border-b border-border/30 bg-background overflow-hidden", !hasCover && "p-5")}>
+        {/* Card Actions Overlay (Dropdown) */}
+        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+           <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                 <button
+                   className="p-1.5 rounded-md bg-background/80 hover:bg-background shadow-sm border border-border/50 text-foreground/70 hover:text-foreground transition-all"
+                   onClick={(e) => e.stopPropagation()}
+                 >
+                    <MoreHorizontal className="w-4 h-4" />
+                 </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                 <DropdownMenuItem
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       onRename(doc);
+                    }}
+                 >
+                    Renombrar
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem
+                    className="text-destructive focus:bg-accent text-sm"
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       onDelete(doc);
+                    }}
+                 >
+                    Eliminar
+                 </DropdownMenuItem>
+              </DropdownMenuContent>
+           </DropdownMenu>
+        </div>
+
+        {hasCover ? (
+          <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full relative">
+            {/* Simulated mini page header line */}
+            <div className="w-12 h-1 bg-primary/20 rounded-full mb-3" />
+            
+            {textSnippet ? (
+               <div className="opacity-80">
+                 <p className="text-[11px] text-foreground font-medium leading-[1.7] line-clamp-5 mix-blend-plus-lighter text-left">
+                   {textSnippet}
+                 </p>
+               </div>
+            ) : (
+              <div className="w-full h-full flex mt-4 justify-center">
+                 <span className="text-muted-foreground/40 text-[10px] uppercase font-bold tracking-widest border border-dashed border-muted-foreground/30 px-3 py-1 rounded h-fit">Vacío</span>
+              </div>
+            )}
+            {/* Gradient fade to hide text bottom */}
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
+          </div>
+        )}
+      </div>
+      
+      {/* Info Area */}
+      <div className="p-4 flex flex-col flex-1 bg-card">
+        <div className="flex items-center gap-3 mb-2">
+           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border/50 text-foreground shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+              {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={20} /> : <FileText className="w-4 h-4" />}
+           </div>
+           <h3 className="font-bold text-[15px] text-foreground truncate group-hover:text-primary transition-colors tracking-tight flex-1" title={doc.titulo}>
+              {doc.titulo || "Sin título"}
+           </h3>
+        </div>
+        
+        {/* Badges */}
+        <div className="flex mt-auto pt-2 gap-2 flex-wrap">
+          {subject ? (
+            <>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
+                {subject.codigo || subject.nombre}
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/80 text-muted-foreground border border-border/50 uppercase tracking-wider">
+                Año {subject.año}
+              </span>
+            </>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/80 text-muted-foreground border border-border/50 uppercase tracking-wider">
+              Sin materia
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MemoizedGalleryCard = React.memo(GalleryCard);
 
 export default function Notion() {
   const { user } = useAuth();
@@ -876,113 +995,24 @@ export default function Notion() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {filteredAndSortedDocuments.map((doc) => {
-                      const subject = subjects.find(s => s.id === doc.subject_id);
-                      
-                      const hasCover = !!doc.cover_url;
-                      const textSnippet = extractTextSnippet(doc.contenido);
-
-                      return (
-                        <div 
-                          key={doc.id}
-                          onClick={() => openDocument(doc)}
-                          className="group flex flex-col bg-card rounded-xl overflow-hidden border border-border/50 hover:border-primary/40 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 h-[280px]"
-                        >
-                          {/* Top Area: Cover Image or Content Snippet */}
-                          <div className={cn("h-40 w-full relative border-b border-border/30 bg-background overflow-hidden", !hasCover && "p-5")}>
-                            {/* Card Actions Overlay (Dropdown) */}
-                            <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                     <button
-                                       className="p-1.5 rounded-md bg-background/80 hover:bg-background shadow-sm border border-border/50 text-foreground/70 hover:text-foreground transition-all"
-                                       onClick={(e) => e.stopPropagation()}
-                                     >
-                                        <MoreHorizontal className="w-4 h-4" />
-                                     </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                     <DropdownMenuItem
-                                        onClick={(e) => {
-                                           e.stopPropagation();
-                                           setDocToRename(doc);
-                                           setNewTitle(doc.titulo || "");
-                                           setShowRenameModal(true);
-                                        }}
-                                     >
-                                        Renombrar
-                                     </DropdownMenuItem>
-                                     <DropdownMenuSeparator />
-                                     <DropdownMenuItem
-                                        className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                        onClick={(e) => {
-                                           e.stopPropagation();
-                                           setDocToDelete(doc);
-                                           setShowDeleteModal(true);
-                                        }}
-                                     >
-                                        Eliminar
-                                     </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                               </DropdownMenu>
-                            </div>
-
-                            {hasCover ? (
-                              <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full relative">
-                                {/* Simulated mini page header line */}
-                                <div className="w-12 h-1 bg-primary/20 rounded-full mb-3" />
-                                
-                                {textSnippet ? (
-                                   <div className="opacity-80">
-                                     <p className="text-[11px] text-foreground font-medium leading-[1.7] line-clamp-5 mix-blend-plus-lighter text-left">
-                                       {textSnippet}
-                                     </p>
-                                   </div>
-                                ) : (
-                                  <div className="w-full h-full flex mt-4 justify-center">
-                                     <span className="text-muted-foreground/40 text-[10px] uppercase font-bold tracking-widest border border-dashed border-muted-foreground/30 px-3 py-1 rounded h-fit">Vacío</span>
-                                  </div>
-                                )}
-                                {/* Gradient fade to hide text bottom */}
-                                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Info Area */}
-                          <div className="p-4 flex flex-col flex-1 bg-card">
-                            <div className="flex items-center gap-3 mb-2">
-                               <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border/50 text-foreground shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
-                                  {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={20} /> : <FileText className="w-4 h-4" />}
-                               </div>
-                               <h3 className="font-bold text-[15px] text-foreground truncate group-hover:text-primary transition-colors tracking-tight flex-1" title={doc.titulo}>
-                                  {doc.titulo || "Sin título"}
-                               </h3>
-                            </div>
-                            
-                            {/* Badges */}
-                            <div className="flex mt-auto pt-2 gap-2 flex-wrap">
-                              {subject ? (
-                                <>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
-                                    {subject.codigo || subject.nombre}
-                                  </span>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/80 text-muted-foreground border border-border/50 uppercase tracking-wider">
-                                    Año {subject.año}
-                                  </span>
-                                </>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/80 text-muted-foreground border border-border/50 uppercase tracking-wider">
-                                  Sin materia
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {filteredAndSortedDocuments.map((doc) => (
+                      <MemoizedGalleryCard 
+                        key={doc.id}
+                        doc={doc}
+                        subject={subjects.find(s => s.id === doc.subject_id)}
+                        onClick={openDocument}
+                        onRename={(d) => {
+                          setDocToRename(d);
+                          setNewTitle(d.titulo || "");
+                          setShowRenameModal(true);
+                        }}
+                        onDelete={(d) => {
+                          setDocToDelete(d);
+                          setShowDeleteModal(true);
+                        }}
+                        onHover={(d) => prefetchDocumentContent(d.id)}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
