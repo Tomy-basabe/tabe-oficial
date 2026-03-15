@@ -256,10 +256,63 @@ export function AdvancedNotionEditor({
           }
         }
 
-        // === INTERNAL HTML PASTE (Copying images from the editor itself) ===
+        // === INTERNAL HTML PASTE & BASE64 INTERCEPTION ===
         const html = event.clipboardData?.getData('text/html');
         if (html && html.includes('<img')) {
-          // Let Tiptap handle HTML pastes that contain images natively
+          // If it contains base64 images, we need to intercept and upload them
+          if (html.includes('src="data:image/')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const images = Array.from(doc.querySelectorAll('img[src^="data:image/"]'));
+
+            if (images.length > 0) {
+              const uploadPromises = images.map(async (img) => {
+                const src = img.getAttribute('src');
+                if (!src) return;
+
+                try {
+                  // Convert base64 to Blob
+                  const response = await fetch(src);
+                  const blob = await response.blob();
+                  
+                  const fileExt = blob.type.split('/')[1] || 'png';
+                  const fileName = `paste-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+                  
+                  const { error: uploadError } = await supabase.storage
+                    .from('notion-images')
+                    .upload(fileName, blob);
+
+                  if (uploadError) throw uploadError;
+
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('notion-images')
+                    .getPublicUrl(fileName);
+
+                  if (publicUrl) {
+                    img.setAttribute('src', publicUrl);
+                    // Remove any style height/width if they are huge
+                    img.removeAttribute('width');
+                    img.removeAttribute('height');
+                  }
+                } catch (err) {
+                  console.error("Paste image upload failed:", err);
+                }
+              });
+
+              // We don't necessarily have to block the paste if we want it to be "instant",
+              // but for safety, we await so the editor gets the public URLs.
+              // Note: For a better UX, we could paste placeholders, but let's try awaiting first.
+              Promise.all(uploadPromises).then(() => {
+                const cleanHtml = doc.body.innerHTML;
+                editor?.chain().focus().insertContent(cleanHtml).run();
+              });
+
+              event.preventDefault();
+              return true;
+            }
+          }
+          
+          // Let Tiptap handle standard HTML pastes natively
           return false;
         }
 

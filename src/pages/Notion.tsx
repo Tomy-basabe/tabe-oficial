@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
-  Search, Filter, ArrowUpDown, FileText
+  Search, Filter, ArrowUpDown, FileText, AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -241,6 +241,8 @@ export default function Notion() {
   const autoSaveTimerRef = useRef<number | null>(null);
   const forceSaveTimerRef = useRef<number | null>(null);
   const activeDocumentRef = useRef<NotionDocument | null>(null);
+  const [saveInProgress, setSaveInProgress] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const saveInProgressRef = useRef(false);
 
   // Sync state to refs to avoid stale closures in callbacks
@@ -289,6 +291,59 @@ export default function Notion() {
     fetchSubjects();
   }, []);
 
+  const migrateBase64Images = useCallback(async (content: JSONContent, docId: string): Promise<JSONContent> => {
+    let hasChanges = false;
+    const contentStr = JSON.stringify(content);
+
+    if (!contentStr.includes('data:image/')) return content;
+
+    const newContent = JSON.parse(contentStr);
+
+    const traverseAndUpload = async (node: any) => {
+      if (node.type === 'image' && node.attrs?.src?.startsWith('data:image/')) {
+        try {
+          const src = node.attrs.src;
+          const response = await fetch(src);
+          const blob = await response.blob();
+          const fileExt = blob.type.split('/')[1] || 'png';
+          const fileName = `migration-${docId}-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('notion-images')
+            .upload(fileName, blob);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('notion-images')
+            .getPublicUrl(fileName);
+
+          if (publicUrl) {
+            node.attrs.src = publicUrl;
+            hasChanges = true;
+          }
+        } catch (err) {
+          console.error("Migration image upload failed:", err);
+        }
+      }
+
+      if (node.content && Array.isArray(node.content)) {
+        for (const child of node.content) {
+          await traverseAndUpload(child);
+        }
+      }
+    };
+
+    await traverseAndUpload(newContent);
+
+    if (hasChanges) {
+      // Save the cleaned version back to the DB immediately
+      await supabase.from('notion_documents').update({ contenido: newContent }).eq('id', docId);
+    }
+
+    return newContent;
+  }, []);
+
   // === Auto-save logic ===
   const saveDocument = useCallback(
     async (silent = true): Promise<boolean> => {
@@ -306,6 +361,13 @@ export default function Notion() {
       const contentStr = JSON.stringify(contentToSave);
       const currentTitle = localTitleRef.current;
 
+      // 10MB soft limit to avoid Supabase errors / browser freezes
+      if (contentStr.length > 10 * 1024 * 1024) {
+        console.error("Payload too large:", contentStr.length);
+        setSaveError("El documento es demasiado grande para guardar (probablemente por imágenes pegadas)");
+        return false;
+      }
+
       const contentChanged = contentStr !== lastSavedContentRef.current;
       const titleChanged = currentTitle !== docToSave.titulo;
 
@@ -319,8 +381,10 @@ export default function Notion() {
       }
 
       setIsSaving(true);
+      setSaveInProgress(true);
       saveInProgressRef.current = true;
       pendingSaveRef.current = false;
+      setSaveError(null);
 
       try {
         const updates: { contenido?: JSONContent; titulo?: string } = {};
@@ -342,10 +406,12 @@ export default function Notion() {
         }
       } catch (error) {
         console.error("Error saving document:", error);
+        setSaveError("Error al guardar");
         if (!silent) toast.error("Error al guardar el apunte");
         return false;
       } finally {
         saveInProgressRef.current = false;
+        setSaveInProgress(false);
         setIsSaving(false);
         // If changes were made while we were saving, trigger another save immediately
         if (pendingSaveRef.current) {
@@ -571,13 +637,29 @@ export default function Notion() {
       setIsOpeningDoc(false);
       
       if (fullContent) {
-        const content = ensureTipTapFormat(fullContent);
+        let content = ensureTipTapFormat(fullContent);
+        // Check for base64 images and migrate them in the background
+        if (JSON.stringify(content).includes('data:image/')) {
+          setSaveInProgress(true);
+          content = await migrateBase64Images(content, doc.id);
+          setSaveInProgress(false);
+        }
         lastSavedContentRef.current = JSON.stringify(content);
         setEditorContent(content);
         editorContentRef.current = content;
       }
     } else {
-      const content = ensureTipTapFormat(doc.contenido);
+      let content = ensureTipTapFormat(doc.contenido);
+       // Check for base64 images and migrate them in the background
+       if (JSON.stringify(content).includes('data:image/')) {
+        setSaveInProgress(true);
+        migrateBase64Images(content, doc.id).then(cleaned => {
+          setEditorContent(cleaned);
+          editorContentRef.current = cleaned;
+          lastSavedContentRef.current = JSON.stringify(cleaned);
+          setSaveInProgress(false);
+        });
+      }
       lastSavedContentRef.current = JSON.stringify(content);
       setEditorContent(content);
       editorContentRef.current = content;
@@ -729,15 +811,13 @@ export default function Notion() {
     },
     [subjects, createDocument, updateDocument, refetch, openDocument, checkAndUnlockAchievements, isPremium, canUse, incrementUsage]
   );
-
-  // Save indicator text
-  const saveStatusText = useMemo(() => {
-    if (isSaving) return "Guardando...";
+  // Save indicator text -- This is no longer used for text but logic depends on lastSaved
+  const lastSavedText = useMemo(() => {
     if (lastSaved) {
       return `Guardado`;
     }
     return "";
-  }, [isSaving, lastSaved]);
+  }, [lastSaved]);
 
   // Filtered subjects for new doc modal
   const [modalYear, setModalYear] = useState<number | null>(null);
@@ -846,7 +926,19 @@ export default function Notion() {
             {activeDocument && (
               <>
                 {/* Save indicator */}
-                {/* Silent Save indicator (Removed text as per user request) */}
+                {/* Silent Save indicator (Red indicator on error) */}
+                {saveError && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive/10 text-destructive rounded-md animate-in fade-in duration-300" title={saveError}>
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Error de Guardado</span>
+                  </div>
+                )}
+                {saveInProgress && !saveError && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary text-muted-foreground rounded-md animate-in fade-in duration-300">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Guardando...</span>
+                  </div>
+                )}
 
                 {/* Timer Display */}
                 <div className={cn(
