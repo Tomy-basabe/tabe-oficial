@@ -215,7 +215,7 @@ export function NotionSidebar({
         <>
             <aside className={cn(
                 "flex flex-col h-full bg-background/95 backdrop-blur-2xl border-r border-border/30 relative z-30 transition-all duration-500 shadow-2xl overflow-hidden",
-                collapsed ? "w-0 min-w-0 opacity-0 -translate-x-8" : "w-[300px] min-w-[300px] translate-x-0"
+                collapsed ? "w-0 min-w-0 opacity-0 -translate-x-8" : "w-[240px] min-w-[240px] translate-x-0"
             )}>
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 flex-shrink-0">

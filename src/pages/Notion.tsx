@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
-  Search, Filter, ArrowUpDown
+  Search, Filter, ArrowUpDown, FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -886,10 +886,10 @@ export default function Notion() {
                         <div 
                           key={doc.id}
                           onClick={() => openDocument(doc)}
-                          className="group flex flex-col bg-card rounded-xl overflow-hidden border border-border/50 hover:border-primary/30 transition-all cursor-pointer hover:shadow-lg"
+                          className="group flex flex-col bg-card rounded-xl overflow-hidden border border-border/50 hover:border-primary/40 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 h-[280px]"
                         >
                           {/* Top Area: Cover Image or Content Snippet */}
-                          <div className={cn("h-32 w-full relative border-b border-border/30", !hasCover && "bg-secondary/30 p-4")}>
+                          <div className={cn("h-40 w-full relative border-b border-border/30 bg-background overflow-hidden", !hasCover && "p-5")}>
                             {/* Card Actions Overlay (Dropdown) */}
                             <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                <DropdownMenu>
@@ -930,46 +930,51 @@ export default function Notion() {
                             {hasCover ? (
                               <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full overflow-hidden">
+                              <div className="w-full h-full relative">
+                                {/* Simulated mini page header line */}
+                                <div className="w-12 h-1 bg-primary/20 rounded-full mb-3" />
+                                
                                 {textSnippet ? (
-                                   <p className="text-xs text-muted-foreground/70 font-mono leading-relaxed opacity-60">
-                                     {textSnippet}
-                                   </p>
+                                   <div className="opacity-80">
+                                     <p className="text-[11px] text-foreground font-medium leading-[1.7] line-clamp-5 mix-blend-plus-lighter text-left">
+                                       {textSnippet}
+                                     </p>
+                                   </div>
                                 ) : (
                                   <div className="w-full h-full flex mt-4 justify-center">
-                                     <span className="text-muted-foreground/30 text-xs">— Vacío —</span>
+                                     <span className="text-muted-foreground/40 text-[10px] uppercase font-bold tracking-widest border border-dashed border-muted-foreground/30 px-3 py-1 rounded h-fit">Vacío</span>
                                   </div>
                                 )}
+                                {/* Gradient fade to hide text bottom */}
+                                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
                               </div>
                             )}
-
-                            {/* Icon overlay component */}
-                            <div className="absolute -bottom-6 left-4 bg-card rounded-lg p-1.5 shadow-sm border border-border/50">
-                               <span className="text-xl leading-none flex items-center justify-center w-8 h-8 text-foreground">
-                                  {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={28} /> : "📄"}
-                               </span>
-                            </div>
                           </div>
                           
                           {/* Info Area */}
-                          <div className="pt-8 pb-5 px-5 flex flex-col flex-1">
-                            <h3 className="font-semibold text-base text-foreground truncate mb-1" title={doc.titulo}>
-                              {doc.titulo || "Sin título"}
-                            </h3>
+                          <div className="p-4 flex flex-col flex-1 bg-card">
+                            <div className="flex items-center gap-3 mb-2">
+                               <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border/50 text-foreground shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+                                  {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={20} /> : <FileText className="w-4 h-4" />}
+                               </div>
+                               <h3 className="font-bold text-[15px] text-foreground truncate group-hover:text-primary transition-colors tracking-tight flex-1" title={doc.titulo}>
+                                  {doc.titulo || "Sin título"}
+                               </h3>
+                            </div>
                             
                             {/* Badges */}
-                            <div className="flex mt-auto pt-4 gap-2 flex-wrap">
+                            <div className="flex mt-auto pt-2 gap-2 flex-wrap">
                               {subject ? (
                                 <>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
                                     {subject.codigo || subject.nombre}
                                   </span>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border border-border/50">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/80 text-muted-foreground border border-border/50 uppercase tracking-wider">
                                     Año {subject.año}
                                   </span>
                                 </>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border border-border/50">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/80 text-muted-foreground border border-border/50 uppercase tracking-wider">
                                   Sin materia
                                 </span>
                               )}
