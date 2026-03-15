@@ -102,8 +102,21 @@ export function useSubjects() {
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async (showLoading = true, retries = 2) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    
     try {
       if (showLoading) setLoading(true);
+
+      // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs
+      timeoutId = setTimeout(() => {
+        setLoading(current => {
+          if (current) {
+            console.warn("Subjects fetch timed out, forcing loading to false");
+            return false;
+          }
+          return current;
+        });
+      }, 8000);
 
       // Run all 3 queries in parallel
       const [subjectsResult, statusResult, depsResult] = await Promise.all([
@@ -139,6 +152,7 @@ export function useSubjects() {
       }
       toast.error("Error al cargar las materias");
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setLoading(false);
       isInitialLoad.current = false;
     }

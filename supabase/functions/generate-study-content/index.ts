@@ -11,7 +11,9 @@ interface RequestBody {
     fileUrl?: string;
     storagePath?: string;
     fileName: string;
-    type: 'flashcards' | 'summary';
+    content?: string; // New: Raw text content
+    type: 'flashcards' | 'summary' | 'quiz'; // Updated
+    count?: number;
 }
 
 // Helper to list available models dynamically
@@ -23,12 +25,10 @@ async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
         const data = await response.json();
         if (!data.models) return [];
 
-        // Prioritize models: Flash > Flash-Lite > Pro
         const validModels = data.models
             .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
             .map((m: any) => m.name.replace("models/", ""));
 
-        // Custom sort order - Prioritize 1.5 Flash (Free tier friendly)
         const priority = [
             "gemini-1.5-flash",
             "gemini-1.5-flash-latest",
@@ -82,74 +82,88 @@ serve(async (req) => {
 
         const userId = user.id;
         const requestBody = await req.json();
-        const { fileUrl, storagePath, fileName, type } = requestBody as RequestBody;
+        const { fileUrl, storagePath, fileName, content, type, count } = requestBody as RequestBody;
 
         if (!fileName) throw new Error("fileName is required");
-        if (!type || (type !== 'flashcards' && type !== 'summary')) throw new Error("Invalid generation type");
+        const validTypes = ['flashcards', 'summary', 'quiz'];
+        if (!type || !validTypes.includes(type)) throw new Error("Invalid generation type");
 
-        // --- STEP 1: DOWNLOAD FILE ---
-        let fileBuffer: ArrayBuffer;
+        // --- STEP 1: GET CONTENT ---
+        let base64Content = "";
+        let mimeType = "text/plain";
 
-        if (storagePath) {
-            const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-            const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-
-            // Simple access check: path must allow user access or be public (assuming library-files bucket logic)
-            // Usually library files are user-scoped but let's assume valid access if they have the path
-            // Logic from parse-document:
-            if (!storagePath.startsWith(`${userId}/`) && !storagePath.startsWith(`public/`)) {
-                // Strict check: if not owner, deny? 
-                // For now, let's allow download if they have valid token and correct bucket
-                // console.warn(`Access check warning. User: ${userId}, Path: ${storagePath}`);
-            }
-
-            const { data: fileData, error: downloadError } = await serviceClient.storage
-                .from('library-files')
-                .download(storagePath);
-
-            if (downloadError || !fileData) {
-                throw new Error(`Failed to download file: ${downloadError?.message || 'Unknown error'}`);
-            }
-            fileBuffer = await fileData.arrayBuffer();
-        } else if (fileUrl) {
-            const fileResponse = await fetch(fileUrl);
-            if (!fileResponse.ok) throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
-            fileBuffer = await fileResponse.arrayBuffer();
+        if (content) {
+            // Direct text content provided
+            base64Content = btoa(unescape(encodeURIComponent(content)));
+            mimeType = "text/plain";
         } else {
-            throw new Error("Either fileUrl or storagePath is required");
-        }
+            let fileBuffer: ArrayBuffer;
+            if (storagePath) {
+                const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+                const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+                const { data: fileData, error: downloadError } = await serviceClient.storage
+                    .from('library-files')
+                    .download(storagePath);
 
-        if (fileBuffer.byteLength > 20 * 1024 * 1024) {
-            throw new Error("File too large (max 20MB)");
+                if (downloadError || !fileData) {
+                    throw new Error(`Failed to download file: ${downloadError?.message || 'Unknown error'}`);
+                }
+                fileBuffer = await fileData.arrayBuffer();
+            } else if (fileUrl) {
+                const fileResponse = await fetch(fileUrl);
+                if (!fileResponse.ok) throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
+                fileBuffer = await fileResponse.arrayBuffer();
+            } else {
+                throw new Error("Either content, fileUrl or storagePath is required");
+            }
+
+            if (fileBuffer.byteLength > 20 * 1024 * 1024) {
+                throw new Error("File too large (max 20MB)");
+            }
+
+            const ext = fileName.toLowerCase().split(".").pop();
+            switch (ext) {
+                case "pdf": mimeType = "application/pdf"; break;
+                case "txt": mimeType = "text/plain"; break;
+                case "md": mimeType = "text/plain"; break;
+                case "docx": mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"; break;
+                case "jpg": case "jpeg": mimeType = "image/jpeg"; break;
+                case "png": mimeType = "image/png"; break;
+            }
+
+            base64Content = btoa(
+                new Uint8Array(fileBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+            );
         }
 
         // --- STEP 2: PREPARE PROMPT ---
         const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
         if (!geminiApiKey) throw new Error("GEMINI_API_KEY missing");
 
-        const ext = fileName.toLowerCase().split(".").pop();
-        let mimeType = "application/octet-stream";
-        switch (ext) {
-            case "pdf": mimeType = "application/pdf"; break;
-            case "txt": mimeType = "text/plain"; break;
-            case "md": mimeType = "text/plain"; break;
-            case "docx": mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"; break;
-            case "jpg": case "jpeg": mimeType = "image/jpeg"; break;
-            case "png": mimeType = "image/png"; break;
-        }
-
-        const base64Content = btoa(
-            new Uint8Array(fileBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
-        );
-
         let systemPrompt = "";
+        const generationCount = count || 15;
+
         if (type === 'flashcards') {
-            systemPrompt = `You are an expert study assistant. Analyze the provided document and generate 15 high-quality flashcards.
+            systemPrompt = `You are an expert study assistant. Analyze the provided content and generate ${generationCount} high-quality flashcards.
       Focus on key concepts, definitions, dates, and important details.
       Output ONLY valid JSON in this format:
       {
         "cards": [
           { "pregunta": "Question here?", "respuesta": "Concise answer here." }
+        ]
+      }`;
+        } else if (type === 'quiz') {
+            systemPrompt = `You are an expert study assistant. Analyze the provided content and generate a quiz with ${generationCount} multiple-choice questions.
+      Each question must have 4 options, and only one must be correct. Include a brief explanation for the correct answer.
+      Output ONLY valid JSON in this format:
+      {
+        "questions": [
+          {
+            "pregunta": "Question text?",
+            "opciones": ["Option A", "Option B", "Option C", "Option D"],
+            "correcta": 0,
+            "explicacion": "Why this is correct."
+          }
         ]
       }`;
         } else {
@@ -166,16 +180,12 @@ serve(async (req) => {
         let aiResponseData: any;
         let errorLog: string[] = [];
 
-        // Dynamic Discovery
         let candidateModels = await getAvailableGeminiModels(geminiApiKey);
         if (candidateModels.length === 0) {
             candidateModels = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"];
         }
-
-        // Inject flash at top if missing
         if (!candidateModels.includes("gemini-1.5-flash")) candidateModels.unshift("gemini-1.5-flash");
 
-        // Try loop
         for (const model of candidateModels.slice(0, 10)) {
             try {
                 console.log(`[Generate] Attempting model: ${model}`);
@@ -190,7 +200,7 @@ serve(async (req) => {
                     }],
                     generationConfig: {
                         maxOutputTokens: 8192,
-                        responseMimeType: "application/json" // Enforce JSON for 1.5+ models
+                        responseMimeType: "application/json"
                     }
                 };
 
@@ -207,12 +217,10 @@ serve(async (req) => {
 
                 const data = await res.json();
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
                 if (!text) throw new Error("Empty response from AI");
 
                 aiResponseData = JSON.parse(text);
                 break; // Success
-
             } catch (e: any) {
                 console.warn(`Model ${model} failed: ${e.message}`);
                 errorLog.push(`${model}: ${e.message}`);

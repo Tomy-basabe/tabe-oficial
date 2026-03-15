@@ -40,6 +40,8 @@ export function useDashboardStats() {
       return;
     }
 
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     if (isGuest) {
       setUserStats({
         xp_total: 4150, // 4150 / 100 + 1 => Nivel 42
@@ -73,6 +75,17 @@ export function useDashboardStats() {
     try {
       setLoading(true);
 
+      // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs
+      timeoutId = setTimeout(() => {
+        setLoading(current => {
+          if (current) {
+            console.warn("Dashboard stats fetch timed out, forcing loading to false");
+            return false;
+          }
+          return current;
+        });
+      }, 8000);
+
       // Fetch user stats
       const { data: statsData } = await supabase
         .from("user_stats")
@@ -95,6 +108,7 @@ export function useDashboardStats() {
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setLoading(false);
     }
   }, [user, isGuest]);

@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
-  Search, Filter, ArrowUpDown, FileText, AlertCircle
+  Search, Filter, ArrowUpDown, FileText, AlertCircle,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -68,6 +69,38 @@ const extractTextSnippet = (content: any): string => {
     const result = text.trim();
     if (!result) return '';
     return result.substring(0, 150) + (result.length > 150 ? '...' : '');
+  } catch (e) {
+    return '';
+  }
+};
+
+const extractFullText = (content: any): string => {
+  if (!content) return '';
+  
+  try {
+    let parsedContent = content;
+    if (typeof content === 'string') {
+      try {
+        parsedContent = JSON.parse(content);
+      } catch {
+        return content;
+      }
+    }
+
+    let text = '';
+    const extractNodes = (node: any) => {
+      if (node?.type === 'text' && node?.text) {
+        text += node.text + ' ';
+      }
+      if (node?.content && Array.isArray(node.content)) {
+        for (const child of node.content) {
+          extractNodes(child);
+        }
+      }
+    };
+
+    extractNodes(parsedContent);
+    return text.trim();
   } catch (e) {
     return '';
   }
@@ -231,6 +264,10 @@ export default function Notion() {
   const pendingSaveRef = useRef(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiGenType, setAiGenType] = useState<'flashcards' | 'quiz'>('flashcards');
+  const [aiGenCount, setAiGenCount] = useState(15);
 
   // Editor state
   const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
@@ -343,6 +380,121 @@ export default function Notion() {
 
     return newContent;
   }, []);
+
+  const handleGenerateAI = async () => {
+    if (!user || !activeDocument) return;
+    
+    // Check limits
+    if (!canUse('apuntes')) {
+        toast.error("Límite de uso de IA alcanzado. Hacete Premium para generar más.");
+        return;
+    }
+
+    setIsGeneratingAI(true);
+    const toastId = toast.loading(`Generando ${aiGenType === 'flashcards' ? 'flashcards' : 'cuestionario'} con IA...`);
+
+    try {
+      const fullText = extractFullText(editorContent || activeDocument.contenido);
+      if (fullText.length < 50) {
+        throw new Error("El documento es muy corto para generar material de estudio de calidad.");
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-study-content', {
+        body: {
+          fileName: activeDocument.titulo || "Nota",
+          content: fullText,
+          type: aiGenType,
+          count: aiGenCount
+        }
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      if (aiGenType === 'flashcards') {
+        const cards = data.data.cards;
+        if (!cards || cards.length === 0) throw new Error("No se pudieron generar flashcards.");
+
+        const { data: deck, error: deckError } = await supabase
+          .from("flashcard_decks")
+          .insert({
+            user_id: user.id,
+            subject_id: activeDocument.subject_id,
+            nombre: `IA: ${activeDocument.titulo?.substring(0, 30)}`,
+            total_cards: cards.length,
+            is_public: false
+          })
+          .select()
+          .single();
+
+        if (deckError) throw deckError;
+
+        const cardRows = cards.map((c: any) => ({
+          deck_id: deck.id,
+          user_id: user.id,
+          pregunta: c.pregunta,
+          respuesta: c.respuesta
+        }));
+
+        const { error: cardsError } = await supabase
+          .from("flashcards")
+          .insert(cardRows);
+
+        if (cardsError) throw cardsError;
+
+        toast.success(`¡Mazo de ${cards.length} flashcards creado en la sección de Flashcards!`, { id: toastId });
+      } else {
+        const questions = data.data.questions;
+        if (!questions || questions.length === 0) throw new Error("No se pudieron generar preguntas.");
+
+        const { data: quizDeck, error: qdErr } = await supabase
+          .from("quiz_decks")
+          .insert({
+            user_id: user.id,
+            subject_id: activeDocument.subject_id,
+            nombre: `IA: ${activeDocument.titulo?.substring(0, 30)}`,
+            total_questions: questions.length,
+            is_public: false
+          })
+          .select()
+          .single();
+
+        if (qdErr) throw qdErr;
+
+        for (const q of questions) {
+          const { data: question } = await supabase
+            .from("quiz_questions")
+            .insert({
+              deck_id: quizDeck.id,
+              user_id: user.id,
+              pregunta: q.pregunta,
+              explicacion: q.explicacion || null
+            })
+            .select()
+            .single();
+
+          if (question && q.opciones) {
+            const opts = q.opciones.map((o: string, i: number) => ({
+              question_id: question.id,
+              texto: o,
+              es_correcta: i === (q.correcta || 0)
+            }));
+            await supabase.from("quiz_options").insert(opts);
+          }
+        }
+
+        toast.success(`¡Cuestionario de ${questions.length} preguntas creado en la sección de Cuestionarios!`, { id: toastId });
+      }
+
+      await incrementUsage('apuntes');
+      setShowAIModal(false);
+    } catch (err: any) {
+      console.error("AI Generation failed:", err);
+      toast.error(err.message || "Error al generar material con IA", { id: toastId });
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
 
   // === Auto-save logic ===
   const saveDocument = useCallback(
@@ -970,6 +1122,15 @@ export default function Notion() {
                   />
                 </button>
 
+                {/* AI Generation */}
+                <button
+                  className="notion-topbar-btn text-primary hover:bg-primary/10"
+                  onClick={() => setShowAIModal(true)}
+                  title="Generar material de estudio con IA"
+                >
+                  <Sparkles className="w-4 h-4" />
+                </button>
+
                 {/* PDF Export */}
                 {user && (
                   <TipTapPDFExporter
@@ -1373,6 +1534,103 @@ export default function Notion() {
         open={showShortcutsModal}
         onClose={() => setShowShortcutsModal(false)}
       />
+      {/* AI Material Generation Modal */}
+      <Dialog open={showAIModal} onOpenChange={(val) => !isGeneratingAI && setShowAIModal(val)}>
+        <DialogContent className="sm:max-w-[450px] border-primary/20 bg-[#0d0d0d] shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-display font-bold">
+              <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+              <span>Magia de Tabe AI</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-6 space-y-6">
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-muted-foreground">¿Qué quieres generar?</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setAiGenType('flashcards')}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-4 rounded-xl border transition-all gap-2",
+                    aiGenType === 'flashcards' 
+                      ? "bg-primary/10 border-primary text-primary" 
+                      : "bg-secondary/40 border-border hover:border-primary/40 text-muted-foreground"
+                  )}
+                >
+                  <Star className="w-6 h-6" />
+                  <span className="font-bold text-sm">Flashcards</span>
+                </button>
+                <button
+                  onClick={() => setAiGenType('quiz')}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-4 rounded-xl border transition-all gap-2",
+                    aiGenType === 'quiz' 
+                      ? "bg-primary/10 border-primary text-primary" 
+                      : "bg-secondary/40 border-border hover:border-primary/40 text-muted-foreground"
+                  )}
+                >
+                  <Keyboard className="w-6 h-6" />
+                  <span className="font-bold text-sm">Cuestionario</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 px-1">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-muted-foreground">Cantidad de items</label>
+                <span className="text-sm font-bold text-primary">{aiGenCount}</span>
+              </div>
+              <input 
+                type="range"
+                min="5"
+                max="30"
+                step="5"
+                value={aiGenCount}
+                onChange={(e) => setAiGenCount(parseInt(e.target.value))}
+                className="w-full accent-primary bg-secondary h-1.5 rounded-full appearance-none cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
+                <span>Poco</span>
+                <span>Normal</span>
+                <span>Mucho</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground leading-relaxed italic opacity-80 bg-secondary/30 p-3 rounded-lg border border-border/50">
+              Tabe AI analizará todo el contenido de este apunte para crear material de estudio personalizado. 
+              El resultado se guardará automáticamente en su sección correspondiente vinculada a esta materia.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowAIModal(false)}
+              disabled={isGeneratingAI}
+              className="font-bold tracking-tight text-xs uppercase"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleGenerateAI}
+              disabled={isGeneratingAI}
+              className="bg-gradient-to-r from-neon-purple to-neon-cyan text-white border-white/10 shadow-lg shadow-primary/20 font-bold tracking-tight text-xs uppercase px-8"
+            >
+              {isGeneratingAI ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Hacer Magia
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

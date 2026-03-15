@@ -165,6 +165,7 @@ export function useForest() {
   const checkAndUpdatePlants = useCallback(async () => {
     if (!user || !currentPlant) return;
 
+    const now = new Date();
     // BUG FIX: use last_watered_at (not planted_at) to measure actual inactivity duration
     // planted_at is when the plant was created — but the relevant metric is "when did the user last water it?"
     const lastWateredDate = new Date(currentPlant.last_watered_at);
@@ -324,8 +325,24 @@ export function useForest() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchPlants(), fetchStudyActivity()]);
-      setLoading(false);
+      
+      // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs
+      const timeoutId = setTimeout(() => {
+        setLoading(current => {
+          if (current) {
+            console.warn("Forest data load timed out, forcing loading to false");
+            return false;
+          }
+          return current;
+        });
+      }, 8000);
+
+      try {
+        await Promise.all([fetchPlants(), fetchStudyActivity()]);
+      } finally {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      }
     };
     loadData();
   }, [fetchPlants, fetchStudyActivity]);
