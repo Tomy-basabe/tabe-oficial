@@ -236,9 +236,21 @@ export default function Notion() {
   const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
   const [localTitle, setLocalTitle] = useState("");
   const editorContentRef = useRef<JSONContent | null>(null);
+  const localTitleRef = useRef("");
   const lastSavedContentRef = useRef<string>("");
   const autoSaveTimerRef = useRef<number | null>(null);
+  const forceSaveTimerRef = useRef<number | null>(null);
   const activeDocumentRef = useRef<NotionDocument | null>(null);
+  const saveInProgressRef = useRef(false);
+
+  // Sync state to refs to avoid stale closures in callbacks
+  useEffect(() => {
+    activeDocumentRef.current = activeDocument;
+  }, [activeDocument]);
+
+  useEffect(() => {
+    localTitleRef.current = localTitle;
+  }, [localTitle]);
 
   // Sync activeDocument to ref to avoid state closure traps in intervals/events
   useEffect(() => {
@@ -279,61 +291,90 @@ export default function Notion() {
 
   // === Auto-save logic ===
   const saveDocument = useCallback(
-    async (silent = true) => {
-      if (!activeDocument) return;
+    async (silent = true): Promise<boolean> => {
+      const docToSave = activeDocumentRef.current;
+      if (!docToSave) return true;
       
-      if (isSaving) {
+      if (saveInProgressRef.current) {
         pendingSaveRef.current = true;
-        return;
+        return true; 
       }
 
-      const contentToSave = editorContentRef.current ?? editorContent;
-      if (!contentToSave) return;
+      const contentToSave = editorContentRef.current;
+      if (!contentToSave) return true;
       
       const contentStr = JSON.stringify(contentToSave);
+      const currentTitle = localTitleRef.current;
 
       const contentChanged = contentStr !== lastSavedContentRef.current;
-      const titleChanged = localTitle !== activeDocument.titulo;
+      const titleChanged = currentTitle !== docToSave.titulo;
 
-      if (!contentChanged && !titleChanged) return;
+      if (!contentChanged && !titleChanged) {
+        // Check if something was queued while we were "thinking"
+        if (pendingSaveRef.current) {
+           pendingSaveRef.current = false;
+           return saveDocument(silent);
+        }
+        return true;
+      }
 
       setIsSaving(true);
+      saveInProgressRef.current = true;
       pendingSaveRef.current = false;
 
       try {
         const updates: { contenido?: JSONContent; titulo?: string } = {};
         if (contentChanged) updates.contenido = contentToSave;
-        if (titleChanged) updates.titulo = localTitle;
+        if (titleChanged) updates.titulo = currentTitle;
 
-        const success = await updateDocument(activeDocument.id, updates);
+        const success = await updateDocument(docToSave.id, updates);
         if (success) {
           lastSavedContentRef.current = contentStr;
-          setActiveDocument((prev) => (prev ? { ...prev, titulo: localTitle } : null));
+          // Only update state if we are still on the SAME document
+          if (activeDocumentRef.current?.id === docToSave.id) {
+            setActiveDocument((prev) => (prev ? { ...prev, titulo: currentTitle } : null));
+          }
           setLastSaved(new Date());
           if (!silent) toast.success("Apunte guardado");
+          return true;
         } else {
           throw new Error("Update failed");
         }
       } catch (error) {
         console.error("Error saving document:", error);
         if (!silent) toast.error("Error al guardar el apunte");
+        return false;
       } finally {
+        saveInProgressRef.current = false;
         setIsSaving(false);
-        // If changes were made while we were saving, trigger another save
+        // If changes were made while we were saving, trigger another save immediately
         if (pendingSaveRef.current) {
-          saveDocument(silent);
+          await saveDocument(silent);
         }
       }
     },
-    [activeDocument, editorContent, localTitle, updateDocument, isSaving]
+    [updateDocument]
   );
 
   // Trigger auto-save on content changes
   const scheduleAutoSave = useCallback(() => {
+    // 1. Debounce timer (3s of inactivity)
     if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = window.setTimeout(() => {
       saveDocument(true);
-    }, 3000); // 3 seconds
+      if (forceSaveTimerRef.current) {
+        window.clearTimeout(forceSaveTimerRef.current);
+        forceSaveTimerRef.current = null;
+      }
+    }, 3000);
+
+    // 2. Continuous typing periodic save (10s)
+    if (!forceSaveTimerRef.current) {
+      forceSaveTimerRef.current = window.setTimeout(() => {
+        saveDocument(true);
+        forceSaveTimerRef.current = null;
+      }, 10000); 
+    }
   }, [saveDocument]);
 
   const handleRenameSubmit = async () => {
@@ -421,9 +462,10 @@ export default function Notion() {
   const handleSaveOnExit = useCallback(() => {
     const doc = activeDocumentRef.current;
     if (!doc || !user) return;
+
+    // 1. Save Study Time
     const unsaved = totalSecondsRef.current - savedSecondsRef.current;
     if (unsaved > 0) {
-      // Use the actual subject_id from activeDocument using ref
       supabase.from("study_sessions").insert({
         user_id: user.id,
         subject_id: doc.subject_id,
@@ -435,6 +477,27 @@ export default function Notion() {
         if (error) console.error("Error saving time on exit:", error);
       });
       savedSecondsRef.current = totalSecondsRef.current;
+    }
+
+    // 2. Save Document Content (Best effort on exit)
+    const contentToSave = editorContentRef.current;
+    if (contentToSave) {
+      const contentStr = JSON.stringify(contentToSave);
+      const currentTitle = localTitleRef.current;
+      const contentChanged = contentStr !== lastSavedContentRef.current;
+      const titleChanged = currentTitle !== doc.titulo;
+
+      if (contentChanged || titleChanged) {
+        const updates: { contenido?: JSONContent; titulo?: string } = {};
+        if (contentChanged) updates.contenido = contentToSave;
+        if (titleChanged) updates.titulo = currentTitle;
+
+        // Use a "fire and forget" update with lower priority/background
+        supabase.from("notion_documents")
+          .update(updates)
+          .eq("id", doc.id)
+          .then(); // Just fire it
+      }
     }
   }, [user]);
 
@@ -473,15 +536,18 @@ export default function Notion() {
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
+      if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
     };
   }, []);
 
   // === Document operations ===
   const openDocument = useCallback(async (doc: NotionDocument) => {
     // Save current doc first
-    if (autoSaveTimerRef.current) {
-      window.clearTimeout(autoSaveTimerRef.current);
+    if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
+      if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
+      if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
       autoSaveTimerRef.current = null;
+      forceSaveTimerRef.current = null;
       await saveDocument(true);
     }
 
@@ -519,8 +585,9 @@ export default function Notion() {
   }, [saveDocument, handleSaveOnExit, fetchDocumentContent]);
 
   const closeDocument = useCallback(() => {
-    if (autoSaveTimerRef.current) {
-      window.clearTimeout(autoSaveTimerRef.current);
+    if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
+      if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
+      if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
       saveDocument(true);
     }
     handleSaveOnExit();
