@@ -358,7 +358,7 @@ export default function Notion() {
 
   // Trigger auto-save on content changes
   const scheduleAutoSave = useCallback(() => {
-    // 1. Debounce timer (3s of inactivity)
+    // 1. Debounce timer (1.5s of inactivity)
     if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = window.setTimeout(() => {
       saveDocument(true);
@@ -366,14 +366,14 @@ export default function Notion() {
         window.clearTimeout(forceSaveTimerRef.current);
         forceSaveTimerRef.current = null;
       }
-    }, 3000);
+    }, 1500);
 
-    // 2. Continuous typing periodic save (10s)
+    // 2. Continuous typing periodic save (5s)
     if (!forceSaveTimerRef.current) {
       forceSaveTimerRef.current = window.setTimeout(() => {
         saveDocument(true);
         forceSaveTimerRef.current = null;
-      }, 10000); 
+      }, 5000); 
     }
   }, [saveDocument]);
 
@@ -846,17 +846,7 @@ export default function Notion() {
             {activeDocument && (
               <>
                 {/* Save indicator */}
-                {saveStatusText && (
-                  <span
-                    className={cn(
-                      "notion-save-indicator",
-                      isSaving && "saving"
-                    )}
-                  >
-                    {isSaving && <Loader2 className="w-3 h-3 animate-spin" />}
-                    {saveStatusText}
-                  </span>
-                )}
+                {/* Silent Save indicator (Removed text as per user request) */}
 
                 {/* Timer Display */}
                 <div className={cn(
