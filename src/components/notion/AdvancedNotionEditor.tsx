@@ -22,6 +22,8 @@ import { wrappingInputRule, PasteRule } from "@tiptap/core";
 import { common, createLowlight } from "lowlight";
 import { useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Bold, Italic, Underline, Strikethrough, Code,
   Heading1, Heading2, Heading3, List, ListOrdered,
@@ -211,23 +213,46 @@ export function AdvancedNotionEditor({
         return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\t/g, ' ');
       },
       handlePaste: (view, event) => {
-        // === IMAGE HANDLING (Base64) ===
+        // === IMAGE HANDLING (Storage) ===
         if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
-          Array.from(event.clipboardData.files).forEach((file) => {
-            if (file.type.startsWith('image/')) {
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                const base64Src = e.target?.result as string;
-                if (base64Src && editor) {
-                  editor.chain().focus().setImage({ src: base64Src }).run();
+          const files = Array.from(event.clipboardData.files);
+          const hasImages = files.some(f => f.type.startsWith('image/'));
+
+          if (hasImages) {
+            files.forEach(async (file) => {
+              if (file.type.startsWith('image/')) {
+                // Check file size (e.g., 5MB limit)
+                if (file.size > 5 * 1024 * 1024) {
+                  toast.error("La imagen es demasiado grande (máx 5MB)");
+                  return;
                 }
-              };
-              reader.readAsDataURL(file);
-            }
-          });
-          if (Array.from(event.clipboardData.files).some(f => f.type.startsWith('image/'))) {
-             event.preventDefault();
-             return true;
+
+                try {
+                  const fileExt = file.name.split('.').pop() || 'png';
+                  const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+                  const filePath = `${fileName}`;
+
+                  const { error: uploadError } = await supabase.storage
+                    .from('notion-images')
+                    .upload(filePath, file);
+
+                  if (uploadError) throw uploadError;
+
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('notion-images')
+                    .getPublicUrl(filePath);
+
+                  if (publicUrl && editor) {
+                    editor.chain().focus().setImage({ src: publicUrl }).run();
+                  }
+                } catch (error) {
+                  console.error("Error uploading image:", error);
+                  toast.error("Error al subir la imagen");
+                }
+              }
+            });
+            event.preventDefault();
+            return true;
           }
         }
 

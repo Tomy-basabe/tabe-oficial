@@ -279,8 +279,10 @@ export default function Notion() {
   // === Auto-save logic ===
   const saveDocument = useCallback(
     async (silent = true) => {
-      if (!activeDocument) return;
+      if (!activeDocument || isSaving) return;
       const contentToSave = editorContentRef.current ?? editorContent;
+      if (!contentToSave) return;
+      
       const contentStr = JSON.stringify(contentToSave);
 
       const contentChanged = contentStr !== lastSavedContentRef.current;
@@ -291,21 +293,26 @@ export default function Notion() {
       setIsSaving(true);
       try {
         const updates: { contenido?: JSONContent; titulo?: string } = {};
-        if (contentChanged && contentToSave) updates.contenido = contentToSave;
+        if (contentChanged) updates.contenido = contentToSave;
         if (titleChanged) updates.titulo = localTitle;
 
-        await updateDocument(activeDocument.id, updates);
-        lastSavedContentRef.current = contentStr;
-        setActiveDocument((prev) => (prev ? { ...prev, titulo: localTitle } : null));
-        setLastSaved(new Date());
-        if (!silent) toast.success("Guardado");
-      } catch {
-        if (!silent) toast.error("Error al guardar");
+        const success = await updateDocument(activeDocument.id, updates);
+        if (success) {
+          lastSavedContentRef.current = contentStr;
+          setActiveDocument((prev) => (prev ? { ...prev, titulo: localTitle } : null));
+          setLastSaved(new Date());
+          if (!silent) toast.success("Apunte guardado");
+        } else {
+          throw new Error("Update failed");
+        }
+      } catch (error) {
+        console.error("Error saving document:", error);
+        if (!silent) toast.error("Error al guardar el apunte");
       } finally {
         setIsSaving(false);
       }
     },
-    [activeDocument, editorContent, localTitle, updateDocument]
+    [activeDocument, editorContent, localTitle, updateDocument, isSaving]
   );
 
   // Trigger auto-save on content changes
@@ -313,7 +320,7 @@ export default function Notion() {
     if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = window.setTimeout(() => {
       saveDocument(true);
-    }, 1500);
+    }, 10000); // 10 seconds
   }, [saveDocument]);
 
   const handleRenameSubmit = async () => {
