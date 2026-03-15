@@ -228,6 +228,7 @@ export default function Notion() {
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [isOpeningDoc, setIsOpeningDoc] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const pendingSaveRef = useRef(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
 
@@ -279,7 +280,13 @@ export default function Notion() {
   // === Auto-save logic ===
   const saveDocument = useCallback(
     async (silent = true) => {
-      if (!activeDocument || isSaving) return;
+      if (!activeDocument) return;
+      
+      if (isSaving) {
+        pendingSaveRef.current = true;
+        return;
+      }
+
       const contentToSave = editorContentRef.current ?? editorContent;
       if (!contentToSave) return;
       
@@ -291,6 +298,8 @@ export default function Notion() {
       if (!contentChanged && !titleChanged) return;
 
       setIsSaving(true);
+      pendingSaveRef.current = false;
+
       try {
         const updates: { contenido?: JSONContent; titulo?: string } = {};
         if (contentChanged) updates.contenido = contentToSave;
@@ -310,6 +319,10 @@ export default function Notion() {
         if (!silent) toast.error("Error al guardar el apunte");
       } finally {
         setIsSaving(false);
+        // If changes were made while we were saving, trigger another save
+        if (pendingSaveRef.current) {
+          saveDocument(silent);
+        }
       }
     },
     [activeDocument, editorContent, localTitle, updateDocument, isSaving]
@@ -320,7 +333,7 @@ export default function Notion() {
     if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = window.setTimeout(() => {
       saveDocument(true);
-    }, 10000); // 10 seconds
+    }, 3000); // 3 seconds
   }, [saveDocument]);
 
   const handleRenameSubmit = async () => {
@@ -345,7 +358,8 @@ export default function Notion() {
       if (!activeDocument) return;
       lastActivityRef.current = Date.now();
       editorContentRef.current = content;
-      setEditorContent(content);
+      // No actualizamos editorContent vía state aquí para evitar re-renders innecesarios durante la escritura.
+      // El editor de Tiptap ya maneja su propio estado interno y Notion guarda usando la ref.
       scheduleAutoSave();
     },
     [activeDocument, scheduleAutoSave]
