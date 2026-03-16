@@ -1,74 +1,30 @@
 import { useState, useEffect } from "react";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  GraduationCap,
-  Calendar,
-  Timer,
-  BarChart3,
-  Bot,
-  Settings,
-  Menu,
-  X,
-  Zap,
-  Layers,
-  ClipboardList,
-  Library,
-  Trophy,
-  Shield,
-  Users,
-  Store,
-  TreeDeciduous,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Repeat2,
-  Clock,
-  ChevronDown,
+import { 
+  Menu, 
+  X, 
+  PanelLeftClose, 
+  PanelLeftOpen, 
+  ChevronDown, 
   ChevronRight,
   Folder
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { NotionIcon } from "@/components/icons/NotionIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
 import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CustomSidebarItem, ICON_MAP } from "../settings/SidebarCustomizer";
-
-export interface NavItem {
-  icon: any;
-  label: string;
-  path: string;
-  tourClass?: string;
-  isCategory?: boolean;
-  items?: NavItem[];
-}
-
-export const baseNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
-  { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
-  { icon: Clock, label: "Consultas", path: "/consultas", tourClass: "tour-sidebar-consultas" },
-  { icon: NotionIcon, label: "Apuntes", path: "/notion", tourClass: "tour-sidebar-notion" },
-  { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
-  { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
-  { icon: Store, label: "Marketplace", path: "/marketplace", tourClass: "tour-sidebar-marketplace" },
-  { icon: Library, label: "Biblioteca", path: "/biblioteca", tourClass: "tour-sidebar-biblioteca" },
-  { icon: Calendar, label: "Calendario", path: "/calendario", tourClass: "tour-sidebar-calendar" },
-  { icon: Repeat2, label: "Rutinas", path: "/rutinas", tourClass: "tour-sidebar-rutinas" },
-  { icon: Timer, label: "Pomodoro", path: "/pomodoro", tourClass: "tour-sidebar-pomodoro" },
-  { icon: BarChart3, label: "Métricas", path: "/metricas", tourClass: "tour-sidebar-metricas" },
-  { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
-  { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
-  { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
-  { icon: Bot, label: "Asistente IA", path: "/asistente", tourClass: "tour-sidebar-asistenteia" },
-  { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
-];
-
-const adminNavItem = { icon: Shield, label: "Admin", path: "/admin" };
+import { 
+  NavItem, 
+  baseNavItems, 
+  adminNavItem, 
+  ICON_MAP,
+  CustomSidebarItem
+} from "@/lib/sidebar-configs";
 
 interface UserStats {
   xp_total: number;

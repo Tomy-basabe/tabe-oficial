@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { baseNavItems } from "../layout/MainLayout";
-import { Button } from "@/components/ui/button";
+import { 
+  NavItem, 
+  baseNavItems, 
+  adminNavItem, 
+  ICON_MAP,
+  ICON_NAMES,
+  DEFAULT_ICON_MAPPING,
+  CustomSidebarItem,
+  ALL_AVAILABLE_ITEMS
+} from "@/lib/sidebar-configs";
 import { 
   ChevronUp, 
   ChevronDown, 
@@ -15,58 +23,16 @@ import {
   Check,
   X,
   Search,
-  Shield, // Added Shield icon
-  // Icon Catalog
-  GraduationCap, LayoutDashboard, Clock, FileText, Layers, ClipboardList, Store, Library, Calendar,
-  Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
-  Music, Video, Camera, MessageSquare, Users, Bell, Heart, Star, Flame, Zap,
-  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
+  Folder, 
+  CheckCircle2,
+  FileText,
   LucideIcon
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { NotionIcon } from "@/components/icons/NotionIcon";
 import { ScrollArea as UIScrollArea } from "@/components/ui/scroll-area";
-
-// Navigation Mapping
-const ALL_AVAILABLE_ITEMS = [
-  ...baseNavItems,
-  { icon: Shield, label: "Admin", path: "/admin" }
-];
-
-export interface CustomSidebarItem {
-  id: string; // Unique instance ID
-  label: string;
-  type: "item" | "category";
-  path?: string; // Navigation path for items
-  iconName?: string; // Lucide icon name string
-  items?: CustomSidebarItem[];
-}
-
-export const ICON_MAP: Record<string, any> = {
-  GraduationCap, LayoutDashboard, Clock, FileText, Layers, ClipboardList, Store, Library, Calendar,
-  Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
-  Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
-  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
-  NotionIcon, Shield // Added Shield to ICON_MAP
-};
-
-const ICON_NAMES = Object.keys(ICON_MAP);
-
-const DEFAULT_ICON_MAPPING: Record<string, string> = {
-  "/dashboard": "LayoutDashboard",
-  "/carrera": "GraduationCap",
-  "/consultas": "Clock",
-  "/notion": "NotionIcon",
-  "/flashcards": "Layers",
-  "/cuestionarios": "ClipboardList",
-  "/marketplace": "Store",
-  "/biblioteca": "Library",
-  "/calendario": "Calendar",
-  "/admin": "Settings",
-  "/configuracion": "Settings" // Added new mapping
-};
 
 export function SidebarCustomizer() {
   const { profile, updateSidebarConfig } = useAuth();
