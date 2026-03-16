@@ -207,7 +207,12 @@ export function MainLayout() {
                 const baseItem = [...baseNavItems, adminNavItem].find(b => b.path === item.id);
                 if (!baseItem && item.type === "item") return null;
 
-                const Icon = (item.iconName && ICON_MAP[item.iconName]) || baseItem?.icon || Folder;
+                // Resilient icon selection: Prefer custom iconName unless it's a generic fallback
+                const Icon = (item.iconName && item.iconName !== "FileText" && ICON_MAP[item.iconName]) 
+                  || baseItem?.icon 
+                  || (item.iconName && ICON_MAP[item.iconName])
+                  || Folder;
+                
                 const path = baseItem?.path || "#";
                 const isActive = location.pathname === path;
 
