@@ -493,7 +493,7 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
           {/* The selected card large */}
           <div className="w-full max-w-xl">
             <div
-              onClick={() => studyPhase === "viewing" && !isFlipped && setIsFlipped(true)}
+              onClick={() => studyPhase === "viewing" && setIsFlipped(!isFlipped)}
               className="relative aspect-[4/3] cursor-pointer"
               style={{ perspective: "1500px" }}
             >

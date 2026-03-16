@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Layers, Play, Plus, Sparkles, Trash2, MoreVertical, BookOpen } from "lucide-react";
+import { Layers, Play, Plus, Sparkles, Trash2, MoreVertical, BookOpen, Check, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ interface Deck {
 
 interface FlashcardDeckProps {
   deck: Deck;
-  onStartStudy: (deck: Deck) => void;
+  onStartStudy: (deck: Deck, filter: 'all' | 'known' | 'partial' | 'unknown') => void;
   onAddCard: (deck: Deck) => void;
   onDeleteDeck: (deck: Deck) => void;
   onManageCards: (deck: Deck) => void;
@@ -164,19 +164,37 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
 
         {/* Actions */}
         <div className="flex gap-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); onStartStudy(deck); }}
-            disabled={deck.total_cards === 0}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300",
-              deck.total_cards > 0
-                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:shadow-lg hover:shadow-neon-cyan/25 hover:scale-[1.02]"
-                : "bg-secondary text-muted-foreground cursor-not-allowed"
-            )}
-          >
-            <Play className="w-4 h-4" />
-            Estudiar
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                disabled={deck.total_cards === 0}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300",
+                  deck.total_cards > 0
+                    ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:shadow-lg hover:shadow-neon-cyan/25 hover:scale-[1.02]"
+                    : "bg-secondary text-muted-foreground cursor-not-allowed"
+                )}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Play className="w-4 h-4" />
+                Estudiar
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-card border-border w-48">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartStudy(deck, 'all'); }}>
+                <Play className="w-4 h-4 mr-2" /> Estudiar normal
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartStudy(deck, 'unknown'); }}>
+                <X className="w-4 h-4 mr-2 text-neon-red" /> No sabidas
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartStudy(deck, 'partial'); }}>
+                <Zap className="w-4 h-4 mr-2 text-neon-gold" /> Sabidas a medias
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartStudy(deck, 'known'); }}>
+                <Check className="w-4 h-4 mr-2 text-neon-green" /> Sabidas
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             onClick={(e) => { e.stopPropagation(); onAddCard(deck); }}
             className="px-3 py-2.5 bg-secondary rounded-xl hover:bg-secondary/80 transition-all hover:scale-105 border border-border/50"

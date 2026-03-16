@@ -343,12 +343,32 @@ export default function Flashcards() {
     setStudyState("completed");
   }, [user, selectedDeck, studyTime, checkAndUnlockAchievements]);
 
-  const startStudying = async (deck: Deck) => {
-    const fetchedCards = await fetchCards(deck.id);
+  const startStudying = async (deck: Deck, filter: 'all' | 'known' | 'partial' | 'unknown' = 'all') => {
+    let fetchedCards = await fetchCards(deck.id);
     if (fetchedCards.length === 0) {
       toast.error("Este mazo no tiene tarjetas");
       return;
     }
+
+    if (filter !== 'all') {
+      fetchedCards = fetchedCards.filter(card => {
+        if (filter === 'known') return card.veces_correcta >= 3;
+        if (filter === 'partial') return card.veces_correcta > 0 && card.veces_correcta < 3;
+        if (filter === 'unknown') return card.veces_correcta === 0;
+        return true;
+      });
+    }
+
+    if (fetchedCards.length === 0) {
+      const messages = {
+        known: "No hay tarjetas marcadas como 'sabidas' todavía",
+        partial: "No hay tarjetas marcadas como 'sabidas a medias' todavía",
+        unknown: "No hay tarjetas 'no sabidas' en este mazo"
+      };
+      toast.info(messages[filter as keyof typeof messages] || "No hay tarjetas con este filtro");
+      return;
+    }
+
     setSelectedDeck(deck);
     setCards(fetchedCards);
     setStudyTime(0);
