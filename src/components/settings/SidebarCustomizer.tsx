@@ -142,6 +142,11 @@ export function SidebarCustomizer() {
     setConfig([...config, newCategory]);
   };
 
+  const toggleAddItemSelector = (id: string | null) => {
+    setShowAddItemToId(id);
+    setSearchTerm("");
+  };
+
   const addItemToFolder = (folderId: string, baseItem: any) => {
     const newItem: CustomSidebarItem = {
       id: `item-${Date.now()}-${Math.random()}`,
@@ -277,7 +282,7 @@ export function SidebarCustomizer() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-3 bg-secondary/10 p-4 rounded-xl border border-border overflow-hidden">
+        <div className="space-y-3 bg-secondary/10 p-4 rounded-xl border border-border">
           <div className="flex items-center gap-2 mb-2 px-1">
             <Settings className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium text-muted-foreground">Editor de Estructura</span>
@@ -345,7 +350,7 @@ export function SidebarCustomizer() {
                 </div>
 
                 {showIconPicker === item.id && (
-                  <div className="absolute left-12 top-12 z-[100] bg-card border border-border p-2 rounded-xl shadow-xl w-64 animate-in fade-in zoom-in-95">
+                  <div className="absolute left-12 top-12 z-[120] bg-card border border-border p-2 rounded-xl shadow-xl w-64 animate-in fade-in zoom-in-95">
                     <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto p-2">
                       {ICON_NAMES.map(name => (
                         <button 
@@ -367,7 +372,7 @@ export function SidebarCustomizer() {
                       variant="ghost" 
                       size="icon" 
                       className="text-primary h-8 w-8" 
-                      onClick={() => setShowAddItemToId(showAddItemToId === item.id ? null : item.id)}
+                      onClick={() => toggleAddItemSelector(showAddItemToId === item.id ? null : item.id)}
                       title="Añadir apartado a esta carpeta"
                     >
                       <Plus className="w-4 h-4" />
@@ -385,7 +390,7 @@ export function SidebarCustomizer() {
 
                 {/* Add Item to Folder Popover */}
                 {showAddItemToId === item.id && (
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-[90] bg-card border border-border p-3 rounded-xl shadow-2xl w-72 animate-in slide-in-from-top-2">
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-[110] bg-card border border-border p-3 rounded-xl shadow-2xl w-72 animate-in slide-in-from-top-2">
                     <div className="flex items-center gap-2 mb-3 bg-secondary/50 rounded-lg px-3 py-1.5">
                       <Search className="w-3.5 h-3.5 text-muted-foreground" />
                       <input 
