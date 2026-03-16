@@ -14,10 +14,11 @@ import {
   Edit2,
   Check,
   X,
+  Search,
   // Icon Catalog
   GraduationCap, LayoutDashboard, Clock, FileText, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
-  Music, Video, Camera, MessageSquare, Users, Bell, Search, Heart, Star, Flame, Zap,
+  Music, Video, Camera, MessageSquare, Users, Bell, Heart, Star, Flame, Zap,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
   LucideIcon
 } from "lucide-react";
@@ -28,14 +29,14 @@ import { NotionIcon } from "@/components/icons/NotionIcon";
 import { ScrollArea as UIScrollArea } from "@/components/ui/scroll-area";
 
 export interface CustomSidebarItem {
-  id: string; // path or unique category id
+  id: string; // Unique instance ID
   label: string;
   type: "item" | "category";
+  path?: string; // Navigation path for items
   iconName?: string; // Lucide icon name string
   items?: CustomSidebarItem[];
 }
 
-// Icon Mapping for the catalog
 export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
@@ -46,39 +47,48 @@ export const ICON_MAP: Record<string, any> = {
 
 const ICON_NAMES = Object.keys(ICON_MAP);
 
+const DEFAULT_ICON_MAPPING: Record<string, string> = {
+  "/dashboard": "LayoutDashboard",
+  "/carrera": "GraduationCap",
+  "/consultas": "Clock",
+  "/notion": "NotionIcon",
+  "/flashcards": "Layers",
+  "/cuestionarios": "ClipboardList",
+  "/marketplace": "Store",
+  "/biblioteca": "Library",
+  "/calendario": "Calendar",
+  "/admin": "Settings"
+};
+
 export function SidebarCustomizer() {
   const { profile, updateSidebarConfig } = useAuth();
   const [config, setConfig] = useState<CustomSidebarItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showIconPicker, setShowIconPicker] = useState<string | null>(null);
+  const [showAddItemToId, setShowAddItemToId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const DEFAULT_ICON_MAPPING: Record<string, string> = {
-      "/dashboard": "LayoutDashboard",
-      "/carrera": "GraduationCap",
-      "/consultas": "Clock",
-      "/notion": "NotionIcon",
-      "/flashcards": "Layers",
-      "/cuestionarios": "ClipboardList",
-      "/marketplace": "Store",
-      "/biblioteca": "Library",
-      "/calendario": "Calendar",
-      "/admin": "Settings"
-    };
-
     const sanitizeItems = (items: any[]): CustomSidebarItem[] => {
       return items.map(item => {
         let newItem = { ...item };
         
-        // Fix missing or generic icons for default paths
-        if (item.type === "item" && (!item.iconName || item.iconName === "FileText")) {
-          newItem.iconName = DEFAULT_ICON_MAPPING[item.id] || "FileText";
+        // Ensure every item has a unique id and path
+        if (!newItem.id) newItem.id = `item-${Date.now()}-${Math.random()}`;
+        
+        if (newItem.type === "item") {
+          // If path is missing, use id (legacy support where id was the path)
+          if (!newItem.path) newItem.path = newItem.id;
+          
+          // Fix missing or generic icons for default paths
+          if (!newItem.iconName || newItem.iconName === "FileText") {
+            newItem.iconName = DEFAULT_ICON_MAPPING[newItem.path] || "FileText";
+          }
         }
         
-        // Recursive sanitization for categories
-        if (item.items) {
-          newItem.items = sanitizeItems(item.items);
+        if (newItem.items) {
+          newItem.items = sanitizeItems(newItem.items);
         }
         
         return newItem as CustomSidebarItem;
@@ -89,7 +99,8 @@ export function SidebarCustomizer() {
       setConfig(sanitizeItems(profile.sidebar_config));
     } else {
       const defaultConfig = baseNavItems.map(item => ({
-        id: item.path,
+        id: `item-${item.path}`,
+        path: item.path,
         label: item.label,
         type: "item" as "item",
         iconName: DEFAULT_ICON_MAPPING[item.path] || "FileText"
@@ -131,6 +142,32 @@ export function SidebarCustomizer() {
     setConfig([...config, newCategory]);
   };
 
+  const addItemToFolder = (folderId: string, baseItem: any) => {
+    const newItem: CustomSidebarItem = {
+      id: `item-${Date.now()}-${Math.random()}`,
+      path: baseItem.path,
+      label: baseItem.label,
+      type: "item",
+      iconName: DEFAULT_ICON_MAPPING[baseItem.path] || "FileText"
+    };
+
+    const updateFolder = (items: CustomSidebarItem[]): CustomSidebarItem[] => {
+      return items.map(item => {
+        if (item.id === folderId) {
+          return { ...item, items: [...(item.items || []), newItem] };
+        }
+        if (item.items) {
+          return { ...item, items: updateFolder(item.items) };
+        }
+        return item;
+      });
+    };
+
+    setConfig(updateFolder(config));
+    setShowAddItemToId(null);
+    toast.success(`${baseItem.label} añadido a la categoría`);
+  };
+
   const deleteItem = (index: number) => {
     const item = config[index];
     if (item.type === "category" && item.items && item.items.length > 0) {
@@ -138,6 +175,15 @@ export function SidebarCustomizer() {
     }
     const newConfig = config.filter((_, i) => i !== index);
     setConfig(newConfig);
+  };
+
+  const deleteSubItem = (catIndex: number, subIndex: number) => {
+    const newConfig = [...config];
+    const category = newConfig[catIndex];
+    if (category.items) {
+      category.items = category.items.filter((_, i) => i !== subIndex);
+      setConfig(newConfig);
+    }
   };
 
   const moveIntoCategory = (itemIndex: number, catIndex: number) => {
@@ -196,21 +242,9 @@ export function SidebarCustomizer() {
   const resetToDefault = () => {
     if (!confirm("¿Restablecer el panel lateral a su estado original?")) return;
     
-    const DEFAULT_ICON_MAPPING: Record<string, string> = {
-      "/dashboard": "LayoutDashboard",
-      "/carrera": "GraduationCap",
-      "/consultas": "Clock",
-      "/notion": "NotionIcon",
-      "/flashcards": "Layers",
-      "/cuestionarios": "ClipboardList",
-      "/marketplace": "Store",
-      "/biblioteca": "Library",
-      "/calendario": "Calendar",
-      "/admin": "Settings"
-    };
-
     const defaultConfig = baseNavItems.map(item => ({
-      id: item.path,
+      id: `item-${item.path}`,
+      path: item.path,
       label: item.label,
       type: "item" as "item",
       iconName: DEFAULT_ICON_MAPPING[item.path] || "FileText"
@@ -221,8 +255,12 @@ export function SidebarCustomizer() {
 
   const IconDisplay = ({ name, className }: { name?: string, className?: string }) => {
     const Icon = name && ICON_MAP[name] ? ICON_MAP[name] : FileText;
-    return <Icon className={className} />;
+    return <Icon className={className || "w-4 h-4"} />;
   };
+
+  const filteredBaseNavItems = baseNavItems.filter(item => 
+    item.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -307,7 +345,7 @@ export function SidebarCustomizer() {
                 </div>
 
                 {showIconPicker === item.id && (
-                  <div className="absolute left-12 top-12 z-50 bg-card border border-border p-2 rounded-xl shadow-xl w-64 animate-in fade-in zoom-in-95">
+                  <div className="absolute left-12 top-12 z-[100] bg-card border border-border p-2 rounded-xl shadow-xl w-64 animate-in fade-in zoom-in-95">
                     <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto p-2">
                       {ICON_NAMES.map(name => (
                         <button 
@@ -324,8 +362,19 @@ export function SidebarCustomizer() {
                 )}
 
                 <div className="flex items-center gap-1">
+                  {item.type === "category" && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-primary h-8 w-8" 
+                      onClick={() => setShowAddItemToId(showAddItemToId === item.id ? null : item.id)}
+                      title="Añadir apartado a esta carpeta"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  )}
                   {item.type === "item" && index > 0 && config[index-1].type === "category" && (
-                    <Button variant="ghost" size="sm" onClick={() => moveIntoCategory(index, index - 1)} title="Meters en categoría arriba" className="h-8">
+                    <Button variant="ghost" size="sm" onClick={() => moveIntoCategory(index, index - 1)} title="Meter en categoría arriba" className="h-8">
                       <ChevronLeft className="w-4 h-4 mr-1" /> Agrupar
                     </Button>
                   )}
@@ -333,13 +382,45 @@ export function SidebarCustomizer() {
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
+
+                {/* Add Item to Folder Popover */}
+                {showAddItemToId === item.id && (
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-[90] bg-card border border-border p-3 rounded-xl shadow-2xl w-72 animate-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 mb-3 bg-secondary/50 rounded-lg px-3 py-1.5">
+                      <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                      <input 
+                        className="bg-transparent border-none outline-none text-xs w-full"
+                        placeholder="Buscar apartado..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <UIScrollArea className="h-48">
+                      <div className="grid grid-cols-1 gap-1 pr-2">
+                        {filteredBaseNavItems.map(baseItem => (
+                          <button
+                            key={baseItem.path}
+                            onClick={() => addItemToFolder(item.id, baseItem)}
+                            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-primary/10 hover:text-primary transition-all text-sm text-left group"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center group-hover:bg-primary/20">
+                              <baseItem.icon className="w-4 h-4" />
+                            </div>
+                            <span className="font-medium">{baseItem.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </UIScrollArea>
+                  </div>
+                )}
               </div>
 
               {/* Nested items for categories */}
               {item.type === "category" && item.items && (
                 <div className="ml-12 space-y-2 border-l-2 border-primary/20 pl-4 py-1">
                   {item.items.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic py-2">Categoría vacía</p>
+                    <p className="text-xs text-muted-foreground italic py-2 px-1">Carpeta vacía (toca el + para añadir)</p>
                   )}
                   {item.items.map((subItem, subIndex) => (
                     <div key={subItem.id} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-card/50 relative">
@@ -351,7 +432,7 @@ export function SidebarCustomizer() {
                       </button>
 
                       {showIconPicker === subItem.id && (
-                        <div className="absolute left-8 top-8 z-50 bg-card border border-border p-2 rounded-xl shadow-xl w-64">
+                        <div className="absolute left-8 top-8 z-[100] bg-card border border-border p-2 rounded-xl shadow-xl w-64">
                           <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto p-2">
                             {ICON_NAMES.map(name => (
                               <button 
@@ -390,9 +471,14 @@ export function SidebarCustomizer() {
                           </div>
                         )}
                       </div>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => moveOutOfCategory(index, subIndex)}>
-                        <ChevronRight className="w-3 h-3 mr-1" /> Sacar
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => moveOutOfCategory(index, subIndex)}>
+                          <ChevronRight className="w-3 h-3 mr-1" /> Sacar
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => deleteSubItem(index, subIndex)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

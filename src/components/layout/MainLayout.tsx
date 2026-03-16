@@ -204,7 +204,10 @@ export function MainLayout() {
             {(() => {
               const renderNavItem = (item: any, isInsideCategory = false) => {
                 // Find matching base item to get the icon (including admin)
-                const baseItem = [...baseNavItems, adminNavItem].find(b => b.path === item.id);
+                // Use item.path (new) or item.id (legacy/folders)
+                const targetPath = item.path || (item.type === "item" ? item.id : null);
+                const baseItem = [...baseNavItems, adminNavItem].find(b => b.path === targetPath);
+                
                 if (!baseItem && item.type === "item") return null;
 
                 // Resilient icon selection: Prefer custom iconName unless it's a generic fallback
@@ -213,7 +216,7 @@ export function MainLayout() {
                   || (item.iconName && ICON_MAP[item.iconName])
                   || Folder;
                 
-                const path = baseItem?.path || "#";
+                const path = targetPath || "#";
                 const isActive = location.pathname === path;
 
                 if (item.type === "category") {
