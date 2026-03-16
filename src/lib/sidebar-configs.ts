@@ -97,6 +97,5 @@ export const baseNavItems: NavItem[] = [
 export const adminNavItem = { icon: Shield, label: "Admin", path: "/admin" };
 
 export const ALL_AVAILABLE_ITEMS = [
-  ...baseNavItems,
-  adminNavItem
+  ...baseNavItems
 ];

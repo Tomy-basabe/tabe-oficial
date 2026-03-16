@@ -195,6 +195,21 @@ export function SidebarCustomizer() {
     setConfig(newConfig);
   };
 
+  const moveSubItem = (catIndex: number, subIndex: number, direction: 'up' | 'down') => {
+    const newConfig = [...config];
+    const category = newConfig[catIndex];
+    if (!category.items) return;
+    
+    const newItems = [...category.items];
+    const targetIndex = direction === 'up' ? subIndex - 1 : subIndex + 1;
+    
+    if (targetIndex < 0 || targetIndex >= newItems.length) return;
+    
+    [newItems[subIndex], newItems[targetIndex]] = [newItems[targetIndex], newItems[subIndex]];
+    category.items = newItems;
+    setConfig(newConfig);
+  };
+
   const moveOutOfCategory = (catIndex: number, itemIndex: number) => {
     const newConfig = [...config];
     const category = newConfig[catIndex];
@@ -490,6 +505,27 @@ export function SidebarCustomizer() {
                       )}
 
                       <div className="flex-1 flex items-center gap-2 min-w-0">
+                        <div className="flex flex-col gap-0.5 mr-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-4 w-4" 
+                            onClick={() => moveSubItem(index, subIndex, 'up')}
+                            disabled={subIndex === 0}
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-4 w-4" 
+                            onClick={() => moveSubItem(index, subIndex, 'down')}
+                            disabled={subIndex === (item.items?.length || 0) - 1}
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </div>
+
                         {editingId === subItem.id ? (
                           <div className="flex items-center gap-2 flex-1">
                             <Input 
