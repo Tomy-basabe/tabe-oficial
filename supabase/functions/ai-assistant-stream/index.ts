@@ -106,7 +106,7 @@ serve(async (req) => {
     if (persona_id) {
       const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(10);
       if (rm && rm.length > 0) {
-        chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: any) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 150)).join("\n");
+        chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: { role: string; content: string }) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 150)).join("\n");
       }
     }
 
@@ -221,10 +221,10 @@ serve(async (req) => {
     // Format Professors and Hours for Context
     const profesoresStr = professorsData.length > 0
       ? professorsData.map((p: any) => {
-          const hours = officeHoursData.filter((h: any) => h.professor_id === p.id);
-          const hoursStr = hours.map((h: any) => `${h.dia} ${h.hora_inicio} a ${h.hora_fin}`).join(", ");
-          return `- ${p.nombre} (${p.rol || "Sin rol"}) [ID:${p.id}] Materia: ${nameById[p.subject_id] || "ID:"+p.subject_id} - Consultas: ${hoursStr || "No cargadas"}`;
-        }).join("\n")
+        const hours = officeHoursData.filter((h: { professor_id: string; dia: string; hora_inicio: string; hora_fin: string }) => h.professor_id === p.id);
+        const hoursStr = hours.map((h: { dia: string; hora_inicio: string; hora_fin: string }) => `${h.dia} ${h.hora_inicio} a ${h.hora_fin}`).join(", ");
+        return `- ${p.nombre} (${p.rol || "Sin rol"}) [ID:${p.id}] Materia: ${nameById[p.subject_id] || "ID:" + p.subject_id} - Consultas: ${hoursStr || "No cargadas"}`;
+      }).join("\n")
       : "Sin profesores cargados.";
 
     const contextLine = context_page ? "\nSECCION ACTUAL: " + context_page : "";
@@ -238,7 +238,7 @@ serve(async (req) => {
     const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     const hoyStr = now.toISOString().split("T")[0];
     const hoyDia = diasSemana[now.getDay()];
-    
+
     // Generate next 14 days as reference for the AI
     const proximosDias: string[] = [];
     for (let i = 0; i <= 13; i++) {
@@ -296,40 +296,40 @@ serve(async (req) => {
       "11. GESTION DE CONSULTAS: Un profesor puede tener múltiples horarios. Usá manege_consultations para añadir, actualizar o eliminar horarios específicos (lunes, martes, etc.).";
 
     const tools = [
-      { 
-        type: "function", 
-        function: { 
-          name: "create_calendar_events", 
-          description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE agendar uno o mas eventos. NO usar para saludos ni preguntas.", 
-          parameters: { 
-            type: "object", 
-            properties: { 
-              eventos: { 
-                type: "array", 
+      {
+        type: "function",
+        function: {
+          name: "create_calendar_events",
+          description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE agendar uno o mas eventos. NO usar para saludos ni preguntas.",
+          parameters: {
+            type: "object",
+            properties: {
+              eventos: {
+                type: "array",
                 items: {
                   type: "object",
                   properties: {
-                    titulo: { type: "string" }, 
-                    fecha: { type: "string", description: "YYYY-MM-DD" }, 
+                    titulo: { type: "string" },
+                    fecha: { type: "string", description: "YYYY-MM-DD" },
                     hora: { type: "string", description: "HH:mm" },
                     hora_fin: { type: "string", description: "HH:mm" },
-                    tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, 
-                    notas: { type: "string" }, 
+                    tipo_examen: { type: "string", enum: VALID_EVENT_TYPES },
+                    notas: { type: "string" },
                     subject_id: { type: "string", description: "Nombre de la materia" },
-                    recurrence_rule: { 
-                      type: "string", 
+                    recurrence_rule: {
+                      type: "string",
                       description: "SOLO si el usuario pide repetir. Valores: DAILY, WEEKLY, MONTHLY, YEARLY. NO incluir si no hay repeticion.",
-                      enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"] 
+                      enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]
                     },
                     recurrence_end: { type: "string", description: "Fecha fin repeticion YYYY-MM-DD. NO incluir si no hay repeticion." }
                   },
                   required: ["titulo", "fecha", "tipo_examen"]
                 }
-              } 
-            }, 
-            required: ["eventos"] 
-          } 
-        } 
+              }
+            },
+            required: ["eventos"]
+          }
+        }
       },
       { type: "function", function: { name: "delete_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE eliminar un evento.", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } } },
       { type: "function", function: { name: "update_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE modificar un evento.", parameters: { type: "object", properties: { id: { type: "string" }, titulo: { type: "string" }, fecha: { type: "string" }, hora: { type: "string" }, tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, notas: { type: "string" } }, required: ["id"] } } },
@@ -464,13 +464,13 @@ serve(async (req) => {
     }
 
     const finalSysPrompt = sysPrompt + ragContext + "\n\n10. ⚠️ REGLA DE CREACION MASIVA: Si el usuario te manda una lista de mas de 15 tarjetas o preguntas, empeza tu respuesta DIRECTAMENTE con la herramienta, sin saludos ni introducciones. Esto evita errores de parsing.";
-    
+
     // Safety: truncate system prompt if too large (max ~8000 chars)
     const maxSysLength = 8000;
-    const truncatedSysPrompt = finalSysPrompt.length > maxSysLength 
+    const truncatedSysPrompt = finalSysPrompt.length > maxSysLength
       ? finalSysPrompt.slice(0, maxSysLength) + "\n[System prompt truncado]"
       : finalSysPrompt;
-    
+
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
     // Stream from Groq
@@ -498,7 +498,7 @@ serve(async (req) => {
 
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
-    
+
     const body = new ReadableStream({
       async start(ctrl) {
         const reader = groqRes.body?.getReader();
@@ -548,7 +548,7 @@ serve(async (req) => {
           try {
             const args = JSON.parse(toolCallArgs);
             console.log(`[Tool] Executing ${toolCallName}`, args);
-            
+
             let toolResult = "";
             const resolveId = (raw: string | null | undefined): string | null => {
               if (!raw) return null;
@@ -626,13 +626,13 @@ serve(async (req) => {
               const sid = resolveId(args.subject_id);
               if (args.action === "create" && sid) {
                 const { data } = await serviceClient.from("professors").insert({
-                  user_id: userId, nombre: args.nombre, rol: args.rol || null, 
+                  user_id: userId, nombre: args.nombre, rol: args.rol || null,
                   descripcion: args.descripcion || null, subject_id: sid, color_index: args.color_index || 0
                 }).select().single();
                 toolResult = `\nProfesor ${args.nombre} añadido correctamente.`;
               } else if (args.action === "update" && args.id) {
                 await serviceClient.from("professors").update({
-                  nombre: args.nombre, rol: args.rol, descripcion: args.descripcion, 
+                  nombre: args.nombre, rol: args.rol, descripcion: args.descripcion,
                   color_index: args.color_index
                 }).eq("id", args.id).eq("user_id", userId);
                 toolResult = `\nDatos del profesor actualizados.`;
@@ -650,7 +650,7 @@ serve(async (req) => {
               if (pid) {
                 if (args.action === "create") {
                   await serviceClient.from("professor_office_hours").insert({
-                    user_id: userId, professor_id: pid, dia: args.dia, 
+                    user_id: userId, professor_id: pid, dia: args.dia,
                     hora_inicio: args.hora_inicio, hora_fin: args.hora_fin
                   });
                   toolResult = `\nNuevo horario de consulta añadido para el profesor.`;
