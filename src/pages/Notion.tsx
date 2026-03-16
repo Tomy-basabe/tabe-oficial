@@ -1124,6 +1124,26 @@ export default function Notion() {
                   />
                 </button>
 
+                {/* Audio Reading */}
+                <button
+                  className={cn(
+                    "notion-topbar-btn transition-all duration-300",
+                    isSpeaking ? "text-neon-cyan animate-pulse bg-neon-cyan/10 ring-1 ring-neon-cyan/30 shadow-[0_0_10px_rgba(34,211,238,0.2)]" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
+                  onClick={() => {
+                    if (isSpeaking) {
+                      stop();
+                    } else {
+                      const contentToRead = editorContentRef.current || editorContent || activeDocument.contenido;
+                      const plainText = extractFullText(contentToRead);
+                      speak(plainText);
+                    }
+                  }}
+                  title={isSpeaking ? "Detener lectura" : "Leer en voz alta"}
+                >
+                  {isSpeaking ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+
                 {/* AI Generation */}
                 <button
                   className="notion-topbar-btn text-primary hover:bg-primary/10"
