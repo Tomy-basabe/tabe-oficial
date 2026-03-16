@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Store, Search, Download, Star, User, Tag, Eye, ChevronLeft, ChevronRight,
-  Layers, Upload, X, GraduationCap, Calendar, FileText, Folder, Loader2
+  Layers, Upload, X, GraduationCap, Calendar, FileText, Folder, Loader2,
+  HelpCircle
 } from "lucide-react";
-import { useMarketplace, PublicDeck, PublicFile, PublicFolder } from "@/hooks/useMarketplace";
+import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz } from "@/hooks/useMarketplace";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,11 +27,19 @@ interface Subject {
 
 export default function Marketplace() {
   const { user } = useAuth();
+  const [myResources, setMyResources] = useState<any[]>([]);
+  const [publishStep, setPublishStep] = useState<'type' | 'filter' | 'select' | 'details'>('type');
+  const [selectedPublishType, setSelectedPublishType] = useState<'deck' | 'file' | 'folder' | 'quiz' | null>(null);
+  const [publishYear, setPublishYear] = useState<number | null>(null);
+  const [publishSubject, setPublishSubject] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [folderHistory, setFolderHistory] = useState<{ id: string | null; name: string }[]>([{ id: null, name: 'Raíz' }]);
+  
   const {
     publicDecks,
     publicFiles,
     publicFolders,
-    myPublicDecks,
+    publicQuizzes,
     loading,
     searchTerm,
     setSearchTerm,
@@ -38,18 +47,20 @@ export default function Marketplace() {
     setCategoryFilter,
     yearFilter,
     setYearFilter,
+    subjectFilter,
+    setSubjectFilter,
     getCategories,
     publishResource,
     unpublishResource,
     getDeckPreview,
     importDeck,
     importFile,
-    importFolder
+    importFolder,
+    importQuiz
   } = useMarketplace();
 
   const [categories, setCategories] = useState<string[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [myResources, setMyResources] = useState<Array<{ id: string; nombre: string; type: string; is_public: boolean; subject_id: string }>>([]);
 
   // Preview Modal State
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -67,7 +78,7 @@ export default function Marketplace() {
   
   // Publish Modal State
   const [publishSelectOpen, setPublishSelectOpen] = useState(false);
-  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: "deck" | "file" | "folder"; nombre: string } | null>(null);
+  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: 'deck' | 'file' | 'folder' | 'quiz'; nombre: string } | null>(null);
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
@@ -77,24 +88,29 @@ export default function Marketplace() {
       const cats = await getCategories();
       setCategories(cats);
 
-      const { data: subjectsData } = await supabase
+      const { data: subjectsData, error: subjectsError } = await (supabase
         .from("subjects")
-        .select("id, nombre, año" as any)
-        .order("año" as any, { ascending: true });
+        .select('id, nombre, "año"') as any);
 
-      setSubjects((subjectsData || []).map(s => ({ id: s.id, nombre: s.nombre, year: s.año })));
+      if (subjectsError) {
+        console.error("Error loading subjects:", subjectsError);
+      } else {
+        setSubjects((subjectsData || []).map(s => ({ id: s.id, nombre: s.nombre, year: s.año })));
+      }
 
       if (user) {
-        const [decks, files, folders] = await Promise.all([
-          supabase.from("flashcard_decks").select("id, nombre, is_public, subject_id").eq("user_id", user.id).gt("total_cards", 0),
-          supabase.from("library_files").select("id, nombre, is_public, subject_id").eq("user_id", user.id),
-          supabase.from("library_folders").select("id, nombre, is_public, subject_id").eq("user_id", user.id)
+        const [decksRes, filesRes, foldersRes, quizzesRes] = await Promise.all([
+          supabase.from("flashcard_decks").select("*").eq("user_id", user.id).gt("total_cards", 0),
+          supabase.from("library_files").select("*").eq("user_id", user.id),
+          supabase.from("library_folders").select("*").eq("user_id", user.id),
+          supabase.from("quiz_decks").select("*").eq("user_id", user.id)
         ]);
 
         setMyResources([
-          ...(decks.data || []).map(d => ({ ...d, type: 'deck' })),
-          ...(files.data || []).map(f => ({ ...f, type: 'file' })),
-          ...(folders.data || []).map(f => ({ ...f, type: 'folder' }))
+          ...(decksRes.data || []).map(d => ({ ...d, type: 'deck' })),
+          ...(filesRes.data || []).map(f => ({ ...f, type: 'file' })),
+          ...(foldersRes.data || []).map(f => ({ ...f, type: 'folder' })),
+          ...(quizzesRes.data || []).map(q => ({ ...q, type: 'quiz' }))
         ]);
       }
     };
@@ -125,6 +141,8 @@ export default function Marketplace() {
       result = await importFile(importingResource.data, null);
     } else if (importingResource.type === 'folder') {
       result = await importFolder(importingResource.id, null);
+    } else if (importingResource.type === 'quiz') {
+      result = await importQuiz(importingResource.id, selectedSubject);
     }
 
     if (result.error) {
@@ -384,71 +402,221 @@ export default function Marketplace() {
       </Dialog>
 
       {/* Select Resource to Publish Modal */}
-      <Dialog open={publishSelectOpen} onOpenChange={setPublishSelectOpen}>
-        <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
+      <Dialog open={publishSelectOpen} onOpenChange={(open) => {
+        setPublishSelectOpen(open);
+        if (!open) {
+          setPublishStep('type');
+          setResourceToPublish(null);
+          setSelectedPublishType(null);
+          setPublishYear(null);
+          setPublishSubject(null);
+          setCurrentFolderId(null);
+          setFolderHistory([{id: null, name: 'Raíz'}]);
+        }
+      }}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>¿Qué quieres publicar?</DialogTitle>
+            <DialogTitle>
+              {publishStep === 'type' && "¿Qué quieres publicar?"}
+              {publishStep === 'filter' && "Filtros de publicación"}
+              {publishStep === 'select' && "Selecciona el recurso"}
+              {publishStep === 'details' && "Detalles de la publicación"}
+            </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-6 pt-4">
-            {!resourceToPublish ? (
-              <div className="grid grid-cols-1 gap-3">
-                <p className="text-sm text-muted-foreground mb-2">Selecciona uno de tus recursos no publicados:</p>
-                {myResources.filter(r => !r.is_public).length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground bg-secondary/20 rounded-xl">No tienes recursos disponibles para publicar.</p>
-                ) : (
-                  myResources.filter(r => !r.is_public).map(r => (
-                    <div 
-                      key={`${r.type}-${r.id}`}
-                      className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border hover:border-neon-cyan/50 cursor-pointer transition-all"
-                      onClick={() => setResourceToPublish({ id: r.id, type: r.type as any, nombre: r.nombre })}
-                    >
-                      <div className="flex items-center gap-3">
-                        {r.type === 'deck' ? <Layers className="w-5 h-5 text-neon-purple" /> : r.type === 'file' ? <FileText className="w-5 h-5 text-neon-green" /> : <Folder className="w-5 h-5 text-neon-gold" />}
-                        <span className="font-medium">{r.nombre}</span>
-                      </div>
-                      <Badge variant="outline">Privado</Badge>
-                    </div>
-                  ))
-                )}
+            {publishStep === 'type' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div 
+                  className="p-6 bg-secondary/30 rounded-2xl border-2 border-transparent hover:border-neon-green hover:bg-neon-green/5 cursor-pointer flex flex-col items-center gap-4 transition-all"
+                  onClick={() => { setSelectedPublishType('file'); setPublishStep('filter'); }}
+                >
+                  <div className="p-4 bg-neon-green/20 rounded-xl"><FileText className="w-8 h-8 text-neon-green" /></div>
+                  <span className="font-bold">Archivo / Carpeta</span>
+                </div>
+                <div 
+                  className="p-6 bg-secondary/30 rounded-2xl border-2 border-transparent hover:border-neon-purple hover:bg-neon-purple/5 cursor-pointer flex flex-col items-center gap-4 transition-all"
+                  onClick={() => { setSelectedPublishType('deck'); setPublishStep('filter'); }}
+                >
+                  <div className="p-4 bg-neon-purple/20 rounded-xl"><Layers className="w-8 h-8 text-neon-purple" /></div>
+                  <span className="font-bold">Flashcards</span>
+                </div>
+                <div 
+                  className="p-6 bg-secondary/30 rounded-2xl border-2 border-transparent hover:border-neon-gold hover:bg-neon-gold/5 cursor-pointer flex flex-col items-center gap-4 transition-all"
+                  onClick={() => { setSelectedPublishType('quiz'); setPublishStep('filter'); }}
+                >
+                  <div className="p-4 bg-neon-gold/20 rounded-xl"><HelpCircle className="w-8 h-8 text-neon-gold" /></div>
+                  <span className="font-bold">Cuestionario</span>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                <div className="p-4 bg-secondary/50 rounded-xl border border-neon-cyan/30 flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                    {resourceToPublish.type === 'deck' ? <Layers className="w-5 h-5 text-neon-purple" /> : resourceToPublish.type === 'file' ? <FileText className="w-5 h-5 text-neon-green" /> : <Folder className="w-5 h-5 text-neon-gold" />}
-                    <span className="font-bold">{resourceToPublish.nombre}</span>
+            )}
+
+            {publishStep === 'filter' && (
+              <div className="space-y-4">
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Filtra por año y materia para encontrar tus recursos:</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Año</label>
+                      <Select value={publishYear?.toString()} onValueChange={(v) => { setPublishYear(parseInt(v)); setPublishSubject(null); }}>
+                        <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 5, 6].map(y => <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold uppercase text-muted-foreground">Materia</label>
+                       <Select 
+                        value={publishSubject || "all"} 
+                        onValueChange={(v) => setPublishSubject(v === "all" ? null : v)}
+                        disabled={!publishYear}
+                      >
+                         <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                         <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {subjects.filter(s => s.year === publishYear).map(s => (
+                              <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+                            ))}
+                         </SelectContent>
+                       </Select>
+                    </div>
+                  </div>
+                </div>
+                <Button className="w-full bg-neon-cyan text-black font-bold" onClick={() => setPublishStep('select')}>Continuar</Button>
+                <Button variant="ghost" className="w-full" onClick={() => setPublishStep('type')}>Atrás</Button>
+              </div>
+            )}
+
+            {publishStep === 'select' && (
+              <div className="space-y-4">
+                {selectedPublishType === 'file' && (
+                   <div className="space-y-2">
+                     <div className="flex items-center gap-2 overflow-x-auto pb-2 text-sm">
+                       {folderHistory.map((h, i) => (
+                         <React.Fragment key={i}>
+                           {i > 0 && <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
+                           <button 
+                             className={`hover:text-neon-cyan transition-colors whitespace-nowrap ${i === folderHistory.length - 1 ? 'font-bold text-neon-cyan' : 'text-muted-foreground'}`}
+                             onClick={() => {
+                               const newHistory = folderHistory.slice(0, i + 1);
+                               setFolderHistory(newHistory);
+                               setCurrentFolderId(h.id);
+                             }}
+                           >
+                             {h.name}
+                           </button>
+                         </React.Fragment>
+                       ))}
+                     </div>
                    </div>
-                   <Button variant="ghost" size="sm" onClick={() => setResourceToPublish(null)}>Cambiar</Button>
+                )}
+
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                  {(() => {
+                    let filtered = myResources.filter(r => !r.is_public);
+                    
+                    if (selectedPublishType === 'file') {
+                      // Filter for folders and files
+                      filtered = filtered.filter(r => r.type === 'file' || r.type === 'folder');
+                      
+                      // Filter by subject if selected
+                      if (publishSubject) {
+                        filtered = filtered.filter(r => r.subject_id === publishSubject);
+                      }
+                      
+                      // Navigation logic
+                      filtered = filtered.filter(r => {
+                        if (r.type === 'file') return r.folder_id === currentFolderId;
+                        if (r.type === 'folder') return r.parent_folder_id === currentFolderId;
+                        return false;
+                      });
+                    } else {
+                      // Filter for decks or quizzes
+                      filtered = filtered.filter(r => r.type === selectedPublishType);
+                      if (publishSubject) {
+                        filtered = filtered.filter(r => r.subject_id === publishSubject);
+                      }
+                    }
+
+                    if (filtered.length === 0) {
+                      return <div className="text-center py-12 text-muted-foreground bg-secondary/20 rounded-2xl border-2 border-dashed border-border">No se encontraron recursos.</div>;
+                    }
+
+                    return filtered.map(r => (
+                      <div 
+                        key={`${r.type}-${r.id}`}
+                        className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border hover:border-neon-cyan/50 cursor-pointer transition-all group"
+                        onClick={() => {
+                          if (r.type === 'folder') {
+                            setCurrentFolderId(r.id);
+                            setFolderHistory([...folderHistory, { id: r.id, name: r.nombre }]);
+                          } else {
+                            setResourceToPublish({ id: r.id, type: r.type as any, nombre: r.nombre });
+                            setPublishStep('details');
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {r.type === 'deck' && <Layers className="w-5 h-5 text-neon-purple" />}
+                          {r.type === 'file' && <FileText className="w-5 h-5 text-neon-green" />}
+                          {r.type === 'folder' && <Folder className="w-5 h-5 text-neon-gold" />}
+                          {r.type === 'quiz' && <HelpCircle className="w-5 h-5 text-neon-gold" />}
+                          <span className="font-medium group-hover:text-neon-cyan transition-colors">{r.nombre}</span>
+                        </div>
+                        {r.type === 'folder' ? <ChevronRight className="w-4 h-4 text-muted-foreground" /> : <Badge variant="outline">Seleccionar</Badge>}
+                      </div>
+                    ));
+                  })()}
+                </div>
+                <Button variant="ghost" className="w-full" onClick={() => setPublishStep('filter')}>Atrás</Button>
+              </div>
+            )}
+
+            {publishStep === 'details' && resourceToPublish && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                <div className="p-4 bg-neon-cyan/10 rounded-2xl border border-neon-cyan/30 flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                    {resourceToPublish.type === 'deck' && <Layers className="w-5 h-5 text-neon-purple" />}
+                    {resourceToPublish.type === 'file' && <FileText className="w-5 h-5 text-neon-green" />}
+                    {resourceToPublish.type === 'folder' && <Folder className="w-5 h-5 text-neon-gold" />}
+                    {resourceToPublish.type === 'quiz' && <HelpCircle className="w-5 h-5 text-neon-gold" />}
+                    <div>
+                      <span className="font-bold text-lg block">{resourceToPublish.nombre}</span>
+                      <span className="text-xs text-neon-cyan uppercase font-bold tracking-wider">{resourceToPublish.type}</span>
+                    </div>
+                   </div>
+                   <Button variant="ghost" size="sm" onClick={() => setPublishStep('select')}>Cambiar</Button>
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Descripción</label>
+                  <label className="text-sm font-bold text-muted-foreground uppercase tracking-tight">Descripción</label>
                   <Textarea 
                     placeholder="Describe este recurso para que otros sepan de qué se trata..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[100px]"
+                    className="min-h-[120px] bg-secondary/30 border-border focus:border-neon-cyan focus:ring-neon-cyan/20 rounded-xl"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Categoría</label>
+                  <label className="text-sm font-bold text-muted-foreground uppercase tracking-tight">Categoría / Etiquetas</label>
                   <Input 
                     placeholder="Ej: Medicina, Ingeniería, Resúmenes..."
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
+                    className="bg-secondary/30 border-border focus:border-neon-cyan focus:ring-neon-cyan/20 rounded-xl"
                   />
                 </div>
                 
-                <div className="flex gap-3 pt-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setResourceToPublish(null)}>Atrás</Button>
+                <div className="flex gap-4 pt-4">
+                  <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setPublishStep('select')}>Volver</Button>
                   <Button 
-                    className="flex-1 bg-neon-cyan text-black hover:bg-neon-cyan/90 font-bold"
+                    className="flex-1 bg-neon-cyan text-black hover:bg-neon-cyan/90 font-bold rounded-xl h-12 shadow-[0_0_15px_rgba(0,255,255,0.3)] transition-all"
                     onClick={handlePublish}
                     disabled={isPublishing || !description.trim() || !category.trim()}
                   >
-                    {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Publicar Ahora"}
+                    {isPublishing ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publicar Ahora"}
                   </Button>
                 </div>
               </div>

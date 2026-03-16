@@ -47,6 +47,22 @@ export interface PublicFile {
   creator?: PublicDeck["creator"];
 }
 
+export interface PublicQuiz {
+  id: string;
+  nombre: string;
+  description: string | null;
+  category: string | null;
+  total_questions: number;
+  download_count: number;
+  rating_sum: number;
+  rating_count: number;
+  user_id: string;
+  subject_id: string | null;
+  created_at: string;
+  creator?: PublicDeck["creator"];
+  subject?: PublicDeck["subject"];
+}
+
 export interface PublicFolder {
   id: string;
   nombre: string;
@@ -96,6 +112,7 @@ export function useMarketplace() {
   const [publicDecks, setPublicDecks] = useState<PublicDeck[]>([]);
   const [publicFiles, setPublicFiles] = useState<PublicFile[]>([]);
   const [publicFolders, setPublicFolders] = useState<PublicFolder[]>([]);
+  const [publicQuizzes, setPublicQuizzes] = useState<PublicQuiz[]>([]);
   const [myPublicDecks, setMyPublicDecks] = useState<PublicDeck[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -109,16 +126,18 @@ export function useMarketplace() {
     setLoading(true);
 
     try {
-      const [decksRes, filesRes, foldersRes] = await Promise.all([
+      const [decksRes, filesRes, foldersRes, quizzesRes] = await Promise.all([
         supabase.from("flashcard_decks").select("*").eq("is_public", true).gt("total_cards", 0).order("download_count", { ascending: false }),
         supabase.from("library_files").select("*").eq("is_public", true).order("download_count", { ascending: false }),
-        supabase.from("library_folders").select("*").eq("is_public", true).order("download_count", { ascending: false })
+        supabase.from("library_folders").select("*").eq("is_public", true).order("download_count", { ascending: false }),
+        supabase.from("quiz_decks").select("*").eq("is_public", true).order("download_count", { ascending: false })
       ]);
 
       const allResources = [
         ...(decksRes.data || []),
         ...(filesRes.data || []),
-        ...(foldersRes.data || [])
+        ...(foldersRes.data || []),
+        ...(quizzesRes.data || [])
       ];
 
       const userIds = [...new Set(allResources.map(r => r.user_id))];
@@ -177,6 +196,7 @@ export function useMarketplace() {
       setPublicDecks(filter((decksRes.data || []).map(enrich)));
       setPublicFiles(filter((filesRes.data || []).map(enrich)));
       setPublicFolders(filter((foldersRes.data || []).map(enrich)));
+      setPublicQuizzes(filter((quizzesRes.data || []).map(enrich)));
 
     } catch (error) {
       console.error("Error fetching public resources:", error);
@@ -193,8 +213,8 @@ export function useMarketplace() {
     setMyPublicDecks((decks.data || []) as PublicDeck[]);
   }, [user]);
 
-  const publishResource = async (type: "deck" | "file" | "folder", id: string, description: string, category: string) => {
-    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : "library_folders";
+  const publishResource = async (type: "deck" | "file" | "folder" | "quiz", id: string, description: string, category: string) => {
+    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : "library_folders";
     const { error } = await supabase
       .from(table as any)
       .update({ is_public: true, description, category } as any)
@@ -205,13 +225,13 @@ export function useMarketplace() {
       return false;
     }
 
-    toast.success(`¡${type === "deck" ? "Mazo" : type === "file" ? "Archivo" : "Carpeta"} publicado en el marketplace!`);
+    toast.success(`¡${type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : "Carpeta"} publicado en el marketplace!`);
     await fetchMyPublicDecks();
     return true;
   };
 
-  const unpublishResource = async (type: "deck" | "file" | "folder", id: string) => {
-    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : "library_folders";
+  const unpublishResource = async (type: "deck" | "file" | "folder" | "quiz", id: string) => {
+    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : "library_folders";
     const { error } = await supabase
       .from(table as any)
       .update({ is_public: false } as any)
@@ -222,7 +242,7 @@ export function useMarketplace() {
       return false;
     }
 
-    toast.success(`${type === "deck" ? "Mazo" : type === "file" ? "Archivo" : "Carpeta"} retirado del marketplace`);
+    toast.success(`${type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : "Carpeta"} retirado del marketplace`);
     await fetchMyPublicDecks();
     return true;
   };
@@ -247,7 +267,7 @@ export function useMarketplace() {
 
     if (error) return { error: "Error al importar el archivo" };
 
-    await supabase.rpc("increment_download_count", { row_id: sourceFile.id, table_name: "library_files" });
+    await (supabase.rpc as any)("increment_download_count", { row_id: sourceFile.id, table_name: "library_files" });
 
     return { error: null, fileId: newFile.id };
   };
@@ -310,7 +330,7 @@ export function useMarketplace() {
       }
 
       if (targetParentId === null) {
-        await supabase.rpc("increment_download_count", { row_id: sourceFolderId, table_name: "library_folders" });
+        await (supabase.rpc as any)("increment_download_count", { row_id: sourceFolderId, table_name: "library_folders" });
       }
 
       return { error: null, folderId: newFolder.id };
@@ -322,9 +342,9 @@ export function useMarketplace() {
 
   const getCategories = useCallback(async () => {
     const [decks, files, folders] = await Promise.all([
-      supabase.from("flashcard_decks").select("category").eq("is_public", true).not("category", "is", null),
-      supabase.from("library_files").select("category").eq("is_public", true).not("category", "is", null),
-      supabase.from("library_folders").select("category").eq("is_public", true).not("category", "is", null)
+      (supabase.from("flashcard_decks") as any).select("category").eq("is_public", true).not("category", "is", null),
+      (supabase.from("library_files") as any).select("category").eq("is_public", true).not("category", "is", null),
+      (supabase.from("library_folders") as any).select("category").eq("is_public", true).not("category", "is", null)
     ]);
     const categories = [
       ...(decks.data || []).map(d => d.category),
@@ -369,9 +389,56 @@ export function useMarketplace() {
       return { error: "Error al copiar las tarjetas" };
     }
 
-    await supabase.rpc("increment_download_count", { row_id: sourceDeckId, table_name: "flashcard_decks" });
+    await (supabase.rpc as any)("increment_download_count", { row_id: sourceDeckId, table_name: "flashcard_decks" });
     toast.success("¡Mazo importado exitosamente!");
     return { error: null, deckId: newDeck.id };
+  };
+
+  const importQuiz = async (sourceQuizId: string, subjectId: string) => {
+    if (!user) return { error: "No autenticado" };
+
+    const { data: sourceQuiz } = await supabase.from("quiz_decks").select("nombre, description").eq("id", sourceQuizId).single();
+    if (!sourceQuiz) return { error: "Cuestionario no encontrado" };
+
+    const { data: sourceQuestions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", sourceQuizId);
+    if (!sourceQuestions || sourceQuestions.length === 0) return { error: "El cuestionario no tiene preguntas" };
+
+    const { data: newQuiz, error: quizError } = await supabase
+      .from("quiz_decks")
+      .insert({
+        user_id: user.id,
+        subject_id: subjectId,
+        nombre: sourceQuiz.nombre,
+        total_questions: sourceQuestions.length
+      })
+      .select()
+      .single();
+
+    if (quizError || !newQuiz) return { error: "Error al crear el cuestionario" };
+
+    for (const q of sourceQuestions) {
+        const { data: newQ, error: qError } = await supabase
+            .from("quiz_questions")
+            .insert({
+                user_id: user.id,
+                deck_id: newQuiz.id,
+                pregunta: q.pregunta,
+                explicacion: q.explicacion
+            })
+            .select()
+            .single();
+        
+        if (newQ) {
+            const { data: options } = await supabase.from("quiz_options").select("texto, es_correcta").eq("question_id", q.id);
+            if (options && options.length > 0) {
+                await supabase.from("quiz_options").insert(options.map(o => ({ ...o, question_id: newQ.id })));
+            }
+        }
+    }
+
+    await (supabase.rpc as any)("increment_download_count", { row_id: sourceQuizId, table_name: "quiz_decks" });
+    toast.success("¡Cuestionario importado exitosamente!");
+    return { error: null, quizId: newQuiz.id };
   };
 
   const rateDeck = async (deckId: string, rating: number) => {
@@ -402,7 +469,7 @@ export function useMarketplace() {
     if (!user) return;
     setLoadingInventory(true);
     try {
-      const { data, error } = await supabase.rpc("use_inventory_item", { p_item_type: itemType, p_item_id: itemId, p_plant_id: plantId });
+      const { data, error } = await (supabase.rpc as any)("use_inventory_item", { p_item_type: itemType, p_item_id: itemId, p_plant_id: plantId });
       if (error) throw error;
       const result = data as any;
       if (result.success) {
@@ -420,7 +487,7 @@ export function useMarketplace() {
     if (!user) return;
     setLoadingInventory(true);
     try {
-      const { data, error } = await supabase.rpc("equip_inventory_item", { p_item_id: itemId, p_item_type: itemType });
+      const { data, error } = await (supabase.rpc as any)("equip_inventory_item", { p_item_id: itemId, p_item_type: itemType });
       if (error) throw error;
       const result = data as any;
       if (result.success) {
@@ -447,6 +514,7 @@ export function useMarketplace() {
     publicDecks,
     publicFiles,
     publicFolders,
+    publicQuizzes,
     myPublicDecks,
     loading,
     searchTerm,
@@ -463,6 +531,7 @@ export function useMarketplace() {
     importFile,
     importFolder,
     importDeck,
+    importQuiz,
     getDeckPreview,
     rateDeck,
     userInventory,
