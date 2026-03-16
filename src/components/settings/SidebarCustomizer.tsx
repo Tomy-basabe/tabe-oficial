@@ -156,21 +156,25 @@ export function SidebarCustomizer() {
       iconName: DEFAULT_ICON_MAPPING[baseItem.path] || "FileText"
     };
 
-    const updateFolder = (items: CustomSidebarItem[]): CustomSidebarItem[] => {
-      return items.map(item => {
+    const updateFolderAndRemoveFromRoot = (items: CustomSidebarItem[]): CustomSidebarItem[] => {
+      // 1. Remove from top-level if it's there
+      let newItems = items.filter(item => !(item.type === "item" && item.path === baseItem.path));
+      
+      // 2. Add to folder (recursively find it)
+      return newItems.map(item => {
         if (item.id === folderId) {
           return { ...item, items: [...(item.items || []), newItem] };
         }
         if (item.items) {
-          return { ...item, items: updateFolder(item.items) };
+          return { ...item, items: updateFolderAndRemoveFromRoot(item.items) };
         }
         return item;
       });
     };
 
-    setConfig(updateFolder(config));
+    setConfig(updateFolderAndRemoveFromRoot(config));
     setShowAddItemToId(null);
-    toast.success(`${baseItem.label} añadido a la categoría`);
+    toast.success(`${baseItem.label} movido a la categoría`);
   };
 
   const deleteItem = (index: number) => {
@@ -403,7 +407,9 @@ export function SidebarCustomizer() {
                     </div>
                     <UIScrollArea className="h-48">
                       <div className="grid grid-cols-1 gap-1 pr-2">
-                        {filteredBaseNavItems.map(baseItem => (
+                        {filteredBaseNavItems
+                          .filter(baseItem => !item.items?.some(sub => sub.path === baseItem.path))
+                          .map(baseItem => (
                           <button
                             key={baseItem.path}
                             onClick={() => addItemToFolder(item.id, baseItem)}
