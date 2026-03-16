@@ -5,7 +5,7 @@ import {
   FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
   ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2,
-  CheckCircle2, Square, CheckSquare, Repeat2, Clock
+  CheckCircle2, Square, CheckSquare, Repeat2, Clock, Volume2, Loader2
 } from "lucide-react";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,12 @@ import {
 } from "@/components/ui/select";
 import { markdownToTiptap } from "@/lib/markdownToTiptap";
 import JSZip from "jszip";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import * as pdfjsLib from "pdfjs-dist";
+
+// Configure PDFJS worker
+// @ts-ignore
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface LibraryFolder {
   id: string;
@@ -79,6 +85,8 @@ const years = [1, 2, 3, 4, 5, 6];
 
 export default function Library() {
   const { user, isGuest } = useAuth();
+  const { speak, stop, isSpeaking } = useTextToSpeech();
+  const [isExtractingText, setIsExtractingText] = useState(false);
   const { canUse, incrementUsage, getUsage, getLimit } = useUsageLimits();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [folders, setFolders] = useState<LibraryFolder[]>([]);
@@ -273,6 +281,37 @@ export default function Library() {
     if (h > 0) return `${h}h ${m}m`;
     if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
     return `${s}s`;
+  };
+
+  const extractAndSpeakPDF = async (url: string) => {
+    setIsExtractingText(true);
+    const toastId = toast.loading("Extrayendo texto del PDF...");
+    try {
+      const loadingTask = pdfjsLib.getDocument(url);
+      const pdf = await loadingTask.promise;
+      let fullText = "";
+      
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(" ");
+        fullText += pageText + " ";
+        // Limit to prevent browser freeze with huge PDFs
+        if (fullText.length > 50000) break;
+      }
+
+      if (fullText.trim().length > 0) {
+        toast.success("¡Texto extraído!", { id: toastId });
+        speak(fullText.substring(0, 30000)); // Read first 30k chars
+      } else {
+        toast.error("No se pudo extraer texto de este PDF.", { id: toastId });
+      }
+    } catch (err) {
+      console.error("Error extracting PDF text:", err);
+      toast.error("Error al leer el PDF", { id: toastId });
+    } finally {
+      setIsExtractingText(false);
+    }
   };
 
   const toggleSelect = (id: string) => {
@@ -2327,6 +2366,36 @@ export default function Library() {
             >
               <span className="text-base">{generating === 'summary' ? '⏳' : '📝'}</span>
               {generating === 'summary' ? "Resumiendo..." : "Resumir"}
+            </button>
+            <div className="w-px h-6 bg-border mx-1" />
+            <button
+              onClick={() => {
+                if (isSpeaking) {
+                  stop();
+                } else if (fullScreenFile) {
+                  if (fullScreenFile.tipo === 'pdf') {
+                    extractAndSpeakPDF(fullScreenFile.url);
+                  } else {
+                    speak(fullScreenFile.nombre); // Fallback or read simple text if format supported
+                  }
+                }
+              }}
+              disabled={isExtractingText}
+              className={cn(
+                "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all",
+                isSpeaking 
+                  ? "bg-neon-cyan/20 text-neon-cyan animate-pulse shadow-[0_0_15px_rgba(0,195,255,0.3)]" 
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              )}
+            >
+              {isExtractingText ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isSpeaking ? (
+                <Square className="w-4 h-4 fill-current" />
+              ) : (
+                <Volume2 className="w-4 h-4" />
+              )}
+              {isSpeaking ? "Detener" : "Leer en voz alta"}
             </button>
 
             {/* Gen count selector */}

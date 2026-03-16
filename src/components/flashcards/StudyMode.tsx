@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronLeft, Clock, Check, X, Sparkles, Zap, Trophy } from "lucide-react";
+import { ChevronLeft, Clock, Check, X, Sparkles, Zap, Trophy, Volume2, Square } from "lucide-react";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { cn } from "@/lib/utils";
 
 interface Flashcard {
@@ -29,6 +30,7 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
   const [isShuffling, setIsShuffling] = useState(true);
 
   // Study state
+  const { speak, stop, isSpeaking } = useTextToSpeech();
   const [studyPhase, setStudyPhase] = useState<StudyPhase>("shuffling");
   const [shuffledCards, setShuffledCards] = useState<Flashcard[]>([]);
   const [remainingIndices, setRemainingIndices] = useState<number[]>([]);
@@ -544,6 +546,21 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
 
                   <Zap className="w-8 h-8 text-neon-cyan/50 mb-6" />
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-4">Pregunta</p>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isSpeaking) stop();
+                      else speak(selectedCard.pregunta);
+                    }}
+                    className={cn(
+                      "mb-4 p-2 rounded-full transition-all",
+                      isSpeaking ? "bg-neon-cyan/20 text-neon-cyan" : "bg-secondary/50 text-muted-foreground hover:text-neon-cyan"
+                    )}
+                  >
+                    {isSpeaking ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
+                  </button>
+
                   <p className="text-xl lg:text-2xl font-medium leading-relaxed">
                     {selectedCard.pregunta}
                   </p>
@@ -575,6 +592,21 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
                   <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/5 via-transparent to-neon-purple/5 animate-pulse" />
                   <Trophy className="w-8 h-8 text-neon-gold/70 mb-6" />
                   <p className="text-xs text-neon-cyan uppercase tracking-wider mb-4">Respuesta</p>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isSpeaking) stop();
+                      else speak(selectedCard.respuesta);
+                    }}
+                    className={cn(
+                      "mb-4 p-2 rounded-full transition-all",
+                      isSpeaking ? "bg-neon-cyan/20 text-neon-cyan" : "bg-white/10 text-neon-cyan hover:bg-white/20"
+                    )}
+                  >
+                    {isSpeaking ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
+                  </button>
+
                   <p className="text-xl lg:text-2xl font-semibold leading-relaxed text-neon-cyan relative z-10">
                     {selectedCard.respuesta}
                   </p>

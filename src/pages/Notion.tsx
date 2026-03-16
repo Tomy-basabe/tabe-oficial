@@ -5,7 +5,7 @@ import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
-  Sparkles
+  Sparkles, Volume2, Square
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ import { ensureTipTapFormat } from "@/lib/contentMigration";
 import "@/components/notion/notion-editor.css";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { toLocalDateStr } from "@/lib/utils";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 
 interface Subject {
   id: string;
@@ -247,6 +248,7 @@ export default function Notion() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [activeDocument, setActiveDocument] = useState<NotionDocument | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { speak, stop, isSpeaking } = useTextToSpeech();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState<NotionDocument | null>(null);
   
