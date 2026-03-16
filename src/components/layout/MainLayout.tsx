@@ -37,7 +37,7 @@ import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget
 import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CustomSidebarItem } from "../settings/SidebarCustomizer";
+import { CustomSidebarItem, ICON_MAP } from "../settings/SidebarCustomizer";
 
 export interface NavItem {
   icon: any;
@@ -207,10 +207,9 @@ export function MainLayout() {
                 const baseItem = [...baseNavItems, adminNavItem].find(b => b.path === item.id);
                 if (!baseItem && item.type === "item") return null;
 
-                const Icon = baseItem?.icon || Folder;
+                const Icon = (item.iconName && ICON_MAP[item.iconName]) || baseItem?.icon || Folder;
                 const path = baseItem?.path || "#";
                 const isActive = location.pathname === path;
-                const emoji = item.icon;
 
                 if (item.type === "category") {
                   return (
@@ -223,13 +222,7 @@ export function MainLayout() {
                             "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           )}
                         >
-                          {emoji ? (
-                            <span className={cn("flex-shrink-0 flex items-center justify-center", isCollapsed ? "text-2xl w-6 h-6" : "text-xl w-5 h-5")}>
-                              {emoji}
-                            </span>
-                          ) : (
-                            <Icon className={cn("transition-all flex-shrink-0", isCollapsed ? "w-6 h-6" : "w-5 h-5")} />
-                          )}
+                          <Icon className={cn("transition-all flex-shrink-0", isCollapsed ? "w-6 h-6" : "w-5 h-5")} />
                           {!isCollapsed && (
                             <>
                               <span className="font-semibold truncate flex-1 text-left">{item.label}</span>
@@ -260,23 +253,13 @@ export function MainLayout() {
                     )}
                     title={isCollapsed ? item.label : undefined}
                   >
-                    {emoji ? (
-                      <span className={cn(
-                        "flex-shrink-0 flex items-center justify-center transition-all",
-                        isCollapsed ? "text-2xl w-6 h-6" : "text-xl w-5 h-5",
-                        isActive && "drop-shadow-[0_0_8px_hsl(var(--neon-cyan))]"
-                      )}>
-                        {emoji}
-                      </span>
-                    ) : (
-                      <Icon
-                        className={cn(
-                          "transition-all flex-shrink-0",
-                          isCollapsed ? "w-6 h-6" : "w-5 h-5",
-                          isActive && "text-primary drop-shadow-[0_0_8px_hsl(var(--neon-cyan))]"
-                        )}
-                      />
-                    )}
+                    <Icon
+                      className={cn(
+                        "transition-all flex-shrink-0",
+                        isCollapsed ? "w-6 h-6" : "w-5 h-5",
+                        isActive && "text-primary drop-shadow-[0_0_8px_hsl(var(--neon-cyan))]"
+                      )}
+                    />
                     {!isCollapsed && (
                       <span className={cn("font-medium truncate", isActive && "text-glow-cyan")}>
                         {item.label}

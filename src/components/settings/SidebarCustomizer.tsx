@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { baseNavItems, NavItem } from "../layout/MainLayout";
+import { baseNavItems } from "../layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { 
   ChevronUp, 
@@ -9,12 +9,17 @@ import {
   Trash2, 
   Settings, 
   FolderPlus, 
-  GripVertical,
   ChevronRight,
   ChevronLeft,
   Edit2,
   Check,
-  X
+  X,
+  // Icon Catalog
+  GraduationCap, LayoutDashboard, Clock, FileText, Layers, ClipboardList, Store, Library, Calendar,
+  Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
+  Music, Video, Camera, MessageSquare, Users, Bell, Search, Heart, Star, Flame, Zap,
+  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
+  LucideIcon
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -24,22 +29,26 @@ export interface CustomSidebarItem {
   id: string; // path or unique category id
   label: string;
   type: "item" | "category";
-  icon?: string; // emoji
+  iconName?: string; // Lucide icon name string
   items?: CustomSidebarItem[];
 }
 
-const ACADEMIC_EMOJIS = [
-  "🎓", "📚", "📖", "📝", "✏️", "🖋️", "🖊️", "📒", "📓", "📔", "📕", "📘", "📗", "📙",
-  "🔬", "🧪", "🧬", "🔭", "📡", "📐", "📏", "📊", "📈", "📉", "📅", "🗓️", "⌛", "⏳",
-  "💡", "🧠", "🎯", "🏆", "🎨", "🎭", "🎼", "🎹", "💼", "📁", "📂", "📌", "📍", "🔒"
-];
+// Icon Mapping for the catalog
+export const ICON_MAP: Record<string, LucideIcon> = {
+  GraduationCap, LayoutDashboard, Clock, FileText, Layers, ClipboardList, Store, Library, Calendar,
+  Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
+  Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
+  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2
+};
+
+const ICON_NAMES = Object.keys(ICON_MAP);
 
 export function SidebarCustomizer() {
   const { profile, updateSidebarConfig } = useAuth();
   const [config, setConfig] = useState<CustomSidebarItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.sidebar_config) {
@@ -49,9 +58,23 @@ export function SidebarCustomizer() {
       const defaultConfig: CustomSidebarItem[] = baseNavItems.map(item => ({
         id: item.path,
         label: item.label,
-        type: "item"
+        type: "item",
+        iconName: item.icon.name || item.icon.displayName || "FileText" // Fallback fallback
       }));
-      setConfig(defaultConfig);
+      
+      // Attempt to get names more reliably if above fails
+      // baseNavItems icons are components, so we need to match them
+      const namedDefaultConfig = baseNavItems.map(item => {
+        const foundName = ICON_NAMES.find(name => ICON_MAP[name] === item.icon);
+        return {
+          id: item.path,
+          label: item.label,
+          type: "item" as "item",
+          iconName: foundName || "FileText"
+        };
+      });
+
+      setConfig(namedDefaultConfig);
     }
   }, [profile]);
 
@@ -81,7 +104,7 @@ export function SidebarCustomizer() {
       id: `cat-${Date.now()}`,
       label: name,
       type: "category",
-      icon: "📁",
+      iconName: "Folder",
       items: []
     };
     setConfig([...config, newCategory]);
@@ -137,26 +160,35 @@ export function SidebarCustomizer() {
     setEditingId(null);
   };
 
-  const selectEmoji = (itemId: string, emoji: string) => {
-    const updateEmoji = (items: CustomSidebarItem[]): CustomSidebarItem[] => {
+  const selectIcon = (itemId: string, iconName: string) => {
+    const updateIcon = (items: CustomSidebarItem[]): CustomSidebarItem[] => {
       return items.map(i => {
-        if (i.id === itemId) return { ...i, icon: emoji };
-        if (i.items) return { ...i, items: updateEmoji(i.items) };
+        if (i.id === itemId) return { ...i, iconName: iconName };
+        if (i.items) return { ...i, items: updateIcon(i.items) };
         return i;
       });
     };
-    setConfig(updateEmoji(config));
-    setShowEmojiPicker(null);
+    setConfig(updateIcon(config));
+    setShowIconPicker(null);
   };
 
   const resetToDefault = () => {
     if (!confirm("¿Restablecer el panel lateral a su estado original?")) return;
-    const defaultConfig: CustomSidebarItem[] = baseNavItems.map(item => ({
-      id: item.path,
-      label: item.label,
-      type: "item"
-    }));
-    setConfig(defaultConfig);
+    const namedDefaultConfig = baseNavItems.map(item => {
+        const foundName = ICON_NAMES.find(name => ICON_MAP[name] === item.icon);
+        return {
+          id: item.path,
+          label: item.label,
+          type: "item" as "item",
+          iconName: foundName || "FileText"
+        };
+      });
+    setConfig(namedDefaultConfig);
+  };
+
+  const IconDisplay = ({ name, className }: { name?: string, className?: string }) => {
+    const Icon = name && ICON_MAP[name] ? ICON_MAP[name] : FileText;
+    return <Icon className={className} />;
   };
 
   return (
@@ -208,10 +240,10 @@ export function SidebarCustomizer() {
 
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                   <button 
-                    className="w-8 h-8 flex items-center justify-center bg-secondary/50 rounded-lg hover:bg-secondary transition-colors text-lg flex-shrink-0"
-                    onClick={() => setShowEmojiPicker(showEmojiPicker === item.id ? null : item.id)}
+                    className="w-10 h-10 flex items-center justify-center bg-secondary/50 rounded-lg hover:bg-secondary transition-colors text-primary flex-shrink-0"
+                    onClick={() => setShowIconPicker(showIconPicker === item.id ? null : item.id)}
                   >
-                    {item.icon || "📄"}
+                    <IconDisplay name={item.iconName} className="w-5 h-5" />
                   </button>
 
                   <div className="flex-1 min-w-0">
@@ -241,16 +273,17 @@ export function SidebarCustomizer() {
                   </div>
                 </div>
 
-                {showEmojiPicker === item.id && (
+                {showIconPicker === item.id && (
                   <div className="absolute left-12 top-12 z-50 bg-card border border-border p-2 rounded-xl shadow-xl w-64 animate-in fade-in zoom-in-95">
-                    <div className="grid grid-cols-6 gap-1 max-h-48 overflow-y-auto p-1">
-                      {ACADEMIC_EMOJIS.map(emoji => (
+                    <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto p-2">
+                      {ICON_NAMES.map(name => (
                         <button 
-                          key={emoji}
-                          onClick={() => selectEmoji(item.id, emoji)}
-                          className="w-8 h-8 flex items-center justify-center hover:bg-secondary rounded-md text-lg transition-transform hover:scale-110"
+                          key={name}
+                          onClick={() => selectIcon(item.id, name)}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-primary/20 hover:text-primary rounded-lg transition-all"
+                          title={name}
                         >
-                          {emoji}
+                          <IconDisplay name={name} className="w-4 h-4" />
                         </button>
                       ))}
                     </div>
@@ -278,22 +311,23 @@ export function SidebarCustomizer() {
                   {item.items.map((subItem, subIndex) => (
                     <div key={subItem.id} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-card/50 relative">
                       <button 
-                        className="w-6 h-6 flex items-center justify-center bg-secondary/30 rounded hover:bg-secondary/50 transition-colors text-sm flex-shrink-0"
-                        onClick={() => setShowEmojiPicker(showEmojiPicker === subItem.id ? null : subItem.id)}
+                        className="w-8 h-8 flex items-center justify-center bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors text-primary flex-shrink-0"
+                        onClick={() => setShowIconPicker(showIconPicker === subItem.id ? null : subItem.id)}
                       >
-                        {subItem.icon || "📄"}
+                        <IconDisplay name={subItem.iconName} className="w-4 h-4" />
                       </button>
 
-                      {showEmojiPicker === subItem.id && (
+                      {showIconPicker === subItem.id && (
                         <div className="absolute left-8 top-8 z-50 bg-card border border-border p-2 rounded-xl shadow-xl w-64">
-                          <div className="grid grid-cols-6 gap-1 max-h-40 overflow-y-auto">
-                            {ACADEMIC_EMOJIS.map(emoji => (
+                          <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto p-2">
+                            {ICON_NAMES.map(name => (
                               <button 
-                                key={emoji}
-                                onClick={() => selectEmoji(subItem.id, emoji)}
-                                className="w-7 h-7 flex items-center justify-center hover:bg-secondary rounded"
+                                key={name}
+                                onClick={() => selectIcon(subItem.id, name)}
+                                className="w-7 h-7 flex items-center justify-center hover:bg-primary/20 hover:text-primary rounded"
+                                title={name}
                               >
-                                {emoji}
+                                <IconDisplay name={name} className="w-4 h-4" />
                               </button>
                             ))}
                           </div>
@@ -339,7 +373,7 @@ export function SidebarCustomizer() {
           <div className="flex items-center gap-2 px-1">
             <span className="text-sm font-medium text-muted-foreground">Vista Previa en Tiempo Real</span>
           </div>
-          <div className="bg-sidebar border border-sidebar-border rounded-2xl p-4 shadow-xl pointer-events-none opacity-80 h-[500px] overflow-hidden flex flex-col">
+          <div className="bg-sidebar border border-sidebar-border rounded-2xl p-4 shadow-xl pointer-events-none h-[500px] overflow-hidden flex flex-col">
             <div className="flex items-center gap-3 mb-6 px-2">
               <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-bold">T</div>
               <div className="font-display font-bold text-sm">T.A.B.E.</div>
@@ -351,14 +385,14 @@ export function SidebarCustomizer() {
                     "flex items-center gap-3 px-3 py-2 rounded-lg",
                     item.type === "category" ? "text-primary/70 font-semibold text-xs uppercase pt-4" : "text-sidebar-foreground hover:bg-sidebar-accent"
                   )}>
-                    <span className="text-lg">{item.icon || (item.type === "category" ? "📁" : "📄")}</span>
+                    <IconDisplay name={item.iconName} className={cn("flex-shrink-0", item.type === "category" ? "w-4 h-4" : "w-5 h-5")} />
                     <span className="text-sm truncate">{item.label}</span>
                   </div>
                   {item.type === "category" && item.items && (
                     <div className="ml-4 space-y-1 border-l border-sidebar-border/30 pl-3">
                       {item.items.map(subItem => (
                         <div key={subItem.id} className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sidebar-foreground/80">
-                          <span className="text-base">{subItem.icon || "📄"}</span>
+                          <IconDisplay name={subItem.iconName} className="w-4 h-4 flex-shrink-0" />
                           <span className="text-sm truncate">{subItem.label}</span>
                         </div>
                       ))}
@@ -369,11 +403,10 @@ export function SidebarCustomizer() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground text-center italic">
-            Esta es una simulación de cómo se verá tu panel lateral una vez que guardes los cambios.
+            Esta es una simulación de cómo se verá tu panel lateral con los colores de tu tema.
           </p>
         </div>
       </div>
-
 
       <div className="flex justify-end pt-4">
         <Button onClick={saveConfig} className="bg-primary text-primary-foreground shadow-lg shadow-primary/20">
