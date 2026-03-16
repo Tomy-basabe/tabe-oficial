@@ -8,6 +8,7 @@ interface Flashcard {
   respuesta: string;
   veces_correcta: number;
   veces_incorrecta: number;
+  veces_parcial: number;
 }
 
 interface StudyModeProps {
@@ -15,7 +16,7 @@ interface StudyModeProps {
   cards: Flashcard[];
   studyTime: number;
   onExit: () => void;
-  onCardResult: (correct: boolean) => Promise<void>;
+  onCardResult: (cardId: string, status: 'correct' | 'partial' | 'incorrect') => Promise<void>;
   onComplete: () => void;
 }
 
@@ -93,18 +94,20 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
   }, [studyPhase]);
 
   // User answers (correct or incorrect)
-  const handleResult = useCallback(async (correct: boolean) => {
+  const handleResult = useCallback(async (status: 'correct' | 'partial' | 'incorrect') => {
     if (selectedIndex === null) return;
 
-    if (correct) {
+    if (status === 'correct') {
       setCorrectCount(prev => prev + 1);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 1200);
+    } else if (status === 'partial') {
+      // Maybe some subtle animation for partial?
     }
 
     setStudyPhase("animating");
     setFlyingCardIndex(selectedIndex);
-    await onCardResult(correct);
+    await onCardResult(shuffledCards[selectedIndex].id, status);
 
     // After animation, move card to completed pile
     setTimeout(() => {
@@ -601,15 +604,22 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
                 </p>
                 <div className="flex justify-center gap-4">
                   <button
-                    onClick={() => handleResult(false)}
-                    className="flex items-center gap-3 px-8 py-4 bg-neon-red/10 text-neon-red rounded-2xl hover:bg-neon-red/20 transition-all hover:scale-105 border border-neon-red/30 font-semibold group"
+                    onClick={() => handleResult('incorrect')}
+                    className="flex items-center gap-3 px-6 py-4 bg-neon-red/10 text-neon-red rounded-2xl hover:bg-neon-red/20 transition-all hover:scale-105 border border-neon-red/30 font-semibold group whitespace-nowrap"
                   >
                     <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
                     No la sabía
                   </button>
                   <button
-                    onClick={() => handleResult(true)}
-                    className="flex items-center gap-3 px-8 py-4 bg-neon-green/10 text-neon-green rounded-2xl hover:bg-neon-green/20 transition-all hover:scale-105 border border-neon-green/30 font-semibold group"
+                    onClick={() => handleResult('partial')}
+                    className="flex items-center gap-3 px-6 py-4 bg-neon-gold/10 text-neon-gold rounded-2xl hover:bg-neon-gold/20 transition-all hover:scale-105 border border-neon-gold/30 font-semibold group whitespace-nowrap"
+                  >
+                    <Zap className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    A medias
+                  </button>
+                  <button
+                    onClick={() => handleResult('correct')}
+                    className="flex items-center gap-3 px-6 py-4 bg-neon-green/10 text-neon-green rounded-2xl hover:bg-neon-green/20 transition-all hover:scale-105 border border-neon-green/30 font-semibold group whitespace-nowrap"
                   >
                     <Check className="w-5 h-5 group-hover:scale-125 transition-transform" />
                     ¡La sabía!

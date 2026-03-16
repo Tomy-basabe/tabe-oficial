@@ -28,6 +28,7 @@ interface Flashcard {
   respuesta: string;
   veces_correcta: number;
   veces_incorrecta: number;
+  veces_parcial: number;
 }
 
 interface Subject {
@@ -198,7 +199,8 @@ export default function Flashcards() {
           id: `mock-card-1-${i}`,
           ...c,
           veces_correcta: Math.floor(Math.random() * 20),
-          veces_incorrecta: Math.floor(Math.random() * 5)
+          veces_incorrecta: Math.floor(Math.random() * 5),
+          veces_parcial: Math.floor(Math.random() * 5)
         }));
         setCards(anatomyMocks);
         return anatomyMocks;
@@ -214,7 +216,8 @@ export default function Flashcards() {
         id: `mock-card-2-${i}`,
         ...c,
         veces_correcta: Math.floor(Math.random() * 10),
-        veces_incorrecta: Math.floor(Math.random() * 3)
+        veces_incorrecta: Math.floor(Math.random() * 3),
+        veces_parcial: Math.floor(Math.random() * 3)
       }));
       setCards(formulasMocks);
       return formulasMocks;
@@ -227,8 +230,12 @@ export default function Flashcards() {
       .order("created_at", { ascending: true });
 
     if (!error && data) {
-      setCards(data);
-      return data;
+      const mappedCards = data.map(c => ({
+        ...c,
+        veces_parcial: (c as any).veces_parcial || 0
+      })) as Flashcard[];
+      setCards(mappedCards);
+      return mappedCards;
     }
     return [];
   };
@@ -299,30 +306,27 @@ export default function Flashcards() {
     }
   };
 
-  const handleCardResult = useCallback(async (correct: boolean) => {
-    if (!cards.length) return;
-
-    // Find the card that was just answered (we track this via correctCount + incorrectCount)
-    const answeredIndex = correctCount + (cards.length - correctCount - (cards.length - 1));
-    const card = cards[answeredIndex] || cards[0];
-
-    if (correct) {
+  const handleCardResult = useCallback(async (cardId: string, status: 'correct' | 'partial' | 'incorrect') => {
+    if (status === 'correct') {
       setCorrectCount(prev => prev + 1);
     }
 
-    if (isGuest) return; // Prevent DB execution for guests
+    if (isGuest) return;
 
-    // Update card stats in database
+    // Let's find the card in state to get current values.
+    const card = cards.find(c => c.id === cardId);
     if (card) {
+      const updates: any = {};
+      if (status === 'correct') updates.veces_correcta = (card.veces_correcta || 0) + 1;
+      if (status === 'partial') updates.veces_parcial = (card.veces_parcial || 0) + 1;
+      if (status === 'incorrect') updates.veces_incorrecta = (card.veces_incorrecta || 0) + 1;
+      
       await supabase
         .from("flashcards")
-        .update({
-          veces_correcta: correct ? card.veces_correcta + 1 : card.veces_correcta,
-          veces_incorrecta: correct ? card.veces_incorrecta : card.veces_incorrecta + 1,
-        })
-        .eq("id", card.id);
+        .update(updates)
+        .eq("id", cardId);
     }
-  }, [cards, correctCount, isGuest]);
+  }, [cards, isGuest]);
 
   const handleStudyComplete = useCallback(async () => {
     // Save study session
@@ -369,8 +373,12 @@ export default function Flashcards() {
       return;
     }
 
+    const mappedCards = fetchedCards.map(c => ({
+      ...c,
+      veces_parcial: (c as any).veces_parcial || 0
+    })) as Flashcard[];
     setSelectedDeck(deck);
-    setCards(fetchedCards);
+    setCards(mappedCards);
     setStudyTime(0);
     setCorrectCount(0);
     setStudyState("studying");
@@ -385,7 +393,8 @@ export default function Flashcards() {
   const handleManageCards = async (deck: Deck) => {
     setSelectedDeck(deck);
     setManagePage(1); // Reset to first page
-    await fetchCards(deck.id);
+    const fetched = await fetchCards(deck.id);
+    setCards(fetched);
     setShowManageCardsModal(true);
   };
 
@@ -554,7 +563,8 @@ export default function Flashcards() {
       pregunta: c.pregunta,
       respuesta: c.respuesta,
       veces_correcta: 0,
-      veces_incorrecta: 0
+      veces_incorrecta: 0,
+      veces_parcial: 0
     }));
 
     const { error } = await supabase.from("flashcards").insert(newCards);
@@ -626,7 +636,8 @@ export default function Flashcards() {
         pregunta: c.pregunta,
         respuesta: c.respuesta,
         veces_correcta: 0,
-        veces_incorrecta: 0
+        veces_incorrecta: 0,
+        veces_parcial: 0
       }));
 
       const { error: insertError } = await supabase
