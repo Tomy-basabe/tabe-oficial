@@ -15,6 +15,7 @@ import {
   Check,
   X,
   Search,
+  Shield, // Added Shield icon
   // Icon Catalog
   GraduationCap, LayoutDashboard, Clock, FileText, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
@@ -27,6 +28,12 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { NotionIcon } from "@/components/icons/NotionIcon";
 import { ScrollArea as UIScrollArea } from "@/components/ui/scroll-area";
+
+// Navigation Mapping
+const ALL_AVAILABLE_ITEMS = [
+  ...baseNavItems,
+  { icon: Shield, label: "Admin", path: "/admin" }
+];
 
 export interface CustomSidebarItem {
   id: string; // Unique instance ID
@@ -42,7 +49,7 @@ export const ICON_MAP: Record<string, any> = {
   Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
-  NotionIcon
+  NotionIcon, Shield // Added Shield to ICON_MAP
 };
 
 const ICON_NAMES = Object.keys(ICON_MAP);
@@ -57,7 +64,8 @@ const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/marketplace": "Store",
   "/biblioteca": "Library",
   "/calendario": "Calendar",
-  "/admin": "Settings"
+  "/admin": "Settings",
+  "/configuracion": "Settings" // Added new mapping
 };
 
 export function SidebarCustomizer() {
@@ -98,7 +106,7 @@ export function SidebarCustomizer() {
     if (profile?.sidebar_config) {
       setConfig(sanitizeItems(profile.sidebar_config));
     } else {
-      const defaultConfig = baseNavItems.map(item => ({
+      const defaultConfig = ALL_AVAILABLE_ITEMS.map(item => ({
         id: `item-${item.path}`,
         path: item.path,
         label: item.label,
@@ -140,6 +148,20 @@ export function SidebarCustomizer() {
       items: []
     };
     setConfig([...config, newCategory]);
+  };
+
+  const addItemToRoot = (baseItem: any) => {
+    const newItem: CustomSidebarItem = {
+      id: `item-${Date.now()}-${Math.random()}`,
+      path: baseItem.path,
+      label: baseItem.label,
+      type: "item",
+      iconName: DEFAULT_ICON_MAPPING[baseItem.path] || "FileText"
+    };
+
+    setConfig([...config, newItem]);
+    setShowAddItemToId(null);
+    toast.success(`${baseItem.label} añadido al panel`);
   };
 
   const toggleAddItemSelector = (id: string | null) => {
@@ -251,7 +273,7 @@ export function SidebarCustomizer() {
   const resetToDefault = () => {
     if (!confirm("¿Restablecer el panel lateral a su estado original?")) return;
     
-    const defaultConfig = baseNavItems.map(item => ({
+    const defaultConfig = ALL_AVAILABLE_ITEMS.map(item => ({
       id: `item-${item.path}`,
       path: item.path,
       label: item.label,
@@ -267,7 +289,7 @@ export function SidebarCustomizer() {
     return <Icon className={className || "w-4 h-4"} />;
   };
 
-  const filteredBaseNavItems = baseNavItems.filter(item => 
+  const filteredBaseNavItems = ALL_AVAILABLE_ITEMS.filter(item => 
     item.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -279,10 +301,48 @@ export function SidebarCustomizer() {
           <Button variant="outline" size="sm" onClick={resetToDefault}>
             Restablecer
           </Button>
+          <Button variant="outline" size="sm" onClick={() => toggleAddItemSelector('root')}>
+            <Plus className="w-4 h-4 mr-2" /> Añadir Apartado
+          </Button>
           <Button size="sm" onClick={addCategory}>
             <FolderPlus className="w-4 h-4 mr-2" /> Nueva Categoría
           </Button>
         </div>
+      </div>
+
+      <div className="relative">
+        {showAddItemToId === 'root' && (
+          <div className="absolute right-0 top-2 z-[110] bg-card border border-border p-3 rounded-xl shadow-2xl w-72 animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-2 mb-3 bg-secondary/50 rounded-lg px-3 py-1.5">
+              <Search className="w-3.5 h-3.5 text-muted-foreground" />
+              <input 
+                className="bg-transparent border-none outline-none text-xs w-full"
+                placeholder="Buscar apartado..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <UIScrollArea className="h-48">
+              <div className="grid grid-cols-1 gap-1 pr-2">
+                {filteredBaseNavItems
+                  .filter(baseItem => !config.some(item => item.type === "item" && item.path === baseItem.path))
+                  .map(baseItem => (
+                  <button
+                    key={baseItem.path}
+                    onClick={() => addItemToRoot(baseItem)}
+                    className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-primary/10 hover:text-primary transition-all text-sm text-left group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center group-hover:bg-primary/20">
+                      <baseItem.icon className="w-4 h-4" />
+                    </div>
+                    <span className="font-medium">{baseItem.label}</span>
+                  </button>
+                ))}
+              </div>
+            </UIScrollArea>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -387,9 +447,13 @@ export function SidebarCustomizer() {
                       <ChevronLeft className="w-4 h-4 mr-1" /> Agrupar
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => deleteItem(index)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {item.type === "category" ? (
+                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => deleteItem(index)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <div className="w-8 h-8" title="Los elementos de la raíz no se pueden borrar directamente. Muévelos a una carpeta si quieres borrarlos." />
+                  )}
                 </div>
 
                 {/* Add Item to Folder Popover */}
