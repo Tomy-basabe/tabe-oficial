@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { NotionIcon } from "@/components/icons/NotionIcon";
 
 export interface CustomSidebarItem {
   id: string; // path or unique category id
@@ -34,11 +35,12 @@ export interface CustomSidebarItem {
 }
 
 // Icon Mapping for the catalog
-export const ICON_MAP: Record<string, LucideIcon> = {
+export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
-  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2
+  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
+  NotionIcon
 };
 
 const ICON_NAMES = Object.keys(ICON_MAP);
@@ -54,27 +56,27 @@ export function SidebarCustomizer() {
     if (profile?.sidebar_config) {
       setConfig(profile.sidebar_config);
     } else {
-      // Default config based on baseNavItems
-      const defaultConfig: CustomSidebarItem[] = baseNavItems.map(item => ({
+      const DEFAULT_ICON_MAPPING: Record<string, string> = {
+        "/dashboard": "LayoutDashboard",
+        "/carrera": "GraduationCap",
+        "/consultas": "Clock",
+        "/notion": "NotionIcon",
+        "/flashcards": "Layers",
+        "/cuestionarios": "ClipboardList",
+        "/marketplace": "Store",
+        "/biblioteca": "Library",
+        "/calendario": "Calendar",
+        "/admin": "Settings"
+      };
+
+      const defaultConfig = baseNavItems.map(item => ({
         id: item.path,
         label: item.label,
-        type: "item",
-        iconName: item.icon.name || item.icon.displayName || "FileText" // Fallback fallback
+        type: "item" as "item",
+        iconName: DEFAULT_ICON_MAPPING[item.path] || "FileText"
       }));
-      
-      // Attempt to get names more reliably if above fails
-      // baseNavItems icons are components, so we need to match them
-      const namedDefaultConfig = baseNavItems.map(item => {
-        const foundName = ICON_NAMES.find(name => ICON_MAP[name] === item.icon);
-        return {
-          id: item.path,
-          label: item.label,
-          type: "item" as "item",
-          iconName: foundName || "FileText"
-        };
-      });
 
-      setConfig(namedDefaultConfig);
+      setConfig(defaultConfig);
     }
   }, [profile]);
 
@@ -174,16 +176,28 @@ export function SidebarCustomizer() {
 
   const resetToDefault = () => {
     if (!confirm("¿Restablecer el panel lateral a su estado original?")) return;
-    const namedDefaultConfig = baseNavItems.map(item => {
-        const foundName = ICON_NAMES.find(name => ICON_MAP[name] === item.icon);
-        return {
-          id: item.path,
-          label: item.label,
-          type: "item" as "item",
-          iconName: foundName || "FileText"
-        };
-      });
-    setConfig(namedDefaultConfig);
+    
+    const DEFAULT_ICON_MAPPING: Record<string, string> = {
+      "/dashboard": "LayoutDashboard",
+      "/carrera": "GraduationCap",
+      "/consultas": "Clock",
+      "/notion": "NotionIcon",
+      "/flashcards": "Layers",
+      "/cuestionarios": "ClipboardList",
+      "/marketplace": "Store",
+      "/biblioteca": "Library",
+      "/calendario": "Calendar",
+      "/admin": "Settings"
+    };
+
+    const defaultConfig = baseNavItems.map(item => ({
+      id: item.path,
+      label: item.label,
+      type: "item" as "item",
+      iconName: DEFAULT_ICON_MAPPING[item.path] || "FileText"
+    }));
+    
+    setConfig(defaultConfig);
   };
 
   const IconDisplay = ({ name, className }: { name?: string, className?: string }) => {
