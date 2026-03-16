@@ -235,7 +235,7 @@ export const DragHandle = Extension.create<DragHandleOptions>({
             },
             dragover: (view, event) => {
               event.preventDefault();
-              if (draggedNodePos === null) return false;
+              if (draggedNodePos === null || !dropIndicator) return false;
               
               const draggable = getDraggableNodeAtCoords({ x: event.clientX, y: event.clientY }, view);
               
@@ -244,6 +244,18 @@ export const DragHandle = Extension.create<DragHandleOptions>({
                 const rect = targetNode.getBoundingClientRect();
                 const midY = rect.top + rect.height / 2;
                 const position = event.clientY < midY ? "before" : "after";
+                
+                // Nesting detection: if mouse is significantly to the right of the block start
+                const isNested = event.clientX > rect.left + 40;
+                
+                if (isNested && position === "after") {
+                  dropIndicator.classList.add("nested");
+                  const offset = 24; // Standard indentation
+                  dropIndicator.style.setProperty("--nested-offset", `${rect.left}px`);
+                } else {
+                  dropIndicator.classList.remove("nested");
+                }
+                
                 showDropIndicator(rect, position);
               } else {
                 hideDropIndicator();
@@ -255,6 +267,8 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               event.preventDefault();
               view.dom.classList.remove("dragging");
               dragHandleElement?.classList.remove("dragging");
+              
+              const isNested = dropIndicator?.classList.contains("nested");
               hideDropIndicator();
               
               if (draggedNodePos === null) return false;
@@ -267,13 +281,12 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               }
               
               const targetPos = draggable.pos;
-              if (targetPos == null || targetPos === draggedNodePos) {
+              if (targetPos == null) {
                 draggedNodePos = null;
                 return false;
               }
               
               const targetNode = draggable.dom;
-              
               const rect = targetNode.getBoundingClientRect();
               const midY = rect.top + rect.height / 2;
               const insertBefore = event.clientY < midY;
@@ -292,22 +305,46 @@ export const DragHandle = Extension.create<DragHandleOptions>({
                 insertPos = targetPos;
               } else {
                 const targetNodeAtPos = view.state.doc.nodeAt(targetPos);
-                insertPos = targetPos + (targetNodeAtPos?.nodeSize || 1);
-              }
-              
-              // Adjust insert position if we're moving down
-              if (draggedNodePos < insertPos) {
-                insertPos -= draggedNode.nodeSize;
+                insertPos = targetPos + (targetNodeAtPos?.nodeSize || 0);
               }
               
               // Create the transaction
               const tr = view.state.tr;
               
-              // Delete the original node
-              tr.delete(draggedNodePos, draggedNodePos + draggedNode.nodeSize);
+              // Delete original
+              const deleteFrom = draggedNodePos;
+              const deleteTo = draggedNodePos + draggedNode.nodeSize;
+              tr.delete(deleteFrom, deleteTo);
               
-              // Insert at new position
-              tr.insert(insertPos, draggedNode);
+              // Adjust insertPos if deletion happened before it
+              const adjustedInsertPos = insertPos > deleteFrom ? insertPos - (deleteTo - deleteFrom) : insertPos;
+              
+              // Prepare node with potential indentation
+              let nodeToInsert = draggedNode;
+              if (isNested) {
+                const targetNodeObj = view.state.doc.nodeAt(targetPos);
+                if (targetNodeObj) {
+                  const targetIndent = targetNodeObj.attrs.indent || 0;
+                  // Only indent if the node type supports it (Indent extension must be present)
+                  if (draggedNode.type.name === 'paragraph' || draggedNode.type.name === 'heading' || draggedNode.type.name === 'blockquote') {
+                    nodeToInsert = draggedNode.type.create({
+                      ...draggedNode.attrs,
+                      indent: targetIndent + 1
+                    }, draggedNode.content, draggedNode.marks);
+                  }
+                }
+              } else if (!insertBefore) {
+                // If moving AFTER and NOT nested, it should match the target's indentation
+                const targetNodeObj = view.state.doc.nodeAt(targetPos);
+                if (targetNodeObj && (draggedNode.type.name === 'paragraph' || draggedNode.type.name === 'heading' || draggedNode.type.name === 'blockquote')) {
+                    nodeToInsert = draggedNode.type.create({
+                      ...draggedNode.attrs,
+                      indent: targetNodeObj.attrs.indent || 0
+                    }, draggedNode.content, draggedNode.marks);
+                }
+              }
+              
+              tr.insert(adjustedInsertPos, nodeToInsert);
               
               view.dispatch(tr);
               

@@ -1033,6 +1033,21 @@
     background: hsl(var(--primary) / 0.15);
 }
 
+.drop-indicator {
+    position: fixed;
+    height: 2px;
+    background: hsl(var(--primary));
+    pointer-events: none;
+    z-index: 100;
+    display: none;
+    transition: left 0.15s ease, width 0.15s ease;
+}
+
+.drop-indicator.nested {
+    left: calc(var(--nested-offset, 0px) + 24px) !important;
+    width: calc(100% - var(--nested-offset, 0px) - 48px) !important; /* Adjust based on editor padding */
+}
+
 /* === EMBEDS === */
 .embed-container {
     margin: 8px 0;
