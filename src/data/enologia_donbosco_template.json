@@ -1,0 +1,194 @@
+{
+  "subjects": [
+    {
+      "id": "db1",
+      "codigo": "DB1",
+      "nombre": "Producción Vitícola",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "db2",
+      "codigo": "DB2",
+      "nombre": "Producción Frutícola (Olivícola)",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "db3",
+      "codigo": "DB3",
+      "nombre": "Producción Animal (Apicultura)",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "db6",
+      "codigo": "DB6",
+      "nombre": "Industrialización Oleícola",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "db10",
+      "codigo": "DB10",
+      "nombre": "Emprendedorismo y Agronegocios",
+      "numero_materia": 10,
+      "año": 1
+    },
+    {
+      "id": "db4",
+      "codigo": "DB4",
+      "nombre": "Vinificación",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "db5",
+      "codigo": "DB5",
+      "nombre": "Industrialización de Frutas y Hortalizas",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "db7",
+      "codigo": "DB7",
+      "nombre": "Industria Cárnica",
+      "numero_materia": 7,
+      "año": 1
+    },
+    {
+      "id": "db8",
+      "codigo": "DB8",
+      "nombre": "Industria Láctea",
+      "numero_materia": 8,
+      "año": 1
+    },
+    {
+      "id": "db9",
+      "codigo": "DB9",
+      "nombre": "Industria Apícola",
+      "numero_materia": 9,
+      "año": 1
+    },
+    {
+      "id": "db25",
+      "codigo": "DB25",
+      "nombre": "Análisis Sensorial de Vinos",
+      "numero_materia": 25,
+      "año": 1
+    },
+    {
+      "id": "db11",
+      "codigo": "DB11",
+      "nombre": "Gestión de los Procesos Fermentativos",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "db12",
+      "codigo": "DB12",
+      "nombre": "Gestión de Maquinarias Agroindustriales",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "db15",
+      "codigo": "DB15",
+      "nombre": "Territorio y Desarrollo",
+      "numero_materia": 15,
+      "año": 2
+    },
+    {
+      "id": "db13",
+      "codigo": "DB13",
+      "nombre": "Análisis de Productos Enológicos",
+      "numero_materia": 13,
+      "año": 2
+    },
+    {
+      "id": "db14",
+      "codigo": "DB14",
+      "nombre": "Manejo de Cosecha y Postcosecha",
+      "numero_materia": 14,
+      "año": 2
+    },
+    {
+      "id": "db16",
+      "codigo": "DB16",
+      "nombre": "Innovación y Gestión Empresarial",
+      "numero_materia": 16,
+      "año": 2
+    },
+    {
+      "id": "db26",
+      "codigo": "DB26",
+      "nombre": "Análisis Sensorial de Alimentos",
+      "numero_materia": 26,
+      "año": 2
+    },
+    {
+      "id": "db17",
+      "codigo": "DB17",
+      "nombre": "Análisis de las Bebidas",
+      "numero_materia": 17,
+      "año": 3
+    },
+    {
+      "id": "db18",
+      "codigo": "DB18",
+      "nombre": "Análisis de los Alimentos de Origen Vegetal",
+      "numero_materia": 18,
+      "año": 3
+    },
+    {
+      "id": "db22",
+      "codigo": "DB22",
+      "nombre": "Gestión de la Estabilización de los Alimentos",
+      "numero_materia": 22,
+      "año": 3
+    },
+    {
+      "id": "db23",
+      "codigo": "DB23",
+      "nombre": "Gestión de la Estabilización del Vino",
+      "numero_materia": 23,
+      "año": 3
+    },
+    {
+      "id": "db19",
+      "codigo": "DB19",
+      "nombre": "Análisis de los Alimentos de Origen Animal",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "db20",
+      "codigo": "DB20",
+      "nombre": "Gestión del Desarrollo Sostenible",
+      "numero_materia": 20,
+      "año": 3
+    },
+    {
+      "id": "db21",
+      "codigo": "DB21",
+      "nombre": "Gestión de Emprendimientos",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
+      "id": "db24",
+      "codigo": "DB24",
+      "nombre": "Gestión de la Crianza de Vinos",
+      "numero_materia": 24,
+      "año": 3
+    },
+    {
+      "id": "db27",
+      "codigo": "DB27",
+      "nombre": "Elaboración de Proyectos Productivos",
+      "numero_materia": 27,
+      "año": 3
+    }
+  ],
+  "dependencies": []
+}

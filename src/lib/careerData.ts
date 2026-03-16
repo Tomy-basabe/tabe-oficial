@@ -1,6 +1,7 @@
 export const AVAILABLE_FACULTADES = [
     { id: "UTN", label: "UTN", fullLabel: "Universidad Tecnológica Nacional (UTN)" },
     { id: "UNCUYO", label: "UNCUYO", fullLabel: "Universidad Nacional de Cuyo (UNCUYO)" },
+    { id: "DONBOSCO", label: "Don Bosco", fullLabel: "Facultad Don Bosco" },
     { id: "OTROS", label: "Otros Institutos", fullLabel: "Institutos / Tecnicaturas" },
 ];
 
@@ -13,6 +14,8 @@ export const AVAILABLE_CAREERS = [
     { id: "electronica", label: "Ingeniería Electrónica (Plan 2023)", file: "electronica_template", facultad: "UTN" },
     // UNCUYO
     { id: "agronomia_uncuyo", label: "Ingeniería Agronómica", file: "agronomia_uncuyo_template", facultad: "UNCUYO" },
+    // Don Bosco
+    { id: "enologia_donbosco", label: "Tecnicatura en Enología", file: "enologia_donbosco_template", facultad: "DONBOSCO" },
     // Otros
     { id: "contactologia", label: "Tecnicatura en Contactología", file: "contactologia_template", facultad: "OTROS" },
 ];
