@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { NotionIcon } from "@/components/icons/NotionIcon";
+import { ScrollArea as UIScrollArea } from "@/components/ui/scroll-area";
 
 export interface CustomSidebarItem {
   id: string; // path or unique category id
@@ -53,29 +54,46 @@ export function SidebarCustomizer() {
   const [showIconPicker, setShowIconPicker] = useState<string | null>(null);
 
   useEffect(() => {
-    if (profile?.sidebar_config) {
-      setConfig(profile.sidebar_config);
-    } else {
-      const DEFAULT_ICON_MAPPING: Record<string, string> = {
-        "/dashboard": "LayoutDashboard",
-        "/carrera": "GraduationCap",
-        "/consultas": "Clock",
-        "/notion": "NotionIcon",
-        "/flashcards": "Layers",
-        "/cuestionarios": "ClipboardList",
-        "/marketplace": "Store",
-        "/biblioteca": "Library",
-        "/calendario": "Calendar",
-        "/admin": "Settings"
-      };
+    const DEFAULT_ICON_MAPPING: Record<string, string> = {
+      "/dashboard": "LayoutDashboard",
+      "/carrera": "GraduationCap",
+      "/consultas": "Clock",
+      "/notion": "NotionIcon",
+      "/flashcards": "Layers",
+      "/cuestionarios": "ClipboardList",
+      "/marketplace": "Store",
+      "/biblioteca": "Library",
+      "/calendario": "Calendar",
+      "/admin": "Settings"
+    };
 
+    const sanitizeItems = (items: any[]): CustomSidebarItem[] => {
+      return items.map(item => {
+        let newItem = { ...item };
+        
+        // Fix missing or generic icons for default paths
+        if (item.type === "item" && (!item.iconName || item.iconName === "FileText")) {
+          newItem.iconName = DEFAULT_ICON_MAPPING[item.id] || "FileText";
+        }
+        
+        // Recursive sanitization for categories
+        if (item.items) {
+          newItem.items = sanitizeItems(item.items);
+        }
+        
+        return newItem as CustomSidebarItem;
+      });
+    };
+
+    if (profile?.sidebar_config) {
+      setConfig(sanitizeItems(profile.sidebar_config));
+    } else {
       const defaultConfig = baseNavItems.map(item => ({
         id: item.path,
         label: item.label,
         type: "item" as "item",
         iconName: DEFAULT_ICON_MAPPING[item.path] || "FileText"
       }));
-
       setConfig(defaultConfig);
     }
   }, [profile]);
@@ -85,6 +103,7 @@ export function SidebarCustomizer() {
       await updateSidebarConfig(config);
       toast.success("Configuración del panel lateral guardada");
     } catch (error) {
+      console.error("Save error:", error);
       toast.error("Error al guardar la configuración");
     }
   };
@@ -382,42 +401,49 @@ export function SidebarCustomizer() {
           ))}
         </div>
 
-        {/* Real-time Preview */}
         <div className="hidden lg:block space-y-4">
           <div className="flex items-center gap-2 px-1">
             <span className="text-sm font-medium text-muted-foreground">Vista Previa en Tiempo Real</span>
           </div>
-          <div className="bg-sidebar border border-sidebar-border rounded-2xl p-4 shadow-xl pointer-events-none h-[500px] overflow-hidden flex flex-col">
+          <div className="bg-sidebar border border-sidebar-border rounded-2xl p-4 shadow-xl h-[500px] flex flex-col relative overflow-hidden">
             <div className="flex items-center gap-3 mb-6 px-2">
               <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-bold">T</div>
-              <div className="font-display font-bold text-sm">T.A.B.E.</div>
+              <div className="font-display font-bold text-sm text-sidebar-foreground">T.A.B.E.</div>
             </div>
-            <div className="space-y-2 overflow-y-auto flex-1 pr-2">
-              {config.map((item) => (
-                <div key={item.id} className="space-y-1">
-                  <div className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg",
-                    item.type === "category" ? "text-primary/70 font-semibold text-xs uppercase pt-4" : "text-sidebar-foreground hover:bg-sidebar-accent"
-                  )}>
-                    <IconDisplay name={item.iconName} className={cn("flex-shrink-0", item.type === "category" ? "w-4 h-4" : "w-5 h-5")} />
-                    <span className="text-sm truncate">{item.label}</span>
-                  </div>
-                  {item.type === "category" && item.items && (
-                    <div className="ml-4 space-y-1 border-l border-sidebar-border/30 pl-3">
-                      {item.items.map(subItem => (
-                        <div key={subItem.id} className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sidebar-foreground/80">
-                          <IconDisplay name={subItem.iconName} className="w-4 h-4 flex-shrink-0" />
-                          <span className="text-sm truncate">{subItem.label}</span>
-                        </div>
-                      ))}
+            
+            <UIScrollArea className="flex-1 pr-3">
+              <div className="space-y-2 pb-4">
+                {config.map((item) => (
+                  <div key={item.id} className="space-y-1">
+                    <div className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                      item.type === "category" 
+                        ? "text-primary/70 font-semibold text-[10px] uppercase tracking-wider mt-4" 
+                        : "text-sidebar-foreground hover:bg-sidebar-accent cursor-default border border-transparent"
+                    )}>
+                      <IconDisplay 
+                        name={item.iconName} 
+                        className={cn("flex-shrink-0 transition-all", item.type === "category" ? "w-3 h-3 opacity-70" : "w-5 h-5")} 
+                      />
+                      <span className="text-sm truncate font-medium">{item.label}</span>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    {item.type === "category" && item.items && (
+                      <div className="ml-4 space-y-1 border-l border-sidebar-border/30 pl-3">
+                        {item.items.map(subItem => (
+                          <div key={subItem.id} className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent cursor-default">
+                            <IconDisplay name={subItem.iconName} className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm truncate font-medium">{subItem.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </UIScrollArea>
           </div>
           <p className="text-xs text-muted-foreground text-center italic">
-            Esta es una simulación de cómo se verá tu panel lateral con los colores de tu tema.
+            Esta es una simulación de cómo se verá tu panel lateral. ¡Interactúa con el scroll!
           </p>
         </div>
       </div>
