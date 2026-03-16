@@ -1550,7 +1550,7 @@ export default function Library() {
                   </div>
                 </div>
 
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity flex gap-1">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1646,7 +1646,7 @@ export default function Library() {
                   <span>{formatFileSize(file.tamaño_bytes)}</span>
                 </div>
 
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity flex gap-1">
                   <button
                     onClick={() => {
                       setPublishingResource({ id: file.id, type: "file", nombre: file.nombre });

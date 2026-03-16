@@ -3,11 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Layers, Plus, Sparkles, GraduationCap,
-  BookOpen, Zap, Trash2, X
+  BookOpen, Zap, Trash2, X, ShoppingBag, Edit2
 } from "lucide-react";
+import { useMarketplace } from "@/hooks/useMarketplace";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { FlashcardDeck } from "@/components/flashcards/FlashcardDeck";
 import { StudyMode } from "@/components/flashcards/StudyMode";
 import { CompletionScreen } from "@/components/flashcards/CompletionScreen";
@@ -48,6 +50,12 @@ export default function Flashcards() {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const { publishResource } = useMarketplace();
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishingDeck, setPublishingDeck] = useState<Deck | null>(null);
+  const [pubDescription, setPubDescription] = useState("");
+  const [pubCategory, setPubCategory] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [studyState, setStudyState] = useState<StudyState>("browsing");
@@ -599,7 +607,6 @@ export default function Flashcards() {
       toast.error("Completa todos los campos y selecciona al menos 2 mazos");
       return;
     }
-
     setIsMerging(true);
     try {
       // 1. Create the new deck
@@ -663,6 +670,20 @@ export default function Flashcards() {
     } finally {
       setIsMerging(false);
     }
+  };
+
+  const handlePublishDeck = async () => {
+    if (!publishingDeck || !pubDescription.trim() || !pubCategory.trim()) return;
+    setIsPublishing(true);
+    const success = await publishResource("deck", publishingDeck.id, pubDescription, pubCategory);
+    if (success) {
+      setShowPublishModal(false);
+      setPublishingDeck(null);
+      setPubDescription("");
+      setPubCategory("");
+      fetchDecks();
+    }
+    setIsPublishing(false);
   };
 
   const resetMergeState = () => {
@@ -904,6 +925,10 @@ export default function Flashcards() {
               onManageCards={handleManageCards}
               onEditDeck={handleEditDeck}
               onImportCards={handleImportCards}
+              onPublishDeck={(deck) => {
+                setPublishingDeck(deck);
+                setShowPublishModal(true);
+              }}
             />
           ))}
         </div>
@@ -1550,6 +1575,44 @@ export default function Flashcards() {
             >
               Eliminar
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Modal de Publicar en Marketplace */}
+      <Dialog open={showPublishModal} onOpenChange={setShowPublishModal}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Publicar mazo en el Marketplace</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descripción</label>
+              <textarea
+                className="w-full h-24 p-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-neon-cyan/50"
+                placeholder="Describe qué contiene este mazo..."
+                value={pubDescription}
+                onChange={(e) => setPubDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Categoría</label>
+              <input
+                className="w-full p-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-neon-cyan/50"
+                placeholder="Ej: Medicina, Historia, Programación..."
+                value={pubCategory}
+                onChange={(e) => setPubCategory(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPublishModal(false)}>Cancelar</Button>
+              <Button
+                className="flex-1 bg-neon-cyan text-black hover:bg-neon-cyan/90"
+                onClick={handlePublishDeck}
+                disabled={isPublishing || !pubDescription.trim() || !pubCategory.trim()}
+              >
+                {isPublishing ? "Publicando..." : "Publicar Ahora"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

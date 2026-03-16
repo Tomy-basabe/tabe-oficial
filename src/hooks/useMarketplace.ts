@@ -252,6 +252,20 @@ export function useMarketplace() {
     return { error: null, fileId: newFile.id };
   };
 
+  const getDeckPreview = async (deckId: string): Promise<FlashcardPreview[]> => {
+    const { data, error } = await supabase
+      .from("flashcards")
+      .select("id, pregunta, respuesta")
+      .eq("deck_id", deckId)
+      .limit(10); // Limit preview to 10 cards
+    
+    if (error) {
+      console.error("Error fetching deck preview:", error);
+      return [];
+    }
+    return data || [];
+  };
+
   const importFolder = async (sourceFolderId: string, targetParentId: string | null = null) => {
     if (!user) return { error: "No autenticado" };
 
@@ -449,6 +463,7 @@ export function useMarketplace() {
     importFile,
     importFolder,
     importDeck,
+    getDeckPreview,
     rateDeck,
     userInventory,
     fetchInventory,

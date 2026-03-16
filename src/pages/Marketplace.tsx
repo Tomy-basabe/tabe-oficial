@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Store, Search, Download, Star, User, Tag, Eye, ChevronLeft, ChevronRight,
-  Layers, Upload, X, GraduationCap, Calendar, FileText, Folder
+  Layers, Upload, X, GraduationCap, Calendar, FileText, Folder, Loader2
 } from "lucide-react";
 import { useMarketplace, PublicDeck, PublicFile, PublicFolder } from "@/hooks/useMarketplace";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,6 +64,13 @@ export default function Marketplace() {
   const [importingResource, setImportingResource] = useState<{ id: string; type: "deck" | "file" | "folder"; data: any } | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [importing, setImporting] = useState(false);
+  
+  // Publish Modal State
+  const [publishSelectOpen, setPublishSelectOpen] = useState(false);
+  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: "deck" | "file" | "folder"; nombre: string } | null>(null);
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -72,8 +79,8 @@ export default function Marketplace() {
 
       const { data: subjectsData } = await supabase
         .from("subjects")
-        .select("id, nombre, año")
-        .order("año", { ascending: true });
+        .select("id, nombre, año" as any)
+        .order("año" as any, { ascending: true });
 
       setSubjects((subjectsData || []).map(s => ({ id: s.id, nombre: s.nombre, year: s.año })));
 
@@ -128,6 +135,21 @@ export default function Marketplace() {
       setImportingResource(null);
     }
     setImporting(false);
+  };
+
+  const handlePublish = async () => {
+    if (!resourceToPublish || !description.trim() || !category.trim()) return;
+    setIsPublishing(true);
+    const success = await publishResource(resourceToPublish.type, resourceToPublish.id, description, category);
+    if (success) {
+      setPublishSelectOpen(false);
+      setResourceToPublish(null);
+      setDescription("");
+      setCategory("");
+      // Recargar recursos propios
+      window.location.reload();
+    }
+    setIsPublishing(false);
   };
 
   const availableYears = [...new Set(subjects.map(s => s.year))].sort();
@@ -237,7 +259,15 @@ export default function Marketplace() {
           </h1>
           <p className="text-muted-foreground mt-1">Descubre recursos compartidos por la comunidad</p>
         </div>
-        <MarketplaceModal />
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setPublishSelectOpen(true)}
+            className="bg-neon-cyan text-black hover:bg-neon-cyan/90 font-bold border-none shadow-lg shadow-neon-cyan/20"
+          >
+            <Upload className="w-4 h-4 mr-2" /> Publicar Recurso
+          </Button>
+          <MarketplaceModal />
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -349,6 +379,80 @@ export default function Marketplace() {
               </SelectContent>
             </Select>
             <Button className="w-full" onClick={handleImport} disabled={importing || !selectedSubject}>{importing ? "Importando..." : "Importar Mazo"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Select Resource to Publish Modal */}
+      <Dialog open={publishSelectOpen} onOpenChange={setPublishSelectOpen}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>¿Qué quieres publicar?</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 pt-4">
+            {!resourceToPublish ? (
+              <div className="grid grid-cols-1 gap-3">
+                <p className="text-sm text-muted-foreground mb-2">Selecciona uno de tus recursos no publicados:</p>
+                {myResources.filter(r => !r.is_public).length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground bg-secondary/20 rounded-xl">No tienes recursos disponibles para publicar.</p>
+                ) : (
+                  myResources.filter(r => !r.is_public).map(r => (
+                    <div 
+                      key={`${r.type}-${r.id}`}
+                      className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border hover:border-neon-cyan/50 cursor-pointer transition-all"
+                      onClick={() => setResourceToPublish({ id: r.id, type: r.type as any, nombre: r.nombre })}
+                    >
+                      <div className="flex items-center gap-3">
+                        {r.type === 'deck' ? <Layers className="w-5 h-5 text-neon-purple" /> : r.type === 'file' ? <FileText className="w-5 h-5 text-neon-green" /> : <Folder className="w-5 h-5 text-neon-gold" />}
+                        <span className="font-medium">{r.nombre}</span>
+                      </div>
+                      <Badge variant="outline">Privado</Badge>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                <div className="p-4 bg-secondary/50 rounded-xl border border-neon-cyan/30 flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                    {resourceToPublish.type === 'deck' ? <Layers className="w-5 h-5 text-neon-purple" /> : resourceToPublish.type === 'file' ? <FileText className="w-5 h-5 text-neon-green" /> : <Folder className="w-5 h-5 text-neon-gold" />}
+                    <span className="font-bold">{resourceToPublish.nombre}</span>
+                   </div>
+                   <Button variant="ghost" size="sm" onClick={() => setResourceToPublish(null)}>Cambiar</Button>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Descripción</label>
+                  <Textarea 
+                    placeholder="Describe este recurso para que otros sepan de qué se trata..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Categoría</label>
+                  <Input 
+                    placeholder="Ej: Medicina, Ingeniería, Resúmenes..."
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex gap-3 pt-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setResourceToPublish(null)}>Atrás</Button>
+                  <Button 
+                    className="flex-1 bg-neon-cyan text-black hover:bg-neon-cyan/90 font-bold"
+                    onClick={handlePublish}
+                    disabled={isPublishing || !description.trim() || !category.trim()}
+                  >
+                    {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Publicar Ahora"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

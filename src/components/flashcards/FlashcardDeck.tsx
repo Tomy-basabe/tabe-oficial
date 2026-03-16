@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Layers, Play, Plus, Sparkles, Trash2, MoreVertical, BookOpen, Check, X, Zap } from "lucide-react";
+import { Layers, Play, Plus, Sparkles, Trash2, MoreVertical, BookOpen, Check, X, Zap, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -24,10 +24,11 @@ interface FlashcardDeckProps {
   onManageCards: (deck: Deck) => void;
   onEditDeck: (deck: Deck) => void;
   onImportCards: (deck: Deck) => void;
+  onPublishDeck: (deck: Deck) => void;
   index: number;
 }
 
-export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onManageCards, onEditDeck, onImportCards, index }: FlashcardDeckProps) {
+export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onManageCards, onEditDeck, onImportCards, onPublishDeck, index }: FlashcardDeckProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -125,6 +126,13 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
                   Importar cartas
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onPublishDeck(deck); }}
+                  className="cursor-pointer text-neon-cyan focus:text-neon-cyan"
+                >
+                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  Publicar en Marketplace
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onDeleteDeck(deck); }}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
@@ -195,6 +203,13 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <button
+            onClick={(e) => { e.stopPropagation(); onPublishDeck(deck); }}
+            className="px-3 py-2.5 bg-neon-cyan/10 text-neon-cyan rounded-xl hover:bg-neon-cyan/20 transition-all hover:scale-105 border border-neon-cyan/20"
+            title="Publicar en Marketplace"
+          >
+            <ShoppingBag className="w-4 h-4" />
+          </button>
           <button
             onClick={(e) => { e.stopPropagation(); onAddCard(deck); }}
             className="px-3 py-2.5 bg-secondary rounded-xl hover:bg-secondary/80 transition-all hover:scale-105 border border-border/50"
