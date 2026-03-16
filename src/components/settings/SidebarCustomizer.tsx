@@ -24,14 +24,22 @@ export interface CustomSidebarItem {
   id: string; // path or unique category id
   label: string;
   type: "item" | "category";
+  icon?: string; // emoji
   items?: CustomSidebarItem[];
 }
+
+const ACADEMIC_EMOJIS = [
+  "🎓", "📚", "📖", "📝", "✏️", "🖋️", "🖊️", "📒", "📓", "📔", "📕", "📘", "📗", "📙",
+  "🔬", "🧪", "🧬", "🔭", "📡", "📐", "📏", "📊", "📈", "📉", "📅", "🗓️", "⌛", "⏳",
+  "💡", "🧠", "🎯", "🏆", "🎨", "🎭", "🎼", "🎹", "💼", "📁", "📂", "📌", "📍", "🔒"
+];
 
 export function SidebarCustomizer() {
   const { profile, updateSidebarConfig } = useAuth();
   const [config, setConfig] = useState<CustomSidebarItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.sidebar_config) {
@@ -73,6 +81,7 @@ export function SidebarCustomizer() {
       id: `cat-${Date.now()}`,
       label: name,
       type: "category",
+      icon: "📁",
       items: []
     };
     setConfig([...config, newCategory]);
@@ -128,6 +137,18 @@ export function SidebarCustomizer() {
     setEditingId(null);
   };
 
+  const selectEmoji = (itemId: string, emoji: string) => {
+    const updateEmoji = (items: CustomSidebarItem[]): CustomSidebarItem[] => {
+      return items.map(i => {
+        if (i.id === itemId) return { ...i, icon: emoji };
+        if (i.items) return { ...i, items: updateEmoji(i.items) };
+        return i;
+      });
+    };
+    setConfig(updateEmoji(config));
+    setShowEmojiPicker(null);
+  };
+
   const resetToDefault = () => {
     if (!confirm("¿Restablecer el panel lateral a su estado original?")) return;
     const defaultConfig: CustomSidebarItem[] = baseNavItems.map(item => ({
@@ -152,117 +173,207 @@ export function SidebarCustomizer() {
         </div>
       </div>
 
-      <div className="space-y-3 bg-secondary/20 p-4 rounded-xl border border-border">
-        {config.map((item, index) => (
-          <div key={item.id} className="space-y-2">
-            <div className={cn(
-              "flex items-center gap-3 p-3 rounded-lg border bg-card transition-all",
-              item.type === "category" ? "border-primary/50 bg-primary/5" : "border-border"
-            )}>
-              <div className="flex flex-col gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6" 
-                  onClick={() => moveItem(index, 'up')}
-                  disabled={index === 0}
-                >
-                  <ChevronUp className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6" 
-                  onClick={() => moveItem(index, 'down')}
-                  disabled={index === config.length - 1}
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="flex-1 flex items-center gap-2">
-                {editingId === item.id ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <Input 
-                      value={editValue} 
-                      onChange={(e) => setEditValue(e.target.value)} 
-                      className="h-8"
-                      autoFocus
-                    />
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={() => saveEdit(item)}>
-                      <Check className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={() => setEditingId(null)}>
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <span className={cn("font-medium", item.type === "category" && "text-primary")}>
-                      {item.label}
-                    </span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-50 hover:opacity-100" onClick={() => startEditing(item)}>
-                      <Edit2 className="w-3 h-3" />
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1">
-                {item.type === "item" && index > 0 && config[index-1].type === "category" && (
-                  <Button variant="ghost" size="sm" onClick={() => moveIntoCategory(index, index - 1)} title="Meters en categoría arriba">
-                    <ChevronLeft className="w-4 h-4 mr-1" /> Agrupar
-                  </Button>
-                )}
-                <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => deleteItem(index)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Nested items for categories */}
-            {item.type === "category" && item.items && (
-              <div className="ml-12 space-y-2 border-l-2 border-primary/20 pl-4 py-1">
-                {item.items.length === 0 && (
-                  <p className="text-xs text-muted-foreground italic py-2">Categoría vacía</p>
-                )}
-                {item.items.map((subItem, subIndex) => (
-                  <div key={subItem.id} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-card/50">
-                    <div className="flex-1 flex items-center gap-2">
-                      {editingId === subItem.id ? (
-                        <div className="flex items-center gap-2 flex-1">
-                          <Input 
-                            value={editValue} 
-                            onChange={(e) => setEditValue(e.target.value)} 
-                            className="h-8"
-                            autoFocus
-                          />
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={() => saveEdit(subItem)}>
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={() => setEditingId(null)}>
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <span className="text-sm">{subItem.label}</span>
-                          <Button variant="ghost" size="icon" className="h-5 h-5 opacity-50 hover:opacity-100" onClick={() => startEditing(subItem)}>
-                            <Edit2 className="w-3 h-3" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                    <Button variant="ghost" size="sm" className="h-8" onClick={() => moveOutOfCategory(index, subIndex)}>
-                      <ChevronRight className="w-4 h-4 mr-1" /> Sacar
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-3 bg-secondary/10 p-4 rounded-xl border border-border overflow-hidden">
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <Settings className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Editor de Estructura</span>
           </div>
-        ))}
+          {config.map((item, index) => (
+            <div key={item.id} className="space-y-2">
+              <div className={cn(
+                "flex items-center gap-3 p-3 rounded-lg border bg-card transition-all relative",
+                item.type === "category" ? "border-primary/50 bg-primary/5 shadow-sm" : "border-border"
+              )}>
+                <div className="flex flex-col gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6" 
+                    onClick={() => moveItem(index, 'up')}
+                    disabled={index === 0}
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6" 
+                    onClick={() => moveItem(index, 'down')}
+                    disabled={index === config.length - 1}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="flex-1 flex items-center gap-2 min-w-0">
+                  <button 
+                    className="w-8 h-8 flex items-center justify-center bg-secondary/50 rounded-lg hover:bg-secondary transition-colors text-lg flex-shrink-0"
+                    onClick={() => setShowEmojiPicker(showEmojiPicker === item.id ? null : item.id)}
+                  >
+                    {item.icon || "📄"}
+                  </button>
+
+                  <div className="flex-1 min-w-0">
+                  {editingId === item.id ? (
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        value={editValue} 
+                        onChange={(e) => setEditValue(e.target.value)} 
+                        className="h-8"
+                        autoFocus
+                        onKeyDown={(e) => e.key === 'Enter' && saveEdit(item)}
+                      />
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={() => saveEdit(item)}>
+                        <Check className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 overflow-hidden">
+                      <span className={cn("font-medium truncate", item.type === "category" && "text-primary")}>
+                        {item.label}
+                      </span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-40 hover:opacity-100 flex-shrink-0" onClick={() => startEditing(item)}>
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                  </div>
+                </div>
+
+                {showEmojiPicker === item.id && (
+                  <div className="absolute left-12 top-12 z-50 bg-card border border-border p-2 rounded-xl shadow-xl w-64 animate-in fade-in zoom-in-95">
+                    <div className="grid grid-cols-6 gap-1 max-h-48 overflow-y-auto p-1">
+                      {ACADEMIC_EMOJIS.map(emoji => (
+                        <button 
+                          key={emoji}
+                          onClick={() => selectEmoji(item.id, emoji)}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-secondary rounded-md text-lg transition-transform hover:scale-110"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1">
+                  {item.type === "item" && index > 0 && config[index-1].type === "category" && (
+                    <Button variant="ghost" size="sm" onClick={() => moveIntoCategory(index, index - 1)} title="Meters en categoría arriba" className="h-8">
+                      <ChevronLeft className="w-4 h-4 mr-1" /> Agrupar
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => deleteItem(index)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Nested items for categories */}
+              {item.type === "category" && item.items && (
+                <div className="ml-12 space-y-2 border-l-2 border-primary/20 pl-4 py-1">
+                  {item.items.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic py-2">Categoría vacía</p>
+                  )}
+                  {item.items.map((subItem, subIndex) => (
+                    <div key={subItem.id} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-card/50 relative">
+                      <button 
+                        className="w-6 h-6 flex items-center justify-center bg-secondary/30 rounded hover:bg-secondary/50 transition-colors text-sm flex-shrink-0"
+                        onClick={() => setShowEmojiPicker(showEmojiPicker === subItem.id ? null : subItem.id)}
+                      >
+                        {subItem.icon || "📄"}
+                      </button>
+
+                      {showEmojiPicker === subItem.id && (
+                        <div className="absolute left-8 top-8 z-50 bg-card border border-border p-2 rounded-xl shadow-xl w-64">
+                          <div className="grid grid-cols-6 gap-1 max-h-40 overflow-y-auto">
+                            {ACADEMIC_EMOJIS.map(emoji => (
+                              <button 
+                                key={emoji}
+                                onClick={() => selectEmoji(subItem.id, emoji)}
+                                className="w-7 h-7 flex items-center justify-center hover:bg-secondary rounded"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex-1 flex items-center gap-2 min-w-0">
+                        {editingId === subItem.id ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <Input 
+                              value={editValue} 
+                              onChange={(e) => setEditValue(e.target.value)} 
+                              className="h-7 text-sm"
+                              autoFocus
+                              onKeyDown={(e) => e.key === 'Enter' && saveEdit(subItem)}
+                            />
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-green-500" onClick={() => saveEdit(subItem)}>
+                              <Check className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 overflow-hidden">
+                            <span className="text-sm truncate">{subItem.label}</span>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-40 hover:opacity-100 flex-shrink-0" onClick={() => startEditing(subItem)}>
+                              <Edit2 className="w-3 h-2" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => moveOutOfCategory(index, subIndex)}>
+                        <ChevronRight className="w-3 h-3 mr-1" /> Sacar
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Real-time Preview */}
+        <div className="hidden lg:block space-y-4">
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-sm font-medium text-muted-foreground">Vista Previa en Tiempo Real</span>
+          </div>
+          <div className="bg-sidebar border border-sidebar-border rounded-2xl p-4 shadow-xl pointer-events-none opacity-80 h-[500px] overflow-hidden flex flex-col">
+            <div className="flex items-center gap-3 mb-6 px-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-bold">T</div>
+              <div className="font-display font-bold text-sm">T.A.B.E.</div>
+            </div>
+            <div className="space-y-2 overflow-y-auto flex-1 pr-2">
+              {config.map((item) => (
+                <div key={item.id} className="space-y-1">
+                  <div className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg",
+                    item.type === "category" ? "text-primary/70 font-semibold text-xs uppercase pt-4" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  )}>
+                    <span className="text-lg">{item.icon || (item.type === "category" ? "📁" : "📄")}</span>
+                    <span className="text-sm truncate">{item.label}</span>
+                  </div>
+                  {item.type === "category" && item.items && (
+                    <div className="ml-4 space-y-1 border-l border-sidebar-border/30 pl-3">
+                      {item.items.map(subItem => (
+                        <div key={subItem.id} className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sidebar-foreground/80">
+                          <span className="text-base">{subItem.icon || "📄"}</span>
+                          <span className="text-sm truncate">{subItem.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground text-center italic">
+            Esta es una simulación de cómo se verá tu panel lateral una vez que guardes los cambios.
+          </p>
+        </div>
       </div>
+
 
       <div className="flex justify-end pt-4">
         <Button onClick={saveConfig} className="bg-primary text-primary-foreground shadow-lg shadow-primary/20">
