@@ -176,9 +176,19 @@
       "requiere_regular": true
     },
     {
+      "subject_id": "co9",
+      "dependency_id": "co4",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "co10",
       "dependency_id": "co2",
       "requiere_regular": true
+    },
+    {
+      "subject_id": "co10",
+      "dependency_id": "co2",
+      "requiere_regular": false
     },
     {
       "subject_id": "co11",
@@ -186,9 +196,19 @@
       "requiere_regular": true
     },
     {
+      "subject_id": "co11",
+      "dependency_id": "co1",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "co12",
       "dependency_id": "co10",
       "requiere_regular": true
+    },
+    {
+      "subject_id": "co12",
+      "dependency_id": "co10",
+      "requiere_regular": false
     },
     {
       "subject_id": "co13",
@@ -196,9 +216,19 @@
       "requiere_regular": true
     },
     {
+      "subject_id": "co13",
+      "dependency_id": "co7",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "co14",
       "dependency_id": "co1",
       "requiere_regular": true
+    },
+    {
+      "subject_id": "co14",
+      "dependency_id": "co1",
+      "requiere_regular": false
     },
     {
       "subject_id": "co15",
@@ -216,9 +246,29 @@
       "requiere_regular": true
     },
     {
+      "subject_id": "co15",
+      "dependency_id": "co3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co15",
+      "dependency_id": "co9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co15",
+      "dependency_id": "co2",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "co16",
       "dependency_id": "co10",
       "requiere_regular": true
+    },
+    {
+      "subject_id": "co16",
+      "dependency_id": "co10",
+      "requiere_regular": false
     },
     {
       "subject_id": "co17",
@@ -226,11 +276,21 @@
       "requiere_regular": true
     },
     {
+      "subject_id": "co17",
+      "dependency_id": "co12",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "co18",
       "dependency_id": "co15",
       "requiere_regular": true
     },
     {
+      "subject_id": "co18",
+      "dependency_id": "co15",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "co19",
       "dependency_id": "co12",
       "requiere_regular": true
@@ -241,6 +301,16 @@
       "requiere_regular": true
     },
     {
+      "subject_id": "co19",
+      "dependency_id": "co12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co19",
+      "dependency_id": "co17",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "co20",
       "dependency_id": "co12",
       "requiere_regular": true
@@ -249,6 +319,16 @@
       "subject_id": "co20",
       "dependency_id": "co17",
       "requiere_regular": true
+    },
+    {
+      "subject_id": "co20",
+      "dependency_id": "co12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co20",
+      "dependency_id": "co17",
+      "requiere_regular": false
     },
     {
       "subject_id": "co21",
@@ -256,14 +336,29 @@
       "requiere_regular": true
     },
     {
+      "subject_id": "co21",
+      "dependency_id": "co17",
+      "requiere_regular": false
+    },
+    {
       "subject_id": "co22",
+      "dependency_id": "co14",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "co22",
+      "dependency_id": "co14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co23",
       "dependency_id": "co14",
       "requiere_regular": true
     },
     {
       "subject_id": "co23",
       "dependency_id": "co14",
-      "requiere_regular": true
+      "requiere_regular": false
     },
     {
       "subject_id": "co24",
@@ -379,6 +474,121 @@
       "subject_id": "co24",
       "dependency_id": "co23",
       "requiere_regular": true
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co6",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co15",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co18",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co19",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co20",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co21",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co22",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "co24",
+      "dependency_id": "co23",
+      "requiere_regular": false
     }
   ]
 }

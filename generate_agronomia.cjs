@@ -126,14 +126,11 @@ raw.forEach(r => {
         if (!dNum) { console.warn('Dep not found:', dep, 'for', r.s); return; }
         dependencies.push({ subject_id: prefix + sNum, dependency_id: prefix + dNum, requiere_regular: true });
     });
-    // Only add 'ap' deps that are different from 'reg' to avoid duplicates
+    // Add 'ap' deps
     r.ap.forEach(dep => {
         const dNum = nameToNum[dep];
         if (!dNum) { console.warn('Dep(ap) not found:', dep, 'for', r.s); return; }
-        // Check if not already in reg list
-        if (!r.reg.includes(dep)) {
-            dependencies.push({ subject_id: prefix + sNum, dependency_id: prefix + dNum, requiere_regular: false });
-        }
+        dependencies.push({ subject_id: prefix + sNum, dependency_id: prefix + dNum, requiere_regular: false });
     });
 });
 

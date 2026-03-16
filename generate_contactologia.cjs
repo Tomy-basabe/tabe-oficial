@@ -72,7 +72,7 @@ const rawDeps = [
 const dependencies = [];
 rawDeps.forEach(r => {
     r.reg.forEach(d => dependencies.push({ subject_id: prefix + r.s, dependency_id: prefix + d, requiere_regular: true }));
-    r.ap.filter(d => !r.reg.includes(d)).forEach(d => dependencies.push({ subject_id: prefix + r.s, dependency_id: prefix + d, requiere_regular: false }));
+    r.ap.forEach(d => dependencies.push({ subject_id: prefix + r.s, dependency_id: prefix + d, requiere_regular: false }));
 });
 
 const template = { subjects: subjectsOut, dependencies };
