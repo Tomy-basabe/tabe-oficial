@@ -23,7 +23,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Repeat2,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronRight,
+  Folder
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,8 +36,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
 import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CustomSidebarItem } from "../settings/SidebarCustomizer";
 
-const baseNavItems = [
+export interface NavItem {
+  icon: any;
+  label: string;
+  path: string;
+  tourClass?: string;
+  isCategory?: boolean;
+  items?: NavItem[];
+}
+
+export const baseNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
   { icon: Clock, label: "Consultas", path: "/consultas", tourClass: "tour-sidebar-consultas" },
@@ -187,41 +201,86 @@ export function MainLayout() {
         {/* Navigation */}
         <ScrollArea className="flex-1 overflow-hidden">
           <nav className={cn("space-y-2 py-4", isCollapsed ? "px-2" : "px-4")}>
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center rounded-xl transition-all duration-200 group relative",
-                    isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
-                    isActive
-                      ? "bg-primary/10 text-primary border border-primary/30"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    (item as any).tourClass // Add Joyride target if it exists
-                  )}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  <item.icon
+            {(() => {
+              const renderNavItem = (item: any, isInsideCategory = false) => {
+                // Find matching base item to get the icon (including admin)
+                const baseItem = [...baseNavItems, adminNavItem].find(b => b.path === item.id);
+                if (!baseItem && item.type === "item") return null;
+
+                const Icon = baseItem?.icon || Folder;
+                const path = baseItem?.path || "#";
+                const isActive = location.pathname === path;
+
+                if (item.type === "category") {
+                  return (
+                    <Collapsible key={item.id} className="space-y-1">
+                      <CollapsibleTrigger asChild>
+                        <button
+                          className={cn(
+                            "w-full flex items-center rounded-xl transition-all duration-200 group relative",
+                            isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
+                            "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          )}
+                        >
+                          <Icon className={cn("transition-all flex-shrink-0", isCollapsed ? "w-6 h-6" : "w-5 h-5")} />
+                          {!isCollapsed && (
+                            <>
+                              <span className="font-semibold truncate flex-1 text-left">{item.label}</span>
+                              <ChevronDown className="w-4 h-4 opacity-50 group-data-[state=open]:rotate-180 transition-transform" />
+                            </>
+                          )}
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-1 ml-4 border-l border-sidebar-border/50 pl-2">
+                        {item.items?.map((subItem: any) => renderNavItem(subItem, true))}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.id}
+                    to={path}
+                    onClick={() => setSidebarOpen(false)}
                     className={cn(
-                      "transition-all flex-shrink-0",
-                      isCollapsed ? "w-6 h-6" : "w-5 h-5",
-                      isActive && "text-primary drop-shadow-[0_0_8px_hsl(var(--neon-cyan))]"
+                      "flex items-center rounded-xl transition-all duration-200 group relative",
+                      isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
+                      isActive
+                        ? "bg-primary/10 text-primary border border-primary/30"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      isInsideCategory && !isCollapsed && "py-2"
                     )}
-                  />
-                  {!isCollapsed && (
-                    <span className={cn("font-medium truncate", isActive && "text-glow-cyan")}>
-                      {item.label}
-                    </span>
-                  )}
-                  {!isCollapsed && isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  )}
-                </Link>
-              );
-            })}
+                    title={isCollapsed ? item.label : undefined}
+                  >
+                    <Icon
+                      className={cn(
+                        "transition-all flex-shrink-0",
+                        isCollapsed ? "w-6 h-6" : "w-5 h-5",
+                        isActive && "text-primary drop-shadow-[0_0_8px_hsl(var(--neon-cyan))]"
+                      )}
+                    />
+                    {!isCollapsed && (
+                      <span className={cn("font-medium truncate", isActive && "text-glow-cyan")}>
+                        {item.label}
+                      </span>
+                    )}
+                    {!isCollapsed && isActive && (
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </Link>
+                );
+              };
+
+              let displayItems = profile?.sidebar_config || baseNavItems.map(i => ({ id: i.path, label: i.label, type: "item" }));
+              
+              // Always show admin if user is admin and it's not in the config
+              if (isAdmin && !displayItems.some((i: any) => i.id === "/admin" || (i.items?.some((s: any) => s.id === "/admin")))) {
+                displayItems = [...displayItems, { id: "/admin", label: "Admin", type: "item" }];
+              }
+
+              return displayItems.map((item: any) => renderNavItem(item));
+            })()}
           </nav>
         </ScrollArea>
 

@@ -9,8 +9,9 @@ interface AuthContextType {
   signUp: (email: string, password: string, nombre?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  profile: { active_theme: string | null; active_badge: string | null } | null;
+  profile: { active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null;
   updateTheme: (theme: string) => Promise<void>;
+  updateSidebarConfig: (config: any) => Promise<void>;
   isGuest: boolean;
   loginAsGuest: () => void;
 }
@@ -21,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null>(null);
   const [isGuest, setIsGuest] = useState(false);
 
   const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-green', 'theme-red'];
@@ -40,12 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("active_theme, active_badge")
+      .select("active_theme, active_badge, sidebar_config")
       .eq("user_id", userId)
       .single();
 
     if (data) {
-      const typedData = data as unknown as { active_theme: string | null; active_badge: string | null };
+      const typedData = data as unknown as { active_theme: string | null; active_badge: string | null; sidebar_config: any | null };
       setProfile(typedData);
       applyTheme(typedData.active_theme);
     }
@@ -56,9 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Optimistic UI update
     setProfile(prev => ({
-      ...(prev || { active_theme: null, active_badge: null }),
+      ...(prev || { active_theme: null, active_badge: null, sidebar_config: null }),
       active_theme: theme,
-    }) as any);
+    }));
     applyTheme(theme);
 
     try {
@@ -71,6 +72,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       console.error("Error updating theme:", e);
+    }
+  };
+
+  const updateSidebarConfig = async (config: any) => {
+    if (!user) return;
+
+    // Optimistic UI update
+    setProfile(prev => ({
+      ...(prev || { active_theme: null, active_badge: null, sidebar_config: null }),
+      sidebar_config: config,
+    }));
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({ user_id: user.id, sidebar_config: config }, { onConflict: "user_id" });
+
+      if (error) {
+        console.error("Error updating sidebar config:", error);
+      }
+    } catch (e) {
+      console.error("Error updating sidebar config:", e);
     }
   };
 
@@ -193,12 +216,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsGuest(true);
     // Guest dummy profile - check localStorage first
     const savedTheme = localStorage.getItem("active-theme-color");
-    setProfile({ active_theme: savedTheme, active_badge: null });
+    setProfile({ active_theme: savedTheme, active_badge: null, sidebar_config: null });
     applyTheme(savedTheme);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, profile, updateTheme, isGuest, loginAsGuest }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, profile, updateTheme, updateSidebarConfig, isGuest, loginAsGuest }}>
       {children}
     </AuthContext.Provider>
   );

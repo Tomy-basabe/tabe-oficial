@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
 import { ReviewForm } from "@/components/settings/ReviewForm";
 import { useTheme } from "@/hooks/useTheme";
+import { SidebarCustomizer } from "@/components/settings/SidebarCustomizer";
+import { PanelLeft } from "lucide-react";
 
 const STORAGE_KEY = "pomodoro-settings";
 
@@ -135,6 +137,39 @@ export default function Settings() {
           )}
         </div>
       </div>
+
+      {/* Sidebar Customization */}
+      {!isGuest && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-muted-foreground px-1">Personalización</h3>
+          <div className="card-gamer rounded-xl overflow-hidden">
+            <button
+              onClick={() => toggleSection("sidebar")}
+              className="w-full flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                <PanelLeft className="w-5 h-5 text-orange-500" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Panel Lateral</p>
+                <p className="text-xs text-muted-foreground">Personaliza el orden y agrupa por categorías</p>
+              </div>
+              {expandedSection === "sidebar" ? (
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              )}
+            </button>
+
+            {expandedSection === "sidebar" && (
+              <div className="p-4 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2">
+                <SidebarCustomizer />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       {/* Integrations */}
       <div className="space-y-2">
