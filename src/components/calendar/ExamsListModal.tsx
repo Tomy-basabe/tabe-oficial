@@ -84,7 +84,11 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
         const subject = subjectMap.get(exam.subject_id);
         if (subject) {
           years.add(subject.año.toString());
-          filteredSubjectsList.set(subject.id, subject.nombre);
+          
+          // Only add to availableSubjects if no year is selected OR it matches the selected year
+          if (selectedYear === "all" || subject.año.toString() === selectedYear) {
+            filteredSubjectsList.set(subject.id, subject.nombre);
+          }
         }
       }
     });
@@ -93,7 +97,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
       availableYears: Array.from(years).sort((a, b) => parseInt(a) - parseInt(b)),
       availableSubjects: Array.from(filteredSubjectsList.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
     };
-  }, [upcomingExams, subjectMap]);
+  }, [upcomingExams, subjectMap, selectedYear]);
 
   // 3. Apply active filters
   const filteredExams = useMemo(() => {
@@ -195,7 +199,10 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
           <div className="flex flex-wrap gap-2 w-full">
             <select
               value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
+              onChange={(e) => {
+                setSelectedYear(e.target.value);
+                setSelectedSubject("all"); // Reset subject when year changes
+              }}
               className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm min-w-[120px] focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="all">Todos los años</option>
