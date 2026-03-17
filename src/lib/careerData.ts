@@ -2,7 +2,7 @@ export const AVAILABLE_FACULTADES = [
     { id: "UTN", label: "UTN", fullLabel: "Universidad Tecnológica Nacional (UTN)" },
     { id: "UNCUYO", label: "UNCUYO", fullLabel: "Universidad Nacional de Cuyo (UNCUYO)" },
     { id: "DONBOSCO", label: "Don Bosco", fullLabel: "Facultad Don Bosco" },
-    { id: "UNRC", label: "UNRC", fullLabel: "Universidad Nacional de Río Cuarto (UNRC)" },
+    { id: "UNSJ", label: "UNSJ", fullLabel: "Universidad Nacional de San Juan (UNSJ)" },
     { id: "OTROS", label: "Otros Institutos", fullLabel: "Institutos / Tecnicaturas" },
 ];
 
@@ -17,8 +17,8 @@ export const AVAILABLE_CAREERS = [
     { id: "agronomia_uncuyo", label: "Ingeniería Agronómica", file: "agronomia_uncuyo_template", facultad: "UNCUYO" },
     // Don Bosco
     { id: "enologia_donbosco", label: "Tecnicatura en Enología", file: "enologia_donbosco_template", facultad: "DONBOSCO" },
-    // UNRC
-    { id: "electromecanica_unrc", label: "Ingeniería Electromecánica", file: "electromecanica_unrc_template", facultad: "UNRC" },
+    // UNSJ
+    { id: "electromecanica_unsj", label: "Ingeniería Electromecánica", file: "electromecanica_unsj_template", facultad: "UNSJ" },
     // Otros
     { id: "contactologia", label: "Tecnicatura en Contactología", file: "contactologia_template", facultad: "OTROS" },
 ];
