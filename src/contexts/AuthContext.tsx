@@ -121,10 +121,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         fetchProfile(session.user.id);
         setIsGuest(false);
+      } else {
+        // AUTO-GUEST MODE: If no session, treat as guest for SEO and indexability
+        setIsGuest(true);
+        const savedTheme = localStorage.getItem("active-theme-color");
+        setProfile({ active_theme: savedTheme, active_badge: null, sidebar_config: null });
+        applyTheme(savedTheme);
       }
       setLoading(false);
     }).catch(err => {
       console.error("Auth session error:", err);
+      // Even on error, allow guest mode to keep the app "open"
+      setIsGuest(true);
       setLoading(false);
     });
 

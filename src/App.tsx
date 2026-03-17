@@ -75,7 +75,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isGuest } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -87,7 +87,8 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (user || isGuest) {
+  // ONLY redirect if they are a logged-in user. Guests can see /auth to sign up.
+  if (user) {
     return <Navigate to="/dashboard" replace />;
   }
 
