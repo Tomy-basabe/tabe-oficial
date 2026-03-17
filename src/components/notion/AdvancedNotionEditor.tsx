@@ -426,6 +426,11 @@ export function AdvancedNotionEditor({
         return;
       }
 
+      // Close menu on Escape
+      if (e.key === 'Escape') {
+        setMathMenuOpen(false);
+      }
+
       // === CHART SHORTCUT (Ctrl+Shift+L) ===
       if (modKey && e.shiftKey && e.key.toLowerCase() === 'l') {
         e.preventDefault();
@@ -699,9 +704,22 @@ export function AdvancedNotionEditor({
       }
     };
 
+    const handleClickOutside = (e: MouseEvent) => {
+      if (mathMenuOpen) {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.notion-math-menu-container')) {
+          setMathMenuOpen(false);
+        }
+      }
+    };
+
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [editor]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [editor, mathMenuOpen]);
 
   // Link helper
   const setLink = useCallback(() => {
@@ -731,7 +749,17 @@ export function AdvancedNotionEditor({
         onOpenChange={setMathMenuOpen} 
         anchorEl={mathMenuAnchor} 
         onSelect={(latex) => {
-          if (editor) {
+          // 1. Dispatch event so any active MathNodeView can catch it
+          const event = new CustomEvent('notion-insert-math', { detail: latex });
+          window.dispatchEvent(event);
+          
+          // 2. If no one handles it (or even if they do), we might want to insert a new one
+          // But actually, if someone handled it, we should probably stop.
+          // For simplicity, we'll try to insert a new one ONLY if no math input is focused.
+          const activeEl = document.activeElement;
+          const isMathInput = activeEl?.classList.contains('notion-math-input');
+          
+          if (!isMathInput && editor) {
             editor.chain().focus().setMath({ formula: latex }).run();
           }
         }} 

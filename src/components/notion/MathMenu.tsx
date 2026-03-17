@@ -129,7 +129,7 @@ export function MathMenu({ onSelect, open, onOpenChange, anchorEl }: MathMenuPro
   return (
     <div 
       className={cn(
-        "fixed z-[100] w-[320px] bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col transition-all duration-200",
+        "fixed z-[100] w-[320px] bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col transition-all duration-200 notion-math-menu-container",
         open ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
       )}
       style={{

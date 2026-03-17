@@ -26,7 +26,24 @@ export const MathNodeView = ({ node, updateAttributes, selected }: NodeViewProps
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isEditing]);
+    
+    // Listen for external insertions (e.g. from MathMenu)
+    const handleExternalInsert = (e: any) => {
+      if (isEditing) {
+        const latex = e.detail;
+        const start = inputRef.current?.selectionStart || 0;
+        const end = inputRef.current?.selectionEnd || 0;
+        const newVal = inputValue.substring(0, start) + latex + inputValue.substring(end);
+        setInputValue(newVal);
+        
+        // Return focus to input after a short delay (menu might have stolen it)
+        setTimeout(() => inputRef.current?.focus(), 10);
+      }
+    };
+
+    window.addEventListener('notion-insert-math', handleExternalInsert);
+    return () => window.removeEventListener('notion-insert-math', handleExternalInsert);
+  }, [isEditing, inputValue]);
 
   const handleBlur = () => {
     setIsEditing(false);
