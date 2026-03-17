@@ -54,6 +54,19 @@ export const MATH_SYMBOLS = [
     ],
   },
   {
+    category: "Ejercicios y Marcadores",
+    symbols: [
+      { label: "cuadrado (vacío)", symbol: "□", latex: "\\square" },
+      { label: "cuadrado (lleno)", symbol: "■", latex: "\\blacksquare" },
+      { label: "triángulo", symbol: "△", latex: "\\triangle" },
+      { label: "espacio vacío", symbol: "___", latex: "\\text{___}" },
+      { label: "punto", symbol: "⋅", latex: "\\cdot" },
+      { label: "por (cruz)", symbol: "×", latex: "\\times" },
+      { label: "división", symbol: "÷", latex: "\\div" },
+      { label: "grados", symbol: "°", latex: "^{\\circ}" },
+    ],
+  },
+  {
     category: "Operadores y Relaciones",
     symbols: [
       { label: "suma (sumatoria)", symbol: "∑", latex: "\\sum" },

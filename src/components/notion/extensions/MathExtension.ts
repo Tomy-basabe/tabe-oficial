@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import katex from 'katex';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import { MathNodeView } from './MathNodeView';
 
 export interface MathOptions {
   HTMLAttributes: Record<string, any>;
@@ -58,35 +59,7 @@ export const MathExtension = Node.create<MathOptions>({
   },
 
   addNodeView() {
-    return ({ node, editor, getPos }) => {
-      const dom = document.createElement('span');
-      dom.className = 'notion-math-render';
-      
-      const renderFormula = () => {
-        try {
-          katex.render(node.attrs.formula || '?', dom, {
-            throwOnError: false,
-            displayMode: false,
-          });
-        } catch (e) {
-          dom.textContent = node.attrs.formula;
-        }
-      };
-
-      renderFormula();
-
-      return {
-        dom,
-        update: updatedNode => {
-          if (updatedNode.type.name !== this.name) return false;
-          if (updatedNode.attrs.formula !== node.attrs.formula) {
-            node.attrs.formula = updatedNode.attrs.formula;
-            renderFormula();
-          }
-          return true;
-        },
-      };
-    };
+    return ReactNodeViewRenderer(MathNodeView);
   },
 
   addCommands() {
