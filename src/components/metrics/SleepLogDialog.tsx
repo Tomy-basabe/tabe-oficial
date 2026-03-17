@@ -40,7 +40,7 @@ export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialog
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] card-gamer border-primary/30">
+      <DialogContent className="sm:max-w-[425px] bg-gradient-card border-primary/30 overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:height-[1px] before:bg-gradient-to-r before:from-transparent before:via-neon-purple/50 before:to-transparent">
         <DialogHeader>
           <DialogTitle className="font-display font-bold text-xl gradient-text flex items-center gap-2">
             <Moon className="w-5 h-5 text-neon-purple" />
