@@ -231,55 +231,42 @@ export function useSubjects() {
     const initData = async () => {
       if (user) {
         const loadedTemplate = await loadTemplateIfPending();
-        // If template was loaded, fetchData will be called to get the new data.
-        // Even if not, we fetch the data.
         fetchData(true);
       } else if (isGuest) {
-        const storedSubjects = localStorage.getItem('tabe-guest-subjects');
-        const storedStatuses = localStorage.getItem('tabe-guest-statuses');
-        const storedDeps = localStorage.getItem('tabe-guest-dependencies');
-
-        if (storedSubjects && storedStatuses) {
-          setSubjects(JSON.parse(storedSubjects));
-          setUserStatuses(JSON.parse(storedStatuses));
-          setDependencies(storedDeps ? JSON.parse(storedDeps) : []);
+        // ALWAYS use the template for Guest Mode, ignore localStorage
+        import('@/data/sistemas_template.json').then(module => {
+          const template = module.default;
+          setSubjects(template.subjects);
+          // Pre-fill some statuses for visual richness
+          setUserStatuses(template.subjects.map((s: any, idx: number) => ({
+            id: `demo-st-${s.id}`,
+            subject_id: s.id,
+            estado: idx < 10 ? "aprobada" : (idx < 20 ? "regular" : "cursable"),
+            nota: idx < 10 ? 8 : null,
+            fecha_aprobacion: idx < 10 ? "2024-01-01" : null
+          })));
+          setDependencies(template.dependencies.map((d: any) => ({
+            id: `demo-dep-${d.subject_id}-${d.requiere_regular || d.requiere_aprobada}`,
+            ...d
+          })));
           setLoading(false);
           isInitialLoad.current = false;
-        } else {
-          // Use the template by default for Guest Mode (SEO/Ads)
-          import('@/data/sistemas_template.json').then(module => {
-            const template = module.default;
-            setSubjects(template.subjects);
-            // Pre-fill some statuses for visual richness
-            setUserStatuses(template.subjects.map((s: any, idx: number) => ({
-              id: `demo-st-${s.id}`,
-              subject_id: s.id,
-              estado: idx < 10 ? "aprobada" : (idx < 20 ? "regular" : "cursable"),
-              nota: idx < 10 ? 8 : null,
-              fecha_aprobacion: idx < 10 ? "2024-01-01" : null
-            })));
-            setDependencies(template.dependencies.map((d: any) => ({
-              id: `demo-dep-${d.subject_id}-${d.requiere_regular || d.requiere_aprobada}`,
-              ...d
-            })));
-            setLoading(false);
-            isInitialLoad.current = false;
-          }).catch(() => {
-            setLoading(false);
-            isInitialLoad.current = false;
-          });
-        }
+        }).catch(() => {
+          setLoading(false);
+          isInitialLoad.current = false;
+        });
       }
     };
     initData();
   }, [user, isGuest, fetchData, loadTemplateIfPending]);
 
-  // Sincronizar estado local en modo invitado a localStorage
+  // Sincronizar estado local en modo invitado a localStorage (DESHABILITADO por solicitud del usuario)
   useEffect(() => {
+    // No guardamos nada si es invitado
     if (isGuest && !loading) {
-      localStorage.setItem('tabe-guest-subjects', JSON.stringify(subjects));
-      localStorage.setItem('tabe-guest-statuses', JSON.stringify(userStatuses));
-      localStorage.setItem('tabe-guest-dependencies', JSON.stringify(dependencies));
+      // localStorage.setItem('tabe-guest-subjects', JSON.stringify(subjects));
+      // localStorage.setItem('tabe-guest-statuses', JSON.stringify(userStatuses));
+      // localStorage.setItem('tabe-guest-dependencies', JSON.stringify(dependencies));
     }
   }, [subjects, userStatuses, dependencies, isGuest, loading]);
 
@@ -437,15 +424,7 @@ export function useSubjects() {
   ) => {
     if (!user) {
       if (isGuest) {
-        setUserStatuses(prev => {
-          const existing = prev.find(s => s.subject_id === subjectId);
-          if (existing) {
-            return prev.map(s => s.subject_id === subjectId ? { ...s, estado, nota: nota ?? null, fecha_aprobacion: estado === "aprobada" ? new Date().toISOString().split('T')[0] : null } : s);
-          } else {
-            return [...prev, { id: `st_${Date.now()}`, subject_id: subjectId, estado, nota: nota ?? null, fecha_aprobacion: estado === "aprobada" ? new Date().toISOString().split('T')[0] : null } as UserSubjectStatus];
-          }
-        });
-        toast.success("Estado actualizado (Modo Invitado)");
+        toast.error("No puedes modificar el plan en modo invitado");
         return;
       }
       return;
@@ -544,27 +523,8 @@ export function useSubjects() {
   const createSubject = async (data: CreateSubjectData) => {
     if (!user) {
       if (isGuest) {
-        const subjectsInYear = subjects.filter(s => s.año === data.año);
-        const nextNumero = subjectsInYear.length > 0
-          ? Math.max(...subjectsInYear.map(s => s.numero_materia)) + 1
-          : 1;
-        const newSubject: Subject = { id: `s_${Date.now()}`, nombre: data.nombre, codigo: data.codigo, año: data.año, numero_materia: nextNumero };
-
-        setSubjects(prev => [...prev, newSubject]);
-
-        const newDeps: Dependency[] = [];
-        if (data.requiere_regular && data.requiere_regular.length > 0) {
-          data.requiere_regular.forEach(reqId => newDeps.push({ id: `dep_${Math.random()}`, subject_id: newSubject.id, requiere_regular: reqId, requiere_aprobada: null }));
-        }
-        if (data.requiere_aprobada && data.requiere_aprobada.length > 0) {
-          data.requiere_aprobada.forEach(reqId => newDeps.push({ id: `dep_${Math.random()}`, subject_id: newSubject.id, requiere_regular: null, requiere_aprobada: reqId }));
-        }
-
-        if (newDeps.length > 0) {
-          setDependencies(prev => [...prev, ...newDeps]);
-        }
-        toast.success("Materia creada (Modo Invitado)");
-        return newSubject as any;
+        toast.error("No puedes agregar materias en modo invitado");
+        return;
       }
       return;
     }
@@ -637,24 +597,7 @@ export function useSubjects() {
   ) => {
     if (!user) {
       if (isGuest) {
-        setSubjects(prev => {
-          const existingWithNumber = prev.find(s => s.numero_materia === data.numero_materia && s.id !== subjectId);
-          const subjectToUpdate = prev.find(s => s.id === subjectId);
-          let updated = [...prev];
-          
-          if (existingWithNumber && subjectToUpdate) {
-            const oldNumber = subjectToUpdate.numero_materia;
-            updated = updated.map(s => {
-              if (s.id === existingWithNumber.id) return { ...s, numero_materia: oldNumber };
-              if (s.id === subjectId) return { ...s, ...data };
-              return s;
-            });
-          } else {
-            updated = updated.map(s => s.id === subjectId ? { ...s, ...data } : s);
-          }
-          return updated;
-        });
-        toast.success("Materia actualizada (Modo Invitado)");
+        toast.error("No puedes editar materias en modo invitado");
         return;
       }
       return;
@@ -704,14 +647,7 @@ export function useSubjects() {
   ) => {
     if (!user) {
       if (isGuest) {
-        setDependencies(prev => {
-          const filtered = prev.filter(d => d.subject_id !== subjectId);
-          const newDeps: Dependency[] = [];
-          requiere_regular.forEach(reqId => newDeps.push({ id: `dep_${Math.random()}`, subject_id: subjectId, requiere_regular: reqId, requiere_aprobada: null }));
-          requiere_aprobada.forEach(reqId => newDeps.push({ id: `dep_${Math.random()}`, subject_id: subjectId, requiere_aprobada: reqId, requiere_regular: null }));
-          return [...filtered, ...newDeps];
-        });
-        toast.success("Correlativas actualizadas (Modo Invitado)");
+        toast.error("No puedes modificar correlativas en modo invitado");
         return;
       }
       return;
@@ -757,10 +693,7 @@ export function useSubjects() {
   const deleteSubject = async (subjectId: string) => {
     if (!user) {
       if (isGuest) {
-        setDependencies(prev => prev.filter(d => d.subject_id !== subjectId));
-        setUserStatuses(prev => prev.filter(s => s.subject_id !== subjectId));
-        setSubjects(prev => prev.filter(s => s.id !== subjectId));
-        toast.success("Materia eliminada (Modo Invitado)");
+        toast.error("No puedes eliminar materias en modo invitado");
         return;
       }
       return;
@@ -798,18 +731,13 @@ export function useSubjects() {
 
   const updatePartialGrades = async (subjectId: string, grades: PartialGrades) => {
     if (!user) {
+    if (!user) {
       if (isGuest) {
-        setUserStatuses(prev => {
-          const existing = prev.find(s => s.subject_id === subjectId);
-          if (existing) {
-            return prev.map(s => s.subject_id === subjectId ? { ...s, ...grades } : s);
-          } else {
-            return [...prev, { id: `st_${Date.now()}`, subject_id: subjectId, estado: "cursable", ...grades } as UserSubjectStatus];
-          }
-        });
+        toast.error("No puedes editar notas en modo invitado");
         return;
       }
       return;
+    }
     }
 
     try {
@@ -973,10 +901,7 @@ export function useSubjects() {
   const deleteAllSubjects = async () => {
     if (!user) {
       if (isGuest) {
-        setSubjects([]);
-        setUserStatuses([]);
-        setDependencies([]);
-        toast.success("Todas las materias han sido eliminadas (Modo Invitado)");
+        toast.error("No puedes borrar todas las materias en modo invitado");
         return;
       }
       return;

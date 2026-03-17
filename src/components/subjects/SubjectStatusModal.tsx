@@ -14,6 +14,7 @@ interface SubjectStatusModalProps {
   onEditDependencies?: (subject: SubjectWithStatus) => void;
   onEditDetails?: (subject: SubjectWithStatus) => void;
   onDelete?: (subjectId: string) => Promise<void>;
+  readOnly?: boolean;
 }
 
 const statusOptions: { value: SubjectStatus; label: string; icon: any; color: string; description: string }[] = [
@@ -55,7 +56,8 @@ export function SubjectStatusModal({
   onUpdatePartialGrades,
   onEditDependencies,
   onEditDetails,
-  onDelete
+  onDelete,
+  readOnly = false
 }: SubjectStatusModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus | null>(null);
   const [nota, setNota] = useState<string>("");
@@ -76,7 +78,7 @@ export function SubjectStatusModal({
   };
 
   const handleSave = async () => {
-    if (!selectedStatus) return;
+    if (!selectedStatus || readOnly) return;
 
     setLoading(true);
     try {
@@ -168,34 +170,36 @@ export function SubjectStatusModal({
             </div>
 
             {/* Actions for blocked subjects */}
-            <div className="flex gap-2">
-              {onEditDetails && (
-                <button
-                  onClick={() => onEditDetails(subject)}
-                  className="py-2 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center justify-center gap-2"
-                  title="Editar Información"
-                >
-                  <Settings2 className="w-4 h-4" />
-                </button>
-              )}
-              {onEditDependencies && (
-                <button
-                  onClick={() => onEditDependencies(subject)}
-                  className="flex-1 py-2 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center justify-center gap-2"
-                >
-                  <Link2 className="w-4 h-4" />
-                  Editar correlativas
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="py-2 px-4 rounded-xl font-medium bg-neon-red/10 text-neon-red hover:bg-neon-red/20 transition-all text-sm flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+            {!readOnly && (
+              <div className="flex gap-2">
+                {onEditDetails && (
+                  <button
+                    onClick={() => onEditDetails(subject)}
+                    className="py-2 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center justify-center gap-2"
+                    title="Editar Información"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </button>
+                )}
+                {onEditDependencies && (
+                  <button
+                    onClick={() => onEditDependencies(subject)}
+                    className="flex-1 py-2 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center justify-center gap-2"
+                  >
+                    <Link2 className="w-4 h-4" />
+                    Editar correlativas
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="py-2 px-4 rounded-xl font-medium bg-neon-red/10 text-neon-red hover:bg-neon-red/20 transition-all text-sm flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-4 space-y-4">
@@ -205,7 +209,7 @@ export function SubjectStatusModal({
                 key={subjectId}
                 grades={currentPartialGrades}
                 onUpdate={handlePartialGradesUpdate}
-                disabled={loading}
+                disabled={loading || readOnly}
               />
             )}
 
@@ -218,33 +222,35 @@ export function SubjectStatusModal({
             )}
 
             {/* Status Options */}
-            <div className="grid grid-cols-2 gap-3">
-              {statusOptions.map((option) => {
-                const Icon = option.icon;
-                const isSelected = selectedStatus === option.value;
+            {!readOnly && (
+              <div className="grid grid-cols-2 gap-3">
+                {statusOptions.map((option) => {
+                  const Icon = option.icon;
+                  const isSelected = selectedStatus === option.value;
 
-                return (
-                  <button
-                    key={option.value}
-                    onClick={() => handleStatusSelect(option.value)}
-                    className={cn(
-                      "p-4 rounded-xl border-2 transition-all text-left",
-                      isSelected
-                        ? option.color
-                        : "border-border bg-secondary hover:bg-secondary/80"
-                    )}
-                  >
-                    <Icon className={cn("w-6 h-6 mb-2", isSelected ? "" : "text-muted-foreground")} />
-                    <p className={cn("font-medium text-sm", isSelected ? "" : "text-foreground")}>
-                      {option.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {option.description}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => handleStatusSelect(option.value)}
+                      className={cn(
+                        "p-4 rounded-xl border-2 transition-all text-left",
+                        isSelected
+                          ? option.color
+                          : "border-border bg-secondary hover:bg-secondary/80"
+                      )}
+                    >
+                      <Icon className={cn("w-6 h-6 mb-2", isSelected ? "" : "text-muted-foreground")} />
+                      <p className={cn("font-medium text-sm", isSelected ? "" : "text-foreground")}>
+                        {option.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {option.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Nota Input for Aprobada */}
             {selectedStatus === "aprobada" && (
@@ -264,46 +270,48 @@ export function SubjectStatusModal({
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-2">
-              {onEditDetails && (
-                <button
-                  onClick={() => onEditDetails(subject)}
-                  className="py-3 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center gap-2"
-                  title="Editar Información"
-                >
-                  <Settings2 className="w-4 h-4" />
-                </button>
-              )}
-              {onEditDependencies && (
-                <button
-                  onClick={() => onEditDependencies(subject)}
-                  className="py-3 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center gap-2"
-                  title="Editar Correlativas"
-                >
-                  <Link2 className="w-4 h-4" />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="py-3 px-4 rounded-xl font-medium bg-neon-red/10 text-neon-red hover:bg-neon-red/20 transition-all text-sm flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-              <button
-                onClick={handleSave}
-                disabled={!selectedStatus || loading}
-                className={cn(
-                  "flex-1 py-3 rounded-xl font-medium transition-all",
-                  selectedStatus
-                    ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90"
-                    : "bg-secondary text-muted-foreground cursor-not-allowed"
+            {!readOnly && (
+              <div className="flex gap-2">
+                {onEditDetails && (
+                  <button
+                    onClick={() => onEditDetails(subject)}
+                    className="py-3 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center gap-2"
+                    title="Editar Información"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </button>
                 )}
-              >
-                {loading ? "Guardando..." : "Guardar cambios"}
-              </button>
-            </div>
+                {onEditDependencies && (
+                  <button
+                    onClick={() => onEditDependencies(subject)}
+                    className="py-3 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center gap-2"
+                    title="Editar Correlativas"
+                  >
+                    <Link2 className="w-4 h-4" />
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="py-3 px-4 rounded-xl font-medium bg-neon-red/10 text-neon-red hover:bg-neon-red/20 transition-all text-sm flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  onClick={handleSave}
+                  disabled={!selectedStatus || loading}
+                  className={cn(
+                    "flex-1 py-3 rounded-xl font-medium transition-all",
+                    selectedStatus
+                      ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90"
+                      : "bg-secondary text-muted-foreground cursor-not-allowed"
+                  )}
+                >
+                  {loading ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
