@@ -52,13 +52,12 @@ export function LandingNavbar() {
     }, []);
 
     const navLinks = [
-        { label: "El Problema", href: "/#problema", isScroll: true },
+        { label: "Carreras", href: "/carreras", isScroll: false },
         { label: "Metodología", href: "/#metodologia", isScroll: true },
         { label: "Planes", href: "/#planes", isScroll: true },
         { label: "FAQ", href: "/#faq", isScroll: true },
         { label: "Acerca de", href: "/acerca-de", isScroll: false },
         { label: "Contacto", href: "/contacto", isScroll: false },
-        { label: "Privacidad", href: "/privacidad", isScroll: false },
     ];
 
     return (
