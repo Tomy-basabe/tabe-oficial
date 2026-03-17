@@ -292,6 +292,11 @@ export function useAIPersonas() {
     );
 
     const deleteSession = useCallback(async (sessionId: string) => {
+        if (sessionId.startsWith("local-")) {
+            setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+            return true;
+        }
+
         const { error } = await (supabase as any)
             .from("ai_chat_sessions")
             .delete()
@@ -299,6 +304,8 @@ export function useAIPersonas() {
 
         if (!error) {
             setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+        } else {
+            console.error("Error deleting session from Supabase:", error);
         }
         return !error;
     }, []);

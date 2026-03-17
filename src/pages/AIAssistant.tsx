@@ -164,6 +164,11 @@ export default function AIAssistant() {
 
   const handleClearAllSessions = async () => {
     if (!activePersona) return;
+    
+    if (!window.confirm("¿Seguro que querés borrar TODO el historial de sesiones de esta IA? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
     const toDelete = [...sessions];
     let count = 0;
     for (const s of toDelete) {
@@ -375,10 +380,23 @@ export default function AIAssistant() {
 
       <div className="flex-1 flex flex-col h-full relative">
         <div className="absolute left-4 top-4 z-50 md:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-            {isSidebarOpen ? <X /> : <Menu />}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={cn("bg-background/80 backdrop-blur-sm shadow-sm border border-border", isSidebarOpen && "hidden")}
+          >
+            <Menu />
           </Button>
         </div>
+
+        {/* Mobile Backdrop */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-30 md:hidden" 
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
 
         <div className="flex-1 overflow-y-auto scroll-smooth">
           <div className="max-w-4xl mx-auto p-4 lg:p-8 space-y-6">

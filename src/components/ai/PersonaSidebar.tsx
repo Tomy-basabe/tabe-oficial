@@ -35,10 +35,23 @@ export function PersonaSidebar({
     onClearAllSessions,
     isOpen,
 }: PersonaSidebarProps) {
-    if (!isOpen) return null;
-
     return (
-        <div className="w-72 h-[calc(100vh-4rem)] border-r border-border/40 bg-background/50 backdrop-blur-sm flex flex-col hidden md:flex sticky top-16 left-0 shrink-0">
+        <div className={cn(
+            "w-72 h-[calc(100vh-4rem)] border-r border-border/40 bg-background/50 backdrop-blur-sm flex flex-col sticky top-16 left-0 shrink-0 z-40 transition-all duration-300",
+            isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+            !isOpen && "hidden md:flex"
+        )}>
+            {/* Mobile Close Button */}
+            <div className="md:hidden absolute right-[-40px] top-2">
+                <Button 
+                    variant="secondary" 
+                    size="icon" 
+                    className="rounded-full shadow-lg border border-border"
+                    onClick={() => onSelectPersona(activePersona!)} // This is a bit of a hack to trigger the state parent logic if needed, but easier to just use the toggle in parent.
+                >
+                    <Plus className="w-4 h-4 rotate-45" />
+                </Button>
+            </div>
             {/* Personas section */}
             <div className="p-3 border-b border-border/40">
                 <div className="flex items-center justify-between mb-2">
