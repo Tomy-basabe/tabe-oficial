@@ -66,6 +66,14 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
     }
   };
 
+  const formatHours = (decimalHours: number) => {
+    const h = Math.floor(decimalHours);
+    const m = Math.round((decimalHours - h) * 60);
+    if (m === 0) return `${h}h`;
+    if (h === 0) return `${m}m`;
+    return `${h}h ${m}m`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -77,7 +85,7 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Promedio</p>
-              <p className="text-2xl font-display font-bold text-neon-purple">{avgHours.toFixed(1)}h</p>
+              <p className="text-2xl font-display font-bold text-neon-purple">{formatHours(avgHours)}</p>
             </div>
           </div>
         </div>
@@ -165,7 +173,7 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
                     }}
                   >
                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-card px-2 py-1 rounded text-xs whitespace-nowrap border border-border z-10 shadow-lg">
-                      {item.horas}h - {item.calidad || 'Sin datos'}
+                      {formatHours(item.horas)} - {item.calidad || 'Sin datos'}
                     </div>
                   </div>
                   <span className="text-[10px] text-muted-foreground leading-tight">{item.label}</span>
@@ -179,7 +187,7 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
             <div>
               <p className="text-sm text-muted-foreground mb-1">Total del periodo</p>
               <p className="text-2xl font-display font-bold gradient-text">
-                {logs.reduce((acc, l) => acc + l.horas, 0).toFixed(1)}h
+                {formatHours(logs.reduce((acc, l) => acc + l.horas, 0))}
               </p>
             </div>
             <div className="flex items-center gap-4 text-xs font-medium">

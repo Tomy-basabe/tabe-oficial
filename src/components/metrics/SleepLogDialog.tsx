@@ -23,13 +23,18 @@ export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialog
   const { addSleepLog, loading } = useSleepLogs();
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [horas, setHoras] = useState("8");
+  const [minutos, setMinutos] = useState("0");
   const [calidad, setCalidad] = useState<'buena' | 'regular' | 'mala'>('buena');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const h = parseFloat(horas) || 0;
+    const m = parseFloat(minutos) || 0;
+    const totalHoras = h + (m / 60);
+    
     const success = await addSleepLog({
       fecha,
-      horas: parseFloat(horas),
+      horas: parseFloat(totalHoras.toFixed(2)),
       calidad
     });
     if (success) {
@@ -64,21 +69,39 @@ export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialog
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="horas" className="text-sm font-medium">Horas dormidas</Label>
-            <div className="relative">
-              <Input
-                id="horas"
-                type="number"
-                step="0.5"
-                min="0"
-                max="24"
-                value={horas}
-                onChange={(e) => setHoras(e.target.value)}
-                className="bg-secondary/50 border-border focus:border-primary/50 pl-10"
-                required
-              />
-              <CloudMoon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">Tiempo de sueño</Label>
+            <div className="flex gap-4">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="horas" className="text-xs text-muted-foreground font-medium">Horas</Label>
+                <div className="relative">
+                  <Input
+                    id="horas"
+                    type="number"
+                    min="0"
+                    max="24"
+                    value={horas}
+                    onChange={(e) => setHoras(e.target.value)}
+                    className="bg-secondary/50 border-border focus:border-primary/50 pl-10"
+                    required
+                  />
+                  <CloudMoon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="minutos" className="text-xs text-muted-foreground font-medium">Minutos</Label>
+                <Input
+                  id="minutos"
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={minutos}
+                  onChange={(e) => setMinutos(e.target.value)}
+                  className="bg-secondary/50 border-border focus:border-primary/50"
+                  required
+                />
+              </div>
             </div>
           </div>
 
