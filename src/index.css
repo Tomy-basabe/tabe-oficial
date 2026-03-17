@@ -598,6 +598,14 @@
     animation: scanline 3s linear infinite;
   }
 
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(34, 211, 238, 0.2); border-color: rgba(34, 211, 238, 0.3); }
+    50% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.5); border-color: rgba(34, 211, 238, 0.8); }
+  }
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
   /* Progress Bar Gamer */
   .progress-gamer {
     background: hsl(var(--secondary));

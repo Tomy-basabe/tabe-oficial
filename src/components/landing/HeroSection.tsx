@@ -1,12 +1,10 @@
 import { Sparkles, ArrowRight, CheckCircle2, GraduationCap } from "lucide-react";
 import { Link } from "react-router-dom";
-import { FeaturesShowcase } from "./FeaturesShowcase";
-
 export function HeroSection() {
     const whatsappUrl = "https://wa.me/5492617737367?text=Hola,%20quiero%20formar%20parte%20de%20TABE%20y%20mejorar%20mi%20rendimiento%20en%20exactas!";
 
     return (
-        <section id="hero" className="relative pt-28 pb-0 flex flex-col items-center overflow-hidden">
+        <section id="hero" className="relative pt-28 pb-16 flex flex-col items-center overflow-hidden">
             {/* Background gradients */}
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] -z-10" />
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] -z-10" />
@@ -29,7 +27,7 @@ export function HeroSection() {
                         No dejes tu rendimiento al azar. Preparación estratégica, resolución guiada y tecnología interactiva para estudiantes exigentes.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4 w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row gap-4 pt-4 w-full sm:w-auto items-center">
                         <Link
                             to="/auth"
                             className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-xl hover:shadow-[0_0_40px_rgba(0,255,170,0.4)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0 relative overflow-hidden group/btn"
@@ -38,14 +36,26 @@ export function HeroSection() {
                             Entrar a la App
                             <ArrowRight className="w-6 h-6 text-white group-hover/btn:translate-x-1.5 transition-transform" />
                         </Link>
+                        
+                        <Link
+                            to="/carreras"
+                            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-background/50 backdrop-blur-md text-foreground border border-neon-cyan/50 rounded-2xl font-bold text-lg hover:border-neon-cyan transition-all hover:-translate-y-1 active:scale-95 relative overflow-hidden group/careers animate-pulse-glow"
+                        >
+                            <div className="absolute inset-0 bg-neon-cyan/5 opacity-0 group-hover/careers:opacity-100 transition-opacity" />
+                            <GraduationCap className="w-6 h-6 text-neon-cyan group-hover/careers:rotate-12 transition-transform" />
+                            <span>Planes de Carrera</span>
+                            <span className="absolute -top-1 -right-1 px-2 py-0.5 bg-neon-purple text-[10px] text-white rounded-full font-black animate-bounce">
+                                NUEVO
+                            </span>
+                        </Link>
+
                         <a
                             href={whatsappUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-secondary text-foreground border border-border rounded-2xl font-bold text-lg hover:bg-secondary/80 transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0"
+                            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-secondary/50 text-muted-foreground border border-border rounded-2xl font-bold text-lg hover:text-foreground transition-all hover:-translate-y-1 active:scale-95"
                         >
-                            Quiero formar parte
-                            <GraduationCap className="w-5 h-5 text-neon-purple" />
+                            Contacto
                         </a>
                     </div>
 
@@ -64,26 +74,6 @@ export function HeroSection() {
 
             {/* Grid overlay */}
             <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10 pointer-events-none" />
-
-            {/* Features Showcase (replaces old carousel) */}
-            <FeaturesShowcase />
-
-            {/* CTA: Entrar a la App */}
-            <div className="py-16 z-20">
-                <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full blur opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-                    <a
-                        href="/auth"
-                        className="relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-full font-bold text-xl hover:shadow-[0_0_30px_rgba(0,255,170,0.3)] transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden"
-                    >
-                        <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                        <span className="relative z-10 font-bold">
-                            Entrar a la App
-                        </span>
-                        <ArrowRight className="relative z-10 w-6 h-6 text-white group-hover:translate-x-1.5 transition-transform" />
-                    </a>
-                </div>
-            </div>
         </section>
     );
 }

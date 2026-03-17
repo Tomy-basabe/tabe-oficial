@@ -7,6 +7,7 @@ import { SpecializationSection } from "@/components/landing/SpecializationSectio
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { TabeAnimationSection } from "@/components/landing/TabeAnimationSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
+import { FeaturesShowcase } from "@/components/landing/FeaturesShowcase";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
@@ -56,6 +57,14 @@ export default function Landing() {
             <HeroSection />
 
             <ScrollReveal delay={50}>
+                <TestimonialsSection />
+            </ScrollReveal>
+
+            <ScrollReveal delay={50}>
+                <FeaturesShowcase />
+            </ScrollReveal>
+
+            <ScrollReveal delay={50}>
                 <ProblemSection />
             </ScrollReveal>
 
@@ -69,10 +78,6 @@ export default function Landing() {
 
             <ScrollReveal delay={50}>
                 <HowItWorksSection />
-            </ScrollReveal>
-
-            <ScrollReveal delay={50}>
-                <TestimonialsSection />
             </ScrollReveal>
 
             <ScrollReveal delay={50}>
