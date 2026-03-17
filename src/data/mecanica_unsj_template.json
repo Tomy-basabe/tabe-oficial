@@ -1,0 +1,232 @@
+{
+  "subjects": [
+    { "id": "m1", "codigo": "1", "nombre": "Álgebra Lineal", "numero_materia": 1, "año": 1, "semestre": 1 },
+    { "id": "m2", "codigo": "2", "nombre": "Cálculo I", "numero_materia": 2, "año": 1, "semestre": 1 },
+    { "id": "m3", "codigo": "3", "nombre": "Computación", "numero_materia": 3, "año": 1, "semestre": 1 },
+    { "id": "m4", "codigo": "4", "nombre": "Química", "numero_materia": 4, "año": 1, "semestre": 1 },
+    { "id": "m5", "codigo": "5", "nombre": "Inglés I", "numero_materia": 5, "año": 1, "semestre": 1 },
+    { "id": "m6", "codigo": "6", "nombre": "Dibujo y Sistemas de Representación", "numero_materia": 6, "año": 1, "semestre": 2 },
+    { "id": "m7", "codigo": "7", "nombre": "Física I", "numero_materia": 7, "año": 1, "semestre": 2 },
+    { "id": "m8", "codigo": "8", "nombre": "Geometría Analítica", "numero_materia": 8, "año": 1, "semestre": 2 },
+    { "id": "m9", "codigo": "9", "nombre": "Inglés II", "numero_materia": 9, "año": 1, "semestre": 2 },
+    { "id": "m10", "codigo": "10", "nombre": "Introducción a la Ingeniería", "numero_materia": 10, "año": 1, "semestre": 2 },
+    { "id": "m11", "codigo": "11", "nombre": "Física II", "numero_materia": 11, "año": 2, "semestre": 3 },
+    { "id": "m12", "codigo": "12", "nombre": "Cálculo II", "numero_materia": 12, "año": 2, "semestre": 3 },
+    { "id": "m13", "codigo": "13", "nombre": "Estadística", "numero_materia": 13, "año": 2, "semestre": 3 },
+    { "id": "m14", "codigo": "14", "nombre": "Gestión Ambiental", "numero_materia": 14, "año": 2, "semestre": 3 },
+    { "id": "m15", "codigo": "15", "nombre": "Matemática Aplicada", "numero_materia": 15, "año": 2, "semestre": 4 },
+    { "id": "m16", "codigo": "16", "nombre": "Mecánica de Materiales", "numero_materia": 16, "año": 2, "semestre": 4 },
+    { "id": "m17", "codigo": "17", "nombre": "Termodinámica", "numero_materia": 17, "año": 2, "semestre": 4 },
+    { "id": "m18", "codigo": "18", "nombre": "Métodos Numéricos", "numero_materia": 18, "año": 2, "semestre": 4 },
+    { "id": "m19", "codigo": "19", "nombre": "Economía", "numero_materia": 19, "año": 2, "semestre": 4 },
+    { "id": "m20", "codigo": "20", "nombre": "Mecánica Teórica", "numero_materia": 20, "año": 2, "semestre": 4 },
+    { "id": "m21", "codigo": "21", "nombre": "Ciencia de los Materiales", "numero_materia": 21, "año": 2, "semestre": 4 },
+    { "id": "m22", "codigo": "22", "nombre": "Electrotecnia y Máquinas Eléctricas", "numero_materia": 22, "año": 3, "semestre": 5 },
+    { "id": "m23", "codigo": "23", "nombre": "Gestión y Control de Calidad", "numero_materia": 23, "año": 3, "semestre": 5 },
+    { "id": "m24", "codigo": "24", "nombre": "Legislación Industrial", "numero_materia": 24, "año": 3, "semestre": 5 },
+    { "id": "m25", "codigo": "25", "nombre": "Mecánica de los Fluidos", "numero_materia": 25, "año": 3, "semestre": 6 },
+    { "id": "m26", "codigo": "26", "nombre": "Transferencia de Calor y Materia", "numero_materia": 26, "año": 3, "semestre": 6 },
+    { "id": "m27", "codigo": "27", "nombre": "Tecnología de los Materiales", "numero_materia": 27, "año": 3, "semestre": 6 },
+    { "id": "m28", "codigo": "28", "nombre": "Mecanismos", "numero_materia": 28, "año": 3, "semestre": 6 },
+    { "id": "m29", "codigo": "29", "nombre": "Seguridad del Trabajo y Ambiental", "numero_materia": 29, "año": 3, "semestre": 6 },
+    { "id": "m30", "codigo": "30", "nombre": "Electrónica y Control", "numero_materia": 30, "año": 4, "semestre": 7 },
+    { "id": "m31", "codigo": "31", "nombre": "Máquinas Térmicas I", "numero_materia": 31, "año": 4, "semestre": 7 },
+    { "id": "m32", "codigo": "32", "nombre": "Métodos Numéricos en la Mecánica", "numero_materia": 32, "año": 4, "semestre": 7 },
+    { "id": "m33", "codigo": "33", "nombre": "Elementos de Máquinas", "numero_materia": 33, "año": 4, "semestre": 7 },
+    { "id": "m34", "codigo": "34", "nombre": "Organización Industrial", "numero_materia": 34, "año": 4, "semestre": 7 },
+    { "id": "m35", "codigo": "35", "nombre": "Electiva I", "numero_materia": 35, "año": 4, "semestre": 7 },
+    { "id": "m36", "codigo": "36", "nombre": "Tecnología Mecánica", "numero_materia": 36, "año": 4, "semestre": 8 },
+    { "id": "m37", "codigo": "37", "nombre": "Metrología", "numero_materia": 37, "año": 4, "semestre": 8 },
+    { "id": "m38", "codigo": "38", "nombre": "Instalaciones Industriales", "numero_materia": 38, "año": 4, "semestre": 8 },
+    { "id": "m39", "codigo": "39", "nombre": "Técnicas de Gestión", "numero_materia": 39, "año": 4, "semestre": 8 },
+    { "id": "m40", "codigo": "40", "nombre": "Inglés III", "numero_materia": 40, "año": 4, "semestre": 8 },
+    { "id": "m41", "codigo": "41", "nombre": "Electiva II", "numero_materia": 41, "año": 4, "semestre": 8 },
+    { "id": "m42", "codigo": "42", "nombre": "Automatización Industrial", "numero_materia": 42, "año": 5, "semestre": 9 },
+    { "id": "m43", "codigo": "43", "nombre": "Taller de Diseño", "numero_materia": 43, "año": 5, "semestre": 9 },
+    { "id": "m44", "codigo": "44", "nombre": "Máquinas Térmicas II", "numero_materia": 44, "año": 5, "semestre": 9 },
+    { "id": "m45", "codigo": "45", "nombre": "Máquinas Hidráulicas", "numero_materia": 45, "año": 5, "semestre": 9 },
+    { "id": "m46", "codigo": "46", "nombre": "Gestión e Ingeniería del Mantenimiento", "numero_materia": 46, "año": 5, "semestre": 9 },
+    { "id": "m47", "codigo": "47", "nombre": "Electiva III", "numero_materia": 47, "año": 5, "semestre": 9 },
+    { "id": "m48", "codigo": "48", "nombre": "Práctica Profesional Supervisada", "numero_materia": 48, "año": 5, "semestre": 10 },
+    { "id": "m49", "codigo": "49", "nombre": "Trabajo Integrador Final", "numero_materia": 49, "año": 5, "semestre": 10 }
+  ],
+  "dependencies": [
+    { "subject_id": "m6", "dependency_id": "m3", "requiere_regular": true },
+    { "subject_id": "m7", "dependency_id": "m2", "requiere_regular": true },
+    { "subject_id": "m8", "dependency_id": "m1", "requiere_regular": true },
+    { "subject_id": "m9", "dependency_id": "m5", "requiere_regular": true },
+    
+    { "subject_id": "m11", "dependency_id": "m7", "requiere_regular": true },
+    { "subject_id": "m11", "dependency_id": "m1", "requiere_regular": false },
+    { "subject_id": "m11", "dependency_id": "m2", "requiere_regular": false },
+    
+    { "subject_id": "m12", "dependency_id": "m1", "requiere_regular": true },
+    { "subject_id": "m12", "dependency_id": "m8", "requiere_regular": true },
+    { "subject_id": "m12", "dependency_id": "m2", "requiere_regular": false },
+    
+    { "subject_id": "m13", "dependency_id": "m2", "requiere_regular": false },
+    { "subject_id": "m13", "dependency_id": "m3", "requiere_regular": false },
+    
+    { "subject_id": "m14", "dependency_id": "m10", "requiere_regular": true },
+    { "subject_id": "m14", "dependency_id": "m4", "requiere_regular": false },
+    
+    { "subject_id": "m15", "dependency_id": "m12", "requiere_regular": true },
+    { "subject_id": "m15", "dependency_id": "m8", "requiere_regular": false },
+    
+    { "subject_id": "m16", "dependency_id": "m1", "requiere_regular": false },
+    { "subject_id": "m16", "dependency_id": "m2", "requiere_regular": false },
+    { "subject_id": "m16", "dependency_id": "m6", "requiere_regular": false },
+    { "subject_id": "m16", "dependency_id": "m7", "requiere_regular": false },
+    
+    { "subject_id": "m17", "dependency_id": "m12", "requiere_regular": true },
+    { "subject_id": "m17", "dependency_id": "m4", "requiere_regular": false },
+    { "subject_id": "m17", "dependency_id": "m5", "requiere_regular": false },
+    { "subject_id": "m17", "dependency_id": "m7", "requiere_regular": false },
+    
+    { "subject_id": "m18", "dependency_id": "m12", "requiere_regular": true },
+    { "subject_id": "m18", "dependency_id": "m2", "requiere_regular": false },
+    { "subject_id": "m18", "dependency_id": "m3", "requiere_regular": false },
+    
+    { "subject_id": "m19", "dependency_id": "m14", "requiere_regular": true },
+    { "subject_id": "m19", "dependency_id": "m2", "requiere_regular": false },
+    { "subject_id": "m19", "dependency_id": "m10", "requiere_regular": false },
+    
+    { "subject_id": "m20", "dependency_id": "m15", "requiere_regular": true },
+    { "subject_id": "m20", "dependency_id": "m7", "requiere_regular": false },
+    { "subject_id": "m20", "dependency_id": "m12", "requiere_regular": false },
+    
+    { "subject_id": "m21", "dependency_id": "m16", "requiere_regular": true },
+    { "subject_id": "m21", "dependency_id": "m17", "requiere_regular": true },
+    { "subject_id": "m21", "dependency_id": "m4", "requiere_regular": false },
+    { "subject_id": "m21", "dependency_id": "m7", "requiere_regular": false },
+    { "subject_id": "m21", "dependency_id": "m9", "requiere_regular": false },
+    
+    { "subject_id": "m22", "dependency_id": "m17", "requiere_regular": true },
+    { "subject_id": "m22", "dependency_id": "m18", "requiere_regular": true },
+    { "subject_id": "m22", "dependency_id": "m11", "requiere_regular": false },
+    
+    { "subject_id": "m23", "dependency_id": "m13", "requiere_regular": false },
+    
+    { "subject_id": "m24", "dependency_id": "m19", "requiere_regular": true },
+    { "subject_id": "m24", "dependency_id": "m14", "requiere_regular": false },
+    
+    { "subject_id": "m25", "dependency_id": "m15", "requiere_regular": false },
+    { "subject_id": "m25", "dependency_id": "m17", "requiere_regular": false },
+    
+    { "subject_id": "m26", "dependency_id": "m15", "requiere_regular": false },
+    { "subject_id": "m26", "dependency_id": "m17", "requiere_regular": false },
+    
+    { "subject_id": "m27", "dependency_id": "m21", "requiere_regular": true },
+    { "subject_id": "m27", "dependency_id": "m16", "requiere_regular": false },
+    
+    { "subject_id": "m28", "dependency_id": "m20", "requiere_regular": true },
+    { "subject_id": "m28", "dependency_id": "m6", "requiere_regular": false },
+    
+    { "subject_id": "m29", "dependency_id": "m24", "requiere_regular": true },
+    { "subject_id": "m29", "dependency_id": "m14", "requiere_regular": false },
+    
+    { "subject_id": "m30", "dependency_id": "m22", "requiere_regular": false },
+    
+    { "subject_id": "m31", "dependency_id": "m25", "requiere_regular": true },
+    { "subject_id": "m31", "dependency_id": "m26", "requiere_regular": true },
+    { "subject_id": "m31", "dependency_id": "m17", "requiere_regular": false },
+    { "subject_id": "m31", "dependency_id": "m21", "requiere_regular": false },
+    
+    { "subject_id": "m32", "dependency_id": "m25", "requiere_regular": true },
+    { "subject_id": "m32", "dependency_id": "m26", "requiere_regular": true },
+    { "subject_id": "m32", "dependency_id": "m15", "requiere_regular": false },
+    { "subject_id": "m32", "dependency_id": "m18", "requiere_regular": false },
+    
+    { "subject_id": "m33", "dependency_id": "m20", "requiere_regular": false },
+    { "subject_id": "m33", "dependency_id": "m28", "requiere_regular": false },
+    
+    { "subject_id": "m34", "dependency_id": "m24", "requiere_regular": true },
+    { "subject_id": "m34", "dependency_id": "m19", "requiere_regular": false },
+    { "subject_id": "m34", "dependency_id": "m23", "requiere_regular": false },
+    
+    { "subject_id": "m35", "dependency_id": "m20", "requiere_regular": false },
+    { "subject_id": "m35", "dependency_id": "m21", "requiere_regular": false },
+    { "subject_id": "m35", "dependency_id": "m22", "requiere_regular": false },
+    { "subject_id": "m35", "dependency_id": "m23", "requiere_regular": false },
+    { "subject_id": "m35", "dependency_id": "m24", "requiere_regular": false },
+    
+    { "subject_id": "m36", "dependency_id": "m33", "requiere_regular": true },
+    { "subject_id": "m36", "dependency_id": "m28", "requiere_regular": false },
+    
+    { "subject_id": "m37", "dependency_id": "m33", "requiere_regular": true },
+    { "subject_id": "m37", "dependency_id": "m28", "requiere_regular": false },
+    
+    { "subject_id": "m38", "dependency_id": "m31", "requiere_regular": true },
+    { "subject_id": "m38", "dependency_id": "m25", "requiere_regular": false },
+    { "subject_id": "m38", "dependency_id": "m26", "requiere_regular": false },
+    
+    { "subject_id": "m39", "dependency_id": "m19", "requiere_regular": false },
+    { "subject_id": "m39", "dependency_id": "m23", "requiere_regular": false },
+    { "subject_id": "m39", "dependency_id": "m24", "requiere_regular": false },
+    
+    { "subject_id": "m40", "dependency_id": "m5", "requiere_regular": false },
+    { "subject_id": "m40", "dependency_id": "m9", "requiere_regular": false },
+    
+    { "subject_id": "m41", "dependency_id": "m35", "requiere_regular": true },
+    { "subject_id": "m41", "dependency_id": "m25", "requiere_regular": false },
+    { "subject_id": "m41", "dependency_id": "m26", "requiere_regular": false },
+    { "subject_id": "m41", "dependency_id": "m2", "requiere_regular": false },
+    { "subject_id": "m41", "dependency_id": "m28", "requiere_regular": false },
+    { "subject_id": "m41", "dependency_id": "m29", "requiere_regular": false },
+    
+    { "subject_id": "m42", "dependency_id": "m38", "requiere_regular": true },
+    { "subject_id": "m42", "dependency_id": "m30", "requiere_regular": false },
+    
+    { "subject_id": "m43", "dependency_id": "m36", "requiere_regular": true },
+    { "subject_id": "m43", "dependency_id": "m38", "requiere_regular": true },
+    { "subject_id": "m43", "dependency_id": "m27", "requiere_regular": false },
+    { "subject_id": "m43", "dependency_id": "m28", "requiere_regular": false },
+    
+    { "subject_id": "m44", "dependency_id": "m31", "requiere_regular": false },
+    
+    { "subject_id": "m45", "dependency_id": "m31", "requiere_regular": true },
+    { "subject_id": "m45", "dependency_id": "m25", "requiere_regular": false },
+    
+    { "subject_id": "m46", "dependency_id": "m22", "requiere_regular": true },
+    { "subject_id": "m46", "dependency_id": "m31", "requiere_regular": true },
+    { "subject_id": "m46", "dependency_id": "m33", "requiere_regular": true },
+    { "subject_id": "m46", "dependency_id": "m38", "requiere_regular": true },
+    { "subject_id": "m46", "dependency_id": "m24", "requiere_regular": false },
+    { "subject_id": "m46", "dependency_id": "m29", "requiere_regular": false },
+    { "subject_id": "m46", "dependency_id": "m34", "requiere_regular": false },
+    { "subject_id": "m46", "dependency_id": "m39", "requiere_regular": false },
+    
+    { "subject_id": "m47", "dependency_id": "m41", "requiere_regular": true },
+    { "subject_id": "m47", "dependency_id": "m30", "requiere_regular": false },
+    { "subject_id": "m47", "dependency_id": "m31", "requiere_regular": false },
+    { "subject_id": "m47", "dependency_id": "m32", "requiere_regular": false },
+    { "subject_id": "m47", "dependency_id": "m33", "requiere_regular": false },
+    { "subject_id": "m47", "dependency_id": "m34", "requiere_regular": false },
+    { "subject_id": "m47", "dependency_id": "m35", "requiere_regular": false },
+    
+    { "subject_id": "m48", "dependency_id": "m36", "requiere_regular": true },
+    { "subject_id": "m48", "dependency_id": "m37", "requiere_regular": true },
+    { "subject_id": "m48", "dependency_id": "m38", "requiere_regular": true },
+    { "subject_id": "m48", "dependency_id": "m39", "requiere_regular": true },
+    { "subject_id": "m48", "dependency_id": "m40", "requiere_regular": true },
+    { "subject_id": "m48", "dependency_id": "m41", "requiere_regular": true },
+    { "subject_id": "m48", "dependency_id": "m25", "requiere_regular": false },
+    { "subject_id": "m48", "dependency_id": "m26", "requiere_regular": false },
+    { "subject_id": "m48", "dependency_id": "m27", "requiere_regular": false },
+    { "subject_id": "m48", "dependency_id": "m28", "requiere_regular": false },
+    { "subject_id": "m48", "dependency_id": "m29", "requiere_regular": false },
+    
+    { "subject_id": "m49", "dependency_id": "m42", "requiere_regular": true },
+    { "subject_id": "m49", "dependency_id": "m43", "requiere_regular": true },
+    { "subject_id": "m49", "dependency_id": "m44", "requiere_regular": true },
+    { "subject_id": "m49", "dependency_id": "m45", "requiere_regular": true },
+    { "subject_id": "m49", "dependency_id": "m46", "requiere_regular": true },
+    { "subject_id": "m49", "dependency_id": "m47", "requiere_regular": true },
+    { "subject_id": "m49", "dependency_id": "m36", "requiere_regular": false },
+    { "subject_id": "m49", "dependency_id": "m37", "requiere_regular": false },
+    { "subject_id": "m49", "dependency_id": "m38", "requiere_regular": false },
+    { "subject_id": "m49", "dependency_id": "m39", "requiere_regular": false },
+    { "subject_id": "m49", "dependency_id": "m40", "requiere_regular": false },
+    { "subject_id": "m49", "dependency_id": "m41", "requiere_regular": false }
+  ]
+}
