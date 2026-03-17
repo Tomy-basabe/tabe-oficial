@@ -15,7 +15,13 @@ export function LandingFooter() {
                         <span className="font-display font-bold text-xl tracking-tight">TABE</span>
                     </div>
 
-                    <div className="flex flex-wrap gap-4 sm:gap-6 text-sm font-medium text-muted-foreground items-center">
+                    <div className="flex flex-wrap gap-4 sm:gap-6 text-sm font-medium text-muted-foreground items-center justify-center">
+                        <Link to="/carreras" className="hover:text-foreground transition-colors">
+                            Planes de Carrera
+                        </Link>
+                        <Link to="/guia-de-estudio" className="hover:text-foreground transition-colors">
+                            Guías de Estudio
+                        </Link>
                         <Link to="/acerca-de" className="hover:text-foreground transition-colors">
                             Acerca de
                         </Link>
@@ -24,6 +30,9 @@ export function LandingFooter() {
                         </Link>
                         <Link to="/privacidad" className="hover:text-foreground transition-colors">
                             Privacidad
+                        </Link>
+                        <Link to="/terminos" className="hover:text-foreground transition-colors">
+                            Términos
                         </Link>
                         <a href="https://www.instagram.com/tabe_oficial/" target="_blank" rel="noopener noreferrer" className="hover:text-neon-purple transition-colors flex items-center gap-1">
                             <Instagram className="w-4 h-4" />

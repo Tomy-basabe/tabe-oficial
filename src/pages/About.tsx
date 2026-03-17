@@ -28,22 +28,42 @@ export default function About() {
                     <section className="grid md:grid-cols-2 gap-12 items-center">
                         <div>
                             <h2 className="text-2xl font-display font-bold mb-4 flex items-center gap-2">
+                                <Users className="w-6 h-6 text-neon-purple" />
+                                ¿Quiénes somos?
+                            </h2>
+                            <p className="text-muted-foreground leading-relaxed">
+                                TABE nació en las aulas de ingeniería de Mendoza, Argentina, como respuesta a la necesidad de centralizar las herramientas de estudio. Somos un equipo interdisciplinario de desarrolladores y estudiantes avanzados que creen que la tecnología debe ser el puente, no la barrera, para el éxito académico. Nuestro compromiso es con la educación pública y privada de calidad en toda Latinoamérica.
+                            </p>
+                        </div>
+                        <div className="card-gamer p-8 rounded-2xl bg-gradient-to-br from-neon-purple/5 to-neon-cyan/5 border border-border">
+                            <h3 className="font-bold text-lg mb-2 text-neon-cyan whitespace-nowrap">Propuesta de Valor Única</h3>
+                            <ul className="text-sm text-muted-foreground space-y-2">
+                                <li>• IA entrenada para planes de estudio reales.</li>
+                                <li>• Sincronización multi-dispositivo inmediata.</li>
+                                <li>• Comunidad de apoyo estudiantil activa.</li>
+                                <li>• Gratuidad en las funciones esenciales.</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <section className="grid md:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h2 className="text-2xl font-display font-bold mb-4 flex items-center gap-2">
                                 <Target className="w-6 h-6 text-neon-cyan" />
                                 Nuestra Misión
                             </h2>
                             <p className="text-muted-foreground leading-relaxed">
-                                Nuestra misión en TABE es democratizar y optimizar la educación universitaria y superior mediante el uso integrado de inteligencia artificial, herramientas de productividad probadas (como Pomodoro) y analíticas detalladas de rendimiento académico. Queremos que el estudiante deje de preocuparse por &quot;cómo organizar su tiempo&quot; y se enfoque puramente en aprender.
+                                Nuestra misión en TABE es democratizar y optimizar la educación superior mediante el uso integrado de inteligencia artificial, herramientas de productividad probadas (como Pomodoro) y analíticas detalladas de rendimiento. Queremos que el estudiante deje de preocuparse por &quot;cómo organizar su tiempo&quot; y se enfoque puramente en aprender.
                             </p>
                         </div>
                         <div className="card-gamer p-8 rounded-2xl bg-gradient-to-br from-neon-cyan/5 to-neon-purple/5 border border-border">
-                            <h3 className="font-bold text-lg mb-2">¿Qué significa TABE?</h3>
+                            <h3 className="font-bold text-lg mb-2">Significado de TABE</h3>
                             <p className="text-sm text-muted-foreground">
                                 <strong className="text-foreground">T</strong>u<br />
                                 <strong className="text-foreground">A</strong>sistente de<br />
                                 <strong className="text-foreground">B</strong>olsillo<br />
                                 <strong className="text-foreground">E</strong>studiantil<br />
                             </p>
-                            <p className="text-sm mt-4 text-muted-foreground">La plataforma con todo lo que necesitás para tener éxito en tu carrera universitaria.</p>
                         </div>
                     </section>
 

@@ -19,6 +19,10 @@ import Settings from "@/pages/Settings";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
+import Careers from "@/pages/Careers";
+import CareerDetail from "@/pages/CareerDetail";
+import StudyGuides from "@/pages/StudyGuides";
 
 // Lazy loaded (heavy pages with large dependencies)
 const Notion = lazy(() => import("@/pages/Notion"));
@@ -111,6 +115,10 @@ const AppRoutes = () => (
     <Route path="/acerca-de" element={<About />} />
     <Route path="/contacto" element={<Contact />} />
     <Route path="/privacidad" element={<Privacy />} />
+    <Route path="/terminos" element={<Terms />} />
+    <Route path="/carreras" element={<Careers />} />
+    <Route path="/carreras/:id" element={<CareerDetail />} />
+    <Route path="/guia-de-estudio" element={<StudyGuides />} />
     <Route path="/email-verificado" element={<EmailVerified />} />
     <Route
       path="/auth"

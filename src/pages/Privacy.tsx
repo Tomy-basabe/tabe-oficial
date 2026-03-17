@@ -18,7 +18,7 @@ export default function Privacy() {
                 <div className="text-center mb-16">
                     <Shield className="w-16 h-16 text-neon-cyan mx-auto mb-6" />
                     <h1 className="text-4xl md:text-5xl font-display font-bold mb-6">
-                        Políticas de <span className="gradient-text">Privacidad</span> y Términos
+                        Políticas de <span className="gradient-text">Privacidad</span>
                     </h1>
                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                         El compromiso de TABE con tus datos y rendimiento académico.
@@ -56,9 +56,9 @@ export default function Privacy() {
                     </div>
 
                     <div className="card-gamer p-8 rounded-2xl border border-border">
-                        <h2 className="text-2xl font-bold mb-4 text-foreground">4. Contenido Generado por el Usuario</h2>
+                        <h2 className="text-2xl font-bold mb-4 text-foreground">4. Cookies y Tecnologías Similares</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            El contenido creado o subido a TABE (apuntes, flashcards, discusiones en comunidad) es responsabilidad del usuario. No permitimos contenido ilegal, ofensivo, que infrinja derechos de autor o viole nuestras normativas de comunidad. Nos reservamos el derecho de eliminar o restringir cuentas que no cumplan con estas políticas.
+                            Utilizamos cookies esenciales y de análisis para asegurar que nuestra plataforma funcione correctamente y para entender cómo se utiliza nuestro servicio. Esto nos permite mejorar constantemente la experiencia del estudiante. Al navegar por TABE, usted acepta el uso de estas tecnologías.
                         </p>
                     </div>
 
