@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useCalendarEvents, CalendarEvent } from "@/hooks/useCalendarEvents";
 import { useSubjects, Subject } from "@/hooks/useSubjects";
 import { 
@@ -77,35 +77,46 @@ export default function Exams() {
       .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
   }, [events]);
 
-  const { availableYears, availableSubjects } = useMemo(() => {
+  const availableYears = useMemo(() => {
     const years = new Set<string>();
-    const filteredSubjectsList = new Map<string, string>();
+    upcomingExams.forEach((exam) => {
+      if (exam.subject_id) {
+        const subject = subjectMap.get(exam.subject_id);
+        if (subject) years.add(subject.año.toString());
+      }
+    });
+    return Array.from(years).sort((a, b) => parseInt(a) - parseInt(b));
+  }, [upcomingExams, subjectMap]);
 
+  const availableSubjects = useMemo(() => {
+    const filteredSubjectsList = new Map<string, string>();
     upcomingExams.forEach((exam) => {
       if (exam.subject_id) {
         const subject = subjectMap.get(exam.subject_id);
         if (subject) {
-          years.add(subject.año.toString());
-          filteredSubjectsList.set(subject.id, subject.nombre);
+          if (selectedYear === "all" || subject.año.toString() === selectedYear) {
+            filteredSubjectsList.set(subject.id, subject.nombre);
+          }
         }
       }
     });
+    return Array.from(filteredSubjectsList.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [upcomingExams, subjectMap, selectedYear]);
 
-    return {
-      availableYears: Array.from(years).sort((a, b) => parseInt(a) - parseInt(b)),
-      availableSubjects: Array.from(filteredSubjectsList.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-    };
-  }, [upcomingExams, subjectMap]);
+  // Resetea la materia seleccionada si cambiamos de año
+  useEffect(() => {
+    setSelectedSubject("all");
+  }, [selectedYear]);
 
   const filteredExams = useMemo(() => {
     return upcomingExams.filter((exam) => {
-      if (selectedSubject !== "all" && exam.subject_id !== selectedSubject) return false;
-      
       if (selectedYear !== "all" && exam.subject_id) {
         const subject = subjectMap.get(exam.subject_id);
         if (subject && subject.año.toString() !== selectedYear) return false;
       }
-      
+      if (selectedSubject !== "all" && exam.subject_id !== selectedSubject) return false;
       return true;
     });
   }, [upcomingExams, selectedSubject, selectedYear, subjectMap]);

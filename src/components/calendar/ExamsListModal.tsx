@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CalendarEvent } from "@/hooks/useCalendarEvents";
 import { Subject } from "@/hooks/useSubjects";
@@ -98,6 +98,11 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
       availableSubjects: Array.from(filteredSubjectsList.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
     };
   }, [upcomingExams, subjectMap, selectedYear]);
+
+  // Resetea la materia seleccionada si cambiamos de año
+  useEffect(() => {
+    setSelectedSubject("all");
+  }, [selectedYear]);
 
   // 3. Apply active filters
   const filteredExams = useMemo(() => {
