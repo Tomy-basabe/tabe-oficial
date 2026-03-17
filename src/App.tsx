@@ -68,7 +68,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user && !isGuest) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/registro" replace />;
   }
 
   return <>{children}</>;
@@ -121,8 +121,9 @@ const AppRoutes = () => (
     <Route path="/carreras/:id" element={<CareerDetail />} />
     <Route path="/guia-de-estudio" element={<StudyGuides />} />
     <Route path="/email-verificado" element={<EmailVerified />} />
+    <Route path="/auth" element={<Navigate to="/registro" replace />} />
     <Route
-      path="/auth"
+      path="/registro"
       element={
         <PublicRoute>
           <Auth />
@@ -142,13 +143,15 @@ const AppRoutes = () => (
       <Route path="/calendario" element={<Calendar />} />
       <Route path="/pomodoro" element={<Pomodoro />} />
       <Route path="/metricas" element={<Metrics />} />
-      <Route path="/asistente" element={<AIAssistant />} />
+      <Route path="/asistente" element={<Navigate to="/TABEAI" replace />} />
+      <Route path="/TABEAI" element={<AIAssistant />} />
       <Route path="/flashcards" element={<Flashcards />} />
       <Route path="/cuestionarios" element={<Quizzes />} />
       <Route path="/marketplace" element={<PremiumGate feature="Marketplace"><Marketplace /></PremiumGate>} />
       <Route path="/biblioteca" element={<Library />} />
       <Route path="/logros" element={<Achievements />} />
-      <Route path="/notion" element={<Notion />} />
+      <Route path="/notion" element={<Navigate to="/apuntes" replace />} />
+      <Route path="/apuntes" element={<Notion />} />
       <Route path="/examenes" element={<Exams />} />
       <Route path="/amigos" element={<Friends />} />
       <Route path="/configuracion" element={<Settings />} />

@@ -29,7 +29,7 @@ export function HeroSection() {
 
                     <div className="flex flex-col sm:flex-row gap-4 pt-4 w-full sm:w-auto items-center">
                         <Link
-                            to="/auth"
+                            to="/registro"
                             className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-xl hover:shadow-[0_0_40px_rgba(0,255,170,0.4)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0 relative overflow-hidden group/btn"
                         >
                             <div className="absolute inset-0 -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />

@@ -142,7 +142,7 @@ export function LandingNavbar() {
                         {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                     </button>
                     <Link
-                        to="/auth"
+                        to="/registro"
                         className="px-6 py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-bold text-sm hover:shadow-[0_0_20px_rgba(0,255,170,0.3)] transition-all duration-300 hover:scale-105 active:scale-95"
                     >
                         Entrar a la App
@@ -170,7 +170,7 @@ export function LandingNavbar() {
                 <div className="py-6 px-4 flex flex-col gap-1">
                     {/* Top Shortcut for Mobile */}
                     <Link
-                        to="/auth"
+                        to="/registro"
                         onClick={() => setMobileMenuOpen(false)}
                         className="w-full flex items-center justify-center gap-2 px-5 py-4 mb-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-lg active:scale-95 transition-transform shadow-lg shadow-neon-cyan/20"
                     >
@@ -230,7 +230,7 @@ export function LandingNavbar() {
                         </button>
                     </div>
                     <Link
-                        to="/auth"
+                        to="/registro"
                         onClick={() => setMobileMenuOpen(false)}
                         className="w-full text-center px-5 py-3.5 mt-2 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-semibold active:scale-95 transition-transform"
                     >

@@ -24,14 +24,14 @@ export function GuestModeBanner() {
                     </div>
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <Link
-                            to="/auth"
+                            to="/registro"
                             className="flex-1 md:flex-none px-6 py-2.5 rounded-xl bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 font-bold hover:bg-neon-cyan/20 transition-all text-sm flex items-center justify-center gap-2"
                         >
                             <LogIn className="w-4 h-4" />
                             Iniciar Sesión
                         </Link>
                         <Link
-                            to="/auth?mode=signup"
+                            to="/registro?mode=signup"
                             className="flex-1 md:flex-none px-6 py-2.5 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-white font-bold hover:opacity-90 transition-all text-sm flex items-center justify-center gap-2"
                         >
                             <UserPlus className="w-4 h-4" />

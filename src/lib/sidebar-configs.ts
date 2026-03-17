@@ -57,7 +57,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/dashboard": "LayoutDashboard",
   "/carrera": "GraduationCap",
   "/consultas": "Clock",
-  "/notion": "NotionIcon",
+  "/apuntes": "NotionIcon",
   "/flashcards": "Layers",
   "/cuestionarios": "ClipboardList",
   "/marketplace": "Store",
@@ -69,7 +69,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/bosque": "TreeDeciduous",
   "/logros": "Trophy",
   "/amigos": "Users",
-  "/asistente": "Bot",
+  "/TABEAI": "Bot",
   "/admin": "Shield",
   "/configuracion": "Settings",
   "/examenes": "GraduationCap"
@@ -79,7 +79,7 @@ export const baseNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
   { icon: Clock, label: "Consultas", path: "/consultas", tourClass: "tour-sidebar-consultas" },
-  { icon: NotionIcon, label: "Apuntes", path: "/notion", tourClass: "tour-sidebar-notion" },
+  { icon: NotionIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
   { icon: Store, label: "Marketplace", path: "/marketplace", tourClass: "tour-sidebar-marketplace" },
@@ -91,7 +91,7 @@ export const baseNavItems: NavItem[] = [
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
-  { icon: Bot, label: "Asistente IA", path: "/asistente", tourClass: "tour-sidebar-asistenteia" },
+  { icon: Bot, label: "TABEAI", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];
 

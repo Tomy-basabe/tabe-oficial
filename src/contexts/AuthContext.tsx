@@ -212,10 +212,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut().catch(e => console.warn("Supabase signout failed, ignoring:", e));
 
       // Final clean sweep and redirect
-      window.location.href = "/auth";
+      window.location.href = "/registro";
     } catch (err) {
       console.error("Critical logout error:", err);
-      window.location.href = "/auth";
+      window.location.href = "/registro";
     } finally {
       setLoading(false);
     }
