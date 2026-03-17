@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubjectWithStatus, SubjectStatus, PartialGrades } from "@/hooks/useSubjects";
-import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PartialGradesSection } from "./PartialGradesSection";
 
@@ -12,6 +12,7 @@ interface SubjectStatusModalProps {
   onUpdate: (subjectId: string, status: SubjectStatus, nota?: number) => Promise<void>;
   onUpdatePartialGrades?: (subjectId: string, grades: PartialGrades) => Promise<void>;
   onEditDependencies?: (subject: SubjectWithStatus) => void;
+  onEditDetails?: (subject: SubjectWithStatus) => void;
   onDelete?: (subjectId: string) => Promise<void>;
 }
 
@@ -53,6 +54,7 @@ export function SubjectStatusModal({
   onUpdate,
   onUpdatePartialGrades,
   onEditDependencies,
+  onEditDetails,
   onDelete
 }: SubjectStatusModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus | null>(null);
@@ -167,6 +169,15 @@ export function SubjectStatusModal({
 
             {/* Actions for blocked subjects */}
             <div className="flex gap-2">
+              {onEditDetails && (
+                <button
+                  onClick={() => onEditDetails(subject)}
+                  className="py-2 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center justify-center gap-2"
+                  title="Editar Información"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
+              )}
               {onEditDependencies && (
                 <button
                   onClick={() => onEditDependencies(subject)}
@@ -254,10 +265,20 @@ export function SubjectStatusModal({
 
             {/* Action Buttons */}
             <div className="flex gap-2">
+              {onEditDetails && (
+                <button
+                  onClick={() => onEditDetails(subject)}
+                  className="py-3 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center gap-2"
+                  title="Editar Información"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
+              )}
               {onEditDependencies && (
                 <button
                   onClick={() => onEditDependencies(subject)}
                   className="py-3 px-4 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all text-sm flex items-center gap-2"
+                  title="Editar Correlativas"
                 >
                   <Link2 className="w-4 h-4" />
                 </button>

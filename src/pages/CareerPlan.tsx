@@ -6,6 +6,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import { SubjectStatusModal } from "@/components/subjects/SubjectStatusModal";
 import { AddSubjectModal } from "@/components/subjects/AddSubjectModal";
+import { EditSubjectModal } from "@/components/subjects/EditSubjectModal";
 import { EditDependenciesModal } from "@/components/subjects/EditDependenciesModal";
 import { ImportCareerModal } from "@/components/subjects/ImportCareerModal";
 import { useSubjects, SubjectWithStatus, SubjectStatus } from "@/hooks/useSubjects";
@@ -28,6 +29,7 @@ export default function CareerPlan() {
     updateSubjectStatus,
     updatePartialGrades,
     createSubject,
+    updateSubjectDetails,
     updateSubjectDependencies,
     deleteSubject,
     importCareerPlan,
@@ -46,6 +48,7 @@ export default function CareerPlan() {
   const [selectedSubject, setSelectedSubject] = useState<SubjectWithStatus | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);
   const [showDepsModal, setShowDepsModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
 
@@ -87,6 +90,12 @@ export default function CareerPlan() {
     setShowStatusModal(true);
   }, []);
 
+  const handleEditDetails = useCallback((subject: SubjectWithStatus) => {
+    setSelectedSubject(subject);
+    setShowStatusModal(false);
+    setShowEditDetailsModal(true);
+  }, []);
+
   const handleEditDependencies = useCallback((subject: SubjectWithStatus) => {
     setSelectedSubject(subject);
     setShowStatusModal(false);
@@ -100,6 +109,11 @@ export default function CareerPlan() {
 
   const handleCloseAddModal = useCallback(() => {
     setShowAddModal(false);
+  }, []);
+
+  const handleCloseEditDetailsModal = useCallback(() => {
+    setShowEditDetailsModal(false);
+    setSelectedSubject(null);
   }, []);
 
   const handleCloseDepsModal = useCallback(() => {
@@ -356,6 +370,7 @@ export default function CareerPlan() {
         onClose={handleCloseStatusModal}
         onUpdate={updateSubjectStatus}
         onUpdatePartialGrades={updatePartialGrades}
+        onEditDetails={handleEditDetails}
         onEditDependencies={handleEditDependencies}
         onDelete={deleteSubject}
       />
@@ -366,6 +381,13 @@ export default function CareerPlan() {
         onSubmit={createSubject}
         existingSubjects={rawSubjects}
         years={years}
+      />
+
+      <EditSubjectModal
+        subject={selectedSubject}
+        open={showEditDetailsModal}
+        onClose={handleCloseEditDetailsModal}
+        onSubmit={updateSubjectDetails}
       />
 
       <EditDependenciesModal

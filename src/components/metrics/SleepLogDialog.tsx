@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, 
   DialogTitle, DialogDescription, DialogFooter 
@@ -21,10 +21,42 @@ interface SleepLogDialogProps {
 
 export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialogProps) {
   const { addSleepLog, loading } = useSleepLogs();
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const getYesterdayDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const [fecha, setFecha] = useState(getYesterdayDate());
   const [horas, setHoras] = useState("8");
   const [minutos, setMinutos] = useState("0");
   const [calidad, setCalidad] = useState<'buena' | 'regular' | 'mala'>('buena');
+  const [isManualCalidad, setIsManualCalidad] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setFecha(getYesterdayDate());
+      setHoras("8");
+      setMinutos("0");
+      setIsManualCalidad(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (isManualCalidad) return;
+    
+    const h = parseFloat(horas) || 0;
+    const m = parseFloat(minutos) || 0;
+    const total = h + (m / 60);
+
+    if (total < 6) {
+      setCalidad('mala');
+    } else if (total >= 8) {
+      setCalidad('buena');
+    } else {
+      setCalidad('regular');
+    }
+  }, [horas, minutos, isManualCalidad]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +139,7 @@ export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialog
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Calidad del sueño</Label>
-            <Select value={calidad} onValueChange={(v: any) => setCalidad(v)}>
+            <Select value={calidad} onValueChange={(v: any) => { setCalidad(v); setIsManualCalidad(true); }}>
               <SelectTrigger className="bg-secondary/50 border-border">
                 <SelectValue placeholder="Selecciona calidad" />
               </SelectTrigger>

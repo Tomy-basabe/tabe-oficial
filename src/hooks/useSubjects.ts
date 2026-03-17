@@ -614,6 +614,72 @@ export function useSubjects() {
     }
   };
 
+  const updateSubjectDetails = async (
+    subjectId: string,
+    data: { nombre: string; codigo: string; año: number; numero_materia: number }
+  ) => {
+    if (!user) {
+      if (isGuest) {
+        setSubjects(prev => {
+          const existingWithNumber = prev.find(s => s.numero_materia === data.numero_materia && s.id !== subjectId);
+          const subjectToUpdate = prev.find(s => s.id === subjectId);
+          let updated = [...prev];
+          
+          if (existingWithNumber && subjectToUpdate) {
+            const oldNumber = subjectToUpdate.numero_materia;
+            updated = updated.map(s => {
+              if (s.id === existingWithNumber.id) return { ...s, numero_materia: oldNumber };
+              if (s.id === subjectId) return { ...s, ...data };
+              return s;
+            });
+          } else {
+            updated = updated.map(s => s.id === subjectId ? { ...s, ...data } : s);
+          }
+          return updated;
+        });
+        toast.success("Materia actualizada (Modo Invitado)");
+        return;
+      }
+      return;
+    }
+
+    try {
+      const existingWithNumber = subjects.find(s => s.numero_materia === data.numero_materia && s.id !== subjectId);
+      const subjectToUpdate = subjects.find(s => s.id === subjectId);
+
+      // Handle swapping numero_materia to maintain uniqueness and avoid conflicts
+      if (existingWithNumber && subjectToUpdate) {
+        const oldNumber = subjectToUpdate.numero_materia;
+        
+        const { error: swapError } = await supabase
+          .from("subjects")
+          .update({ numero_materia: oldNumber })
+          .eq("id", existingWithNumber.id);
+          
+        if (swapError) throw swapError;
+      }
+
+      const { error: updateError } = await supabase
+        .from("subjects")
+        .update({
+          nombre: data.nombre,
+          codigo: data.codigo,
+          año: data.año,
+          numero_materia: data.numero_materia
+        })
+        .eq("id", subjectId);
+
+      if (updateError) throw updateError;
+
+      await fetchData(false);
+      toast.success("Materia actualizada correctamente");
+    } catch (error) {
+      console.error("Error updating subject details:", error);
+      toast.error("Error al actualizar la materia");
+      throw error;
+    }
+  };
+
   const updateSubjectDependencies = async (
     subjectId: string,
     requiere_regular: string[],
@@ -941,6 +1007,7 @@ export function useSubjects() {
     updateSubjectStatus,
     updatePartialGrades,
     createSubject,
+    updateSubjectDetails,
     updateSubjectDependencies,
     deleteSubject,
     importCareerPlan,
