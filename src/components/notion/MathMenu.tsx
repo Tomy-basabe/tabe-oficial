@@ -54,22 +54,56 @@ export const MATH_SYMBOLS = [
     ],
   },
   {
-    category: "Estadística y Probabilidad",
+    category: "Medidas de Tendencia Central",
     symbols: [
       { label: "media aritmética", symbol: "x̄", latex: "\\bar{x}" },
       { label: "media poblacional", symbol: "μ", latex: "\\mu" },
-      { label: "desviación estándar", symbol: "σ", latex: "\\sigma" },
-      { label: "varianza", symbol: "σ²", latex: "\\sigma^2" },
+      { label: "mediana", symbol: "x̃", latex: "\\tilde{x}" },
+      { label: "moda", symbol: "Mo", latex: "\\text{Mo}" },
+      { label: "media armónica", symbol: "H", latex: "H" },
+      { label: "media geométrica", symbol: "G", latex: "G" },
+    ],
+  },
+  {
+    category: "Medidas de Dispersión",
+    symbols: [
+      { label: "varianza poblacional", symbol: "σ²", latex: "\\sigma^2" },
       { label: "varianza muestral", symbol: "s²", latex: "s^2" },
-      { label: "combinatoria", symbol: "nCr", latex: "\\binom{n}{r}" },
-      { label: "permutación", symbol: "nPr", latex: "P(n, r)" },
+      { label: "desviación estándar", symbol: "σ", latex: "\\sigma" },
+      { label: "desviación muestral", symbol: "s", latex: "s" },
+      { label: "rango", symbol: "R", latex: "R" },
+      { label: "coeficiente de variación", symbol: "CV", latex: "CV" },
+      { label: "desviación media", symbol: "DM", latex: "DM" },
+    ],
+  },
+  {
+    category: "Medidas de Posición",
+    symbols: [
+      { label: "cuartil", symbol: "Qₖ", latex: "Q_k" },
+      { label: "decil", symbol: "Dₖ", latex: "D_k" },
+      { label: "percentil", symbol: "Pₖ", latex: "P_k" },
+      { label: "rango intercuartílico", symbol: "RIC", latex: "RIC" },
+    ],
+  },
+  {
+    category: "Medidas de Forma",
+    symbols: [
+      { label: "coeficiente de asimetría", symbol: "As", latex: "A_s" },
+      { label: "curtosis", symbol: "K", latex: "K" },
+      { label: "momento", symbol: "mᵣ", latex: "m_r" },
+    ],
+  },
+  {
+    category: "Probabilidad e Inferencia",
+    symbols: [
       { label: "probabilidad", symbol: "P(A)", latex: "P(A)" },
       { label: "probabilidad condicional", symbol: "P(A|B)", latex: "P(A|B)" },
       { label: "esperanza matemática", symbol: "E(X)", latex: "E(X)" },
+      { label: "combinatoria", symbol: "nCr", latex: "\\binom{n}{r}" },
+      { label: "permutación", symbol: "nPr", latex: "P(n, r)" },
       { label: "distribución normal", symbol: "N(μ,σ)", latex: "\\mathcal{N}(\\mu, \\sigma^2)" },
       { label: "correlación", symbol: "r", latex: "r" },
-      { label: "mediana", symbol: "x̃", latex: "\\tilde{x}" },
-      { label: "moda", symbol: "Mo", latex: "\\text{Mo}" },
+      { label: "error estándar", symbol: "EE", latex: "EE" },
     ],
   },
   {
