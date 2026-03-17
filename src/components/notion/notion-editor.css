@@ -1368,3 +1368,49 @@
 .notion-sidebar-item .notion-sidebar-item-children-indicator.open {
     transform: rotate(90deg);
 }
+
+/* === MATH NODES === */
+.notion-math-node {
+  background: hsl(var(--secondary) / 0.5);
+  color: hsl(var(--foreground));
+  padding: 0 4px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid transparent;
+}
+
+.notion-math-node:hover {
+  background: hsl(var(--primary) / 0.1);
+  border-color: hsl(var(--primary) / 0.3);
+}
+
+.notion-math-render {
+  display: inline-flex;
+  padding: 2px 4px;
+}
+
+.notion-math-render img {
+  display: inline;
+}
+
+.dark .notion-math-node {
+  background: hsl(var(--primary) / 0.1);
+}
+
+/* KaTeX Overrides for Notion feel */
+.notion-math-render .katex {
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.notion-math-render .katex-display {
+  margin: 1em 0;
+  padding: 1rem;
+  background: hsl(var(--secondary) / 0.3);
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border) / 0.5);
+}

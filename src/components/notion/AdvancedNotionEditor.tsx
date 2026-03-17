@@ -20,7 +20,7 @@ import BulletList from "@tiptap/extension-bullet-list";
 import Blockquote from "@tiptap/extension-blockquote";
 import { wrappingInputRule, PasteRule } from "@tiptap/core";
 import { common, createLowlight } from "lowlight";
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +45,8 @@ import { Indent } from "./extensions/IndentExtension";
 import { TrailingNode } from "./extensions/TrailingNode";
 import { SubPage } from "./extensions/SubPageBlock";
 import { ColorPicker, HighlightColorPicker } from "./ColorPicker";
+import { MathExtension } from "./extensions/MathExtension";
+import { MathMenu } from "./MathMenu";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
@@ -196,6 +198,7 @@ export function AdvancedNotionEditor({
       Superscript,
       Subscript,
       SubPage,
+      MathExtension,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -391,6 +394,9 @@ export function AdvancedNotionEditor({
     },
   });
 
+  const [mathMenuOpen, setMathMenuOpen] = useState(false);
+  const [mathMenuAnchor, setMathMenuAnchor] = useState<DOMRect | null>(null);
+
   // Load content when document changes
   useEffect(() => {
     const shouldReload = documentId && documentId !== lastLoadedDocumentIdRef.current;
@@ -406,6 +412,17 @@ export function AdvancedNotionEditor({
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
       const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (modKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          setMathMenuAnchor(range.getBoundingClientRect());
+        }
+        setMathMenuOpen(prev => !prev);
+        return;
+      }
 
       // === BLOCK TYPE SHORTCUTS (Ctrl+Shift+Number) ===
       if (modKey && e.shiftKey) {
@@ -695,6 +712,16 @@ export function AdvancedNotionEditor({
 
   return (
     <div className="notion-advanced-editor">
+      <MathMenu 
+        open={mathMenuOpen} 
+        onOpenChange={setMathMenuOpen} 
+        anchorEl={mathMenuAnchor} 
+        onSelect={(latex) => {
+          if (editor) {
+            editor.chain().focus().setMath({ formula: latex }).run();
+          }
+        }} 
+      />
       {/* Bubble Menu — appears on text selection, like real Notion */}
       <BubbleMenu
         editor={editor}
