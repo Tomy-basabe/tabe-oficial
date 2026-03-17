@@ -239,19 +239,36 @@ export function useSubjects() {
         const storedStatuses = localStorage.getItem('tabe-guest-statuses');
         const storedDeps = localStorage.getItem('tabe-guest-dependencies');
 
-        setSubjects(storedSubjects ? JSON.parse(storedSubjects) : [
-          { id: "s1", nombre: "Uso de Tablero", codigo: "TAB1", año: 1, numero_materia: 1 },
-          { id: "s2", nombre: "Técnicas de Estudio", codigo: "EST1", año: 1, numero_materia: 2 },
-          { id: "s3", nombre: "Organización", codigo: "ORG1", año: 1, numero_materia: 3 }
-        ]);
-        setUserStatuses(storedStatuses ? JSON.parse(storedStatuses) : [
-          { id: "st1", subject_id: "s1", estado: "aprobada", nota: 10, fecha_aprobacion: "2024-01-01" },
-          { id: "st2", subject_id: "s2", estado: "regular", nota: null, fecha_aprobacion: null },
-          { id: "st3", subject_id: "s3", estado: "cursable", nota: null, fecha_aprobacion: null }
-        ]);
-        setDependencies(storedDeps ? JSON.parse(storedDeps) : []);
-        setLoading(false);
-        isInitialLoad.current = false;
+        if (storedSubjects && storedStatuses) {
+          setSubjects(JSON.parse(storedSubjects));
+          setUserStatuses(JSON.parse(storedStatuses));
+          setDependencies(storedDeps ? JSON.parse(storedDeps) : []);
+          setLoading(false);
+          isInitialLoad.current = false;
+        } else {
+          // Use the template by default for Guest Mode (SEO/Ads)
+          import('@/data/sistemas_template.json').then(module => {
+            const template = module.default;
+            setSubjects(template.subjects);
+            // Pre-fill some statuses for visual richness
+            setUserStatuses(template.subjects.map((s: any, idx: number) => ({
+              id: `demo-st-${s.id}`,
+              subject_id: s.id,
+              estado: idx < 10 ? "aprobada" : (idx < 20 ? "regular" : "cursable"),
+              nota: idx < 10 ? 8 : null,
+              fecha_aprobacion: idx < 10 ? "2024-01-01" : null
+            })));
+            setDependencies(template.dependencies.map((d: any) => ({
+              id: `demo-dep-${d.subject_id}-${d.requiere_regular || d.requiere_aprobada}`,
+              ...d
+            })));
+            setLoading(false);
+            isInitialLoad.current = false;
+          }).catch(() => {
+            setLoading(false);
+            isInitialLoad.current = false;
+          });
+        }
       }
     };
     initData();

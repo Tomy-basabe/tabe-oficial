@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null>(null);
-  const [isGuest, setIsGuest] = useState(false);
+  const [isGuest, setIsGuest] = useState(true);
 
   const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-green', 'theme-red'];
 
@@ -107,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fetchProfile(session.user.id);
           setIsGuest(false);
         } else {
+          setIsGuest(true);
           setProfile(null);
           applyTheme(null);
         }
