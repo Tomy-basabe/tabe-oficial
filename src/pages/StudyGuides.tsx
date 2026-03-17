@@ -4,22 +4,42 @@ import { ArrowLeft, BookOpen, Brain, Clock, Zap, Target, Sparkles, GraduationCap
 export default function StudyGuides() {
   const guides = [
     {
-      title: "Método Pomodoro: El secreto de la productividad",
+      title: "Método Pomodoro: Productividad Real",
       description: "Aprendé a usar intervalos de 25 minutos para maximizar tu enfoque y evitar el agotamiento mental.",
       icon: <Clock className="w-8 h-8 text-neon-cyan" />,
-      content: `El método Pomodoro es una técnica de gestión del tiempo desarrollada por Francesco Cirillo a fines de la década de 1980. La técnica utiliza un temporizador para dividir el trabajo en intervalos, tradicionalmente de 25 minutos de duración, separados por breves descansos. Cada intervalo se conoce como un pomodoro, de la palabra italiana para 'tomate', en honor al temporizador de cocina con forma de tomate que Cirillo usó originalmente como estudiante universitario.`
+      content: `El método Pomodoro no es solo un temporizador; es un sistema de gestión de la atención. Desarrollado por Francesco Cirillo, busca combatir la ansiedad que genera el paso del tiempo ("el devenir"). 
+      
+      ¿Cómo aplicarlo en TABE? 
+      1. Elegí una materia de tu plan. 
+      2. Configurá el temporizador por 25 minutos de enfoque absoluto (sin celular). 
+      3. Tomá un descanso de 5 minutos al sonar la alarma. 
+      4. Después de 4 "pomodoros", tomá un descanso largo de 15-30 minutos.
+      
+      Esta técnica aprovecha los picos de concentración del cerebro humano, evitando que la fatiga cognitiva degrade tu capacidad de retención. En carreras de ingeniería o exactas, donde el esfuerzo mental es intenso, los descansos cortos permiten que la 'red neuronal por defecto' procese la información difícil en segundo plano.`
     },
     {
-      title: "Flashcards e Intervención Espaciada",
-      description: "Descubrí por qué las flashcards son la herramienta de memorización más poderosa para estudiantes universitarios.",
+      title: "Active Recall y Repaso Espaciado",
+      description: "La técnica científica definitiva para no olvidar lo que estudiaste ayer.",
       icon: <Brain className="w-8 h-8 text-neon-purple" />,
-      content: `La repetición espaciada es una técnica de aprendizaje que se realiza con intervalos de tiempo crecientes entre cada repaso posterior de material de entrenamiento previamente aprendido, para explotar el efecto de espaciamiento psicológico. Las flashcards (tarjetas de memoria) combinadas con inteligencia artificial permiten que TABE te pregunte exactamente lo que estás a punto de olvidar.`
+      content: `El Active Recall (Evocación Activa) es el proceso de estimular activamente la memoria durante el proceso de aprendizaje. En lugar de releer un texto (estudio pasivo), te obligas a recuperar la información de tu mente. 
+      
+      Combinado con el Repaso Espaciado (Spaced Repetition), esta técnica utiliza la "curva del olvido" de Ebbinghaus a tu favor. TABE automatiza este proceso mediante algoritmos que detectan cuándo es más probable que olvides un concepto, mostrándote esa flashcard o cuestionario en el momento exacto para consolidar la memoria a largo plazo. Estudiar menos horas, pero con mayor impacto científico.`
     },
     {
-      title: "IA en la Educación: Cómo Estudiar más Inteligente",
-      description: "La inteligencia artificial no es para copiar, es para comprender mejor. Usá TABE para explicar temas complejos.",
+      title: "Técnica de Feynman y Toma de Apuntes",
+      description: "Si no podés explicarlo de forma simple, es porque no lo entendiste lo suficiente.",
+      icon: <Target className="w-8 h-8 text-neon-green" />,
+      content: `La toma de apuntes evolutiva y la técnica de Feynman son pilares en TABE. La idea es simple: tomá un concepto complejo y tratá de explicárselo a alguien que no sabe nada del tema (o a nuestra IA). 
+      
+      Al intentar simplificar la explicación, detectarás "agujeros" en tu conocimiento. En TABE, fomentamos el uso de mapas mentales y diagramas de flujo para materias como Análisis Matemático o Física, donde la relación entre conceptos es más importante que la definición aislada. Los apuntes no deben ser una copia de la pizarra, sino una síntesis de tu propia comprensión.`
+    },
+    {
+      title: "IA en la Educación: Tu Tutor 24/7",
+      description: "La inteligencia artificial como copiloto, no como sustituto del pensamiento.",
       icon: <Sparkles className="w-8 h-8 text-neon-gold" />,
-      content: `TABE utiliza modelos de lenguaje avanzados para actuar como un tutor personal. Puede generar cuestionarios, resumir textos densos y explicar conceptos de física o matemática como si fuera un profesor particular disponible las 24 horas.`
+      content: `En la era de la IA, el valor del estudiante no está en memorizar datos, sino en saber conectar ideas. TABE utiliza modelos de lenguaje de última generación para actuar como un tutor socrático. 
+      
+      En lugar de darte la respuesta directa, nuestra IA te guía mediante preguntas para que vos mismo llegues a la solución. Puede resumir papers científicos, explicar teoremas complejos con analogías cotidianas y generar exámenes de práctica basados en tus propios archivos. Es la herramienta definitiva para el estudiante autodidacta que busca la excelencia sin límites geográficos ni horarios.`
     }
   ];
 

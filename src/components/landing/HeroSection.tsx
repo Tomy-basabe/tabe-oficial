@@ -1,4 +1,4 @@
-import { Sparkles, ArrowRight, CheckCircle2, GraduationCap } from "lucide-react";
+import { Sparkles, ArrowRight, CheckCircle2, GraduationCap, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 export function HeroSection() {
     const whatsappUrl = "https://wa.me/5492617737367?text=Hola,%20quiero%20formar%20parte%20de%20TABE%20y%20mejorar%20mi%20rendimiento%20en%20exactas!";
@@ -47,6 +47,15 @@ export function HeroSection() {
                             <span className="absolute -top-1 -right-1 px-2 py-0.5 bg-neon-purple text-[10px] text-white rounded-full font-black animate-bounce">
                                 NUEVO
                             </span>
+                        </Link>
+
+                        <Link
+                            to="/guia-de-estudio"
+                            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-background/50 backdrop-blur-md text-foreground border border-neon-gold/50 rounded-2xl font-bold text-lg hover:border-neon-gold transition-all hover:-translate-y-1 active:scale-95 relative overflow-hidden group/guides"
+                        >
+                            <div className="absolute inset-0 bg-neon-gold/5 opacity-0 group-hover/guides:opacity-100 transition-opacity" />
+                            <BookOpen className="w-6 h-6 text-neon-gold group-hover/guides:scale-110 transition-transform" />
+                            <span>Guías Académicas</span>
                         </Link>
 
                         <a

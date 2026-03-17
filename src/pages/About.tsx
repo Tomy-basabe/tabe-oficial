@@ -26,43 +26,69 @@ export default function About() {
 
                 <div className="space-y-16">
                     <section className="grid md:grid-cols-2 gap-12 items-center">
-                        <div>
+                        <div className="prose prose-invert lg:prose-xl">
                             <h2 className="text-2xl font-display font-bold mb-4 flex items-center gap-2">
                                 <Users className="w-6 h-6 text-neon-purple" />
                                 ¿Quiénes somos?
                             </h2>
                             <p className="text-muted-foreground leading-relaxed">
-                                TABE nació en las aulas de ingeniería de Mendoza, Argentina, como respuesta a la necesidad de centralizar las herramientas de estudio. Somos un equipo interdisciplinario de desarrolladores y estudiantes avanzados que creen que la tecnología debe ser el puente, no la barrera, para el éxito académico. Nuestro compromiso es con la educación pública y privada de calidad en toda Latinoamérica.
+                                TABE no es solo una aplicación; es el resultado de años de observación en el ecosistema universitario latinoamericano. Fundada por un grupo de estudiantes de ingeniería en Mendoza, Argentina, la plataforma nació para resolver un problema crítico: la fragmentación de la información y la falta de metodologías de alto rendimiento accesibles para todos.
+                            </p>
+                            <p className="text-muted-foreground leading-relaxed mt-4">
+                                Hoy, somos un equipo multidisciplinario que combina pedagogía, psicología cognitiva y desarrollo de software de vanguardia. Nuestra visión es transformar la educación superior, proporcionando a cada estudiante un asistente que no solo organiza, sino que enseña a aprender.
                             </p>
                         </div>
                         <div className="card-gamer p-8 rounded-2xl bg-gradient-to-br from-neon-purple/5 to-neon-cyan/5 border border-border">
-                            <h3 className="font-bold text-lg mb-2 text-neon-cyan whitespace-nowrap">Propuesta de Valor Única</h3>
-                            <ul className="text-sm text-muted-foreground space-y-2">
-                                <li>• IA entrenada para planes de estudio reales.</li>
-                                <li>• Sincronización multi-dispositivo inmediata.</li>
-                                <li>• Comunidad de apoyo estudiantil activa.</li>
-                                <li>• Gratuidad en las funciones esenciales.</li>
+                            <h3 className="font-bold text-lg mb-2 text-neon-cyan whitespace-nowrap">Nuestro Enfoque Científico</h3>
+                            <ul className="text-sm text-muted-foreground space-y-4">
+                                <li className="flex gap-2">
+                                    <Shield className="w-5 h-5 text-neon-cyan shrink-0" />
+                                    <span><strong>Neurociencia Aplicada:</strong> Implementamos algoritmos basados en la curva del olvido de Ebbinghaus para optimizar el repaso.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <Target className="w-5 h-5 text-neon-purple shrink-0" />
+                                    <span><strong>IA Socrática:</strong> Nuestra inteligencia artificial está diseñada para guiar al estudiante hacia la respuesta, no para dársela.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <BookOpen className="w-5 h-5 text-neon-green shrink-0" />
+                                    <span><strong>Open Education:</strong> Creemos en el acceso libre a los planes de estudio y guías metodológicas de alta calidad.</span>
+                                </li>
                             </ul>
                         </div>
                     </section>
 
                     <section className="grid md:grid-cols-2 gap-12 items-center">
-                        <div>
+                        <div className="order-2 md:order-1 card-gamer p-8 rounded-2xl bg-gradient-to-br from-neon-cyan/5 to-neon-purple/5 border border-border">
+                            <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
+                                <Target className="w-6 h-6 text-neon-gold" />
+                                Nuestro Impacto
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center p-4 bg-background/50 rounded-xl">
+                                    <div className="text-3xl font-bold gradient-text">+1000</div>
+                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Estudiantes</div>
+                                </div>
+                                <div className="text-center p-4 bg-background/50 rounded-xl">
+                                    <div className="text-3xl font-bold gradient-text">12</div>
+                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Carreras</div>
+                                </div>
+                                <div className="text-center p-4 bg-background/50 rounded-xl">
+                                    <div className="text-3xl font-bold gradient-text">24/7</div>
+                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Soporte IA</div>
+                                </div>
+                                <div className="text-center p-4 bg-background/50 rounded-xl">
+                                    <div className="text-3xl font-bold gradient-text">Gratis</div>
+                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Acceso Público</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="order-1 md:order-2">
                             <h2 className="text-2xl font-display font-bold mb-4 flex items-center gap-2">
-                                <Target className="w-6 h-6 text-neon-cyan" />
-                                Nuestra Misión
+                                <Shield className="w-6 h-6 text-neon-cyan" />
+                                Compromiso de Calidad
                             </h2>
                             <p className="text-muted-foreground leading-relaxed">
-                                Nuestra misión en TABE es democratizar y optimizar la educación superior mediante el uso integrado de inteligencia artificial, herramientas de productividad probadas (como Pomodoro) y analíticas detalladas de rendimiento. Queremos que el estudiante deje de preocuparse por &quot;cómo organizar su tiempo&quot; y se enfoque puramente en aprender.
-                            </p>
-                        </div>
-                        <div className="card-gamer p-8 rounded-2xl bg-gradient-to-br from-neon-cyan/5 to-neon-purple/5 border border-border">
-                            <h3 className="font-bold text-lg mb-2">Significado de TABE</h3>
-                            <p className="text-sm text-muted-foreground">
-                                <strong className="text-foreground">T</strong>u<br />
-                                <strong className="text-foreground">A</strong>sistente de<br />
-                                <strong className="text-foreground">B</strong>olsillo<br />
-                                <strong className="text-foreground">E</strong>studiantil<br />
+                                En TABE, la calidad del contenido es nuestra prioridad absoluta. Cada plan de carrera y guía de estudio es revisado para asegurar su precisión y relevancia académica. Cumplimos con los estándares más estrictos de privacidad de datos y ética en inteligencia artificial, porque entendemos que la educación es la base de un futuro más justo y tecnológicamente avanzado.
                             </p>
                         </div>
                     </section>
