@@ -23,6 +23,7 @@ import Terms from "@/pages/Terms";
 import Careers from "@/pages/Careers";
 import CareerDetail from "@/pages/CareerDetail";
 import StudyGuides from "@/pages/StudyGuides";
+import ResetPassword from "@/pages/ResetPassword";
 
 // Lazy loaded (heavy pages with large dependencies)
 const Notion = lazy(() => import("@/pages/Notion"));
@@ -130,6 +131,7 @@ const AppRoutes = () => (
         </PublicRoute>
       }
     />
+    <Route path="/restablecer-contrasena" element={<ResetPassword />} />
     <Route
       element={
         <ProtectedRoute>

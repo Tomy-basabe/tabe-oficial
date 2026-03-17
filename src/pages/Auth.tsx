@@ -108,7 +108,7 @@ export default function Auth() {
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://tabe-oficial.vercel.app/auth',
+        redirectTo: `${window.location.origin}/restablecer-contrasena`,
       });
       if (error) {
         toast.error(translateAuthError(error.message));
