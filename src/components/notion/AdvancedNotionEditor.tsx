@@ -46,6 +46,7 @@ import { TrailingNode } from "./extensions/TrailingNode";
 import { SubPage } from "./extensions/SubPageBlock";
 import { ColorPicker, HighlightColorPicker } from "./ColorPicker";
 import { MathExtension } from "./extensions/MathExtension";
+import { ChartExtension } from "./extensions/ChartExtension";
 import { MathMenu } from "./MathMenu";
 import "tippy.js/dist/tippy.css";
 
@@ -199,6 +200,7 @@ export function AdvancedNotionEditor({
       Subscript,
       SubPage,
       MathExtension,
+      ChartExtension,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -424,6 +426,16 @@ export function AdvancedNotionEditor({
         return;
       }
 
+      // === CHART SHORTCUT (Ctrl+Shift+L) ===
+      if (modKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        if (editor) {
+          editor.chain().focus().insertContent({ type: 'chart' }).run();
+          toast.success("Gráfico insertado");
+        }
+        return;
+      }
+
       // === BLOCK TYPE SHORTCUTS (Ctrl+Shift+Number) ===
       if (modKey && e.shiftKey) {
         switch (e.key) {
@@ -532,12 +544,14 @@ export function AdvancedNotionEditor({
           }
           return;
         }
-        // Alignment: Ctrl+Shift+L
+        // Alignment: Ctrl+Shift+L (DISABLED for Charts)
+        /*
         if (e.key.toLowerCase() === "l") {
           e.preventDefault();
           editor.chain().focus().setTextAlign("left").run();
           return;
         }
+        */
         // Alignment: Ctrl+Shift+E (center)
         if (e.key.toLowerCase() === "e") {
           e.preventDefault();

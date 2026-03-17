@@ -14,8 +14,10 @@ import {
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { FlashcardStats } from "@/components/metrics/FlashcardStats";
 import { RoutineStats } from "@/components/metrics/RoutineStats";
+import { SleepStats } from "@/components/metrics/SleepStats";
 import { Button } from "@/components/ui/button";
 import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
+import { Moon } from "lucide-react";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 interface StudySession {
@@ -43,7 +45,7 @@ export default function Metrics() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; nombre: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"general" | "flashcards" | "rutinas">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "flashcards" | "rutinas" | "sueno">("general");
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
 
   const fetchData = useCallback(async () => {
@@ -372,6 +374,18 @@ export default function Metrics() {
             <Calendar className="w-4 h-4 inline mr-2" />
             Rutinas
           </button>
+          <button
+            onClick={() => setActiveTab("sueno")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              activeTab === "sueno"
+                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Moon className="w-4 h-4 inline mr-2" />
+            Sueño
+          </button>
         </div>
       </div>
 
@@ -562,8 +576,10 @@ export default function Metrics() {
         </>
       ) : activeTab === "flashcards" ? (
         <FlashcardStats />
-      ) : (
+      ) : activeTab === "rutinas" ? (
         <RoutineStats dateRange={dateRange} />
+      ) : (
+        <SleepStats dateRange={dateRange} />
       )}
     </div>
   );
