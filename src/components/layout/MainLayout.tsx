@@ -23,7 +23,8 @@ import {
   baseNavItems, 
   adminNavItem, 
   ICON_MAP,
-  CustomSidebarItem
+  CustomSidebarItem,
+  ALL_AVAILABLE_ITEMS
 } from "@/lib/sidebar-configs";
 
 interface UserStats {
@@ -162,7 +163,7 @@ export function MainLayout() {
                 // Find matching base item to get the icon (including admin)
                 // Use item.path (new) or item.id (legacy/folders)
                 const targetPath = item.path || (item.type === "item" ? item.id : null);
-                const baseItem = [...baseNavItems, adminNavItem].find(b => b.path === targetPath);
+                const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
                 
                 if (!baseItem && item.type === "item") return null;
 

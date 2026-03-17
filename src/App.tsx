@@ -39,6 +39,7 @@ const CorrelativityMap = lazy(() => import("@/pages/CorrelativityMap"));
 const Routines = lazy(() => import("@/pages/Routines"));
 const OfficeHours = lazy(() => import("@/pages/OfficeHours"));
 const Achievements = lazy(() => import("@/pages/Achievements"));
+const Exams = lazy(() => import("@/pages/Exams"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
@@ -139,6 +140,7 @@ const AppRoutes = () => (
       <Route path="/biblioteca" element={<Library />} />
       <Route path="/logros" element={<Achievements />} />
       <Route path="/notion" element={<Notion />} />
+      <Route path="/examenes" element={<Exams />} />
       <Route path="/amigos" element={<Friends />} />
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/admin" element={<AdminPanel />} />
