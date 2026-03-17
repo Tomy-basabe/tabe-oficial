@@ -407,6 +407,21 @@ export function AdvancedNotionEditor({
     editor.commands.setContent(content);
   }, [documentId, content, editor]);
 
+  // Listener to open math menu via custom event (e.g. from SlashCommands)
+  useEffect(() => {
+    const handleOpenMenu = () => {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        setMathMenuAnchor(range.getBoundingClientRect());
+      }
+      setMathMenuOpen(true);
+    };
+
+    window.addEventListener('notion-open-math-menu', handleOpenMenu);
+    return () => window.removeEventListener('notion-open-math-menu', handleOpenMenu);
+  }, []);
+
   // === Keyboard shortcuts (Notion-style) ===
   useEffect(() => {
     if (!editor) return;

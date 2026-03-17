@@ -46,6 +46,8 @@ import {
   AtSign,
   Calendar,
   Calculator,
+  BarChart3,
+  Sigma,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -162,6 +164,30 @@ const getSuggestionItems = (): CommandItem[] => [
     shortcut: "--- espacio",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setHorizontalRule().run();
+    },
+  },
+  {
+    title: "Matemáticas",
+    description: "Símbolos griegos y fórmulas (KaTeX)",
+    icon: <Sigma className="w-4 h-4 text-emerald-500" />,
+    category: "Básico",
+    shortcut: "Ctrl+M",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).setMath({ formula: "" }).run();
+      // Dispatch event to open the menu at the new node's position
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('notion-open-math-menu'));
+      }, 50);
+    },
+  },
+  {
+    title: "Gráfico Estadístico",
+    description: "Barras, líneas y torta interactivos",
+    icon: <BarChart3 className="w-4 h-4 text-orange-500" />,
+    category: "Básico",
+    shortcut: "Ctrl+Shift+L",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent({ type: 'chart' }).run();
     },
   },
 
@@ -469,20 +495,6 @@ const getSuggestionItems = (): CommandItem[] => [
       const emoji = window.prompt(`Elige un emoji o escríbelo:\n\n${emojis.join(" ")}`, "✨");
       if (emoji) {
         editor.chain().focus().deleteRange(range).insertContent(emoji + " ").run();
-      }
-    },
-  },
-  {
-    title: "Ecuación",
-    description: "Fórmula matemática (KaTeX)",
-    icon: <Calculator className="w-4 h-4 text-emerald-400" />,
-    category: "Inline",
-    command: ({ editor, range }) => {
-      const formula = window.prompt("Escribe la ecuación (ej: E = mc², x² + y² = r²):", "E = mc²");
-      if (formula) {
-        editor.chain().focus().deleteRange(range).insertContent(
-          `<code style="background:hsl(var(--secondary));color:hsl(var(--foreground));padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:0.9em;">𝑓 ${formula}</code> `
-        ).run();
       }
     },
   },
