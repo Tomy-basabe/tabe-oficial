@@ -22,13 +22,13 @@ const careers = Object.entries(careerTemplates).map(([path, module]: [string, an
     },
     "civil": { 
       name: "Ingeniería Civil", 
-      university: "UTN/UNSJ", 
+      university: "UTN FRM / UNSJ", 
       icon: <Target className="w-6 h-6 text-neon-purple" />, 
       color: "from-neon-purple/20 to-neon-purple/5" 
     },
     "sistemas": { 
       name: "Ingeniería en Sistemas", 
-      university: "UTN", 
+      university: "UTN FRM", 
       icon: <GraduationCap className="w-6 h-6 text-neon-green" />, 
       color: "from-neon-green/20 to-neon-green/5" 
     },
@@ -52,13 +52,13 @@ const careers = Object.entries(careerTemplates).map(([path, module]: [string, an
     },
     "quimica": { 
       name: "Ingeniería Química", 
-      university: "UTN", 
+      university: "UTN FRM", 
       icon: <BookOpen className="w-6 h-6 text-pink-400" />, 
       color: "from-pink-400/20 to-pink-400/5" 
     },
     "telecomunicaciones": { 
       name: "Ingeniería en Telecomunicaciones", 
-      university: "UTN", 
+      university: "UTN FRM", 
       icon: <Target className="w-6 h-6 text-indigo-400" />, 
       color: "from-indigo-400/20 to-indigo-400/5" 
     },
@@ -67,6 +67,12 @@ const careers = Object.entries(careerTemplates).map(([path, module]: [string, an
       university: "UNLP", 
       icon: <GraduationCap className="w-6 h-6 text-teal-400" />, 
       color: "from-teal-400/20 to-teal-400/5" 
+    },
+    "mecanica_utn_frm": { 
+      name: "Ingeniería Mecánica", 
+      university: "UTN FRM", 
+      icon: <Target className="w-6 h-6 text-blue-500" />, 
+      color: "from-blue-500/20 to-blue-500/5" 
     }
   };
 
