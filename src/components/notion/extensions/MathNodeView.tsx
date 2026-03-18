@@ -62,7 +62,7 @@ export const MathNodeView = ({ node, updateAttributes, selected }: NodeViewProps
   };
 
   return (
-    <NodeViewWrapper as="span" className="notion-math-node-wrapper inline-block align-middle mx-1">
+    <NodeViewWrapper as="span" contentEditable={false} className="notion-math-node-wrapper inline-block align-middle mx-1">
       {isEditing ? (
         <input
           ref={inputRef}

@@ -21,9 +21,8 @@ export const MathExtension = Node.create<MathOptions>({
   name: 'math',
 
   group: 'inline',
-
   inline: true,
-
+  atom: true,
   selectable: true,
 
   draggable: true,

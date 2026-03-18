@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Calendar, Link, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star } from "lucide-react";
+import { Bell, Calendar, Link, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
 import { ReviewForm } from "@/components/settings/ReviewForm";
@@ -48,7 +48,7 @@ export default function Settings() {
   const { user, isGuest, signOut, profile, updateTheme } = useAuth();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettingsType>(loadSettings);
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   // Local state for guest theme representation
   const [guestActiveTheme, setGuestActiveTheme] = useState<string | null>(() => localStorage.getItem("active-theme-color"));
@@ -204,34 +204,59 @@ export default function Settings() {
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-muted-foreground px-1">Apariencia</h3>
         <div className="card-gamer rounded-xl p-4">
-          <div className="flex items-center justify-between">
+          <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
                 {theme === "dark" ? (
                   <Moon className="w-5 h-5 text-muted-foreground" />
-                ) : (
+                ) : theme === "light" ? (
                   <Sun className="w-5 h-5 text-neon-gold" />
+                ) : (
+                  <Monitor className="w-5 h-5 text-neon-cyan" />
                 )}
               </div>
               <div>
-                <p className="font-medium text-sm">
-                  {theme === "dark" ? "Tema oscuro" : "Tema claro"}
-                </p>
+                <p className="font-medium text-sm">Tema del sistema</p>
                 <p className="text-xs text-muted-foreground">
-                  {theme === "dark" ? "Modo gamer activado" : "Modo claro activado"}
+                  Elige cómo se ve T.A.B.E.
                 </p>
               </div>
             </div>
-            <button
-              onClick={toggleTheme}
-              className={`w-12 h-6 rounded-full relative transition-colors ${theme === "dark" ? "bg-primary" : "bg-secondary"
-                }`}
-            >
-              <div
-                className={`absolute top-1 w-4 h-4 bg-background rounded-full transition-all ${theme === "dark" ? "right-1" : "left-1"
+
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => setTheme("light")}
+                className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${theme === "light"
+                  ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(138,61,240,0.3)]"
+                  : "bg-secondary/30 border-transparent hover:bg-secondary/50 text-muted-foreground"
                   }`}
-              />
-            </button>
+              >
+                <Sun className="w-5 h-5" />
+                <span className="text-xs font-medium">Claro</span>
+              </button>
+
+              <button
+                onClick={() => setTheme("dark")}
+                className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${theme === "dark"
+                  ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(138,61,240,0.3)]"
+                  : "bg-secondary/30 border-transparent hover:bg-secondary/50 text-muted-foreground"
+                  }`}
+              >
+                <Moon className="w-5 h-5" />
+                <span className="text-xs font-medium">Oscuro</span>
+              </button>
+
+              <button
+                onClick={() => setTheme("system")}
+                className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${theme === "system"
+                  ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(138,61,240,0.3)]"
+                  : "bg-secondary/30 border-transparent hover:bg-secondary/50 text-muted-foreground"
+                  }`}
+              >
+                <Monitor className="w-5 h-5" />
+                <span className="text-xs font-medium">Auto</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
