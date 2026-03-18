@@ -1,5 +1,6 @@
 import { Node, mergeAttributes, NodeViewProps } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
+import { Move } from "lucide-react";
 import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -95,14 +96,14 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
   }, [isFloating, position, updateAttributes]);
 
   const containerStyle: React.CSSProperties = {
-    width: align === "center" && !isFloating ? "100%" : "auto",
-    display: align === "center" && !isFloating ? "flex" : "block",
-    justifyContent: "center",
+    width: (align === "center" || align === "left-block" || align === "right-block") && !isFloating ? "100%" : "auto",
+    display: (align === "center" || align === "left-block" || align === "right-block") && !isFloating ? "flex" : "block",
+    justifyContent: align === "center" ? "center" : align === "right-block" ? "flex-end" : "flex-start",
     float: isFloating ? "none" : (align === "left" ? "left" : align === "right" ? "right" : "none"),
     marginRight: !isFloating && align === "left" ? "1.5rem" : "0",
     marginLeft: !isFloating && align === "right" ? "1.5rem" : "0",
-    marginBottom: !isFloating && align !== "center" ? "0.5rem" : "0",
-    clear: !isFloating && align === "center" ? "both" : "none",
+    marginBottom: !isFloating && (align !== "center" && align !== "left-block" && align !== "right-block") ? "0.5rem" : "1rem",
+    clear: !isFloating && (align === "center" || align === "left-block" || align === "right-block") ? "both" : "none",
     position: isFloating ? "absolute" : "relative",
     left: isFloating ? 0 : undefined,
     top: isFloating ? 0 : undefined,
@@ -125,7 +126,7 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
     >
       <div 
         className="relative inline-block group" 
-        style={{ width: align === "center" && !isFloating ? width : width }}
+        style={{ width: (align === "center" || align === "left-block" || align === "right-block" || isFloating) ? width : width }}
       >
         <img
           ref={imageRef}
@@ -139,38 +140,48 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
           style={{ width: "100%" }}
         />
         
-        {/* Right Resize handle */}
-        <div
-          onMouseDown={(e) => onResizeStart(e, "right")}
-          className={cn(
-            "absolute top-0 right-0 w-4 -mr-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
-            resizing && "opacity-100"
-          )}
-        >
-          <div className="w-1.5 h-12 bg-black/50 dark:bg-white/50 rounded-full shadow-sm" />
-        </div>
-
-        {/* Left Resize handle */}
-        <div
-          onMouseDown={(e) => onResizeStart(e, "left")}
-          className={cn(
-            "absolute top-0 left-0 w-4 -ml-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
-            resizing && "opacity-100"
-          )}
-        >
-          <div className="w-1.5 h-12 bg-black/50 dark:bg-white/50 rounded-full shadow-sm" />
-        </div>
+        {/* Resize Handles - Only in non-floating mode */}
+        {!isFloating && (
+          <>
+            {/* Left handle */}
+            <div
+              onMouseDown={(e) => onResizeStart(e, "left")}
+              className={cn(
+                "absolute top-0 left-0 w-4 -ml-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
+                resizing && "opacity-100"
+              )}
+            >
+              <div className="w-1.5 h-12 bg-primary/40 rounded-full shadow-sm shadow-primary/20" />
+            </div>
+            {/* Right handle */}
+            <div
+              onMouseDown={(e) => onResizeStart(e, "right")}
+              className={cn(
+                "absolute top-0 right-0 w-4 -mr-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
+                resizing && "opacity-100"
+              )}
+            >
+              <div className="w-1.5 h-12 bg-primary/40 rounded-full shadow-sm shadow-primary/20" />
+            </div>
+          </>
+        )}
         
-        {/* Drag handle hint for floating images */}
+        {/* Drag handle for floating mode - Absolute UI */}
         {isFloating && (
-          <div className="absolute top-2 left-2 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-3 3-3-3"/><path d="M12 3v18"/><path d="m9 6 3-3 3 3"/><path d="M21 12H3"/><path d="m18 9 3 3-3 3"/><path d="m6 15-3-3 3-3"/></svg>
+          <div 
+            className="absolute -top-3 -left-3 bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg border-2 border-background cursor-grab active:cursor-grabbing hover:scale-110 transition-transform z-30 opacity-0 group-hover:opacity-100"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onDragStart(e as any);
+            }}
+          >
+            <Move className="w-4 h-4" />
           </div>
         )}
 
         {/* Selection overlay */}
         {selected && (
-          <div className="absolute inset-0 ring-2 ring-primary ring-offset-2 rounded-md pointer-events-none" />
+          <div className="absolute inset-0 ring-2 ring-primary ring-offset-2 rounded-md pointer-events-none z-10" />
         )}
       </div>
     </NodeViewWrapper>

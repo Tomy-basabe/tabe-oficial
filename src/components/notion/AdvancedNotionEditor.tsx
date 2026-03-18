@@ -788,180 +788,186 @@ export function AdvancedNotionEditor({
       >
         {/* Image specific controls */}
         {editor.isActive("image") && (
-          <>
+          <div className="flex items-center">
             <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "left" }).run()}
-              isActive={editor.isActive("image", { align: "left" })}
-              title="Alinear a la izquierda"
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "left", isFloating: false }).run()}
+              isActive={editor.isActive("image", { align: "left", isFloating: false })}
+              title="Ajuste a la izquierda (Texto fluye)"
+            >
+              <AlignLeft className="w-4 h-4 opacity-70" />
+            </BubbleBtn>
+            <BubbleBtn
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "left-block", isFloating: false }).run()}
+              isActive={editor.isActive("image", { align: "left-block" })}
+              title="Bloque a la izquierda"
             >
               <AlignLeft className="w-4 h-4" />
             </BubbleBtn>
             <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "center" }).run()}
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "center", isFloating: false }).run()}
               isActive={editor.isActive("image", { align: "center" })}
-              title="Centrar"
+              title="Bloque centrado"
             >
               <AlignCenter className="w-4 h-4" />
             </BubbleBtn>
             <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "right" }).run()}
-              isActive={editor.isActive("image", { align: "right" })}
-              title="Alinear a la derecha"
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "right-block", isFloating: false }).run()}
+              isActive={editor.isActive("image", { align: "right-block" })}
+              title="Bloque a la derecha"
             >
               <AlignRight className="w-4 h-4" />
             </BubbleBtn>
             <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "full", width: "100%" }).run()}
-              isActive={editor.isActive("image", { align: "full" })}
-              title="Ancho completo"
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "right", isFloating: false }).run()}
+              isActive={editor.isActive("image", { align: "right", isFloating: false })}
+              title="Ajuste a la derecha (Texto fluye)"
             >
-              <Maximize className="w-4 h-4" />
+              <AlignRight className="w-4 h-4 opacity-70" />
             </BubbleBtn>
+
+            <div className="notion-bubble-separator mx-1" />
+
             <BubbleBtn
               onClick={() => editor.chain().focus().updateAttributes("image", { isFloating: !editor.getAttributes("image").isFloating }).run()}
               isActive={editor.getAttributes("image").isFloating}
-              title="Movimiento libre"
+              title="Movimiento libre (Arrastrable)"
             >
-              <Move className="w-4 h-4" />
+              <Move className={cn("w-4 h-4", editor.getAttributes("image").isFloating && "text-primary")} />
             </BubbleBtn>
-            <div className="notion-bubble-separator" />
-          </>
+            
+            <div className="notion-bubble-separator mx-1" />
+          </div>
         )}
 
-        {/* Block type quick toggles */}
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          isActive={editor.isActive("heading", { level: 1 })}
-          title="Encabezado 1"
-        >
-          <Heading1 className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive("heading", { level: 2 })}
-          title="Encabezado 2"
-        >
-          <Heading2 className="w-4 h-4" />
-        </BubbleBtn>
+        {/* Text Styling Group */}
+        <div className="flex items-center">
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            isActive={editor.isActive("heading", { level: 1 })}
+            title="Encabezado 1"
+          >
+            <Heading1 className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            isActive={editor.isActive("heading", { level: 2 })}
+            title="Encabezado 2"
+          >
+            <Heading2 className="w-4 h-4" />
+          </BubbleBtn>
 
-        <div className="notion-bubble-separator" />
+          <div className="notion-bubble-separator mx-1" />
 
-        {/* Text formatting */}
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={editor.isActive("bold")}
-          title="Negrita (Ctrl+B)"
-        >
-          <Bold className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive("italic")}
-          title="Cursiva (Ctrl+I)"
-        >
-          <Italic className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          isActive={editor.isActive("underline")}
-          title="Subrayado (Ctrl+U)"
-        >
-          <Underline className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          isActive={editor.isActive("strike")}
-          title="Tachado"
-        >
-          <Strikethrough className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleCode().run()}
-          isActive={editor.isActive("code")}
-          title="Código (Ctrl+E)"
-        >
-          <Code className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleSuperscript().run()}
-          isActive={editor.isActive("superscript")}
-          title="Superíndice"
-        >
-          <SuperscriptIcon className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleSubscript().run()}
-          isActive={editor.isActive("subscript")}
-          title="Subíndice"
-        >
-          <SubscriptIcon className="w-4 h-4" />
-        </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            isActive={editor.isActive("bold")}
+            title="Negrita (Ctrl+B)"
+          >
+            <Bold className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            isActive={editor.isActive("italic")}
+            title="Cursiva (Ctrl+I)"
+          >
+            <Italic className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            isActive={editor.isActive("underline")}
+            title="Subrayado (Ctrl+U)"
+          >
+            <Underline className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            isActive={editor.isActive("strike")}
+            title="Tachado"
+          >
+            <Strikethrough className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            isActive={editor.isActive("code")}
+            title="Código (Ctrl+E)"
+          >
+            <Code className="w-4 h-4" />
+          </BubbleBtn>
+        </div>
 
-        <div className="notion-bubble-separator" />
+        <div className="notion-bubble-separator mx-1" />
 
-        <HighlightColorPicker editor={editor} type="bubble" />
+        {/* Actions Group */}
+        <div className="flex items-center">
+          <BubbleBtn onClick={setLink} isActive={editor.isActive("link")} title="Enlace (Ctrl+K)">
+            <LinkIcon className="w-4 h-4" />
+          </BubbleBtn>
+          
+          <div className="notion-bubble-separator mx-1" />
+          
+          <HighlightColorPicker editor={editor} type="bubble" />
+          <ColorPicker editor={editor} type="bubble" />
+        </div>
 
-        <ColorPicker editor={editor} type="bubble" />
+        <div className="notion-bubble-separator mx-1" />
 
-        <div className="notion-bubble-separator" />
+        {/* Lists & Blocks Group */}
+        <div className="flex items-center">
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            isActive={editor.isActive("bulletList")}
+            title="Lista con viñetas"
+          >
+            <List className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            isActive={editor.isActive("orderedList")}
+            title="Lista numerada"
+          >
+            <ListOrdered className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            isActive={editor.isActive("blockquote")}
+            title="Cita (Ctrl+Shift+B)"
+          >
+            <Quote className="w-4 h-4" />
+          </BubbleBtn>
+        </div>
 
-        <BubbleBtn onClick={setLink} isActive={editor.isActive("link")} title="Enlace (Ctrl+K)">
-          <LinkIcon className="w-4 h-4" />
-        </BubbleBtn>
+        <div className="notion-bubble-separator mx-1" />
 
-        <div className="notion-bubble-separator" />
-
-        {/* Block type toggles */}
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={editor.isActive("bulletList")}
-          title="Lista con viñetas"
-        >
-          <List className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          isActive={editor.isActive("orderedList")}
-          title="Lista numerada"
-        >
-          <ListOrdered className="w-4 h-4" />
-        </BubbleBtn>
+        {/* Text Alignment Group */}
+        <div className="flex items-center">
+          <BubbleBtn
+            onClick={() => editor.chain().focus().setTextAlign("left").run()}
+            isActive={editor.isActive({ textAlign: "left" })}
+            title="Alinear texto a la izquierda"
+          >
+            <AlignLeft className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().setTextAlign("center").run()}
+            isActive={editor.isActive({ textAlign: "center" })}
+            title="Centrar texto"
+          >
+            <AlignCenter className="w-4 h-4" />
+          </BubbleBtn>
+          <BubbleBtn
+            onClick={() => editor.chain().focus().setTextAlign("right").run()}
+            isActive={editor.isActive({ textAlign: "right" })}
+            title="Alinear texto a la derecha"
+          >
+            <AlignRight className="w-4 h-4" />
+          </BubbleBtn>
+        </div>
         <BubbleBtn
           onClick={() => editor.chain().focus().toggleTaskList().run()}
           isActive={editor.isActive("taskList")}
           title="Lista de tareas"
         >
           <CheckSquare className="w-4 h-4" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          isActive={editor.isActive("blockquote")}
-          title="Cita"
-        >
-          <Quote className="w-4 h-4" />
-        </BubbleBtn>
-
-        {/* Alignment */}
-        <BubbleBtn
-          onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          isActive={editor.isActive({ textAlign: "left" })}
-          title="Izquierda"
-        >
-          <AlignLeft className="w-3.5 h-3.5" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          isActive={editor.isActive({ textAlign: "center" })}
-          title="Centro"
-        >
-          <AlignCenter className="w-3.5 h-3.5" />
-        </BubbleBtn>
-        <BubbleBtn
-          onClick={() => editor.chain().focus().setTextAlign("right").run()}
-          isActive={editor.isActive({ textAlign: "right" })}
-          title="Derecha"
-        >
-          <AlignRight className="w-3.5 h-3.5" />
         </BubbleBtn>
       </BubbleMenu>
 
