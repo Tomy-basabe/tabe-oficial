@@ -131,7 +131,6 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
         isFloating && "shadow-xl ring-1 ring-black/5 dark:ring-white/10"
       )}
       style={containerStyle}
-      onMouseDown={onDragStart}
     >
       <div 
         className="relative inline-block group" 
