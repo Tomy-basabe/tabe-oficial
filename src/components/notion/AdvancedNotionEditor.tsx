@@ -30,6 +30,7 @@ import {
   CheckSquare, Quote, Link as LinkIcon,
   Highlighter, AlignLeft, AlignCenter, AlignRight,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
+  Maximize, Move,
 } from "lucide-react";
 
 import { SlashCommands } from "./extensions/SlashCommands";
@@ -758,7 +759,7 @@ export function AdvancedNotionEditor({
   }
 
   return (
-    <div className="notion-advanced-editor">
+    <div className="notion-advanced-editor relative">
       <MathMenu 
         open={mathMenuOpen} 
         onOpenChange={setMathMenuOpen} 
@@ -808,6 +809,20 @@ export function AdvancedNotionEditor({
               title="Alinear a la derecha"
             >
               <AlignRight className="w-4 h-4" />
+            </BubbleBtn>
+            <BubbleBtn
+              onClick={() => editor.chain().focus().updateAttributes("image", { align: "full", width: "100%" }).run()}
+              isActive={editor.isActive("image", { align: "full" })}
+              title="Ancho completo"
+            >
+              <Maximize className="w-4 h-4" />
+            </BubbleBtn>
+            <BubbleBtn
+              onClick={() => editor.chain().focus().updateAttributes("image", { isFloating: !editor.getAttributes("image").isFloating }).run()}
+              isActive={editor.getAttributes("image").isFloating}
+              title="Movimiento libre"
+            >
+              <Move className="w-4 h-4" />
             </BubbleBtn>
             <div className="notion-bubble-separator" />
           </>

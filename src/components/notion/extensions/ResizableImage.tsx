@@ -6,15 +6,19 @@ import { cn } from "@/lib/utils";
 
 const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
   const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [resizing, setResizing] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [width, setWidth] = useState(node.attrs.width || "100%");
   const align = node.attrs.align || "center";
+  const isFloating = node.attrs.isFloating || false;
+  const position = node.attrs.position || { x: 0, y: 0 };
 
   useEffect(() => {
     setWidth(node.attrs.width || "100%");
   }, [node.attrs.width]);
 
-  const onMouseDown = useCallback(
+  const onResizeStart = useCallback(
     (event: React.MouseEvent, direction: "left" | "right") => {
       event.preventDefault();
       event.stopPropagation();
@@ -22,22 +26,16 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
 
       const startX = event.clientX;
       const startWidth = imageRef.current?.clientWidth || 0;
-      // relative to the editor container width for stable percentages
       const editorWidth = imageRef.current?.closest(".ProseMirror")?.clientWidth || 800;
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         let diffX = moveEvent.clientX - startX;
         
-        // Dragging left handle outward means negative diff, which means width increases.
         if (direction === "left") {
           diffX = -diffX;
         }
 
-        const newWidthPx = startWidth + diffX * 2; // multiply by 2 if centered?
-        
-        // If center aligned, pulling one edge expands both sides (in standard block display), so diff is effectively doubled.
-        // If floated left/right, it just grows in that direction.
-        const effectiveDiff = align === "center" ? diffX * 2 : diffX;
+        const effectiveDiff = align === "center" && !isFloating ? diffX * 2 : diffX;
         const finalWidthPx = startWidth + effectiveDiff;
         
         const newWidthPercent = Math.max(10, Math.min(100, (finalWidthPx / editorWidth) * 100));
@@ -46,7 +44,6 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
 
       const onMouseUp = () => {
         setResizing(false);
-        // Persist the width
         setWidth((currentWidth) => {
           updateAttributes({ width: currentWidth });
           return currentWidth;
@@ -58,41 +55,93 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
     },
-    [updateAttributes, align]
+    [updateAttributes, align, isFloating]
   );
 
+  const onDragStart = useCallback((event: React.MouseEvent) => {
+    if (!isFloating) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    setDragging(true);
+
+    const startX = event.clientX - position.x;
+    const startY = event.clientY - position.y;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const newX = moveEvent.clientX - startX;
+      const newY = moveEvent.clientY - startY;
+      
+      if (containerRef.current) {
+        containerRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
+      }
+    };
+
+    const onMouseUp = (moveEvent: MouseEvent) => {
+      setDragging(false);
+      const finalX = moveEvent.clientX - startX;
+      const finalY = moveEvent.clientY - startY;
+      
+      updateAttributes({ 
+        position: { x: finalX, y: finalY } 
+      });
+
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [isFloating, position, updateAttributes]);
+
   const containerStyle: React.CSSProperties = {
-    width: align === "center" ? "100%" : "auto",
-    display: align === "center" ? "flex" : "block",
+    width: align === "center" && !isFloating ? "100%" : "auto",
+    display: align === "center" && !isFloating ? "flex" : "block",
     justifyContent: "center",
-    float: align === "left" ? "left" : align === "right" ? "right" : "none",
-    marginRight: align === "left" ? "1.5rem" : "0",
-    marginLeft: align === "right" ? "1.5rem" : "0",
-    marginBottom: align !== "center" ? "0.5rem" : "0",
-    clear: align === "center" ? "both" : "none",
+    float: isFloating ? "none" : (align === "left" ? "left" : align === "right" ? "right" : "none"),
+    marginRight: !isFloating && align === "left" ? "1.5rem" : "0",
+    marginLeft: !isFloating && align === "right" ? "1.5rem" : "0",
+    marginBottom: !isFloating && align !== "center" ? "0.5rem" : "0",
+    clear: !isFloating && align === "center" ? "both" : "none",
+    position: isFloating ? "absolute" : "relative",
+    left: isFloating ? 0 : undefined,
+    top: isFloating ? 0 : undefined,
+    transform: isFloating ? `translate(${position.x}px, ${position.y}px)` : undefined,
+    zIndex: isFloating ? 50 : 0,
+    cursor: isFloating ? (dragging ? "grabbing" : "grab") : "default",
+    transition: dragging ? "none" : "transform 0.2s ease, box-shadow 0.2s ease",
   };
 
   return (
     <NodeViewWrapper
-      className={cn("notion-resizable-image-container", selected && "ProseMirror-selectednode")}
+      ref={containerRef}
+      className={cn(
+        "notion-resizable-image-container", 
+        selected && "ProseMirror-selectednode",
+        isFloating && "shadow-xl ring-1 ring-black/5 dark:ring-white/10"
+      )}
       style={containerStyle}
+      onMouseDown={onDragStart}
     >
       <div 
         className="relative inline-block group" 
-        style={{ width: align === "center" ? width : width }}
+        style={{ width: align === "center" && !isFloating ? width : width }}
       >
         <img
           ref={imageRef}
           src={node.attrs.src}
           alt={node.attrs.alt}
           title={node.attrs.title}
-          className="notion-resizable-image block max-w-full h-auto rounded-md transition-shadow"
+          className={cn(
+            "notion-resizable-image block max-w-full h-auto rounded-md transition-shadow",
+            isFloating && "pointer-events-none select-none"
+          )}
           style={{ width: "100%" }}
         />
         
         {/* Right Resize handle */}
         <div
-          onMouseDown={(e) => onMouseDown(e, "right")}
+          onMouseDown={(e) => onResizeStart(e, "right")}
           className={cn(
             "absolute top-0 right-0 w-4 -mr-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
             resizing && "opacity-100"
@@ -103,7 +152,7 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
 
         {/* Left Resize handle */}
         <div
-          onMouseDown={(e) => onMouseDown(e, "left")}
+          onMouseDown={(e) => onResizeStart(e, "left")}
           className={cn(
             "absolute top-0 left-0 w-4 -ml-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
             resizing && "opacity-100"
@@ -112,6 +161,13 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
           <div className="w-1.5 h-12 bg-black/50 dark:bg-white/50 rounded-full shadow-sm" />
         </div>
         
+        {/* Drag handle hint for floating images */}
+        {isFloating && (
+          <div className="absolute top-2 left-2 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-3 3-3-3"/><path d="M12 3v18"/><path d="m9 6 3-3 3 3"/><path d="M21 12H3"/><path d="m18 9 3 3-3 3"/><path d="m6 15-3-3 3-3"/></svg>
+          </div>
+        )}
+
         {/* Selection overlay */}
         {selected && (
           <div className="absolute inset-0 ring-2 ring-primary ring-offset-2 rounded-md pointer-events-none" />
@@ -136,6 +192,25 @@ export const ResizableImage = Image.extend({
         parseHTML: (element) => element.getAttribute("data-align") || "center",
         renderHTML: (attributes) => ({
           "data-align": attributes.align,
+        }),
+      },
+      isFloating: {
+        default: false,
+        parseHTML: (element) => element.getAttribute("data-floating") === "true",
+        renderHTML: (attributes) => ({
+          "data-floating": attributes.isFloating,
+        }),
+      },
+      position: {
+        default: { x: 0, y: 0 },
+        parseHTML: (element) => {
+          const x = parseInt(element.getAttribute("data-x") || "0");
+          const y = parseInt(element.getAttribute("data-y") || "0");
+          return { x, y };
+        },
+        renderHTML: (attributes) => ({
+          "data-x": attributes.position.x,
+          "data-y": attributes.position.y,
         }),
       },
     };
