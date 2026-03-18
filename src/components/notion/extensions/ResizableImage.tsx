@@ -143,54 +143,54 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
           alt={node.attrs.alt}
           title={node.attrs.title}
           className={cn(
-            "notion-resizable-image block max-w-full h-auto rounded-md transition-shadow",
-            isFloating && "pointer-events-none select-none"
+            "notion-resizable-image transition-all duration-200",
+            isFloating && "rounded-lg shadow-2xl ring-2 ring-primary/20",
+            !isFloating && "rounded-sm"
           )}
-          style={{ width: "100%" }}
+          style={imageStyle}
         />
-        
-        {/* Resize Handles - Only in non-floating mode */}
-        {!isFloating && (
-          <>
-            {/* Left handle */}
-            <div
-              onMouseDown={(e) => onResizeStart(e, "left")}
-              className={cn(
-                "absolute top-0 left-0 w-4 -ml-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
-                resizing && "opacity-100"
-              )}
-            >
-              <div className="w-1.5 h-12 bg-primary/40 rounded-full shadow-sm shadow-primary/20" />
-            </div>
-            {/* Right handle */}
-            <div
-              onMouseDown={(e) => onResizeStart(e, "right")}
-              className={cn(
-                "absolute top-0 right-0 w-4 -mr-2 h-full cursor-col-resize opacity-0 hover:opacity-100 flex items-center justify-center group-hover:opacity-100 transition-opacity z-20",
-                resizing && "opacity-100"
-              )}
-            >
-              <div className="w-1.5 h-12 bg-primary/40 rounded-full shadow-sm shadow-primary/20" />
-            </div>
-          </>
-        )}
-        
-        {/* Drag handle for floating mode - Absolute UI */}
+
+        {/* Floating Move Handle - ONLY shows when floating is ON */}
         {isFloating && (
           <div 
-            className="absolute -top-3 -left-3 bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg border-2 border-background cursor-grab active:cursor-grabbing hover:scale-110 transition-transform z-30 opacity-0 group-hover:opacity-100"
+            className="absolute -top-3 -left-3 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing z-30 animate-in zoom-in-50 duration-200 hover:scale-110 transition-transform"
+            title="Arrastra para mover"
             onMouseDown={(e) => {
               e.stopPropagation();
               onDragStart(e as any);
             }}
           >
-            <Move className="w-4 h-4" />
+            <Move className="w-4 h-4 text-white" />
           </div>
         )}
 
-        {/* Selection overlay */}
-        {selected && (
-          <div className="absolute inset-0 ring-2 ring-primary ring-offset-2 rounded-md pointer-events-none z-10" />
+        {/* Resize handles - ONLY show when NOT floating and selected */}
+        {!isFloating && selected && (
+          <>
+            <div
+              onMouseDown={(e) => onResizeStart(e, "left")}
+              className={cn(
+                "absolute top-0 left-0 w-2 h-full cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity z-20 flex items-center justify-center",
+                resizing && "opacity-100"
+              )}
+            >
+              <div className="w-1 h-12 bg-primary/30 rounded-full" />
+            </div>
+            <div
+              onMouseDown={(e) => onResizeStart(e, "right")}
+              className={cn(
+                "absolute top-0 right-0 w-2 h-full cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity z-20 flex items-center justify-center",
+                resizing && "opacity-100"
+              )}
+            >
+              <div className="w-1 h-12 bg-primary/30 rounded-full" />
+            </div>
+          </>
+        )}
+
+        {/* Selection ring */}
+        {selected && !isFloating && (
+          <div className="absolute inset-0 ring-2 ring-primary/40 ring-offset-1 rounded-sm pointer-events-none z-10" />
         )}
       </div>
     </NodeViewWrapper>
