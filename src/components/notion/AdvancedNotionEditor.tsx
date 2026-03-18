@@ -842,7 +842,28 @@ export function AdvancedNotionEditor({
 
             <BubbleBtn
               onClick={() => {
-                const isFloating = !editor.getAttributes("image").isFloating;
+                const attrs = editor.getAttributes("image");
+                const isFloating = !attrs.isFloating;
+                
+                if (isFloating) {
+                  // Capture current position before switching to floating
+                  const { from } = editor.state.selection;
+                  const dom = editor.view.nodeDOM(from) as HTMLElement;
+                  if (dom) {
+                    const rect = dom.getBoundingClientRect();
+                    const parentRect = dom.parentElement?.getBoundingClientRect();
+                    if (parentRect) {
+                      const x = rect.left - parentRect.left;
+                      const y = rect.top - parentRect.top;
+                      editor.chain().focus().updateAttributes("image", { 
+                        isFloating: true,
+                        position: { x, y }
+                      }).run();
+                      return;
+                    }
+                  }
+                }
+                
                 editor.chain().focus().updateAttributes("image", { isFloating }).run();
               }}
               isActive={editor.getAttributes("image").isFloating}

@@ -164,8 +164,8 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
           </div>
         )}
 
-        {/* Resize handles - ONLY show when NOT floating and selected */}
-        {!isFloating && selected && (
+        {/* Resize handles - Show when selected (works in both float and normal modes) */}
+        {selected && (
           <>
             <div
               onMouseDown={(e) => onResizeStart(e, "left")}
