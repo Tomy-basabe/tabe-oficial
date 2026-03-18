@@ -96,21 +96,30 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: any) => {
   }, [isFloating, position, updateAttributes]);
 
   const containerStyle: React.CSSProperties = {
-    width: (align === "center" || align === "left-block" || align === "right-block") && !isFloating ? "100%" : "auto",
+    width: (align === "full" || align === "center" || align === "left-block" || align === "right-block") && !isFloating ? "100%" : "auto",
     display: (align === "center" || align === "left-block" || align === "right-block") && !isFloating ? "flex" : "block",
     justifyContent: align === "center" ? "center" : align === "right-block" ? "flex-end" : "flex-start",
     float: isFloating ? "none" : (align === "left" ? "left" : align === "right" ? "right" : "none"),
     marginRight: !isFloating && align === "left" ? "1.5rem" : "0",
     marginLeft: !isFloating && align === "right" ? "1.5rem" : "0",
-    marginBottom: !isFloating && (align !== "center" && align !== "left-block" && align !== "right-block") ? "0.5rem" : "1rem",
-    clear: !isFloating && (align === "center" || align === "left-block" || align === "right-block") ? "both" : "none",
+    marginTop: !isFloating && (align === "center" || align === "left-block" || align === "right-block" || align === "full") ? "1.5rem" : "0",
+    marginBottom: !isFloating && (align === "center" || align === "left-block" || align === "right-block" || align === "full") ? "1.5rem" : "0.5rem",
+    clear: !isFloating && (align === "center" || align === "left-block" || align === "right-block" || align === "full") ? "both" : "none",
     position: isFloating ? "absolute" : "relative",
     left: isFloating ? 0 : undefined,
     top: isFloating ? 0 : undefined,
     transform: isFloating ? `translate(${position.x}px, ${position.y}px)` : undefined,
     zIndex: isFloating ? 50 : 0,
-    cursor: isFloating ? (dragging ? "grabbing" : "grab") : "default",
+    cursor: isFloating ? (dragging ? "grabbing" : "default") : "default",
     transition: dragging ? "none" : "transform 0.2s ease, box-shadow 0.2s ease",
+  };
+
+  const imageStyle: React.CSSProperties = {
+    width: align === "full" ? "100%" : width,
+    height: "auto",
+    maxWidth: "100%",
+    cursor: !isFloating ? "pointer" : "default",
+    transition: "box-shadow 0.2s, ring 0.2s",
   };
 
   return (
