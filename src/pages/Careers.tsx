@@ -68,9 +68,9 @@ const careers = Object.entries(careerTemplates).map(([path, module]: [string, an
       icon: <GraduationCap className="w-6 h-6 text-teal-400" />, 
       color: "from-teal-400/20 to-teal-400/5" 
     },
-    "mecanica_utn_frm": { 
+    "mecanica_utn_frc": { 
       name: "Ingeniería Mecánica", 
-      university: "UTN FRM", 
+      university: "UTN FRC", 
       icon: <Target className="w-6 h-6 text-blue-500" />, 
       color: "from-blue-500/20 to-blue-500/5" 
     }

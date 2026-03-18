@@ -1,5 +1,6 @@
 export const AVAILABLE_FACULTADES = [
     { id: "UTN", label: "UTN FRM", fullLabel: "Universidad Tecnológica Nacional - FRM (UTN)" },
+    { id: "UTN_FRC", label: "UTN FRC", fullLabel: "Universidad Tecnológica Nacional - FRC (UTN)" },
     { id: "UNCUYO", label: "UNCUYO", fullLabel: "Universidad Nacional de Cuyo (UNCUYO)" },
     { id: "DONBOSCO", label: "Don Bosco", fullLabel: "Facultad Don Bosco" },
     { id: "UNSJ", label: "UNSJ", fullLabel: "Universidad Nacional de San Juan (UNSJ)" },
@@ -20,7 +21,7 @@ export const AVAILABLE_CAREERS = [
     // UNSJ
     { id: "electromecanica_unsj", label: "Ingeniería Electromecánica", file: "electromecanica_unsj_template", facultad: "UNSJ" },
     { id: "mecanica_unsj", label: "Ingeniería Mecánica", file: "mecanica_unsj_template", facultad: "UNSJ" },
-    { id: "mecanica_utn_frm", label: "Ingeniería Mecánica", file: "mecanica_utn_frm_template", facultad: "UTN" },
+    { id: "mecanica_utn_frc", label: "Ingeniería Mecánica", file: "mecanica_utn_frc_template", facultad: "UTN_FRC" },
     { id: "energia_electrica_unsj", label: "Ingeniería en Energía Eléctrica", file: "energia_electrica_unsj_template", facultad: "UNSJ" },
     // Otros
     { id: "contactologia", label: "Tecnicatura en Contactología", file: "contactologia_template", facultad: "OTROS" },
