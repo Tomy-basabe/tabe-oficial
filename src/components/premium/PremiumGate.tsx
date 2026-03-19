@@ -55,10 +55,12 @@ export function PremiumGate({ children, feature }: PremiumGateProps) {
             .then(({ data }) => setIsAdmin(!!data));
     }, [user?.id]);
 
-    // Admin, guests (demo), or premium users pass through
-    if (loading || isPremium || isGuest || isAdmin) {
-        return <>{children}</>;
+    // Everyone passes through now (Ads-only model)
+    if (loading) {
+        return null;
     }
+
+    return <>{children}</>;
 
     // Free users see the paywall with 3 plans
     return (

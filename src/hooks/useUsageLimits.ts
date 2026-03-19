@@ -108,24 +108,13 @@ export function useUsageLimits() {
     };
 
     const getRemaining = (feature: FeatureKey): number => {
-        if (isPremium || isGuest) return Infinity;
-        return Math.max(0, getLimit(feature) - getUsage(feature));
+        // Unlimited for everyone in ads-only model
+        return Infinity;
     };
 
     const canUse = (feature: FeatureKey, currentValue: number = 0): boolean => {
-        if (isPremium || isGuest) return true;
-
-        if (feature === "storage_mb") {
-            const currentMB = Math.round(storageUsed / (1024 * 1024));
-            const additionalMB = Math.round(currentValue / (1024 * 1024));
-            return (currentMB + additionalMB) < getLimit(feature);
-        }
-
-        if (feature === "apuntes") {
-            return totalFileCount < getLimit(feature);
-        }
-
-        return getUsage(feature) < getLimit(feature);
+        // Unlimited for everyone in ads-only model
+        return true;
     };
 
     const incrementUsage = async (feature: FeatureKey): Promise<boolean> => {
