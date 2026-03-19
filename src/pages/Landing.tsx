@@ -25,17 +25,29 @@ function ScrollReveal({ children, className = "", delay = 0 }: { children: React
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    setTimeout(() => {
-                        el.classList.add("scroll-revealed");
-                    }, delay);
-                    observer.unobserve(el);
+                    reveal();
                 }
             },
-            { threshold: 0.1, rootMargin: "0px 0px -60px 0px" }
+            { threshold: 0.01, rootMargin: "0px 0px -50px 0px" }
         );
 
+        const reveal = () => {
+            if (!el.classList.contains("scroll-revealed")) {
+                setTimeout(() => {
+                    el.classList.add("scroll-revealed");
+                }, delay);
+                observer.disconnect();
+            }
+        };
+
+        // Safety fallback: reveal after 1.5s if observer fails
+        const fallback = setTimeout(reveal, 1500 + delay);
+
         observer.observe(el);
-        return () => observer.disconnect();
+        return () => {
+            observer.disconnect();
+            clearTimeout(fallback);
+        }
     }, [delay]);
 
     return (
