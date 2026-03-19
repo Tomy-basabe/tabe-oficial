@@ -251,10 +251,7 @@ export default function Flashcards() {
   const createDeck = async () => {
     if (!user || !selectedSubject || !newDeckName.trim()) return;
 
-    // Check monthly deck limit for free users
-    if (!isPremium && !canUse('flashcard_mazos')) {
-      return;
-    }
+    // Acceso ilimitado (Ads-only model)
 
     const { error } = await supabase
       .from("flashcard_decks")

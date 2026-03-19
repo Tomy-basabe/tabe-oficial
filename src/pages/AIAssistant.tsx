@@ -207,12 +207,7 @@ export default function AIAssistant() {
 
   // ---- Send message ----
   const handleSend = async () => {
-    if (!inputValue.trim() || isStreaming || (!user && !isGuest) || !activePersona) return;
-
-    if (!canUse("ia_daily")) {
-      return;
-    }
-
+    // Sin límites (Ads-only model)
     const userMessage: DisplayMessage = {
       id: Date.now().toString(),
       role: "user",

@@ -246,10 +246,7 @@ export default function Quizzes() {
     const createDeck = async () => {
         if (!newDeckName.trim() || !user) return;
 
-        // Check monthly quiz limit for free users
-        if (!isPremium && !canUse('cuestionarios')) {
-            return;
-        }
+        // Acceso ilimitado (Ads-only model)
 
         const { error } = await supabase.from("quiz_decks").insert({
             user_id: user.id,

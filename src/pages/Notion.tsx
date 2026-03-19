@@ -386,12 +386,6 @@ export default function Notion() {
   const handleGenerateAI = async () => {
     if (!user || !activeDocument) return;
     
-    // Check limits
-    if (!canUse('apuntes')) {
-        toast.error("Límite de uso de IA alcanzado. Hacete Premium para generar más.");
-        return;
-    }
-
     setIsGeneratingAI(true);
     const toastId = toast.loading(`Generando ${aiGenType === 'flashcards' ? 'flashcards' : 'cuestionario'} con IA...`);
 
