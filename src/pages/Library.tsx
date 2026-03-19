@@ -27,6 +27,7 @@ import * as pdfjsLib from "pdfjs-dist";
 // Configure PDFJS worker
 // @ts-ignore
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 
 interface LibraryFolder {
   id: string;

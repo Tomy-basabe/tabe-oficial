@@ -8,6 +8,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -108,6 +109,8 @@ export default function Dashboard() {
           variant="purple"
         />
       </div>
+
+      <AdsterraBanner />
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">

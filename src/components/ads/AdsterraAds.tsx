@@ -15,25 +15,37 @@ export function AdsterraAds() {
 
     console.log("TABE Ads Debug:", { isPremium, loading, user: !!user, isGuest, shouldShowAds, path: location.pathname });
 
-    if (shouldShowAds) {
-      console.log("Adsterra: Refreshing ads for path:", location.pathname);
+    const injectSocialBar = () => {
+      if (!shouldShowAds) return;
+      console.log("Adsterra: (Re)Injecting Social Bar...");
       
-      // Script 1: Anti-adblock / Support
-      const s1 = document.createElement("script");
-      s1.src = "https://tallytrivial.com/d2/68/18/d26818e336689f294015d0823362ade9.js";
-      s1.async = true;
-      s1.id = "adsterra-support";
-      document.head.appendChild(s1);
+      // Remove existing if any to avoid duplicates
+      document.getElementById("adsterra-social-bar")?.remove();
 
-      // Script 2: Social Bar (Main Ad)
       const s2 = document.createElement("script");
       s2.src = "https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js";
       s2.async = true;
       s2.id = "adsterra-social-bar";
       document.head.appendChild(s2);
+    };
+
+    if (shouldShowAds) {
+      injectSocialBar();
+
+      // Aggressive: Reinject on a subset of clicks to ensure it keeps popping up
+      let clickCount = 0;
+      const handleGlobalClick = () => {
+        clickCount++;
+        // Reinject every 5 clicks to simulate "appearing on every button"
+        if (clickCount % 5 === 0) {
+          injectSocialBar();
+        }
+      };
+
+      document.addEventListener("click", handleGlobalClick);
 
       return () => {
-        document.getElementById("adsterra-support")?.remove();
+        document.removeEventListener("click", handleGlobalClick);
         document.getElementById("adsterra-social-bar")?.remove();
       };
     }

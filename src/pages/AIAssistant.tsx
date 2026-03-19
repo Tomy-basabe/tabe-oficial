@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useStreamingChat } from "@/hooks/useStreamingChat";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { useAIPersonas, AIPersona, AIChatMessage } from "@/hooks/useAIPersonas";
+import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 import { PersonaSidebar } from "@/components/ai/PersonaSidebar";
 import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
 import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
