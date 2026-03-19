@@ -232,6 +232,8 @@ function FeatureCard({
     onImageClick: (src: string) => void;
 }) {
     const [expanded, setExpanded] = useState(false);
+    const [mainImageLoaded, setMainImageLoaded] = useState(false);
+    const [loadedFeatures, setLoadedFeatures] = useState<Record<number, boolean>>({});
     const Icon = section.icon;
     const isEven = index % 2 === 0;
     const hasFeatures = section.features.length > 0;
@@ -265,16 +267,22 @@ function FeatureCard({
                     )}
                 </div>
 
-                {/* Image */}
                 <div className={`relative group cursor-pointer ${isEven ? "" : "lg:[direction:ltr]"}`} onClick={() => onImageClick(section.mainImage)}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${section.glowColor} rounded-2xl blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10`} />
-                    <div className="relative rounded-2xl border border-border overflow-hidden shadow-2xl shadow-black/20 transition-transform duration-300 hover:scale-[1.02]">
+                    <div className="relative aspect-video rounded-2xl border border-border overflow-hidden shadow-2xl shadow-black/20 transition-transform duration-300 hover:scale-[1.02] bg-muted/10">
+                        {/* Shimmer/Placeholder */}
+                        {!mainImageLoaded && (
+                            <div className="absolute inset-0 bg-muted/20 animate-pulse flex items-center justify-center">
+                                <Icon className={`w-12 h-12 opacity-10 ${section.color}`} />
+                            </div>
+                        )}
                         <img
                             src={section.mainImage}
                             alt={section.title}
-                            className="w-full h-auto"
+                            className={`w-full h-full object-cover transition-opacity duration-700 ${mainImageLoaded ? "opacity-100" : "opacity-0"}`}
                             loading="lazy"
                             decoding="async"
+                            onLoad={() => setMainImageLoaded(true)}
                         />
                     </div>
                 </div>
@@ -289,13 +297,19 @@ function FeatureCard({
                             className="group/feat relative rounded-xl border border-border bg-card overflow-hidden cursor-pointer transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
                             onClick={() => onImageClick(feat.src)}
                         >
-                            <img
-                                src={feat.src}
-                                alt={feat.label}
-                                className="w-full h-40 object-cover object-top"
-                                loading="lazy"
-                                decoding="async"
-                            />
+                            <div className="relative h-40 bg-muted/10">
+                                {!loadedFeatures[i] && (
+                                    <div className="absolute inset-0 bg-muted/20 animate-pulse" />
+                                )}
+                                <img
+                                    src={feat.src}
+                                    alt={feat.label}
+                                    className={`w-full h-full object-cover object-top transition-opacity duration-500 ${loadedFeatures[i] ? "opacity-100" : "opacity-0"}`}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onLoad={() => setLoadedFeatures(prev => ({ ...prev, [i]: true }))}
+                                />
+                            </div>
                             <div className="p-3">
                                 <p className="text-xs font-medium text-muted-foreground leading-snug flex items-start gap-1.5">
                                     <Sparkles className={`w-3 h-3 mt-0.5 flex-shrink-0 ${section.color}`} />
