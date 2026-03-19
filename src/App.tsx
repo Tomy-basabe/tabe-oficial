@@ -174,7 +174,9 @@ const AppRoutes = () => (
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
 
-const App = () => (
+const App = () => {
+  console.log("App.tsx initialized v5.1 (Direct Ads Check)");
+  return (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
