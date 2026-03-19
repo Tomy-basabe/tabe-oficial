@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, GraduationCap, ChevronRight, BookOpen, Clock, Target, ArrowRight } from "lucide-react";
+import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 
 // Import all JSON templates from the data directory
 const careerTemplates = import.meta.glob('../data/*_template.json', { eager: true });
@@ -144,6 +145,8 @@ export default function Careers() {
             </Link>
           ))}
         </div>
+
+        <AdsterraBanner />
 
         <section className="mt-32 p-8 md:p-16 rounded-[2.5rem] bg-secondary/20 border border-border/50 relative overflow-hidden group">
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-neon-purple/20 rounded-full blur-[120px] group-hover:bg-neon-purple/30 transition-colors duration-700" />
