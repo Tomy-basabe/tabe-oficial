@@ -1,4 +1,11 @@
 {
+    "redirects": [
+        {
+            "source": "/auth",
+            "destination": "/registro",
+            "permanent": true
+        }
+    ],
     "rewrites": [
         {
             "source": "/(.*)",
