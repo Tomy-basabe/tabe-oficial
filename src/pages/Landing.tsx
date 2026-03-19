@@ -70,15 +70,9 @@ export default function Landing() {
 
             <HeroSection />
 
-            <ScrollReveal delay={50}>
-                <TestimonialsSection />
-            </ScrollReveal>
-
+            <TestimonialsSection />
             <AdsterraBanner />
-
-            <ScrollReveal delay={50}>
-                <FeaturesShowcase />
-            </ScrollReveal>
+            <FeaturesShowcase />
 
             <ScrollReveal delay={50}>
                 <ProblemSection />
