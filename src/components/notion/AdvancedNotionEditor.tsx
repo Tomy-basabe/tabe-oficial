@@ -326,6 +326,12 @@ export function AdvancedNotionEditor({
         const text = event.clipboardData?.getData('text/plain');
         if (!text) return false;
 
+        // If we are already inside a code block, we should NOT perform PDF cleanup/merging.
+        // We let the default handle handle it or just insert it as plain text to preserve whitespace.
+        if (editor?.isActive('codeBlock')) {
+          return false;
+        }
+
         // Clean up common PDF artifacts (multiple spaces, non-breaking spaces)
         const cleanText = text
           .replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ')
