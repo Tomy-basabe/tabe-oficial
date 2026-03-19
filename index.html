@@ -40,6 +40,25 @@
   <meta name="twitter:image" content="https://tabe.software/pwa-512x512.png" />
   <meta name="google-site-verification" content="ltbPBCZi5i38A2_YOdo09OBenBJ9Y6fWoNo4dQDMKRM" />
 
+  <!-- Clean old domain caches and force redirect -->
+  <script>
+    (function () {
+      if (window.location.hostname === 'tabe-oficial.vercel.app') {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for(var i=0; i<regs.length; i++) regs[i].unregister();
+          });
+        }
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for(var i=0; i<names.length; i++) caches.delete(names[i]);
+          });
+        }
+        window.location.replace('https://tabe.software' + window.location.pathname + window.location.search);
+      }
+    })();
+  </script>
+
   <!-- Prevent white flash: apply theme before React loads -->
   <script>
     (function () {
