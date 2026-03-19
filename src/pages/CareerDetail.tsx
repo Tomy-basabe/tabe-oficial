@@ -43,7 +43,7 @@ export default function CareerDetail() {
     "provider": {
       "@type": "Organization",
       "name": "TABE - Tu Asistente de Bolsillo Estudiantil",
-      "url": "https://tabe-oficial.vercel.app"
+      "url": "https://tabe.software"
     },
     "courseCode": id,
     "hasCourseInstance": subjects.map((s: any) => ({
