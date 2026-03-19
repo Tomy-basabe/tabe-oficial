@@ -13,17 +13,17 @@ export function AdsterraAds() {
     console.log("TABE Ads Debug:", { isPremium, loading, user: !!user, isGuest, shouldShowAds });
 
     if (shouldShowAds) {
-      console.log("Adsterra: Pop-under removed to improve UX. Waiting for Social Bar code.");
+      console.log("Adsterra: Loading Social Bar (Friendly Overlay)...");
       
-      // Solo mantenemos el script de seguridad/anti-adblock si es necesario, 
-      // pero el principal responsable de las pestañas nuevas es el profitablecpm...
-      // Lo eliminamos por completo por ahora.
+      const script = document.createElement("script");
+      script.src = "https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js";
+      script.async = true;
+      script.id = "adsterra-social-bar";
+      document.head.appendChild(script);
 
       return () => {
-        const s1 = document.getElementById("adsterra-ads-script-1");
-        const s2 = document.getElementById("adsterra-ads-script-2");
-        if (s1) document.head.removeChild(s1);
-        if (s2) document.head.removeChild(s2);
+        const s = document.getElementById("adsterra-social-bar");
+        if (s) document.head.removeChild(s);
       };
     }
   }, [isPremium, loading, user, isGuest]);
