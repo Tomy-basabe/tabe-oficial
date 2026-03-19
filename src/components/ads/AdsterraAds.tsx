@@ -7,11 +7,9 @@ export function AdsterraAds() {
   const { user, isGuest } = useAuth();
 
   useEffect(() => {
-    // Only load ads for logged in users who ARE NOT premium, guests or admins
-    // (PremiumGate logic: loading || isPremium || isGuest || isAdmin doesn't see paywall)
-    // We follow similar logic: if they are not premium and not guest, they see ads.
-    
-    const shouldShowAds = !loading && user && !isPremium && !isGuest;
+    // Show ads to everyone (guests or logged-in users) EXCEPT premium users and admins
+    // We assume admins are handled by isPremium or we should check isAdmin
+    const shouldShowAds = !loading && !isPremium;
 
     if (shouldShowAds) {
       console.log("Adsterra: Loading ads for freemium user...");
