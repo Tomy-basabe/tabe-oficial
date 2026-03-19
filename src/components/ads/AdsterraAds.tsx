@@ -17,13 +17,17 @@ export function AdsterraAds() {
 
     const injectSocialBar = () => {
       if (!shouldShowAds) return;
-      console.log("Adsterra: (Re)Injecting Social Bar...");
       
-      // Remove existing if any to avoid duplicates
-      document.getElementById("adsterra-social-bar")?.remove();
+      // Remove ALL previous instances to force a clean slate
+      const existing = document.getElementById("adsterra-social-bar");
+      if (existing) {
+        existing.remove();
+        // Some scripts leave artifacts in global scope, but we can't easily clear them
+      }
 
       const s2 = document.createElement("script");
-      s2.src = "https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js";
+      // Use cache-busting parameter to try to trick the script into re-running
+      s2.src = `https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js?v=${Date.now()}`;
       s2.async = true;
       s2.id = "adsterra-social-bar";
       document.head.appendChild(s2);
@@ -32,14 +36,10 @@ export function AdsterraAds() {
     if (shouldShowAds) {
       injectSocialBar();
 
-      // Aggressive: Reinject on a subset of clicks to ensure it keeps popping up
-      let clickCount = 0;
+      // Ultra-Aggressive: Reinject on EVERY click
       const handleGlobalClick = () => {
-        clickCount++;
-        // Reinject every 5 clicks to simulate "appearing on every button"
-        if (clickCount % 5 === 0) {
-          injectSocialBar();
-        }
+        console.log("TABE Ads: Global click detected, refreshing Social Bar...");
+        injectSocialBar();
       };
 
       document.addEventListener("click", handleGlobalClick);
