@@ -18,27 +18,54 @@ export function AdsterraAds() {
     const injectSocialBar = () => {
       if (!shouldShowAds) return;
       
-      // Remove ALL previous instances to force a clean slate
+      console.log("TABE Ads [%s]: Attempting injection...", new Date().toLocaleTimeString());
+
+      // 1. Clear common browser storage keys used by ad networks for frequency capping
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes("adsterra") || key.includes("was_shown") || key.includes("frequency"))) {
+            localStorage.removeItem(key);
+          }
+        }
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key && (key.includes("adsterra") || key.includes("was_shown") || key.includes("frequency"))) {
+            sessionStorage.removeItem(key);
+          }
+        }
+      } catch (e) {
+        console.error("TABE Ads: Storage clear error", e);
+      }
+      
+      // 2. Remove ALL previous instances to force a clean slate
       const existing = document.getElementById("adsterra-social-bar");
       if (existing) {
         existing.remove();
-        // Some scripts leave artifacts in global scope, but we can't easily clear them
       }
 
+      // 3. Create a unique container if needed or just append to head
       const s2 = document.createElement("script");
-      // Use cache-busting parameter to try to trick the script into re-running
-      s2.src = `https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js?v=${Date.now()}`;
+      const timestamp = Date.now();
+      // Use cache-busting and a random callback if needed
+      s2.src = `https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js?v=${timestamp}&r=${Math.random()}`;
       s2.async = true;
       s2.id = "adsterra-social-bar";
-      document.head.appendChild(s2);
+      
+      // Add a small delay to ensure cleanup was processed by browser
+      setTimeout(() => {
+        document.head.appendChild(s2);
+        console.log("TABE Ads: Script appended with ID", s2.id);
+      }, 50);
     };
 
     if (shouldShowAds) {
       injectSocialBar();
 
       // Ultra-Aggressive: Reinject on EVERY click
-      const handleGlobalClick = () => {
-        console.log("TABE Ads: Global click detected, refreshing Social Bar...");
+      const handleGlobalClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        console.log("TABE Ads: Click on", target.tagName, "path:", location.pathname);
         injectSocialBar();
       };
 
