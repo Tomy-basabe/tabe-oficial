@@ -27,6 +27,8 @@ import {
   CustomSidebarItem,
   ALL_AVAILABLE_ITEMS
 } from "@/lib/sidebar-configs";
+import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
+
 
 interface UserStats {
   xp_total: number;
@@ -293,6 +295,7 @@ export function MainLayout() {
         isCollapsed ? "lg:ml-20" : "lg:ml-64"
       )}>
         <Outlet />
+        <AdsterraBanner />
       </main>
 
       {/* Global Widgets */}

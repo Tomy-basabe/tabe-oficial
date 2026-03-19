@@ -12,6 +12,8 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
+
 
 function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
     const ref = useRef<HTMLDivElement>(null);
@@ -59,6 +61,8 @@ export default function Landing() {
             <ScrollReveal delay={50}>
                 <TestimonialsSection />
             </ScrollReveal>
+
+            <AdsterraBanner />
 
             <ScrollReveal delay={50}>
                 <FeaturesShowcase />
