@@ -7,8 +7,8 @@ export function AdsterraBanner() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only show ads for non-premium users
-    const shouldShowAds = !isPremium;
+    // Only show ads for non-premium users. Wait for loading to avoid flashing for Premium.
+    const shouldShowAds = !loading && !isPremium;
 
     if (shouldShowAds && containerRef.current) {
       const isMobile = window.innerWidth < 768;
@@ -44,7 +44,7 @@ export function AdsterraBanner() {
         }
       };
     }
-  }, [isPremium]);
+  }, [isPremium, loading]);
 
   if (isPremium) return null;
 

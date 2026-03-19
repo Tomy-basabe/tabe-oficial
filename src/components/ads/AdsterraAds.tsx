@@ -10,7 +10,8 @@ export function AdsterraAds() {
 
   useEffect(() => {
     // Show ads to everyone (guests or logged-in users) EXCEPT premium users and admins
-    const shouldShowAds = !isPremium;
+    // CRITICAL: Wait for loading to be false to avoid flashing ads for Premium users
+    const shouldShowAds = !loading && !isPremium;
 
     console.log("TABE Ads Debug:", { isPremium, loading, user: !!user, isGuest, shouldShowAds, path: location.pathname });
 

@@ -111,7 +111,7 @@ export function MainLayout() {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-card/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-16 bg-card/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-card/50 flex items-center justify-center p-0 border border-border/50 overflow-hidden shadow-lg">
             <img src={logoPath} alt="T.A.B.E Logo" className="w-full h-full object-cover scale-[1.3] bg-black" />
