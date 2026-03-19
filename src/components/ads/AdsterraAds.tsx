@@ -9,74 +9,79 @@ export function AdsterraAds() {
   const location = useLocation();
 
   useEffect(() => {
+    // Exclude critical routes from ads to avoid interference and performance issues
+    const excludedRoutes = ["/auth", "/login", "/registro", "/perfil", "/verify"];
+    const isExcluded = excludedRoutes.some(route => location.pathname.startsWith(route));
+
     // Show ads to everyone (guests or logged-in users) EXCEPT premium users and admins
     // CRITICAL: Wait for loading to be false to avoid flashing ads for Premium users
-    const shouldShowAds = !loading && !isPremium;
+    const shouldShowAds = !loading && !isPremium && !isExcluded;
 
-    console.log("TABE Ads Debug:", { isPremium, loading, user: !!user, isGuest, shouldShowAds, path: location.pathname });
+    console.log("TABE Ads Debug:", { isPremium, loading, isExcluded, shouldShowAds, path: location.pathname });
 
-    const injectSocialBar = () => {
-      if (!shouldShowAds) return;
-      
-      console.log("TABE Ads [%s]: Attempting injection...", new Date().toLocaleTimeString());
+    if (!shouldShowAds) {
+      document.getElementById("adsterra-social-bar")?.remove();
+      return;
+    }
 
-      // 1. Clear common browser storage keys used by ad networks for frequency capping
+    // 1. Clear common browser storage keys ONLY ONCE on mount or route change (if needed)
+    const clearAdStorage = () => {
       try {
+        const keysToClear = ["adsterra", "was_shown", "frequency", "as_pop"];
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          if (key && (key.includes("adsterra") || key.includes("was_shown") || key.includes("frequency"))) {
+          if (key && keysToClear.some(k => key.toLowerCase().includes(k))) {
             localStorage.removeItem(key);
           }
         }
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          if (key && (key.includes("adsterra") || key.includes("was_shown") || key.includes("frequency"))) {
-            sessionStorage.removeItem(key);
-          }
-        }
-      } catch (e) {
-        console.error("TABE Ads: Storage clear error", e);
+      } catch (e) { /* Ignore */ }
+    };
+
+    let lastInjectionTime = 0;
+    const injectionCooldown = 60000; // 60 seconds cooldown to protect performance
+
+    const injectSocialBar = (force = false) => {
+      const now = Date.now();
+      if (!force && now - lastInjectionTime < injectionCooldown) {
+         return; // Skip if cooldown active
       }
       
-      // 2. Remove ALL previous instances to force a clean slate
+      clearAdStorage();
+      
       const existing = document.getElementById("adsterra-social-bar");
-      if (existing) {
-        existing.remove();
-      }
+      if (existing) existing.remove();
 
-      // 3. Create a unique container if needed or just append to head
       const s2 = document.createElement("script");
-      const timestamp = Date.now();
-      // Use cache-busting and a random callback if needed
-      s2.src = `https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js?v=${timestamp}&r=${Math.random()}`;
+      s2.src = `https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js?v=${now}`;
       s2.async = true;
       s2.id = "adsterra-social-bar";
       
-      // Add a small delay to ensure cleanup was processed by browser
       setTimeout(() => {
-        document.head.appendChild(s2);
-        console.log("TABE Ads: Script appended with ID", s2.id);
-      }, 50);
+        if (location.pathname === window.location.pathname) { // Ensure still on same path
+          document.head.appendChild(s2);
+          lastInjectionTime = now;
+        }
+      }, 100);
     };
 
-    if (shouldShowAds) {
-      injectSocialBar();
+    injectSocialBar(true); // Initial injection
 
-      // Ultra-Aggressive: Reinject on EVERY click
-      const handleGlobalClick = (e: MouseEvent) => {
-        const target = e.target as HTMLElement;
-        console.log("TABE Ads: Click on", target.tagName, "path:", location.pathname);
+    // Throttled: Reinject only every 10 clicks to balance monetization and performance
+    let clickCount = 0;
+    const handleGlobalClick = () => {
+      clickCount++;
+      if (clickCount % 10 === 0) {
         injectSocialBar();
-      };
+      }
+    };
 
-      document.addEventListener("click", handleGlobalClick);
+    document.addEventListener("click", handleGlobalClick);
 
-      return () => {
-        document.removeEventListener("click", handleGlobalClick);
-        document.getElementById("adsterra-social-bar")?.remove();
-      };
-    }
-  }, [isPremium, loading, user, isGuest, location.pathname]);
+    return () => {
+      document.removeEventListener("click", handleGlobalClick);
+      document.getElementById("adsterra-social-bar")?.remove();
+    };
+  }, [isPremium, loading, location.pathname]);
 
   return null; // This component doesn't render anything UI-wise
 }
