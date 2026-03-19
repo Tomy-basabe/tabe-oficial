@@ -49,6 +49,7 @@ const Exams = lazy(() => import("@/pages/Exams"));
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
 import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
+import { AdsterraAds } from "@/components/ads/AdsterraAds";
 
 const queryClient = new QueryClient();
 
@@ -182,6 +183,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <DiscordVoiceProvider>
+              <AdsterraAds />
               <AppRoutes />
               <GlobalDiscordVoiceWidget />
               <PWAInstallBanner />
