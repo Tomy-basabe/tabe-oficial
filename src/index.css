@@ -227,6 +227,21 @@
     --sidebar-primary: 0 100% 60%;
     --sidebar-ring: 0 100% 60%;
   }
+
+  /* NEON PINK */
+  .theme-pink {
+    --primary: 330 100% 70%;
+    --primary-foreground: 222 47% 6%;
+    --accent: 330 100% 70%;
+    --accent-foreground: 222 47% 6%;
+    --ring: 330 100% 70%;
+    --neon-cyan: 330 100% 70%;
+    --status-regular: 330 100% 70%;
+    --glow-cyan: 0 0 20px hsl(330 100% 70% / 0.5), 0 0 40px hsl(330 100% 70% / 0.3);
+    --gradient-primary: linear-gradient(135deg, hsl(330 100% 70%) 0%, hsl(300 100% 60%) 100%);
+    --sidebar-primary: 330 100% 70%;
+    --sidebar-ring: 330 100% 70%;
+  }
 }
 
 @layer base {
