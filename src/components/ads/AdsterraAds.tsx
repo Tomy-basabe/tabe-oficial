@@ -1,32 +1,42 @@
 import { useEffect } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 
 export function AdsterraAds() {
   const { isPremium, loading } = useSubscription();
   const { user, isGuest } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     // Show ads to everyone (guests or logged-in users) EXCEPT premium users and admins
     const shouldShowAds = !isPremium;
 
-    console.log("TABE Ads Debug:", { isPremium, loading, user: !!user, isGuest, shouldShowAds });
+    console.log("TABE Ads Debug:", { isPremium, loading, user: !!user, isGuest, shouldShowAds, path: location.pathname });
 
     if (shouldShowAds) {
-      console.log("Adsterra: Loading Social Bar (Friendly Overlay)...");
+      console.log("Adsterra: Refreshing ads for path:", location.pathname);
       
-      const script = document.createElement("script");
-      script.src = "https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js";
-      script.async = true;
-      script.id = "adsterra-social-bar";
-      document.head.appendChild(script);
+      // Script 1: Anti-adblock / Support
+      const s1 = document.createElement("script");
+      s1.src = "https://tallytrivial.com/d2/68/18/d26818e336689f294015d0823362ade9.js";
+      s1.async = true;
+      s1.id = "adsterra-support";
+      document.head.appendChild(s1);
+
+      // Script 2: Social Bar (Main Ad)
+      const s2 = document.createElement("script");
+      s2.src = "https://tallytrivial.com/d7/f6/37/d7f6378a3c9221274e26d1619d92a775.js";
+      s2.async = true;
+      s2.id = "adsterra-social-bar";
+      document.head.appendChild(s2);
 
       return () => {
-        const s = document.getElementById("adsterra-social-bar");
-        if (s) document.head.removeChild(s);
+        document.getElementById("adsterra-support")?.remove();
+        document.getElementById("adsterra-social-bar")?.remove();
       };
     }
-  }, [isPremium, loading, user, isGuest]);
+  }, [isPremium, loading, user, isGuest, location.pathname]);
 
   return null; // This component doesn't render anything UI-wise
 }
