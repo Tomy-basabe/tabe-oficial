@@ -15,52 +15,6 @@ import { LandingFooter } from "@/components/landing/LandingFooter";
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 
 
-function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    reveal();
-                }
-            },
-            { threshold: 0.01, rootMargin: "0px 0px -50px 0px" }
-        );
-
-        const reveal = () => {
-            if (!el.classList.contains("scroll-revealed")) {
-                setTimeout(() => {
-                    el.classList.add("scroll-revealed");
-                }, delay);
-                observer.disconnect();
-            }
-        };
-
-        // Safety fallback: reveal after 1.5s if observer fails
-        const fallback = setTimeout(reveal, 1500 + delay);
-
-        observer.observe(el);
-        return () => {
-            observer.disconnect();
-            clearTimeout(fallback);
-        }
-    }, [delay]);
-
-    return (
-        <div
-            ref={ref}
-            className={`scroll-reveal ${className}`}
-            style={{ transitionDelay: `${delay}ms` }}
-        >
-            {children}
-        </div>
-    );
-}
-
 export default function Landing() {
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-neon-cyan/30 selection:text-neon-cyan">
@@ -74,37 +28,14 @@ export default function Landing() {
             <AdsterraBanner />
             <FeaturesShowcase />
 
-            <ScrollReveal delay={50}>
-                <ProblemSection />
-            </ScrollReveal>
-
-            <ScrollReveal delay={50}>
-                <MethodologySection />
-            </ScrollReveal>
-
-            <ScrollReveal delay={50}>
-                <SpecializationSection />
-            </ScrollReveal>
-
-            <ScrollReveal delay={50}>
-                <HowItWorksSection />
-            </ScrollReveal>
-
-            <ScrollReveal delay={50}>
-                <PricingSection />
-            </ScrollReveal>
-
-            <ScrollReveal delay={50}>
-                <FaqSection />
-            </ScrollReveal>
-
-            <ScrollReveal delay={50}>
-                <FinalCtaSection />
-            </ScrollReveal>
-
-            <ScrollReveal>
-                <LandingFooter />
-            </ScrollReveal>
+            <ProblemSection />
+            <MethodologySection />
+            <SpecializationSection />
+            <HowItWorksSection />
+            <PricingSection />
+            <FaqSection />
+            <FinalCtaSection />
+            <LandingFooter />
         </div>
     );
 }
