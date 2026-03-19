@@ -33,23 +33,36 @@ export function PomodoroSettings({
 }: PomodoroSettingsProps) {
   type NumericSettings = Exclude<keyof typeof settings, "soundType" | "continuousAlarm">;
 
+  const LIMITS: Record<NumericSettings, { min: number; max: number }> = {
+    work: { min: 1, max: 180 },
+    shortBreak: { min: 1, max: 60 },
+    longBreak: { min: 1, max: 60 },
+    longBreakInterval: { min: 1, max: 20 },
+  };
+
   const updateSetting = (key: NumericSettings, delta: number) => {
     if (isRunning) return;
     
-    const limits: Record<NumericSettings, { min: number; max: number }> = {
-      work: { min: 5, max: 60 },
-      shortBreak: { min: 1, max: 15 },
-      longBreak: { min: 5, max: 30 },
-      longBreakInterval: { min: 2, max: 8 },
-    };
-
     const newValue = Math.max(
-      limits[key].min,
-      Math.min(limits[key].max, settings[key] + delta)
+      LIMITS[key].min,
+      Math.min(LIMITS[key].max, settings[key] + delta)
     );
 
-    const newSettings = { ...settings, [key]: newValue };
-    onSettingsChange(newSettings);
+    onSettingsChange({ ...settings, [key]: newValue });
+  };
+
+  const handleInputChange = (key: NumericSettings, value: string) => {
+    if (isRunning) return;
+    
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue)) return;
+
+    const newValue = Math.max(
+      LIMITS[key].min,
+      Math.min(LIMITS[key].max, numValue)
+    );
+
+    onSettingsChange({ ...settings, [key]: newValue });
   };
 
   const settingsConfig = [
@@ -88,9 +101,17 @@ export function PomodoroSettings({
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className={cn("font-display font-bold w-12 text-center", color)}>
-                {settings[key]}
-              </span>
+              <input
+                type="number"
+                value={settings[key]}
+                onChange={(e) => handleInputChange(key, e.target.value)}
+                disabled={isRunning}
+                className={cn(
+                  "font-display font-bold w-12 text-center bg-transparent border-none focus:ring-1 focus:ring-primary/30 rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                  color,
+                  isRunning ? "cursor-not-allowed opacity-70" : "hover:bg-secondary/50 focus:bg-secondary/80"
+                )}
+              />
               <button
                 type="button"
                 onClick={() => updateSetting(key, 1)}
