@@ -11,33 +11,38 @@ export function AdsterraBanner() {
     const shouldShowAds = !isPremium;
 
     if (shouldShowAds && containerRef.current) {
-      // Clear container
-      containerRef.current.innerHTML = "";
-
-      // Determine which ad to show based on screen width
       const isMobile = window.innerWidth < 768;
       const adKey = isMobile ? "379aa66cc2d5efa8c990af50a7a0bef1" : "2f52a44774e2ae88803ffefbf5340641";
       const adWidth = isMobile ? 320 : 728;
       const adHeight = isMobile ? 50 : 90;
 
-      // Create configuration script
-      const configScript = document.createElement("script");
-      configScript.text = `
-        atOptions = {
-          'key' : '${adKey}',
-          'format' : 'iframe',
-          'height' : ${adHeight},
-          'width' : ${adWidth},
-          'params' : {}
-        };
-      `;
-      containerRef.current.appendChild(configScript);
+      console.log(`Adsterra Banner Debug: Loading ${adWidth}x${adHeight} for ${isMobile ? 'mobile' : 'desktop'}`);
 
-      // Create invoke script
-      const invokeScript = document.createElement("script");
-      invokeScript.src = `https://tallytrivial.com/${adKey}/invoke.js`;
-      invokeScript.async = true;
-      containerRef.current.appendChild(invokeScript);
+      // Set global variable that invoke.js expects
+      (window as any).atOptions = {
+        'key' : adKey,
+        'format' : 'iframe',
+        'height' : adHeight,
+        'width' : adWidth,
+        'params' : {}
+      };
+
+      // Clear previous content
+      containerRef.current.innerHTML = "";
+
+      // Create and append the invoke script
+      const script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = `//tallytrivial.com/${adKey}/invoke.js`;
+      script.async = true;
+      
+      containerRef.current.appendChild(script);
+
+      return () => {
+        if (containerRef.current) {
+          containerRef.current.innerHTML = "";
+        }
+      };
     }
   }, [isPremium]);
 
