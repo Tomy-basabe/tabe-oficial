@@ -51,6 +51,9 @@ export function MainLayout() {
       case "theme-green": return "/logos/logo-green.png";
       case "theme-neon-gold": return "/logos/logo-gold.png";
       case "theme-red": return "/logos/logo-red.png";
+      case "theme-pink": return "/logos/logo-pink.png";
+      case "theme-black": return "/logos/logo-black.png";
+      case "theme-white": return "/logos/logo-white.png";
       default: return "/logos/logo-purple.png";
     }
   };

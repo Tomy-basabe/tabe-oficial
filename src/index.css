@@ -242,6 +242,36 @@
     --sidebar-primary: 330 100% 70%;
     --sidebar-ring: 330 100% 70%;
   }
+
+  /* BLACK */
+  .theme-black {
+    --primary: 0 0% 60%;
+    --primary-foreground: 222 47% 6%;
+    --accent: 0 0% 60%;
+    --accent-foreground: 222 47% 6%;
+    --ring: 0 0% 60%;
+    --neon-cyan: 0 0% 60%;
+    --status-regular: 0 0% 60%;
+    --glow-cyan: 0 0 20px hsl(0 0% 60% / 0.5), 0 0 40px hsl(0 0% 60% / 0.3);
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 60%) 0%, hsl(0 0% 30%) 100%);
+    --sidebar-primary: 0 0% 60%;
+    --sidebar-ring: 0 0% 60%;
+  }
+
+  /* WHITE */
+  .theme-white {
+    --primary: 0 0% 95%;
+    --primary-foreground: 222 47% 6%;
+    --accent: 0 0% 95%;
+    --accent-foreground: 222 47% 6%;
+    --ring: 0 0% 95%;
+    --neon-cyan: 0 0% 95%;
+    --status-regular: 0 0% 95%;
+    --glow-cyan: 0 0 20px hsl(0 0% 95% / 0.5), 0 0 40px hsl(0 0% 95% / 0.3);
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 80%) 100%);
+    --sidebar-primary: 0 0% 95%;
+    --sidebar-ring: 0 0% 95%;
+  }
 }
 
 @layer base {

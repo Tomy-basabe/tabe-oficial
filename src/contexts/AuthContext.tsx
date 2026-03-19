@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null>(null);
   const [isGuest, setIsGuest] = useState(true);
 
-  const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-green', 'theme-red', 'theme-pink'];
+  const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-green', 'theme-red', 'theme-pink', 'theme-black', 'theme-white'];
 
   const applyTheme = (themeClass: string | null) => {
     const body = document.body;
