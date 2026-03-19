@@ -272,6 +272,9 @@ export default function Settings() {
               { id: "theme-green", color: "bg-[#00C853]", name: "Verde" },
               { id: "theme-neon-gold", color: "bg-[#FFB800]", name: "Dorado" },
               { id: "theme-red", color: "bg-[#FF3B30]", name: "Rojo" },
+              { id: "theme-pink", color: "bg-[#FF66CC]", name: "Rosado" },
+              { id: "theme-black", color: "bg-[#999999]", name: "Gris/Negro" },
+              { id: "theme-white", color: "bg-[#FFFFFF] border border-gray-300", name: "Blanco" },
             ].map((t) => {
               const isActive = isGuest
                 ? guestActiveTheme === t.id || (!guestActiveTheme && t.id === null)
@@ -284,7 +287,7 @@ export default function Settings() {
                     if (isGuest) {
                       setGuestActiveTheme(t.id);
                       // Set DOM class manually for preview
-                      document.documentElement.classList.remove("theme-cyan", "theme-green", "theme-neon-gold", "theme-red");
+                      document.documentElement.classList.remove("theme-cyan", "theme-green", "theme-neon-gold", "theme-red", "theme-pink", "theme-black", "theme-white");
                       if (t.id) {
                         document.documentElement.classList.add(t.id);
                       }

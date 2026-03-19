@@ -54,7 +54,7 @@
             for(var i=0; i<names.length; i++) caches.delete(names[i]);
           });
         }
-        window.location.replace('https://tabe.software' + window.location.pathname + window.location.search);
+        window.location.replace('https://tabe.software' + window.location.pathname + window.location.search + window.location.hash);
       }
     })();
   </script>
@@ -195,31 +195,6 @@
     </div>
   </noscript>
   <script type="module" src="/src/main.tsx"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js').then(function (reg) {
-          setInterval(function () { reg.update(); }, 3600000);
-          reg.addEventListener('updatefound', function () {
-            var nw = reg.installing;
-            nw.addEventListener('statechange', function () {
-              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-                var b = document.createElement('div');
-                b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#00FFAA,#B026FF);color:#fff;padding:12px 24px;border-radius:12px;font-family:system-ui;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 8px 32px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px';
-                b.innerHTML = '🔄 Nueva versión disponible — <u>Actualizar</u>';
-                b.onclick = function () { nw.postMessage({ type: 'SKIP_WAITING' }); b.remove(); };
-                document.body.appendChild(b);
-              }
-            });
-          });
-          var r = false;
-          navigator.serviceWorker.addEventListener('controllerchange', function () {
-            if (!r) { r = true; window.location.reload(); }
-          });
-        }).catch(function () { });
-      });
-    }
-  </script>
 </body>
 
 </html>

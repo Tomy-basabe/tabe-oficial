@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Minus, Plus, X, Volume2, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,23 +34,58 @@ export function PomodoroSettings({
 }: PomodoroSettingsProps) {
   type NumericSettings = Exclude<keyof typeof settings, "soundType" | "continuousAlarm">;
 
+  const [localValues, setLocalValues] = useState<Partial<Record<NumericSettings, string>>>({});
+
+  const LIMITS: Record<NumericSettings, { min: number; max: number }> = {
+    work: { min: 1, max: 180 },
+    shortBreak: { min: 1, max: 60 },
+    longBreak: { min: 1, max: 60 },
+    longBreakInterval: { min: 1, max: 20 },
+  };
+
   const updateSetting = (key: NumericSettings, delta: number) => {
     if (isRunning) return;
     
-    const limits: Record<NumericSettings, { min: number; max: number }> = {
-      work: { min: 5, max: 60 },
-      shortBreak: { min: 1, max: 15 },
-      longBreak: { min: 5, max: 30 },
-      longBreakInterval: { min: 2, max: 8 },
-    };
-
     const newValue = Math.max(
-      limits[key].min,
-      Math.min(limits[key].max, settings[key] + delta)
+      LIMITS[key].min,
+      Math.min(LIMITS[key].max, settings[key] + delta)
     );
 
-    const newSettings = { ...settings, [key]: newValue };
-    onSettingsChange(newSettings);
+    setLocalValues({ ...localValues, [key]: undefined });
+    onSettingsChange({ ...settings, [key]: newValue });
+  };
+
+  const handleInputChange = (key: NumericSettings, value: string) => {
+    if (isRunning) return;
+    setLocalValues({ ...localValues, [key]: value });
+  };
+
+  const handleInputBlur = (key: NumericSettings) => {
+    if (isRunning) return;
+    
+    const strVal = localValues[key];
+    if (strVal === undefined) return; // Not edited
+
+    let numValue = parseInt(strVal, 10);
+    if (isNaN(numValue)) {
+      numValue = settings[key]; // Revert to previous valid value
+    } else {
+      numValue = Math.max(
+        LIMITS[key].min,
+        Math.min(LIMITS[key].max, numValue)
+      );
+    }
+
+    setLocalValues({ ...localValues, [key]: undefined });
+    if (numValue !== settings[key]) {
+      onSettingsChange({ ...settings, [key]: numValue });
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, key: NumericSettings) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
   };
 
   const settingsConfig = [
@@ -88,9 +124,20 @@ export function PomodoroSettings({
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className={cn("font-display font-bold w-12 text-center", color)}>
-                {settings[key]}
-              </span>
+              <input
+                type="number"
+                value={localValues[key] !== undefined ? localValues[key] : settings[key].toString()}
+                onChange={(e) => handleInputChange(key, e.target.value)}
+                onBlur={() => handleInputBlur(key)}
+                onKeyDown={(e) => handleKeyDown(e, key)}
+                disabled={isRunning}
+                className={cn(
+                  "font-display font-black w-16 text-center bg-secondary/30 border border-white/10 rounded-lg py-1 transition-all outline-none focus:ring-2 focus:ring-primary/50 focus:bg-secondary/80 focus:border-primary/50",
+                  "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                  color,
+                  isRunning ? "cursor-not-allowed opacity-70" : "cursor-text hover:bg-secondary/50"
+                )}
+              />
               <button
                 type="button"
                 onClick={() => updateSetting(key, 1)}
