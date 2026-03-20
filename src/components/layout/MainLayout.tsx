@@ -44,13 +44,22 @@ export function MainLayout() {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // PWA auto-update check every 5 minutes
-  const intervalMS = 5 * 60 * 1000;
+  // PWA auto-update check (especially for mobile/installed apps)
   useRegisterSW({
     onRegistered(r) {
-      r && setInterval(() => {
+      if (!r) return;
+      
+      // Check for updates every 10 minutes
+      setInterval(() => {
         r.update();
-      }, intervalMS);
+      }, 10 * 60 * 1000);
+
+      // Check for updates when the user returns to the app
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          r.update();
+        }
+      });
     }
   });
 
