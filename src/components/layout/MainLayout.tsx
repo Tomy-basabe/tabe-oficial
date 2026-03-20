@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { 
@@ -42,6 +43,16 @@ export function MainLayout() {
   const { user, isGuest, profile } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // PWA auto-update check every 5 minutes
+  const intervalMS = 5 * 60 * 1000;
+  useRegisterSW({
+    onRegistered(r) {
+      r && setInterval(() => {
+        r.update();
+      }, intervalMS);
+    }
+  });
 
   // Logo color mapping
   const getLogoPath = () => {

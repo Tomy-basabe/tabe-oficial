@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
         name: "StudyHub - Tu compañero de estudio",
