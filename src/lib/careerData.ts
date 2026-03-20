@@ -17,6 +17,7 @@ export const AVAILABLE_CAREERS = [
     // UNCUYO
     { id: "agronomia_uncuyo", label: "Ingeniería Agronómica", file: "agronomia_uncuyo_template", facultad: "UNCUYO" },
     // Don Bosco
+    { id: "licenciatura_enologia_donbosco", label: "Licenciatura en Enología", file: "licenciatura_enologia_donbosco_template", facultad: "DONBOSCO" },
     { id: "enologia_donbosco", label: "Tecnicatura en Enología", file: "enologia_donbosco_template", facultad: "DONBOSCO" },
     // UNSJ
     { id: "electromecanica_unsj", label: "Ingeniería Electromecánica", file: "electromecanica_unsj_template", facultad: "UNSJ" },
