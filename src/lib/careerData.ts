@@ -3,6 +3,7 @@ export const AVAILABLE_FACULTADES = [
     { id: "UTN_FRC", label: "UTN FRC", fullLabel: "Universidad Tecnológica Nacional - FRC (UTN)" },
     { id: "UNCUYO", label: "UNCUYO", fullLabel: "Universidad Nacional de Cuyo (UNCUYO)" },
     { id: "DONBOSCO", label: "Don Bosco", fullLabel: "Facultad Don Bosco" },
+    { id: "ITGC", label: "I.T.G.C.", fullLabel: "Instituto Tomás Godoy Cruz" },
     { id: "UNSJ", label: "UNSJ", fullLabel: "Universidad Nacional de San Juan (UNSJ)" },
     { id: "OTROS", label: "Otros Institutos", fullLabel: "Institutos / Tecnicaturas" },
 ];
@@ -19,6 +20,8 @@ export const AVAILABLE_CAREERS = [
     // Don Bosco
     { id: "licenciatura_enologia_donbosco", label: "Licenciatura en Enología", file: "licenciatura_enologia_donbosco_template", facultad: "DONBOSCO" },
     { id: "enologia_donbosco", label: "Tecnicatura en Enología", file: "enologia_donbosco_template", facultad: "DONBOSCO" },
+    // Godoy Cruz
+    { id: "profesorado_primaria_itgc", label: "Profesorado de Educación Primaria", file: "profesorado_primaria_godoy_cruz_template", facultad: "ITGC" },
     // UNSJ
     { id: "electromecanica_unsj", label: "Ingeniería Electromecánica", file: "electromecanica_unsj_template", facultad: "UNSJ" },
     { id: "mecanica_unsj", label: "Ingeniería Mecánica", file: "mecanica_unsj_template", facultad: "UNSJ" },
