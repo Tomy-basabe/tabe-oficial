@@ -52,6 +52,13 @@
             "headers": [
                 { "key": "Content-Type", "value": "text/plain" }
             ]
+        },
+        {
+            "source": "/(sw.js|manifest.json|manifest.webmanifest)",
+            "headers": [
+                { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+                { "key": "Service-Worker-Allowed", "value": "/" }
+            ]
         }
     ]
 }
