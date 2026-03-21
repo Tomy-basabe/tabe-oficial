@@ -46,7 +46,7 @@ export function useSleepLogs() {
     try {
       const { data, error } = await (supabase
         .from("sleep_logs" as any) as any)
-        .insert([{ ...log, user_id: user.id }])
+        .upsert([{ ...log, user_id: user.id }], { onConflict: 'user_id,fecha' })
         .select()
         .single();
 
