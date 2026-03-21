@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -21,7 +21,7 @@ interface AddEventModalProps {
   editEvent?: CalendarEvent | null; // If provided, we are in Edit Mode
 }
 
-const eventTypes: { value: EventType; label: string; color: string; hex: string }[] = [
+const baseEventTypes: { value: string; label: string; color: string; hex: string }[] = [
   { value: "P1", label: "Parcial 1", color: "bg-neon-cyan/20 text-neon-cyan border-neon-cyan", hex: "#00d9ff" },
   { value: "P2", label: "Parcial 2", color: "bg-neon-purple/20 text-neon-purple border-neon-purple", hex: "#a855f7" },
   { value: "Global", label: "Global", color: "bg-neon-gold/20 text-neon-gold border-neon-gold", hex: "#fbbf24" },
@@ -34,6 +34,7 @@ const eventTypes: { value: EventType; label: string; color: string; hex: string 
   { value: "Clase", label: "Clase", color: "bg-blue-500/20 text-blue-400 border-blue-500", hex: "#3b82f6" },
   { value: "Estudio", label: "Estudio", color: "bg-muted text-muted-foreground border-muted-foreground", hex: "#6b7280" },
   { value: "Otro", label: "Otro", color: "bg-gray-500/20 text-gray-400 border-gray-500", hex: "#9ca3af" },
+  { value: "Parcial +", label: "Parcial +", color: "bg-indigo-500/20 text-indigo-400 border-indigo-500", hex: "#6366f1" },
 ];
 
 const PRESET_COLORS = [
@@ -47,7 +48,8 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
   const [hora, setHora] = useState("");
   const [horaFin, setHoraFin] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
-  const [tipoExamen, setTipoExamen] = useState<EventType>("P1");
+  const [tipoExamen, setTipoExamen] = useState<string>("P1");
+  const [customParcialNum, setCustomParcialNum] = useState<string>("");
   const [subjectId, setSubjectId] = useState<string>("");
   const [ubicacion, setUbicacion] = useState("");
   const [notas, setNotas] = useState("");
@@ -66,6 +68,19 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
     notas?: string;
   } | null>(null);
 
+  const eventTypes = useMemo(() => {
+    // Si estamos editando y el tipo de examen es un Parcial custom (ej. "P3"), lo agregamos a las opciones para que se seleccione visualmente
+    if (editEvent && !baseEventTypes.some(t => t.value === editEvent.tipo_examen)) {
+      return [...baseEventTypes.filter(t => t.value !== "Parcial +"), { 
+        value: editEvent.tipo_examen, 
+        label: editEvent.tipo_examen, 
+        color: "bg-indigo-500/20 text-indigo-400 border-indigo-500", 
+        hex: "#6366f1" 
+      }, { value: "Parcial +", label: "Parcial +", color: "bg-indigo-500/20 text-indigo-400 border-indigo-500", hex: "#6366f1" }];
+    }
+    return baseEventTypes;
+  }, [editEvent]);
+
   // Initialize form when modal opens (Create or Edit mode)
   useEffect(() => {
     if (!open) return;
@@ -80,9 +95,13 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
       setSubjectId(editEvent.subject_id || "");
       setUbicacion(editEvent.ubicacion || "");
       setNotas(editEvent.notas || "");
+      
+      if (editEvent.tipo_examen.startsWith("P") && !["P1", "P2"].includes(editEvent.tipo_examen)) {
+        setCustomParcialNum(editEvent.tipo_examen.replace("P", ""));
+      }
 
       // Attempt to find if current color is default for type
-      const defaultHex = eventTypes.find(t => t.value === editEvent.tipo_examen)?.hex;
+      const defaultHex = baseEventTypes.find(t => t.value === editEvent.tipo_examen)?.hex || "#6366f1";
       if (editEvent.color && editEvent.color !== defaultHex) {
         setCustomColor(editEvent.color);
       } else {
@@ -100,6 +119,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
       setHoraFin("");
       setIsAllDay(false);
       setTipoExamen("P1");
+      setCustomParcialNum("");
       setSubjectId("");
       setUbicacion("");
       setNotas("");
@@ -118,10 +138,16 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titulo.trim() || !fecha) return;
+    
+    // Convert "Parcial +" state to dynamic type before saving
+    let finalTipoExamen = tipoExamen;
+    if (tipoExamen === "Parcial +") {
+      finalTipoExamen = customParcialNum ? `P${customParcialNum}` : "Parcial Extra";
+    }
 
     setLoading(true);
     try {
-      const dbColor = customColor || eventTypes.find(t => t.value === tipoExamen)?.hex;
+      const dbColor = customColor || eventTypes.find(t => t.value === tipoExamen)?.hex || "#6366f1";
 
       const eventData = {
         titulo: titulo.trim(),
@@ -129,7 +155,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
         hora: isAllDay ? undefined : (hora || undefined),
         hora_fin: isAllDay ? undefined : (horaFin || undefined),
         is_all_day: isAllDay,
-        tipo_examen: tipoExamen,
+        tipo_examen: finalTipoExamen,
         subject_id: subjectId || undefined,
         ubicacion: ubicacion || undefined,
         notas: notas || undefined,
@@ -170,24 +196,34 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
     handleClose();
   };
 
-  const generateTitle = (type: EventType, subId: string) => {
+  const generateTitle = (type: string, subId: string, customNum?: string) => {
     const subject = subjects.find(s => s.id === subId);
     if (!subject) return "";
-    const typeLabel = eventTypes.find(t => t.value === type)?.label || type;
+    let typeLabel = baseEventTypes.find(t => t.value === type)?.label || type;
+    if (type === "Parcial +") {
+      typeLabel = customNum ? `Parcial ${customNum}` : "Parcial";
+    }
     return `${typeLabel} - ${subject.nombre}`;
   };
 
-  const handleTypeChange = (type: EventType) => {
+  const handleTypeChange = (type: string) => {
     setTipoExamen(type);
     if (subjectId && type !== "Estudio" && !editEvent) {
-      setTitulo(generateTitle(type, subjectId));
+      setTitulo(generateTitle(type, subjectId, customParcialNum));
+    }
+  };
+
+  const handleCustomNumChange = (num: string) => {
+    setCustomParcialNum(num);
+    if (subjectId && !editEvent) {
+      setTitulo(generateTitle("Parcial +", subjectId, num));
     }
   };
 
   const handleSubjectChange = (subId: string) => {
     setSubjectId(subId);
     if (subId && tipoExamen !== "Estudio" && !editEvent) {
-      setTitulo(generateTitle(tipoExamen, subId));
+      setTitulo(generateTitle(tipoExamen, subId, customParcialNum));
     }
   };
 
@@ -260,6 +296,21 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                   </button>
                 ))}
               </div>
+              
+              {tipoExamen === "Parcial +" && (
+                <div className="mt-2 animate-in fade-in slide-in-from-top-1">
+                  <input
+                    type="number"
+                    min="3"
+                    value={customParcialNum}
+                    onChange={(e) => handleCustomNumChange(e.target.value)}
+                    placeholder="Número de parcial (ej: 3)"
+                    className="w-full px-4 py-2 bg-background rounded-lg border border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Escribe manualmente el número del parcial. Por ejemplo, "3" o "4".</p>
+                </div>
+              )}
             </div>
 
             {/* Subject Selection */}
@@ -439,7 +490,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                     "w-8 h-8 rounded-full border-2 transition-transform",
                     customColor === null ? "border-foreground scale-110" : "border-transparent hover:scale-105"
                   )}
-                  style={{ backgroundColor: eventTypes.find(t => t.value === tipoExamen)?.hex }}
+                  style={{ backgroundColor: eventTypes.find(t => t.value === tipoExamen)?.hex || "#6366f1" }}
                   title="Color predeterminado del tipo"
                 />
                 <div className="w-px h-6 bg-border mx-1" />
@@ -481,7 +532,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
               </button>
               <button
                 type="submit"
-                disabled={loading || !titulo.trim() || !fecha}
+                disabled={loading || !titulo.trim() || !fecha || (tipoExamen === "Parcial +" && !customParcialNum)}
                 className="flex-1 py-3 rounded-xl font-medium bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90 transition-all disabled:opacity-50"
               >
                 {loading ? "Guardando..." : editEvent ? "Guardar cambios" : "Crear Evento"}

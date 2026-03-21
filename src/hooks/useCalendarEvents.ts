@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
-export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Clase" | "Otro";
+export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Clase" | "Otro" | string;
 export type RecurrenceRule = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
 
 export interface CalendarEvent {
@@ -379,8 +379,8 @@ export function useCalendarEvents() {
   };
 }
 
-function getColorForType(type: EventType): string {
-  const colors: Record<EventType, string> = {
+function getColorForType(type: string): string {
+  const colors: Record<string, string> = {
     P1: "#00d9ff",
     P2: "#a855f7",
     Global: "#fbbf24",

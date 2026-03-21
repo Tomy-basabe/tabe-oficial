@@ -30,7 +30,7 @@ interface EventDetailsModalProps {
     onDelete: (id: string) => Promise<void>;
 }
 
-const eventTypeLabels: Record<EventType, string> = {
+const eventTypeLabels: Record<string, string> = {
     P1: "Parcial 1",
     P2: "Parcial 2",
     Global: "Global",
@@ -45,7 +45,9 @@ const eventTypeLabels: Record<EventType, string> = {
     Otro: "Otro",
 };
 
-const eventTypeColors: Record<EventType, string> = {
+const getEventLabel = (type: string) => type.startsWith("P") && !["P1", "P2"].includes(type) ? `Parcial ${type.replace("P", "")}` : (eventTypeLabels[type] || type);
+
+const eventTypeColors: Record<string, string> = {
     P1: "text-neon-cyan bg-neon-cyan/10",
     P2: "text-neon-purple bg-neon-purple/10",
     Global: "text-neon-gold bg-neon-gold/10",
@@ -59,6 +61,8 @@ const eventTypeColors: Record<EventType, string> = {
     Clase: "text-blue-400 bg-blue-500/10",
     Otro: "text-gray-400 bg-gray-500/10",
 };
+
+const getEventColor = (type: string) => eventTypeColors[type] || "text-indigo-400 bg-indigo-500/10";
 
 export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetailsModalProps) {
     if (!event) return null;
@@ -87,16 +91,16 @@ export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetai
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DialogContent className="sm:max-w-[400px] bg-card/95 backdrop-blur-xl border-border/50 p-0 overflow-hidden rounded-3xl shadow-2xl">
                 {/* Header Color Bar */}
-                <div className={cn("h-4 w-full", eventTypeColors[event.tipo_examen].split(' ')[1])} />
+                <div className={cn("h-4 w-full", getEventColor(event.tipo_examen).split(' ')[1])} />
 
                 <div className="p-6 space-y-6">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
                             <span className={cn(
                                 "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
-                                eventTypeColors[event.tipo_examen]
+                                getEventColor(event.tipo_examen)
                             )}>
-                                {eventTypeLabels[event.tipo_examen]}
+                                {getEventLabel(event.tipo_examen)}
                             </span>
                             <DialogTitle className="text-2xl font-display font-bold text-foreground pt-2 leading-tight">
                                 {event.titulo}

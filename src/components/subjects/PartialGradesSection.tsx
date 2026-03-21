@@ -1,6 +1,12 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Check, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, X, Plus, Trash2 } from "lucide-react";
+
+interface ExtraPartial {
+  id: string; // e.g. "P3", "P4"
+  nota: number | null;
+  rec: number | null;
+}
 
 interface PartialGrades {
   nota_parcial_1?: number | null;
@@ -10,6 +16,7 @@ interface PartialGrades {
   nota_global?: number | null;
   nota_rec_global?: number | null;
   nota_final_examen?: number | null;
+  extra_partials?: ExtraPartial[];
 }
 
 interface PartialGradesSectionProps {
@@ -98,6 +105,14 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     nota_final_examen: grades.nota_final_examen?.toString() ?? "",
   });
 
+  const [extraPartials, setExtraPartials] = useState<{ id: string; nota: string; rec: string }[]>(
+    (grades.extra_partials || []).map(p => ({
+      id: p.id,
+      nota: p.nota?.toString() ?? "",
+      rec: p.rec?.toString() ?? "",
+    }))
+  );
+
   // Parse all inputs to get numeric values for logic
   const numericValues = useMemo(() => ({
     nota_parcial_1: parseGradeInput(inputs.nota_parcial_1),
@@ -109,30 +124,79 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     nota_final_examen: parseGradeInput(inputs.nota_final_examen),
   }), [inputs]);
 
+  const parsedExtraPartials = useMemo(() => {
+    return extraPartials.map(p => ({
+      id: p.id,
+      nota: parseGradeInput(p.nota),
+      rec: parseGradeInput(p.rec),
+    }));
+  }, [extraPartials]);
+
   // Check if there are changes from persisted grades
   const isDirty = useMemo(() => {
     const keys: (keyof PartialGrades)[] = [
       'nota_parcial_1', 'nota_rec_parcial_1', 'nota_parcial_2', 'nota_rec_parcial_2',
       'nota_global', 'nota_rec_global', 'nota_final_examen'
     ];
-    return keys.some(key => {
-      const persisted = grades[key];
+    const baseDirty = keys.some(key => {
+      const persisted = grades[key] as number | null | undefined;
       const current = numericValues[key];
-      // Both null/undefined = same
       if ((persisted === null || persisted === undefined) && current === null) return false;
       return persisted !== current;
     });
-  }, [grades, numericValues]);
+
+    if (baseDirty) return true;
+
+    // Check extra partials
+    const oldExtra = grades.extra_partials || [];
+    if (oldExtra.length !== parsedExtraPartials.length) return true;
+
+    for (let i = 0; i < oldExtra.length; i++) {
+      if (oldExtra[i].id !== parsedExtraPartials[i].id) return true;
+      if (oldExtra[i].nota !== parsedExtraPartials[i].nota) return true;
+      if (oldExtra[i].rec !== parsedExtraPartials[i].rec) return true;
+    }
+
+    return false;
+  }, [grades, numericValues, parsedExtraPartials]);
 
   const updateInput = useCallback((key: keyof typeof inputs, value: string) => {
     setInputs(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  const updateExtraInput = useCallback((index: number, field: 'nota' | 'rec', value: string) => {
+    setExtraPartials(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  }, []);
+
+  const addPartial = () => {
+    const nextNumber = 3 + extraPartials.length;
+    setExtraPartials(prev => [
+      ...prev,
+      { id: `P${nextNumber}`, nota: "", rec: "" }
+    ]);
+  };
+
+  const removePartial = (index: number) => {
+    setExtraPartials(prev => {
+      const copy = [...prev];
+      copy.splice(index, 1);
+      // Renumber the remaining ones
+      return copy.map((p, i) => ({ ...p, id: `P${i + 3}` }));
+    });
+  };
+
   const handleSave = async () => {
     if (disabled || !isDirty) return;
     setIsSaving(true);
     try {
-      await onUpdate(numericValues);
+      await onUpdate({
+        ...numericValues,
+        extra_partials: parsedExtraPartials
+      });
     } finally {
       setIsSaving(false);
     }
@@ -149,16 +213,38 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
       nota_rec_global: grades.nota_rec_global?.toString() ?? "",
       nota_final_examen: grades.nota_final_examen?.toString() ?? "",
     });
+    setExtraPartials((grades.extra_partials || []).map(p => ({
+      id: p.id,
+      nota: p.nota?.toString() ?? "",
+      rec: p.rec?.toString() ?? "",
+    })));
   };
 
   // Calculate effective grades (considering retakes)
   const effectiveP1 = numericValues.nota_rec_parcial_1 ?? numericValues.nota_parcial_1;
   const effectiveP2 = numericValues.nota_rec_parcial_2 ?? numericValues.nota_parcial_2;
   
-  // Calculate average of parcials
-  const hasP1 = effectiveP1 !== null;
-  const hasP2 = effectiveP2 !== null;
-  const promedioParciales = hasP1 && hasP2 ? (effectiveP1 + effectiveP2) / 2 : null;
+  // Calculate average of all partials
+  let sum = 0;
+  let count = 0;
+  
+  if (effectiveP1 !== null) { sum += effectiveP1; count++; }
+  if (effectiveP2 !== null) { sum += effectiveP2; count++; }
+
+  let hasNullMandatory = false; 
+  if (effectiveP1 === null || effectiveP2 === null) hasNullMandatory = true;
+
+  for (const ep of parsedExtraPartials) {
+    const eff = ep.rec ?? ep.nota;
+    if (eff !== null) {
+      sum += eff;
+      count++;
+    } else {
+      hasNullMandatory = true;
+    }
+  }
+
+  const promedioParciales = (count > 0 && !hasNullMandatory && count === (2 + parsedExtraPartials.length)) ? sum / count : null;
   
   // Determine what's enabled
   const isRecP1Enabled = numericValues.nota_parcial_1 !== null && numericValues.nota_parcial_1 < 60;
@@ -171,7 +257,8 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
   const isFinalEnabled = effectiveGlobal !== null && effectiveGlobal < 60;
 
   // Count how many grades are filled
-  const filledCount = Object.values(numericValues).filter(g => g !== null).length;
+  const filledCount = Object.values(numericValues).filter(g => g !== null).length + 
+    parsedExtraPartials.reduce((acc, p) => acc + (p.nota !== null ? 1 : 0) + (p.rec !== null ? 1 : 0), 0);
 
   return (
     <div className="border border-border rounded-xl overflow-hidden">
@@ -245,7 +332,53 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
               isEnabled={isRecP2Enabled}
               disabledReason="P2≥60"
             />
+            
+            {/* Dynamic part */}
+            {extraPartials.map((p, idx) => (
+              <div key={idx} className="col-span-2 space-y-1.5 pt-1 relative group">
+                {/* Trash Button */}
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => removePartial(idx)}
+                    className="absolute -right-1.5 top-2.5 p-1 bg-red-500/10 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-500/20"
+                    title="Eliminar parcial"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+                
+                <div className="grid grid-cols-2 gap-1.5">
+                  <GradeInput
+                    label={p.id}
+                    value={p.nota}
+                    numericValue={parsedExtraPartials[idx].nota}
+                    onChange={(v) => updateExtraInput(idx, 'nota', v)}
+                    disabled={disabled}
+                    isEnabled={true}
+                  />
+                  <GradeInput
+                    label={`Rec ${p.id}`}
+                    value={p.rec}
+                    numericValue={parsedExtraPartials[idx].rec}
+                    onChange={(v) => updateExtraInput(idx, 'rec', v)}
+                    disabled={disabled}
+                    isEnabled={parsedExtraPartials[idx].nota !== null && parsedExtraPartials[idx].nota < 60}
+                    disabledReason={`${p.id}≥60`}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
+          
+          <button
+            type="button"
+            className="w-full flex items-center justify-center py-1 mt-1 text-xs text-muted-foreground hover:text-foreground bg-secondary/30 hover:bg-secondary/60 rounded-lg transition-colors border border-dashed border-border/50"
+            onClick={addPartial}
+            disabled={disabled}
+          >
+            <Plus className="w-3 h-3 mr-1" /> Agregar Parcial
+          </button>
           
           <div className="border-t border-border my-1" />
           
