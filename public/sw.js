@@ -1,5 +1,5 @@
 const CACHE_NAME = 'tabe-cache-v4';
-const NEW_DOMAIN = 'https://tabe.software';
+const NEW_DOMAIN = 'https://www.tabe.software';
 const OLD_DOMAINS = ['tabe-oficial.vercel.app'];
 const STATIC_ASSETS = [
     '/',

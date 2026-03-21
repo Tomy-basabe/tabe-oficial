@@ -1,122 +1,122 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://tabe.software/</loc>
+    <loc>https://www.tabe.software/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://tabe.software/auth</loc>
+    <loc>https://www.tabe.software/auth</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/acerca-de</loc>
+    <loc>https://www.tabe.software/acerca-de</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://tabe.software/contacto</loc>
+    <loc>https://www.tabe.software/contacto</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://tabe.software/privacidad</loc>
+    <loc>https://www.tabe.software/privacidad</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://tabe.software/terminos</loc>
+    <loc>https://www.tabe.software/terminos</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras</loc>
+    <loc>https://www.tabe.software/carreras</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/agronomia_uncuyo</loc>
+    <loc>https://www.tabe.software/carreras/agronomia_uncuyo</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/civil</loc>
+    <loc>https://www.tabe.software/carreras/civil</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/contactologia</loc>
+    <loc>https://www.tabe.software/carreras/contactologia</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/electromecanica</loc>
+    <loc>https://www.tabe.software/carreras/electromecanica</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/electromecanica_unsj</loc>
+    <loc>https://www.tabe.software/carreras/electromecanica_unsj</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/electronica</loc>
+    <loc>https://www.tabe.software/carreras/electronica</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/energia_electrica_unsj</loc>
+    <loc>https://www.tabe.software/carreras/energia_electrica_unsj</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/enologia_donbosco</loc>
+    <loc>https://www.tabe.software/carreras/enologia_donbosco</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/mecanica_unsj</loc>
+    <loc>https://www.tabe.software/carreras/mecanica_unsj</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/quimica</loc>
+    <loc>https://www.tabe.software/carreras/quimica</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/sistemas</loc>
+    <loc>https://www.tabe.software/carreras/sistemas</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carreras/telecomunicaciones</loc>
+    <loc>https://www.tabe.software/carreras/telecomunicaciones</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/guia-de-estudio</loc>
+    <loc>https://www.tabe.software/guia-de-estudio</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://tabe.software/dashboard</loc>
+    <loc>https://www.tabe.software/dashboard</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://tabe.software/carrera</loc>
+    <loc>https://www.tabe.software/carrera</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tabe.software/metricas</loc>
+    <loc>https://www.tabe.software/metricas</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tabe.software/calendario</loc>
+    <loc>https://www.tabe.software/calendario</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
