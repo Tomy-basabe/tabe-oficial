@@ -50,6 +50,7 @@ export interface PartialGrades {
   nota_global?: number | null;
   nota_rec_global?: number | null;
   nota_final_examen?: number | null;
+  extra_partials?: { id: string; nota: number | null; rec: number | null }[];
 }
 
 export interface UserSubjectStatus {
@@ -65,6 +66,7 @@ export interface UserSubjectStatus {
   nota_global?: number | null;
   nota_rec_global?: number | null;
   nota_final_examen?: number | null;
+  extra_partials?: any | null;
 }
 
 export interface Dependency {
@@ -412,6 +414,7 @@ export function useSubjects() {
           nota_global: userStatus?.nota_global ?? null,
           nota_rec_global: userStatus?.nota_rec_global ?? null,
           nota_final_examen: userStatus?.nota_final_examen ?? null,
+          extra_partials: (userStatus?.extra_partials as any) ?? [],
         },
       };
     });
@@ -754,6 +757,7 @@ export function useSubjects() {
             nota_global: grades.nota_global,
             nota_rec_global: grades.nota_rec_global,
             nota_final_examen: grades.nota_final_examen,
+            extra_partials: grades.extra_partials || [],
           })
           .eq("id", existingStatus.id);
 
@@ -773,6 +777,7 @@ export function useSubjects() {
             nota_global: grades.nota_global,
             nota_rec_global: grades.nota_rec_global,
             nota_final_examen: grades.nota_final_examen,
+            extra_partials: grades.extra_partials || [],
           });
 
         if (error) throw error;
