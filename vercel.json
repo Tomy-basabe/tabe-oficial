@@ -24,6 +24,28 @@
         },
         {
             "source": "/auth",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "tabe.software"
+                }
+            ],
+            "destination": "https://tabe.com.ar/registro",
+            "permanent": true
+        },
+        {
+            "source": "/(.*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "tabe.software"
+                }
+            ],
+            "destination": "https://tabe.com.ar/$1",
+            "permanent": true
+        },
+        {
+            "source": "/auth",
             "destination": "/registro",
             "permanent": true
         }

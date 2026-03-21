@@ -43,7 +43,9 @@
   <!-- Clean old domain caches and force redirect -->
   <script>
     (function () {
-      if (window.location.hostname === 'tabe-oficial.vercel.app') {
+      var oldDomains = ['tabe-oficial.vercel.app', 'tabe.software'];
+      var isOld = oldDomains.indexOf(window.location.hostname) !== -1;
+      if (isOld) {
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then(function(regs) {
             for(var i=0; i<regs.length; i++) regs[i].unregister();
