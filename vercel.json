@@ -8,7 +8,7 @@
                     "value": "tabe-oficial.vercel.app"
                 }
             ],
-            "destination": "https://tabe.software/registro",
+            "destination": "https://tabe.com.ar/registro",
             "permanent": true
         },
         {
@@ -19,7 +19,7 @@
                     "value": "tabe-oficial.vercel.app"
                 }
             ],
-            "destination": "https://tabe.software/$1",
+            "destination": "https://tabe.com.ar/$1",
             "permanent": true
         },
         {

@@ -38,4 +38,4 @@ Disallow: /discord
 Disallow: /mapa
 Disallow: /marketplace
 
-Sitemap: https://tabe.software/sitemap.xml
+Sitemap: https://tabe.com.ar/sitemap.xml
