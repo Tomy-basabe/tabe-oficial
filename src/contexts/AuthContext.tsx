@@ -160,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: 'https://tabe.com.ar/email-verificado',
+          emailRedirectTo: 'https://tabe.software/email-verificado',
           data: { nombre }
         }
       });
