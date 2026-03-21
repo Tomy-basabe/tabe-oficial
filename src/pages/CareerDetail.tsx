@@ -43,7 +43,7 @@ export default function CareerDetail() {
     "provider": {
       "@type": "Organization",
       "name": "TABE - Tu Asistente de Bolsillo Estudiantil",
-      "url": "https://tabe.software"
+      "url": "https://tabe.com.ar"
     },
     "courseCode": id,
     "hasCourseInstance": subjects.map((s: any) => ({

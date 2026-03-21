@@ -18,9 +18,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "StudyHub - Tu compañero de estudio",
-        short_name: "StudyHub",
-        description: "Aplicación de gestión académica con flashcards, pomodoro y más",
+        name: "T.A.B.E. - Tu Asistente de Bolsillo Estudiantil",
+        short_name: "T.A.B.E.",
+        description: "Plataforma todo-en-uno para estudiantes universitarios argentinos con flashcards, pomodoro y más",
         theme_color: "#0a0a0f",
         background_color: "#0a0a0f",
         display: "standalone",
