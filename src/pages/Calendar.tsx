@@ -39,7 +39,7 @@ const months = [
 ];
 
 export default function Calendar() {
-  const { events, loading, createEvent, deleteEvent, duplicateEvent, getEventsForDate } = useCalendarEvents();
+  const { events, loading, createEvent, updateEvent, deleteEvent, duplicateEvent, getEventsForDate } = useCalendarEvents();
   const { rawSubjects } = useSubjects();
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -465,7 +465,14 @@ export default function Calendar() {
           setShowAddModal(false);
           setEventToEdit(null);
         }}
-        onSubmit={eventToEdit ? (data) => useCalendarEvents().updateEvent(eventToEdit.id, data) : createEvent}
+        onSubmit={async (data) => {
+          if (eventToEdit) {
+            const { id, ...updateData } = data as any;
+            await updateEvent(id || eventToEdit.id, updateData);
+          } else {
+            await createEvent(data as CreateEventData);
+          }
+        }}
         subjects={rawSubjects}
         initialDate={selectedDate || undefined}
         editEvent={eventToEdit}
