@@ -57,7 +57,7 @@
             "name": "Asistente TABE",
             "short_name": "AI Coach",
             "description": "Habla con la Inteligencia Artificial",
-            "url": "/tabe-ai",
+            "url": "/TABEAI",
             "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
         },
         {
