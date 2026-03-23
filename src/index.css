@@ -334,6 +334,10 @@
     background-clip: text;
   }
 
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   .gradient-text-gold {
     background: var(--gradient-gold);
     -webkit-background-clip: text;

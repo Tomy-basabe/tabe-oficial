@@ -59,9 +59,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="p-3 lg:p-8 space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
             Dashboard Académico
@@ -79,7 +79,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatsCard
           title="Materias Aprobadas"
           value={subjectStats.aprobadas}
@@ -121,14 +121,16 @@ export default function Dashboard() {
             <GraduationCap className="w-5 h-5 text-muted-foreground" />
           </div>
 
-          <div className="flex flex-col lg:flex-row items-center gap-8">
+          <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-8">
             {/* Progress Ring */}
-            <ProgressRing progress={progressPercentage} size={160} strokeWidth={12}>
-              <div className="text-center">
-                <p className="text-3xl font-display font-bold gradient-text">{progressPercentage}%</p>
-                <p className="text-xs text-muted-foreground">Completado</p>
-              </div>
-            </ProgressRing>
+            <div className="flex-shrink-0">
+              <ProgressRing progress={progressPercentage} size={140} strokeWidth={10}>
+                <div className="text-center">
+                  <p className="text-2xl lg:text-3xl font-display font-bold gradient-text">{progressPercentage}%</p>
+                  <p className="text-[10px] lg:text-xs text-muted-foreground">Completado</p>
+                </div>
+              </ProgressRing>
+            </div>
 
             {/* Progress Details */}
             <div className="flex-1 w-full space-y-4">

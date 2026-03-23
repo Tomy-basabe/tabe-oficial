@@ -159,7 +159,7 @@ export default function Calendar() {
           }}
           onDoubleClick={() => handleAddEvent(date)}
           className={cn(
-            "h-24 lg:h-32 p-2 border border-border rounded-lg text-left relative group",
+            "min-h-[70px] h-auto lg:h-32 p-1 lg:p-2 border border-border rounded-lg text-left relative group",
             "transition-all duration-200 ease-out",
             "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-0.5",
             "active:scale-[0.98] active:shadow-none",
@@ -198,13 +198,13 @@ export default function Calendar() {
               <div
                 key={event.id}
                 className={cn(
-                  "text-xs px-1.5 py-0.5 rounded border truncate flex items-center gap-1",
+                  "text-[10px] lg:text-xs px-1 lg:px-1.5 py-0.5 rounded border truncate flex items-center gap-1",
                   "transition-all duration-200 hover:scale-[1.02]",
                   !event.color && eventTypeColors[event.tipo_examen]
                 )}
                 style={event.color ? { backgroundColor: `${event.color}33`, borderColor: event.color, color: event.color } : undefined}
               >
-                {event.recurrence_rule && <Repeat className="w-2.5 h-2.5 flex-shrink-0 opacity-60" />}
+                {event.recurrence_rule && <Repeat className="w-2.5 h-2.5 flex-shrink-0 opacity-60 hidden sm:block" />}
                 <span className="truncate">{event.titulo}</span>
               </div>
             ))}
@@ -233,9 +233,9 @@ export default function Calendar() {
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="p-3 lg:p-8 space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
             Calendario Académico
@@ -282,11 +282,11 @@ export default function Calendar() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-6">
+      <div className="grid lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Calendar */}
-        <div className="lg:col-span-3 card-gamer rounded-xl p-4 lg:p-6">
+        <div className="lg:col-span-3 card-gamer rounded-xl p-3 lg:p-6 overflow-hidden">
           {/* Month Navigation */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4 lg:mb-6">
             <h2 className="font-display font-semibold text-xl">
               {months[month]} {year}
             </h2>
@@ -307,9 +307,9 @@ export default function Calendar() {
           </div>
 
           {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-2 mb-2">
+          <div className="grid grid-cols-7 gap-1 lg:gap-2 mb-2">
             {daysOfWeek.map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+              <div key={day} className="text-center text-[10px] lg:text-sm font-medium text-muted-foreground py-1 lg:py-2">
                 {day}
               </div>
             ))}
@@ -318,7 +318,7 @@ export default function Calendar() {
           {/* Calendar Grid */}
           <div
             className={cn(
-              "grid grid-cols-7 gap-2 transition-all duration-300",
+              "grid grid-cols-7 gap-1 lg:gap-2 transition-all duration-300",
               monthTransition === "exit" && "opacity-0 translate-y-2",
               monthTransition === "enter" && "opacity-100 translate-y-0 animate-in fade-in slide-in-from-bottom-2",
               monthTransition === null && "opacity-100"

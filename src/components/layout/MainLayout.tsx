@@ -29,6 +29,7 @@ import {
   ALL_AVAILABLE_ITEMS
 } from "@/lib/sidebar-configs";
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
+import { MobileNavbar } from "@/components/layout/MobileNavbar";
 
 
 interface UserStats {
@@ -314,7 +315,7 @@ export function MainLayout() {
 
       {/* Main Content */}
       <main className={cn(
-        "min-h-screen transition-all duration-300 pt-16 lg:pt-0",
+        "min-h-screen transition-all duration-300 pt-16 pb-20 lg:pt-0 lg:pb-0",
         isCollapsed ? "lg:ml-20" : "lg:ml-64"
       )}>
         <Outlet />
@@ -325,6 +326,9 @@ export function MainLayout() {
       <GlobalPomodoroWidget />
       <AIBubbleWidget />
       <GuestModeBanner />
+      
+      {/* Mobile Navigation Bar */}
+      <MobileNavbar />
     </div>
   );
 }

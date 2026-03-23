@@ -110,7 +110,7 @@ export default function Pomodoro() {
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="p-3 lg:p-8 space-y-4 lg:space-y-6 pb-24 lg:pb-8">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -131,7 +131,7 @@ export default function Pomodoro() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Timer */}
-        <div className="lg:col-span-2 card-gamer rounded-xl p-6 lg:p-10">
+        <div className="lg:col-span-2 card-gamer rounded-2xl lg:rounded-xl p-4 sm:p-6 lg:p-10">
           {/* Mode Selector */}
           <div className="flex justify-center gap-2 mb-8">
             {(Object.keys(modeConfig) as TimerMode[]).map((m) => {
@@ -157,7 +157,7 @@ export default function Pomodoro() {
 
           {/* Timer Display */}
           <div className="flex flex-col items-center">
-            <div className="relative w-64 h-64 lg:w-80 lg:h-80">
+            <div className="relative w-72 h-72 lg:w-80 lg:h-80 select-none">
               {/* Background Circle */}
               <svg className="w-full h-full transform -rotate-90">
                 <circle
@@ -216,41 +216,40 @@ export default function Pomodoro() {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-4 mt-8">
+            <div className="flex items-center justify-center gap-4 lg:gap-6 mt-8 sm:mt-10 w-full mb-4">
               <button
                 onClick={resetTimer}
                 disabled={isRinging}
                 className={cn(
-                  "p-3 rounded-xl transition-colors", 
-                  isRinging ? "opacity-30 cursor-not-allowed" : "bg-secondary hover:bg-secondary/80"
+                  "p-4 rounded-2xl transition-all duration-200", 
+                  isRinging ? "opacity-30 cursor-not-allowed" : "bg-secondary hover:bg-secondary/80 hover:scale-105 active:scale-95"
                 )}
               >
-                <RotateCcw className="w-6 h-6" />
+                <RotateCcw className="w-6 h-6 lg:w-7 lg:h-7" />
               </button>
 
               {isRinging ? (
                 <button
                   onClick={stopAlarm}
-                  className="px-8 py-6 rounded-2xl bg-neon-red/20 text-neon-red hover:bg-neon-red/40 border border-neon-red glow-red flex items-center gap-3 transition-all animate-pulse shadow-[0_0_30px_rgba(255,51,102,0.3)]"
+                  className="px-8 py-6 rounded-3xl bg-neon-red/20 text-neon-red hover:bg-neon-red/40 border border-neon-red glow-red flex items-center gap-3 transition-all animate-pulse shadow-[0_0_30px_rgba(255,51,102,0.3)] active:scale-95"
                 >
-                  <Target className="w-6 h-6" />
-                  <span className="font-bold tracking-wider">APAGAR ALARMA</span>
+                  <Target className="w-7 h-7" />
+                  <span className="font-bold tracking-wider text-lg">APAGAR</span>
                 </button>
               ) : (
                 <button
                   onClick={toggleTimer}
                   className={cn(
-                    "p-6 rounded-2xl transition-all",
+                    "p-8 rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl",
                     isActive
-                      ? "bg-neon-red/20 text-neon-red hover:bg-neon-red/30"
-                      : cn(config.bgColor, config.color, "hover:opacity-80"),
-                    "glow-cyan"
+                      ? "bg-neon-red/20 text-neon-red border border-neon-red/50 shadow-[0_0_20px_rgba(255,51,102,0.2)]"
+                      : cn(config.bgColor, config.color, "border border-current/30", `shadow-[0_0_25px_var(--${config.color.split('-')[1]}-${config.color.split('-')[2]})]`)
                   )}
                 >
                   {isActive ? (
-                    <Pause className="w-8 h-8" />
+                     <Pause className="w-10 h-10 lg:w-12 lg:h-12 drop-shadow-lg" />
                   ) : (
-                    <Play className="w-8 h-8 ml-1" />
+                    <Play className="w-10 h-10 lg:w-12 lg:h-12 ml-1 drop-shadow-lg" />
                   )}
                 </button>
               )}
@@ -259,11 +258,11 @@ export default function Pomodoro() {
                 onClick={() => setShowSettings(!showSettings)}
                 disabled={isRinging}
                 className={cn(
-                  "p-3 rounded-xl transition-colors",
-                  isRinging ? "opacity-30 cursor-not-allowed" : showSettings ? "bg-primary/20 text-primary" : "bg-secondary hover:bg-secondary/80"
+                  "p-4 rounded-2xl transition-all duration-200",
+                  isRinging ? "opacity-30 cursor-not-allowed" : showSettings ? "bg-primary/20 text-primary border border-primary/30" : "bg-secondary hover:bg-secondary/80 hover:scale-105 active:scale-95"
                 )}
               >
-                <Settings className="w-6 h-6" />
+                <Settings className="w-6 h-6 lg:w-7 lg:h-7" />
               </button>
             </div>
 
