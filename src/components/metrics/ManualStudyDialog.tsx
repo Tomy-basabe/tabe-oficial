@@ -72,16 +72,35 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
           fecha,
           duracion_segundos: totalSeconds,
           tipo: "manual",
+          completada: true,
           subject_id: subjectId || null,
         });
 
       if (error) throw error;
-      toast.success("Tiempo de estudio registrado");
+
+      // Actualizar XP y Créditos en el frontend (igual que Pomodoro)
+      const hours = Math.floor(totalSeconds / 3600);
+      const xpGained = Math.floor(totalSeconds / 60) * 2; // 2 XP por minuto
+
+      const { data: stats } = await supabase.from("user_stats").select("*").eq("user_id", user.id).single();
+      if (stats) {
+          const currentStats = stats as any;
+          await supabase.from("user_stats").update({
+              horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
+              xp_total: (currentStats.xp_total || 0) + xpGained,
+              credits: (currentStats.credits || 0) + Math.floor(totalSeconds / 60), // 1 Crédito por min
+              nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 1000) + 1 // Subir de nivel automáticamente
+          }).eq("user_id", user.id);
+          
+          await supabase.rpc('check_and_unlock_achievements', { p_user_id: user.id });
+      }
+
+      toast.success(`Tiempo registrado. +${xpGained} XP ganados`);
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding manual study time:", error);
-      toast.error("Error al registrar tiempo de estudio");
+      toast.error(`Error al registrar: ${error?.message || 'Contacte soporte'}`);
     } finally {
       setLoading(false);
     }
