@@ -81,6 +81,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [completedPomodoros, setCompletedPomodoros] = useState(0);
+    const [sessionStartDate, setSessionStartDate] = useState<string>(() => toLocalDateStr());
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -133,6 +134,9 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             // Only set lastTick if it's the beginning of a active cycle
             if (!lastTickRef.current) {
                 lastTickRef.current = Date.now();
+                if (timeLeft === getMinutesForMode(mode, pomodoroSettings) * 60) {
+                    setSessionStartDate(toLocalDateStr());
+                }
             }
 
             timerRef.current = setInterval(() => {
@@ -199,7 +203,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                     duracion_segundos: elapsedSeconds,
                     tipo: "pomodoro",
                     completada: completed,
-                    fecha: toLocalDateStr(),
+                    fecha: sessionStartDate, // Usa la fecha en que inició para celulares suspendidos
                 });
 
             if (error) throw error;

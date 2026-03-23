@@ -183,7 +183,10 @@ export function useDashboardStats() {
       date.setDate(startOfWeek.getDate() + i);
       const dateStr = toLocalDateStr(date);
 
-      const daySessions = studySessions.filter(s => s.fecha === dateStr);
+      const daySessions = studySessions.filter(s => {
+        if (!s.fecha) return false;
+        return toLocalDateStr(new Date(s.fecha)) === dateStr;
+      });
       const totalMinutes = Math.round(daySessions.reduce((acc, s) => acc + s.duracion_segundos, 0) / 60);
 
       weekData.push({

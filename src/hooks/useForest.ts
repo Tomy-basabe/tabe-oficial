@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
 import { toast } from "sonner";
+import { toLocalDateStr } from "@/lib/utils";
 
 export interface Plant {
   id: string;
@@ -111,8 +112,11 @@ export function useForest() {
 
       if (error) throw error;
 
-      const todayStr = today.toISOString().split('T')[0];
-      const todaySessions = sessions?.filter(s => s.fecha === todayStr) || [];
+      const todayStr = toLocalDateStr(today);
+      const todaySessions = sessions?.filter(s => {
+          if (!s.fecha) return false;
+          return toLocalDateStr(new Date(s.fecha)) === todayStr;
+      }) || [];
       const weekSessions = sessions || [];
 
       const studySecToday = todaySessions.reduce((acc, s) => acc + (s.duracion_segundos || 0), 0);

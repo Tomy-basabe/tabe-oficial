@@ -12,8 +12,8 @@ export function NextMilestoneWidget() {
   }
 
   const xp = userStats?.xp_total || 0;
-  // Fallback simple level calculation if 'nivel' is not in userStats
-  const currentLevel = userStats?.nivel || Math.floor(xp / 1000) + 1;
+  // Calculate Level purely out of XP unconditionally so we don't depend on stale DB values
+  const currentLevel = Math.max(1, Math.floor(xp / 1000) + 1);
   const xpForNextLevel = currentLevel * 1000;
   const xpCurrentLevel = (currentLevel - 1) * 1000;
   const xpProgress = xp - xpCurrentLevel;

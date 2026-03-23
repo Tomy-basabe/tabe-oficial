@@ -9,7 +9,7 @@ export function AIAssistantWidget() {
 
   const handleSend = () => {
     if (!prompt.trim()) return;
-    navigate("/ai-assistant", { state: { initialPrompt: prompt } });
+    navigate("/tabe-ai", { state: { initialPrompt: prompt } });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
