@@ -591,6 +591,21 @@ export function AdvancedNotionEditor({
           editor.chain().focus().setTextAlign("right").run();
           return;
         }
+
+        // Color Shortcut: Shift + Q (Igual que resaltar)
+        if (e.key.toUpperCase() === "Q") {
+          e.preventDefault();
+          try {
+            const lastColor = localStorage.getItem("tabe_last_text_color");
+            if (lastColor) {
+              editor.chain().focus().setColor(lastColor).run();
+            } else {
+              // Si no hay color previo, abriría el menú o usaría uno por defecto
+              editor.chain().focus().setColor("#94a3b8").run(); // Color secundario por defecto
+            }
+          } catch (err) {}
+          return;
+        }
       }
 
       // === TEXT FORMATTING (Ctrl+key) ===
@@ -894,6 +909,23 @@ export function AdvancedNotionEditor({
               title="Encabezado 2"
             >
               <Heading2 className="w-4 h-4" />
+            </BubbleBtn>
+
+            <div className="notion-bubble-separator mx-1" />
+
+            <BubbleBtn
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              isActive={editor.isActive("bulletList")}
+              title="Lista de Viñetas"
+            >
+              <List className="w-4 h-4" />
+            </BubbleBtn>
+            <BubbleBtn
+              onClick={() => editor.chain().focus().toggleTaskList().run()}
+              isActive={editor.isActive("taskList")}
+              title="Lista de Tareas"
+            >
+              <CheckSquare className="w-4 h-4" />
             </BubbleBtn>
 
             <div className="notion-bubble-separator mx-1" />

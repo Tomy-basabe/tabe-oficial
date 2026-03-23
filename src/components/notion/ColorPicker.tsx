@@ -85,6 +85,9 @@ export function ColorPicker({ editor, type = "toolbar" }: ColorPickerProps) {
     (color: string | null) => {
       if (color) {
         editor?.chain().focus().setColor(color).run();
+        try {
+          localStorage.setItem("tabe_last_text_color", color);
+        } catch (e) {}
       } else {
         editor?.chain().focus().unsetColor().run();
       }
