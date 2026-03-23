@@ -582,7 +582,7 @@ export default function Forest() {
                 <div>
                   <p className="font-medium">Estudia cada día</p>
                   <p className="text-muted-foreground text-xs">
-                    Tu planta crece 5-15% por día según cuánto estudies
+                    Tu planta crece 15-50% por día según cuánto estudies
                   </p>
                 </div>
               </div>
@@ -592,7 +592,7 @@ export default function Forest() {
                 <div>
                   <p className="font-medium">Usa el Pomodoro</p>
                   <p className="text-muted-foreground text-xs">
-                    +1% extra por cada 30 min de estudio
+                    +5% extra por cada 30 min de estudio
                   </p>
                 </div>
               </div>

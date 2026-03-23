@@ -63,27 +63,21 @@ interface AdvancedNotionEditorProps {
 }
 
 // Bubble menu button
-function BubbleBtn({
-  onClick,
-  isActive,
-  children,
-  title,
-}: {
-  onClick: () => void;
-  isActive?: boolean;
-  children: React.ReactNode;
-  title?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className={cn("notion-bubble-btn", isActive && "active")}
-    >
-      {children}
-    </button>
-  );
-}
+const BubbleBtn = ({ onClick, isActive, children, title, className }: { onClick: () => void; isActive: boolean; children: React.ReactNode; title: string; className?: string }) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "p-2 rounded-xl transition-all flex items-center justify-center",
+      isActive
+        ? "bg-primary/20 text-primary shadow-sm"
+        : "text-slate-400 hover:bg-white/10 hover:text-slate-100",
+      className
+    )}
+    title={title}
+  >
+    {children}
+  </button>
+);
 
 export function AdvancedNotionEditor({
   content,
@@ -285,10 +279,10 @@ export function AdvancedNotionEditor({
                   // Convert base64 to Blob
                   const response = await fetch(src);
                   const blob = await response.blob();
-                  
+
                   const fileExt = blob.type.split('/')[1] || 'png';
                   const fileName = `paste-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-                  
+
                   const { error: uploadError } = await supabase.storage
                     .from('notion-images')
                     .upload(fileName, blob);
@@ -322,7 +316,7 @@ export function AdvancedNotionEditor({
               return true;
             }
           }
-          
+
           // Let Tiptap handle standard HTML pastes natively
           return false;
         }
@@ -351,7 +345,7 @@ export function AdvancedNotionEditor({
 
         // Heuristic to detect and fix PDF/Word line breaks
         let blocks: { type: 'p' | 'li', content: string }[] = [];
-        
+
         lines.forEach(line => {
           // Detect bullet points (more comprehensive regex)
           const bulletMatch = line.match(/^([•●○◦▪■*-]|\d+[.)])\s+(.*)/);
@@ -359,7 +353,7 @@ export function AdvancedNotionEditor({
             blocks.push({ type: 'li', content: bulletMatch[2] });
           } else {
             const lastBlock = blocks[blocks.length - 1];
-            
+
             // Heuristic for merging split sentences:
             // 1. If previous block wasn't a list item
             // 2. AND previous block didn't end with sentence-ending punctuation (., !, ?, :)
@@ -527,7 +521,7 @@ export function AdvancedNotionEditor({
           editor.chain().focus().toggleHighlight().run();
           return;
         }
-        // Atajo de Strikethrough alternativo para liberar Ctrl+S si fuera necesario, 
+        // Atajo de Strikethrough alternativo para liberar Ctrl+S si fuera necesario,
         // pero el usuario pidió Ctrl+S para colores.
         // Move block up: Ctrl+Shift+ArrowUp
         if (e.key === "ArrowUp") {
@@ -604,15 +598,15 @@ export function AdvancedNotionEditor({
 
       // === TEXT FORMATTING (Ctrl+key) ===
       if (modKey && !e.altKey) {
-        // Color Shortcut: Ctrl + S (Reemplaza al tradicional guardar que ya es automático)
-        if (e.key.toLowerCase() === "s" && !e.shiftKey) {
+        // Color Shortcut: Ctrl + E (Reemplaza al tradicional guardar que ya es automático)
+        if (e.key.toLowerCase() === "e" && !e.shiftKey) {
           e.preventDefault();
           try {
             const lastColor = localStorage.getItem("tabe_last_text_color");
             if (lastColor) {
               editor.chain().focus().setColor(lastColor).run();
             } else {
-              editor.chain().focus().setColor("#94a3b8").run(); 
+              editor.chain().focus().setColor("#94a3b8").run();
             }
           } catch (err) {}
           return;
@@ -620,7 +614,7 @@ export function AdvancedNotionEditor({
 
         if (!e.shiftKey) {
           switch (e.key.toLowerCase()) {
-            case "e":
+            case "q": // Liberamos E para color, usamos Q o simplemente dependemos de herramientas
               e.preventDefault();
               editor.chain().focus().toggleCode().run();
               return;
@@ -656,7 +650,7 @@ export function AdvancedNotionEditor({
       // === TAB / SHIFT+TAB ===
       if (e.key === "Tab") {
         e.preventDefault();
-        
+
         if (e.shiftKey) {
           // Priority: Lists/Tasks, then regular indentation
           if (editor.can().liftListItem("listItem")) {
@@ -791,34 +785,37 @@ export function AdvancedNotionEditor({
 
   return (
     <div className="notion-advanced-editor relative">
-      <MathMenu 
-        open={mathMenuOpen} 
-        onOpenChange={setMathMenuOpen} 
-        anchorEl={mathMenuAnchor} 
+      <MathMenu
+        open={mathMenuOpen}
+        onOpenChange={setMathMenuOpen}
+        anchorEl={mathMenuAnchor}
         onSelect={(latex) => {
           // 1. Dispatch event so any active MathNodeView can catch it
           const event = new CustomEvent('notion-insert-math', { detail: latex });
           window.dispatchEvent(event);
-          
+
           // 2. If no one handles it (or even if they do), we might want to insert a new one
           // But actually, if someone handled it, we should probably stop.
           // For simplicity, we'll try to insert a new one ONLY if no math input is focused.
           const activeEl = document.activeElement;
           const isMathInput = activeEl?.classList.contains('notion-math-input');
-          
+
           if (!isMathInput && editor) {
             editor.chain().focus().setMath({ formula: latex }).run();
           }
-        }} 
+        }}
       />
-      {/* Bubble Menu — appears on text selection, like real Notion */}
+      {/* Bubble Menu — appears */}
       <BubbleMenu
         editor={editor}
-        tippyOptions={{ duration: 100 }}
-        className="notion-bubble-menu"
+        className={cn(
+          "notion-bubble-menu flex items-center bg-[#0f172a] border border-[#1e293b] text-slate-200 shadow-2xl rounded-2xl p-1 overflow-hidden animate-in fade-in zoom-in duration-200",
+          "ring-1 ring-white/10"
+        )}
+        tippyOptions={{ duration: 150 }}
       >
         {editor.isActive("image") ? (
-          <div className="flex items-center px-1 py-1">
+          <div className="flex items-center">
             <BubbleBtn
               onClick={() => editor.chain().focus().updateAttributes("image", { align: "left", isFloating: false }).run()}
               isActive={editor.isActive("image", { align: "left" })}
@@ -826,6 +823,7 @@ export function AdvancedNotionEditor({
             >
               <AlignLeft className="w-4 h-4" />
             </BubbleBtn>
+            <div className="w-[1px] h-4 bg-white/10 mx-1" />
             <BubbleBtn
               onClick={() => editor.chain().focus().updateAttributes("image", { align: "left-block", isFloating: false }).run()}
               isActive={editor.isActive("image", { align: "left-block" })}
@@ -853,6 +851,7 @@ export function AdvancedNotionEditor({
                 <div className="absolute inset-y-0 right-0 w-1 bg-primary rounded-full" />
               </div>
             </BubbleBtn>
+            <div className="w-[1px] h-4 bg-white/10 mx-1" />
             <BubbleBtn
               onClick={() => editor.chain().focus().updateAttributes("image", { align: "right", isFloating: false }).run()}
               isActive={editor.isActive("image", { align: "right" })}
@@ -861,7 +860,7 @@ export function AdvancedNotionEditor({
               <AlignRight className="w-4 h-4" />
             </BubbleBtn>
 
-            <div className="notion-bubble-separator mx-2" />
+            <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
             <BubbleBtn
               onClick={() => editor.chain().focus().updateAttributes("image", { align: "full", isFloating: false }).run()}
@@ -875,7 +874,7 @@ export function AdvancedNotionEditor({
               onClick={() => {
                 const attrs = editor.getAttributes("image");
                 const isFloating = !attrs.isFloating;
-                
+
                 if (isFloating) {
                   // Capture current position before switching to floating
                   const { from } = editor.state.selection;
@@ -886,7 +885,7 @@ export function AdvancedNotionEditor({
                     if (parentRect) {
                       const x = rect.left - parentRect.left;
                       const y = rect.top - parentRect.top;
-                      editor.chain().focus().updateAttributes("image", { 
+                      editor.chain().focus().updateAttributes("image", {
                         isFloating: true,
                         position: { x, y }
                       }).run();
@@ -894,7 +893,7 @@ export function AdvancedNotionEditor({
                     }
                   }
                 }
-                
+
                 editor.chain().focus().updateAttributes("image", { isFloating }).run();
               }}
               isActive={editor.getAttributes("image").isFloating}
@@ -904,24 +903,24 @@ export function AdvancedNotionEditor({
             </BubbleBtn>
           </div>
         ) : (
-          <div className="flex items-center px-1 py-1">
+          <div className="flex items-center">
             {/* Standard text tools continue here... */}
             <BubbleBtn
               onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
               isActive={editor.isActive("heading", { level: 1 })}
               title="Encabezado 1"
             >
-              <Heading1 className="w-4 h-4" />
+              <span className="text-sm font-bold">H1</span>
             </BubbleBtn>
             <BubbleBtn
               onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
               isActive={editor.isActive("heading", { level: 2 })}
               title="Encabezado 2"
             >
-              <Heading2 className="w-4 h-4" />
+              <span className="text-sm font-bold text-slate-400">H2</span>
             </BubbleBtn>
 
-            <div className="notion-bubble-separator mx-1" />
+            <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
             <BubbleBtn
               onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -938,7 +937,7 @@ export function AdvancedNotionEditor({
               <CheckSquare className="w-4 h-4" />
             </BubbleBtn>
 
-            <div className="notion-bubble-separator mx-1" />
+            <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
             <BubbleBtn
               onClick={() => editor.chain().focus().toggleBold().run()}
@@ -962,37 +961,37 @@ export function AdvancedNotionEditor({
               <Underline className="w-4 h-4" />
             </BubbleBtn>
 
-            <div className="notion-bubble-separator mx-1" />
+            <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
             <HighlightColorPicker editor={editor} type="bubble" />
             <ColorPicker editor={editor} type="bubble" />
 
-            <div className="notion-bubble-separator mx-1" />
+            <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
             <BubbleBtn onClick={setLink} isActive={editor.isActive("link")} title="Enlace (Ctrl+K)">
               <LinkIcon className="w-4 h-4" />
             </BubbleBtn>
 
-            <div className="notion-bubble-separator mx-1" />
+            <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
             <BubbleBtn
               onClick={() => editor.chain().focus().setTextAlign("left").run()}
               isActive={editor.isActive({ textAlign: "left" })}
-              title="Alinear texto a la izquierda"
+              title="Izquierda"
             >
               <AlignLeft className="w-4 h-4" />
             </BubbleBtn>
             <BubbleBtn
               onClick={() => editor.chain().focus().setTextAlign("center").run()}
               isActive={editor.isActive({ textAlign: "center" })}
-              title="Centrar texto"
+              title="Centro"
             >
               <AlignCenter className="w-4 h-4" />
             </BubbleBtn>
             <BubbleBtn
               onClick={() => editor.chain().focus().setTextAlign("right").run()}
               isActive={editor.isActive({ textAlign: "right" })}
-              title="Alinear texto a la derecha"
+              title="Derecha"
             >
               <AlignRight className="w-4 h-4" />
             </BubbleBtn>

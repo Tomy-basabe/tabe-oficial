@@ -219,10 +219,10 @@ export function useForest() {
         multiplier = currentPlant.growth_multiplier || 1;
       }
 
-      // Growth based on study time: 5% base + 1% per 30 minutes studied today
-      const baseGrowth = 5;
-      const bonusGrowth = Math.floor(studyActivity.studyMinutesToday / 30);
-      const totalGrowth = Math.min((baseGrowth + bonusGrowth) * multiplier, 15 * multiplier); // Max 15% (or 30% with fertilizer) per day
+      // Growth based on study time: 15% base + 5% per 30 minutes studied today
+      const baseGrowth = 15;
+      const bonusGrowth = Math.floor(studyActivity.studyMinutesToday / 30) * 5;
+      const totalGrowth = Math.min((baseGrowth + bonusGrowth) * multiplier, 50 * multiplier); // Max 50% (or 100% with fertilizer) per day
 
       const newGrowth = Math.min(currentPlant.growth_percentage + totalGrowth, 100);
       const isCompleted = newGrowth >= 100;
