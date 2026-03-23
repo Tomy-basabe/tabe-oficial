@@ -126,6 +126,11 @@ export function AdvancedNotionEditor({
               find: /^\s*([*-+•])\s$/,
               type: this.type,
             }),
+            // Regla adicional sin anclaje estricto para mayor compatibilidad
+            wrappingInputRule({
+              find: /([*-+•])\s$/,
+              type: this.type,
+            }),
           ]
         },
         addPasteRules() {
@@ -509,17 +514,21 @@ export function AdvancedNotionEditor({
         }
 
         // Strikethrough: Ctrl+Shift+S
-        if (e.key.toLowerCase() === "s") {
-          e.preventDefault();
-          editor.chain().focus().toggleStrike().run();
-          return;
-        }
+        // This shortcut is now removed to free up Ctrl+S for color.
+        // If strikethrough is still needed, assign a new shortcut here.
+        // if (e.key.toLowerCase() === "s") {
+        //   e.preventDefault();
+        //   editor.chain().focus().toggleStrike().run();
+        //   return;
+        // }
         // Highlight: Ctrl+Shift+H
         if (e.key.toLowerCase() === "h") {
           e.preventDefault();
           editor.chain().focus().toggleHighlight().run();
           return;
         }
+        // Atajo de Strikethrough alternativo para liberar Ctrl+S si fuera necesario, 
+        // pero el usuario pidió Ctrl+S para colores.
         // Move block up: Ctrl+Shift+ArrowUp
         if (e.key === "ArrowUp") {
           e.preventDefault();
@@ -591,48 +600,49 @@ export function AdvancedNotionEditor({
           editor.chain().focus().setTextAlign("right").run();
           return;
         }
+      }
 
-        // Color Shortcut: Shift + Q (Igual que resaltar)
-        if (e.key.toUpperCase() === "Q") {
+      // === TEXT FORMATTING (Ctrl+key) ===
+      if (modKey && !e.altKey) {
+        // Color Shortcut: Ctrl + S (Reemplaza al tradicional guardar que ya es automático)
+        if (e.key.toLowerCase() === "s" && !e.shiftKey) {
           e.preventDefault();
           try {
             const lastColor = localStorage.getItem("tabe_last_text_color");
             if (lastColor) {
               editor.chain().focus().setColor(lastColor).run();
             } else {
-              // Si no hay color previo, abriría el menú o usaría uno por defecto
-              editor.chain().focus().setColor("#94a3b8").run(); // Color secundario por defecto
+              editor.chain().focus().setColor("#94a3b8").run(); 
             }
           } catch (err) {}
           return;
         }
-      }
 
-      // === TEXT FORMATTING (Ctrl+key) ===
-      if (modKey && !e.altKey && !e.shiftKey) {
-        switch (e.key.toLowerCase()) {
-          case "e":
-            e.preventDefault();
-            editor.chain().focus().toggleCode().run();
-            return;
-          case "k": {
-            e.preventDefault();
-            const previousUrl = editor.getAttributes("link").href;
-            const url = window.prompt("URL:", previousUrl);
-            if (url === null) return;
-            if (url === "") {
-              editor.chain().focus().extendMarkRange("link").unsetLink().run();
-            } else {
-              editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+        if (!e.shiftKey) {
+          switch (e.key.toLowerCase()) {
+            case "e":
+              e.preventDefault();
+              editor.chain().focus().toggleCode().run();
+              return;
+            case "k": {
+              e.preventDefault();
+              const previousUrl = editor.getAttributes("link").href;
+              const url = window.prompt("URL:", previousUrl);
+              if (url === null) return;
+              if (url === "") {
+                editor.chain().focus().extendMarkRange("link").unsetLink().run();
+              } else {
+                editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+              }
+              return;
             }
-            return;
-          }
-          case "d": {
-            e.preventDefault();
-            const { from, to } = editor.state.selection;
-            const slice = editor.state.doc.slice(from, to);
-            editor.chain().focus().insertContentAt(to, slice.content.toJSON()).run();
-            return;
+            case "d": {
+              e.preventDefault();
+              const { from, to } = editor.state.selection;
+              const slice = editor.state.doc.slice(from, to);
+              editor.chain().focus().insertContentAt(to, slice.content.toJSON()).run();
+              return;
+            }
           }
         }
       }
