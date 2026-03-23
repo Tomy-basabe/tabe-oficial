@@ -10,6 +10,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 
+// Nuevos Widgets
+import { ForestWidget } from "@/components/dashboard/widgets/ForestWidget";
+import { AIAssistantWidget } from "@/components/dashboard/widgets/AIAssistantWidget";
+import { PomodoroGoalWidget } from "@/components/dashboard/widgets/PomodoroGoalWidget";
+import { NextMilestoneWidget } from "@/components/dashboard/widgets/NextMilestoneWidget";
+
+
 export default function Dashboard() {
   const { user } = useAuth();
   const {
@@ -112,8 +119,15 @@ export default function Dashboard() {
 
       <AdsterraBanner />
 
+      {/* Super Widgets Row 1 (AI Assistant + Forest + XP Milestone) */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        <AIAssistantWidget />
+        <ForestWidget />
+        <NextMilestoneWidget />
+      </div>
+
       {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6 mt-4">
         {/* Progress Overview */}
         <div className="lg:col-span-2 card-gamer rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
@@ -162,16 +176,19 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Study Streak */}
-        <StudyStreak
-          currentStreak={userStats?.racha_actual || 0}
-          bestStreak={userStats?.mejor_racha || 0}
-          weekData={weekData}
-        />
+        {/* Study Goals Column */}
+        <div className="grid auto-rows-max gap-4">
+          <PomodoroGoalWidget />
+          <StudyStreak
+            currentStreak={userStats?.racha_actual || 0}
+            bestStreak={userStats?.mejor_racha || 0}
+            weekData={weekData}
+          />
+        </div>
       </div>
 
-      {/* Second Row */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      {/* Third Row */}
+      <div className="grid lg:grid-cols-3 gap-6 mt-4">
         {/* Recent Subjects */}
         <div className="lg:col-span-2 card-gamer rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">

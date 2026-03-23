@@ -239,7 +239,7 @@ export default function Settings() {
 
                   <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
                     <p className="text-[10px] leading-relaxed text-orange-400">
-                      <span className="font-bold">Instrucciones:</span> Buscá @TA_BE_Bot en Telegram o el número oficial en WhatsApp y enviale el código de 6 dígitos que generaste arriba.
+                      <span className="font-bold">Instrucciones:</span> Buscá @tabeai_bot en Telegram o el número oficial en WhatsApp y enviale el código de 6 dígitos que generaste arriba.
                     </p>
                   </div>
                 </div>

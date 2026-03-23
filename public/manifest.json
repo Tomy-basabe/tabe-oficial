@@ -44,5 +44,35 @@
         }
     ],
     "screenshots": [],
-    "prefer_related_applications": false
+    "prefer_related_applications": false,
+    "shortcuts": [
+        {
+            "name": "Pomodoro",
+            "short_name": "Focus",
+            "description": "Inicia una sesión de estudio profundo",
+            "url": "/pomodoro",
+            "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+        },
+        {
+            "name": "Asistente TABE",
+            "short_name": "AI Coach",
+            "description": "Habla con la Inteligencia Artificial",
+            "url": "/ai-assistant",
+            "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+        },
+        {
+            "name": "Calendario",
+            "short_name": "Eventos",
+            "description": "Revisa tus próximos exámenes",
+            "url": "/calendario",
+            "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+        },
+        {
+            "name": "Dashboard",
+            "short_name": "Inicio",
+            "description": "Ir al panel principal",
+            "url": "/dashboard",
+            "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+        }
+    ]
 }
