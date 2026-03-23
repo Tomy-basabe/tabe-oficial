@@ -5,10 +5,11 @@ import {
   differenceInDays, eachDayOfInterval, format, 
   parseISO
 } from "date-fns";
+import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { 
   Moon, MoonStar, TrendingUp, Plus, 
-  Star, CloudMoon, AlertTriangle 
+  Star, CloudMoon, AlertTriangle, Pencil, Trash2 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SleepLogDialog } from "./SleepLogDialog";
@@ -18,9 +19,10 @@ interface SleepStatsProps {
 }
 
 export function SleepStats({ dateRange }: SleepStatsProps) {
-  const { getSleepLogs, loading: logsLoading } = useSleepLogs();
+  const { getSleepLogs, deleteSleepLog, loading: logsLoading } = useSleepLogs();
   const [logs, setLogs] = useState<SleepLog[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState<SleepLog | null>(null);
 
   const fetchLogs = useCallback(async () => {
     const data = await getSleepLogs(dateRange.from, dateRange.to);
@@ -31,6 +33,23 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
     fetchLogs();
   }, [fetchLogs]);
 
+  const handleEdit = (log: SleepLog) => {
+    setEditingLog(log);
+    setDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditingLog(null);
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (log: SleepLog) => {
+    if (confirm(`¿Eliminar el registro del ${format(parseISO(log.fecha), "d 'de' MMMM", { locale: es })}?`)) {
+      const success = await deleteSleepLog(log.id);
+      if (success) fetchLogs();
+    }
+  };
+
   const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
   const allDays = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
 
@@ -39,7 +58,7 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
     const dayLog = logs.find(l => l.fecha === dateStr);
     
     return {
-      label: format(date, 'EEE', { locale: undefined }), // Use project local if available
+      label: format(date, 'EEE', { locale: undefined }),
       sublabel: format(date, 'dd/MM'),
       date: dateStr,
       horas: dayLog ? dayLog.horas : 0,
@@ -63,6 +82,24 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
       case 'regular': return 'bg-neon-gold';
       case 'mala': return 'bg-neon-red';
       default: return 'bg-secondary/30';
+    }
+  };
+
+  const getQualityLabel = (quality: string) => {
+    switch (quality) {
+      case 'buena': return 'Buena';
+      case 'regular': return 'Regular';
+      case 'mala': return 'Mala';
+      default: return quality;
+    }
+  };
+
+  const getQualityIcon = (quality: string) => {
+    switch (quality) {
+      case 'buena': return <Star className="w-3.5 h-3.5 text-neon-green" />;
+      case 'regular': return <CloudMoon className="w-3.5 h-3.5 text-neon-gold" />;
+      case 'mala': return <AlertTriangle className="w-3.5 h-3.5 text-neon-red" />;
+      default: return null;
     }
   };
 
@@ -135,7 +172,7 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
               <h2 className="font-display font-semibold text-lg">Horas de Sueño</h2>
             </div>
             <Button 
-              onClick={() => setDialogOpen(true)}
+              onClick={handleAdd}
               className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 h-8 gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -153,7 +190,7 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
               <p className="text-muted-foreground">No hay registros para este periodo</p>
               <Button 
                 variant="link" 
-                onClick={() => setDialogOpen(true)}
+                onClick={handleAdd}
                 className="text-primary mt-2"
               >
                 Cargar mi primer sueño
@@ -250,10 +287,60 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
         </div>
       </div>
 
+      {/* Logs list with edit/delete */}
+      {logs.length > 0 && (
+        <div className="card-gamer rounded-xl p-6">
+          <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
+            <Moon className="w-5 h-5 text-neon-cyan" />
+            Registros del Periodo
+          </h3>
+          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+            {[...logs].reverse().map(log => (
+              <div
+                key={log.id}
+                className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border/50 hover:bg-secondary/50 transition-all group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {getQualityIcon(log.calidad)}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {format(parseISO(log.fecha), "EEEE d 'de' MMM", { locale: es })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatHours(log.horas)} · {getQualityLabel(log.calidad)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                  <button
+                    onClick={() => handleEdit(log)}
+                    className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-all"
+                    title="Editar registro"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(log)}
+                    className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-all"
+                    title="Eliminar registro"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <SleepLogDialog 
         open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
-        onSuccess={fetchLogs} 
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditingLog(null);
+        }} 
+        onSuccess={fetchLogs}
+        editLog={editingLog}
       />
     </div>
   );

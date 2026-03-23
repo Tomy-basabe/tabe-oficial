@@ -10,17 +10,18 @@ import {
   Select, SelectContent, SelectItem, 
   SelectTrigger, SelectValue 
 } from "@/components/ui/select";
-import { useSleepLogs } from "@/hooks/useSleepLogs";
+import { useSleepLogs, SleepLog } from "@/hooks/useSleepLogs";
 import { Moon, Star, AlertTriangle, CloudMoon } from "lucide-react";
 
 interface SleepLogDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  editLog?: SleepLog | null;
 }
 
-export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialogProps) {
-  const { addSleepLog, loading } = useSleepLogs();
+export function SleepLogDialog({ open, onOpenChange, onSuccess, editLog }: SleepLogDialogProps) {
+  const { addSleepLog, updateSleepLog, loading } = useSleepLogs();
   const getYesterdayDate = () => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
@@ -35,12 +36,22 @@ export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialog
 
   useEffect(() => {
     if (open) {
-      setFecha(getYesterdayDate());
-      setHoras("8");
-      setMinutos("0");
-      setIsManualCalidad(false);
+      if (editLog) {
+        setFecha(editLog.fecha);
+        const h = Math.floor(editLog.horas);
+        const m = Math.round((editLog.horas - h) * 60);
+        setHoras(String(h));
+        setMinutos(String(m));
+        setCalidad(editLog.calidad);
+        setIsManualCalidad(true);
+      } else {
+        setFecha(getYesterdayDate());
+        setHoras("8");
+        setMinutos("0");
+        setIsManualCalidad(false);
+      }
     }
-  }, [open]);
+  }, [open, editLog]);
 
   useEffect(() => {
     if (isManualCalidad) return;
@@ -64,16 +75,26 @@ export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialog
     const m = parseFloat(minutos) || 0;
     const totalHoras = h + (m / 60);
     
-    const success = await addSleepLog({
+    const logData = {
       fecha,
       horas: parseFloat(totalHoras.toFixed(2)),
       calidad
-    });
+    };
+
+    let success;
+    if (editLog) {
+      success = await updateSleepLog(editLog.id, logData);
+    } else {
+      success = await addSleepLog(logData);
+    }
+
     if (success) {
       onSuccess();
       onOpenChange(false);
     }
   };
+
+  const isEdit = !!editLog;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,10 +102,10 @@ export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialog
         <DialogHeader>
           <DialogTitle className="font-display font-bold text-xl gradient-text flex items-center gap-2">
             <Moon className="w-5 h-5 text-neon-purple" />
-            Registrar Sueño
+            {isEdit ? "Editar Sueño" : "Registrar Sueño"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Lleva un seguimiento de tu descanso para optimizar tu rendimiento.
+            {isEdit ? "Modifica los datos de este registro de sueño." : "Lleva un seguimiento de tu descanso para optimizar tu rendimiento."}
           </DialogDescription>
         </DialogHeader>
 
@@ -172,7 +193,7 @@ export function SleepLogDialog({ open, onOpenChange, onSuccess }: SleepLogDialog
               disabled={loading}
               className="w-full bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-bold hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all"
             >
-              {loading ? "Guardando..." : "Guardar Registro"}
+              {loading ? "Guardando..." : isEdit ? "Guardar Cambios" : "Guardar Registro"}
             </Button>
           </DialogFooter>
         </form>

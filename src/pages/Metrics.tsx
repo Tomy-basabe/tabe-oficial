@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3, Clock, BookOpen,
   Timer, Layers, Video, Calendar, Library,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Plus
 } from "lucide-react";
 import { 
   subDays, addDays, eachDayOfInterval, format, differenceInDays, 
@@ -15,6 +15,7 @@ import { cn, toLocalDateStr } from "@/lib/utils";
 import { FlashcardStats } from "@/components/metrics/FlashcardStats";
 import { RoutineStats } from "@/components/metrics/RoutineStats";
 import { SleepStats } from "@/components/metrics/SleepStats";
+import { ManualStudyDialog } from "@/components/metrics/ManualStudyDialog";
 import { Button } from "@/components/ui/button";
 import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
 import { Moon } from "lucide-react";
@@ -43,10 +44,11 @@ const defaultDateRange: DateRange = {
 export default function Metrics() {
   const { user, isGuest } = useAuth();
   const [sessions, setSessions] = useState<StudySession[]>([]);
-  const [subjects, setSubjects] = useState<{ id: string; nombre: string }[]>([]);
+  const [subjects, setSubjects] = useState<{ id: string; nombre: string; año?: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"general" | "flashcards" | "rutinas" | "sueno">("general");
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
+  const [showManualDialog, setShowManualDialog] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user && !isGuest) return;
@@ -92,11 +94,11 @@ export default function Metrics() {
 
       const { data: subjectData } = await supabase
         .from("subjects")
-        .select("id, nombre")
+        .select("id, nombre, año")
         .eq("user_id", user.id);
 
       setSessions(sessionData || []);
-      setSubjects(subjectData || []);
+      setSubjects((subjectData || []) as any);
     } catch (error) {
       console.error("Error fetching metrics:", error);
     } finally {
@@ -294,6 +296,7 @@ export default function Metrics() {
       estudio: "Estudio Libre",
       apuntes: "Apuntes",
       biblioteca: "Biblioteca",
+      manual: "Manual",
     };
     return labels[type] || type;
   };
@@ -337,7 +340,7 @@ export default function Metrics() {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex bg-secondary rounded-xl p-1 w-fit">
+        <div className="flex bg-secondary rounded-xl p-1 w-fit max-w-full overflow-x-auto">{/* scrollable on mobile */}
           <button
             onClick={() => setActiveTab("general")}
             className={cn(
@@ -391,6 +394,17 @@ export default function Metrics() {
 
       {activeTab === "general" ? (
         <>
+          {/* Manual Study Button */}
+          <div className="flex justify-end -mt-2 mb-2">
+            <Button
+              onClick={() => setShowManualDialog(true)}
+              className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 h-9 gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Cargar Tiempo Manual
+            </Button>
+          </div>
+
           {/* Stats Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 tour-metrics-overview">
             <div className="card-gamer rounded-xl p-5">
@@ -546,6 +560,7 @@ export default function Metrics() {
                   apuntes: { label: "Apuntes", icon: BookOpen, color: "neon-green" },
                   biblioteca: { label: "Biblioteca", icon: Library, color: "primary" },
                   videocall: { label: "Videollamadas", icon: Video, color: "neon-purple" },
+                  manual: { label: "Manual", icon: Clock, color: "neon-cyan" },
                 };
 
                 const typeCounts: Record<string, { count: number; seconds: number }> = {};
@@ -573,6 +588,12 @@ export default function Metrics() {
               })()}
             </div>
           </div>
+          <ManualStudyDialog
+            open={showManualDialog}
+            onOpenChange={setShowManualDialog}
+            onSuccess={fetchData}
+            subjects={subjects}
+          />
         </>
       ) : activeTab === "flashcards" ? (
         <FlashcardStats />

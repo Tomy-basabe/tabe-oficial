@@ -62,6 +62,30 @@ export function useSleepLogs() {
     }
   }, [user]);
 
+  const updateSleepLog = useCallback(async (id: string, log: Omit<SleepLog, "id" | "user_id" | "created_at">) => {
+    if (!user) return null;
+    setLoading(true);
+    try {
+      const { data, error } = await (supabase
+        .from("sleep_logs" as any) as any)
+        .update({ ...log })
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      toast.success("Registro de sueño actualizado");
+      return data as SleepLog;
+    } catch (error) {
+      console.error("Error updating sleep log:", error);
+      toast.error("Error al actualizar registro de sueño");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
   const deleteSleepLog = useCallback(async (id: string) => {
     if (!user) return false;
     setLoading(true);
@@ -88,6 +112,7 @@ export function useSleepLogs() {
     loading,
     getSleepLogs,
     addSleepLog,
+    updateSleepLog,
     deleteSleepLog
   };
 }
