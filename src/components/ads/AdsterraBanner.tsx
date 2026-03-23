@@ -46,7 +46,8 @@ export function AdsterraBanner() {
     }
   }, [isPremium, loading]);
 
-  if (isPremium) return null;
+  // Don't render anything for premium users OR while loading (avoids flashing empty container)
+  if (loading || isPremium) return null;
 
   return (
     <div className="w-full flex justify-center py-4 overflow-hidden min-h-[60px] md:min-h-[100px]">
