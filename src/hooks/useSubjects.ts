@@ -152,7 +152,7 @@ export function useSubjects() {
         await new Promise(r => setTimeout(r, 1000));
         return fetchData(false, retries - 1);
       }
-      toast.error("Error al cargar las materias");
+      toast.error(`Error al cargar materias: ${error?.message || "Error desconocido"}`);
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
       setLoading(false);
