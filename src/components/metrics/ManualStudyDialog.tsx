@@ -71,7 +71,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
           user_id: user.id,
           fecha,
           duracion_segundos: totalSeconds,
-          tipo: "manual",
+          tipo: "pomodoro",
           completada: true,
           subject_id: subjectId || null,
         });
