@@ -611,8 +611,8 @@ export function AdvancedNotionEditor({
 
       // === TEXT FORMATTING (Ctrl+key) ===
       if (modKey && !e.altKey) {
-        // Color Shortcut: Ctrl + E (Reemplaza al tradicional guardar que ya es automático)
-        if (e.key.toLowerCase() === "e" && !e.shiftKey) {
+        // Color Shortcut: Ctrl + S (Reemplaza al tradicional guardar que ya es automático)
+        if (e.key.toLowerCase() === "s" && !e.shiftKey) {
           e.preventDefault();
           try {
             const lastColor = localStorage.getItem("tabe_last_text_color");
@@ -627,9 +627,9 @@ export function AdvancedNotionEditor({
 
         if (!e.shiftKey) {
           switch (e.key.toLowerCase()) {
-            case "q": // Liberamos E para color, usamos Q o simplemente dependemos de herramientas
+            case "q": // Usamos Q para el resaltado simple (highlight) sin alterar el color del texto
               e.preventDefault();
-              editor.chain().focus().toggleCode().run();
+              editor.chain().focus().toggleHighlight().run();
               return;
             case "k": {
               e.preventDefault();
