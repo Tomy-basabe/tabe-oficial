@@ -3,7 +3,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import TiptapUnderline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
@@ -28,7 +27,7 @@ import {
   Bold, Italic, Underline, Strikethrough, Code,
   Heading1, Heading2, Heading3, List, ListOrdered,
   CheckSquare, Quote, Link as LinkIcon,
-  Highlighter, AlignLeft, AlignCenter, AlignRight,
+  AlignLeft, AlignCenter, AlignRight,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
   Maximize, Move,
 } from "lucide-react";
@@ -158,7 +157,6 @@ export function AdvancedNotionEditor({
         nested: true,
         HTMLAttributes: { class: "notion-task-item" },
       }),
-      Highlight.configure({ multicolor: true }),
       TextStyle,
       Color,
       BackgroundColor,
@@ -530,14 +528,9 @@ export function AdvancedNotionEditor({
         //   editor.chain().focus().toggleStrike().run();
         //   return;
         // }
-        // Highlight: Ctrl+Shift+H
-        if (e.key.toLowerCase() === "h") {
-          e.preventDefault();
-          editor.chain().focus().toggleHighlight().run();
-          return;
-        }
-        // Atajo de Strikethrough alternativo para liberar Ctrl+S si fuera necesario,
-        // pero el usuario pidió Ctrl+S para colores.
+        // Strikethrough (removido para no interferir)
+        // ...
+        
         // Move block up: Ctrl+Shift+ArrowUp
         if (e.key === "ArrowUp") {
           e.preventDefault();
@@ -612,21 +605,10 @@ export function AdvancedNotionEditor({
       }
 
       // === TEXT FORMATTING (Ctrl+key) ===
+      // Los atajos de color (Ctrl+S) y resaltado (Ctrl+Q) ahora se manejan 
+      // directamente en ColorExtension.ts para evitar conflictos.
+      
       if (modKey && !e.altKey) {
-        // Color Shortcut: Ctrl + S (Reemplaza al tradicional guardar que ya es automático)
-        if (e.key.toLowerCase() === "s" && !e.shiftKey) {
-          e.preventDefault();
-          try {
-            const lastColor = localStorage.getItem("tabe_last_text_color");
-            if (lastColor) {
-              editor.chain().focus().setColor(lastColor).run();
-            } else {
-              editor.chain().focus().setColor("#94a3b8").run();
-            }
-          } catch (err) {}
-          return;
-        }
-
         if (!e.shiftKey) {
           switch (e.key.toLowerCase()) {
             case "k": {

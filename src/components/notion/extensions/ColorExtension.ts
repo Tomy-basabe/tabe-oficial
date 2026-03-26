@@ -181,8 +181,6 @@ export const BackgroundColor = Extension.create({
 
   addKeyboardShortcuts() {
     const handleHighlightToggle = () => {
-      // Importante: No llamar a `focus()` aquí si rompe el input. 
-      // Si el usuario estaba escribiendo, la selección ya está activa.
       const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD";
       const currentBgColor = this.editor.getAttributes("textStyle")?.backgroundColor;
       
@@ -193,13 +191,31 @@ export const BackgroundColor = Extension.create({
       }
     };
 
+    const handleColorToggle = () => {
+      const lastColor = localStorage.getItem("tabe_last_text_color") || "#94a3b8";
+      const currentColor = this.editor.getAttributes("textStyle")?.color;
+
+      if (currentColor) {
+        return this.editor.chain().unsetColor().run();
+      } else {
+        return this.editor.chain().setColor(lastColor).run();
+      }
+    };
+
     return {
       "Mod-q": handleHighlightToggle,
-      "Mod-Q": handleHighlightToggle, // Para cuando está activado el bloqueo de mayúsculas o Shift
+      "Mod-Q": handleHighlightToggle,
       "Ctrl-q": handleHighlightToggle,
       "Ctrl-Q": handleHighlightToggle,
       "Cmd-q": handleHighlightToggle,
       "Cmd-Q": handleHighlightToggle,
+      // Color de Texto
+      "Mod-s": handleColorToggle,
+      "Mod-S": handleColorToggle,
+      "Ctrl-s": handleColorToggle,
+      "Ctrl-S": handleColorToggle,
+      "Cmd-s": handleColorToggle,
+      "Cmd-S": handleColorToggle,
     };
   },
 });
