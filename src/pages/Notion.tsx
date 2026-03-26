@@ -1350,9 +1350,39 @@ export default function Notion() {
                       onUpdate={handleContentUpdate}
                       onActivity={() => lastActivityRef.current = Date.now()}
                       documentId={activeDocument.id}
-                      onSubPageClick={(id) => {
-                          const target = documents.find(d => d.id === id);
-                          if (target) openDocument(target);
+                      onSubPageClick={async (pageId, pageTitle) => {
+                          // Case 1: has a real pageId — find and open it
+                          if (pageId) {
+                            let target = documents.find(d => d.id === pageId);
+                            if (!target) {
+                              // Might be a subpage not in the flat list — fetch from Supabase
+                              const { data } = await supabase
+                                .from("notion_documents")
+                                .select("*")
+                                .eq("id", pageId)
+                                .single();
+                              if (data) target = data as NotionDocument;
+                            }
+                            if (target) {
+                              openDocument(target);
+                              return;
+                            }
+                          }
+
+                          // Case 2: pageId is null — create a real child document
+                          const subjectId = activeDocument?.subject_id || "";
+                          const newDoc = await createDocument(subjectId, pageTitle || "Sin título", activeDocument?.id || undefined);
+                          if (newDoc) {
+                            // Dispatch event so the SubPage block updates its pageId
+                            document.dispatchEvent(new CustomEvent("notion-subpage-created", {
+                              detail: { oldTitle: pageTitle, newPageId: newDoc.id },
+                            }));
+                            // Save current content so the pageId update persists
+                            await saveDocument(true);
+                            // Open the newly created sub-page
+                            const fullDoc = { ...newDoc, parent_id: activeDocument?.id || null };
+                            openDocument(fullDoc);
+                          }
                       }}
                     />
                   </Suspense>

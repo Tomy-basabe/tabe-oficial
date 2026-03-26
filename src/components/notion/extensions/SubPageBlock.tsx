@@ -19,6 +19,7 @@ declare module "@tiptap/core" {
 const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
   const title = node.attrs.title || "Sin título";
   const pageId = node.attrs.pageId;
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Listen for the creation event to update this block's pageId
   React.useEffect(() => {
@@ -33,23 +34,31 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
     return () => document.removeEventListener("notion-subpage-created", handler);
   }, [node.attrs.pageId, node.attrs.title, updateAttributes]);
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const event = new CustomEvent("notion-subpage-click", {
-      detail: { pageId: node.attrs.pageId, title },
-      bubbles: true,
-    });
-    document.dispatchEvent(event);
-  };
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleClick = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const event = new CustomEvent("notion-subpage-click", {
+        detail: { pageId: node.attrs.pageId, title },
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+    };
+
+    el.addEventListener("click", handleClick);
+    return () => el.removeEventListener("click", handleClick);
+  }, [node.attrs.pageId, title]);
 
   return (
     <NodeViewWrapper className="notion-subpage-wrapper" contentEditable={false}>
       <div
+        ref={containerRef}
         className={`notion-subpage-block ${selected ? "selected" : ""}`}
         data-page-id={pageId}
-        onClickCapture={handleClick}
       >
         <FileText className="notion-subpage-icon" />
         <span className="notion-subpage-title">{title}</span>
