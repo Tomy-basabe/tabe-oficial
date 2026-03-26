@@ -3,6 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import TiptapUnderline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
@@ -27,7 +28,7 @@ import {
   Bold, Italic, Underline, Strikethrough, Code,
   Heading1, Heading2, Heading3, List, ListOrdered,
   CheckSquare, Quote, Link as LinkIcon,
-  AlignLeft, AlignCenter, AlignRight,
+  Highlighter, AlignLeft, AlignCenter, AlignRight,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
   Maximize, Move,
 } from "lucide-react";
@@ -157,6 +158,7 @@ export function AdvancedNotionEditor({
         nested: true,
         HTMLAttributes: { class: "notion-task-item" },
       }),
+      Highlight.configure({ multicolor: true }),
       TextStyle,
       Color,
       BackgroundColor,
@@ -261,59 +263,57 @@ export function AdvancedNotionEditor({
 
         // === INTERNAL HTML PASTE & BASE64 INTERCEPTION ===
         const html = event.clipboardData?.getData('text/html');
-        if (html) {
-          if (html.includes('<img')) {
-            // If it contains base64 images, we need to intercept and upload them
-            if (html.includes('src="data:image/')) {
-              const parser = new DOMParser();
-              const doc = parser.parseFromString(html, 'text/html');
-              const images = Array.from(doc.querySelectorAll('img[src^="data:image/"]'));
+        if (html && html.includes('<img')) {
+          // If it contains base64 images, we need to intercept and upload them
+          if (html.includes('src="data:image/')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const images = Array.from(doc.querySelectorAll('img[src^="data:image/"]'));
 
-              if (images.length > 0) {
-                const uploadPromises = images.map(async (img) => {
-                  const src = img.getAttribute('src');
-                  if (!src) return;
+            if (images.length > 0) {
+              const uploadPromises = images.map(async (img) => {
+                const src = img.getAttribute('src');
+                if (!src) return;
 
-                  try {
-                    // Convert base64 to Blob
-                    const response = await fetch(src);
-                    const blob = await response.blob();
+                try {
+                  // Convert base64 to Blob
+                  const response = await fetch(src);
+                  const blob = await response.blob();
 
-                    const fileExt = blob.type.split('/')[1] || 'png';
-                    const fileName = `paste-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+                  const fileExt = blob.type.split('/')[1] || 'png';
+                  const fileName = `paste-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
 
-                    const { error: uploadError } = await supabase.storage
-                      .from('notion-images')
-                      .upload(fileName, blob);
+                  const { error: uploadError } = await supabase.storage
+                    .from('notion-images')
+                    .upload(fileName, blob);
 
-                    if (uploadError) throw uploadError;
+                  if (uploadError) throw uploadError;
 
-                    const { data: { publicUrl } } = supabase.storage
-                      .from('notion-images')
-                      .getPublicUrl(fileName);
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('notion-images')
+                    .getPublicUrl(fileName);
 
-                    if (publicUrl) {
-                      img.setAttribute('src', publicUrl);
-                      // Remove any style height/width if they are huge
-                      img.removeAttribute('width');
-                      img.removeAttribute('height');
-                    }
-                  } catch (err) {
-                    console.error("Paste image upload failed:", err);
+                  if (publicUrl) {
+                    img.setAttribute('src', publicUrl);
+                    // Remove any style height/width if they are huge
+                    img.removeAttribute('width');
+                    img.removeAttribute('height');
                   }
-                });
+                } catch (err) {
+                  console.error("Paste image upload failed:", err);
+                }
+              });
 
-                // We don't necessarily have to block the paste if we want it to be "instant",
-                // but for safety, we await so the editor gets the public URLs.
-                // Note: For a better UX, we could paste placeholders, but let's try awaiting first.
-                Promise.all(uploadPromises).then(() => {
-                  const cleanHtml = doc.body.innerHTML;
-                  editor?.chain().focus().insertContent(cleanHtml).run();
-                });
+              // We don't necessarily have to block the paste if we want it to be "instant",
+              // but for safety, we await so the editor gets the public URLs.
+              // Note: For a better UX, we could paste placeholders, but let's try awaiting first.
+              Promise.all(uploadPromises).then(() => {
+                const cleanHtml = doc.body.innerHTML;
+                editor?.chain().focus().insertContent(cleanHtml).run();
+              });
 
-                event.preventDefault();
-                return true;
-              }
+              event.preventDefault();
+              return true;
             }
           }
 
@@ -528,9 +528,14 @@ export function AdvancedNotionEditor({
         //   editor.chain().focus().toggleStrike().run();
         //   return;
         // }
-        // Strikethrough (removido para no interferir)
-        // ...
-        
+        // Highlight: Ctrl+Shift+H
+        if (e.key.toLowerCase() === "h") {
+          e.preventDefault();
+          editor.chain().focus().toggleHighlight().run();
+          return;
+        }
+        // Atajo de Strikethrough alternativo para liberar Ctrl+S si fuera necesario,
+        // pero el usuario pidió Ctrl+S para colores.
         // Move block up: Ctrl+Shift+ArrowUp
         if (e.key === "ArrowUp") {
           e.preventDefault();
@@ -605,10 +610,21 @@ export function AdvancedNotionEditor({
       }
 
       // === TEXT FORMATTING (Ctrl+key) ===
-      // Los atajos de color (Ctrl+S) y resaltado (Ctrl+Q) ahora se manejan 
-      // directamente en ColorExtension.ts para evitar conflictos.
-      
       if (modKey && !e.altKey) {
+        // Color Shortcut: Ctrl + S (Reemplaza al tradicional guardar que ya es automático)
+        if (e.key.toLowerCase() === "s" && !e.shiftKey) {
+          e.preventDefault();
+          try {
+            const lastColor = localStorage.getItem("tabe_last_text_color");
+            if (lastColor) {
+              editor.chain().focus().setColor(lastColor).run();
+            } else {
+              editor.chain().focus().setColor("#94a3b8").run();
+            }
+          } catch (err) {}
+          return;
+        }
+
         if (!e.shiftKey) {
           switch (e.key.toLowerCase()) {
             case "k": {

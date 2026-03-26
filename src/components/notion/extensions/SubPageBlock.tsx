@@ -100,6 +100,7 @@ export const SubPage = Node.create({
         "data-type": "sub-page",
         class: "notion-subpage-block",
       }),
+      0,
     ];
   },
 
