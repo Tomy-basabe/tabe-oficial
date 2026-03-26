@@ -263,7 +263,7 @@ export function AdvancedNotionEditor({
 
         // === INTERNAL HTML PASTE & BASE64 INTERCEPTION ===
         const html = event.clipboardData?.getData('text/html');
-        if (html && html.includes('<img')) {
+        if (html) {
           // If it contains base64 images, we need to intercept and upload them
           if (html.includes('src="data:image/')) {
             const parser = new DOMParser();
@@ -304,9 +304,6 @@ export function AdvancedNotionEditor({
                 }
               });
 
-              // We don't necessarily have to block the paste if we want it to be "instant",
-              // but for safety, we await so the editor gets the public URLs.
-              // Note: For a better UX, we could paste placeholders, but let's try awaiting first.
               Promise.all(uploadPromises).then(() => {
                 const cleanHtml = doc.body.innerHTML;
                 editor?.chain().focus().insertContent(cleanHtml).run();
@@ -317,7 +314,9 @@ export function AdvancedNotionEditor({
             }
           }
 
-          // Let Tiptap handle standard HTML pastes natively
+          // When HTML is present (internal copy/cut or rich paste from other apps),
+          // let TipTap handle it natively to preserve all structure:
+          // math formulas, images, highlights, text colors, sizes, etc.
           return false;
         }
 
