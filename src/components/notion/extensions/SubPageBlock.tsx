@@ -18,11 +18,21 @@ declare module "@tiptap/core" {
 const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
   const title = node.attrs.title || "Sin título";
 
+  const handleClick = () => {
+    // Dispatch custom event so the editor/page can navigate to the subpage
+    const event = new CustomEvent("notion-subpage-click", {
+      detail: { pageId: node.attrs.pageId, title },
+      bubbles: true,
+    });
+    document.dispatchEvent(event);
+  };
+
   return (
     <NodeViewWrapper className="notion-subpage-wrapper" contentEditable={false}>
       <div
         className={`notion-subpage-block ${selected ? "selected" : ""}`}
         data-page-id={node.attrs.pageId}
+        onClick={handleClick}
       >
         <FileText className="notion-subpage-icon" />
         <span className="notion-subpage-title">{title}</span>

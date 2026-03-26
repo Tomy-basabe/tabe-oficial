@@ -428,6 +428,19 @@ export function AdvancedNotionEditor({
     return () => window.removeEventListener('notion-open-math-menu', handleOpenMenu);
   }, []);
 
+  // Listen for sub-page click events from SubPage blocks
+  useEffect(() => {
+    if (!onSubPageClick) return;
+    const handleSubPageClick = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.pageId || detail?.title) {
+        onSubPageClick(detail.pageId, detail.title);
+      }
+    };
+    document.addEventListener("notion-subpage-click", handleSubPageClick);
+    return () => document.removeEventListener("notion-subpage-click", handleSubPageClick);
+  }, [onSubPageClick]);
+
   // === Keyboard shortcuts (Notion-style) ===
   useEffect(() => {
     if (!editor) return;

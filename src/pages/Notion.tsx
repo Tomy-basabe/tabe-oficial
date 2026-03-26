@@ -5,7 +5,7 @@ import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
-  Sparkles, Volume2, Square
+  Sparkles, Volume2, Square, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -251,6 +251,10 @@ export default function Notion() {
   const { speak, stop, isSpeaking } = useTextToSpeech();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState<NotionDocument | null>(null);
+
+  // Tabs state
+  interface TabItem { id: string; title: string; emoji: string; }
+  const [openTabs, setOpenTabs] = useState<TabItem[]>([]);
   
   // Rename Modal state
   const [showRenameModal, setShowRenameModal] = useState(false);
@@ -603,6 +607,8 @@ export default function Notion() {
          setActiveDocument({ ...activeDocument, titulo: newTitle.trim() } as NotionDocument);
          setLocalTitle(newTitle.trim());
       }
+      // Sync tab title
+      setOpenTabs(prev => prev.map(t => t.id === docToRename.id ? { ...t, title: newTitle.trim() } : t));
     } else {
       toast.error("Error al renombrar");
     }
@@ -778,6 +784,15 @@ export default function Notion() {
     setActiveDocument(doc);
     setLastSaved(null);
 
+    // Add to tabs if not already present
+    setOpenTabs(prev => {
+      if (prev.some(t => t.id === doc.id)) return prev;
+      const newTab = { id: doc.id, title: doc.titulo || "Sin título", emoji: doc.emoji || "" };
+      // Keep max 10 tabs
+      const updated = [...prev, newTab];
+      return updated.length > 10 ? updated.slice(-10) : updated;
+    });
+
     // Fetch content if not already loaded (lazy loading)
     if (!doc.contenido) {
       setIsOpeningDoc(true);
@@ -825,8 +840,51 @@ export default function Notion() {
     setEditorContent(null);
     editorContentRef.current = null;
     setLocalTitle("");
+    setOpenTabs([]);
     refetch();
   }, [saveDocument, refetch, handleSaveOnExit]);
+
+  const closeTab = useCallback((tabId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    setOpenTabs(prev => {
+      const idx = prev.findIndex(t => t.id === tabId);
+      const next = prev.filter(t => t.id !== tabId);
+
+      // If closing the active tab, switch to a neighbor
+      if (activeDocument?.id === tabId) {
+        if (next.length > 0) {
+          const nextIdx = Math.min(idx, next.length - 1);
+          const nextDoc = documents.find(d => d.id === next[nextIdx].id);
+          if (nextDoc) {
+            // Defer to avoid state conflicts
+            setTimeout(() => openDocument(nextDoc), 0);
+          }
+        } else {
+          // No more tabs — go to gallery
+          if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
+            if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
+            if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
+            saveDocument(true);
+          }
+          handleSaveOnExit();
+          setActiveDocument(null);
+          setEditorContent(null);
+          editorContentRef.current = null;
+          setLocalTitle("");
+          refetch();
+        }
+      }
+
+      return next;
+    });
+  }, [activeDocument, documents, openDocument, saveDocument, handleSaveOnExit, refetch]);
+
+  const handleTabClick = useCallback((tabId: string) => {
+    if (activeDocument?.id === tabId) return;
+    const doc = documents.find(d => d.id === tabId);
+    if (doc) openDocument(doc);
+  }, [activeDocument, documents, openDocument]);
 
   const handleCreateDocument = useCallback(
     async (subjectId?: string) => {
@@ -929,6 +987,7 @@ export default function Notion() {
       if (!activeDocument) return;
       await updateDocument(activeDocument.id, { emoji });
       setActiveDocument((prev) => (prev ? { ...prev, emoji } : null));
+      setOpenTabs(prev => prev.map(t => t.id === activeDocument.id ? { ...t, emoji } : t));
     },
     [activeDocument, updateDocument]
   );
@@ -1201,6 +1260,32 @@ export default function Notion() {
             )}
           </div>
         </div>
+
+        {/* Tabs Bar */}
+        {openTabs.length > 0 && (
+          <div className="notion-tabs-bar">
+            {openTabs.map(tab => (
+              <div
+                key={tab.id}
+                className={cn("notion-tab", activeDocument?.id === tab.id && "active")}
+                onClick={() => handleTabClick(tab.id)}
+                title={tab.title}
+              >
+                <span className="notion-tab-emoji">
+                  {tab.emoji ? <TabeIconRenderer iconId={tab.emoji} size={14} /> : <FileText className="w-3.5 h-3.5" />}
+                </span>
+                <span className="notion-tab-title">{tab.title || "Sin título"}</span>
+                <button
+                  className="notion-tab-close"
+                  onClick={(e) => closeTab(tab.id, e)}
+                  title="Cerrar pestaña"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Editor area */}
         <div className="notion-editor-area">
