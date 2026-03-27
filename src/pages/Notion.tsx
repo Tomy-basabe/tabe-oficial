@@ -113,6 +113,7 @@ const GalleryCard = ({
   subject, 
   onClick, 
   onRename, 
+  onChangeSubject,
   onDelete,
   onHover 
 }: { 
@@ -120,6 +121,7 @@ const GalleryCard = ({
   subject?: Subject; 
   onClick: (doc: NotionDocument) => void;
   onRename: (doc: NotionDocument) => void; 
+  onChangeSubject: (doc: NotionDocument) => void;
   onDelete: (doc: NotionDocument) => void;
   onHover?: (doc: NotionDocument) => void;
 }) => {
@@ -155,6 +157,15 @@ const GalleryCard = ({
                     }}
                  >
                     Renombrar
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       onChangeSubject(doc);
+                    }}
+                 >
+                    Cambiar Materia
                  </DropdownMenuItem>
                  <DropdownMenuSeparator />
                  <DropdownMenuItem
@@ -260,6 +271,9 @@ export default function Notion() {
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [docToRename, setDocToRename] = useState<NotionDocument | null>(null);
   const [newTitle, setNewTitle] = useState("");
+
+  const [showChangeSubjectModal, setShowChangeSubjectModal] = useState(false);
+  const [docToChangeSubject, setDocToChangeSubject] = useState<NotionDocument | null>(null);
 
   const [showNewDocModal, setShowNewDocModal] = useState(false);
   const [newDocSubjectId, setNewDocSubjectId] = useState<string | null>(null);
@@ -611,6 +625,23 @@ export default function Notion() {
       setOpenTabs(prev => prev.map(t => t.id === docToRename.id ? { ...t, title: newTitle.trim() } : t));
     } else {
       toast.error("Error al renombrar");
+    }
+  };
+
+  const handleChangeSubjectSubmit = async (newSubjectId: string) => {
+    if (!docToChangeSubject) return;
+    const success = await updateDocument(docToChangeSubject.id, { subject_id: newSubjectId });
+    if (success) {
+      toast.success("Materia cambiada con éxito");
+      setShowChangeSubjectModal(false);
+      setDocToChangeSubject(null);
+      if (activeDocument?.id === docToChangeSubject.id) {
+         const newSubject = subjects.find(s => s.id === newSubjectId);
+         setActiveDocument({ ...activeDocument, subject_id: newSubjectId, subject: newSubject } as NotionDocument);
+      }
+      refetch();
+    } else {
+      toast.error("Error al cambiar materia");
     }
   };
 
@@ -1235,6 +1266,18 @@ export default function Notion() {
                   <Keyboard className="w-4 h-4" />
                 </button>
 
+                <button
+                  className="notion-topbar-btn"
+                  onClick={() => {
+                    setDocToChangeSubject(activeDocument);
+                    setModalYear(null);
+                    setShowChangeSubjectModal(true);
+                  }}
+                  title="Cambiar materia"
+                >
+                  <ArrowUpDown className="w-4 h-4" />
+                </button>
+
                 {/* More options */}
                 <button
                   className="notion-topbar-btn"
@@ -1468,6 +1511,11 @@ export default function Notion() {
                           setNewTitle(d.titulo || "");
                           setShowRenameModal(true);
                         }}
+                        onChangeSubject={(d) => {
+                          setDocToChangeSubject(d);
+                          setModalYear(null);
+                          setShowChangeSubjectModal(true);
+                        }}
                         onDelete={(d) => {
                           setDocToDelete(d);
                           setShowDeleteModal(true);
@@ -1617,6 +1665,64 @@ export default function Notion() {
                 ? "Crear Página"
                 : `Crear con "${selectedTemplate.name}"`}
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Subject Modal */}
+      <Dialog open={showChangeSubjectModal} onOpenChange={setShowChangeSubjectModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cambiar Materia</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Año</label>
+              <div className="flex gap-2 flex-wrap">
+                {[1, 2, 3, 4, 5, 6].map((year) => (
+                  <button
+                    key={year}
+                    onClick={() => setModalYear(year)}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                      modalYear === year
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary hover:bg-secondary/80"
+                    )}
+                  >
+                    {year}° Año
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {modalYear && (
+              <div className="animate-in fade-in duration-300">
+                <label className="text-sm font-medium mb-2 block">
+                  Materia Destino
+                </label>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  {modalSubjects.map((subject) => (
+                    <button
+                      key={subject.id}
+                      onClick={() => handleChangeSubjectSubmit(subject.id)}
+                      className="p-3 rounded-lg text-left text-sm transition-colors bg-secondary hover:bg-secondary/80 border border-transparent hover:border-primary/30 group"
+                    >
+                      <p className="font-medium group-hover:text-primary transition-colors">{subject.codigo}</p>
+                      <p className="text-xs opacity-70 truncate">
+                        {subject.nombre}
+                      </p>
+                    </button>
+                  ))}
+                  {modalSubjects.length === 0 && (
+                    <div className="col-span-2 text-center text-sm text-muted-foreground py-4">
+                      No hay materias en este año.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
