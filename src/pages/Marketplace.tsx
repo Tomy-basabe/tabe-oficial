@@ -29,7 +29,7 @@ export default function Marketplace() {
   const { user } = useAuth();
   const [myResources, setMyResources] = useState<any[]>([]);
   const [publishStep, setPublishStep] = useState<'type' | 'filter' | 'select' | 'details'>('type');
-  const [selectedPublishType, setSelectedPublishType] = useState<'deck' | 'file' | 'folder' | 'quiz' | null>(null);
+  const [selectedPublishType, setSelectedPublishType] = useState<'deck' | 'file' | 'folder' | 'quiz' | 'apunte' | null>(null);
   const [publishYear, setPublishYear] = useState<number | null>(null);
   const [publishSubject, setPublishSubject] = useState<string | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -40,6 +40,7 @@ export default function Marketplace() {
     publicFiles,
     publicFolders,
     publicQuizzes,
+    publicApuntes,
     loading,
     searchTerm,
     setSearchTerm,
@@ -56,7 +57,8 @@ export default function Marketplace() {
     importDeck,
     importFile,
     importFolder,
-    importQuiz
+    importQuiz,
+    importApunte
   } = useMarketplace();
 
   const [categories, setCategories] = useState<string[]>([]);
@@ -72,13 +74,13 @@ export default function Marketplace() {
 
   // Import Modal State
   const [importOpen, setImportOpen] = useState(false);
-  const [importingResource, setImportingResource] = useState<{ id: string; type: "deck" | "file" | "folder"; data: any } | null>(null);
+  const [importingResource, setImportingResource] = useState<{ id: string; type: "deck" | "file" | "folder" | "quiz" | "apunte"; data: any } | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [importing, setImporting] = useState(false);
   
   // Publish Modal State
   const [publishSelectOpen, setPublishSelectOpen] = useState(false);
-  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: 'deck' | 'file' | 'folder' | 'quiz'; nombre: string } | null>(null);
+  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: 'deck' | 'file' | 'folder' | 'quiz' | 'apunte'; nombre: string } | null>(null);
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
@@ -99,18 +101,20 @@ export default function Marketplace() {
       }
 
       if (user) {
-        const [decksRes, filesRes, foldersRes, quizzesRes] = await Promise.all([
+        const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
           supabase.from("flashcard_decks").select("*").eq("user_id", user.id).gt("total_cards", 0),
           supabase.from("library_files").select("*").eq("user_id", user.id),
           supabase.from("library_folders").select("*").eq("user_id", user.id),
-          supabase.from("quiz_decks").select("*").eq("user_id", user.id)
+          supabase.from("quiz_decks").select("*").eq("user_id", user.id),
+          supabase.from("notion_documents").select("*").eq("user_id", user.id)
         ]);
 
         setMyResources([
           ...(decksRes.data || []).map(d => ({ ...d, type: 'deck' })),
           ...(filesRes.data || []).map(f => ({ ...f, type: 'file' })),
           ...(foldersRes.data || []).map(f => ({ ...f, type: 'folder' })),
-          ...(quizzesRes.data || []).map(q => ({ ...q, type: 'quiz' }))
+          ...(quizzesRes.data || []).map(q => ({ ...q, type: 'quiz' })),
+          ...(apuntesRes.data || []).map(a => ({ ...a, type: 'apunte', nombre: a.titulo }))
         ]);
       }
     };
@@ -143,6 +147,8 @@ export default function Marketplace() {
       result = await importFolder(importingResource.id, null);
     } else if (importingResource.type === 'quiz') {
       result = await importQuiz(importingResource.id, selectedSubject);
+    } else if (importingResource.type === 'apunte') {
+      result = await importApunte(importingResource.id, selectedSubject || null);
     }
 
     if (result.error) {
@@ -185,9 +191,9 @@ export default function Marketplace() {
     </div>
   );
 
-  const ResourceCard = ({ item, type }: { item: any, type: "deck" | "file" | "folder" }) => {
-    const Icon = type === 'deck' ? Layers : type === 'file' ? FileText : Folder;
-    const colorClass = type === 'deck' ? "from-neon-purple to-neon-cyan" : type === 'file' ? "from-neon-green to-neon-cyan" : "from-neon-gold to-neon-orange";
+  const ResourceCard = ({ item, type }: { item: any, type: "deck" | "file" | "folder" | "apunte" }) => {
+    const Icon = type === 'deck' ? Layers : type === 'file' ? FileText : type === 'apunte' ? GraduationCap : Folder;
+    const colorClass = type === 'deck' ? "from-neon-purple to-neon-cyan" : type === 'file' ? "from-neon-green to-neon-cyan" : type === 'apunte' ? "from-neon-blue to-neon-purple" : "from-neon-gold to-neon-orange";
 
     return (
       <Card className="card-gamer hover:glow-purple transition-all group">
@@ -254,6 +260,9 @@ export default function Marketplace() {
                 if (type === 'deck') {
                   setImportingResource({ id: item.id, type: 'deck', data: item });
                   setImportOpen(true);
+                } else if (type === 'apunte') {
+                  setImportingResource({ id: item.id, type: 'apunte', data: item });
+                  setImportOpen(true);
                 } else {
                   setImportingResource({ id: item.id, type, data: item });
                   handleImport(); // Direct import for files/folders for now (to root)
@@ -312,8 +321,9 @@ export default function Marketplace() {
       </div>
 
       <Tabs defaultValue="decks" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-secondary/50">
+        <TabsList className="grid w-full grid-cols-5 bg-secondary/50">
           <TabsTrigger value="decks"><Layers className="w-4 h-4 mr-2" /> Mazos</TabsTrigger>
+          <TabsTrigger value="apuntes"><GraduationCap className="w-4 h-4 mr-2" /> Apuntes</TabsTrigger>
           <TabsTrigger value="files"><FileText className="w-4 h-4 mr-2" /> Archivos</TabsTrigger>
           <TabsTrigger value="folders"><Folder className="w-4 h-4 mr-2" /> Carpetas</TabsTrigger>
           <TabsTrigger value="my-posts"><Upload className="w-4 h-4 mr-2" /> Publicaciones</TabsTrigger>
@@ -330,6 +340,13 @@ export default function Marketplace() {
               {publicDecks.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron mazos</p>}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="apuntes">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {publicApuntes.map(apunte => <ResourceCard key={apunte.id} item={apunte} type="apunte" />)}
+            {publicApuntes.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron apuntes</p>}
+          </div>
         </TabsContent>
 
         <TabsContent value="files">
@@ -353,7 +370,7 @@ export default function Marketplace() {
               {myResources.filter(r => r.is_public).map(resource => (
                 <div key={resource.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border/50">
                   <div className="flex items-center gap-3">
-                    {resource.type === 'deck' ? <Layers className="w-4 h-4 text-neon-purple" /> : resource.type === 'file' ? <FileText className="w-4 h-4 text-neon-green" /> : <Folder className="w-4 h-4 text-neon-gold" />}
+                    {resource.type === 'deck' ? <Layers className="w-4 h-4 text-neon-purple" /> : resource.type === 'file' ? <FileText className="w-4 h-4 text-neon-green" /> : resource.type === 'apunte' ? <GraduationCap className="w-4 h-4 text-neon-blue" /> : <Folder className="w-4 h-4 text-neon-gold" />}
                     <span>{resource.nombre}</span>
                   </div>
                   <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => unpublishResource(resource.type as any, resource.id)}>
@@ -385,18 +402,20 @@ export default function Marketplace() {
         </DialogContent>
       </Dialog>
 
-      {/* Import Modal Specially for Decks (needs subject) */}
+      {/* Import Modal Specially for Decks and Apuntes (needs subject) */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>Importar Mazo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Importar {importingResource?.type === 'deck' ? 'Mazo' : 'Apunte'}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar materia" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Seleccionar materia (Opcional para apuntes)" /></SelectTrigger>
               <SelectContent>
                 {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.nombre} ({s.year}°)</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button className="w-full" onClick={handleImport} disabled={importing || !selectedSubject}>{importing ? "Importando..." : "Importar Mazo"}</Button>
+            <Button className="w-full" onClick={handleImport} disabled={importing || (importingResource?.type === 'deck' && !selectedSubject)}>
+                {importing ? "Importando..." : `Importar ${importingResource?.type === 'deck' ? 'Mazo' : 'Apunte'}`}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -447,6 +466,13 @@ export default function Marketplace() {
                 >
                   <div className="p-4 bg-neon-gold/20 rounded-xl"><HelpCircle className="w-8 h-8 text-neon-gold" /></div>
                   <span className="font-bold">Cuestionario</span>
+                </div>
+                <div 
+                  className="p-6 bg-secondary/30 rounded-2xl border-2 border-transparent hover:border-neon-blue hover:bg-neon-blue/5 cursor-pointer flex flex-col items-center gap-4 transition-all"
+                  onClick={() => { setSelectedPublishType('apunte'); setPublishStep('filter'); }}
+                >
+                  <div className="p-4 bg-neon-blue/20 rounded-xl"><GraduationCap className="w-8 h-8 text-neon-blue" /></div>
+                  <span className="font-bold">Apunte</span>
                 </div>
               </div>
             )}
@@ -562,6 +588,7 @@ export default function Marketplace() {
                           {r.type === 'file' && <FileText className="w-5 h-5 text-neon-green" />}
                           {r.type === 'folder' && <Folder className="w-5 h-5 text-neon-gold" />}
                           {r.type === 'quiz' && <HelpCircle className="w-5 h-5 text-neon-gold" />}
+                          {r.type === 'apunte' && <GraduationCap className="w-5 h-5 text-neon-blue" />}
                           <span className="font-medium group-hover:text-neon-cyan transition-colors">{r.nombre}</span>
                         </div>
                         {r.type === 'folder' ? <ChevronRight className="w-4 h-4 text-muted-foreground" /> : <Badge variant="outline">Seleccionar</Badge>}
@@ -581,6 +608,7 @@ export default function Marketplace() {
                     {resourceToPublish.type === 'file' && <FileText className="w-5 h-5 text-neon-green" />}
                     {resourceToPublish.type === 'folder' && <Folder className="w-5 h-5 text-neon-gold" />}
                     {resourceToPublish.type === 'quiz' && <HelpCircle className="w-5 h-5 text-neon-gold" />}
+                    {resourceToPublish.type === 'apunte' && <GraduationCap className="w-5 h-5 text-neon-blue" />}
                     <div>
                       <span className="font-bold text-lg block">{resourceToPublish.nombre}</span>
                       <span className="text-xs text-neon-cyan uppercase font-bold tracking-wider">{resourceToPublish.type}</span>

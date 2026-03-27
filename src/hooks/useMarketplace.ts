@@ -63,6 +63,24 @@ export interface PublicQuiz {
   subject?: PublicDeck["subject"];
 }
 
+export interface PublicApunte {
+  id: string;
+  nombre: string;
+  description: string | null;
+  category: string | null;
+  emoji: string | null;
+  cover_url: string | null;
+  download_count: number;
+  rating_sum: number;
+  rating_count: number;
+  user_id: string;
+  subject_id: string | null;
+  created_at: string;
+  contenido?: any;
+  creator?: PublicDeck["creator"];
+  subject?: PublicDeck["subject"];
+}
+
 export interface PublicFolder {
   id: string;
   nombre: string;
@@ -113,6 +131,7 @@ export function useMarketplace() {
   const [publicFiles, setPublicFiles] = useState<PublicFile[]>([]);
   const [publicFolders, setPublicFolders] = useState<PublicFolder[]>([]);
   const [publicQuizzes, setPublicQuizzes] = useState<PublicQuiz[]>([]);
+  const [publicApuntes, setPublicApuntes] = useState<PublicApunte[]>([]);
   const [myPublicDecks, setMyPublicDecks] = useState<PublicDeck[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -126,18 +145,20 @@ export function useMarketplace() {
     setLoading(true);
 
     try {
-      const [decksRes, filesRes, foldersRes, quizzesRes] = await Promise.all([
+      const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
         supabase.from("flashcard_decks").select("*").eq("is_public", true).gt("total_cards", 0).order("download_count", { ascending: false }),
         supabase.from("library_files").select("*").eq("is_public", true).order("download_count", { ascending: false }),
         supabase.from("library_folders").select("*").eq("is_public", true).order("download_count", { ascending: false }),
-        supabase.from("quiz_decks").select("*").eq("is_public", true).order("download_count", { ascending: false })
+        supabase.from("quiz_decks").select("*").eq("is_public", true).order("download_count", { ascending: false }),
+        supabase.from("notion_documents").select("id, user_id, subject_id, titulo, description, category, emoji, cover_url, download_count, rating_sum, rating_count, created_at").eq("is_public", true).order("download_count", { ascending: false })
       ]);
 
       const allResources = [
         ...(decksRes.data || []),
         ...(filesRes.data || []),
         ...(foldersRes.data || []),
-        ...(quizzesRes.data || [])
+        ...(quizzesRes.data || []),
+        ...(apuntesRes.data || [])
       ];
 
       const userIds = [...new Set(allResources.map(r => r.user_id))];
@@ -197,6 +218,7 @@ export function useMarketplace() {
       setPublicFiles(filter((filesRes.data || []).map(enrich)));
       setPublicFolders(filter((foldersRes.data || []).map(enrich)));
       setPublicQuizzes(filter((quizzesRes.data || []).map(enrich)));
+      setPublicApuntes(filter((apuntesRes.data || []).map((a: any) => enrich({ ...a, nombre: a.titulo }))));
 
     } catch (error) {
       console.error("Error fetching public resources:", error);
@@ -213,8 +235,8 @@ export function useMarketplace() {
     setMyPublicDecks((decks.data || []) as PublicDeck[]);
   }, [user]);
 
-  const publishResource = async (type: "deck" | "file" | "folder" | "quiz", id: string, description: string, category: string) => {
-    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : "library_folders";
+  const publishResource = async (type: "deck" | "file" | "folder" | "quiz" | "apunte", id: string, description: string, category: string) => {
+    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
     const { error } = await supabase
       .from(table as any)
       .update({ is_public: true, description, category } as any)
@@ -230,8 +252,8 @@ export function useMarketplace() {
     return true;
   };
 
-  const unpublishResource = async (type: "deck" | "file" | "folder" | "quiz", id: string) => {
-    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : "library_folders";
+  const unpublishResource = async (type: "deck" | "file" | "folder" | "quiz" | "apunte", id: string) => {
+    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
     const { error } = await supabase
       .from(table as any)
       .update({ is_public: false } as any)
@@ -441,6 +463,37 @@ export function useMarketplace() {
     return { error: null, quizId: newQuiz.id };
   };
 
+  const importApunte = async (sourceApunteId: string, subjectId: string | null) => {
+    if (!user) return { error: "No autenticado" };
+
+    const { data: sourceApunte } = await supabase
+      .from("notion_documents")
+      .select("titulo, contenido, emoji, cover_url")
+      .eq("id", sourceApunteId)
+      .single();
+
+    if (!sourceApunte) return { error: "Apunte no encontrado" };
+
+    const { data: newDoc, error: docError } = await supabase
+      .from("notion_documents")
+      .insert({
+        user_id: user.id,
+        subject_id: subjectId,
+        titulo: sourceApunte.titulo,
+        contenido: sourceApunte.contenido,
+        emoji: sourceApunte.emoji,
+        cover_url: sourceApunte.cover_url
+      })
+      .select()
+      .single();
+
+    if (docError || !newDoc) return { error: "Error al crear el apunte" };
+
+    await (supabase.rpc as any)("increment_download_count", { row_id: sourceApunteId, table_name: "notion_documents" });
+    
+    return { error: null, docId: newDoc.id };
+  };
+
   const rateDeck = async (deckId: string, rating: number) => {
     if (!user) return;
     const { data: existing } = await supabase.from("deck_ratings").select("id, rating").eq("deck_id", deckId).eq("user_id", user.id).single();
@@ -515,6 +568,7 @@ export function useMarketplace() {
     publicFiles,
     publicFolders,
     publicQuizzes,
+    publicApuntes,
     myPublicDecks,
     loading,
     searchTerm,
@@ -532,6 +586,7 @@ export function useMarketplace() {
     importFolder,
     importDeck,
     importQuiz,
+    importApunte,
     getDeckPreview,
     rateDeck,
     userInventory,
