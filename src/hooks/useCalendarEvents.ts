@@ -394,5 +394,13 @@ function getColorForType(type: string): string {
     Clase: "#3b82f6",
     Otro: "#9ca3af",
   };
+  
+  if (colors[type]) return colors[type];
+  
+  // Soporte dinámico para parciales extra (P3, P4...)
+  if (type.startsWith("P") && !isNaN(Number(type.substring(1)))) {
+    return "#00d9ff"; // Color de parcial estándar (Cyan)
+  }
+  
   return colors[type] || "#6b7280";
 }

@@ -68,7 +68,13 @@ export default function Exams() {
 
     return events
       .filter((e) => {
-        if (!EXAM_TYPES.includes(e.tipo_examen)) return false;
+        // Incluir cualquier parcial (P1, P2, P3...), Global, Recuperatorios o Final
+        const isExam = e.tipo_examen.startsWith("P") || 
+                       e.tipo_examen.includes("Global") || 
+                       e.tipo_examen.includes("Final") ||
+                       e.tipo_examen.includes("Recuperatorio");
+        
+        if (!isExam) return false;
         
         const eventDate = new Date(e.fecha);
         eventDate.setHours(0, 0, 0, 0);
@@ -270,7 +276,7 @@ export default function Exams() {
                       <span 
                         className={cn(
                           "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                          !exam.color && eventTypeColors[exam.tipo_examen]
+                          !exam.color && (eventTypeColors[exam.tipo_examen] || (exam.tipo_examen.startsWith("P") ? eventTypeColors["P1"] : "bg-muted text-muted-foreground"))
                         )}
                         style={exam.color ? { backgroundColor: `${exam.color}20`, borderColor: exam.color, color: exam.color } : undefined}
                       >

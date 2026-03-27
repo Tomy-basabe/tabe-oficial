@@ -9,9 +9,9 @@ const corsHeaders = {
 const VALID_EVENT_TYPES = ["P1", "P2", "Global", "Final", "Recuperatorio P1", "Recuperatorio P2", "Recuperatorio Global", "Estudio", "TP", "Entrega", "Clase", "Otro"] as const;
 type VET = typeof VALID_EVENT_TYPES[number];
 
-function mapET(t: string): VET {
+function mapET(t: string): string {
   const n = t.toLowerCase().trim();
-  const m: Record<string, VET> = {
+  const m: Record<string, string> = {
     "parcial1": "P1", "parcial 1": "P1", "p1": "P1", "primer parcial": "P1",
     "parcial2": "P2", "parcial 2": "P2", "p2": "P2", "segundo parcial": "P2",
     "global": "Global", "final": "Final", "recuperatorio": "Recuperatorio P1",
@@ -22,16 +22,29 @@ function mapET(t: string): VET {
     "entrega": "Entrega", "entregar": "Entrega",
     "clase": "Clase", "cursada": "Clase", "cursado": "Clase", "otro": "Otro", "evento": "Otro"
   };
-  return m[n] || "Otro";
+  
+  if (m[n]) return m[n];
+  
+  // Soporte para parciales extra (P3, P4, etc.)
+  const parcialMatch = n.match(/parcial\s*(\d+)/i) || n.match(/^p(\d+)$/i);
+  if (parcialMatch) return `P${parcialMatch[1]}`;
+  
+  return "Otro";
 }
 
-function colorFor(t: VET): string {
-  const c: Record<VET, string> = {
+function colorFor(t: string): string {
+  const c: Record<string, string> = {
     "P1": "#00d9ff", "P2": "#a855f7", "Global": "#fbbf24", "Final": "#22c55e",
     "Recuperatorio P1": "#ef4444", "Recuperatorio P2": "#ef4444", "Recuperatorio Global": "#ef4444",
     "Estudio": "#6b7280", "TP": "#ec4899", "Entrega": "#f97316", "Clase": "#3b82f6", "Otro": "#8b5cf6"
   };
-  return c[t] || "#00d9ff";
+  
+  if (c[t]) return c[t];
+  
+  // Color por defecto para parciales extra (cyan/azulado)
+  if (t.startsWith("P")) return "#00d9ff";
+  
+  return "#00d9ff";
 }
 
 function norm(s: string): string {
@@ -313,7 +326,7 @@ serve(async (req) => {
                     fecha: { type: "string", description: "YYYY-MM-DD" },
                     hora: { type: "string", description: "HH:mm" },
                     hora_fin: { type: "string", description: "HH:mm" },
-                    tipo_examen: { type: "string", enum: VALID_EVENT_TYPES },
+                    tipo_examen: { type: "string", description: "P1, P2, P3, Global, Final, TP, Clase, etc." },
                     notas: { type: "string" },
                     subject_id: { type: "string", description: "Nombre de la materia" },
                     recurrence_rule: {
@@ -332,7 +345,7 @@ serve(async (req) => {
         }
       },
       { type: "function", function: { name: "delete_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE eliminar un evento.", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } } },
-      { type: "function", function: { name: "update_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE modificar un evento.", parameters: { type: "object", properties: { id: { type: "string" }, titulo: { type: "string" }, fecha: { type: "string" }, hora: { type: "string" }, tipo_examen: { type: "string", enum: VALID_EVENT_TYPES }, notas: { type: "string" } }, required: ["id"] } } },
+      { type: "function", function: { name: "update_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE modificar un evento.", parameters: { type: "object", properties: { id: { type: "string" }, titulo: { type: "string" }, fecha: { type: "string" }, hora: { type: "string" }, tipo_examen: { type: "string" }, notas: { type: "string" } }, required: ["id"] } } },
       { type: "function", function: { name: "create_flashcards", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear flashcards.", parameters: { type: "object", properties: { deck_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, cards: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, respuesta: { type: "string" } }, required: ["pregunta", "respuesta"] } } }, required: ["deck_name", "cards"] } } },
       { type: "function", function: { name: "update_subject_status", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE cambiar estado de una materia.", parameters: { type: "object", properties: { subject_id: { type: "string", description: "Nombre materia" }, estado: { type: "string", enum: ["sin_cursar", "en_curso", "regular", "aprobada", "libre"] }, nota: { type: "number" } }, required: ["subject_id", "estado"] } } },
       { type: "function", function: { name: "create_notion_document", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un documento o apunte con palabras como 'creame un doc', 'haceme un apunte'. NUNCA usar para responder preguntas, saludos, ni conversacion.", parameters: { type: "object", properties: { titulo: { type: "string" }, contenido: { type: "string" }, subject_id: { type: "string" } }, required: ["titulo"] } } },
