@@ -430,6 +430,30 @@ export default function Library() {
 
   const deleteFolder = async (folderId: string) => {
     try {
+      setLoading(true);
+      // Recursively find all nested folders and files to delete their storage
+      const getAllChildFolders = (parentId: string): string[] => {
+        const directChildren = folders.filter(f => f.parent_folder_id === parentId);
+        let allChildren: string[] = directChildren.map(f => f.id);
+        for (const child of directChildren) {
+          allChildren = [...allChildren, ...getAllChildFolders(child.id)];
+        }
+        return allChildren;
+      };
+
+      const folderIdsToDelete = [folderId, ...getAllChildFolders(folderId)];
+      const filesToDelete = files.filter(f => f.folder_id && folderIdsToDelete.includes(f.folder_id));
+      const storagePaths = filesToDelete
+        .map(f => f.storage_path)
+        .filter((path): path is string => !!path);
+
+      if (storagePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('library-files')
+          .remove(storagePaths);
+        if (storageError) console.error("Error deleting physical files:", storageError);
+      }
+
       const { error } = await supabase
         .from("library_folders")
         .delete()
@@ -437,12 +461,14 @@ export default function Library() {
 
       if (error) throw error;
 
-      toast.success("Carpeta eliminada");
+      toast.success("Carpeta y contenido eliminados");
       fetchFolders();
       fetchFiles();
     } catch (error) {
       console.error("Error deleting folder:", error);
       toast.error("Error al eliminar la carpeta");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -487,13 +513,45 @@ export default function Library() {
   const deleteSelected = async () => {
     if (selectedIds.size === 0) return;
 
-    const confirmDelete = window.confirm(`¿Estás seguro de que quieres eliminar ${selectedIds.size} elementos?`);
+    const confirmDelete = window.confirm(`¿Estás seguro de que quieres eliminar ${selectedIds.size} elementos y todo su contenido?`);
     if (!confirmDelete) return;
 
     const idsArray = Array.from(selectedIds);
     setLoading(true);
 
     try {
+      // For each selected folder, find its descendants to clean up storage
+      const selectedFolders = folders.filter(f => idsArray.includes(f.id));
+      
+      const getAllChildFolders = (parentId: string): string[] => {
+        const directChildren = folders.filter(f => f.parent_folder_id === parentId);
+        let allChildren: string[] = directChildren.map(f => f.id);
+        for (const child of directChildren) {
+          allChildren = [...allChildren, ...getAllChildFolders(child.id)];
+        }
+        return allChildren;
+      };
+
+      let allFolderIds = [...idsArray];
+      for (const folder of selectedFolders) {
+        allFolderIds = [...allFolderIds, ...getAllChildFolders(folder.id)];
+      }
+
+      const filesToDelete = files.filter(f => 
+        idsArray.includes(f.id) || (f.folder_id && allFolderIds.includes(f.folder_id))
+      );
+
+      const storagePaths = filesToDelete
+        .map(f => f.storage_path)
+        .filter((path): path is string => !!path);
+
+      if (storagePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('library-files')
+          .remove(storagePaths);
+        if (storageError) console.error("Error deleting physical files:", storageError);
+      }
+
       const { error: foldersError } = await supabase
         .from("library_folders")
         .delete()
@@ -506,7 +564,7 @@ export default function Library() {
 
       if (foldersError || filesError) throw foldersError || filesError;
 
-      toast.success(`${selectedIds.size} elementos eliminados`);
+      toast.success("Elementos eliminados correctamente");
       setSelectedIds(new Set());
       fetchFolders();
       fetchFiles();
