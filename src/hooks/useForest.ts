@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
@@ -115,7 +115,8 @@ export function useForest() {
       const todayStr = toLocalDateStr(today);
       const todaySessions = sessions?.filter(s => {
           if (!s.fecha) return false;
-          return toLocalDateStr(new Date(s.fecha)) === todayStr;
+          // Compare fecha string directly - avoid new Date(dateString) UTC parsing bug
+          return s.fecha === todayStr;
       }) || [];
       const weekSessions = sessions || [];
 
@@ -166,25 +167,26 @@ export function useForest() {
     }
   }, [user]);
 
+  // Track growth already applied today to allow incremental updates
+  const lastGrowthKeyRef = useRef<string>("");
+
   const checkAndUpdatePlants = useCallback(async () => {
     if (!user || !currentPlant) return;
 
     const now = new Date();
-    // BUG FIX: use last_watered_at (not planted_at) to measure actual inactivity duration
-    // planted_at is when the plant was created — but the relevant metric is "when did the user last water it?"
     const lastWateredDate = new Date(currentPlant.last_watered_at);
     const msSinceWatered = now.getTime() - lastWateredDate.getTime();
     const daysSinceWatered = msSinceWatered / (1000 * 60 * 60 * 24);
 
-    // Grace period: first 2 days after planting (based on planted_at)
+    // Grace period: first 2 days after planting
     const plantedDate = new Date(currentPlant.planted_at);
     const msSincePlanted = now.getTime() - plantedDate.getTime();
     const daysSincePlanted = msSincePlanted / (1000 * 60 * 60 * 24);
     const isInGracePeriod = daysSincePlanted < 2;
 
-    // Kill plant if: not in grace AND no study in 7+ actual days (measured from last watered)
-    if (!isInGracePeriod && daysSinceWatered >= 7 && currentPlant.is_alive) {
-      // Plant is old enough AND user hasn't studied in 7 days - kill it
+    // Kill plant if: not in grace AND no study in 7+ days (measured from last watered)
+    // BUT only if user hasn't studied today (if they studied, death counter resets)
+    if (!isInGracePeriod && daysSinceWatered >= 7 && currentPlant.is_alive && !studyActivity.hasStudiedToday) {
       const { error } = await supabase
         .from("user_plants")
         .update({
@@ -200,18 +202,10 @@ export function useForest() {
       return;
     }
 
-    // Update plant growth based on study activity
-    // Growth happens when user has studied today AND plant is alive AND not completed
+    // Plant growth based on study activity
     if (studyActivity.hasStudiedToday && currentPlant.is_alive && !currentPlant.is_completed) {
-      // Check if we already applied growth today by comparing last_watered_at date
-      const lastWatered = new Date(currentPlant.last_watered_at);
-      const lastWateredDate = new Date(lastWatered.getFullYear(), lastWatered.getMonth(), lastWatered.getDate());
-      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      // Skip if already watered today (growth already applied)
-      if (lastWateredDate.getTime() === todayDate.getTime()) {
-        return;
-      }
+      const todayStr = toLocalDateStr(now);
+      const storageKey = `plant-growth-${currentPlant.id}-${todayStr}`;
 
       // Check for active fertilizer
       let multiplier = 1;
@@ -219,36 +213,61 @@ export function useForest() {
         multiplier = currentPlant.growth_multiplier || 1;
       }
 
-      // Growth based on study time: 15% base + 5% per 30 minutes studied today
+      // Calculate the TOTAL growth target for today based on all study minutes
       const baseGrowth = 15;
       const bonusGrowth = Math.floor(studyActivity.studyMinutesToday / 30) * 5;
-      const totalGrowth = Math.min((baseGrowth + bonusGrowth) * multiplier, 50 * multiplier); // Max 50% (or 100% with fertilizer) per day
+      const targetGrowthToday = Math.min((baseGrowth + bonusGrowth) * multiplier, 50 * multiplier);
 
-      const newGrowth = Math.min(currentPlant.growth_percentage + totalGrowth, 100);
-      const isCompleted = newGrowth >= 100;
+      // How much growth was already applied today (tracked in localStorage)
+      const alreadyApplied = parseFloat(localStorage.getItem(storageKey) || "0");
+      const deltaGrowth = targetGrowthToday - alreadyApplied;
 
-      const updateData: Record<string, unknown> = {
-        growth_percentage: newGrowth,
-        last_watered_at: new Date().toISOString(),
-      };
+      if (deltaGrowth > 0) {
+        // There's new growth to apply
+        const newGrowth = Math.min(currentPlant.growth_percentage + deltaGrowth, 100);
+        const isCompleted = newGrowth >= 100;
 
-      if (isCompleted) {
-        updateData.is_completed = true;
-        updateData.completed_at = new Date().toISOString();
-      }
+        const updateData: Record<string, unknown> = {
+          growth_percentage: newGrowth,
+          last_watered_at: new Date().toISOString(),
+        };
 
-      const { error } = await supabase
-        .from("user_plants")
-        .update(updateData)
-        .eq("id", currentPlant.id);
-
-      if (!error) {
         if (isCompleted) {
-          toast.success("🎉 ¡Tu árbol ha crecido completamente! Puedes plantar uno nuevo.");
-        } else {
-          toast.success(`🌱 ¡Tu planta creció ${totalGrowth}%!`);
+          updateData.is_completed = true;
+          updateData.completed_at = new Date().toISOString();
         }
-        fetchPlants();
+
+        const { error } = await supabase
+          .from("user_plants")
+          .update(updateData)
+          .eq("id", currentPlant.id);
+
+        if (!error) {
+          // Save the total growth applied today
+          localStorage.setItem(storageKey, String(targetGrowthToday));
+          lastGrowthKeyRef.current = storageKey;
+
+          if (isCompleted) {
+            toast.success("🎉 ¡Tu árbol ha crecido completamente! Puedes plantar uno nuevo.");
+          } else {
+            toast.success(`🌱 ¡Tu planta creció ${deltaGrowth}%!`);
+          }
+          fetchPlants();
+        }
+      } else {
+        // No new growth, but still update last_watered_at to reset death counter
+        const lastWatered = new Date(currentPlant.last_watered_at);
+        const lastWateredDay = new Date(lastWatered.getFullYear(), lastWatered.getMonth(), lastWatered.getDate());
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // Only update if last_watered_at isn't from today (avoid unnecessary DB writes)
+        if (lastWateredDay.getTime() < todayDate.getTime()) {
+          await supabase
+            .from("user_plants")
+            .update({ last_watered_at: new Date().toISOString() })
+            .eq("id", currentPlant.id);
+          fetchPlants();
+        }
       }
     }
   }, [user, currentPlant, studyActivity, fetchPlants]);

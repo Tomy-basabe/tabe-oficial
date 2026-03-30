@@ -180,12 +180,19 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
   const daysSincePlanted = msSincePlanted / (1000 * 60 * 60 * 24);
   const daysAlive = Math.floor(daysSincePlanted);
 
-  // Calculate time until death: grace period (7 days) OR 7 days since last study
-  const gracePeriodDays = 7;
+  // Grace period: first 2 days after planting (matches hook logic)
+  const gracePeriodDays = 2;
+  const deathThresholdDays = 7; // Days without study before death
   const daysUntilVulnerable = Math.max(0, gracePeriodDays - daysSincePlanted);
+  
+  // After grace, use last_watered_at to compute death countdown
+  const lastWateredDate = new Date(plant.last_watered_at);
+  const msSinceWatered = now.getTime() - lastWateredDate.getTime();
+  const daysSinceWatered = msSinceWatered / (1000 * 60 * 60 * 24);
+  
   const daysUntilDeath = daysUntilVulnerable > 0
-    ? daysUntilVulnerable // Still in grace period
-    : Math.max(0, gracePeriodDays - studyActivity.daysSinceLastStudy); // After grace, based on study
+    ? daysUntilVulnerable + deathThresholdDays // Grace period + full 7 days
+    : Math.max(0, deathThresholdDays - daysSinceWatered); // After grace, based on last watered
 
   const hoursUntilDeath = Math.floor((daysUntilDeath % 1) * 24);
   const fullDaysUntilDeath = Math.floor(daysUntilDeath);
