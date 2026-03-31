@@ -136,44 +136,182 @@ const computeBoxPlotStats = (values: number[]) => {
   return { min, q1, median, q3, max, outliers, rawMin: sorted[0], rawMax: sorted[n - 1] };
 };
 
-// ============ Custom Box Plot Renderer ============
-const BoxPlotShape = (props: any) => {
-  const { x, y, width, height, payload } = props;
-  if (!payload?.stats) return null;
-  const { min, q1, median, q3, max } = payload.stats;
-  const range = payload.yMax - payload.yMin;
-  if (range === 0) return null;
+// ============ Custom Box Plot Renderer (High Precision) ============
+const CustomBoxPlot = ({ data, title, color }: { data: number[], title?: string, color?: string }) => {
+  const stats = useMemo(() => {
+    if (!data || data.length === 0) return null;
+    const sorted = [...data].sort((a, b) => a - b);
+    const n = sorted.length;
+    const mean = sorted.reduce((a, b) => a + b, 0) / n;
+    
+    // Linear interpolation for quartiles
+    const getQuartile = (arr: number[], q: number) => {
+      const pos = (arr.length - 1) * q;
+      const base = Math.floor(pos);
+      const rest = pos - base;
+      if (arr[base + 1] !== undefined) {
+        return arr[base] + rest * (arr[base + 1] - arr[base]);
+      } else {
+        return arr[base];
+      }
+    };
 
-  const plotH = height;
-  const plotY = y;
-  const scale = (v: number) => plotY + plotH - ((v - payload.yMin) / range) * plotH;
+    const q1 = getQuartile(sorted, 0.25);
+    const q2 = getQuartile(sorted, 0.5); // Mediana
+    const q3 = getQuartile(sorted, 0.75);
+    const ri = q3 - q1;
+    
+    const ref1 = q1 - 3 * ri;
+    const ref2 = q1 - 1.5 * ri;
+    const ref3 = q3 + 1.5 * ri;
+    const ref4 = q3 + 3 * ri;
+    
+    const normalData = sorted.filter(v => v >= ref2 && v <= ref3);
+    const minN = normalData.length > 0 ? normalData[0] : q1;
+    const maxN = normalData.length > 0 ? normalData[normalData.length - 1] : q3;
+    
+    const atipicos = sorted.filter(v => (v >= ref1 && v < ref2) || (v > ref3 && v <= ref4));
+    const anomalos = sorted.filter(v => v < ref1 || v > ref4);
+    
+    // Range for scaling
+    const margin = (Math.max(...sorted) - Math.min(...sorted)) * 0.1 || 10;
+    const xMin = Math.min(Math.min(...sorted), ref1) - margin;
+    const xMax = Math.max(Math.max(...sorted), ref4) + margin;
 
-  const boxTop = scale(q3);
-  const boxBottom = scale(q1);
-  const boxHeight = boxBottom - boxTop;
-  const medianY = scale(median);
-  const minY = scale(min);
-  const maxY = scale(max);
-  const cx = x + width / 2;
-  const bw = Math.min(width * 0.6, 50);
+    return { mean, q1, q2, q3, ri, ref1, ref2, ref3, ref4, minN, maxN, atipicos, anomalos, xMin, xMax, all: sorted };
+  }, [data]);
+
+  if (!stats) return <div className="flex items-center justify-center h-full text-muted-foreground text-xs italic">No hay datos suficientes para calcular la estadística.</div>;
+
+  const { mean, q1, q2, q3, ref1, ref2, ref3, ref4, minN, maxN, atipicos, anomalos, xMin, xMax } = stats;
+
+  const W = 600;
+  const H = 240;
+  const paddingX = 50;
+  const paddingY = 60;
+  const boxY = H / 2;
+  const boxHeight = 40;
+
+  const scaleX = (v: number) => paddingX + ((v - xMin) / (xMax - xMin)) * (W - 2 * paddingX);
 
   return (
-    <g>
-      {/* Whisker lines */}
-      <line x1={cx} y1={maxY} x2={cx} y2={boxTop} stroke={payload.color || '#8b5cf6'} strokeWidth={1.5} strokeDasharray="4 2" />
-      <line x1={cx} y1={boxBottom} x2={cx} y2={minY} stroke={payload.color || '#8b5cf6'} strokeWidth={1.5} strokeDasharray="4 2" />
-      {/* Whisker caps */}
-      <line x1={cx - bw / 3} y1={maxY} x2={cx + bw / 3} y2={maxY} stroke={payload.color || '#8b5cf6'} strokeWidth={2} />
-      <line x1={cx - bw / 3} y1={minY} x2={cx + bw / 3} y2={minY} stroke={payload.color || '#8b5cf6'} strokeWidth={2} />
-      {/* Box */}
-      <rect x={cx - bw / 2} y={boxTop} width={bw} height={boxHeight} fill={`${payload.color || '#8b5cf6'}30`} stroke={payload.color || '#8b5cf6'} strokeWidth={2} rx={3} />
-      {/* Median */}
-      <line x1={cx - bw / 2} y1={medianY} x2={cx + bw / 2} y2={medianY} stroke={payload.color || '#8b5cf6'} strokeWidth={3} />
-      {/* Outliers */}
-      {(payload.stats.outliers || []).map((o: number, i: number) => (
-        <circle key={i} cx={cx} cy={scale(o)} r={3} fill={payload.color || '#8b5cf6'} opacity={0.7} />
-      ))}
-    </g>
+    <div className="w-full h-full flex flex-col items-center justify-center p-2 overflow-hidden bg-background/20 rounded-lg border border-border/20 shadow-inner">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-h-full" preserveAspectRatio="xMidYMid meet">
+        {/* Style Definitions */}
+        <defs>
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+            <feOffset dx="1" dy="1" result="offsetblur" />
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.3" />
+            </feComponentTransfer>
+            <feMerge>
+              <feMergeNode />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Reference Lines (Dashed Vertical) */}
+        {[ref1, ref2, ref3, ref4].map((ref, i) => (
+          <g key={i}>
+            <line 
+                x1={scaleX(ref)} y1={paddingY - 10} 
+                x2={scaleX(ref)} y2={H - paddingY + 20} 
+                stroke="hsl(var(--muted-foreground))" 
+                strokeWidth={1} 
+                strokeDasharray="4 4" 
+                opacity={0.4} 
+            />
+            <text x={scaleX(ref)} y={H - paddingY + 35} textAnchor="middle" fontSize={10} fill="hsl(var(--muted-foreground))" className="font-mono">
+                Ref{i+1} ({ref.toFixed(1)})
+            </text>
+          </g>
+        ))}
+
+        {/* Main Axis (Bottom) */}
+        <line x1={paddingX} y1={H - paddingY + 10} x2={W - paddingX} y2={H - paddingY + 10} stroke="hsl(var(--muted-foreground))" strokeWidth={1} opacity={0.5} />
+        
+        {/* Labels for Q1, Q2, Q3 */}
+        <g>
+            <text x={scaleX(q1)} y={H - paddingY + 35} textAnchor="middle" fontSize={10} fontWeight="bold" fill="hsl(var(--primary))">Q1 ({q1.toFixed(1)})</text>
+            <text x={scaleX(q2)} y={H - paddingY + 48} textAnchor="middle" fontSize={10} fontWeight="bold" fill="hsl(var(--primary))">Q2 ({q2.toFixed(1)})</text>
+            <text x={scaleX(q3)} y={H - paddingY + 35} textAnchor="middle" fontSize={10} fontWeight="bold" fill="hsl(var(--primary))">Q3 ({q3.toFixed(1)})</text>
+            {/* Ticks for Qs */}
+            <line x1={scaleX(q1)} y1={H - paddingY + 10} x2={scaleX(q1)} y2={H - paddingY + 15} stroke="hsl(var(--primary))" strokeWidth={1.5} />
+            <line x1={scaleX(q2)} y1={H - paddingY + 10} x2={scaleX(q2)} y2={H - paddingY + 15} stroke="hsl(var(--primary))" strokeWidth={1.5} />
+            <line x1={scaleX(q3)} y1={H - paddingY + 10} x2={scaleX(q3)} y2={H - paddingY + 15} stroke="hsl(var(--primary))" strokeWidth={1.5} />
+        </g>
+
+        {/* Annotations for Apartados (Top) */}
+        {/* Left Apartados */}
+        {(ref1 > xMin || ref2 > xMin) && (
+            <g>
+                <text x={scaleX((ref1 + ref2) / 2)} y={paddingY - 35} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground))" className="uppercase tracking-widest font-bold">Apartados</text>
+                <line x1={scaleX(xMin + 5)} y1={paddingY - 30} x2={scaleX(ref2)} y2={paddingY - 30} stroke="hsl(var(--muted-foreground))" strokeWidth={0.8} />
+                <text x={scaleX((xMin + ref1) / 2)} y={paddingY - 18} textAnchor="middle" fontSize={8} fill="hsl(var(--destructive))">Anómalo</text>
+                <text x={scaleX((ref1 + ref2) / 2)} y={paddingY - 18} textAnchor="middle" fontSize={8} fill="hsl(var(--warning))">Atípico</text>
+            </g>
+        )}
+        {/* Right Apartados */}
+        {(ref3 < xMax || ref4 < xMax) && (
+            <g>
+                <text x={scaleX((ref3 + ref4) / 2)} y={paddingY - 35} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground))" className="uppercase tracking-widest font-bold">Apartados</text>
+                <line x1={scaleX(ref3)} y1={paddingY - 30} x2={scaleX(xMax - 5)} y2={paddingY - 30} stroke="hsl(var(--muted-foreground))" strokeWidth={0.8} />
+                <text x={scaleX((ref3 + ref4) / 2)} y={paddingY - 18} textAnchor="middle" fontSize={8} fill="hsl(var(--warning))">Atípico</text>
+                <text x={scaleX((ref4 + xMax) / 2)} y={paddingY - 18} textAnchor="middle" fontSize={8} fill="hsl(var(--destructive))">Anómalo</text>
+            </g>
+        )}
+
+        {/* Whiskers */}
+        <line x1={scaleX(minN)} y1={boxY} x2={scaleX(q1)} y2={boxY} stroke={color || "hsl(var(--primary))"} strokeWidth={1.5} />
+        <line x1={scaleX(maxN)} y1={boxY} x2={scaleX(q3)} y2={boxY} stroke={color || "hsl(var(--primary))"} strokeWidth={1.5} />
+        {/* Whisker caps (T-shape) */}
+        <line x1={scaleX(minN)} y1={boxY - 8} x2={scaleX(minN)} y2={boxY + 8} stroke={color || "hsl(var(--primary))"} strokeWidth={2} />
+        <line x1={scaleX(maxN)} y1={boxY - 8} x2={scaleX(maxN)} y2={boxY + 8} stroke={color || "hsl(var(--primary))"} strokeWidth={2} />
+
+        {/* The Box */}
+        <rect 
+            x={scaleX(q1)} y={boxY - boxHeight / 2} 
+            width={scaleX(q3) - scaleX(q1)} height={boxHeight} 
+            fill={`${color || "#8b5cf6"}15`} 
+            stroke={color || "hsl(var(--primary))"} 
+            strokeWidth={2} 
+            filter="url(#shadow)"
+        />
+        
+        {/* Median Line */}
+        <line 
+            x1={scaleX(q2)} y1={boxY - boxHeight / 2} 
+            x2={scaleX(q2)} y2={boxY + boxHeight / 2} 
+            stroke={color || "hsl(var(--primary))"} 
+            strokeWidth={3} 
+        />
+
+        {/* Mean Marker (+) */}
+        <g transform={`translate(${scaleX(mean)}, ${boxY})`}>
+            <line x1={-5} y1={0} x2={5} y2={0} stroke="hsl(var(--foreground))" strokeWidth={2} />
+            <line x1={0} y1={-5} x2={0} y2={5} stroke="hsl(var(--foreground))" strokeWidth={2} />
+            <text y={-10} textAnchor="middle" fontSize={8} fontWeight="bold" fill="hsl(var(--foreground))">$\overline{x}$</text>
+        </g>
+
+        {/* Markers for Outliers and Extreme Values */}
+        {atipicos.map((v, i) => (
+          <circle 
+            key={`atipico-${i}`} 
+            cx={scaleX(v)} cy={boxY} r={4} 
+            fill="transparent" 
+            stroke="hsl(var(--warning))" 
+            strokeWidth={1.5} 
+          />
+        ))}
+        {anomalos.map((v, i) => (
+          <g key={`anomalo-${i}`} transform={`translate(${scaleX(v)}, ${boxY})`}>
+             <text textAnchor="middle" dy={6} fontSize={16} fill="hsl(var(--destructive))" fontWeight="bold">*</text>
+          </g>
+        ))}
+      </svg>
+    </div>
   );
 };
 
@@ -517,37 +655,14 @@ export const ChartComponent = ({ node, updateAttributes }: NodeViewProps) => {
         );
 
       case 'box': {
-        const boxData = chartData.map((d: any, i: number) => {
-          const stats = computeBoxPlotStats(d.values || []);
-          const allValues = chartData.flatMap((dd: any) => dd.values || []);
-          return {
-            name: d.name,
-            stats,
-            value: stats ? stats.max : 0,
-            color: currentColors[i % currentColors.length],
-            yMin: Math.min(...allValues) * 0.9,
-            yMax: Math.max(...allValues) * 1.1,
-          };
-        });
+        const firstSerie = chartData[0];
+        if (!firstSerie || !firstSerie.values) return null;
         return (
-          <BarChart data={boxData}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
-            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
-            <YAxis domain={[boxData[0]?.yMin || 0, boxData[0]?.yMax || 100]} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
-            <Tooltip
-              contentStyle={tooltipStyle}
-              formatter={(_: any, __: any, props: any) => {
-                const s = props.payload?.stats;
-                if (!s) return '';
-                return [`Min: ${s.min.toFixed(1)}, Q1: ${s.q1.toFixed(1)}, Med: ${s.median.toFixed(1)}, Q3: ${s.q3.toFixed(1)}, Max: ${s.max.toFixed(1)}`];
-              }}
-            />
-            <Bar dataKey="value" shape={<BoxPlotShape />}>
-              {boxData.map((_: any, i: number) => (
-                <Cell key={i} fill="transparent" />
-              ))}
-            </Bar>
-          </BarChart>
+          <CustomBoxPlot 
+            data={firstSerie.values} 
+            title={firstSerie.name} 
+            color={currentColors[0]} 
+          />
         );
       }
 
