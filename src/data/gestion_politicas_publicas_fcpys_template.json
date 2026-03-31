@@ -1,0 +1,145 @@
+{
+  "subjects": [
+    {
+      "id": "gpp1",
+      "codigo": "GPP1",
+      "nombre": "Estado, Sociedad y Política",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "gpp2",
+      "codigo": "GPP2",
+      "nombre": "Historia Institucional Argentina",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "gpp3",
+      "codigo": "GPP3",
+      "nombre": "Análisis de Políticas Públicas",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "gpp4",
+      "codigo": "GPP4",
+      "nombre": "Administración General",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "gpp5",
+      "codigo": "GPP5",
+      "nombre": "Sociología General",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "gpp6",
+      "codigo": "GPP6",
+      "nombre": "Práctica I: Taller",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "gpp7",
+      "codigo": "GPP7",
+      "nombre": "Metodología para la Investigación en Ciencia Política",
+      "numero_materia": 7,
+      "año": 2
+    },
+    {
+      "id": "gpp8",
+      "codigo": "GPP8",
+      "nombre": "Planificación y Evaluación de Proyectos Sociales",
+      "numero_materia": 8,
+      "año": 2
+    },
+    {
+      "id": "gpp9",
+      "codigo": "GPP9",
+      "nombre": "Derecho Administrativo",
+      "numero_materia": 9,
+      "año": 2
+    },
+    {
+      "id": "gpp10",
+      "codigo": "GPP10",
+      "nombre": "Análisis Institucional",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "gpp11",
+      "codigo": "GPP11",
+      "nombre": "Economía Argentina",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "gpp12",
+      "codigo": "GPP12",
+      "nombre": "Práctica II: Intervención",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "gpp13",
+      "codigo": "GPP13",
+      "nombre": "Organización y Gestión del Estado",
+      "numero_materia": 13,
+      "año": 3
+    },
+    {
+      "id": "gpp14",
+      "codigo": "GPP14",
+      "nombre": "Análisis Administrativo",
+      "numero_materia": 14,
+      "año": 3
+    },
+    {
+      "id": "gpp15",
+      "codigo": "GPP15",
+      "nombre": "Optativa 1 (Política Social / Problemática de la Vivienda / Problemática del Trabajo y Seguridad Social / Problemática del Control Social y Violencia)",
+      "numero_materia": 15,
+      "año": 3
+    },
+    {
+      "id": "gpp16",
+      "codigo": "GPP16",
+      "nombre": "Optativa 2 (Problemática de la Salud / Problemática Educativa / Sistemas de Control de Gestión)",
+      "numero_materia": 16,
+      "año": 3
+    },
+    {
+      "id": "gpp17",
+      "codigo": "GPP17",
+      "nombre": "Electiva I",
+      "numero_materia": 17,
+      "año": 3
+    },
+    {
+      "id": "gpp18",
+      "codigo": "GPP18",
+      "nombre": "Administración Financiera",
+      "numero_materia": 18,
+      "año": 3
+    },
+    {
+      "id": "gpp19",
+      "codigo": "GPP19",
+      "nombre": "Administración de los Recursos Humanos",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "gpp20",
+      "codigo": "GPP20",
+      "nombre": "Proyecto Final",
+      "numero_materia": 20,
+      "año": 3
+    }
+  ],
+  "dependencies": []
+}

@@ -1,0 +1,328 @@
+{
+  "subjects": [
+    {
+      "id": "soc1",
+      "codigo": "SOC1",
+      "nombre": "Problemática Filosófica",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "soc2",
+      "codigo": "SOC2",
+      "nombre": "Procesos Sociales Contemporáneos",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "soc3",
+      "codigo": "SOC3",
+      "nombre": "Economía Política",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "soc4",
+      "codigo": "SOC4",
+      "nombre": "Historia Social Argentina I",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "soc5",
+      "codigo": "SOC5",
+      "nombre": "Formación del Pensamiento Sociológico",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "soc6",
+      "codigo": "SOC6",
+      "nombre": "Historia Social Argentina II",
+      "numero_materia": 6,
+      "año": 2
+    },
+    {
+      "id": "soc7",
+      "codigo": "SOC7",
+      "nombre": "Bases Matemáticas para la Investigación Social",
+      "numero_materia": 7,
+      "año": 2
+    },
+    {
+      "id": "soc8",
+      "codigo": "SOC8",
+      "nombre": "Antropología Social y Cultural",
+      "numero_materia": 8,
+      "año": 2
+    },
+    {
+      "id": "soc9",
+      "codigo": "SOC9",
+      "nombre": "Metodología de las Ciencias Sociales",
+      "numero_materia": 9,
+      "año": 2
+    },
+    {
+      "id": "soc10",
+      "codigo": "SOC10",
+      "nombre": "Psicología Social",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "soc11",
+      "codigo": "SOC11",
+      "nombre": "Teoría Sociológica Clásica",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "soc12",
+      "codigo": "SOC12",
+      "nombre": "Teoría Sociológica Contemporánea",
+      "numero_materia": 12,
+      "año": 3
+    },
+    {
+      "id": "soc13",
+      "codigo": "SOC13",
+      "nombre": "Técnicas Estadísticas para la Investigación Social",
+      "numero_materia": 13,
+      "año": 3
+    },
+    {
+      "id": "soc14",
+      "codigo": "SOC14",
+      "nombre": "Técnicas Cualitativas para la Investigación Social",
+      "numero_materia": 14,
+      "año": 3
+    },
+    {
+      "id": "soc15",
+      "codigo": "SOC15",
+      "nombre": "Demografía",
+      "numero_materia": 15,
+      "año": 3
+    },
+    {
+      "id": "soc16",
+      "codigo": "SOC16",
+      "nombre": "Sociología Política",
+      "numero_materia": 16,
+      "año": 3
+    },
+    {
+      "id": "soc17",
+      "codigo": "SOC17",
+      "nombre": "Estructura Social",
+      "numero_materia": 17,
+      "año": 4
+    },
+    {
+      "id": "soc18",
+      "codigo": "SOC18",
+      "nombre": "Sociología del Conocimiento",
+      "numero_materia": 18,
+      "año": 4
+    },
+    {
+      "id": "soc19",
+      "codigo": "SOC19",
+      "nombre": "Sociología Sistemática",
+      "numero_materia": 19,
+      "año": 4
+    },
+    {
+      "id": "soc20",
+      "codigo": "SOC20",
+      "nombre": "Epistemología de las Ciencias Sociales",
+      "numero_materia": 20,
+      "año": 4
+    },
+    {
+      "id": "soc21",
+      "codigo": "SOC21",
+      "nombre": "Planificación y Evaluación de Proyectos Sociales",
+      "numero_materia": 21,
+      "año": 4
+    },
+    {
+      "id": "soc22",
+      "codigo": "SOC22",
+      "nombre": "Informática Social",
+      "numero_materia": 22,
+      "año": 4
+    },
+    {
+      "id": "soc23",
+      "codigo": "SOC23",
+      "nombre": "Sociología Latinoamericana y Argentina",
+      "numero_materia": 23,
+      "año": 4
+    },
+    {
+      "id": "soc24",
+      "codigo": "SOC24",
+      "nombre": "Prácticas Sociales Educativas",
+      "numero_materia": 24,
+      "año": 4
+    },
+    {
+      "id": "soc25",
+      "codigo": "SOC25",
+      "nombre": "Optativa I",
+      "numero_materia": 25,
+      "año": 5
+    },
+    {
+      "id": "soc26",
+      "codigo": "SOC26",
+      "nombre": "Optativa II",
+      "numero_materia": 26,
+      "año": 5
+    },
+    {
+      "id": "soc27",
+      "codigo": "SOC27",
+      "nombre": "Optativa III",
+      "numero_materia": 27,
+      "año": 5
+    },
+    {
+      "id": "soc28",
+      "codigo": "SOC28",
+      "nombre": "Optativa IV",
+      "numero_materia": 28,
+      "año": 5
+    },
+    {
+      "id": "soc29",
+      "codigo": "SOC29",
+      "nombre": "Seminario de Investigación para la elaboración de la Tesina",
+      "numero_materia": 29,
+      "año": 5
+    },
+    {
+      "id": "soc30",
+      "codigo": "SOC30",
+      "nombre": "Prácticas Profesionales",
+      "numero_materia": 30,
+      "año": 5
+    },
+    {
+      "id": "soc31",
+      "codigo": "SOC31",
+      "nombre": "Tesina",
+      "numero_materia": 31,
+      "año": 5
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "soc8",
+      "dependency_id": "soc1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc11",
+      "dependency_id": "soc5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc11",
+      "dependency_id": "soc1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc6",
+      "dependency_id": "soc4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc9",
+      "dependency_id": "soc5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc12",
+      "dependency_id": "soc11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc13",
+      "dependency_id": "soc9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc13",
+      "dependency_id": "soc7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc14",
+      "dependency_id": "soc9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc17",
+      "dependency_id": "soc11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc17",
+      "dependency_id": "soc9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc15",
+      "dependency_id": "soc13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc20",
+      "dependency_id": "soc13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc20",
+      "dependency_id": "soc14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc20",
+      "dependency_id": "soc12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc19",
+      "dependency_id": "soc12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc23",
+      "dependency_id": "soc12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc18",
+      "dependency_id": "soc12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc21",
+      "dependency_id": "soc13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc21",
+      "dependency_id": "soc14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "soc22",
+      "dependency_id": "soc13",
+      "requiere_regular": false
+    }
+  ]
+}

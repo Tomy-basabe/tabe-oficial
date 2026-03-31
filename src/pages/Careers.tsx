@@ -74,6 +74,42 @@ const careers = Object.entries(careerTemplates).map(([path, module]: [string, an
       university: "UTN FRC", 
       icon: <Target className="w-6 h-6 text-blue-500" />, 
       color: "from-blue-500/20 to-blue-500/5" 
+    },
+    "gestion_politicas_publicas_fcpys": { 
+      name: "Tecnicatura en Gestión de Políticas Públicas", 
+      university: "UNCUYO FCPyS", 
+      icon: <GraduationCap className="w-6 h-6 text-amber-400" />, 
+      color: "from-amber-400/20 to-amber-400/5" 
+    },
+    "trabajo_social_fcpys": { 
+      name: "Licenciatura en Trabajo Social", 
+      university: "UNCUYO FCPyS", 
+      icon: <BookOpen className="w-6 h-6 text-rose-500" />, 
+      color: "from-rose-500/20 to-rose-500/5" 
+    },
+    "sociologia_fcpys": { 
+      name: "Licenciatura en Sociología", 
+      university: "UNCUYO FCPyS", 
+      icon: <GraduationCap className="w-6 h-6 text-violet-400" />, 
+      color: "from-violet-400/20 to-violet-400/5" 
+    },
+    "ciencia_politica_fcpys": { 
+      name: "Lic. en Ciencia Política y Adm. Pública", 
+      university: "UNCUYO FCPyS", 
+      icon: <Target className="w-6 h-6 text-emerald-400" />, 
+      color: "from-emerald-400/20 to-emerald-400/5" 
+    },
+    "comunicacion_social_fcpys": { 
+      name: "Licenciatura en Comunicación Social", 
+      university: "UNCUYO FCPyS", 
+      icon: <BookOpen className="w-6 h-6 text-cyan-400" />, 
+      color: "from-cyan-400/20 to-cyan-400/5" 
+    },
+    "tupa_fcpys": { 
+      name: "Tec. en Producción Audiovisual (TUPA)", 
+      university: "UNCUYO FCPyS", 
+      icon: <Target className="w-6 h-6 text-orange-400" />, 
+      color: "from-orange-400/20 to-orange-400/5" 
     }
   };
 

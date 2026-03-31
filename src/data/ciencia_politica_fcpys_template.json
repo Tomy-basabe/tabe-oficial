@@ -1,0 +1,296 @@
+{
+  "subjects": [
+    {
+      "id": "cp1",
+      "codigo": "CP1",
+      "nombre": "Estado, Sociedad y Política",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "cp2",
+      "codigo": "CP2",
+      "nombre": "Instituciones del Derecho",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "cp3",
+      "codigo": "CP3",
+      "nombre": "Administración General",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "cp4",
+      "codigo": "CP4",
+      "nombre": "Historia Institucional Argentina",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "cp5",
+      "codigo": "CP5",
+      "nombre": "Relaciones Internacionales",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "cp6",
+      "codigo": "CP6",
+      "nombre": "Sociología General",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "cp7",
+      "codigo": "CP7",
+      "nombre": "Análisis Cuantitativo",
+      "numero_materia": 7,
+      "año": 2
+    },
+    {
+      "id": "cp8",
+      "codigo": "CP8",
+      "nombre": "Derecho Constitucional",
+      "numero_materia": 8,
+      "año": 2
+    },
+    {
+      "id": "cp9",
+      "codigo": "CP9",
+      "nombre": "Doctrinas e Ideas Políticas I",
+      "numero_materia": 9,
+      "año": 2
+    },
+    {
+      "id": "cp10",
+      "codigo": "CP10",
+      "nombre": "Teoría Económica I",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "cp11",
+      "codigo": "CP11",
+      "nombre": "Epistemología de las Ciencias Sociales",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "cp12",
+      "codigo": "CP12",
+      "nombre": "Administración de los Recursos Humanos",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "cp13",
+      "codigo": "CP13",
+      "nombre": "Doctrinas e Ideas Políticas II",
+      "numero_materia": 13,
+      "año": 3
+    },
+    {
+      "id": "cp14",
+      "codigo": "CP14",
+      "nombre": "Teoría Económica II",
+      "numero_materia": 14,
+      "año": 3
+    },
+    {
+      "id": "cp15",
+      "codigo": "CP15",
+      "nombre": "Teoría Política I",
+      "numero_materia": 15,
+      "año": 3
+    },
+    {
+      "id": "cp16",
+      "codigo": "CP16",
+      "nombre": "Derecho Administrativo",
+      "numero_materia": 16,
+      "año": 3
+    },
+    {
+      "id": "cp17",
+      "codigo": "CP17",
+      "nombre": "Metodología para la Investigación en Ciencia Política",
+      "numero_materia": 17,
+      "año": 3
+    },
+    {
+      "id": "cp18",
+      "codigo": "CP18",
+      "nombre": "Idioma: Inglés o Francés",
+      "numero_materia": 18,
+      "año": 3
+    },
+    {
+      "id": "cp19",
+      "codigo": "CP19",
+      "nombre": "Administración Ambiental",
+      "numero_materia": 19,
+      "año": 4
+    },
+    {
+      "id": "cp20",
+      "codigo": "CP20",
+      "nombre": "Organización y Gestión del Estado",
+      "numero_materia": 20,
+      "año": 4
+    },
+    {
+      "id": "cp21",
+      "codigo": "CP21",
+      "nombre": "Teoría Política II",
+      "numero_materia": 21,
+      "año": 4
+    },
+    {
+      "id": "cp22",
+      "codigo": "CP22",
+      "nombre": "Administración Financiera",
+      "numero_materia": 22,
+      "año": 4
+    },
+    {
+      "id": "cp23",
+      "codigo": "CP23",
+      "nombre": "Política Económica",
+      "numero_materia": 23,
+      "año": 4
+    },
+    {
+      "id": "cp24",
+      "codigo": "CP24",
+      "nombre": "Ideas Políticas y Sociales Americanas",
+      "numero_materia": 24,
+      "año": 4
+    },
+    {
+      "id": "cp25",
+      "codigo": "CP25",
+      "nombre": "Análisis Administrativo",
+      "numero_materia": 25,
+      "año": 5
+    },
+    {
+      "id": "cp26",
+      "codigo": "CP26",
+      "nombre": "Taller para la elaboración de Tesina",
+      "numero_materia": 26,
+      "año": 5
+    },
+    {
+      "id": "cp27",
+      "codigo": "CP27",
+      "nombre": "Análisis Político",
+      "numero_materia": 27,
+      "año": 5
+    },
+    {
+      "id": "cp28",
+      "codigo": "CP28",
+      "nombre": "Sistemas de Control de Gestión",
+      "numero_materia": 28,
+      "año": 5
+    },
+    {
+      "id": "cp29",
+      "codigo": "CP29",
+      "nombre": "3 Electivas",
+      "numero_materia": 29,
+      "año": 5
+    },
+    {
+      "id": "cp30",
+      "codigo": "CP30",
+      "nombre": "Seminario con elaboración de Tesina",
+      "numero_materia": 30,
+      "año": 5
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "cp12",
+      "dependency_id": "cp3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp8",
+      "dependency_id": "cp2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp16",
+      "dependency_id": "cp8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp20",
+      "dependency_id": "cp3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp20",
+      "dependency_id": "cp16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp22",
+      "dependency_id": "cp7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp19",
+      "dependency_id": "cp16",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp28",
+      "dependency_id": "cp22",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp25",
+      "dependency_id": "cp17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp10",
+      "dependency_id": "cp7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp14",
+      "dependency_id": "cp10",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp23",
+      "dependency_id": "cp14",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp13",
+      "dependency_id": "cp9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp24",
+      "dependency_id": "cp4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp15",
+      "dependency_id": "cp1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "cp21",
+      "dependency_id": "cp15",
+      "requiere_regular": false
+    }
+  ]
+}

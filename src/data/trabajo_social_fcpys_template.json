@@ -1,0 +1,338 @@
+{
+  "subjects": [
+    {
+      "id": "ts1",
+      "codigo": "TS1",
+      "nombre": "Trabajo Social I: Fundamentos del Trabajo Social",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "tall1",
+      "codigo": "TALL1",
+      "nombre": "Talleres Áulicos de Introducción a la Práctica",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "hist1",
+      "codigo": "HIST1",
+      "nombre": "Historia Argentina",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "psic1",
+      "codigo": "PSIC1",
+      "nombre": "Psicología General",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "econ1",
+      "codigo": "ECON1",
+      "nombre": "Economía Argentina",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "fil1",
+      "codigo": "FIL1",
+      "nombre": "Filosofía Social y Política",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "soc1",
+      "codigo": "SOC1",
+      "nombre": "Sociología General",
+      "numero_materia": 7,
+      "año": 1
+    },
+    {
+      "id": "psic2",
+      "codigo": "PSIC2",
+      "nombre": "Psicología Evolutiva",
+      "numero_materia": 8,
+      "año": 1
+    },
+    {
+      "id": "ts2",
+      "codigo": "TS2",
+      "nombre": "Trabajo Social II: Metodología de Intervención – Grupo",
+      "numero_materia": 9,
+      "año": 2
+    },
+    {
+      "id": "prac1a",
+      "codigo": "PRAC1A",
+      "nombre": "Inicio I Nivel de la Práctica",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "psic3",
+      "codigo": "PSIC3",
+      "nombre": "Psicología Social",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "teo1",
+      "codigo": "TEO1",
+      "nombre": "Teoría Política",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "pol1",
+      "codigo": "POL1",
+      "nombre": "Política Social",
+      "numero_materia": 13,
+      "año": 2
+    },
+    {
+      "id": "est1",
+      "codigo": "EST1",
+      "nombre": "Estadística y Demografía",
+      "numero_materia": 14,
+      "año": 2
+    },
+    {
+      "id": "soc2",
+      "codigo": "SOC2",
+      "nombre": "Sociología Urbana y Rural",
+      "numero_materia": 15,
+      "año": 2
+    },
+    {
+      "id": "ts3",
+      "codigo": "TS3",
+      "nombre": "Trabajo Social III: Abordaje Comunitario y Grupal – Desarrollo Local",
+      "numero_materia": 16,
+      "año": 3
+    },
+    {
+      "id": "prac1b",
+      "codigo": "PRAC1B",
+      "nombre": "Continuación I Nivel de la Práctica",
+      "numero_materia": 17,
+      "año": 3
+    },
+    {
+      "id": "met1",
+      "codigo": "MET1",
+      "nombre": "Metodología y Técnicas de Investigación Cuantitativas y Cualitativas",
+      "numero_materia": 18,
+      "año": 3
+    },
+    {
+      "id": "prob1",
+      "codigo": "PROB1",
+      "nombre": "Problemática Educativa",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "prob2",
+      "codigo": "PROB2",
+      "nombre": "Problemática del Trabajo y Seguridad Social",
+      "numero_materia": 20,
+      "año": 3
+    },
+    {
+      "id": "ant1",
+      "codigo": "ANT1",
+      "nombre": "Antropología Social y Cultural",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
+      "id": "prob_viv",
+      "codigo": "PROBVIV",
+      "nombre": "Problemática de la Vivienda",
+      "numero_materia": 22,
+      "año": 3
+    },
+    {
+      "id": "ts4",
+      "codigo": "TS4",
+      "nombre": "Trabajo Social IV: Abordaje Familiar",
+      "numero_materia": 23,
+      "año": 4
+    },
+    {
+      "id": "prac2a",
+      "codigo": "PRAC2A",
+      "nombre": "Inicio II Nivel de la Práctica",
+      "numero_materia": 24,
+      "año": 4
+    },
+    {
+      "id": "ges1",
+      "codigo": "GES1",
+      "nombre": "Gestión Social",
+      "numero_materia": 25,
+      "año": 4
+    },
+    {
+      "id": "prob4",
+      "codigo": "PROB4",
+      "nombre": "Problemática de la Salud",
+      "numero_materia": 26,
+      "año": 4
+    },
+    {
+      "id": "prob5",
+      "codigo": "PROB5",
+      "nombre": "Problemática de la Familia, Niñez, Adolescencia y Ancianidad",
+      "numero_materia": 27,
+      "año": 4
+    },
+    {
+      "id": "plan1",
+      "codigo": "PLAN1",
+      "nombre": "Planificación Social",
+      "numero_materia": 28,
+      "año": 4
+    },
+    {
+      "id": "epi1",
+      "codigo": "EPI1",
+      "nombre": "Epistemología de las Ciencias Sociales",
+      "numero_materia": 29,
+      "año": 4
+    },
+    {
+      "id": "prob6",
+      "codigo": "PROB6",
+      "nombre": "Problemática del Control Social y Violencia",
+      "numero_materia": 30,
+      "año": 4
+    },
+    {
+      "id": "ts5",
+      "codigo": "TS5",
+      "nombre": "Trabajo Social V: Práctica Profesional y Supervisión Docente",
+      "numero_materia": 31,
+      "año": 5
+    },
+    {
+      "id": "prac2b",
+      "codigo": "PRAC2B",
+      "nombre": "Continuación II Nivel de la Práctica",
+      "numero_materia": 32,
+      "año": 5
+    },
+    {
+      "id": "eti1",
+      "codigo": "ETI1",
+      "nombre": "Ética Profesional y Social",
+      "numero_materia": 33,
+      "año": 5
+    },
+    {
+      "id": "elec1",
+      "codigo": "ELEC1",
+      "nombre": "Electiva I",
+      "numero_materia": 34,
+      "año": 5
+    },
+    {
+      "id": "elec2",
+      "codigo": "ELEC2",
+      "nombre": "Electiva II",
+      "numero_materia": 35,
+      "año": 5
+    },
+    {
+      "id": "tes1",
+      "codigo": "TES1",
+      "nombre": "Tesina",
+      "numero_materia": 36,
+      "año": 5
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "tall1",
+      "dependency_id": "ts1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ts2",
+      "dependency_id": "tall1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "ts2",
+      "dependency_id": "ts1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac1a",
+      "dependency_id": "tall1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac1a",
+      "dependency_id": "ts1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac1a",
+      "dependency_id": "ts2",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ts3",
+      "dependency_id": "ts2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac1b",
+      "dependency_id": "ts2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac1b",
+      "dependency_id": "ts3",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ts4",
+      "dependency_id": "ts3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac2a",
+      "dependency_id": "ts3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac2a",
+      "dependency_id": "prac1b",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac2a",
+      "dependency_id": "ts4",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "ts5",
+      "dependency_id": "ts4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac2b",
+      "dependency_id": "ts4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "prac2b",
+      "dependency_id": "ts5",
+      "requiere_regular": true
+    }
+  ]
+}

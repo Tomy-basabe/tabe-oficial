@@ -1,0 +1,347 @@
+{
+  "subjects": [
+    {
+      "id": "tupa1",
+      "codigo": "TUPA1",
+      "nombre": "Medios de Comunicación y Cultura",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "tupa2",
+      "codigo": "TUPA2",
+      "nombre": "Fotografía, Iluminación y Cámara",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "tupa3",
+      "codigo": "TUPA3",
+      "nombre": "Guion",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "tupa4",
+      "codigo": "TUPA4",
+      "nombre": "Electricidad y Mantenimiento",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "tupa5",
+      "codigo": "TUPA5",
+      "nombre": "Audiovisual I",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "tupa6",
+      "codigo": "TUPA6",
+      "nombre": "Semiótica",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "tupa7",
+      "codigo": "TUPA7",
+      "nombre": "Arte y Diseño Digital",
+      "numero_materia": 7,
+      "año": 1
+    },
+    {
+      "id": "tupa8",
+      "codigo": "TUPA8",
+      "nombre": "Producción Comunitaria",
+      "numero_materia": 8,
+      "año": 1
+    },
+    {
+      "id": "tupa9",
+      "codigo": "TUPA9",
+      "nombre": "Producción Televisiva",
+      "numero_materia": 9,
+      "año": 1
+    },
+    {
+      "id": "tupa10",
+      "codigo": "TUPA10",
+      "nombre": "Estética Audiovisual",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "tupa11",
+      "codigo": "TUPA11",
+      "nombre": "Edición",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "tupa12",
+      "codigo": "TUPA12",
+      "nombre": "Sonido",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "tupa13",
+      "codigo": "TUPA13",
+      "nombre": "Audiovisual II",
+      "numero_materia": 13,
+      "año": 2
+    },
+    {
+      "id": "tupa14",
+      "codigo": "TUPA14",
+      "nombre": "Práctica Profesional",
+      "numero_materia": 14,
+      "año": 2
+    },
+    {
+      "id": "tupa15",
+      "codigo": "TUPA15",
+      "nombre": "Derecho Audiovisual",
+      "numero_materia": 15,
+      "año": 2
+    },
+    {
+      "id": "tupa16",
+      "codigo": "TUPA16",
+      "nombre": "Realización Audiovisual",
+      "numero_materia": 16,
+      "año": 2
+    },
+    {
+      "id": "tupa17",
+      "codigo": "TUPA17",
+      "nombre": "Narrativa Transmedia",
+      "numero_materia": 17,
+      "año": 2
+    },
+    {
+      "id": "tupa18",
+      "codigo": "TUPA18",
+      "nombre": "Trabajo Final Integrador",
+      "numero_materia": 18,
+      "año": 2
+    },
+    {
+      "id": "tupa19",
+      "codigo": "TUPA19",
+      "nombre": "Inglés",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "tupa20",
+      "codigo": "TUPA20",
+      "nombre": "Dirección de Arte y Ambientación",
+      "numero_materia": 20,
+      "año": 3
+    },
+    {
+      "id": "tupa21",
+      "codigo": "TUPA21",
+      "nombre": "Electiva I",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
+      "id": "tupa22",
+      "codigo": "TUPA22",
+      "nombre": "Electiva II",
+      "numero_materia": 22,
+      "año": 3
+    },
+    {
+      "id": "tupa23",
+      "codigo": "TUPA23",
+      "nombre": "Audiovisual III",
+      "numero_materia": 23,
+      "año": 3
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "tupa7",
+      "dependency_id": "tupa3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa8",
+      "dependency_id": "tupa1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "tupa8",
+      "dependency_id": "tupa3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa9",
+      "dependency_id": "tupa1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "tupa9",
+      "dependency_id": "tupa3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa9",
+      "dependency_id": "tupa4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa6",
+      "dependency_id": "tupa1",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "tupa10",
+      "dependency_id": "tupa6",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "tupa10",
+      "dependency_id": "tupa1",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa11",
+      "dependency_id": "tupa2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa11",
+      "dependency_id": "tupa7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa11",
+      "dependency_id": "tupa9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa12",
+      "dependency_id": "tupa3",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa12",
+      "dependency_id": "tupa4",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa13",
+      "dependency_id": "tupa6",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "tupa13",
+      "dependency_id": "tupa9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa13",
+      "dependency_id": "tupa8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa13",
+      "dependency_id": "tupa5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa13",
+      "dependency_id": "tupa2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa15",
+      "dependency_id": "tupa10",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "tupa15",
+      "dependency_id": "tupa9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa15",
+      "dependency_id": "tupa5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa15",
+      "dependency_id": "tupa8",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa16",
+      "dependency_id": "tupa9",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa16",
+      "dependency_id": "tupa2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa16",
+      "dependency_id": "tupa5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa16",
+      "dependency_id": "tupa7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa17",
+      "dependency_id": "tupa5",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa17",
+      "dependency_id": "tupa2",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa17",
+      "dependency_id": "tupa7",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa23",
+      "dependency_id": "tupa15",
+      "requiere_regular": true
+    },
+    {
+      "subject_id": "tupa23",
+      "dependency_id": "tupa11",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa23",
+      "dependency_id": "tupa12",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa19",
+      "dependency_id": "tupa13",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa19",
+      "dependency_id": "tupa17",
+      "requiere_regular": false
+    },
+    {
+      "subject_id": "tupa20",
+      "dependency_id": "tupa13",
+      "requiere_regular": false
+    }
+  ]
+}

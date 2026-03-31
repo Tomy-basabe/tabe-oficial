@@ -1,0 +1,243 @@
+{
+  "subjects": [
+    {
+      "id": "com1",
+      "codigo": "COM1",
+      "nombre": "Introducción a los Problemas de la Comunicación",
+      "numero_materia": 1,
+      "año": 1
+    },
+    {
+      "id": "com2",
+      "codigo": "COM2",
+      "nombre": "Lenguajes y Producción de Contenidos",
+      "numero_materia": 2,
+      "año": 1
+    },
+    {
+      "id": "com3",
+      "codigo": "COM3",
+      "nombre": "Lingüística",
+      "numero_materia": 3,
+      "año": 1
+    },
+    {
+      "id": "com4",
+      "codigo": "COM4",
+      "nombre": "Práctica Profesional I",
+      "numero_materia": 4,
+      "año": 1
+    },
+    {
+      "id": "com5",
+      "codigo": "COM5",
+      "nombre": "Sociología",
+      "numero_materia": 5,
+      "año": 1
+    },
+    {
+      "id": "com6",
+      "codigo": "COM6",
+      "nombre": "Taller de Producción Escrita",
+      "numero_materia": 6,
+      "año": 1
+    },
+    {
+      "id": "com7",
+      "codigo": "COM7",
+      "nombre": "Teoría de la Imagen",
+      "numero_materia": 7,
+      "año": 1
+    },
+    {
+      "id": "com8",
+      "codigo": "COM8",
+      "nombre": "Historia Argentina",
+      "numero_materia": 8,
+      "año": 1
+    },
+    {
+      "id": "com9",
+      "codigo": "COM9",
+      "nombre": "Radio",
+      "numero_materia": 9,
+      "año": 2
+    },
+    {
+      "id": "com10",
+      "codigo": "COM10",
+      "nombre": "Semiótica",
+      "numero_materia": 10,
+      "año": 2
+    },
+    {
+      "id": "com11",
+      "codigo": "COM11",
+      "nombre": "Lenguaje y Técnica de la Fotografía",
+      "numero_materia": 11,
+      "año": 2
+    },
+    {
+      "id": "com12",
+      "codigo": "COM12",
+      "nombre": "Inglés / Francés",
+      "numero_materia": 12,
+      "año": 2
+    },
+    {
+      "id": "com13",
+      "codigo": "COM13",
+      "nombre": "Redacción Periodística",
+      "numero_materia": 13,
+      "año": 2
+    },
+    {
+      "id": "com14",
+      "codigo": "COM14",
+      "nombre": "Teorías de la Comunicación Social I",
+      "numero_materia": 14,
+      "año": 2
+    },
+    {
+      "id": "com15",
+      "codigo": "COM15",
+      "nombre": "Electiva",
+      "numero_materia": 15,
+      "año": 2
+    },
+    {
+      "id": "com16",
+      "codigo": "COM16",
+      "nombre": "Intro. a la Filosofía y el Pensamiento Feministas / Filosofía Social y Política / Problemática Filosófica",
+      "numero_materia": 16,
+      "año": 2
+    },
+    {
+      "id": "com17",
+      "codigo": "COM17",
+      "nombre": "Políticas de Comunicación",
+      "numero_materia": 17,
+      "año": 3
+    },
+    {
+      "id": "com18",
+      "codigo": "COM18",
+      "nombre": "Audiovisual",
+      "numero_materia": 18,
+      "año": 3
+    },
+    {
+      "id": "com19",
+      "codigo": "COM19",
+      "nombre": "Epistemología de las Ciencias Sociales",
+      "numero_materia": 19,
+      "año": 3
+    },
+    {
+      "id": "com20",
+      "codigo": "COM20",
+      "nombre": "Proyectos Mediáticos y Periodísticos",
+      "numero_materia": 20,
+      "año": 3
+    },
+    {
+      "id": "com21",
+      "codigo": "COM21",
+      "nombre": "Procesos Sociales Contemporáneos",
+      "numero_materia": 21,
+      "año": 3
+    },
+    {
+      "id": "com22",
+      "codigo": "COM22",
+      "nombre": "Teorías de la Comunicación Social II",
+      "numero_materia": 22,
+      "año": 3
+    },
+    {
+      "id": "com23",
+      "codigo": "COM23",
+      "nombre": "Análisis del Discurso",
+      "numero_materia": 23,
+      "año": 3
+    },
+    {
+      "id": "com24",
+      "codigo": "COM24",
+      "nombre": "Comunicación Organizacional",
+      "numero_materia": 24,
+      "año": 3
+    },
+    {
+      "id": "com25",
+      "codigo": "COM25",
+      "nombre": "Pensamiento Latinoamericano",
+      "numero_materia": 25,
+      "año": 3
+    },
+    {
+      "id": "com26",
+      "codigo": "COM26",
+      "nombre": "Estudios Sociales sobre Medios Digitales",
+      "numero_materia": 26,
+      "año": 4
+    },
+    {
+      "id": "com27",
+      "codigo": "COM27",
+      "nombre": "Teorías de la Cultura Audiovisual / Lecturas Literarias",
+      "numero_materia": 27,
+      "año": 4
+    },
+    {
+      "id": "com28",
+      "codigo": "COM28",
+      "nombre": "Investigación en Comunicación Social",
+      "numero_materia": 28,
+      "año": 4
+    },
+    {
+      "id": "com29",
+      "codigo": "COM29",
+      "nombre": "Trayecto 1: Redacción Periodística Digital / Gestión de Com. Estratégica Organizacional / Comunicación - Educación",
+      "numero_materia": 29,
+      "año": 4
+    },
+    {
+      "id": "com30",
+      "codigo": "COM30",
+      "nombre": "Mediatizaciones, Género e Interseccionalidad",
+      "numero_materia": 30,
+      "año": 4
+    },
+    {
+      "id": "com31",
+      "codigo": "COM31",
+      "nombre": "Trayecto 2: Realización Radial / Comunicación Publicitaria / Comunicación y Cultura",
+      "numero_materia": 31,
+      "año": 4
+    },
+    {
+      "id": "com32",
+      "codigo": "COM32",
+      "nombre": "Trayecto 3: Realización Audiovisual / Branding y Posicionamiento Estratégico / Psicología y Com. Social",
+      "numero_materia": 32,
+      "año": 4
+    },
+    {
+      "id": "com33",
+      "codigo": "COM33",
+      "nombre": "Práctica Profesional II",
+      "numero_materia": 33,
+      "año": 4
+    },
+    {
+      "id": "com34",
+      "codigo": "COM34",
+      "nombre": "Trabajo Final de Grado",
+      "numero_materia": 34,
+      "año": 4
+    }
+  ],
+  "dependencies": []
+}
