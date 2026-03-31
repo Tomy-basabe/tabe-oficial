@@ -51,7 +51,10 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
       ) : (
         <div className="space-y-3">
           {exams.map((exam) => {
-            const typeConfig = examTypeConfig[exam.type];
+            const typeConfig = (examTypeConfig as any)[exam.type] || {
+              label: exam.type || "Examen",
+              color: "bg-muted/20 text-muted-foreground border-muted/30"
+            };
             return (
               <div
                 key={exam.id}
