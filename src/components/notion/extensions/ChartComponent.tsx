@@ -292,7 +292,7 @@ const CustomBoxPlot = ({ data, title, color }: { data: number[], title?: string,
         <g transform={`translate(${scaleX(mean)}, ${boxY})`}>
             <line x1={-5} y1={0} x2={5} y2={0} stroke="hsl(var(--foreground))" strokeWidth={2} />
             <line x1={0} y1={-5} x2={0} y2={5} stroke="hsl(var(--foreground))" strokeWidth={2} />
-            <text y={-10} textAnchor="middle" fontSize={8} fontWeight="bold" fill="hsl(var(--foreground))">$\overline{x}$</text>
+            <text y={-10} textAnchor="middle" fontSize={8} fontWeight="bold" fill="hsl(var(--foreground))">x̄</text>
         </g>
 
         {/* Markers for Outliers and Extreme Values */}
@@ -877,6 +877,8 @@ export const ChartComponent = ({ node, updateAttributes }: NodeViewProps) => {
               showGrid={true}
               showAxes={true}
             />
+          ) : type === 'box' ? (
+            renderChart()
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {renderChart()!}
