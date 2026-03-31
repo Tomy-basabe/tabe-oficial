@@ -182,7 +182,7 @@ const getSuggestionItems = (): CommandItem[] => [
   },
   {
     title: "Gráfico Estadístico",
-    description: "Barras, líneas y torta interactivos",
+    description: "Barras, dispersión, caja, radar, funciones y más",
     icon: <BarChart3 className="w-4 h-4 text-orange-500" />,
     category: "Básico",
     shortcut: "Ctrl+Shift+L",

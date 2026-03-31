@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import {
   BarChart,
@@ -14,6 +14,16 @@ import {
   Legend,
   ResponsiveContainer,
   Cell,
+  ScatterChart,
+  Scatter,
+  AreaChart,
+  Area,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ZAxis,
 } from 'recharts';
 import {
   Settings2,
@@ -22,59 +32,418 @@ import {
   BarChart2,
   TrendingUp,
   PieChart as PieChartIcon,
-  Palette,
   X,
+  Circle,
+  Waves,
+  Hexagon,
+  BoxSelect,
+  BarChart3,
+  Activity,
+  FunctionSquare,
+  Palette,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
+  Move,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
+// ============ Color Palettes ============
+const PALETTES = [
+  ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#14b8a6', '#10b981'],
+  ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1'],
+  ['#f59e0b', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#3b82f6'],
+  ['#10b981', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6'],
+  ['#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9'],
+  ['#e11d48', '#be123c', '#9f1239', '#881337', '#4c0519', '#1c1917'],
+];
+
+const CHART_TYPES = [
+  { key: 'bar', label: 'Barras', icon: BarChart2 },
+  { key: 'line', label: 'Líneas', icon: TrendingUp },
+  { key: 'pie', label: 'Torta', icon: PieChartIcon },
+  { key: 'scatter', label: 'Dispersión', icon: Circle },
+  { key: 'area', label: 'Área', icon: Waves },
+  { key: 'radar', label: 'Radar', icon: Hexagon },
+  { key: 'box', label: 'Caja', icon: BoxSelect },
+  { key: 'histogram', label: 'Histograma', icon: BarChart3 },
+  { key: 'bubble', label: 'Burbujas', icon: Activity },
+  { key: 'function', label: 'Función', icon: FunctionSquare },
+] as const;
+
+// ============ Tooltip Styles ============
+const tooltipStyle = {
+  backgroundColor: 'hsl(222 47% 11%)',
+  borderColor: 'hsl(217 33% 17%)',
+  borderRadius: '10px',
+  color: '#e2e8f0',
+  fontSize: '12px',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+};
+
+// ============ Function Evaluator ============
+const evaluateFunction = (expr: string, x: number): number | null => {
+  try {
+    const sanitized = expr
+      .replace(/\^/g, '**')
+      .replace(/sen\(/gi, 'Math.sin(')
+      .replace(/sin\(/gi, 'Math.sin(')
+      .replace(/cos\(/gi, 'Math.cos(')
+      .replace(/tan\(/gi, 'Math.tan(')
+      .replace(/log\(/gi, 'Math.log10(')
+      .replace(/ln\(/gi, 'Math.log(')
+      .replace(/sqrt\(/gi, 'Math.sqrt(')
+      .replace(/abs\(/gi, 'Math.abs(')
+      .replace(/pi/gi, 'Math.PI')
+      .replace(/e(?![a-zA-Z])/g, 'Math.E')
+      .replace(/asin\(/gi, 'Math.asin(')
+      .replace(/acos\(/gi, 'Math.acos(')
+      .replace(/atan\(/gi, 'Math.atan(')
+      .replace(/ceil\(/gi, 'Math.ceil(')
+      .replace(/floor\(/gi, 'Math.floor(')
+      .replace(/round\(/gi, 'Math.round(')
+      .replace(/exp\(/gi, 'Math.exp(')
+      .replace(/(\d)(x)/g, '$1*x')
+      .replace(/(x)(\d)/g, 'x*$2')
+      .replace(/\)(x)/g, ')*x')
+      .replace(/(x)\(/g, 'x*(');
+    const fn = new Function('x', `"use strict"; return (${sanitized});`);
+    const result = fn(x);
+    if (typeof result !== 'number' || !isFinite(result)) return null;
+    return result;
+  } catch {
+    return null;
+  }
+};
+
+// ============ Box Plot Helpers ============
+const computeBoxPlotStats = (values: number[]) => {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const n = sorted.length;
+  const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+  const q1 = sorted[Math.floor(n * 0.25)];
+  const q3 = sorted[Math.floor(n * 0.75)];
+  const iqr = q3 - q1;
+  const min = Math.max(sorted[0], q1 - 1.5 * iqr);
+  const max = Math.min(sorted[n - 1], q3 + 1.5 * iqr);
+  const outliers = sorted.filter(v => v < min || v > max);
+  return { min, q1, median, q3, max, outliers, rawMin: sorted[0], rawMax: sorted[n - 1] };
+};
+
+// ============ Custom Box Plot Renderer ============
+const BoxPlotShape = (props: any) => {
+  const { x, y, width, height, payload } = props;
+  if (!payload?.stats) return null;
+  const { min, q1, median, q3, max } = payload.stats;
+  const range = payload.yMax - payload.yMin;
+  if (range === 0) return null;
+
+  const plotH = height;
+  const plotY = y;
+  const scale = (v: number) => plotY + plotH - ((v - payload.yMin) / range) * plotH;
+
+  const boxTop = scale(q3);
+  const boxBottom = scale(q1);
+  const boxHeight = boxBottom - boxTop;
+  const medianY = scale(median);
+  const minY = scale(min);
+  const maxY = scale(max);
+  const cx = x + width / 2;
+  const bw = Math.min(width * 0.6, 50);
+
+  return (
+    <g>
+      {/* Whisker lines */}
+      <line x1={cx} y1={maxY} x2={cx} y2={boxTop} stroke={payload.color || '#8b5cf6'} strokeWidth={1.5} strokeDasharray="4 2" />
+      <line x1={cx} y1={boxBottom} x2={cx} y2={minY} stroke={payload.color || '#8b5cf6'} strokeWidth={1.5} strokeDasharray="4 2" />
+      {/* Whisker caps */}
+      <line x1={cx - bw / 3} y1={maxY} x2={cx + bw / 3} y2={maxY} stroke={payload.color || '#8b5cf6'} strokeWidth={2} />
+      <line x1={cx - bw / 3} y1={minY} x2={cx + bw / 3} y2={minY} stroke={payload.color || '#8b5cf6'} strokeWidth={2} />
+      {/* Box */}
+      <rect x={cx - bw / 2} y={boxTop} width={bw} height={boxHeight} fill={`${payload.color || '#8b5cf6'}30`} stroke={payload.color || '#8b5cf6'} strokeWidth={2} rx={3} />
+      {/* Median */}
+      <line x1={cx - bw / 2} y1={medianY} x2={cx + bw / 2} y2={medianY} stroke={payload.color || '#8b5cf6'} strokeWidth={3} />
+      {/* Outliers */}
+      {(payload.stats.outliers || []).map((o: number, i: number) => (
+        <circle key={i} cx={cx} cy={scale(o)} r={3} fill={payload.color || '#8b5cf6'} opacity={0.7} />
+      ))}
+    </g>
+  );
+};
+
+// ============ Function Plot Component ============
+const FunctionPlotCanvas = ({ functions, xMin, xMax, yMin, yMax, showGrid, showAxes }: {
+  functions: { expr: string; color: string; label: string }[];
+  xMin: number; xMax: number; yMin: number; yMax: number;
+  showGrid: boolean; showAxes: boolean;
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; fxs: { label: string; value: number; color: string }[] } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    const W = rect.width;
+    const H = rect.height;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const toScreenX = (x: number) => ((x - xMin) / (xMax - xMin)) * W;
+    const toScreenY = (y: number) => H - ((y - yMin) / (yMax - yMin)) * H;
+
+    // Grid
+    if (showGrid) {
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+      ctx.lineWidth = 1;
+      const xStep = Math.pow(10, Math.floor(Math.log10(xMax - xMin)) - 1) * 2;
+      const yStep = Math.pow(10, Math.floor(Math.log10(yMax - yMin)) - 1) * 2;
+      for (let gx = Math.ceil(xMin / xStep) * xStep; gx <= xMax; gx += xStep) {
+        const sx = toScreenX(gx);
+        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+      }
+      for (let gy = Math.ceil(yMin / yStep) * yStep; gy <= yMax; gy += yStep) {
+        const sy = toScreenY(gy);
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+      }
+    }
+
+    // Axes
+    if (showAxes) {
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+      ctx.lineWidth = 1.5;
+      // X axis
+      if (yMin <= 0 && yMax >= 0) {
+        const ay = toScreenY(0);
+        ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(W, ay); ctx.stroke();
+      }
+      // Y axis
+      if (xMin <= 0 && xMax >= 0) {
+        const ax = toScreenX(0);
+        ctx.beginPath(); ctx.moveTo(ax, 0); ctx.lineTo(ax, H); ctx.stroke();
+      }
+
+      // Tick marks & labels
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      const xTickStep = Math.pow(10, Math.floor(Math.log10(xMax - xMin)));
+      const yTickStep = Math.pow(10, Math.floor(Math.log10(yMax - yMin)));
+      for (let tx = Math.ceil(xMin / xTickStep) * xTickStep; tx <= xMax; tx += xTickStep) {
+        if (Math.abs(tx) < 1e-10) continue;
+        const sx = toScreenX(tx);
+        const ay = yMin <= 0 && yMax >= 0 ? toScreenY(0) : H - 5;
+        ctx.fillText(tx.toFixed(Math.abs(tx) < 1 ? 2 : 0), sx, ay + 14);
+      }
+      ctx.textAlign = 'right';
+      for (let ty = Math.ceil(yMin / yTickStep) * yTickStep; ty <= yMax; ty += yTickStep) {
+        if (Math.abs(ty) < 1e-10) continue;
+        const sy = toScreenY(ty);
+        const ax = xMin <= 0 && xMax >= 0 ? toScreenX(0) : 5;
+        ctx.fillText(ty.toFixed(Math.abs(ty) < 1 ? 2 : 0), ax - 4, sy + 4);
+      }
+    }
+
+    // Draw functions
+    const steps = Math.min(W * 2, 1000);
+    const dx = (xMax - xMin) / steps;
+
+    functions.forEach(fn => {
+      if (!fn.expr.trim()) return;
+      ctx.strokeStyle = fn.color;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      let started = false;
+
+      for (let i = 0; i <= steps; i++) {
+        const xVal = xMin + i * dx;
+        const yVal = evaluateFunction(fn.expr, xVal);
+        if (yVal === null || yVal < yMin * 2 || yVal > yMax * 2) {
+          started = false;
+          continue;
+        }
+        const sx = toScreenX(xVal);
+        const sy = toScreenY(yVal);
+        if (!started) {
+          ctx.moveTo(sx, sy);
+          started = true;
+        } else {
+          ctx.lineTo(sx, sy);
+        }
+      }
+      ctx.stroke();
+    });
+  }, [functions, xMin, xMax, yMin, yMax, showGrid, showAxes]);
+
+  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => {
+    const obs = new ResizeObserver(() => draw());
+    if (canvasRef.current) obs.observe(canvasRef.current);
+    return () => obs.disconnect();
+  }, [draw]);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const x = xMin + (mx / rect.width) * (xMax - xMin);
+    const fxs = functions.filter(fn => fn.expr.trim()).map(fn => {
+      const val = evaluateFunction(fn.expr, x);
+      return { label: fn.label || fn.expr, value: val ?? NaN, color: fn.color };
+    }).filter(f => isFinite(f.value));
+    if (fxs.length > 0) {
+      setTooltip({ x: e.clientX - rect.left, y: e.clientY - rect.top, fxs });
+    } else {
+      setTooltip(null);
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="relative w-full h-full">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        style={{ display: 'block' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setTooltip(null)}
+      />
+      {tooltip && (
+        <div
+          className="absolute pointer-events-none z-10 bg-[#0f172a] border border-[#1e293b] rounded-lg p-2 shadow-2xl text-xs"
+          style={{ left: tooltip.x + 12, top: tooltip.y - 10, minWidth: 100 }}
+        >
+          {tooltip.fxs.map((f, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: f.color }} />
+              <span className="text-slate-400">{f.label}:</span>
+              <span className="text-white font-mono">{f.value.toFixed(4)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============ Main Chart Component ============
 export const ChartComponent = ({ node, updateAttributes }: NodeViewProps) => {
-  const { type, data, title, colors } = node.attrs;
+  const { type, data, title, colors, functions: fnList, xRange, yRange } = node.attrs;
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'data' | 'style' | 'functions'>('data');
+  const [paletteIdx, setPaletteIdx] = useState(0);
+
+  const currentColors: string[] = colors || PALETTES[0];
+  const currentFunctions: { expr: string; color: string; label: string }[] = fnList || [
+    { expr: 'sin(x)', color: '#8b5cf6', label: 'f(x)' },
+  ];
+  const currentXRange: [number, number] = xRange || [-10, 10];
+  const currentYRange: [number, number] = yRange || [-5, 5];
 
   const handleDataChange = (index: number, field: string, value: any) => {
     const newData = [...data];
-    newData[index] = { ...newData[index], [field]: value };
+    newData[index] = { ...newData[index], [field]: field === 'name' ? value : Number(value) || 0 };
     updateAttributes({ data: newData });
   };
 
+  const handleColorChange = (index: number, color: string) => {
+    const newColors = [...currentColors];
+    newColors[index] = color;
+    updateAttributes({ colors: newColors });
+  };
+
   const addRow = () => {
+    const defaults: Record<string, any> = {
+      scatter: { name: `P${data.length + 1}`, x: Math.random() * 10, y: Math.random() * 10 },
+      bubble: { name: `B${data.length + 1}`, x: Math.random() * 10, y: Math.random() * 10, z: Math.random() * 50 + 10 },
+      radar: { name: `Eje${data.length + 1}`, value: Math.floor(Math.random() * 100) },
+      box: { name: `Serie${data.length + 1}`, values: Array.from({ length: 10 }, () => Math.floor(Math.random() * 100)) },
+      histogram: { name: `${data.length * 10}-${(data.length + 1) * 10}`, value: Math.floor(Math.random() * 50) },
+    };
     updateAttributes({
-      data: [...data, { name: 'Nuevo', value: 0 }],
+      data: [...data, defaults[type] || { name: `Item ${data.length + 1}`, value: Math.floor(Math.random() * 100) }],
     });
   };
 
   const removeRow = (index: number) => {
     if (data.length <= 1) return;
-    const newData = data.filter((_: any, i: number) => i !== index);
-    updateAttributes({ data: newData });
+    updateAttributes({ data: data.filter((_: any, i: number) => i !== index) });
+  };
+
+  const addFunction = () => {
+    const newFns = [...currentFunctions, { expr: '', color: PALETTES[0][(currentFunctions.length) % 6], label: `g${currentFunctions.length}(x)` }];
+    updateAttributes({ functions: newFns });
+  };
+
+  const updateFunction = (index: number, field: string, value: string) => {
+    const newFns = [...currentFunctions];
+    newFns[index] = { ...newFns[index], [field]: value };
+    updateAttributes({ functions: newFns });
+  };
+
+  const removeFunction = (index: number) => {
+    if (currentFunctions.length <= 1) return;
+    updateAttributes({ functions: currentFunctions.filter((_: any, i: number) => i !== index) });
+  };
+
+  const cyclePalette = () => {
+    const next = (paletteIdx + 1) % PALETTES.length;
+    setPaletteIdx(next);
+    updateAttributes({ colors: PALETTES[next] });
+  };
+
+  const changeChartType = (newType: string) => {
+    let newData = data;
+    // Convert data format if needed
+    if (newType === 'scatter' && !data[0]?.x) {
+      newData = data.map((d: any, i: number) => ({ name: d.name, x: i + 1, y: d.value || 0 }));
+    } else if (newType === 'bubble' && !data[0]?.z) {
+      newData = data.map((d: any, i: number) => ({ name: d.name, x: d.x ?? i + 1, y: d.y ?? d.value ?? 0, z: 20 }));
+    } else if (newType === 'box' && !data[0]?.values) {
+      newData = data.map((d: any) => ({ name: d.name, values: [d.value || 0, (d.value || 0) * 0.5, (d.value || 0) * 1.5, (d.value || 0) * 0.8, (d.value || 0) * 1.2] }));
+    } else if (newType === 'radar' && data[0]?.x !== undefined) {
+      newData = data.map((d: any) => ({ name: d.name, value: d.y ?? d.value ?? 0 }));
+    } else if (['bar', 'line', 'pie', 'area', 'histogram'].includes(newType) && data[0]?.x !== undefined && !data[0]?.value) {
+      newData = data.map((d: any) => ({ name: d.name, value: d.y ?? 0 }));
+    }
+
+    updateAttributes({ type: newType, data: newData });
+    if (newType === 'function') setActiveTab('functions');
+    else setActiveTab('data');
   };
 
   const renderChart = () => {
     const chartData = data || [];
-    
+
     switch (type) {
       case 'line':
         return (
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <Tooltip 
-              contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-            />
+            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <Tooltip contentStyle={tooltipStyle} />
             <Legend />
-            <Line type="monotone" dataKey="value" stroke={colors[0] || "#8884d8"} strokeWidth={3} dot={{ r: 6 }} activeDot={{ r: 8 }} />
+            <Line type="monotone" dataKey="value" stroke={currentColors[0] || "#8b5cf6"} strokeWidth={3} dot={{ r: 5, fill: currentColors[0], strokeWidth: 2 }} activeDot={{ r: 7, strokeWidth: 0 }} />
           </LineChart>
         );
+
       case 'pie':
         return (
           <PieChart>
@@ -84,34 +453,151 @@ export const ChartComponent = ({ node, updateAttributes }: NodeViewProps) => {
               cy="50%"
               labelLine={false}
               label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              outerRadius={80}
+              outerRadius={90}
+              innerRadius={30}
               fill="#8884d8"
               dataKey="value"
+              strokeWidth={2}
+              stroke="hsl(var(--background))"
             >
-              {chartData.map((entry: any, index: number) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              {chartData.map((_: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={currentColors[index % currentColors.length]} />
               ))}
             </Pie>
-            <Tooltip 
-              contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-            />
+            <Tooltip contentStyle={tooltipStyle} />
             <Legend />
           </PieChart>
         );
+
+      case 'scatter':
+        return (
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+            <XAxis type="number" dataKey="x" name="X" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <YAxis type="number" dataKey="y" name="Y" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <ZAxis range={[60, 300]} />
+            <Tooltip contentStyle={tooltipStyle} cursor={{ strokeDasharray: '3 3' }} />
+            <Legend />
+            <Scatter name={title || 'Datos'} data={chartData} fill={currentColors[0]}>
+              {chartData.map((_: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={currentColors[index % currentColors.length]} />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        );
+
+      case 'area':
+        return (
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={currentColors[0]} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={currentColors[0]} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Legend />
+            <Area type="monotone" dataKey="value" stroke={currentColors[0]} fill="url(#areaGrad)" strokeWidth={2.5} dot={{ r: 4, fill: currentColors[0] }} />
+          </AreaChart>
+        );
+
+      case 'radar':
+        return (
+          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+            <PolarGrid stroke="hsl(var(--border))" opacity={0.3} />
+            <PolarAngleAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+            <PolarRadiusAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <Radar name={title || 'Datos'} dataKey="value" stroke={currentColors[0]} fill={currentColors[0]} fillOpacity={0.25} strokeWidth={2} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Legend />
+          </RadarChart>
+        );
+
+      case 'box': {
+        const boxData = chartData.map((d: any, i: number) => {
+          const stats = computeBoxPlotStats(d.values || []);
+          const allValues = chartData.flatMap((dd: any) => dd.values || []);
+          return {
+            name: d.name,
+            stats,
+            value: stats ? stats.max : 0,
+            color: currentColors[i % currentColors.length],
+            yMin: Math.min(...allValues) * 0.9,
+            yMax: Math.max(...allValues) * 1.1,
+          };
+        });
+        return (
+          <BarChart data={boxData}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <YAxis domain={[boxData[0]?.yMin || 0, boxData[0]?.yMax || 100]} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={(_: any, __: any, props: any) => {
+                const s = props.payload?.stats;
+                if (!s) return '';
+                return [`Min: ${s.min.toFixed(1)}, Q1: ${s.q1.toFixed(1)}, Med: ${s.median.toFixed(1)}, Q3: ${s.q3.toFixed(1)}, Max: ${s.max.toFixed(1)}`];
+              }}
+            />
+            <Bar dataKey="value" shape={<BoxPlotShape />}>
+              {boxData.map((_: any, i: number) => (
+                <Cell key={i} fill="transparent" />
+              ))}
+            </Bar>
+          </BarChart>
+        );
+      }
+
+      case 'histogram':
+        return (
+          <BarChart data={chartData} barCategoryGap="1%">
+            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} label={{ value: 'Frecuencia', angle: -90, position: 'insideLeft', style: { fill: 'hsl(var(--muted-foreground))', fontSize: 11 } }} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Bar dataKey="value" radius={[2, 2, 0, 0]}>
+              {chartData.map((_: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={currentColors[index % currentColors.length]} opacity={0.85} />
+              ))}
+            </Bar>
+          </BarChart>
+        );
+
+      case 'bubble':
+        return (
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+            <XAxis type="number" dataKey="x" name="X" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <YAxis type="number" dataKey="y" name="Y" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <ZAxis type="number" dataKey="z" range={[40, 400]} name="Tamaño" />
+            <Tooltip contentStyle={tooltipStyle} cursor={{ strokeDasharray: '3 3' }} />
+            <Legend />
+            <Scatter name={title || 'Datos'} data={chartData} fill={currentColors[0]}>
+              {chartData.map((_: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={currentColors[index % currentColors.length]} opacity={0.7} />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        );
+
+      case 'function':
+        return null; // Rendered separately
+
       case 'bar':
       default:
         return (
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <Tooltip 
-              contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-            />
+            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+            <Tooltip contentStyle={tooltipStyle} />
             <Legend />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-              {chartData.map((entry: any, index: number) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+              {chartData.map((_: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={currentColors[index % currentColors.length]} />
               ))}
             </Bar>
           </BarChart>
@@ -119,120 +605,261 @@ export const ChartComponent = ({ node, updateAttributes }: NodeViewProps) => {
     }
   };
 
-  return (
-    <NodeViewWrapper className="notion-chart-container my-8 group relative">
-      <div className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-        <div className="p-4 border-b border-border/30 bg-secondary/20 flex items-center justify-between">
-          <Input 
-            value={title} 
-            onChange={(e) => updateAttributes({ title: e.target.value })}
-            className="bg-transparent border-none font-bold text-sm h-7 focus-visible:ring-0 p-0 w-full"
-            placeholder="Título del gráfico..."
+  // ============ Data Editor Rows ============
+  const renderDataEditor = () => {
+    if (type === 'scatter') {
+      return data.map((row: any, i: number) => (
+        <div key={i} className="flex gap-1.5 items-center">
+          <input
+            type="color"
+            value={currentColors[i % currentColors.length]}
+            onChange={(e) => handleColorChange(i % currentColors.length, e.target.value)}
+            className="w-6 h-6 rounded border-0 cursor-pointer bg-transparent p-0"
+            title="Color"
           />
+          <Input value={row.name} onChange={(e) => handleDataChange(i, 'name', e.target.value)} placeholder="Nombre" className="h-7 text-[11px] flex-1 min-w-0" />
+          <Input type="number" value={row.x} onChange={(e) => handleDataChange(i, 'x', e.target.value)} placeholder="X" className="h-7 text-[11px] w-16" />
+          <Input type="number" value={row.y} onChange={(e) => handleDataChange(i, 'y', e.target.value)} placeholder="Y" className="h-7 text-[11px] w-16" />
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/50 hover:text-destructive" onClick={() => removeRow(i)}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      ));
+    }
+
+    if (type === 'bubble') {
+      return data.map((row: any, i: number) => (
+        <div key={i} className="flex gap-1.5 items-center">
+          <input type="color" value={currentColors[i % currentColors.length]} onChange={(e) => handleColorChange(i % currentColors.length, e.target.value)} className="w-6 h-6 rounded border-0 cursor-pointer bg-transparent p-0" />
+          <Input value={row.name} onChange={(e) => handleDataChange(i, 'name', e.target.value)} placeholder="Nombre" className="h-7 text-[11px] flex-1 min-w-0" />
+          <Input type="number" value={row.x} onChange={(e) => handleDataChange(i, 'x', e.target.value)} placeholder="X" className="h-7 text-[11px] w-14" />
+          <Input type="number" value={row.y} onChange={(e) => handleDataChange(i, 'y', e.target.value)} placeholder="Y" className="h-7 text-[11px] w-14" />
+          <Input type="number" value={row.z} onChange={(e) => handleDataChange(i, 'z', e.target.value)} placeholder="Tam" className="h-7 text-[11px] w-14" />
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/50 hover:text-destructive" onClick={() => removeRow(i)}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      ));
+    }
+
+    if (type === 'box') {
+      return data.map((row: any, i: number) => (
+        <div key={i} className="space-y-1">
+          <div className="flex gap-1.5 items-center">
+            <input type="color" value={currentColors[i % currentColors.length]} onChange={(e) => handleColorChange(i % currentColors.length, e.target.value)} className="w-6 h-6 rounded border-0 cursor-pointer bg-transparent p-0" />
+            <Input value={row.name} onChange={(e) => handleDataChange(i, 'name', e.target.value)} placeholder="Serie" className="h-7 text-[11px] flex-1" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/50 hover:text-destructive" onClick={() => removeRow(i)}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+          <Input
+            value={(row.values || []).join(', ')}
+            onChange={(e) => {
+              const vals = e.target.value.split(',').map((v: string) => parseFloat(v.trim())).filter((v: number) => !isNaN(v));
+              const newData = [...data];
+              newData[i] = { ...newData[i], values: vals };
+              updateAttributes({ data: newData });
+            }}
+            placeholder="Valores separados por coma: 10, 20, 30..."
+            className="h-7 text-[11px] ml-7"
+          />
+        </div>
+      ));
+    }
+
+    // Default: name + value
+    return data.map((row: any, i: number) => (
+      <div key={i} className="flex gap-1.5 items-center">
+        <input
+          type="color"
+          value={currentColors[i % currentColors.length]}
+          onChange={(e) => handleColorChange(i % currentColors.length, e.target.value)}
+          className="w-6 h-6 rounded border-0 cursor-pointer bg-transparent p-0"
+          title="Color"
+        />
+        <Input value={row.name} onChange={(e) => handleDataChange(i, 'name', e.target.value)} placeholder="Etiqueta" className="h-7 text-[11px] flex-1 min-w-0" />
+        <Input type="number" value={row.value} onChange={(e) => handleDataChange(i, 'value', e.target.value)} placeholder="Valor" className="h-7 text-[11px] w-20" />
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/50 hover:text-destructive" onClick={() => removeRow(i)}>
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    ));
+  };
+
+  // ============ Function Editor ============
+  const renderFunctionEditor = () => (
+    <div className="space-y-3">
+      <div className="flex gap-2 items-center">
+        <span className="text-[10px] uppercase font-bold text-muted-foreground">Rango X:</span>
+        <Input type="number" value={currentXRange[0]} onChange={(e) => updateAttributes({ xRange: [Number(e.target.value), currentXRange[1]] })} className="h-7 text-[11px] w-16" />
+        <span className="text-muted-foreground text-xs">a</span>
+        <Input type="number" value={currentXRange[1]} onChange={(e) => updateAttributes({ xRange: [currentXRange[0], Number(e.target.value)] })} className="h-7 text-[11px] w-16" />
+        <span className="text-[10px] uppercase font-bold text-muted-foreground ml-2">Y:</span>
+        <Input type="number" value={currentYRange[0]} onChange={(e) => updateAttributes({ yRange: [Number(e.target.value), currentYRange[1]] })} className="h-7 text-[11px] w-16" />
+        <span className="text-muted-foreground text-xs">a</span>
+        <Input type="number" value={currentYRange[1]} onChange={(e) => updateAttributes({ yRange: [currentYRange[0], Number(e.target.value)] })} className="h-7 text-[11px] w-16" />
+      </div>
+
+      <div className="space-y-2">
+        {currentFunctions.map((fn, i) => (
+          <div key={i} className="flex gap-1.5 items-center">
+            <input type="color" value={fn.color} onChange={(e) => updateFunction(i, 'color', e.target.value)} className="w-6 h-6 rounded border-0 cursor-pointer bg-transparent p-0" />
+            <Input value={fn.label} onChange={(e) => updateFunction(i, 'label', e.target.value)} placeholder="f(x)" className="h-7 text-[11px] w-16" />
+            <span className="text-muted-foreground text-xs">=</span>
+            <Input value={fn.expr} onChange={(e) => updateFunction(i, 'expr', e.target.value)} placeholder="sin(x), x^2, 2*x+1..." className="h-7 text-[11px] flex-1 font-mono" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/50 hover:text-destructive" onClick={() => removeFunction(i)}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-between items-center">
+        <Button variant="outline" size="sm" onClick={addFunction} className="h-7 gap-1.5 border-dashed text-[10px]">
+          <Plus className="h-3 w-3" /> Agregar función
+        </Button>
+        <div className="text-[10px] text-muted-foreground">
+          Usa: sin, cos, tan, log, ln, sqrt, abs, pi, e, ^
+        </div>
+      </div>
+    </div>
+  );
+
+  const chartTypeInfo = CHART_TYPES.find(t => t.key === type) || CHART_TYPES[0];
+
+  return (
+    <NodeViewWrapper className="notion-chart-container my-6 group relative" data-drag-handle>
+      <div className="bg-card border border-border/40 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:border-border/60">
+        {/* Header */}
+        <div className="px-4 py-2.5 border-b border-border/20 bg-gradient-to-r from-secondary/30 to-transparent flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: `${currentColors[0]}20` }}>
+              {React.createElement(chartTypeInfo.icon, { className: 'h-3.5 w-3.5', style: { color: currentColors[0] } })}
+            </div>
+            <Input
+              value={title}
+              onChange={(e) => updateAttributes({ title: e.target.value })}
+              className="bg-transparent border-none font-semibold text-sm h-7 focus-visible:ring-0 p-0 w-full"
+              placeholder="Título del gráfico..."
+            />
+          </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                onClick={() => setIsEditing(!isEditing)}
-            >
-              <Settings2 className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => setIsEditing(!isEditing)}>
+              <Settings2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
-        <div className="p-6 h-[320px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            {renderChart()}
-          </ResponsiveContainer>
+        {/* Chart Area */}
+        <div className="p-4 h-[340px] w-full">
+          {type === 'function' ? (
+            <FunctionPlotCanvas
+              functions={currentFunctions}
+              xMin={currentXRange[0]}
+              xMax={currentXRange[1]}
+              yMin={currentYRange[0]}
+              yMax={currentYRange[1]}
+              showGrid={true}
+              showAxes={true}
+            />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              {renderChart()!}
+            </ResponsiveContainer>
+          )}
         </div>
 
+        {/* Editor Panel */}
         {isEditing && (
-          <div className="border-t border-border/30 bg-background/50 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex gap-2">
-                <Button 
-                  variant={type === 'bar' ? 'default' : 'outline'} 
-                  size="sm" 
-                  onClick={() => updateAttributes({ type: 'bar' })}
-                  className="gap-2"
-                >
-                  <BarChart2 className="h-3.5 w-3.5" /> <span className="text-[10px] uppercase font-bold">Barras</span>
-                </Button>
-                <Button 
-                  variant={type === 'line' ? 'default' : 'outline'} 
-                  size="sm" 
-                  onClick={() => updateAttributes({ type: 'line' })}
-                  className="gap-2"
-                >
-                  <TrendingUp className="h-3.5 w-3.5" /> <span className="text-[10px] uppercase font-bold">Líneas</span>
-                </Button>
-                <Button 
-                  variant={type === 'pie' ? 'default' : 'outline'} 
-                  size="sm" 
-                  onClick={() => updateAttributes({ type: 'pie' })}
-                  className="gap-2"
-                >
-                  <PieChartIcon className="h-3.5 w-3.5" /> <span className="text-[10px] uppercase font-bold">Torta</span>
+          <div className="border-t border-border/30 bg-background/80 backdrop-blur-sm animate-in slide-in-from-bottom-2 duration-300">
+            {/* Chart Type Picker */}
+            <div className="px-4 pt-3 pb-2 border-b border-border/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Tipo de gráfico</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditing(false)}>
+                  <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(false)}>
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex flex-wrap gap-1">
+                {CHART_TYPES.map(ct => (
+                  <Button
+                    key={ct.key}
+                    variant={type === ct.key ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => changeChartType(ct.key)}
+                    className={cn("h-7 gap-1 text-[10px] px-2", type === ct.key && "shadow-md")}
+                  >
+                    <ct.icon className="h-3 w-3" />
+                    {ct.label}
+                  </Button>
+                ))}
+              </div>
             </div>
 
-            <div className="space-y-2 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
-              {data.map((row: any, i: number) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <Input 
-                    value={row.name} 
-                    onChange={(e) => handleDataChange(i, 'name', e.target.value)}
-                    placeholder="Etiqueta"
-                    className="h-8 text-[11px]"
-                  />
-                  <Input 
-                    type="number"
-                    value={row.value} 
-                    onChange={(e) => handleDataChange(i, 'value', Number(e.target.value))}
-                    placeholder="Valor"
-                    className="h-8 text-[11px]"
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-destructive opacity-50 hover:opacity-100 hover:bg-destructive/10"
-                    onClick={() => removeRow(i)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
+            {/* Tabs */}
+            {type !== 'function' && (
+              <div className="flex border-b border-border/20">
+                <button
+                  className={cn("flex-1 py-2 text-[10px] uppercase font-bold tracking-wider transition-colors", activeTab === 'data' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground')}
+                  onClick={() => setActiveTab('data')}
+                >
+                  Datos
+                </button>
+                <button
+                  className={cn("flex-1 py-2 text-[10px] uppercase font-bold tracking-wider transition-colors", activeTab === 'style' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground')}
+                  onClick={() => setActiveTab('style')}
+                >
+                  Estilo
+                </button>
+              </div>
+            )}
+
+            <div className="p-4 max-h-[200px] overflow-y-auto custom-scrollbar">
+              {type === 'function' ? (
+                renderFunctionEditor()
+              ) : activeTab === 'data' ? (
+                <div className="space-y-2">
+                  {renderDataEditor()}
+                  <Button variant="outline" size="sm" onClick={addRow} className="h-7 gap-1.5 border-dashed w-full mt-2 text-[10px]">
+                    <Plus className="h-3 w-3" /> Agregar {type === 'box' ? 'Serie' : 'Fila'}
                   </Button>
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-3 pt-3 border-t border-border/30 flex justify-between">
-              <Button variant="outline" size="sm" onClick={addRow} className="h-8 gap-2 border-dashed">
-                <Plus className="h-3.5 w-3.5" /> <span className="text-[10px] uppercase font-bold">Agregar Fila</span>
-              </Button>
-              <div className="flex gap-1">
-                 {colors.slice(0, 6).map((c: string, idx: number) => (
-                    <div 
-                        key={idx} 
-                        className="w-4 h-4 rounded-full border border-border cursor-pointer hover:scale-110 transition-transform" 
-                        style={{ backgroundColor: c }}
-                        title="Cambiar paleta"
-                        onClick={() => {
-                           // Simple palette swap for demo
-                           const palettes = [
-                             ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f'],
-                             ['#2563eb', '#7c3aed', '#db2777', '#ea580c', '#16a34a', '#ca8a04'],
-                             ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1']
-                           ];
-                           const next = palettes[(idx + 1) % palettes.length];
-                           updateAttributes({ colors: next });
-                        }}
-                    />
-                 ))}
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2 block">Paleta de colores</span>
+                    <div className="grid grid-cols-6 gap-2">
+                      {PALETTES.map((pal, pIdx) => (
+                        <button
+                          key={pIdx}
+                          onClick={() => { setPaletteIdx(pIdx); updateAttributes({ colors: pal }); }}
+                          className={cn("flex gap-0.5 p-1.5 rounded-lg border transition-all", paletteIdx === pIdx ? 'border-primary ring-1 ring-primary/30 scale-105' : 'border-border/30 hover:border-border')}
+                        >
+                          {pal.slice(0, 3).map((c, ci) => (
+                            <div key={ci} className="w-3 h-3 rounded-full" style={{ backgroundColor: c }} />
+                          ))}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2 block">Colores individuales</span>
+                    <div className="flex flex-wrap gap-2">
+                      {currentColors.slice(0, Math.max(data.length, 6)).map((c: string, idx: number) => (
+                        <div key={idx} className="flex items-center gap-1">
+                          <input
+                            type="color"
+                            value={c}
+                            onChange={(e) => handleColorChange(idx, e.target.value)}
+                            className="w-7 h-7 rounded-lg border border-border/30 cursor-pointer bg-transparent p-0"
+                          />
+                          <span className="text-[10px] text-muted-foreground">{idx + 1}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

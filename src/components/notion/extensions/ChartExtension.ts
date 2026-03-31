@@ -13,9 +13,13 @@ declare module '@tiptap/core' {
        * Add a chart node
        */
       setChart: (attributes: { 
-        type: 'bar' | 'line' | 'pie', 
-        data: any[],
-        title?: string
+        type?: string, 
+        data?: any[],
+        title?: string,
+        colors?: string[],
+        functions?: { expr: string; color: string; label: string }[],
+        xRange?: [number, number],
+        yRange?: [number, number],
       }) => ReturnType;
     };
   }
@@ -44,11 +48,22 @@ export const ChartExtension = Node.create<ChartOptions>({
         ],
       },
       title: {
-        default: 'Nuevo Gráfico Estadístico',
+        default: 'Nuevo Gráfico',
       },
       colors: {
-        default: ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f'],
-      }
+        default: ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#14b8a6', '#10b981'],
+      },
+      functions: {
+        default: [
+          { expr: 'sin(x)', color: '#8b5cf6', label: 'f(x)' },
+        ],
+      },
+      xRange: {
+        default: [-10, 10],
+      },
+      yRange: {
+        default: [-5, 5],
+      },
     };
   },
 
