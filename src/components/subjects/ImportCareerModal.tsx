@@ -44,7 +44,7 @@ export const ImportCareerModal = ({ open, onClose, onImport }: ImportCareerModal
                 {/* Body */}
                 <div className="flex flex-1 min-h-0 overflow-hidden">
                     {/* Left sidebar — University tabs */}
-                    <div className="w-40 flex-shrink-0 border-r border-border flex flex-col bg-secondary/20">
+                    <div className="w-40 flex-shrink-0 border-r border-border flex flex-col bg-secondary/20 overflow-y-auto custom-scrollbar">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4 pt-4 pb-2">Universidad</p>
                         {AVAILABLE_FACULTADES.map(f => (
                             <button

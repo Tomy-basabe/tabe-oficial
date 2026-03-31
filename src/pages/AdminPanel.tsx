@@ -674,7 +674,7 @@ const AdminPanel = () => {
             <div className="flex flex-1 min-h-0" style={{ overflow: 'hidden' }}>
 
               {/* Left sidebar — University tabs */}
-              <div className="w-36 flex-shrink-0 border-r border-border flex flex-col bg-secondary/30">
+              <div className="w-36 flex-shrink-0 border-r border-border flex flex-col bg-secondary/30 overflow-y-auto custom-scrollbar">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 pt-3 pb-1">Universidad</p>
                 {AVAILABLE_FACULTADES.map(f => (
                   <button
