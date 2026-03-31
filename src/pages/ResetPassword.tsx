@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Lock, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -12,19 +11,68 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const hasHandledRef = useRef(false);
 
   useEffect(() => {
-    // Basic check to see if we have a recovery session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error("Sesión inválida o expirada. Solicitá un nuevo enlace.");
+    // Handle the PKCE code exchange if ?code= exists in the URL
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+
+    if (code) {
+      // Supabase PKCE flow: exchange the code for a session
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          console.error("Code exchange error:", error);
+          toast.error("El enlace es inválido o expiró. Solicitá uno nuevo.");
+          navigate("/registro");
+        } else {
+          // Session is now available, the onAuthStateChange listener below will handle it
+          setSessionReady(true);
+          setInitializing(false);
+          // Clean the URL to remove the code param
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      });
+    }
+
+    // Listen for auth state changes - this handles both PKCE and hash-based flows
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (hasHandledRef.current) return;
+
+        if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+          hasHandledRef.current = true;
+          setSessionReady(true);
+          setInitializing(false);
+        }
+      }
+    );
+
+    // Also check if there's an existing valid session (user might already be authenticated via the link)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && !hasHandledRef.current) {
+        hasHandledRef.current = true;
+        setSessionReady(true);
+        setInitializing(false);
+      }
+    });
+
+    // Safety timeout: if after 8 seconds we still don't have a session, redirect
+    const timeout = setTimeout(() => {
+      if (!hasHandledRef.current) {
+        setInitializing(false);
+        toast.error("No se pudo verificar el enlace. Solicitá uno nuevo desde la pantalla de inicio de sesión.");
         navigate("/registro");
       }
+    }, 8000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
-    checkSession();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,19 +95,44 @@ export default function ResetPassword() {
       });
 
       if (error) {
-        toast.error("Error al actualizar la contraseña: " + error.message);
+        // Translate common errors
+        if (error.message.includes("same as the old")) {
+          toast.error("La nueva contraseña debe ser diferente a la anterior");
+        } else if (error.message.includes("session") || error.message.includes("expired")) {
+          toast.error("Tu sesión expiró. Solicitá un nuevo enlace de recuperación.");
+        } else {
+          toast.error("Error al actualizar la contraseña: " + error.message);
+        }
       } else {
         setSuccess(true);
         toast.success("¡Contraseña actualizada con éxito!");
-        // We sign out to ensure a clean state and force login with the new password
+        // Sign out cleanly and redirect to login
         setTimeout(async () => {
-          await signOut();
+          await supabase.auth.signOut();
+          window.location.href = "/registro";
         }, 3000);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // Loading state while waiting for PKCE exchange / session
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="card-gamer rounded-2xl p-8 max-w-md w-full text-center space-y-6">
+          <div className="flex justify-center">
+            <Loader2 className="w-10 h-10 animate-spin text-neon-cyan" />
+          </div>
+          <h2 className="text-xl font-bold gradient-text">Verificando enlace...</h2>
+          <p className="text-muted-foreground text-sm">
+            Estamos validando tu enlace de recuperación. Esto puede tardar unos segundos.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -80,6 +153,10 @@ export default function ResetPassword() {
         </div>
       </div>
     );
+  }
+
+  if (!sessionReady) {
+    return null;
   }
 
   return (
