@@ -117,9 +117,9 @@ serve(async (req) => {
 
     let chatMemory = "";
     if (persona_id) {
-      const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(10);
+      const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(4);
       if (rm && rm.length > 0) {
-        chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: { role: string; content: string }) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 150)).join("\n");
+        chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: { role: string; content: string }) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 100)).join("\n");
       }
     }
 
@@ -394,12 +394,12 @@ serve(async (req) => {
 
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
-    // LIMIT messages to last 8 to prevent 413 errors and reduce token usage
-    const trimmedMessages = trimMessages(messages, 8);
+    // LIMIT messages to last 4 to prevent 413 errors and reduce token usage maximally
+    const trimmedMessages = trimMessages(messages, 4);
     const groqMessages = [
       ...trimmedMessages.map((m: any) => ({
         role: m.role,
-        content: typeof m.content === 'string' ? m.content.slice(0, 4000) : String(m.content).slice(0, 4000)
+        content: typeof m.content === 'string' ? m.content.slice(0, 500) : String(m.content).slice(0, 500)
       }))
     ];
 
@@ -450,7 +450,7 @@ serve(async (req) => {
             } catch (e) {
               parsedContent = "Error parseando documento.";
             }
-            return `Doc: ${doc.titulo}\n${parsedContent.slice(0, 2000)}`;
+            return `Doc: ${doc.titulo}\n${parsedContent.slice(0, 400)}`;
           }).join("\n\n");
         }
 
@@ -478,8 +478,8 @@ serve(async (req) => {
 
     const finalSysPrompt = sysPrompt + ragContext + "\n\n10. ⚠️ REGLA DE CREACION MASIVA: Si el usuario te manda una lista de mas de 15 tarjetas o preguntas, empeza tu respuesta DIRECTAMENTE con la herramienta, sin saludos ni introducciones. Esto evita errores de parsing.";
 
-    // Safety: truncate system prompt if too large (max ~8000 chars)
-    const maxSysLength = 8000;
+    // Safety: truncate system prompt if too large (max ~4000 chars)
+    const maxSysLength = 4000;
     const truncatedSysPrompt = finalSysPrompt.length > maxSysLength
       ? finalSysPrompt.slice(0, maxSysLength) + "\n[System prompt truncado]"
       : finalSysPrompt;
