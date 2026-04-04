@@ -193,7 +193,7 @@ export function useStreamingChat() {
     } finally {
       setIsStreaming(false);
     }
-  }, []);
+  }, [isGuest]);
 
   return { isStreaming, streamMessage };
 }
