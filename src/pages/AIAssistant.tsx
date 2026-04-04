@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useStreamingChat } from "@/hooks/useStreamingChat";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { useAIPersonas, AIPersona, AIChatMessage } from "@/hooks/useAIPersonas";
+import { useAIChat } from "@/contexts/AIChatContext";
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 import { PersonaSidebar } from "@/components/ai/PersonaSidebar";
 import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
@@ -16,12 +17,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
-interface DisplayMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-}
+// Interface DisplayMessage is now exported from AIChatContext, we can import it
+import { DisplayMessage } from "@/contexts/AIChatContext";
 
 const quickActions = [
   { id: "explain", label: "Explicar tema", icon: BookOpen, prompt: "Explícame el concepto de " },
@@ -42,7 +39,16 @@ function getGreeting(persona: AIPersona): DisplayMessage {
 
 export default function AIAssistant() {
   const { user, isGuest } = useAuth();
-  const { isStreaming, streamMessage } = useStreamingChat();
+  
+  // Use global chat state
+  const {
+    messages, setMessages,
+    inputValue, setInputValue,
+    currentSessionId, setCurrentSessionId,
+    currentSessionRef,
+    isStreaming, streamMessage
+  } = useAIChat();
+
   const {
     personas,
     activePersona,
@@ -60,9 +66,6 @@ export default function AIAssistant() {
   } = useAIPersonas();
   const { canUse, incrementUsage } = useUsageLimits();
 
-  const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [editingPersona, setEditingPersona] = useState<AIPersona | null>(null);
@@ -70,15 +73,19 @@ export default function AIAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const currentSessionRef = useRef<string | null>(null);
 
   // Load sessions when persona changes
   useEffect(() => {
     if (activePersona) {
       loadSessions(activePersona.id);
-      setCurrentSessionId(null);
-      currentSessionRef.current = null;
-      setMessages([getGreeting(activePersona)]);
+      
+      // Solo reiniciar mensajes si NO estamos en medio de un stream y si NO hay mensajes previos de esta sesión/persona 
+      // (asumimos que si estamos recibiendo la misma sesión, el store ya tiene los datos)
+      if (!isStreaming && (!messages.length || messages[0].id === "init")) {
+        setCurrentSessionId(null);
+        currentSessionRef.current = null;
+        setMessages([getGreeting(activePersona)]);
+      }
     }
   }, [activePersona?.id, loadSessions]);
 
@@ -132,10 +139,12 @@ export default function AIAssistant() {
 
   // ---- Session actions ----
   const handleNewChat = () => {
-    setCurrentSessionId(null);
-    currentSessionRef.current = null;
-    if (activePersona) {
-      setMessages([getGreeting(activePersona)]);
+    if (!isStreaming) {
+      setCurrentSessionId(null);
+      currentSessionRef.current = null;
+      if (activePersona) {
+        setMessages([getGreeting(activePersona)]);
+      }
     }
   };
 

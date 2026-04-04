@@ -2,19 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Bot, X, Send, Loader2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStreamingChat } from "@/hooks/useStreamingChat";
 import { useAIPersonas } from "@/hooks/useAIPersonas";
+import { useAIChat, DisplayMessage } from "@/contexts/AIChatContext";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
-interface BubbleMessage {
-    id: string;
-    role: "user" | "assistant";
-    content: string;
-}
+
 
 const PAGE_CONTEXT_MAP: Record<string, string> = {
     "/": "Dashboard - Vista general del estudiante",
@@ -37,12 +33,10 @@ export function AIBubbleWidget() {
     const location = useLocation();
     const { user, isGuest } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<BubbleMessage[]>([]);
-    const [input, setInput] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { isStreaming, streamMessage } = useStreamingChat();
+    const { messages, setMessages, inputValue: input, setInputValue: setInput, isStreaming, streamMessage } = useAIChat();
     const { activePersona } = useAIPersonas();
 
     // Hide on /asistente page
@@ -59,10 +53,11 @@ export function AIBubbleWidget() {
         const text = input.trim();
         if (!text || isStreaming) return;
 
-        const userMsg: BubbleMessage = {
+        const userMsg: DisplayMessage = {
             id: `u-${Date.now()}`,
             role: "user",
             content: text,
+            timestamp: new Date(),
         };
         setMessages((prev) => [...prev, userMsg]);
         setInput("");
@@ -70,7 +65,7 @@ export function AIBubbleWidget() {
         const assistantId = `a-${Date.now()}`;
         setMessages((prev) => [
             ...prev,
-            { id: assistantId, role: "assistant", content: "" },
+            { id: assistantId, role: "assistant", content: "", timestamp: new Date() },
         ]);
 
         const chatHistory = [

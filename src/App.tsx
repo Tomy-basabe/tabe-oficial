@@ -172,6 +172,7 @@ const AppRoutes = () => (
 
 
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
+import { AIChatProvider } from "@/contexts/AIChatContext";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
 
 const App = () => {
@@ -181,16 +182,18 @@ const App = () => {
     <AuthProvider>
       <TooltipProvider>
         <PomodoroProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <DiscordVoiceProvider>
+          <AIChatProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <DiscordVoiceProvider>
 
-              <AppRoutes />
-              <GlobalDiscordVoiceWidget />
-              <PWAInstallBanner />
-            </DiscordVoiceProvider>
-          </BrowserRouter>
+                <AppRoutes />
+                <GlobalDiscordVoiceWidget />
+                <PWAInstallBanner />
+              </DiscordVoiceProvider>
+            </BrowserRouter>
+          </AIChatProvider>
         </PomodoroProvider>
       </TooltipProvider>
     </AuthProvider>
