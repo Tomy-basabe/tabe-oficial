@@ -115,7 +115,8 @@ const GalleryCard = ({
   onRename, 
   onChangeSubject,
   onDelete,
-  onHover 
+  onHover,
+  currentUserId 
 }: { 
   doc: NotionDocument; 
   subject?: Subject; 
@@ -183,7 +184,9 @@ const GalleryCard = ({
                  </DropdownMenuItem>
               </DropdownMenuContent>
            </DropdownMenu>
-      </div>
+          </div>
+        )}
+
       {hasCover ? (
         <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
         ) : (
