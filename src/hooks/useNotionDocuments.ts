@@ -85,12 +85,12 @@ export function useNotionDocuments() {
       .from("notion_documents")
       .select(`
         id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
-        owner:profiles!notion_documents_user_id_fkey(nombre, avatar_url, username)
+        owner:profiles(nombre, avatar_url, username)
       `)
       .order("updated_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching documents:", error);
+      console.error("Error fetching documents:", error.message, error.details, error.hint);
       toast.error("Error al cargar documentos");
     } else if (data) {
       // Fetch only NEW subjects that aren't cached yet
