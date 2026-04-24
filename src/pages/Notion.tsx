@@ -124,22 +124,26 @@ const GalleryCard = ({
   onChangeSubject: (doc: NotionDocument) => void;
   onDelete: (doc: NotionDocument) => void;
   onHover?: (doc: NotionDocument) => void;
+  currentUserId?: string;
 }) => {
   const hasCover = !!doc.cover_url;
   
   // Memoize snippet extraction so it only runs when content changes
   const textSnippet = useMemo(() => extractTextSnippet(doc.contenido), [doc.contenido]);
 
+  const isOwner = !currentUserId || doc.user_id === currentUserId;
+  
   return (
     <div 
       onClick={() => onClick(doc)}
       onMouseEnter={() => onHover?.(doc)}
-      className="group flex flex-col bg-card rounded-xl overflow-hidden border border-border/50 hover:border-primary/40 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 h-[280px]"
+      className="group flex flex-col bg-card rounded-xl overflow-hidden border border-border/50 hover:border-primary/40 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 h-[300px]"
     >
       {/* Top Area: Cover Image or Content Snippet */}
       <div className={cn("h-40 w-full relative border-b border-border/30 bg-background overflow-hidden", !hasCover && "p-5")}>
-        {/* Card Actions Overlay (Dropdown) */}
-        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Card Actions Overlay (Dropdown) - ONLY FOR OWNER */}
+        {isOwner && (
+          <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                  <button
@@ -179,10 +183,9 @@ const GalleryCard = ({
                  </DropdownMenuItem>
               </DropdownMenuContent>
            </DropdownMenu>
-        </div>
-
-        {hasCover ? (
-          <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
+      </div>
+      {hasCover ? (
+        <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full relative">
             {/* Simulated mini page header line */}
@@ -233,6 +236,22 @@ const GalleryCard = ({
             </span>
           )}
         </div>
+
+        {/* Owner indicator for friend docs */}
+        {!isOwner && doc.owner && (
+          <div className="mt-2 flex items-center gap-2 px-1">
+             {doc.owner.avatar_url ? (
+               <img src={doc.owner.avatar_url} className="w-4 h-4 rounded-full" alt="" />
+             ) : (
+               <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[8px] font-bold">
+                  {(doc.owner.nombre || doc.owner.username || "A").charAt(0)}
+               </div>
+             )}
+             <span className="text-[10px] text-muted-foreground font-medium truncate">
+                {doc.owner.nombre || doc.owner.username || "Amigo"}
+             </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -325,6 +344,7 @@ export default function Notion() {
   // Gallery view filters
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubject, setFilterSubject] = useState<string>("all");
+  const [filterOwner, setFilterOwner] = useState<"all" | "mine" | "friends">("all");
   const [sortBy, setSortBy] = useState<"updated" | "alpha_asc" | "alpha_desc">("updated");
 
   // Fetch subjects
@@ -515,6 +535,11 @@ export default function Notion() {
     async (silent = true): Promise<boolean> => {
       const docToSave = activeDocumentRef.current;
       if (!docToSave) return true;
+      
+      // Safety check: Don't try to save documents that don't belong to the user
+      if (user && docToSave.user_id !== user.id) {
+        return true;
+      }
       
       if (saveInProgressRef.current) {
         pendingSaveRef.current = true;
@@ -1073,6 +1098,13 @@ export default function Notion() {
       result = result.filter(doc => doc.subject_id === filterSubject);
     }
 
+    // Filter by owner
+    if (filterOwner === "mine" && user) {
+      result = result.filter(doc => doc.user_id === user.id);
+    } else if (filterOwner === "friends" && user) {
+      result = result.filter(doc => doc.user_id !== user.id);
+    }
+
     // Filter by search query
     if (searchQuery.trim() !== "") {
       const q = searchQuery.toLowerCase();
@@ -1109,8 +1141,9 @@ export default function Notion() {
       <NotionSidebar
         documents={documents}
         subjects={subjects}
-        activeDocId={activeDocument?.id ?? null}
+        activeDocId={activeDocument?.id || null}
         collapsed={sidebarCollapsed}
+        currentUserId={user?.id}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         onSelectDocument={openDocument}
         onNewDocument={handleSidebarNewDoc}
@@ -1266,29 +1299,33 @@ export default function Notion() {
                   <Keyboard className="w-4 h-4" />
                 </button>
 
-                <button
-                  className="notion-topbar-btn"
-                  onClick={() => {
-                    setDocToChangeSubject(activeDocument);
-                    setModalYear(null);
-                    setShowChangeSubjectModal(true);
-                  }}
-                  title="Cambiar materia"
-                >
-                  <ArrowUpDown className="w-4 h-4" />
-                </button>
+                {/* Management actions - ONLY FOR OWNER */}
+                {activeDocument.user_id === user?.id && (
+                  <>
+                    <button
+                      className="notion-topbar-btn"
+                      onClick={() => {
+                        setDocToChangeSubject(activeDocument);
+                        setModalYear(null);
+                        setShowChangeSubjectModal(true);
+                      }}
+                      title="Cambiar materia"
+                    >
+                      <ArrowUpDown className="w-4 h-4" />
+                    </button>
 
-                {/* More options */}
-                <button
-                  className="notion-topbar-btn"
-                  onClick={() => {
-                    setDocToDelete(activeDocument);
-                    setShowDeleteModal(true);
-                  }}
-                  title="Eliminar"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                    <button
+                      className="notion-topbar-btn"
+                      onClick={() => {
+                        setDocToDelete(activeDocument);
+                        setShowDeleteModal(true);
+                      }}
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </>
             )}
 
@@ -1365,9 +1402,10 @@ export default function Notion() {
                         e.target.style.height = "auto";
                         e.target.style.height = e.target.scrollHeight + "px";
                       }}
-                      className="notion-title-input"
+                      className={cn("notion-title-input", activeDocument.user_id !== user?.id && "cursor-default select-none")}
                       placeholder="Sin título"
                       rows={1}
+                      readOnly={activeDocument.user_id !== user?.id}
                       style={{ overflow: "hidden" }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
@@ -1382,6 +1420,25 @@ export default function Notion() {
                     />
                   </div>
 
+                  {/* Author indicator in editor */}
+                  {activeDocument.user_id !== user?.id && activeDocument.owner && (
+                    <div className="notion-author-badge flex items-center gap-2 px-14 mb-4 animate-in fade-in slide-in-from-left-2 duration-500">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                        {activeDocument.owner.avatar_url ? (
+                          <img src={activeDocument.owner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+                            {(activeDocument.owner.nombre || activeDocument.owner.username || "A").charAt(0)}
+                          </div>
+                        )}
+                        <span className="text-xs font-semibold tracking-tight">
+                          Apunte de {activeDocument.owner.nombre || activeDocument.owner.username || "un amigo"}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary/20 ml-1">Solo lectura</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Editor */}
                   <Suspense fallback={
                     <div className="flex items-center justify-center py-20">
@@ -1391,8 +1448,9 @@ export default function Notion() {
                     <AdvancedNotionEditor
                       content={editorContent}
                       onUpdate={handleContentUpdate}
+                      documentId={activeDocument?.id}
+                      readOnly={activeDocument?.user_id !== user?.id}
                       onActivity={() => lastActivityRef.current = Date.now()}
-                      documentId={activeDocument.id}
                       onSubPageClick={async (pageId, pageTitle) => {
                           // Case 1: has a real pageId — find and open it
                           if (pageId) {
@@ -1465,6 +1523,19 @@ export default function Notion() {
                       ))}
                     </SelectContent>
                   </Select>
+                  
+                  {/* Filter by Owner */}
+                  <Select value={filterOwner} onValueChange={(val: any) => setFilterOwner(val)}>
+                    <SelectTrigger className="w-full sm:w-[150px] bg-secondary/50 border-border/50 h-9">
+                      <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <SelectValue placeholder="Propiedad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="mine">Mis apuntes</SelectItem>
+                      <SelectItem value="friends">De amigos</SelectItem>
+                    </SelectContent>
+                  </Select>
 
                   {/* Sort */}
                   <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
@@ -1521,6 +1592,7 @@ export default function Notion() {
                           setShowDeleteModal(true);
                         }}
                         onHover={(d) => prefetchDocumentContent(d.id)}
+                        currentUserId={user?.id}
                       />
                     ))}
                   </div>

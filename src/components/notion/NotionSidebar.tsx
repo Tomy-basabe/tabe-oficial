@@ -26,6 +26,7 @@ interface NotionSidebarProps {
     onDeleteDocument: (doc: NotionDocument) => void;
     onToggleFavorite: (doc: NotionDocument) => void;
     onHoverDocument?: (doc: NotionDocument) => void;
+    currentUserId?: string;
 }
 
 export function NotionSidebar({
@@ -40,6 +41,7 @@ export function NotionSidebar({
     onDeleteDocument,
     onToggleFavorite,
     onHoverDocument,
+    currentUserId,
 }: NotionSidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [openSubjects, setOpenSubjects] = useState<Set<string>>(new Set());
@@ -95,7 +97,16 @@ export function NotionSidebar({
     const docsBySubject = useMemo(() => {
         const map = new Map<string, NotionDocument[]>();
         const unlinked: NotionDocument[] = [];
+        const friends: NotionDocument[] = [];
+
         filteredDocs.forEach((doc) => {
+            const isFriendDoc = currentUserId && doc.user_id !== currentUserId;
+            
+            if (isFriendDoc) {
+                friends.push(doc);
+                return;
+            }
+
             if (doc.subject_id) {
                 const arr = map.get(doc.subject_id) || [];
                 arr.push(doc);
@@ -104,8 +115,19 @@ export function NotionSidebar({
                 unlinked.push(doc);
             }
         });
-        return { map, unlinked };
-    }, [filteredDocs]);
+        return { map, unlinked, friends };
+    }, [filteredDocs, currentUserId]);
+
+    const friendsByOwner = useMemo(() => {
+        const grouped = new Map<string, { owner: NotionDocument['owner'], docs: NotionDocument[] }>();
+        docsBySubject.friends.forEach(doc => {
+            const ownerId = doc.user_id;
+            const existing = grouped.get(ownerId) || { owner: doc.owner, docs: [] };
+            existing.docs.push(doc);
+            grouped.set(ownerId, existing);
+        });
+        return grouped;
+    }, [docsBySubject.friends]);
 
     // Group subjects by year
     const subjectsByYear = useMemo(() => {
@@ -138,6 +160,7 @@ export function NotionSidebar({
         const hasChildren = children.length > 0;
         const isDocOpen = openDocs.has(doc.id);
         const isActive = activeDocId === doc.id;
+        const isOwner = !currentUserId || doc.user_id === currentUserId;
 
         return (
             <div key={doc.id} className={cn("relative", isChild && "ml-4 pl-3 border-l border-border/40")}>
@@ -150,7 +173,7 @@ export function NotionSidebar({
                     )}
                     onClick={() => onSelectDocument(doc)}
                     onMouseEnter={() => onHoverDocument?.(doc)}
-                    onContextMenu={(e) => handleContextMenu(e, doc)}
+                    onContextMenu={(e) => isOwner && handleContextMenu(e, doc)}
                 >
                     {isActive && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-3/4 bg-primary rounded-r-lg shadow-[0_0_12px_rgba(168,85,247,0.9)]" />
@@ -174,32 +197,39 @@ export function NotionSidebar({
                         <TabeIconRenderer iconId={doc.emoji || "book"} size={16} />
                     </span>
                     
-                    <span className="truncate flex-1 tracking-wide">
+                    <span className="truncate flex-1 tracking-wide flex items-center gap-2">
                         {doc.titulo || "Sin título"}
+                        {!isOwner && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 uppercase shrink-0">
+                                Amigo
+                            </span>
+                        )}
                     </span>
                     
-                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all duration-300 gap-1 shrink-0 translate-x-3 group-hover:translate-x-0">
-                        <button
-                            className="p-1.5 rounded-lg hover:bg-background text-muted-foreground hover:text-primary transition-colors shadow-sm border border-transparent hover:border-border/50"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onNewSubPage(doc);
-                            }}
-                            title="Nueva sub-página"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                            className="p-1.5 rounded-lg hover:bg-background text-muted-foreground hover:text-primary transition-colors shadow-sm border border-transparent hover:border-border/50"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleContextMenu(e, doc);
-                            }}
-                            title="Más opciones"
-                        >
-                            <MoreHorizontal className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
+                    {isOwner && (
+                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all duration-300 gap-1 shrink-0 translate-x-3 group-hover:translate-x-0">
+                            <button
+                                className="p-1.5 rounded-lg hover:bg-background text-muted-foreground hover:text-primary transition-colors shadow-sm border border-transparent hover:border-border/50"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onNewSubPage(doc);
+                                }}
+                                title="Nueva sub-página"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                className="p-1.5 rounded-lg hover:bg-background text-muted-foreground hover:text-primary transition-colors shadow-sm border border-transparent hover:border-border/50"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleContextMenu(e, doc);
+                                }}
+                                title="Más opciones"
+                            >
+                                <MoreHorizontal className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
                 </div>
                 
                 {hasChildren && isDocOpen && (
@@ -402,6 +432,40 @@ export function NotionSidebar({
                                     </div>
                                     <div className="space-y-0.5 pl-2">
                                        {docsBySubject.unlinked.map(d => renderDocItem(d))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Friend notes */}
+                            {friendsByOwner.size > 0 && (
+                                <div className="mt-8">
+                                    <div className="flex items-center px-1 mb-4">
+                                        <div className="p-1.5 rounded-md bg-pink-500/10 text-pink-500 mr-2 border border-pink-500/20">
+                                            <Heart className="w-3.5 h-3.5" />
+                                        </div>
+                                        <span className="text-xs font-bold tracking-widest text-muted-foreground/80 uppercase">Apuntes de Amigos</span>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {Array.from(friendsByOwner.entries()).map(([ownerId, { owner, docs }]) => (
+                                            <div key={ownerId} className="relative">
+                                                <div className="flex items-center px-1 mb-2">
+                                                    {owner?.avatar_url ? (
+                                                        <img src={owner.avatar_url} className="w-5 h-5 rounded-full mr-2 border border-border/50" alt={owner.nombre || ""} />
+                                                    ) : (
+                                                        <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold mr-2 border border-primary/30">
+                                                            {(owner?.nombre || "A").charAt(0)}
+                                                        </div>
+                                                    )}
+                                                    <span className="text-xs font-bold text-muted-foreground/70 truncate">
+                                                        {owner?.nombre || owner?.username || "Amigo"}
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    {docs.map(d => renderDocItem(d))}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}

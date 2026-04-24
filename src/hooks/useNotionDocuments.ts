@@ -22,6 +22,11 @@ export interface NotionDocument {
     codigo: string;
     year: number;
   };
+  owner?: {
+    nombre: string | null;
+    avatar_url: string | null;
+    username: string | null;
+  };
 }
 
 export function useNotionDocuments() {
@@ -78,7 +83,10 @@ export function useNotionDocuments() {
 
     const { data, error } = await supabase
       .from("notion_documents")
-      .select("id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at")
+      .select(`
+        id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+        owner:profiles!notion_documents_user_id_fkey(nombre, avatar_url, username)
+      `)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -212,9 +220,11 @@ export function useNotionDocuments() {
   const addStudyTime = async (documentId: string, seconds: number, subjectId: string | null) => {
     if (!user || seconds < 1) return;
 
-    // Update document total time
+    // Update document total time - ONLY if I am the owner
     const doc = documents.find(d => d.id === documentId);
-    if (doc) {
+    const isOwner = doc && doc.user_id === user.id;
+
+    if (doc && isOwner) {
       await updateDocument(documentId, {
         total_time_seconds: doc.total_time_seconds + seconds
       });

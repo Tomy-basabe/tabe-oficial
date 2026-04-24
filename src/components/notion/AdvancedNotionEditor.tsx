@@ -60,6 +60,7 @@ interface AdvancedNotionEditorProps {
   onSubPageClick?: (pageId: string | null, title: string) => void;
   placeholder?: string;
   documentId?: string;
+  readOnly?: boolean;
 }
 
 // Bubble menu button
@@ -86,6 +87,7 @@ export function AdvancedNotionEditor({
   onSubPageClick,
   placeholder = "Escribe '/' para ver comandos...",
   documentId,
+  readOnly = false,
 }: AdvancedNotionEditorProps) {
   const lastLoadedDocumentIdRef = useRef<string | undefined>(documentId);
 
@@ -203,6 +205,7 @@ export function AdvancedNotionEditor({
       ChartExtension,
     ],
     content,
+    editable: !readOnly,
     onUpdate: ({ editor }) => {
       onUpdate(editor.getJSON());
       if (onActivity) onActivity();
@@ -410,7 +413,8 @@ export function AdvancedNotionEditor({
     if (!shouldReload || !editor || !content) return;
     lastLoadedDocumentIdRef.current = documentId;
     editor.commands.setContent(content);
-  }, [documentId, content, editor]);
+    editor.setEditable(!readOnly);
+  }, [documentId, content, editor, readOnly]);
 
   // Listener to open math menu via custom event (e.g. from SlashCommands)
   useEffect(() => {
@@ -793,219 +797,223 @@ export function AdvancedNotionEditor({
 
   return (
     <div className="notion-advanced-editor relative">
-      <MathMenu
-        open={mathMenuOpen}
-        onOpenChange={setMathMenuOpen}
-        anchorEl={mathMenuAnchor}
-        onSelect={(latex) => {
-          // 1. Dispatch event so any active MathNodeView can catch it
-          const event = new CustomEvent('notion-insert-math', { detail: latex });
-          window.dispatchEvent(event);
+      {!readOnly && (
+        <>
+          <MathMenu
+            open={mathMenuOpen}
+            onOpenChange={setMathMenuOpen}
+            anchorEl={mathMenuAnchor}
+            onSelect={(latex) => {
+              // 1. Dispatch event so any active MathNodeView can catch it
+              const event = new CustomEvent('notion-insert-math', { detail: latex });
+              window.dispatchEvent(event);
 
-          // 2. If no one handles it (or even if they do), we might want to insert a new one
-          // But actually, if someone handled it, we should probably stop.
-          // For simplicity, we'll try to insert a new one ONLY if no math input is focused.
-          const activeEl = document.activeElement;
-          const isMathInput = activeEl?.classList.contains('notion-math-input');
+              // 2. If no one handles it (or even if they do), we might want to insert a new one
+              // But actually, if someone handled it, we should probably stop.
+              // For simplicity, we'll try to insert a new one ONLY if no math input is focused.
+              const activeEl = document.activeElement;
+              const isMathInput = activeEl?.classList.contains('notion-math-input');
 
-          if (!isMathInput && editor) {
-            editor.chain().focus().setMath({ formula: latex }).run();
-          }
-        }}
-      />
-      {/* Bubble Menu — appears */}
-      <BubbleMenu
-        editor={editor}
-        className={cn(
-          "notion-bubble-menu flex items-center bg-[#0f172a] border border-[#1e293b] text-slate-200 shadow-2xl rounded-2xl p-1 overflow-hidden animate-in fade-in zoom-in duration-200",
-          "ring-1 ring-white/10"
-        )}
-        tippyOptions={{ duration: 150 }}
-      >
-        {editor.isActive("image") ? (
-          <div className="flex items-center">
-            <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "left", isFloating: false }).run()}
-              isActive={editor.isActive("image", { align: "left" })}
-              title="Ajuste Izquierda (Texto fluye)"
-            >
-              <AlignLeft className="w-4 h-4" />
-            </BubbleBtn>
-            <div className="w-[1px] h-4 bg-white/10 mx-1" />
-            <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "left-block", isFloating: false }).run()}
-              isActive={editor.isActive("image", { align: "left-block" })}
-              title="Bloque Izquierda"
-            >
-              <div className="relative">
-                <AlignLeft className="w-4 h-4 opacity-40" />
-                <div className="absolute inset-y-0 left-0 w-1 bg-primary rounded-full" />
-              </div>
-            </BubbleBtn>
-            <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "center", isFloating: false }).run()}
-              isActive={editor.isActive("image", { align: "center" })}
-              title="Bloque Centro"
-            >
-              <AlignCenter className="w-4 h-4" />
-            </BubbleBtn>
-            <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "right-block", isFloating: false }).run()}
-              isActive={editor.isActive("image", { align: "right-block" })}
-              title="Bloque Derecha"
-            >
-              <div className="relative">
-                <AlignRight className="w-4 h-4 opacity-40" />
-                <div className="absolute inset-y-0 right-0 w-1 bg-primary rounded-full" />
-              </div>
-            </BubbleBtn>
-            <div className="w-[1px] h-4 bg-white/10 mx-1" />
-            <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "right", isFloating: false }).run()}
-              isActive={editor.isActive("image", { align: "right" })}
-              title="Ajuste Derecha (Texto fluye)"
-            >
-              <AlignRight className="w-4 h-4" />
-            </BubbleBtn>
+              if (!isMathInput && editor) {
+                editor.chain().focus().setMath({ formula: latex }).run();
+              }
+            }}
+          />
+          {/* Bubble Menu — appears */}
+          <BubbleMenu
+            editor={editor}
+            className={cn(
+              "notion-bubble-menu flex items-center bg-[#0f172a] border border-[#1e293b] text-slate-200 shadow-2xl rounded-2xl p-1 overflow-hidden animate-in fade-in zoom-in duration-200",
+              "ring-1 ring-white/10"
+            )}
+            tippyOptions={{ duration: 150 }}
+          >
+            {editor.isActive("image") ? (
+              <div className="flex items-center">
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().updateAttributes("image", { align: "left", isFloating: false }).run()}
+                  isActive={editor.isActive("image", { align: "left" })}
+                  title="Ajuste Izquierda (Texto fluye)"
+                >
+                  <AlignLeft className="w-4 h-4" />
+                </BubbleBtn>
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().updateAttributes("image", { align: "left-block", isFloating: false }).run()}
+                  isActive={editor.isActive("image", { align: "left-block" })}
+                  title="Bloque Izquierda"
+                >
+                  <div className="relative">
+                    <AlignLeft className="w-4 h-4 opacity-40" />
+                    <div className="absolute inset-y-0 left-0 w-1 bg-primary rounded-full" />
+                  </div>
+                </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().updateAttributes("image", { align: "center", isFloating: false }).run()}
+                  isActive={editor.isActive("image", { align: "center" })}
+                  title="Bloque Centro"
+                >
+                  <AlignCenter className="w-4 h-4" />
+                </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().updateAttributes("image", { align: "right-block", isFloating: false }).run()}
+                  isActive={editor.isActive("image", { align: "right-block" })}
+                  title="Bloque Derecha"
+                >
+                  <div className="relative">
+                    <AlignRight className="w-4 h-4 opacity-40" />
+                    <div className="absolute inset-y-0 right-0 w-1 bg-primary rounded-full" />
+                  </div>
+                </BubbleBtn>
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().updateAttributes("image", { align: "right", isFloating: false }).run()}
+                  isActive={editor.isActive("image", { align: "right" })}
+                  title="Ajuste Derecha (Texto fluye)"
+                >
+                  <AlignRight className="w-4 h-4" />
+                </BubbleBtn>
 
-            <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
-            <BubbleBtn
-              onClick={() => editor.chain().focus().updateAttributes("image", { align: "full", isFloating: false }).run()}
-              isActive={editor.isActive("image", { align: "full" })}
-              title="Ancho Completo"
-            >
-              <Maximize className="w-4 h-4" />
-            </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().updateAttributes("image", { align: "full", isFloating: false }).run()}
+                  isActive={editor.isActive("image", { align: "full" })}
+                  title="Ancho Completo"
+                >
+                  <Maximize className="w-4 h-4" />
+                </BubbleBtn>
 
-            <BubbleBtn
-              onClick={() => {
-                const attrs = editor.getAttributes("image");
-                const isFloating = !attrs.isFloating;
+                <BubbleBtn
+                  onClick={() => {
+                    const attrs = editor.getAttributes("image");
+                    const isFloating = !attrs.isFloating;
 
-                if (isFloating) {
-                  // Capture current position before switching to floating
-                  const { from } = editor.state.selection;
-                  const dom = editor.view.nodeDOM(from) as HTMLElement;
-                  if (dom) {
-                    const rect = dom.getBoundingClientRect();
-                    const parentRect = dom.parentElement?.getBoundingClientRect();
-                    if (parentRect) {
-                      const x = rect.left - parentRect.left;
-                      const y = rect.top - parentRect.top;
-                      editor.chain().focus().updateAttributes("image", {
-                        isFloating: true,
-                        position: { x, y }
-                      }).run();
-                      return;
+                    if (isFloating) {
+                      // Capture current position before switching to floating
+                      const { from } = editor.state.selection;
+                      const dom = editor.view.nodeDOM(from) as HTMLElement;
+                      if (dom) {
+                        const rect = dom.getBoundingClientRect();
+                        const parentRect = dom.parentElement?.getBoundingClientRect();
+                        if (parentRect) {
+                          const x = rect.left - parentRect.left;
+                          const y = rect.top - parentRect.top;
+                          editor.chain().focus().updateAttributes("image", {
+                            isFloating: true,
+                            position: { x, y }
+                          }).run();
+                          return;
+                        }
+                      }
                     }
-                  }
-                }
 
-                editor.chain().focus().updateAttributes("image", { isFloating }).run();
-              }}
-              isActive={editor.getAttributes("image").isFloating}
-              title="Movimiento Libre"
-            >
-              <Move className={cn("w-4 h-4", editor.getAttributes("image").isFloating && "text-primary")} />
-            </BubbleBtn>
-          </div>
-        ) : (
-          <div className="flex items-center">
-            {/* Standard text tools continue here... */}
-            <BubbleBtn
-              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-              isActive={editor.isActive("heading", { level: 1 })}
-              title="Encabezado 1"
-            >
-              <span className="text-sm font-bold">H1</span>
-            </BubbleBtn>
-            <BubbleBtn
-              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-              isActive={editor.isActive("heading", { level: 2 })}
-              title="Encabezado 2"
-            >
-              <span className="text-sm font-bold text-slate-400">H2</span>
-            </BubbleBtn>
+                    editor.chain().focus().updateAttributes("image", { isFloating }).run();
+                  }}
+                  isActive={editor.getAttributes("image").isFloating}
+                  title="Movimiento Libre"
+                >
+                  <Move className={cn("w-4 h-4", editor.getAttributes("image").isFloating && "text-primary")} />
+                </BubbleBtn>
+              </div>
+            ) : (
+              <div className="flex items-center">
+                {/* Standard text tools continue here... */}
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  isActive={editor.isActive("heading", { level: 1 })}
+                  title="Encabezado 1"
+                >
+                  <span className="text-sm font-bold">H1</span>
+                </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  isActive={editor.isActive("heading", { level: 2 })}
+                  title="Encabezado 2"
+                >
+                  <span className="text-sm font-bold text-slate-400">H2</span>
+                </BubbleBtn>
 
-            <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
-            <BubbleBtn
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
-              isActive={editor.isActive("bulletList")}
-              title="Lista de Viñetas"
-            >
-              <List className="w-4 h-4" />
-            </BubbleBtn>
-            <BubbleBtn
-              onClick={() => editor.chain().focus().toggleTaskList().run()}
-              isActive={editor.isActive("taskList")}
-              title="Lista de Tareas"
-            >
-              <CheckSquare className="w-4 h-4" />
-            </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                  isActive={editor.isActive("bulletList")}
+                  title="Lista de Viñetas"
+                >
+                  <List className="w-4 h-4" />
+                </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().toggleTaskList().run()}
+                  isActive={editor.isActive("taskList")}
+                  title="Lista de Tareas"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                </BubbleBtn>
 
-            <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
-            <BubbleBtn
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              isActive={editor.isActive("bold")}
-              title="Negrita (Ctrl+B)"
-            >
-              <Bold className="w-4 h-4" />
-            </BubbleBtn>
-            <BubbleBtn
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-              isActive={editor.isActive("italic")}
-              title="Cursiva (Ctrl+I)"
-            >
-              <Italic className="w-4 h-4" />
-            </BubbleBtn>
-            <BubbleBtn
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-              isActive={editor.isActive("underline")}
-              title="Subrayado (Ctrl+U)"
-            >
-              <Underline className="w-4 h-4" />
-            </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().toggleBold().run()}
+                  isActive={editor.isActive("bold")}
+                  title="Negrita (Ctrl+B)"
+                >
+                  <Bold className="w-4 h-4" />
+                </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  isActive={editor.isActive("italic")}
+                  title="Cursiva (Ctrl+I)"
+                >
+                  <Italic className="w-4 h-4" />
+                </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().toggleUnderline().run()}
+                  isActive={editor.isActive("underline")}
+                  title="Subrayado (Ctrl+U)"
+                >
+                  <Underline className="w-4 h-4" />
+                </BubbleBtn>
 
-            <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
-            <HighlightColorPicker editor={editor} type="bubble" />
-            <ColorPicker editor={editor} type="bubble" />
+                <HighlightColorPicker editor={editor} type="bubble" />
+                <ColorPicker editor={editor} type="bubble" />
 
-            <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
-            <BubbleBtn onClick={setLink} isActive={editor.isActive("link")} title="Enlace (Ctrl+K)">
-              <LinkIcon className="w-4 h-4" />
-            </BubbleBtn>
+                <BubbleBtn onClick={setLink} isActive={editor.isActive("link")} title="Enlace (Ctrl+K)">
+                  <LinkIcon className="w-4 h-4" />
+                </BubbleBtn>
 
-            <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
-            <BubbleBtn
-              onClick={() => editor.chain().focus().setTextAlign("left").run()}
-              isActive={editor.isActive({ textAlign: "left" })}
-              title="Izquierda"
-            >
-              <AlignLeft className="w-4 h-4" />
-            </BubbleBtn>
-            <BubbleBtn
-              onClick={() => editor.chain().focus().setTextAlign("center").run()}
-              isActive={editor.isActive({ textAlign: "center" })}
-              title="Centro"
-            >
-              <AlignCenter className="w-4 h-4" />
-            </BubbleBtn>
-            <BubbleBtn
-              onClick={() => editor.chain().focus().setTextAlign("right").run()}
-              isActive={editor.isActive({ textAlign: "right" })}
-              title="Derecha"
-            >
-              <AlignRight className="w-4 h-4" />
-            </BubbleBtn>
-          </div>
-        )}
-      </BubbleMenu>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().setTextAlign("left").run()}
+                  isActive={editor.isActive({ textAlign: "left" })}
+                  title="Izquierda"
+                >
+                  <AlignLeft className="w-4 h-4" />
+                </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().setTextAlign("center").run()}
+                  isActive={editor.isActive({ textAlign: "center" })}
+                  title="Centro"
+                >
+                  <AlignCenter className="w-4 h-4" />
+                </BubbleBtn>
+                <BubbleBtn
+                  onClick={() => editor.chain().focus().setTextAlign("right").run()}
+                  isActive={editor.isActive({ textAlign: "right" })}
+                  title="Derecha"
+                >
+                  <AlignRight className="w-4 h-4" />
+                </BubbleBtn>
+              </div>
+            )}
+          </BubbleMenu>
+        </>
+      )}
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
