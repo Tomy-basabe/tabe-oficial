@@ -79,6 +79,12 @@ export default function Quizzes() {
     const [publishCategory, setPublishCategory] = useState("");
     const [isPublishing, setIsPublishing] = useState(false);
 
+    // Study wrong questions state
+    const [wrongQuestionIds, setWrongQuestionIds] = useState<Set<string>>(new Set());
+    const [showStudyOptions, setShowStudyOptions] = useState(false);
+    const [pendingStudyDeck, setPendingStudyDeck] = useState<QuizDeck | null>(null);
+    const [savedWrongIds, setSavedWrongIds] = useState<string[]>([]);
+
     // Study mode state
     const [studyDeck, setStudyDeck] = useState<QuizDeck | null>(null);
     const [studyQuestions, setStudyQuestions] = useState<QuizQuestion[]>([]);
@@ -393,7 +399,27 @@ export default function Quizzes() {
     };
 
     // Study Mode
-    const startStudy = async (deck: QuizDeck) => {
+    const checkStudyOptions = (deck: QuizDeck) => {
+        if (!user || isGuest) {
+            startStudy(deck, []);
+            return;
+        }
+        const savedStr = localStorage.getItem(`quiz_wrong_${user.id}_${deck.id}`);
+        if (savedStr) {
+            try {
+                const parsed = JSON.parse(savedStr);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setPendingStudyDeck(deck);
+                    setSavedWrongIds(parsed);
+                    setShowStudyOptions(true);
+                    return;
+                }
+            } catch (e) {}
+        }
+        startStudy(deck, []);
+    };
+
+    const startStudy = async (deck: QuizDeck, filterIds: string[] = []) => {
         setStudyDeck(deck);
         setCurrentIndex(0);
         setSelectedAnswer(null);
@@ -401,6 +427,8 @@ export default function Quizzes() {
         setScore(0);
         setFinished(false);
         setStudyTime(0);
+        setWrongQuestionIds(new Set());
+        setShowStudyOptions(false);
 
         if (isGuest) {
             if (deck.id === "mock-1") {
@@ -435,10 +463,15 @@ export default function Quizzes() {
                 .select("id, question_id, texto, es_correcta")
                 .in("question_id", qIds);
 
-            const enriched = questions.map((q: any) => ({
+            let enriched = questions.map((q: any) => ({
                 ...q,
                 options: (options || []).filter((o: any) => o.question_id === q.id)
             }));
+            
+            if (filterIds.length > 0) {
+                enriched = enriched.filter((q: any) => filterIds.includes(q.id));
+            }
+
             // Shuffle questions
             setStudyQuestions(enriched.sort(() => Math.random() - 0.5));
         }
@@ -451,6 +484,8 @@ export default function Quizzes() {
         const selectedOpt = currentQ.options.find(o => o.id === selectedAnswer);
         if (selectedOpt?.es_correcta) {
             setScore(prev => prev + 1);
+        } else {
+            setWrongQuestionIds(prev => new Set(prev).add(currentQ.id));
         }
     };
 
@@ -458,6 +493,13 @@ export default function Quizzes() {
         if (currentIndex + 1 >= studyQuestions.length) {
             setFinished(true);
             saveStudySession(true);
+            if (user && studyDeck) {
+                if (wrongQuestionIds.size > 0) {
+                    localStorage.setItem(`quiz_wrong_${user.id}_${studyDeck.id}`, JSON.stringify(Array.from(wrongQuestionIds)));
+                } else {
+                    localStorage.removeItem(`quiz_wrong_${user.id}_${studyDeck.id}`);
+                }
+            }
         } else {
             setCurrentIndex(prev => prev + 1);
             setSelectedAnswer(null);
@@ -472,6 +514,7 @@ export default function Quizzes() {
         setScore(0);
         setFinished(false);
         setStudyTime(0);
+        setWrongQuestionIds(new Set());
         setStudyQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
     };
 
@@ -998,7 +1041,7 @@ export default function Quizzes() {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="flex-1"
+                                            className="flex-1 border-primary text-primary hover:bg-primary/10"
                                             onClick={() => {
                                                 setManageDeck(deck);
                                                 fetchQuestions(deck.id);
@@ -1011,7 +1054,7 @@ export default function Quizzes() {
                                             size="sm"
                                             className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple"
                                             disabled={deck.total_questions === 0}
-                                            onClick={() => startStudy(deck)}
+                                            onClick={() => checkStudyOptions(deck)}
                                         >
                                             <Zap className="w-4 h-4 mr-2" />
                                             Practicar
