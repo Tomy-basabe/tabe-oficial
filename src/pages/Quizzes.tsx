@@ -159,8 +159,9 @@ export default function Quizzes() {
     // Delete confirm
     const [deleteDeck, setDeleteDeck] = useState<QuizDeck | null>(null);
 
-    // Year filter
+    // Filters
     const [selectedYear, setSelectedYear] = useState<number | null>(null);
+    const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
     const fetchSubjects = useCallback(async () => {
         if (isGuest) {
@@ -860,39 +861,77 @@ export default function Quizzes() {
                 </Button>
             </div>
 
-            {/* Year Filter */}
-            <div className="card-gamer rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                    <Filter className="w-4 h-4 text-primary" />
-                    <span className="font-medium text-sm">Filtrar por Año</span>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                    <button
-                        onClick={() => setSelectedYear(null)}
-                        className={cn(
-                            "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                            selectedYear === null
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary hover:bg-secondary/80"
-                        )}
-                    >
-                        Todos
-                    </button>
-                    {[1, 2, 3, 4, 5, 6].map(y => (
+            {/* Filters */}
+            <div className="card-gamer rounded-xl p-4 space-y-4">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-primary" />
+                        <span className="font-medium text-sm">Filtrar por Año</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
                         <button
-                            key={y}
-                            onClick={() => setSelectedYear(y)}
+                            onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
                             className={cn(
                                 "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                                selectedYear === y
+                                selectedYear === null
                                     ? "bg-primary text-primary-foreground"
                                     : "bg-secondary hover:bg-secondary/80"
                             )}
                         >
-                            {y}° Año
+                            Todos
                         </button>
-                    ))}
+                        {[1, 2, 3, 4, 5, 6].map(y => (
+                            <button
+                                key={y}
+                                onClick={() => { setSelectedYear(y); setSelectedSubject(null); }}
+                                className={cn(
+                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                                    selectedYear === y
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-secondary hover:bg-secondary/80"
+                                )}
+                            >
+                                {y}° Año
+                            </button>
+                        ))}
+                    </div>
                 </div>
+
+                {selectedYear !== null && (
+                    <div className="space-y-3 pt-3 border-t border-border/50 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4 text-neon-cyan" />
+                            <span className="font-medium text-sm">Materia</span>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                            <button
+                                onClick={() => setSelectedSubject(null)}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                    selectedSubject === null
+                                        ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30"
+                                        : "bg-secondary hover:bg-secondary/80 border border-transparent"
+                                )}
+                            >
+                                Todas las materias
+                            </button>
+                            {subjects.filter(s => s.año === selectedYear).map(sub => (
+                                <button
+                                    key={sub.id}
+                                    onClick={() => setSelectedSubject(sub.id)}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                        selectedSubject === sub.id
+                                            ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30"
+                                            : "bg-secondary hover:bg-secondary/80 border border-transparent"
+                                    )}
+                                >
+                                    {sub.nombre}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Decks Grid */}
@@ -921,8 +960,9 @@ export default function Quizzes() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 tour-quizzes-decks">
                     {decks
                         .filter(d => {
-                            if (!selectedYear) return true;
-                            return d.subject?.año === selectedYear;
+                            if (selectedYear && d.subject?.año !== selectedYear) return false;
+                            if (selectedSubject && d.subject_id !== selectedSubject) return false;
+                            return true;
                         })
                         .map((deck) => (
                             <Card key={deck.id} className="card-gamer hover:glow-cyan transition-all group">
