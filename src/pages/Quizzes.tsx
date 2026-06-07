@@ -73,6 +73,12 @@ export default function Quizzes() {
     const [newOptions, setNewOptions] = useState(["", "", "", "", ""]);
     const [correctOption, setCorrectOption] = useState(0);
 
+    // Publish to Marketplace state
+    const [showPublishDialog, setShowPublishDialog] = useState(false);
+    const [publishDescription, setPublishDescription] = useState("");
+    const [publishCategory, setPublishCategory] = useState("");
+    const [isPublishing, setIsPublishing] = useState(false);
+
     // Study mode state
     const [studyDeck, setStudyDeck] = useState<QuizDeck | null>(null);
     const [studyQuestions, setStudyQuestions] = useState<QuizQuestion[]>([]);
@@ -338,6 +344,53 @@ export default function Quizzes() {
         fetchDecks();
     };
 
+    const updateDeckSubject = async (deckId: string, subjectId: string) => {
+        const sub = subjects.find(s => s.id === subjectId);
+        const { error } = await supabase.from("quiz_decks").update({
+            subject_id: subjectId,
+            updated_at: new Date().toISOString()
+        }).eq("id", deckId);
+        if (error) { toast.error("Error al actualizar materia"); return; }
+        toast.success(`Materia asignada: ${sub?.nombre || 'Actualizada'}`);
+        if (manageDeck) {
+            setManageDeck({ ...manageDeck, subject_id: subjectId, subject: sub });
+        }
+        fetchDecks();
+    };
+
+    const publishToMarketplace = async () => {
+        if (!manageDeck || !publishDescription.trim() || !publishCategory.trim()) return;
+        setIsPublishing(true);
+        const { error } = await supabase.from("quiz_decks").update({
+            is_public: true,
+            description: publishDescription.trim(),
+            category: publishCategory.trim(),
+            updated_at: new Date().toISOString()
+        } as any).eq("id", manageDeck.id);
+        if (error) {
+            toast.error("Error al publicar en Marketplace");
+        } else {
+            toast.success("¡Cuestionario publicado en el Marketplace!");
+            setShowPublishDialog(false);
+            setPublishDescription("");
+            setPublishCategory("");
+        }
+        setIsPublishing(false);
+    };
+
+    const unpublishFromMarketplace = async () => {
+        if (!manageDeck) return;
+        const { error } = await supabase.from("quiz_decks").update({
+            is_public: false,
+            updated_at: new Date().toISOString()
+        } as any).eq("id", manageDeck.id);
+        if (error) {
+            toast.error("Error al retirar del Marketplace");
+        } else {
+            toast.success("Cuestionario retirado del Marketplace");
+        }
+    };
+
     // Study Mode
     const startStudy = async (deck: QuizDeck) => {
         setStudyDeck(deck);
@@ -583,10 +636,52 @@ export default function Quizzes() {
                         <h2 className="text-xl font-bold">{manageDeck.nombre}</h2>
                         <p className="text-sm text-muted-foreground">{manageDeck.total_questions} preguntas</p>
                     </div>
-                    <Button size="sm" className="ml-auto" onClick={() => setShowAddQuestion(true)}>
-                        <Plus className="w-4 h-4 mr-2" /> Agregar Pregunta
-                    </Button>
+                    <div className="ml-auto flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setShowPublishDialog(true)}>
+                            <Store className="w-4 h-4 mr-2" /> Publicar
+                        </Button>
+                        <Button size="sm" onClick={() => setShowAddQuestion(true)}>
+                            <Plus className="w-4 h-4 mr-2" /> Agregar Pregunta
+                        </Button>
+                    </div>
                 </div>
+
+                {/* Subject Assignment */}
+                <Card className="card-gamer">
+                    <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                            <div className="flex items-center gap-2">
+                                <GraduationCap className="w-5 h-5 text-neon-cyan" />
+                                <Label className="font-semibold text-sm">Materia asignada</Label>
+                            </div>
+                            <select
+                                value={manageDeck.subject_id || ""}
+                                onChange={(e) => {
+                                    if (e.target.value) updateDeckSubject(manageDeck.id, e.target.value);
+                                }}
+                                className="flex-1 w-full md:w-auto px-4 py-2.5 bg-secondary rounded-xl border border-border font-medium text-sm"
+                            >
+                                <option value="">Sin materia asignada</option>
+                                {[1, 2, 3, 4, 5, 6].map(year => {
+                                    const yearSubjects = subjects.filter(s => s.año === year);
+                                    if (yearSubjects.length === 0) return null;
+                                    return (
+                                        <optgroup key={year} label={`${year}° Año`}>
+                                            {yearSubjects.map(s => (
+                                                <option key={s.id} value={s.id}>{s.nombre}</option>
+                                            ))}
+                                        </optgroup>
+                                    );
+                                })}
+                            </select>
+                            {manageDeck.subject && (
+                                <Badge variant="outline" className="bg-primary/10 shrink-0">
+                                    Año {manageDeck.subject.año} · {manageDeck.subject.nombre}
+                                </Badge>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {loadingQuestions ? (
                     <div className="flex justify-center py-12">
@@ -690,6 +785,50 @@ export default function Quizzes() {
                                 disabled={!newQuestion.trim() || newOptions.filter(o => o.trim()).length < 2}
                             >
                                 Agregar Pregunta
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Publish to Marketplace Dialog */}
+                <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+                    <DialogContent className="bg-card border-border max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Store className="w-5 h-5 text-neon-purple" />
+                                Publicar en Marketplace
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-2">
+                            <div className="p-4 bg-neon-purple/10 border border-neon-purple/30 rounded-xl">
+                                <p className="font-semibold">{manageDeck.nombre}</p>
+                                <p className="text-sm text-muted-foreground">{manageDeck.total_questions} preguntas · {manageDeck.subject?.nombre || 'Sin materia'}</p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-bold text-muted-foreground uppercase">Descripción *</Label>
+                                <Textarea
+                                    placeholder="Describe este cuestionario para que otros sepan de qué se trata..."
+                                    value={publishDescription}
+                                    onChange={(e) => setPublishDescription(e.target.value)}
+                                    rows={3}
+                                    className="bg-secondary/30 border-border"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-bold text-muted-foreground uppercase">Categoría / Etiquetas *</Label>
+                                <Input
+                                    placeholder="Ej: Parcial, Final, Resumen..."
+                                    value={publishCategory}
+                                    onChange={(e) => setPublishCategory(e.target.value)}
+                                    className="bg-secondary/30 border-border"
+                                />
+                            </div>
+                            <Button
+                                className="w-full bg-gradient-to-r from-neon-purple to-neon-cyan hover:opacity-90"
+                                onClick={publishToMarketplace}
+                                disabled={isPublishing || !publishDescription.trim() || !publishCategory.trim()}
+                            >
+                                {isPublishing ? "Publicando..." : "Publicar Ahora"}
                             </Button>
                         </div>
                     </DialogContent>

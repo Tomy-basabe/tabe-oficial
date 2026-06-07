@@ -191,9 +191,9 @@ export default function Marketplace() {
     </div>
   );
 
-  const ResourceCard = ({ item, type }: { item: any, type: "deck" | "file" | "folder" | "apunte" }) => {
-    const Icon = type === 'deck' ? Layers : type === 'file' ? FileText : type === 'apunte' ? GraduationCap : Folder;
-    const colorClass = type === 'deck' ? "from-neon-purple to-neon-cyan" : type === 'file' ? "from-neon-green to-neon-cyan" : type === 'apunte' ? "from-neon-blue to-neon-purple" : "from-neon-gold to-neon-orange";
+  const ResourceCard = ({ item, type }: { item: any, type: "deck" | "file" | "folder" | "apunte" | "quiz" }) => {
+    const Icon = type === 'deck' ? Layers : type === 'quiz' ? HelpCircle : type === 'file' ? FileText : type === 'apunte' ? GraduationCap : Folder;
+    const colorClass = type === 'deck' ? "from-neon-purple to-neon-cyan" : type === 'quiz' ? "from-neon-gold to-neon-orange" : type === 'file' ? "from-neon-green to-neon-cyan" : type === 'apunte' ? "from-neon-blue to-neon-purple" : "from-neon-gold to-neon-orange";
 
     return (
       <Card className="card-gamer hover:glow-purple transition-all group">
@@ -206,7 +206,7 @@ export default function Marketplace() {
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold line-clamp-1">{item.nombre}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {type === 'deck' ? `${item.total_cards} tarjetas` : type === 'file' ? 'Archivo individual' : 'Carpeta completa'}
+                  {type === 'deck' ? `${item.total_cards} tarjetas` : type === 'quiz' ? `${item.total_questions} preguntas` : type === 'file' ? 'Archivo individual' : type === 'apunte' ? 'Apunte' : 'Carpeta completa'}
                 </p>
               </div>
             </div>
@@ -259,6 +259,9 @@ export default function Marketplace() {
               onClick={() => {
                 if (type === 'deck') {
                   setImportingResource({ id: item.id, type: 'deck', data: item });
+                  setImportOpen(true);
+                } else if (type === 'quiz') {
+                  setImportingResource({ id: item.id, type: 'quiz', data: item });
                   setImportOpen(true);
                 } else if (type === 'apunte') {
                   setImportingResource({ id: item.id, type: 'apunte', data: item });
@@ -321,12 +324,13 @@ export default function Marketplace() {
       </div>
 
       <Tabs defaultValue="decks" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 bg-secondary/50">
+        <TabsList className="grid w-full grid-cols-6 bg-secondary/50">
           <TabsTrigger value="decks"><Layers className="w-4 h-4 mr-2" /> Mazos</TabsTrigger>
+          <TabsTrigger value="quizzes"><HelpCircle className="w-4 h-4 mr-2" /> Cuestionarios</TabsTrigger>
           <TabsTrigger value="apuntes"><GraduationCap className="w-4 h-4 mr-2" /> Apuntes</TabsTrigger>
           <TabsTrigger value="files"><FileText className="w-4 h-4 mr-2" /> Archivos</TabsTrigger>
           <TabsTrigger value="folders"><Folder className="w-4 h-4 mr-2" /> Carpetas</TabsTrigger>
-          <TabsTrigger value="my-posts"><Upload className="w-4 h-4 mr-2" /> Publicaciones</TabsTrigger>
+          <TabsTrigger value="my-posts"><Upload className="w-4 h-4 mr-2" /> Mis Publicaciones</TabsTrigger>
         </TabsList>
 
         <TabsContent value="decks">
@@ -338,6 +342,19 @@ export default function Marketplace() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {publicDecks.map(deck => <ResourceCard key={deck.id} item={deck} type="deck" />)}
               {publicDecks.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron mazos</p>}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="quizzes">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => <div key={i} className="h-64 bg-secondary/20 animate-pulse rounded-xl" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {publicQuizzes.map(quiz => <ResourceCard key={quiz.id} item={quiz} type="quiz" />)}
+              {publicQuizzes.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron cuestionarios</p>}
             </div>
           )}
         </TabsContent>
