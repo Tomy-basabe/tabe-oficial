@@ -394,12 +394,12 @@ serve(async (req) => {
 
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
-    // LIMIT messages to last 4 to prevent 413 errors and reduce token usage maximally
-    const trimmedMessages = trimMessages(messages, 4);
+    // LIMIT messages to last 10 to prevent 413 errors while keeping enough context
+    const trimmedMessages = trimMessages(messages, 10);
     const groqMessages = [
       ...trimmedMessages.map((m: any) => ({
         role: m.role,
-        content: typeof m.content === 'string' ? m.content.slice(0, 500) : String(m.content).slice(0, 500)
+        content: typeof m.content === 'string' ? m.content.slice(0, 12000) : String(m.content).slice(0, 12000)
       }))
     ];
 
@@ -499,7 +499,7 @@ serve(async (req) => {
         tools: tools,
         tool_choice: "auto",
         temperature: 0.5,
-        max_tokens: 2048,
+        max_tokens: 8192,
         stream: true
       })
     });

@@ -1127,7 +1127,7 @@ export default function Notion() {
     });
 
     return result;
-  }, [documents, filterSubject, searchQuery, sortBy]);
+  }, [documents, filterSubject, searchQuery, sortBy, filterOwner, user]);
 
   // Loading
   if (loading && documents.length === 0) {
