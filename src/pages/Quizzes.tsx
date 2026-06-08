@@ -305,12 +305,12 @@ export default function Quizzes() {
 
         // Insert options
         const optionsToInsert = newOptions
-            .filter(o => o.trim())
             .map((o, i) => ({
                 question_id: q.id,
                 texto: o.trim(),
                 es_correcta: correctOptions.has(i)
-            }));
+            }))
+            .filter(o => o.texto !== "");
 
         await supabase.from("quiz_options").insert(optionsToInsert);
 
@@ -654,14 +654,15 @@ export default function Quizzes() {
                                     }
 
                                     return (
-                                        <label
+                                        <div
                                             key={opt.id}
                                             className={cn(
                                                 "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
                                                 optClass,
                                                 answered && "cursor-default"
                                             )}
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                e.preventDefault();
                                                 if (answered) return;
                                                 setSelectedAnswers(prev => {
                                                     const next = new Set(prev);
@@ -688,7 +689,7 @@ export default function Quizzes() {
                                                 className="pointer-events-none"
                                                 disabled={answered}
                                             />
-                                        </label>
+                                        </div>
                                     );
                                 })}
                             </div>
