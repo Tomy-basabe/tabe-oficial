@@ -5,7 +5,7 @@ import {
     ClipboardList, Plus, Sparkles, GraduationCap,
     BookOpen, Zap, Trash2, X, Check, ChevronRight,
     ChevronLeft, Trophy, RotateCcw, Upload, Store,
-    Edit, AlertCircle, Filter, Timer
+    Edit, AlertCircle, Filter, Timer, ListChecks
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn, toLocalDateStr } from "@/lib/utils";
@@ -32,6 +33,7 @@ interface QuizQuestion {
     id: string;
     pregunta: string;
     explicacion: string | null;
+    is_multi_select: boolean;
     options: QuizOption[];
 }
 
@@ -71,7 +73,8 @@ export default function Quizzes() {
     const [newQuestion, setNewQuestion] = useState("");
     const [newExplanation, setNewExplanation] = useState("");
     const [newOptions, setNewOptions] = useState(["", "", "", "", ""]);
-    const [correctOption, setCorrectOption] = useState(0);
+    const [correctOptions, setCorrectOptions] = useState<Set<number>>(new Set([0]));
+    const [isMultiSelect, setIsMultiSelect] = useState(false);
 
     // Publish to Marketplace state
     const [showPublishDialog, setShowPublishDialog] = useState(false);
@@ -90,6 +93,7 @@ export default function Quizzes() {
     const [studyQuestions, setStudyQuestions] = useState<QuizQuestion[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+    const [selectedAnswers, setSelectedAnswers] = useState<Set<string>>(new Set());
     const [answered, setAnswered] = useState(false);
     const [score, setScore] = useState(0);
     const [finished, setFinished] = useState(false);
@@ -217,6 +221,7 @@ export default function Quizzes() {
                     id: `mock-q-${i}`,
                     pregunta: `Aquí puedes colocar preguntas de opción múltiple (Ejemplo #${i + 1})`,
                     explicacion: `Y aquí puedes añadir una explicación detallada que aparecerá cuando elijas una respuesta. Esta es la explicación para la pregunta ${i + 1}.`,
+                    is_multi_select: false,
                     options: [
                         { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Aquí pondrías la respuesta correcta", es_correcta: true },
                         { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Aquí una respuesta incorrecta", es_correcta: false },
@@ -234,7 +239,7 @@ export default function Quizzes() {
 
         const { data: questions } = await supabase
             .from("quiz_questions")
-            .select("id, pregunta, explicacion")
+            .select("id, pregunta, explicacion, is_multi_select")
             .eq("deck_id", deckId)
             .order("created_at");
 
@@ -247,6 +252,7 @@ export default function Quizzes() {
 
             const enriched = questions.map((q: any) => ({
                 ...q,
+                is_multi_select: q.is_multi_select || false,
                 options: (options || []).filter((o: any) => o.question_id === q.id)
             }));
             setDeckQuestions(enriched);
@@ -284,13 +290,16 @@ export default function Quizzes() {
         const filledOptions = newOptions.filter(o => o.trim());
         if (filledOptions.length < 2) { toast.error("Al menos 2 opciones son necesarias"); return; }
 
+        if (correctOptions.size === 0) { toast.error("Selecciona al menos una respuesta correcta"); return; }
+
         // Insert question
         const { data: q, error } = await supabase.from("quiz_questions").insert({
             deck_id: manageDeck.id,
             user_id: user.id,
             pregunta: newQuestion.trim(),
-            explicacion: newExplanation.trim() || null
-        }).select().single();
+            explicacion: newExplanation.trim() || null,
+            is_multi_select: isMultiSelect
+        } as any).select().single();
 
         if (error || !q) { toast.error("Error al crear pregunta"); return; }
 
@@ -300,7 +309,7 @@ export default function Quizzes() {
             .map((o, i) => ({
                 question_id: q.id,
                 texto: o.trim(),
-                es_correcta: i === correctOption
+                es_correcta: correctOptions.has(i)
             }));
 
         await supabase.from("quiz_options").insert(optionsToInsert);
@@ -315,7 +324,8 @@ export default function Quizzes() {
         setNewQuestion("");
         setNewExplanation("");
         setNewOptions(["", "", "", "", ""]);
-        setCorrectOption(0);
+        setCorrectOptions(new Set([0]));
+        setIsMultiSelect(false);
         // Keep modal open so user can continue creating questions
         setManageDeck({ ...manageDeck, total_questions: (manageDeck.total_questions || 0) + 1 });
         fetchQuestions(manageDeck.id);
@@ -423,6 +433,7 @@ export default function Quizzes() {
         setStudyDeck(deck);
         setCurrentIndex(0);
         setSelectedAnswer(null);
+        setSelectedAnswers(new Set());
         setAnswered(false);
         setScore(0);
         setFinished(false);
@@ -436,6 +447,7 @@ export default function Quizzes() {
                     id: `mock-q-${i}`,
                     pregunta: `Aquí puedes colocar preguntas de opción múltiple (Ejemplo #${i + 1})`,
                     explicacion: `Y aquí puedes añadir una explicacion detallada que aparecerá cuando elijas una respuesta. Esta es la explicación para la pregunta ${i + 1}.`,
+                    is_multi_select: false,
                     options: [
                         { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Aquí pondrías la respuesta correcta", es_correcta: true },
                         { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Aquí una respuesta incorrecta", es_correcta: false },
@@ -453,7 +465,7 @@ export default function Quizzes() {
         // Fetch all questions with options
         const { data: questions } = await supabase
             .from("quiz_questions")
-            .select("id, pregunta, explicacion")
+            .select("id, pregunta, explicacion, is_multi_select")
             .eq("deck_id", deck.id);
 
         if (questions && questions.length > 0) {
@@ -465,6 +477,7 @@ export default function Quizzes() {
 
             let enriched = questions.map((q: any) => ({
                 ...q,
+                is_multi_select: q.is_multi_select || false,
                 options: (options || []).filter((o: any) => o.question_id === q.id)
             }));
             
@@ -478,14 +491,27 @@ export default function Quizzes() {
     };
 
     const submitAnswer = () => {
-        if (!selectedAnswer || answered) return;
-        setAnswered(true);
         const currentQ = studyQuestions[currentIndex];
-        const selectedOpt = currentQ.options.find(o => o.id === selectedAnswer);
-        if (selectedOpt?.es_correcta) {
-            setScore(prev => prev + 1);
+        if (currentQ.is_multi_select) {
+            if (selectedAnswers.size === 0 || answered) return;
+            setAnswered(true);
+            const correctIds = new Set(currentQ.options.filter(o => o.es_correcta).map(o => o.id));
+            const isCorrect = correctIds.size === selectedAnswers.size && 
+                [...correctIds].every(id => selectedAnswers.has(id));
+            if (isCorrect) {
+                setScore(prev => prev + 1);
+            } else {
+                setWrongQuestionIds(prev => new Set(prev).add(currentQ.id));
+            }
         } else {
-            setWrongQuestionIds(prev => new Set(prev).add(currentQ.id));
+            if (!selectedAnswer || answered) return;
+            setAnswered(true);
+            const selectedOpt = currentQ.options.find(o => o.id === selectedAnswer);
+            if (selectedOpt?.es_correcta) {
+                setScore(prev => prev + 1);
+            } else {
+                setWrongQuestionIds(prev => new Set(prev).add(currentQ.id));
+            }
         }
     };
 
@@ -503,6 +529,7 @@ export default function Quizzes() {
         } else {
             setCurrentIndex(prev => prev + 1);
             setSelectedAnswer(null);
+            setSelectedAnswers(new Set());
             setAnswered(false);
         }
     };
@@ -510,6 +537,7 @@ export default function Quizzes() {
     const restartStudy = () => {
         setCurrentIndex(0);
         setSelectedAnswer(null);
+        setSelectedAnswers(new Set());
         setAnswered(false);
         setScore(0);
         setFinished(false);
@@ -602,17 +630,26 @@ export default function Quizzes() {
                 {/* Question Card */}
                 <Card className="card-gamer max-w-2xl mx-auto">
                     <CardContent className="p-6 space-y-6">
-                        <h3 className="text-lg font-semibold leading-relaxed">{currentQ.pregunta}</h3>
+                        <div className="flex items-start justify-between gap-3">
+                            <h3 className="text-lg font-semibold leading-relaxed">{currentQ.pregunta}</h3>
+                            {currentQ.is_multi_select && (
+                                <Badge variant="outline" className="shrink-0 bg-neon-purple/10 text-neon-purple border-neon-purple/30">
+                                    <ListChecks className="w-3 h-3 mr-1" /> Múltiple
+                                </Badge>
+                            )}
+                        </div>
 
-                        <RadioGroup value={selectedAnswer || ""} onValueChange={(v) => { if (!answered) setSelectedAnswer(v); }}>
+                        {currentQ.is_multi_select ? (
+                            /* Multi-select: checkboxes */
                             <div className="space-y-3">
                                 {currentQ.options.map((opt, i) => {
-                                    const letter = String.fromCharCode(65 + i); // A, B, C, D, E
+                                    const letter = String.fromCharCode(65 + i);
+                                    const isSelected = selectedAnswers.has(opt.id);
                                     let optClass = "border-border hover:border-primary/50";
                                     if (answered) {
                                         if (opt.es_correcta) optClass = "border-green-500 bg-green-500/10";
-                                        else if (selectedAnswer === opt.id && !opt.es_correcta) optClass = "border-red-500 bg-red-500/10";
-                                    } else if (selectedAnswer === opt.id) {
+                                        else if (isSelected && !opt.es_correcta) optClass = "border-red-500 bg-red-500/10";
+                                    } else if (isSelected) {
                                         optClass = "border-primary bg-primary/10";
                                     }
 
@@ -624,25 +661,79 @@ export default function Quizzes() {
                                                 optClass,
                                                 answered && "cursor-default"
                                             )}
+                                            onClick={() => {
+                                                if (answered) return;
+                                                setSelectedAnswers(prev => {
+                                                    const next = new Set(prev);
+                                                    if (next.has(opt.id)) next.delete(opt.id);
+                                                    else next.add(opt.id);
+                                                    return next;
+                                                });
+                                            }}
                                         >
-                                            <RadioGroupItem value={opt.id} className="sr-only" />
                                             <div className={cn(
                                                 "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0",
-                                                selectedAnswer === opt.id && !answered ? "bg-primary text-primary-foreground" :
+                                                isSelected && !answered ? "bg-primary text-primary-foreground" :
                                                     answered && opt.es_correcta ? "bg-green-500 text-white" :
-                                                        answered && selectedAnswer === opt.id && !opt.es_correcta ? "bg-red-500 text-white" :
+                                                        answered && isSelected && !opt.es_correcta ? "bg-red-500 text-white" :
                                                             "bg-secondary"
                                             )}>
                                                 {answered && opt.es_correcta ? <Check className="w-4 h-4" /> :
-                                                    answered && selectedAnswer === opt.id && !opt.es_correcta ? <X className="w-4 h-4" /> :
+                                                    answered && isSelected && !opt.es_correcta ? <X className="w-4 h-4" /> :
                                                         letter}
                                             </div>
                                             <span className="flex-1">{opt.texto}</span>
+                                            <Checkbox
+                                                checked={isSelected}
+                                                className="pointer-events-none"
+                                                disabled={answered}
+                                            />
                                         </label>
                                     );
                                 })}
                             </div>
-                        </RadioGroup>
+                        ) : (
+                            /* Single-select: radio buttons */
+                            <RadioGroup value={selectedAnswer || ""} onValueChange={(v) => { if (!answered) setSelectedAnswer(v); }}>
+                                <div className="space-y-3">
+                                    {currentQ.options.map((opt, i) => {
+                                        const letter = String.fromCharCode(65 + i);
+                                        let optClass = "border-border hover:border-primary/50";
+                                        if (answered) {
+                                            if (opt.es_correcta) optClass = "border-green-500 bg-green-500/10";
+                                            else if (selectedAnswer === opt.id && !opt.es_correcta) optClass = "border-red-500 bg-red-500/10";
+                                        } else if (selectedAnswer === opt.id) {
+                                            optClass = "border-primary bg-primary/10";
+                                        }
+
+                                        return (
+                                            <label
+                                                key={opt.id}
+                                                className={cn(
+                                                    "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
+                                                    optClass,
+                                                    answered && "cursor-default"
+                                                )}
+                                            >
+                                                <RadioGroupItem value={opt.id} className="sr-only" />
+                                                <div className={cn(
+                                                    "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0",
+                                                    selectedAnswer === opt.id && !answered ? "bg-primary text-primary-foreground" :
+                                                        answered && opt.es_correcta ? "bg-green-500 text-white" :
+                                                            answered && selectedAnswer === opt.id && !opt.es_correcta ? "bg-red-500 text-white" :
+                                                                "bg-secondary"
+                                                )}>
+                                                    {answered && opt.es_correcta ? <Check className="w-4 h-4" /> :
+                                                        answered && selectedAnswer === opt.id && !opt.es_correcta ? <X className="w-4 h-4" /> :
+                                                            letter}
+                                                </div>
+                                                <span className="flex-1">{opt.texto}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </RadioGroup>
+                        )}
 
                         {answered && currentQ.explicacion && (
                             <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
@@ -652,7 +743,11 @@ export default function Quizzes() {
 
                         <div className="flex justify-end">
                             {!answered ? (
-                                <Button onClick={submitAnswer} disabled={!selectedAnswer} className="bg-gradient-to-r from-neon-cyan to-neon-purple">
+                                <Button 
+                                    onClick={submitAnswer} 
+                                    disabled={currentQ.is_multi_select ? selectedAnswers.size === 0 : !selectedAnswer} 
+                                    className="bg-gradient-to-r from-neon-cyan to-neon-purple"
+                                >
                                     Confirmar Respuesta
                                 </Button>
                             ) : (
@@ -744,7 +839,14 @@ export default function Quizzes() {
                             <Card key={q.id} className="card-gamer">
                                 <CardContent className="p-4">
                                     <div className="flex items-start justify-between mb-3">
-                                        <p className="font-semibold flex-1"><span className="text-muted-foreground mr-2">{qi + 1}.</span>{q.pregunta}</p>
+                                        <div className="flex-1">
+                                            <p className="font-semibold"><span className="text-muted-foreground mr-2">{qi + 1}.</span>{q.pregunta}</p>
+                                            {q.is_multi_select && (
+                                                <Badge variant="outline" className="mt-1 text-xs bg-neon-purple/10 text-neon-purple border-neon-purple/30">
+                                                    <ListChecks className="w-3 h-3 mr-1" /> Múltiple
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <Button variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => deleteQuestion(q.id)}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
@@ -786,21 +888,57 @@ export default function Quizzes() {
                                     rows={2}
                                 />
                             </div>
+
+                            {/* Multi-select toggle */}
+                            <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl border border-border">
+                                <div className="flex items-center gap-2">
+                                    <ListChecks className="w-4 h-4 text-neon-purple" />
+                                    <Label className="text-sm font-medium cursor-pointer">Permitir múltiples respuestas</Label>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsMultiSelect(!isMultiSelect);
+                                        setCorrectOptions(new Set([0]));
+                                    }}
+                                    className={cn(
+                                        "relative w-11 h-6 rounded-full transition-colors",
+                                        isMultiSelect ? "bg-neon-purple" : "bg-border"
+                                    )}
+                                >
+                                    <span className={cn(
+                                        "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform",
+                                        isMultiSelect && "translate-x-5"
+                                    )} />
+                                </button>
+                            </div>
+
                             <div className="space-y-2">
-                                <Label>Opciones (marcar la correcta)</Label>
+                                <Label>{isMultiSelect ? "Opciones (marcar las correctas)" : "Opciones (marcar la correcta)"}</Label>
                                 {newOptions.map((opt, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => setCorrectOption(i)}
+                                            onClick={() => {
+                                                if (isMultiSelect) {
+                                                    setCorrectOptions(prev => {
+                                                        const next = new Set(prev);
+                                                        if (next.has(i)) next.delete(i);
+                                                        else next.add(i);
+                                                        return next;
+                                                    });
+                                                } else {
+                                                    setCorrectOptions(new Set([i]));
+                                                }
+                                            }}
                                             className={cn(
                                                 "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 border-2 transition-all",
-                                                correctOption === i
+                                                correctOptions.has(i)
                                                     ? "bg-green-500 text-white border-green-500"
                                                     : "bg-secondary border-border hover:border-green-500/50"
                                             )}
                                         >
-                                            {correctOption === i ? <Check className="w-4 h-4" /> : String.fromCharCode(65 + i)}
+                                            {correctOptions.has(i) ? <Check className="w-4 h-4" /> : String.fromCharCode(65 + i)}
                                         </button>
                                         <Input
                                             placeholder={`Opción ${String.fromCharCode(65 + i)}${i < 2 ? " *" : " (opcional)"}`}
@@ -826,7 +964,7 @@ export default function Quizzes() {
                             <Button
                                 className="w-full"
                                 onClick={addQuestion}
-                                disabled={!newQuestion.trim() || newOptions.filter(o => o.trim()).length < 2}
+                                disabled={!newQuestion.trim() || newOptions.filter(o => o.trim()).length < 2 || correctOptions.size === 0}
                             >
                                 Agregar Pregunta
                             </Button>
@@ -1154,6 +1292,39 @@ export default function Quizzes() {
                     <div className="flex gap-3 justify-end">
                         <Button variant="outline" onClick={() => setDeleteDeck(null)}>Cancelar</Button>
                         <Button variant="destructive" onClick={confirmDeleteDeck}>Eliminar</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Study Options Dialog */}
+            <Dialog open={showStudyOptions} onOpenChange={setShowStudyOptions}>
+                <DialogContent className="bg-card border-border">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-neon-cyan" />
+                            Opciones de Práctica
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-muted-foreground">
+                        Tenés {savedWrongIds.length} pregunta(s) en las que te equivocaste en tu intento anterior. ¿Qué querés hacer?
+                    </p>
+                    <div className="flex flex-col gap-3 mt-4">
+                        <Button 
+                            className="bg-gradient-to-r from-neon-cyan to-neon-purple hover:opacity-90"
+                            onClick={() => {
+                                if (pendingStudyDeck) startStudy(pendingStudyDeck, savedWrongIds);
+                            }}
+                        >
+                            Repasar mis errores ({savedWrongIds.length})
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                if (pendingStudyDeck) startStudy(pendingStudyDeck, []);
+                            }}
+                        >
+                            Empezar de nuevo (Todas las preguntas)
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
