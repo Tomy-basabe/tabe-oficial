@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PremiumGoal, PremiumBall, KeeperBot, KeeperPlayer } from "@/components/games/GameAssets";
 
 interface QuizDeck {
   id: string;
@@ -150,13 +151,31 @@ export default function PenaltyGame() {
   };
 
   // Choose direction (shoot or save)
-  const handleChooseDirection = async (dir: Direction) => {
+  const handleChooseDirection = useCallback(async (dir: Direction) => {
     setMyDirection(dir);
     setTurnPhase('answer_question');
 
     const q = await fetchRandomQuestion();
     if (q) setCurrentQuestion(q);
-  };
+  }, [fetchRandomQuestion]);
+
+  // Keyboard controls for choosing direction
+  useEffect(() => {
+    if (turnPhase !== 'choose_direction') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+        handleChooseDirection('left');
+      } else if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') {
+        handleChooseDirection('center');
+      } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+        handleChooseDirection('right');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [turnPhase, handleChooseDirection]);
 
   // Answer question
   const handleAnswer = (optionId: string) => {
@@ -449,9 +468,8 @@ export default function PenaltyGame() {
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 border-4 border-white/40 border-b-0" />
               
               {/* Goal */}
-              <div className="absolute top-12 left-12 right-12 h-36 border-t-[8px] border-l-[8px] border-r-[8px] border-white rounded-t-xl z-0 shadow-[0_0_15px_rgba(255,255,255,0.5)]">
-                {/* Net pattern */}
-                <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 15px, white 15px, white 16px), repeating-linear-gradient(90deg, transparent, transparent 15px, white 15px, white 16px)' }} />
+              <div className="absolute top-8 left-10 right-10 h-48 z-0 drop-shadow-2xl">
+                <PremiumGoal />
               </div>
 
               {/* Goalkeeper (Bot or You) */}
@@ -461,13 +479,13 @@ export default function PenaltyGame() {
                   transform: `translate(calc(-50% + ${
                     animationStep === 'moving' 
                       ? (isMyTurnToShoot 
-                          ? (botDirection === 'left' ? '-100px' : botDirection === 'right' ? '100px' : '0px')
-                          : (myDirection === 'left' ? '-100px' : myDirection === 'right' ? '100px' : '0px'))
+                          ? (botDirection === 'left' ? '-110px' : botDirection === 'right' ? '110px' : '0px')
+                          : (myDirection === 'left' ? '-110px' : myDirection === 'right' ? '110px' : '0px'))
                       : '0px'
                   }), ${
                     animationStep === 'moving' && 
                     (isMyTurnToShoot ? botDirection : myDirection) !== 'center' 
-                      ? '30px' 
+                      ? '40px' 
                       : '0px'
                   }) scale(${animationStep === 'moving' ? '1.2' : '1'}) rotate(${
                     animationStep === 'moving' 
@@ -476,29 +494,27 @@ export default function PenaltyGame() {
                   })`
                 }}
               >
-                <div className="text-7xl drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
-                  {isMyTurnToShoot ? '🤖' : '🧤'}
-                </div>
+                {isMyTurnToShoot ? <KeeperBot /> : <KeeperPlayer />}
               </div>
 
               {/* Ball */}
               <div 
-                className="absolute bottom-12 left-1/2 transition-all duration-[600ms] ease-out z-20"
+                className="absolute bottom-8 left-1/2 transition-all duration-[600ms] ease-out z-20"
                 style={{
                   transform: `translate(calc(-50% + ${
                     animationStep === 'moving'
                       ? (isMyTurnToShoot
-                          ? (myDirection === 'left' ? '-110px' : myDirection === 'right' ? '110px' : '0px')
-                          : (botDirection === 'left' ? '-110px' : botDirection === 'right' ? '110px' : '0px'))
+                          ? (myDirection === 'left' ? '-120px' : myDirection === 'right' ? '120px' : '0px')
+                          : (botDirection === 'left' ? '-120px' : botDirection === 'right' ? '120px' : '0px'))
                       : '0px'
                   }), ${
                     animationStep === 'moving'
-                      ? (turnResult === 'missed' ? '-320px' : '-220px')
+                      ? (turnResult === 'missed' ? '-340px' : '-230px')
                       : '0px'
-                  }) scale(${animationStep === 'moving' ? '0.5' : '1'}) rotate(${animationStep === 'moving' ? '1080deg' : '0deg'})`
+                  }) scale(${animationStep === 'moving' ? '0.6' : '1'}) rotate(${animationStep === 'moving' ? '1080deg' : '0deg'})`
                 }}
               >
-                <div className="text-6xl drop-shadow-[0_15px_15px_rgba(0,0,0,0.4)]">⚽</div>
+                <PremiumBall />
               </div>
 
               {/* Hit effect / Saved effect */}
@@ -530,17 +546,14 @@ export default function PenaltyGame() {
               </h3>
 
               {/* Goal visualization */}
-              <div className="relative mx-auto w-full max-w-sm h-48 bg-gradient-to-b from-green-900/30 to-green-800/10 rounded-xl border border-green-500/20 overflow-hidden">
+              <div className="relative mx-auto w-full max-w-sm h-48 bg-gradient-to-b from-green-900 to-green-800 rounded-xl border border-green-500/30 overflow-hidden shadow-[inset_0_10px_20px_rgba(0,0,0,0.5)]">
                 {/* Goal posts */}
-                <div className="absolute top-4 left-8 right-8 bottom-0 border-t-4 border-l-4 border-r-4 border-white/50 rounded-t-lg">
-                  {/* Net pattern */}
-                  <div className="absolute inset-0 opacity-10" style={{
-                    backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 20px, white 20px, white 21px), repeating-linear-gradient(90deg, transparent, transparent 20px, white 20px, white 21px)'
-                  }} />
+                <div className="absolute top-4 left-6 right-6 bottom-0">
+                  <PremiumGoal />
                 </div>
 
                 {/* Direction buttons */}
-                <div className="absolute bottom-4 left-4 right-4 flex gap-3">
+                <div className="absolute bottom-4 left-4 right-4 flex gap-3 z-20">
                   {(['left', 'center', 'right'] as Direction[]).map(dir => (
                     <button
                       key={dir}
