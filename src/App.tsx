@@ -45,6 +45,8 @@ const Routines = lazy(() => import("@/pages/Routines"));
 const OfficeHours = lazy(() => import("@/pages/OfficeHours"));
 const Achievements = lazy(() => import("@/pages/Achievements"));
 const Exams = lazy(() => import("@/pages/Exams"));
+const Games = lazy(() => import("@/pages/Games"));
+const PenaltyGame = lazy(() => import("@/pages/PenaltyGame"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
@@ -164,6 +166,8 @@ const AppRoutes = () => (
       <Route path="/discord" element={<Discord />} />
       <Route path="/mapa" element={<CorrelativityMap />} />
       <Route path="/consultas" element={<OfficeHours />} />
+      <Route path="/juegos" element={<Games />} />
+      <Route path="/juegos/penales" element={<PenaltyGame />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

@@ -72,7 +72,8 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/TABEAI": "Bot",
   "/admin": "Shield",
   "/configuracion": "Settings",
-  "/examenes": "GraduationCap"
+  "/examenes": "GraduationCap",
+  "/juegos": "Gamepad2"
 };
 
 export const baseNavItems: NavItem[] = [
@@ -91,6 +92,7 @@ export const baseNavItems: NavItem[] = [
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
+  { icon: Gamepad2, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
   { icon: Bot, label: "TABEAI", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];
@@ -99,5 +101,6 @@ export const adminNavItem = { icon: Shield, label: "Admin", path: "/admin" };
 
 export const ALL_AVAILABLE_ITEMS = [
   ...baseNavItems,
-  { icon: GraduationCap, label: "Exámenes", path: "/examenes" }
+  { icon: GraduationCap, label: "Exámenes", path: "/examenes" },
+  { icon: Gamepad2, label: "Juegos", path: "/juegos" }
 ];
