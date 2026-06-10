@@ -104,9 +104,13 @@ export function useMatchmaking() {
         started_at: new Date().toISOString()
       } as any)
       .select("id")
-      .single();
+      .maybeSingle();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      console.warn("No se pudo crear el partido en la base de datos (quizás faltan las tablas), usando fallback local para poder probar contra el bot.");
+      return `bot-match-fallback-${Date.now()}`;
+    }
+    
     return (data as any).id;
   }, [user]);
 
