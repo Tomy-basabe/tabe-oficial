@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Gamepad2, Trophy, Flame, Zap, Target, Swords, Clock, ChevronRight, Users, Bot, Star } from "lucide-react";
+import { Gamepad2, Trophy, Flame, Zap, Target, Swords, Clock, ChevronRight, Users, Bot, Star, Gauge, Bomb, Grid, Crown, Goal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,47 +73,29 @@ export default function Games() {
         ))}
       </div>
 
-      {/* Available Games */}
       <div>
         <h2 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
           <Target className="w-5 h-5 text-neon-cyan" />
           Minijuegos Disponibles
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Penales - Available */}
+          {/* Penales */}
           <Card
             className="card-gamer group cursor-pointer hover:glow-cyan transition-all duration-300 border-neon-cyan/20 hover:border-neon-cyan/50"
             onClick={handlePlayPenales}
           >
             <CardContent className="p-0">
               <div className="relative overflow-hidden rounded-t-xl">
-                <div className="h-40 bg-gradient-to-br from-green-900/80 via-green-800/60 to-emerald-900/80 flex items-center justify-center relative">
-                  {/* Soccer field lines */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                    <div className="w-32 h-24 border-2 border-white rounded-sm" />
-                    <div className="absolute w-16 h-12 border-2 border-white rounded-sm" />
-                  </div>
-                  {/* Goal */}
+                <div className="h-36 bg-gradient-to-br from-green-900/80 via-green-800/60 to-emerald-900/80 flex items-center justify-center">
                   <div className="relative z-10 flex flex-col items-center">
-                    <div className="text-6xl mb-1">⚽</div>
-                    <div className="flex gap-1">
-                      <div className="w-8 h-8 rounded bg-white/10 border border-white/20 flex items-center justify-center text-xs">←</div>
-                      <div className="w-8 h-8 rounded bg-white/10 border border-white/20 flex items-center justify-center text-xs">↑</div>
-                      <div className="w-8 h-8 rounded bg-white/10 border border-white/20 flex items-center justify-center text-xs">→</div>
-                    </div>
+                    <Goal className="w-14 h-14 text-white/80 mb-1" />
                   </div>
                 </div>
-                <Badge className="absolute top-3 right-3 bg-neon-green/90 text-background text-[10px] font-bold">
-                  DISPONIBLE
-                </Badge>
+                <Badge className="absolute top-3 right-3 bg-neon-green/90 text-background text-[10px] font-bold">DISPONIBLE</Badge>
               </div>
               <div className="p-4">
-                <h3 className="font-display font-bold text-lg mb-1 group-hover:text-neon-cyan transition-colors">
-                  ⚽ Tanda de Penales
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Pateá y atajá penales respondiendo preguntas de tu mazo. ¡Respondé bien para meter gol!
-                </p>
+                <h3 className="font-display font-bold text-lg mb-1 group-hover:text-neon-cyan transition-colors">Tanda de Penales</h3>
+                <p className="text-sm text-muted-foreground mb-3">Pateá y atajá penales respondiendo preguntas de tu mazo.</p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Users className="w-3 h-3" /> 1v1</span>
                   <span>•</span>
@@ -125,26 +107,135 @@ export default function Games() {
             </CardContent>
           </Card>
 
-          {/* Coming Soon Games */}
-          {[
-            { emoji: "🧠", name: "Trivia Relámpago", desc: "Respondé más rápido que tu rival", badge: "PRÓXIMAMENTE" },
-            { emoji: "🏃", name: "Carrera de Sabios", desc: "Avanzá respondiendo bien y llegá primero a la meta", badge: "PRÓXIMAMENTE" },
-          ].map(game => (
-            <Card key={game.name} className="card-gamer opacity-60 cursor-not-allowed">
-              <CardContent className="p-0">
-                <div className="h-40 bg-gradient-to-br from-secondary to-secondary/50 flex items-center justify-center relative rounded-t-xl">
-                  <span className="text-6xl opacity-40">{game.emoji}</span>
-                  <Badge className="absolute top-3 right-3 bg-secondary text-muted-foreground text-[10px] font-bold border border-border">
-                    {game.badge}
-                  </Badge>
+          {/* Karts */}
+          <Card
+            className="card-gamer group cursor-pointer hover:glow-cyan transition-all duration-300 border-red-500/20 hover:border-red-500/50"
+            onClick={() => navigate("/juegos/karts")}
+          >
+            <CardContent className="p-0">
+              <div className="relative overflow-hidden rounded-t-xl">
+                <div className="h-36 bg-gradient-to-br from-red-900/80 via-orange-800/60 to-amber-900/80 flex items-center justify-center">
+                  <Gauge className="w-14 h-14 text-white/80" />
                 </div>
-                <div className="p-4">
-                  <h3 className="font-display font-bold text-lg mb-1">{game.emoji} {game.name}</h3>
-                  <p className="text-sm text-muted-foreground">{game.desc}</p>
+                <Badge className="absolute top-3 right-3 bg-neon-green/90 text-background text-[10px] font-bold">DISPONIBLE</Badge>
+              </div>
+              <div className="p-4">
+                <h3 className="font-display font-bold text-lg mb-1 group-hover:text-red-400 transition-colors">Carrera de Karts</h3>
+                <p className="text-sm text-muted-foreground mb-3">Respondé rápido para ganar turbo y llegar primero a la meta.</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Users className="w-3 h-3" /> 1v1</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> 2-4 min</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-neon-gold" /> +120 XP</span>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Batalla RPG */}
+          <Card
+            className="card-gamer group cursor-pointer hover:glow-cyan transition-all duration-300 border-purple-500/20 hover:border-purple-500/50"
+            onClick={() => navigate("/juegos/batalla")}
+          >
+            <CardContent className="p-0">
+              <div className="relative overflow-hidden rounded-t-xl">
+                <div className="h-36 bg-gradient-to-br from-purple-900/80 via-indigo-800/60 to-violet-900/80 flex items-center justify-center">
+                  <Swords className="w-14 h-14 text-white/80" />
+                </div>
+                <Badge className="absolute top-3 right-3 bg-neon-green/90 text-background text-[10px] font-bold">DISPONIBLE</Badge>
+              </div>
+              <div className="p-4">
+                <h3 className="font-display font-bold text-lg mb-1 group-hover:text-purple-400 transition-colors">Batalla RPG</h3>
+                <p className="text-sm text-muted-foreground mb-3">Elegí tus ataques y respondé bien para hacer daño al enemigo.</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Users className="w-3 h-3" /> 1v1</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> 5-8 min</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-neon-gold" /> +130 XP</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* La Bomba */}
+          <Card
+            className="card-gamer group cursor-pointer hover:glow-cyan transition-all duration-300 border-orange-500/20 hover:border-orange-500/50"
+            onClick={() => navigate("/juegos/bomba")}
+          >
+            <CardContent className="p-0">
+              <div className="relative overflow-hidden rounded-t-xl">
+                <div className="h-36 bg-gradient-to-br from-orange-900/80 via-red-800/60 to-rose-900/80 flex items-center justify-center">
+                  <Bomb className="w-14 h-14 text-white/80" />
+                </div>
+                <Badge className="absolute top-3 right-3 bg-neon-green/90 text-background text-[10px] font-bold">DISPONIBLE</Badge>
+              </div>
+              <div className="p-4">
+                <h3 className="font-display font-bold text-lg mb-1 group-hover:text-orange-400 transition-colors">La Bomba</h3>
+                <p className="text-sm text-muted-foreground mb-3">Respondé correctamente para pasarle la bomba al rival antes de que explote.</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Users className="w-3 h-3" /> 1v1</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> 1-2 min</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-neon-gold" /> +110 XP</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ta-Te-Ti */}
+          <Card
+            className="card-gamer group cursor-pointer hover:glow-cyan transition-all duration-300 border-emerald-500/20 hover:border-emerald-500/50"
+            onClick={() => navigate("/juegos/tateti")}
+          >
+            <CardContent className="p-0">
+              <div className="relative overflow-hidden rounded-t-xl">
+                <div className="h-36 bg-gradient-to-br from-emerald-900/80 via-teal-800/60 to-cyan-900/80 flex items-center justify-center">
+                  <Grid className="w-14 h-14 text-white/80" />
+                </div>
+                <Badge className="absolute top-3 right-3 bg-neon-green/90 text-background text-[10px] font-bold">DISPONIBLE</Badge>
+              </div>
+              <div className="p-4">
+                <h3 className="font-display font-bold text-lg mb-1 group-hover:text-emerald-400 transition-colors">Ta-Te-Ti Táctico</h3>
+                <p className="text-sm text-muted-foreground mb-3">Respondé bien para colocar tu ficha. ¡3 en línea gana!</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Users className="w-3 h-3" /> 1v1</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> 2-5 min</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-neon-gold" /> +100 XP</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ajedrez */}
+          <Card
+            className="card-gamer group cursor-pointer hover:glow-cyan transition-all duration-300 border-amber-500/20 hover:border-amber-500/50"
+            onClick={() => navigate("/juegos/ajedrez")}
+          >
+            <CardContent className="p-0">
+              <div className="relative overflow-hidden rounded-t-xl">
+                <div className="h-36 bg-gradient-to-br from-amber-900/80 via-yellow-800/60 to-amber-800/80 flex items-center justify-center">
+                  <Crown className="w-14 h-14 text-white/80" />
+                </div>
+                <Badge className="absolute top-3 right-3 bg-neon-green/90 text-background text-[10px] font-bold">DISPONIBLE</Badge>
+              </div>
+              <div className="p-4">
+                <h3 className="font-display font-bold text-lg mb-1 group-hover:text-amber-400 transition-colors">Ajedrez</h3>
+                <p className="text-sm text-muted-foreground mb-3">Partida clásica de ajedrez contra la IA. ¡Dale jaque mate!</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Users className="w-3 h-3" /> vs IA</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> 10-20 min</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-neon-gold" /> +150 XP</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

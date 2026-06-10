@@ -47,6 +47,11 @@ const Achievements = lazy(() => import("@/pages/Achievements"));
 const Exams = lazy(() => import("@/pages/Exams"));
 const Games = lazy(() => import("@/pages/Games"));
 const PenaltyGame = lazy(() => import("@/pages/PenaltyGame"));
+const KartRaceGame = lazy(() => import("@/pages/KartRaceGame"));
+const RPGBattleGame = lazy(() => import("@/pages/RPGBattleGame"));
+const BombGame = lazy(() => import("@/pages/BombGame"));
+const TicTacToeGame = lazy(() => import("@/pages/TicTacToeGame"));
+const ChessGame = lazy(() => import("@/pages/ChessGame"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
@@ -168,6 +173,11 @@ const AppRoutes = () => (
       <Route path="/consultas" element={<OfficeHours />} />
       <Route path="/juegos" element={<Games />} />
       <Route path="/juegos/penales" element={<PenaltyGame />} />
+      <Route path="/juegos/karts" element={<KartRaceGame />} />
+      <Route path="/juegos/batalla" element={<RPGBattleGame />} />
+      <Route path="/juegos/bomba" element={<BombGame />} />
+      <Route path="/juegos/tateti" element={<TicTacToeGame />} />
+      <Route path="/juegos/ajedrez" element={<ChessGame />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
