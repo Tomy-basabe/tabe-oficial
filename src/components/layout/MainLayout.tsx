@@ -264,7 +264,20 @@ export function MainLayout() {
                 );
               };
 
-              let displayItems = profile?.sidebar_config || baseNavItems.map(i => ({ id: i.path, label: i.label, type: "item" }));
+              let displayItems = profile?.sidebar_config 
+                ? [...profile.sidebar_config] 
+                : baseNavItems.map(i => ({ id: i.path, label: i.label, type: "item" }));
+              
+              // Ensure Juegos is always available in the sidebar for preview/testing
+              if (!displayItems.some((i: any) => i.id === "/juegos" || i.path === "/juegos" || (i.items?.some((s: any) => s.id === "/juegos" || s.path === "/juegos")))) {
+                displayItems.push({
+                  id: "item-/juegos",
+                  path: "/juegos",
+                  label: "Juegos",
+                  type: "item",
+                  iconName: "Gamepad2"
+                });
+              }
               
               // Always show admin if user is admin and it's not in the config
               if (isAdmin && !displayItems.some((i: any) => i.id === "/admin" || (i.items?.some((s: any) => s.id === "/admin")))) {
