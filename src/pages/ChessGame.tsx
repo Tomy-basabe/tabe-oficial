@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Zap, Trophy, Crown, RotateCcw, Swords, Bot, Settings2 } from "lucide-react";
+import { ArrowLeft, Zap, Trophy, Crown, RotateCcw, Swords, Bot, Settings2, BookOpen, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ChessDefs, renderPremiumPiece } from "@/components/games/ChessAssets";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 // ======================================
 // ELO SYSTEM (Local Storage)
@@ -17,6 +19,12 @@ const getLocalElo = () => {
 const saveLocalElo = (elo: number) => {
   localStorage.setItem("tabe_chess_elo", elo.toString());
 };
+
+// ======================================
+// TYPES
+// ======================================
+interface QuizDeck { id: string; nombre: string; total_questions: number; }
+interface QuizQuestion { id: string; pregunta: string; explicacion: string | null; options: { id: string; texto: string; es_correcta: boolean }[]; }
 
 // ======================================
 // CHESS ENGINE
@@ -149,7 +157,6 @@ function evaluateBoard(board: Board): number {
     const p = board[i];
     if (p) {
       const val = values[p.type];
-      // positional bonus (center control)
       const [r, c] = toRC(i);
       const posBonus = (p.type === "P" || p.type === "N") ? (Math.abs(3.5-r) + Math.abs(3.5-c)) * -1 : 0;
       const total = val + posBonus;
@@ -169,9 +176,8 @@ function minimax(board: Board, depth: number, alpha: number, beta: number, isMax
       for(const l of legal) moves.push({f: i, t: l});
     }
   }
-  if (moves.length === 0) return isInCheck(board, color) ? (isMaximizing ? -9999 : 9999) : 0; // checkmate/stalemate
+  if (moves.length === 0) return isInCheck(board, color) ? (isMaximizing ? -9999 : 9999) : 0;
 
-  // simple move ordering (captures first)
   moves.sort((a,b) => (board[b.t] ? 1 : 0) - (board[a.t] ? 1 : 0));
 
   if (isMaximizing) {
@@ -206,23 +212,19 @@ function getBotMove(board: Board, level: number): { from: Pos; to: Pos } | null 
   }
   if (moves.length === 0) return null;
 
-  // Level 1: Random
   if (level === 1) return moves[Math.floor(Math.random() * moves.length)];
 
-  // Level 2: Greedy captures, else random
   if (level === 2) {
     const captures = moves.filter(m => board[m.to] !== null);
     if (captures.length > 0) return captures[Math.floor(Math.random() * captures.length)];
     return moves[Math.floor(Math.random() * moves.length)];
   }
 
-  // Level 3, 4, 5: Minimax
   const depthMap: Record<number, number> = { 3: 1, 4: 2, 5: 3 };
   const depth = depthMap[level] || 1;
   let bestScore = -Infinity;
   let bestMoves: {from: Pos, to: Pos}[] = [];
 
-  // Randomize initial order to vary games
   moves.sort(() => Math.random() - 0.5);
 
   for (const m of moves) {
@@ -243,6 +245,11 @@ function getBotMove(board: Board, level: number): { from: Pos; to: Pos } | null 
 // ======================================
 export default function ChessGame() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const [decks, setDecks] = useState<QuizDeck[]>([]);
+  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(null);
+
   const [phase, setPhase] = useState<"menu" | "playing">("menu");
   const [level, setLevel] = useState<number>(3);
   const [myElo, setMyElo] = useState<number>(1200);
@@ -259,9 +266,40 @@ export default function ChessGame() {
   const [moveCount, setMoveCount] = useState(0);
   const [eloDelta, setEloDelta] = useState<number | null>(null);
 
+  // Random Question Interruption State
+  const [questionsUsed, setQuestionsUsed] = useState<Set<string>>(new Set());
+  const [activeQuestion, setActiveQuestion] = useState<QuizQuestion | null>(null);
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(5);
+  const [questionResult, setQuestionResult] = useState<"correct" | "wrong" | "timeout" | null>(null);
+  const questionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => { setMyElo(getLocalElo()); }, []);
 
+  // Fetch Decks
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("quiz_decks").select("id, nombre, total_questions").eq("user_id", user.id).gt("total_questions", 0)
+      .then(({ data }) => { if (data) setDecks(data as unknown as QuizDeck[]); });
+  }, [user]);
+
+  const fetchRandomQuestion = useCallback(async () => {
+    if (!selectedDeck) return null;
+    const { data: questions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", selectedDeck.id);
+    if (!questions || questions.length === 0) return null;
+    
+    const available = questions.filter((q) => !questionsUsed.has(q.id));
+    const pool = available.length > 0 ? available : questions;
+    if (available.length === 0) setQuestionsUsed(new Set());
+    
+    const q = pool[Math.floor(Math.random() * pool.length)];
+    const { data: options } = await supabase.from("quiz_options").select("id, texto, es_correcta").eq("question_id", q.id);
+    
+    setQuestionsUsed((prev) => new Set(prev).add(q.id));
+    return { ...q, options: (options || []) as { id: string; texto: string; es_correcta: boolean }[] } as QuizQuestion;
+  }, [selectedDeck, questionsUsed]);
+
   const startGame = () => {
+    if (!selectedDeck) return; // Must select a deck to play
     setBoard(initBoard());
     setSelected(null);
     setLegalMoves([]);
@@ -273,11 +311,69 @@ export default function ChessGame() {
     setInCheck(false);
     setMoveCount(0);
     setEloDelta(null);
+    setQuestionsUsed(new Set());
+    setActiveQuestion(null);
+    setQuestionResult(null);
     setPhase("playing");
   };
 
+  const triggerRandomQuestion = async () => {
+    const q = await fetchRandomQuestion();
+    if (q) {
+      setActiveQuestion(q);
+      setQuestionTimeLeft(5);
+      setQuestionResult(null);
+      
+      questionTimerRef.current = setInterval(() => {
+        setQuestionTimeLeft((prev) => {
+          if (prev <= 1) {
+            handleQuestionTimeout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const clearQuestionTimer = () => {
+    if (questionTimerRef.current) {
+      clearInterval(questionTimerRef.current);
+      questionTimerRef.current = null;
+    }
+  };
+
+  const handleQuestionTimeout = () => {
+    clearQuestionTimer();
+    setQuestionResult("timeout");
+    setTimeout(() => {
+      setActiveQuestion(null);
+      // Penalty: Skip player's turn!
+      setIsWhiteTurn(false);
+    }, 2000);
+  };
+
+  const answerQuestion = (optionId: string) => {
+    clearQuestionTimer();
+    const correct = activeQuestion?.options.find((o) => o.id === optionId)?.es_correcta || false;
+    setQuestionResult(correct ? "correct" : "wrong");
+    
+    setTimeout(() => {
+      setActiveQuestion(null);
+      if (!correct) {
+        // Penalty: Skip player's turn!
+        setIsWhiteTurn(false);
+      }
+      // If correct, they keep their turn (isWhiteTurn remains true)
+    }, 2000);
+  };
+
+  useEffect(() => {
+    return () => clearQuestionTimer();
+  }, []);
+
   const handleCellClick = useCallback((pos: Pos) => {
-    if (gameOver || !isWhiteTurn) return;
+    if (gameOver || !isWhiteTurn || activeQuestion) return;
     const piece = board[pos];
 
     if (selected !== null) {
@@ -313,11 +409,12 @@ export default function ChessGame() {
       setSelected(pos);
       setLegalMoves(getLegalMoves(board, pos));
     }
-  }, [board, selected, legalMoves, isWhiteTurn, gameOver]);
+  }, [board, selected, legalMoves, isWhiteTurn, gameOver, activeQuestion]);
 
   // Bot Turn
   useEffect(() => {
-    if (isWhiteTurn || gameOver || phase !== "playing") return;
+    if (isWhiteTurn || gameOver || phase !== "playing" || activeQuestion) return;
+    
     const timer = setTimeout(() => {
       const move = getBotMove(board, level);
       if (!move) {
@@ -336,15 +433,23 @@ export default function ChessGame() {
         return;
       }
       setInCheck(isInCheck(newBoard, "w"));
-      setIsWhiteTurn(true);
-    }, level > 3 ? 100 : 600); // give UI time to paint if slow calc
+      
+      // Before handing turn back to player, 15% chance to trigger a question
+      if (Math.random() < 0.15) {
+        triggerRandomQuestion();
+      } else {
+        setIsWhiteTurn(true);
+      }
+
+    }, level > 3 ? 100 : 600);
+    
     return () => clearTimeout(timer);
-  }, [isWhiteTurn, gameOver, board, level, phase]);
+  }, [isWhiteTurn, gameOver, board, level, phase, activeQuestion]);
 
   // ELO calculation
   useEffect(() => {
     if (gameOver && eloDelta === null) {
-      const botElo = 800 + (level * 200); // lvl1=1000, lvl5=1800
+      const botElo = 800 + (level * 200); 
       const expectedScore = 1 / (1 + Math.pow(10, (botElo - myElo) / 400));
       const actualScore = gameOver === "checkmate_w" ? 1 : gameOver === "stalemate" ? 0.5 : 0;
       const kFactor = 32;
@@ -359,67 +464,75 @@ export default function ChessGame() {
 
   if (phase === "menu") {
     return (
-      <div className="min-h-screen p-4 md:p-6 space-y-6 flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen p-4 md:p-6 flex flex-col items-center justify-center relative overflow-hidden">
         <ChessDefs />
-        {/* Background deco */}
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none flex items-center justify-center">
           <div className="w-[800px] h-[800px] bg-[radial-gradient(ellipse_at_center,_rgba(34,211,238,0.15)_0%,_transparent_70%)]" />
         </div>
 
-        <div className="z-10 text-center space-y-2 mb-8">
-          <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center backdrop-blur-xl border border-cyan-500/30">
-            <Crown className="w-12 h-12 text-cyan-400" />
+        <div className="z-10 text-center space-y-2 mb-6">
+          <Button variant="ghost" size="icon" className="absolute top-4 left-4" onClick={() => navigate("/juegos")}><ArrowLeft className="w-5 h-5" /></Button>
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center backdrop-blur-xl border border-cyan-500/30">
+            <Crown className="w-10 h-10 text-cyan-400" />
           </div>
-          <h1 className="text-4xl md:text-6xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
-            TABE Chess
+          <h1 className="text-3xl md:text-5xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
+            Ajedrez Académico
           </h1>
           <Badge variant="outline" className="text-cyan-400 border-cyan-400/50 text-sm px-4 py-1">
             ELO Actual: <strong className="ml-2 text-white">{myElo}</strong>
           </Badge>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4 w-full max-w-2xl z-10">
-          <Card className="card-gamer border-cyan-500/30 hover:border-cyan-400/60 cursor-pointer transition-all hover:scale-105" onClick={startGame}>
-            <CardContent className="p-8 text-center space-y-4">
-              <Bot className="w-16 h-16 mx-auto text-cyan-400" />
-              <h2 className="text-2xl font-bold font-display">Jugar vs Bot</h2>
-              <p className="text-sm text-muted-foreground">Entrena contra la inteligencia artificial para subir tu ELO.</p>
+        <div className="w-full max-w-xl z-10 space-y-4">
+          <Card className="card-gamer border-cyan-500/30">
+            <CardContent className="p-6 text-center space-y-4">
+              <BookOpen className="w-10 h-10 mx-auto text-cyan-400 mb-2" />
+              <h2 className="text-xl font-bold font-display">1. Elegí tu mazo de estudio</h2>
+              <p className="text-xs text-muted-foreground">Durante la partida, el bot intentará interrumpirte. Si fallas una pregunta, ¡pierdes el turno!</p>
               
-              <div className="pt-4 border-t border-border/50">
-                <p className="text-xs mb-2 font-medium">NIVEL DE DIFICULTAD</p>
-                <div className="flex justify-center gap-2">
-                  {[1,2,3,4,5].map(lvl => (
-                    <button
-                      key={lvl}
-                      onClick={(e) => { e.stopPropagation(); setLevel(lvl); }}
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all",
-                        level === lvl ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(34,211,238,0.5)] scale-110" : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                      )}
-                    >
-                      {lvl}
+              <div className="space-y-2 max-h-[20vh] overflow-y-auto mt-4 text-left">
+                {decks.length === 0 ? (
+                  <p className="text-muted-foreground text-sm text-center">No tenés mazos. Crea uno primero.</p>
+                ) : (
+                  decks.map((deck) => (
+                    <button key={deck.id} onClick={() => setSelectedDeck(deck)} className={cn("w-full text-left p-3 rounded-lg border transition-all duration-200", selectedDeck?.id === deck.id ? "border-cyan-500 bg-cyan-500/10 shadow-[0_0_10px_rgba(34,211,238,0.2)]" : "border-border/50 bg-secondary/30 hover:bg-secondary/60")}>
+                      <p className="font-medium text-sm">{deck.nombre}</p>
                     </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {level === 1 && "Principiante (1000 ELO)"}
-                  {level === 2 && "Aficionado (1200 ELO)"}
-                  {level === 3 && "Intermedio (1400 ELO)"}
-                  {level === 4 && "Avanzado (1600 ELO)"}
-                  {level === 5 && "Gran Maestro (1800 ELO)"}
-                </p>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="card-gamer border-purple-500/20 opacity-60 cursor-not-allowed">
-            <CardContent className="p-8 text-center space-y-4 relative overflow-hidden">
-              <div className="absolute top-2 right-2 bg-purple-500 text-xs px-2 py-1 rounded font-bold">PRONTO</div>
-              <Swords className="w-16 h-16 mx-auto text-purple-400" />
-              <h2 className="text-2xl font-bold font-display">Jugar Online</h2>
-              <p className="text-sm text-muted-foreground">Enfrentate a otros estudiantes en tiempo real. ¡Competí en el ranking!</p>
-            </CardContent>
-          </Card>
+          {selectedDeck && (
+            <Card className="card-gamer border-cyan-400/60 transition-all shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+              <CardContent className="p-6 text-center space-y-4">
+                <Bot className="w-12 h-12 mx-auto text-cyan-400" />
+                <h2 className="text-xl font-bold font-display">2. Nivel de la IA</h2>
+                
+                <div className="pt-2">
+                  <div className="flex justify-center gap-3">
+                    {[1,2,3,4,5].map(lvl => (
+                      <button
+                        key={lvl}
+                        onClick={() => setLevel(lvl)}
+                        className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all",
+                          level === lvl ? "bg-cyan-500 text-white shadow-[0_0_15px_rgba(34,211,238,0.6)] scale-110" : "bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-white"
+                        )}
+                      >
+                        {lvl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <Button className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 mt-4 text-lg font-bold h-12" onClick={startGame}>
+                  <Swords className="w-5 h-5 mr-2" /> ¡Jugar Partida!
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     );
@@ -430,8 +543,55 @@ export default function ChessGame() {
   const isDraw = gameOver === "stalemate";
 
   return (
-    <div className="min-h-screen p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
+    <div className="min-h-screen p-4 md:p-6 space-y-4 max-w-2xl mx-auto relative">
       <ChessDefs />
+      
+      {/* Active Question Modal Interruption */}
+      {activeQuestion && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md border-red-500 shadow-[0_0_40px_rgba(239,68,68,0.3)] animate-in zoom-in-95 duration-200">
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="flex justify-between items-center mb-2">
+                <Badge variant="destructive" className="animate-pulse">¡INTERRUPCIÓN!</Badge>
+                <div className="flex items-center gap-1 font-bold text-red-400 text-lg">
+                  <Clock className="w-5 h-5" /> 00:0{questionTimeLeft}
+                </div>
+              </div>
+              <h3 className="font-medium text-lg leading-snug">{activeQuestion.pregunta}</h3>
+              
+              <div className="grid grid-cols-1 gap-2 pt-2">
+                {activeQuestion.options.map((option, idx) => {
+                  let btnStyle = "border-border/50 bg-secondary/30 hover:bg-secondary/60";
+                  if (questionResult) {
+                    if (option.es_correcta) btnStyle = "border-neon-green bg-neon-green/20";
+                    else btnStyle = "border-destructive bg-destructive/20 opacity-50";
+                  }
+
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() => !questionResult && answerQuestion(option.id)}
+                      disabled={!!questionResult}
+                      className={cn("w-full text-left p-3 rounded-xl border transition-all duration-300 flex items-start gap-2", btnStyle)}
+                    >
+                      <span className="text-xs font-bold text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded">{idx + 1}</span>
+                      <p className="text-sm font-medium">{option.texto}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {questionResult && (
+                <div className={cn("font-bold text-lg mt-4 animate-in slide-in-from-bottom-2", questionResult === "correct" ? "text-neon-green" : "text-destructive")}>
+                  {questionResult === "correct" ? "¡Salvado! Mueves tú." : questionResult === "timeout" ? "¡Tiempo agotado! Pierdes el turno." : "¡Incorrecto! Pierdes el turno."}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -495,8 +655,8 @@ export default function ChessGame() {
                     isDark ? "bg-[#1e293b]" : "bg-[#334155]", // Dark premium slate tiles
                     isSelected && "bg-cyan-500/40 shadow-[inset_0_0_15px_rgba(34,211,238,0.6)]",
                     (isLastFrom || isLastTo) && !isSelected && "bg-purple-500/30",
-                    piece?.color === "w" && isWhiteTurn && !gameOver && "cursor-pointer",
-                    isLegal && !gameOver && "cursor-pointer"
+                    piece?.color === "w" && isWhiteTurn && !gameOver && !activeQuestion && "cursor-pointer",
+                    isLegal && !gameOver && !activeQuestion && "cursor-pointer"
                   )}
                 >
                   {/* Rank/File labels */}
@@ -526,7 +686,7 @@ export default function ChessGame() {
 
       {/* Game Over Overlay */}
       {gameOver && (
-        <Card className="card-gamer border-cyan-500/50 shadow-[0_0_30px_rgba(34,211,238,0.2)]">
+        <Card className="card-gamer border-cyan-500/50 shadow-[0_0_30px_rgba(34,211,238,0.2)] mt-4">
           <CardContent className="p-6 text-center space-y-4">
             <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
               {isPlayerWin ? <Trophy className="w-10 h-10 text-cyan-400" /> : <Crown className="w-10 h-10 text-muted-foreground" />}
