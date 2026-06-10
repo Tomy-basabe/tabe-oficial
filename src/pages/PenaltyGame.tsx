@@ -26,7 +26,7 @@ interface QuizQuestion {
 }
 
 type GamePhase = 'select_deck' | 'searching' | 'playing' | 'result';
-type TurnPhase = 'choose_direction' | 'answer_question' | 'result_animation';
+type TurnPhase = 'choose_direction' | 'answer_question' | 'play_animation' | 'result_animation';
 type Direction = 'left' | 'center' | 'right';
 
 export default function PenaltyGame() {
@@ -60,8 +60,8 @@ export default function PenaltyGame() {
   const [questionsUsed, setQuestionsUsed] = useState<Set<string>>(new Set());
 
   // Animation
-  const [showGoalAnimation, setShowGoalAnimation] = useState(false);
-  const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+  const [botDirection, setBotDirection] = useState<Direction | null>(null);
+  const [animationStep, setAnimationStep] = useState<'idle' | 'moving'>('idle');
 
   // Fetch user's quiz decks
   useEffect(() => {
@@ -167,58 +167,54 @@ export default function PenaltyGame() {
     setAnsweredCorrectly(correct);
 
     // Simulate bot's action
-    const botDirection: Direction = ['left', 'center', 'right'][Math.floor(Math.random() * 3)] as Direction;
+    const botDir: Direction = ['left', 'center', 'right'][Math.floor(Math.random() * 3)] as Direction;
+    setBotDirection(botDir);
     const botAnsweredCorrectly = Math.random() < 0.55; // 55% accuracy for bot
 
-    // Calculate result
-    setTimeout(() => {
-      let result: 'goal' | 'saved' | 'missed';
+    let result: 'goal' | 'saved' | 'missed';
 
-      if (isMyTurnToShoot) {
-        // I'm shooting
-        if (!correct) {
-          result = 'missed'; // Wrong answer = miss
-        } else if (myDirection !== botDirection) {
-          result = 'goal'; // Different direction from keeper = goal
-        } else if (!botAnsweredCorrectly) {
-          result = 'goal'; // Keeper answered wrong = goal even if same direction
+    if (isMyTurnToShoot) {
+      // I'm shooting
+      if (!correct) {
+        result = 'missed'; // Wrong answer = miss
+      } else if (myDirection !== botDir) {
+        result = 'goal'; // Different direction from keeper = goal
+      } else if (!botAnsweredCorrectly) {
+        result = 'goal'; // Keeper answered wrong = goal even if same direction
+      } else {
+        result = 'saved'; // Same direction + keeper answered right = saved
+      }
+    } else {
+      // I'm saving
+      if (!botAnsweredCorrectly) {
+        result = 'missed'; // Bot missed
+      } else if (myDirection === botDir) {
+        if (correct) {
+          result = 'saved'; // I guessed right + answered right = saved
         } else {
-          result = 'saved'; // Same direction + keeper answered right = saved
-        }
-
-        if (result === 'goal') {
-          setMyScore(prev => prev + 1);
-          setShowGoalAnimation(true);
-          setTimeout(() => setShowGoalAnimation(false), 1500);
-        } else if (result === 'saved') {
-          setShowSaveAnimation(true);
-          setTimeout(() => setShowSaveAnimation(false), 1500);
+          result = 'goal'; // I guessed right but answered wrong = goal for bot
         }
       } else {
-        // I'm saving
-        if (!botAnsweredCorrectly) {
-          result = 'missed'; // Bot missed
-        } else if (myDirection === botDirection) {
-          if (correct) {
-            result = 'saved'; // I guessed right + answered right = saved
-            setShowSaveAnimation(true);
-            setTimeout(() => setShowSaveAnimation(false), 1500);
-          } else {
-            result = 'goal'; // I guessed right but answered wrong = goal for bot
-            setOpScore(prev => prev + 1);
-            setShowGoalAnimation(true);
-            setTimeout(() => setShowGoalAnimation(false), 1500);
-          }
-        } else {
-          result = 'goal'; // Wrong direction = goal for bot
-          setOpScore(prev => prev + 1);
-          setShowGoalAnimation(true);
-          setTimeout(() => setShowGoalAnimation(false), 1500);
-        }
+        result = 'goal'; // Wrong direction = goal for bot
       }
+    }
 
-      setTurnResult(result);
-      setTurnPhase('result_animation');
+    setTurnResult(result);
+
+    // Start animation phase
+    setTimeout(() => {
+      setTurnPhase('play_animation');
+      setAnimationStep('idle');
+      
+      // Trigger movement
+      setTimeout(() => setAnimationStep('moving'), 50);
+
+      // Finish animation and show result
+      setTimeout(() => {
+        if (isMyTurnToShoot && result === 'goal') setMyScore(prev => prev + 1);
+        if (!isMyTurnToShoot && result === 'goal') setOpScore(prev => prev + 1);
+        setTurnPhase('result_animation');
+      }, 1500);
     }, 800);
   };
 
@@ -229,6 +225,8 @@ export default function PenaltyGame() {
     setTurnResult(null);
     setCurrentQuestion(null);
     setMyDirection(null);
+    setBotDirection(null);
+    setAnimationStep('idle');
 
     if (!isMyTurnToShoot) {
       // Both players shot this round, move to next
@@ -437,22 +435,90 @@ export default function PenaltyGame() {
           </Badge>
         </div>
 
-        {/* Goal animations */}
-        {showGoalAnimation && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm animate-in fade-in">
-            <div className="text-center animate-in zoom-in-50">
-              <div className="text-8xl mb-4">⚽</div>
-              <h2 className="font-display font-bold text-4xl text-neon-green">¡GOOOL!</h2>
-            </div>
-          </div>
-        )}
-        {showSaveAnimation && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm animate-in fade-in">
-            <div className="text-center animate-in zoom-in-50">
-              <div className="text-8xl mb-4">🧤</div>
-              <h2 className="font-display font-bold text-4xl text-neon-cyan">¡ATAJADA!</h2>
-            </div>
-          </div>
+        {/* Cinematic Animation Phase */}
+        {turnPhase === 'play_animation' && (
+          <Card className="card-gamer overflow-hidden">
+            <CardContent className="p-0 relative h-[400px] bg-gradient-to-b from-green-900 to-green-700">
+              {/* Field lines */}
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDEwaDQwTTAgMjBoNDBNMCAzMGg0ME0xMCAwdjQwTTIwIDB2NDBNMzAgMHY0MCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==')] opacity-30" />
+              
+              {/* Penalty spot */}
+              <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-6 h-6 bg-white/50 rounded-full blur-[1px]" />
+              
+              {/* Goal area lines */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 border-4 border-white/40 border-b-0" />
+              
+              {/* Goal */}
+              <div className="absolute top-12 left-12 right-12 h-36 border-t-[8px] border-l-[8px] border-r-[8px] border-white rounded-t-xl z-0 shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+                {/* Net pattern */}
+                <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 15px, white 15px, white 16px), repeating-linear-gradient(90deg, transparent, transparent 15px, white 15px, white 16px)' }} />
+              </div>
+
+              {/* Goalkeeper (Bot or You) */}
+              <div 
+                className="absolute top-28 left-1/2 transition-all duration-700 ease-in-out z-10"
+                style={{
+                  transform: `translate(calc(-50% + ${
+                    animationStep === 'moving' 
+                      ? (isMyTurnToShoot 
+                          ? (botDirection === 'left' ? '-100px' : botDirection === 'right' ? '100px' : '0px')
+                          : (myDirection === 'left' ? '-100px' : myDirection === 'right' ? '100px' : '0px'))
+                      : '0px'
+                  }), ${
+                    animationStep === 'moving' && 
+                    (isMyTurnToShoot ? botDirection : myDirection) !== 'center' 
+                      ? '30px' 
+                      : '0px'
+                  }) scale(${animationStep === 'moving' ? '1.2' : '1'}) rotate(${
+                    animationStep === 'moving' 
+                      ? ((isMyTurnToShoot ? botDirection : myDirection) === 'left' ? '-45deg' : (isMyTurnToShoot ? botDirection : myDirection) === 'right' ? '45deg' : '0deg')
+                      : '0deg'
+                  })`
+                }}
+              >
+                <div className="text-7xl drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+                  {isMyTurnToShoot ? '🤖' : '🧤'}
+                </div>
+              </div>
+
+              {/* Ball */}
+              <div 
+                className="absolute bottom-12 left-1/2 transition-all duration-[600ms] ease-out z-20"
+                style={{
+                  transform: `translate(calc(-50% + ${
+                    animationStep === 'moving'
+                      ? (isMyTurnToShoot
+                          ? (myDirection === 'left' ? '-110px' : myDirection === 'right' ? '110px' : '0px')
+                          : (botDirection === 'left' ? '-110px' : botDirection === 'right' ? '110px' : '0px'))
+                      : '0px'
+                  }), ${
+                    animationStep === 'moving'
+                      ? (turnResult === 'missed' ? '-320px' : '-220px')
+                      : '0px'
+                  }) scale(${animationStep === 'moving' ? '0.5' : '1'}) rotate(${animationStep === 'moving' ? '1080deg' : '0deg'})`
+                }}
+              >
+                <div className="text-6xl drop-shadow-[0_15px_15px_rgba(0,0,0,0.4)]">⚽</div>
+              </div>
+
+              {/* Hit effect / Saved effect */}
+              {animationStep === 'moving' && turnResult === 'saved' && (
+                <div 
+                  className="absolute z-30 transition-all duration-[600ms]"
+                  style={{
+                    top: '120px',
+                    left: `calc(50% + ${isMyTurnToShoot ? (botDirection === 'left' ? '-90px' : botDirection === 'right' ? '90px' : '0px') : (myDirection === 'left' ? '-90px' : myDirection === 'right' ? '90px' : '0px')})`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  <div className="w-40 h-40 bg-white/40 rounded-full blur-xl animate-ping delay-500" />
+                </div>
+              )}
+              {animationStep === 'moving' && turnResult === 'goal' && (
+                <div className="absolute inset-0 z-30 bg-white/20 animate-pulse delay-500 pointer-events-none" />
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Choose direction */}
