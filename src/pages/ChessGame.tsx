@@ -1,24 +1,31 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Zap, Trophy, Crown, RotateCcw } from "lucide-react";
+import { ArrowLeft, Zap, Trophy, Crown, RotateCcw, Swords, Bot, Settings2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ChessDefs, renderPremiumPiece } from "@/components/games/ChessAssets";
 
 // ======================================
-// CHESS ENGINE (simplified but playable)
+// ELO SYSTEM (Local Storage)
+// ======================================
+const getLocalElo = () => {
+  const e = localStorage.getItem("tabe_chess_elo");
+  return e ? parseInt(e) : 1200;
+};
+const saveLocalElo = (elo: number) => {
+  localStorage.setItem("tabe_chess_elo", elo.toString());
+};
+
+// ======================================
+// CHESS ENGINE
 // ======================================
 type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
 type PieceColor = "w" | "b";
 interface Piece { type: PieceType; color: PieceColor; }
 type Board = (Piece | null)[];
 type Pos = number; // 0-63
-
-const PIECE_SYMBOLS: Record<string, string> = {
-  wK: "♔", wQ: "♕", wR: "♖", wB: "♗", wN: "♘", wP: "♙",
-  bK: "♚", bQ: "♛", bR: "♜", bB: "♝", bN: "♞", bP: "♟",
-};
 
 function initBoard(): Board {
   const b: Board = Array(64).fill(null);
@@ -62,14 +69,12 @@ function getPseudoLegalMoves(board: Board, pos: Pos): Pos[] {
     case "P": {
       const dir = color === "w" ? -1 : 1;
       const startRow = color === "w" ? 6 : 1;
-      // Forward
       if (inBounds(r + dir, c) && !board[toPos(r + dir, c)]) {
         moves.push(toPos(r + dir, c));
         if (r === startRow && !board[toPos(r + 2 * dir, c)]) {
           moves.push(toPos(r + 2 * dir, c));
         }
       }
-      // Captures
       for (const dc of [-1, 1]) {
         if (inBounds(r + dir, c + dc)) {
           const t = board[toPos(r + dir, c + dc)];
@@ -114,11 +119,6 @@ function getLegalMoves(board: Board, pos: Pos): Pos[] {
     const newBoard = [...board];
     newBoard[to] = newBoard[pos];
     newBoard[pos] = null;
-    // Auto-promote pawns
-    const [tr] = toRC(to);
-    if (piece.type === "P" && (tr === 0 || tr === 7)) {
-      newBoard[to] = { type: "Q", color: piece.color };
-    }
     return !isInCheck(newBoard, piece.color);
   });
 }
@@ -128,7 +128,6 @@ function makeMove(board: Board, from: Pos, to: Pos): Board {
   const piece = newBoard[from]!;
   newBoard[to] = piece;
   newBoard[from] = null;
-  // Auto-promote
   const [tr] = toRC(to);
   if (piece.type === "P" && (tr === 0 || tr === 7)) {
     newBoard[to] = { type: "Q", color: piece.color };
@@ -143,35 +142,100 @@ function hasAnyLegalMove(board: Board, color: PieceColor): boolean {
   return false;
 }
 
-// Simple evaluation for bot
-function evaluate(board: Board): number {
-  const values: Record<PieceType, number> = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0 };
+function evaluateBoard(board: Board): number {
+  const values: Record<PieceType, number> = { P: 10, N: 30, B: 30, R: 50, Q: 90, K: 900 };
   let score = 0;
-  for (const p of board) {
-    if (p) score += (p.color === "b" ? 1 : -1) * values[p.type];
+  for (let i=0; i<64; i++) {
+    const p = board[i];
+    if (p) {
+      const val = values[p.type];
+      // positional bonus (center control)
+      const [r, c] = toRC(i);
+      const posBonus = (p.type === "P" || p.type === "N") ? (Math.abs(3.5-r) + Math.abs(3.5-c)) * -1 : 0;
+      const total = val + posBonus;
+      score += (p.color === "b" ? 1 : -1) * total;
+    }
   }
   return score;
 }
 
-function botMove(board: Board): { from: Pos; to: Pos } | null {
-  let bestScore = -Infinity;
-  let bestMoves: { from: Pos; to: Pos }[] = [];
-
+function minimax(board: Board, depth: number, alpha: number, beta: number, isMaximizing: boolean): number {
+  if (depth === 0) return evaluateBoard(board);
+  const color = isMaximizing ? "b" : "w";
+  let moves: {f: Pos, t: Pos}[] = [];
   for (let i = 0; i < 64; i++) {
-    if (board[i]?.color !== "b") continue;
-    for (const to of getLegalMoves(board, i)) {
-      const nb = makeMove(board, i, to);
-      const s = evaluate(nb) + Math.random() * 0.5; // slight randomness
-      // Look one more ply for captures
-      let bonus = 0;
-      if (board[to]) bonus += 2; // capture bonus
-      if (isInCheck(nb, "w")) bonus += 1.5; // check bonus
-      const total = s + bonus;
-      if (total > bestScore) { bestScore = total; bestMoves = [{ from: i, to }]; }
-      else if (total === bestScore) bestMoves.push({ from: i, to });
+    if (board[i]?.color === color) {
+      const legal = getLegalMoves(board, i);
+      for(const l of legal) moves.push({f: i, t: l});
     }
   }
-  return bestMoves.length > 0 ? bestMoves[Math.floor(Math.random() * bestMoves.length)] : null;
+  if (moves.length === 0) return isInCheck(board, color) ? (isMaximizing ? -9999 : 9999) : 0; // checkmate/stalemate
+
+  // simple move ordering (captures first)
+  moves.sort((a,b) => (board[b.t] ? 1 : 0) - (board[a.t] ? 1 : 0));
+
+  if (isMaximizing) {
+    let maxEval = -Infinity;
+    for (const m of moves) {
+      const nb = makeMove(board, m.f, m.t);
+      const ev = minimax(nb, depth - 1, alpha, beta, false);
+      maxEval = Math.max(maxEval, ev);
+      alpha = Math.max(alpha, ev);
+      if (beta <= alpha) break;
+    }
+    return maxEval;
+  } else {
+    let minEval = Infinity;
+    for (const m of moves) {
+      const nb = makeMove(board, m.f, m.t);
+      const ev = minimax(nb, depth - 1, alpha, beta, true);
+      minEval = Math.min(minEval, ev);
+      beta = Math.min(beta, ev);
+      if (beta <= alpha) break;
+    }
+    return minEval;
+  }
+}
+
+function getBotMove(board: Board, level: number): { from: Pos; to: Pos } | null {
+  let moves: {from: Pos, to: Pos}[] = [];
+  for (let i = 0; i < 64; i++) {
+    if (board[i]?.color === "b") {
+      for (const to of getLegalMoves(board, i)) moves.push({from: i, to});
+    }
+  }
+  if (moves.length === 0) return null;
+
+  // Level 1: Random
+  if (level === 1) return moves[Math.floor(Math.random() * moves.length)];
+
+  // Level 2: Greedy captures, else random
+  if (level === 2) {
+    const captures = moves.filter(m => board[m.to] !== null);
+    if (captures.length > 0) return captures[Math.floor(Math.random() * captures.length)];
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
+
+  // Level 3, 4, 5: Minimax
+  const depthMap: Record<number, number> = { 3: 1, 4: 2, 5: 3 };
+  const depth = depthMap[level] || 1;
+  let bestScore = -Infinity;
+  let bestMoves: {from: Pos, to: Pos}[] = [];
+
+  // Randomize initial order to vary games
+  moves.sort(() => Math.random() - 0.5);
+
+  for (const m of moves) {
+    const nb = makeMove(board, m.from, m.to);
+    const score = minimax(nb, depth - 1, -Infinity, Infinity, false);
+    if (score > bestScore) {
+      bestScore = score;
+      bestMoves = [m];
+    } else if (score === bestScore) {
+      bestMoves.push(m);
+    }
+  }
+  return bestMoves[Math.floor(Math.random() * bestMoves.length)];
 }
 
 // ======================================
@@ -179,6 +243,10 @@ function botMove(board: Board): { from: Pos; to: Pos } | null {
 // ======================================
 export default function ChessGame() {
   const navigate = useNavigate();
+  const [phase, setPhase] = useState<"menu" | "playing">("menu");
+  const [level, setLevel] = useState<number>(3);
+  const [myElo, setMyElo] = useState<number>(1200);
+
   const [board, setBoard] = useState<Board>(initBoard());
   const [selected, setSelected] = useState<Pos | null>(null);
   const [legalMoves, setLegalMoves] = useState<Pos[]>([]);
@@ -189,13 +257,30 @@ export default function ChessGame() {
   const [capturedBlack, setCapturedBlack] = useState<Piece[]>([]);
   const [inCheck, setInCheck] = useState(false);
   const [moveCount, setMoveCount] = useState(0);
+  const [eloDelta, setEloDelta] = useState<number | null>(null);
+
+  useEffect(() => { setMyElo(getLocalElo()); }, []);
+
+  const startGame = () => {
+    setBoard(initBoard());
+    setSelected(null);
+    setLegalMoves([]);
+    setIsWhiteTurn(true);
+    setGameOver(null);
+    setLastMove(null);
+    setCapturedWhite([]);
+    setCapturedBlack([]);
+    setInCheck(false);
+    setMoveCount(0);
+    setEloDelta(null);
+    setPhase("playing");
+  };
 
   const handleCellClick = useCallback((pos: Pos) => {
     if (gameOver || !isWhiteTurn) return;
     const piece = board[pos];
 
     if (selected !== null) {
-      // Try to move
       if (legalMoves.includes(pos)) {
         const captured = board[pos];
         const newBoard = makeMove(board, selected, pos);
@@ -207,7 +292,6 @@ export default function ChessGame() {
 
         if (captured) setCapturedBlack(prev => [...prev, captured]);
 
-        // Check game state
         if (!hasAnyLegalMove(newBoard, "b")) {
           setGameOver(isInCheck(newBoard, "b") ? "checkmate_w" : "stalemate");
           return;
@@ -216,7 +300,6 @@ export default function ChessGame() {
         setIsWhiteTurn(false);
         return;
       }
-      // Click on own piece to reselect
       if (piece?.color === "w") {
         setSelected(pos);
         setLegalMoves(getLegalMoves(board, pos));
@@ -226,18 +309,17 @@ export default function ChessGame() {
       setLegalMoves([]);
       return;
     }
-
     if (piece?.color === "w") {
       setSelected(pos);
       setLegalMoves(getLegalMoves(board, pos));
     }
   }, [board, selected, legalMoves, isWhiteTurn, gameOver]);
 
-  // Bot turn
+  // Bot Turn
   useEffect(() => {
-    if (isWhiteTurn || gameOver) return;
+    if (isWhiteTurn || gameOver || phase !== "playing") return;
     const timer = setTimeout(() => {
-      const move = botMove(board);
+      const move = getBotMove(board, level);
       if (!move) {
         setGameOver(isInCheck(board, "b") ? "checkmate_w" : "stalemate");
         return;
@@ -247,7 +329,6 @@ export default function ChessGame() {
       setBoard(newBoard);
       setLastMove(move);
       setMoveCount(c => c + 1);
-
       if (captured) setCapturedWhite(prev => [...prev, captured]);
 
       if (!hasAnyLegalMove(newBoard, "w")) {
@@ -256,62 +337,146 @@ export default function ChessGame() {
       }
       setInCheck(isInCheck(newBoard, "w"));
       setIsWhiteTurn(true);
-    }, 600);
+    }, level > 3 ? 100 : 600); // give UI time to paint if slow calc
     return () => clearTimeout(timer);
-  }, [isWhiteTurn, gameOver, board]);
+  }, [isWhiteTurn, gameOver, board, level, phase]);
 
-  const resetGame = () => {
-    setBoard(initBoard());
-    setSelected(null);
-    setLegalMoves([]);
-    setIsWhiteTurn(true);
-    setGameOver(null);
-    setLastMove(null);
-    setCapturedWhite([]);
-    setCapturedBlack([]);
-    setInCheck(false);
-    setMoveCount(0);
-  };
+  // ELO calculation
+  useEffect(() => {
+    if (gameOver && eloDelta === null) {
+      const botElo = 800 + (level * 200); // lvl1=1000, lvl5=1800
+      const expectedScore = 1 / (1 + Math.pow(10, (botElo - myElo) / 400));
+      const actualScore = gameOver === "checkmate_w" ? 1 : gameOver === "stalemate" ? 0.5 : 0;
+      const kFactor = 32;
+      const change = Math.round(kFactor * (actualScore - expectedScore));
+      
+      setEloDelta(change);
+      const newElo = Math.max(100, myElo + change);
+      setMyElo(newElo);
+      saveLocalElo(newElo);
+    }
+  }, [gameOver, eloDelta, level, myElo]);
 
+  if (phase === "menu") {
+    return (
+      <div className="min-h-screen p-4 md:p-6 space-y-6 flex flex-col items-center justify-center relative overflow-hidden">
+        <ChessDefs />
+        {/* Background deco */}
+        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none flex items-center justify-center">
+          <div className="w-[800px] h-[800px] bg-[radial-gradient(ellipse_at_center,_rgba(34,211,238,0.15)_0%,_transparent_70%)]" />
+        </div>
+
+        <div className="z-10 text-center space-y-2 mb-8">
+          <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center backdrop-blur-xl border border-cyan-500/30">
+            <Crown className="w-12 h-12 text-cyan-400" />
+          </div>
+          <h1 className="text-4xl md:text-6xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
+            TABE Chess
+          </h1>
+          <Badge variant="outline" className="text-cyan-400 border-cyan-400/50 text-sm px-4 py-1">
+            ELO Actual: <strong className="ml-2 text-white">{myElo}</strong>
+          </Badge>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 w-full max-w-2xl z-10">
+          <Card className="card-gamer border-cyan-500/30 hover:border-cyan-400/60 cursor-pointer transition-all hover:scale-105" onClick={startGame}>
+            <CardContent className="p-8 text-center space-y-4">
+              <Bot className="w-16 h-16 mx-auto text-cyan-400" />
+              <h2 className="text-2xl font-bold font-display">Jugar vs Bot</h2>
+              <p className="text-sm text-muted-foreground">Entrena contra la inteligencia artificial para subir tu ELO.</p>
+              
+              <div className="pt-4 border-t border-border/50">
+                <p className="text-xs mb-2 font-medium">NIVEL DE DIFICULTAD</p>
+                <div className="flex justify-center gap-2">
+                  {[1,2,3,4,5].map(lvl => (
+                    <button
+                      key={lvl}
+                      onClick={(e) => { e.stopPropagation(); setLevel(lvl); }}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all",
+                        level === lvl ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(34,211,238,0.5)] scale-110" : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                      )}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {level === 1 && "Principiante (1000 ELO)"}
+                  {level === 2 && "Aficionado (1200 ELO)"}
+                  {level === 3 && "Intermedio (1400 ELO)"}
+                  {level === 4 && "Avanzado (1600 ELO)"}
+                  {level === 5 && "Gran Maestro (1800 ELO)"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="card-gamer border-purple-500/20 opacity-60 cursor-not-allowed">
+            <CardContent className="p-8 text-center space-y-4 relative overflow-hidden">
+              <div className="absolute top-2 right-2 bg-purple-500 text-xs px-2 py-1 rounded font-bold">PRONTO</div>
+              <Swords className="w-16 h-16 mx-auto text-purple-400" />
+              <h2 className="text-2xl font-bold font-display">Jugar Online</h2>
+              <p className="text-sm text-muted-foreground">Enfrentate a otros estudiantes en tiempo real. ¡Competí en el ranking!</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // PLAYING PHASE
   const isPlayerWin = gameOver === "checkmate_w";
   const isDraw = gameOver === "stalemate";
 
   return (
     <div className="min-h-screen p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
+      <ChessDefs />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/juegos")}><ArrowLeft className="w-5 h-5" /></Button>
-          <h1 className="text-xl md:text-2xl font-display font-bold flex items-center gap-2">
-            <Crown className="w-6 h-6 text-amber-400" /> Ajedrez
-          </h1>
+          <Button variant="ghost" size="icon" onClick={() => setPhase("menu")}><ArrowLeft className="w-5 h-5" /></Button>
+          <div className="flex flex-col">
+             <h1 className="text-xl md:text-2xl font-display font-bold flex items-center gap-2">
+              TABE Chess
+            </h1>
+            <span className="text-xs text-cyan-400 font-medium">Tú ({myElo}) vs Bot Lvl {level}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-xs">Jugada #{moveCount}</Badge>
-          <Button variant="ghost" size="icon" onClick={resetGame} title="Reiniciar"><RotateCcw className="w-4 h-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={startGame} title="Reiniciar"><RotateCcw className="w-4 h-4" /></Button>
         </div>
       </div>
 
       {/* Status */}
       <div className="flex items-center justify-between">
-        <Badge className={cn("text-sm px-4 py-1.5", isWhiteTurn ? "bg-white/20 text-white border-white/30" : "bg-slate-700/50 text-slate-300 border-slate-600/30")}>
+        <Badge className={cn("text-sm px-4 py-1.5 shadow-lg", isWhiteTurn ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50" : "bg-purple-900/50 text-purple-300 border-purple-500/30")}>
           {gameOver
             ? (isPlayerWin ? "🏆 ¡Jaque Mate! Ganaste" : isDraw ? "🤝 Tablas" : "😔 Jaque Mate. Perdiste")
             : inCheck
               ? "⚠️ ¡Jaque!"
-              : isWhiteTurn ? "♔ Tu turno (blancas)" : "♚ Pensando..."}
+              : isWhiteTurn ? "♔ Tu turno (blancas)" : "♚ Bot pensando..."}
         </Badge>
         {/* Captured pieces */}
-        <div className="flex gap-2 text-sm">
-          <div className="flex">{capturedBlack.map((p, i) => <span key={i} className="text-sm opacity-70">{PIECE_SYMBOLS[`${p.color}${p.type}`]}</span>)}</div>
-          <div className="flex">{capturedWhite.map((p, i) => <span key={i} className="text-sm opacity-70">{PIECE_SYMBOLS[`${p.color}${p.type}`]}</span>)}</div>
+        <div className="flex gap-4">
+          <div className="flex -space-x-2">
+            {capturedBlack.map((p, i) => (
+              <div key={i} className="w-6 h-6">{renderPremiumPiece(p.type, p.color)}</div>
+            ))}
+          </div>
+          <div className="flex -space-x-2">
+            {capturedWhite.map((p, i) => (
+              <div key={i} className="w-6 h-6">{renderPremiumPiece(p.type, p.color)}</div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Chess Board */}
-      <Card className="card-gamer overflow-hidden">
+      <Card className="card-gamer overflow-hidden bg-slate-900 border-slate-700">
         <CardContent className="p-2 md:p-4">
-          <div className="grid grid-cols-8 aspect-square max-w-[480px] mx-auto border-2 border-amber-900/50 rounded-lg overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+          <div className="grid grid-cols-8 aspect-square max-w-[480px] mx-auto border border-cyan-500/30 rounded-lg overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.15)] bg-slate-800">
             {board.map((piece, idx) => {
               const [r, c] = toRC(idx);
               const isDark = (r + c) % 2 === 1;
@@ -326,38 +491,31 @@ export default function ChessGame() {
                   key={idx}
                   onClick={() => handleCellClick(idx)}
                   className={cn(
-                    "aspect-square flex items-center justify-center relative transition-all duration-150 text-2xl md:text-4xl select-none",
-                    isDark ? "bg-amber-800/80" : "bg-amber-200/90",
-                    isSelected && "bg-cyan-500/50 shadow-[inset_0_0_15px_rgba(34,211,238,0.5)]",
-                    isLastFrom && "bg-yellow-500/30",
-                    isLastTo && "bg-yellow-500/40",
-                    piece?.color === "w" && isWhiteTurn && !gameOver && "cursor-pointer hover:brightness-110",
+                    "aspect-square flex items-center justify-center relative transition-colors duration-200 select-none",
+                    isDark ? "bg-[#1e293b]" : "bg-[#334155]", // Dark premium slate tiles
+                    isSelected && "bg-cyan-500/40 shadow-[inset_0_0_15px_rgba(34,211,238,0.6)]",
+                    (isLastFrom || isLastTo) && !isSelected && "bg-purple-500/30",
+                    piece?.color === "w" && isWhiteTurn && !gameOver && "cursor-pointer",
                     isLegal && !gameOver && "cursor-pointer"
                   )}
                 >
                   {/* Rank/File labels */}
-                  {c === 0 && <span className="absolute top-0.5 left-0.5 text-[8px] md:text-[10px] font-bold opacity-40">{8 - r}</span>}
-                  {r === 7 && <span className="absolute bottom-0 right-0.5 text-[8px] md:text-[10px] font-bold opacity-40">{"abcdefgh"[c]}</span>}
+                  {c === 0 && <span className="absolute top-0.5 left-0.5 text-[8px] md:text-[10px] font-bold text-slate-500">{8 - r}</span>}
+                  {r === 7 && <span className="absolute bottom-0 right-0.5 text-[8px] md:text-[10px] font-bold text-slate-500">{"abcdefgh"[c]}</span>}
 
-                  {/* Legal move indicator */}
+                  {/* Legal move indicators */}
                   {isLegal && !isCaptureLegal && (
-                    <div className="absolute w-3 h-3 md:w-4 md:h-4 rounded-full bg-cyan-400/40 shadow-[0_0_6px_rgba(34,211,238,0.4)]" />
+                    <div className="absolute w-3 h-3 md:w-4 md:h-4 rounded-full bg-cyan-400/50 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
                   )}
                   {isCaptureLegal && (
-                    <div className="absolute inset-1 rounded-full border-[3px] border-red-500/50" />
+                    <div className="absolute inset-0 rounded border-[3px] border-red-500/80 shadow-[inset_0_0_10px_rgba(239,68,68,0.5)]" />
                   )}
 
-                  {/* Piece */}
+                  {/* SVG Piece */}
                   {piece && (
-                    <span className={cn(
-                      "relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] transition-transform",
-                      piece.color === "w" ? "text-white" : "text-slate-900",
-                      isSelected && "scale-110",
-                      piece.color === "w" && "[text-shadow:_0_0_10px_rgba(255,255,255,0.3)]",
-                      piece.color === "b" && "[text-shadow:_0_0_10px_rgba(0,0,0,0.3)]"
-                    )}>
-                      {PIECE_SYMBOLS[`${piece.color}${piece.type}`]}
-                    </span>
+                    <div className={cn("w-[80%] h-[80%] z-10 transition-transform", isSelected && "scale-110")}>
+                      {renderPremiumPiece(piece.type, piece.color)}
+                    </div>
                   )}
                 </button>
               );
@@ -368,22 +526,38 @@ export default function ChessGame() {
 
       {/* Game Over Overlay */}
       {gameOver && (
-        <Card className="card-gamer">
+        <Card className="card-gamer border-cyan-500/50 shadow-[0_0_30px_rgba(34,211,238,0.2)]">
           <CardContent className="p-6 text-center space-y-4">
-            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-amber-500/20 to-amber-700/20 flex items-center justify-center">
-              {isPlayerWin ? <Trophy className="w-10 h-10 text-neon-gold" /> : <Crown className="w-10 h-10 text-muted-foreground" />}
+            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+              {isPlayerWin ? <Trophy className="w-10 h-10 text-cyan-400" /> : <Crown className="w-10 h-10 text-muted-foreground" />}
             </div>
-            <h2 className="font-display font-bold text-2xl">
+            <h2 className="font-display font-bold text-3xl text-white">
               {isPlayerWin ? "¡Jaque Mate!" : isDraw ? "Tablas" : "Derrota"}
             </h2>
             <p className="text-muted-foreground text-sm">Partida terminada en {moveCount} jugadas</p>
-            <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-neon-gold/10 border border-neon-gold/20">
-              <Zap className="w-5 h-5 text-neon-gold" />
-              <span className="font-display font-bold text-neon-gold">+{isPlayerWin ? 150 : isDraw ? 60 : 20} XP</span>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/juegos")}><ArrowLeft className="w-4 h-4 mr-2" /> Volver</Button>
-              <Button className="flex-1 bg-gradient-to-r from-amber-500 to-amber-700" onClick={resetGame}>
+            
+            {/* ELO Update */}
+            {eloDelta !== null && (
+              <div className="flex items-center justify-center gap-4 py-2">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">ELO Anterior</p>
+                  <p className="font-bold">{myElo - eloDelta}</p>
+                </div>
+                <div className={cn("flex items-center gap-1 font-bold text-lg", eloDelta > 0 ? "text-green-400" : eloDelta < 0 ? "text-red-400" : "text-slate-400")}>
+                  {eloDelta > 0 ? "+" : ""}{eloDelta}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Nuevo ELO</p>
+                  <p className="font-bold text-cyan-400">{myElo}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setPhase("menu")}>
+                 Ir al Menú
+              </Button>
+              <Button className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-500" onClick={startGame}>
                 <RotateCcw className="w-4 h-4 mr-2" /> Revancha
               </Button>
             </div>
