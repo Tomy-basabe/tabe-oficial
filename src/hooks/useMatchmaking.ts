@@ -65,7 +65,7 @@ export function useMatchmaking() {
   const [status, setStatus] = useState<MatchmakingStatus>('idle');
   const [matchId, setMatchId] = useState<string | null>(null);
   const [opponentName, setOpponentName] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState(14);
+  const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
@@ -84,7 +84,7 @@ export function useMatchmaking() {
     cleanup();
     await supabase.from("matchmaking_queue" as any).delete().eq("user_id", user.id);
     setStatus('idle');
-    setTimeLeft(14);
+    setTimeLeft(0);
     setMatchId(null);
     setOpponentName(null);
   }, [user, cleanup]);
@@ -118,7 +118,7 @@ export function useMatchmaking() {
     if (!user) return;
 
     setStatus('searching');
-    setTimeLeft(14);
+    setTimeLeft(0);
 
     // Insert into queue
     await supabase.from("matchmaking_queue" as any).upsert({
@@ -129,11 +129,11 @@ export function useMatchmaking() {
       joined_at: new Date().toISOString()
     } as any, { onConflict: "user_id" });
 
-    // Start 14-second countdown
-    let remaining = 14;
+    // Start 0-second countdown for immediate bot match
+    let remaining = 0;
     timerRef.current = setInterval(() => {
       remaining--;
-      setTimeLeft(remaining);
+      setTimeLeft(remaining > 0 ? remaining : 0);
       if (remaining <= 0) {
         cleanup();
         // No rival found, create bot match
@@ -149,7 +149,7 @@ export function useMatchmaking() {
           });
         });
       }
-    }, 1000);
+    }, 10);
 
     // Poll queue for potential matches every 2 seconds
     pollRef.current = setInterval(async () => {
