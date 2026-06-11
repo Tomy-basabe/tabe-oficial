@@ -539,18 +539,68 @@ export default function ChessGame() {
   }, [leaveQueue]);
 
   // ---- Derive board pieces from FEN ----
+  const pieceMapRef = useRef<Record<string, { id: string; type: PieceSymbol; color: Color }>>({});
+
   const boardPieces = useMemo(() => {
     const g = gameRef.current;
-    const result: { square: Square; type: PieceSymbol; color: Color }[] = [];
+    const result: { id: string; square: Square; type: PieceSymbol; color: Color }[] = [];
     const board = g.board();
+    
+    // Initialize if empty or new game
+    if (moveCount === 0 || Object.keys(pieceMapRef.current).length === 0) {
+      pieceMapRef.current = {};
+      let i = 0;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = board[r][c];
+          if (p) {
+            pieceMapRef.current[p.square] = { id: `init_${i++}`, type: p.type, color: p.color };
+          }
+        }
+      }
+    } else if (lastMove) {
+      // Update pieceMapRef based on lastMove
+      const movedPiece = pieceMapRef.current[lastMove.from];
+      if (movedPiece) {
+         pieceMapRef.current[lastMove.to] = movedPiece;
+         delete pieceMapRef.current[lastMove.from];
+         
+         // Handle Castling: if king moved 2 squares
+         if (movedPiece.type === 'k' && Math.abs(lastMove.to.charCodeAt(0) - lastMove.from.charCodeAt(0)) === 2) {
+            if (lastMove.to === 'g1') { pieceMapRef.current['f1'] = pieceMapRef.current['h1']; delete pieceMapRef.current['h1']; }
+            else if (lastMove.to === 'c1') { pieceMapRef.current['d1'] = pieceMapRef.current['a1']; delete pieceMapRef.current['a1']; }
+            else if (lastMove.to === 'g8') { pieceMapRef.current['f8'] = pieceMapRef.current['h8']; delete pieceMapRef.current['h8']; }
+            else if (lastMove.to === 'c8') { pieceMapRef.current['d8'] = pieceMapRef.current['a8']; delete pieceMapRef.current['a8']; }
+         }
+      }
+    }
+
+    // Sync map with actual board to handle captures and promotions
+    const validSquares = new Set<string>();
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
         const p = board[r][c];
         if (p) {
-          result.push({ square: p.square as Square, type: p.type, color: p.color });
+           validSquares.add(p.square);
+           // Handle missing pieces (e.g., from external FEN updates where lastMove wasn't tracked)
+           if (!pieceMapRef.current[p.square]) {
+              pieceMapRef.current[p.square] = { id: `fallback_${p.square}_${Date.now()}`, type: p.type, color: p.color };
+           } else if (pieceMapRef.current[p.square].type !== p.type) {
+              // Handle promotion type update
+              pieceMapRef.current[p.square].type = p.type;
+           }
+           result.push({ id: pieceMapRef.current[p.square].id, square: p.square, type: p.type, color: p.color });
         }
       }
     }
+    
+    // Clean up captured pieces
+    for (const sq of Object.keys(pieceMapRef.current)) {
+       if (!validSquares.has(sq)) {
+          delete pieceMapRef.current[sq];
+       }
+    }
+
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fen]);

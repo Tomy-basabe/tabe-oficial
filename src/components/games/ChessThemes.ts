@@ -6,6 +6,7 @@ export interface ChessTheme {
   id: string;
   name: string;
   description: string;
+  pieceSetUrl: string; // The 3D piece set identifier
   preview: { light: string; dark: string; accent: string };
   board: {
     lightSquare: string;
@@ -20,20 +21,8 @@ export interface ChessTheme {
     checkColor: string;
   };
   pieces: {
-    white: {
-      fill: string;
-      stroke: string;
-      highlight: string;
-      accent: string;
-      gradient: [string, string, string]; // top, mid, bottom
-    };
-    black: {
-      fill: string;
-      stroke: string;
-      highlight: string;
-      accent: string;
-      gradient: [string, string, string];
-    };
+    white: { fill: string; stroke: string; highlight: string; accent: string; gradient: [string, string, string] };
+    black: { fill: string; stroke: string; highlight: string; accent: string; gradient: [string, string, string] };
     shadow: string;
     glowIntensity: number;
   };
@@ -44,6 +33,7 @@ const neonTheme: ChessTheme = {
   id: "neon",
   name: "Neón Premium",
   description: "Tablero oscuro con piezas brillantes de neón cyan y púrpura",
+  pieceSetUrl: "neo_3d",
   preview: { light: "#334155", dark: "#1e293b", accent: "#22d3ee" },
   board: {
     lightSquare: "#334155",
@@ -58,20 +48,8 @@ const neonTheme: ChessTheme = {
     checkColor: "rgba(239,68,68,0.5)",
   },
   pieces: {
-    white: {
-      fill: "#e0f2fe",
-      stroke: "#67e8f9",
-      highlight: "#ffffff",
-      accent: "#22d3ee",
-      gradient: ["#ffffff", "#67e8f9", "#0891b2"],
-    },
-    black: {
-      fill: "#3b0764",
-      stroke: "#d8b4fe",
-      highlight: "#fbbf24",
-      accent: "#a855f7",
-      gradient: ["#a855f7", "#3b0764", "#000000"],
-    },
+    white: { fill: "#e0f2fe", stroke: "#67e8f9", highlight: "#ffffff", accent: "#22d3ee", gradient: ["#ffffff", "#67e8f9", "#0891b2"] },
+    black: { fill: "#3b0764", stroke: "#d8b4fe", highlight: "#fbbf24", accent: "#a855f7", gradient: ["#a855f7", "#3b0764", "#000000"] },
     shadow: "rgba(0,0,0,0.6)",
     glowIntensity: 3,
   },
@@ -82,6 +60,7 @@ const vikingTheme: ChessTheme = {
   id: "viking",
   name: "Vikingo",
   description: "Madera tallada, metal oscuro y runas nórdicas",
+  pieceSetUrl: "wood",
   preview: { light: "#a0845c", dark: "#5c3d1e", accent: "#c0a060" },
   board: {
     lightSquare: "#c4a265",
@@ -96,20 +75,8 @@ const vikingTheme: ChessTheme = {
     checkColor: "rgba(190,50,30,0.5)",
   },
   pieces: {
-    white: {
-      fill: "#f5e6c8",
-      stroke: "#c0a060",
-      highlight: "#ffeeb5",
-      accent: "#daa520",
-      gradient: ["#f5e6c8", "#d4b896", "#a07848"],
-    },
-    black: {
-      fill: "#2c2c2c",
-      stroke: "#8b8b8b",
-      highlight: "#c0c0c0",
-      accent: "#555555",
-      gradient: ["#6b6b6b", "#2c2c2c", "#0a0a0a"],
-    },
+    white: { fill: "#f5e6c8", stroke: "#c0a060", highlight: "#ffeeb5", accent: "#daa520", gradient: ["#f5e6c8", "#d4b896", "#a07848"] },
+    black: { fill: "#2c2c2c", stroke: "#8b8b8b", highlight: "#c0c0c0", accent: "#555555", gradient: ["#6b6b6b", "#2c2c2c", "#0a0a0a"] },
     shadow: "rgba(0,0,0,0.7)",
     glowIntensity: 1,
   },
@@ -120,6 +87,7 @@ const classicTheme: ChessTheme = {
   id: "classic",
   name: "Clásico Mármol",
   description: "Tablero de mármol con piezas Staunton en crema y ébano",
+  pieceSetUrl: "marble",
   preview: { light: "#f0e6d2", dark: "#6d8b5e", accent: "#2d5a1e" },
   board: {
     lightSquare: "#f0e6d2",
@@ -134,20 +102,8 @@ const classicTheme: ChessTheme = {
     checkColor: "rgba(200,50,50,0.4)",
   },
   pieces: {
-    white: {
-      fill: "#fff8e7",
-      stroke: "#b8a07a",
-      highlight: "#ffffff",
-      accent: "#d4c4a4",
-      gradient: ["#ffffff", "#f5e6c8", "#d4c4a4"],
-    },
-    black: {
-      fill: "#1a1a1a",
-      stroke: "#4a4a4a",
-      highlight: "#888888",
-      accent: "#333333",
-      gradient: ["#555555", "#1a1a1a", "#000000"],
-    },
+    white: { fill: "#fff8e7", stroke: "#b8a07a", highlight: "#ffffff", accent: "#d4c4a4", gradient: ["#ffffff", "#f5e6c8", "#d4c4a4"] },
+    black: { fill: "#1a1a1a", stroke: "#4a4a4a", highlight: "#888888", accent: "#333333", gradient: ["#555555", "#1a1a1a", "#000000"] },
     shadow: "rgba(0,0,0,0.5)",
     glowIntensity: 0,
   },
@@ -158,6 +114,7 @@ const emeraldTheme: ChessTheme = {
   id: "emerald",
   name: "Cristal Esmeralda",
   description: "Tablero de cristal verde con piezas translúcidas brillantes",
+  pieceSetUrl: "glass",
   preview: { light: "#a7f3d0", dark: "#065f46", accent: "#34d399" },
   board: {
     lightSquare: "#a7f3d0",
@@ -172,20 +129,8 @@ const emeraldTheme: ChessTheme = {
     checkColor: "rgba(244,63,94,0.5)",
   },
   pieces: {
-    white: {
-      fill: "#ecfdf5",
-      stroke: "#6ee7b7",
-      highlight: "#ffffff",
-      accent: "#34d399",
-      gradient: ["#ffffff", "#a7f3d0", "#059669"],
-    },
-    black: {
-      fill: "#14532d",
-      stroke: "#86efac",
-      highlight: "#bbf7d0",
-      accent: "#22c55e",
-      gradient: ["#4ade80", "#14532d", "#052e16"],
-    },
+    white: { fill: "#ecfdf5", stroke: "#6ee7b7", highlight: "#ffffff", accent: "#34d399", gradient: ["#ffffff", "#a7f3d0", "#059669"] },
+    black: { fill: "#14532d", stroke: "#86efac", highlight: "#bbf7d0", accent: "#22c55e", gradient: ["#4ade80", "#14532d", "#052e16"] },
     shadow: "rgba(0,0,0,0.5)",
     glowIntensity: 2,
   },
@@ -196,6 +141,7 @@ const obsidianTheme: ChessTheme = {
   id: "obsidian",
   name: "Obsidiana y Oro",
   description: "Tablero negro obsidiana con detalles en oro puro",
+  pieceSetUrl: "metal",
   preview: { light: "#374151", dark: "#111827", accent: "#f59e0b" },
   board: {
     lightSquare: "#374151",
@@ -210,20 +156,8 @@ const obsidianTheme: ChessTheme = {
     checkColor: "rgba(239,68,68,0.5)",
   },
   pieces: {
-    white: {
-      fill: "#fef3c7",
-      stroke: "#f59e0b",
-      highlight: "#fde68a",
-      accent: "#d97706",
-      gradient: ["#fef3c7", "#fbbf24", "#b45309"],
-    },
-    black: {
-      fill: "#1c1917",
-      stroke: "#78716c",
-      highlight: "#a8a29e",
-      accent: "#57534e",
-      gradient: ["#78716c", "#1c1917", "#000000"],
-    },
+    white: { fill: "#fef3c7", stroke: "#f59e0b", highlight: "#fde68a", accent: "#d97706", gradient: ["#fef3c7", "#fbbf24", "#b45309"] },
+    black: { fill: "#1c1917", stroke: "#78716c", highlight: "#a8a29e", accent: "#57534e", gradient: ["#78716c", "#1c1917", "#000000"] },
     shadow: "rgba(0,0,0,0.8)",
     glowIntensity: 2,
   },

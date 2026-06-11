@@ -178,8 +178,8 @@ export default function ChessBoardPremium({
                 <AnimatePresence mode="popLayout">
                   {piece && (
                     <motion.div
-                      key={`${piece.color}${piece.type}_${piece.square}`}
-                      layoutId={`piece_${piece.color}${piece.type}_${findPieceId(pieces, piece)}`}
+                      key={piece.id}
+                      layoutId={`piece_${piece.id}`}
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{
                         scale: selectedSquare === square ? 1.12 : 1,
@@ -205,17 +205,4 @@ export default function ChessBoardPremium({
       </div>
     </div>
   );
-}
-
-// Generate a stable ID for each piece so layoutId animations work for sliding
-function findPieceId(pieces: BoardPiece[], target: BoardPiece): string {
-  // Group by color+type, then index within that group gives stable ordering
-  let idx = 0;
-  for (const p of pieces) {
-    if (p.color === target.color && p.type === target.type) {
-      if (p.square === target.square) return `${idx}`;
-      idx++;
-    }
-  }
-  return "0";
 }
