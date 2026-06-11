@@ -1,11 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Zap, Trophy, Crown, RotateCcw, Swords, Bot, Settings2, BookOpen, Clock } from "lucide-react";
+import { ArrowLeft, Zap, Trophy, Crown, RotateCcw, Swords, Bot, BookOpen, Clock, Palette, ChevronRight, Shield, Flag } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ChessDefs, renderPremiumPiece } from "@/components/games/ChessAssets";
+import { Chess } from "chess.js";
+import type { Square, Move, PieceSymbol, Color } from "chess.js";
+import { ChessThemeDefs, renderThemedPiece } from "@/components/games/ChessAssets";
+import ChessBoardPremium from "@/components/games/ChessBoardPremium";
+import { CHESS_THEMES, getThemeById, getSavedTheme, saveTheme } from "@/components/games/ChessThemes";
+import type { ChessTheme } from "@/components/games/ChessThemes";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,164 +32,46 @@ interface QuizDeck { id: string; nombre: string; total_questions: number; }
 interface QuizQuestion { id: string; pregunta: string; explicacion: string | null; options: { id: string; texto: string; es_correcta: boolean }[]; }
 
 // ======================================
-// CHESS ENGINE
+// BOT ENGINE (uses chess.js instance)
 // ======================================
-type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
-type PieceColor = "w" | "b";
-interface Piece { type: PieceType; color: PieceColor; }
-type Board = (Piece | null)[];
-type Pos = number; // 0-63
-
-function initBoard(): Board {
-  const b: Board = Array(64).fill(null);
-  const backRow: PieceType[] = ["R","N","B","Q","K","B","N","R"];
-  for (let i = 0; i < 8; i++) {
-    b[i] = { type: backRow[i], color: "b" };
-    b[8 + i] = { type: "P", color: "b" };
-    b[48 + i] = { type: "P", color: "w" };
-    b[56 + i] = { type: backRow[i], color: "w" };
-  }
-  return b;
-}
-
-function toRC(pos: Pos): [number, number] { return [Math.floor(pos / 8), pos % 8]; }
-function toPos(r: number, c: number): Pos { return r * 8 + c; }
-function inBounds(r: number, c: number): boolean { return r >= 0 && r < 8 && c >= 0 && c < 8; }
-
-function getPseudoLegalMoves(board: Board, pos: Pos): Pos[] {
-  const piece = board[pos];
-  if (!piece) return [];
-  const [r, c] = toRC(pos);
-  const moves: Pos[] = [];
-  const color = piece.color;
-  const enemy = color === "w" ? "b" : "w";
-
-  const addIfValid = (nr: number, nc: number) => {
-    if (!inBounds(nr, nc)) return false;
-    const target = board[toPos(nr, nc)];
-    if (target && target.color === color) return false;
-    moves.push(toPos(nr, nc));
-    return !target; // can continue sliding if empty
-  };
-
-  const slide = (dr: number, dc: number) => {
-    for (let i = 1; i < 8; i++) {
-      if (!addIfValid(r + dr * i, c + dc * i)) break;
-    }
-  };
-
-  switch (piece.type) {
-    case "P": {
-      const dir = color === "w" ? -1 : 1;
-      const startRow = color === "w" ? 6 : 1;
-      if (inBounds(r + dir, c) && !board[toPos(r + dir, c)]) {
-        moves.push(toPos(r + dir, c));
-        if (r === startRow && !board[toPos(r + 2 * dir, c)]) {
-          moves.push(toPos(r + 2 * dir, c));
-        }
-      }
-      for (const dc of [-1, 1]) {
-        if (inBounds(r + dir, c + dc)) {
-          const t = board[toPos(r + dir, c + dc)];
-          if (t && t.color === enemy) moves.push(toPos(r + dir, c + dc));
-        }
-      }
-      break;
-    }
-    case "N":
-      for (const [dr, dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) addIfValid(r + dr, c + dc);
-      break;
-    case "B": slide(-1,-1); slide(-1,1); slide(1,-1); slide(1,1); break;
-    case "R": slide(-1,0); slide(1,0); slide(0,-1); slide(0,1); break;
-    case "Q": slide(-1,-1); slide(-1,1); slide(1,-1); slide(1,1); slide(-1,0); slide(1,0); slide(0,-1); slide(0,1); break;
-    case "K":
-      for (const [dr, dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) addIfValid(r + dr, c + dc);
-      break;
-  }
-  return moves;
-}
-
-function findKing(board: Board, color: PieceColor): Pos {
-  return board.findIndex(p => p?.type === "K" && p?.color === color);
-}
-
-function isInCheck(board: Board, color: PieceColor): boolean {
-  const kingPos = findKing(board, color);
-  if (kingPos === -1) return true;
-  const enemy = color === "w" ? "b" : "w";
-  for (let i = 0; i < 64; i++) {
-    if (board[i]?.color === enemy) {
-      if (getPseudoLegalMoves(board, i).includes(kingPos)) return true;
-    }
-  }
-  return false;
-}
-
-function getLegalMoves(board: Board, pos: Pos): Pos[] {
-  const piece = board[pos];
-  if (!piece) return [];
-  return getPseudoLegalMoves(board, pos).filter(to => {
-    const newBoard = [...board];
-    newBoard[to] = newBoard[pos];
-    newBoard[pos] = null;
-    return !isInCheck(newBoard, piece.color);
-  });
-}
-
-function makeMove(board: Board, from: Pos, to: Pos): Board {
-  const newBoard = [...board];
-  const piece = newBoard[from]!;
-  newBoard[to] = piece;
-  newBoard[from] = null;
-  const [tr] = toRC(to);
-  if (piece.type === "P" && (tr === 0 || tr === 7)) {
-    newBoard[to] = { type: "Q", color: piece.color };
-  }
-  return newBoard;
-}
-
-function hasAnyLegalMove(board: Board, color: PieceColor): boolean {
-  for (let i = 0; i < 64; i++) {
-    if (board[i]?.color === color && getLegalMoves(board, i).length > 0) return true;
-  }
-  return false;
-}
-
-function evaluateBoard(board: Board): number {
-  const values: Record<PieceType, number> = { P: 10, N: 30, B: 30, R: 50, Q: 90, K: 900 };
+function evaluateBoard(game: Chess): number {
+  const values: Record<PieceSymbol, number> = { p: 10, n: 30, b: 32, r: 50, q: 90, k: 900 };
   let score = 0;
-  for (let i=0; i<64; i++) {
-    const p = board[i];
-    if (p) {
-      const val = values[p.type];
-      const [r, c] = toRC(i);
-      const posBonus = (p.type === "P" || p.type === "N") ? (Math.abs(3.5-r) + Math.abs(3.5-c)) * -1 : 0;
-      const total = val + posBonus;
-      score += (p.color === "b" ? 1 : -1) * total;
+  const board = game.board();
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (p) {
+        const val = values[p.type];
+        // Positional bonus: center control
+        const posBonus = (p.type === "p" || p.type === "n")
+          ? (Math.abs(3.5 - r) + Math.abs(3.5 - c)) * -1
+          : 0;
+        const total = val + posBonus;
+        score += (p.color === "b" ? 1 : -1) * total;
+      }
     }
   }
   return score;
 }
 
-function minimax(board: Board, depth: number, alpha: number, beta: number, isMaximizing: boolean): number {
-  if (depth === 0) return evaluateBoard(board);
-  const color = isMaximizing ? "b" : "w";
-  let moves: {f: Pos, t: Pos}[] = [];
-  for (let i = 0; i < 64; i++) {
-    if (board[i]?.color === color) {
-      const legal = getLegalMoves(board, i);
-      for(const l of legal) moves.push({f: i, t: l});
-    }
+function minimax(game: Chess, depth: number, alpha: number, beta: number, isMaximizing: boolean): number {
+  if (depth === 0 || game.isGameOver()) {
+    if (game.isCheckmate()) return isMaximizing ? -9999 : 9999;
+    if (game.isDraw() || game.isStalemate()) return 0;
+    return evaluateBoard(game);
   }
-  if (moves.length === 0) return isInCheck(board, color) ? (isMaximizing ? -9999 : 9999) : 0;
 
-  moves.sort((a,b) => (board[b.t] ? 1 : 0) - (board[a.t] ? 1 : 0));
+  const moves = game.moves({ verbose: true });
+  // Order captures first for better pruning
+  moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
 
   if (isMaximizing) {
     let maxEval = -Infinity;
     for (const m of moves) {
-      const nb = makeMove(board, m.f, m.t);
-      const ev = minimax(nb, depth - 1, alpha, beta, false);
+      game.move(m);
+      const ev = minimax(game, depth - 1, alpha, beta, false);
+      game.undo();
       maxEval = Math.max(maxEval, ev);
       alpha = Math.max(alpha, ev);
       if (beta <= alpha) break;
@@ -193,8 +80,9 @@ function minimax(board: Board, depth: number, alpha: number, beta: number, isMax
   } else {
     let minEval = Infinity;
     for (const m of moves) {
-      const nb = makeMove(board, m.f, m.t);
-      const ev = minimax(nb, depth - 1, alpha, beta, true);
+      game.move(m);
+      const ev = minimax(game, depth - 1, alpha, beta, true);
+      game.undo();
       minEval = Math.min(minEval, ev);
       beta = Math.min(beta, ev);
       if (beta <= alpha) break;
@@ -203,33 +91,35 @@ function minimax(board: Board, depth: number, alpha: number, beta: number, isMax
   }
 }
 
-function getBotMove(board: Board, level: number): { from: Pos; to: Pos } | null {
-  let moves: {from: Pos, to: Pos}[] = [];
-  for (let i = 0; i < 64; i++) {
-    if (board[i]?.color === "b") {
-      for (const to of getLegalMoves(board, i)) moves.push({from: i, to});
-    }
-  }
+function getBotMove(game: Chess, level: number): Move | null {
+  const moves = game.moves({ verbose: true });
   if (moves.length === 0) return null;
 
+  // Level 1: Random
   if (level === 1) return moves[Math.floor(Math.random() * moves.length)];
 
+  // Level 2: Prefer captures
   if (level === 2) {
-    const captures = moves.filter(m => board[m.to] !== null);
-    if (captures.length > 0) return captures[Math.floor(Math.random() * captures.length)];
+    const captures = moves.filter(m => m.captured);
+    if (captures.length > 0 && Math.random() > 0.3) {
+      return captures[Math.floor(Math.random() * captures.length)];
+    }
     return moves[Math.floor(Math.random() * moves.length)];
   }
 
-  const depthMap: Record<number, number> = { 3: 1, 4: 2, 5: 3 };
-  const depth = depthMap[level] || 1;
+  // Levels 3-5: Minimax with increasing depth
+  const depthMap: Record<number, number> = { 3: 2, 4: 3, 5: 4 };
+  const depth = depthMap[level] || 2;
   let bestScore = -Infinity;
-  let bestMoves: {from: Pos, to: Pos}[] = [];
+  let bestMoves: Move[] = [];
 
-  moves.sort(() => Math.random() - 0.5);
+  // Shuffle for variety
+  const shuffled = [...moves].sort(() => Math.random() - 0.5);
 
-  for (const m of moves) {
-    const nb = makeMove(board, m.from, m.to);
-    const score = minimax(nb, depth - 1, -Infinity, Infinity, false);
+  for (const m of shuffled) {
+    game.move(m);
+    const score = minimax(game, depth - 1, -Infinity, Infinity, false);
+    game.undo();
     if (score > bestScore) {
       bestScore = score;
       bestMoves = [m];
@@ -246,27 +136,32 @@ function getBotMove(board: Board, level: number): { from: Pos; to: Pos } | null 
 export default function ChessGame() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
+  // Decks
   const [decks, setDecks] = useState<QuizDeck[]>([]);
   const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(null);
 
+  // Game config
   const [phase, setPhase] = useState<"menu" | "playing">("menu");
   const [level, setLevel] = useState<number>(3);
   const [myElo, setMyElo] = useState<number>(1200);
+  const [themeId, setThemeId] = useState<string>(getSavedTheme());
+  const theme: ChessTheme = useMemo(() => getThemeById(themeId), [themeId]);
 
-  const [board, setBoard] = useState<Board>(initBoard());
-  const [selected, setSelected] = useState<Pos | null>(null);
-  const [legalMoves, setLegalMoves] = useState<Pos[]>([]);
-  const [isWhiteTurn, setIsWhiteTurn] = useState(true);
-  const [gameOver, setGameOver] = useState<"checkmate_w" | "checkmate_b" | "stalemate" | null>(null);
-  const [lastMove, setLastMove] = useState<{ from: Pos; to: Pos } | null>(null);
-  const [capturedWhite, setCapturedWhite] = useState<Piece[]>([]);
-  const [capturedBlack, setCapturedBlack] = useState<Piece[]>([]);
-  const [inCheck, setInCheck] = useState(false);
+  // Chess.js instance
+  const gameRef = useRef<Chess>(new Chess());
+  const [fen, setFen] = useState(gameRef.current.fen());
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const [legalMoves, setLegalMoves] = useState<Square[]>([]);
+  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
+  const [gameOver, setGameOver] = useState<"checkmate_w" | "checkmate_b" | "stalemate" | "draw" | null>(null);
   const [moveCount, setMoveCount] = useState(0);
   const [eloDelta, setEloDelta] = useState<number | null>(null);
+  const [capturedWhite, setCapturedWhite] = useState<{ type: PieceSymbol; color: Color }[]>([]);
+  const [capturedBlack, setCapturedBlack] = useState<{ type: PieceSymbol; color: Color }[]>([]);
+  const [moveHistory, setMoveHistory] = useState<string[]>([]);
 
-  // Random Question Interruption State
+  // Study interruptions
   const [questionsUsed, setQuestionsUsed] = useState<Set<string>>(new Set());
   const [activeQuestion, setActiveQuestion] = useState<QuizQuestion | null>(null);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(5);
@@ -286,50 +181,66 @@ export default function ChessGame() {
     if (!selectedDeck) return null;
     const { data: questions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", selectedDeck.id);
     if (!questions || questions.length === 0) return null;
-    
+
     const available = questions.filter((q) => !questionsUsed.has(q.id));
     const pool = available.length > 0 ? available : questions;
     if (available.length === 0) setQuestionsUsed(new Set());
-    
+
     const q = pool[Math.floor(Math.random() * pool.length)];
     const { data: options } = await supabase.from("quiz_options").select("id, texto, es_correcta").eq("question_id", q.id);
-    
+
     setQuestionsUsed((prev) => new Set(prev).add(q.id));
     return { ...q, options: (options || []) as { id: string; texto: string; es_correcta: boolean }[] } as QuizQuestion;
   }, [selectedDeck, questionsUsed]);
 
+  // ---- Game lifecycle ----
+  const syncState = useCallback(() => {
+    setFen(gameRef.current.fen());
+  }, []);
+
   const startGame = () => {
-    if (!selectedDeck) return; // Must select a deck to play
-    setBoard(initBoard());
-    setSelected(null);
+    if (!selectedDeck) return;
+    gameRef.current = new Chess();
+    syncState();
+    setSelectedSquare(null);
     setLegalMoves([]);
-    setIsWhiteTurn(true);
-    setGameOver(null);
     setLastMove(null);
-    setCapturedWhite([]);
-    setCapturedBlack([]);
-    setInCheck(false);
+    setGameOver(null);
     setMoveCount(0);
     setEloDelta(null);
+    setCapturedWhite([]);
+    setCapturedBlack([]);
+    setMoveHistory([]);
     setQuestionsUsed(new Set());
     setActiveQuestion(null);
     setQuestionResult(null);
+    saveTheme(themeId);
     setPhase("playing");
   };
 
+  const checkGameEnd = useCallback(() => {
+    const g = gameRef.current;
+    if (g.isCheckmate()) {
+      setGameOver(g.turn() === "b" ? "checkmate_w" : "checkmate_b");
+      return true;
+    }
+    if (g.isStalemate()) { setGameOver("stalemate"); return true; }
+    if (g.isDraw() || g.isThreefoldRepetition() || g.isInsufficientMaterial()) {
+      setGameOver("draw"); return true;
+    }
+    return false;
+  }, []);
+
+  // ---- Question interruptions ----
   const triggerRandomQuestion = async () => {
     const q = await fetchRandomQuestion();
     if (q) {
       setActiveQuestion(q);
       setQuestionTimeLeft(5);
       setQuestionResult(null);
-      
       questionTimerRef.current = setInterval(() => {
         setQuestionTimeLeft((prev) => {
-          if (prev <= 1) {
-            handleQuestionTimeout();
-            return 0;
-          }
+          if (prev <= 1) { handleQuestionTimeout(); return 0; }
           return prev - 1;
         });
       }, 1000);
@@ -348,8 +259,8 @@ export default function ChessGame() {
     setQuestionResult("timeout");
     setTimeout(() => {
       setActiveQuestion(null);
-      // Penalty: Skip player's turn!
-      setIsWhiteTurn(false);
+      // Penalty: Bot gets a free move
+      doBotMove();
     }, 2000);
   };
 
@@ -357,104 +268,98 @@ export default function ChessGame() {
     clearQuestionTimer();
     const correct = activeQuestion?.options.find((o) => o.id === optionId)?.es_correcta || false;
     setQuestionResult(correct ? "correct" : "wrong");
-    
     setTimeout(() => {
       setActiveQuestion(null);
       if (!correct) {
-        // Penalty: Skip player's turn!
-        setIsWhiteTurn(false);
+        // Penalty: Bot gets a free move
+        doBotMove();
       }
-      // If correct, they keep their turn (isWhiteTurn remains true)
+      // If correct, player keeps their turn
     }, 2000);
   };
 
-  useEffect(() => {
-    return () => clearQuestionTimer();
-  }, []);
+  useEffect(() => { return () => clearQuestionTimer(); }, []);
 
-  const handleCellClick = useCallback((pos: Pos) => {
-    if (gameOver || !isWhiteTurn || activeQuestion) return;
-    const piece = board[pos];
+  // ---- Square interaction ----
+  const handleSquareClick = useCallback((square: Square) => {
+    if (gameOver || gameRef.current.turn() !== "w" || activeQuestion) return;
+    const g = gameRef.current;
 
-    if (selected !== null) {
-      if (legalMoves.includes(pos)) {
-        const captured = board[pos];
-        const newBoard = makeMove(board, selected, pos);
-        setBoard(newBoard);
-        setLastMove({ from: selected, to: pos });
-        setSelected(null);
-        setLegalMoves([]);
-        setMoveCount(c => c + 1);
-
-        if (captured) setCapturedBlack(prev => [...prev, captured]);
-
-        if (!hasAnyLegalMove(newBoard, "b")) {
-          setGameOver(isInCheck(newBoard, "b") ? "checkmate_w" : "stalemate");
-          return;
+    if (selectedSquare) {
+      // Try making the move
+      const moveResult = g.move({ from: selectedSquare, to: square, promotion: "q" });
+      if (moveResult) {
+        if (moveResult.captured) {
+          setCapturedBlack((prev) => [...prev, { type: moveResult.captured as PieceSymbol, color: "b" }]);
         }
-        setInCheck(isInCheck(newBoard, "b"));
-        setIsWhiteTurn(false);
+        setLastMove({ from: moveResult.from as Square, to: moveResult.to as Square });
+        setMoveCount((c) => c + 1);
+        setMoveHistory((h) => [...h, moveResult.san]);
+        syncState();
+        setSelectedSquare(null);
+        setLegalMoves([]);
+
+        if (checkGameEnd()) return;
+
+        // Schedule bot move
+        setTimeout(() => doBotMove(), level > 3 ? 200 : 500);
         return;
       }
-      if (piece?.color === "w") {
-        setSelected(pos);
-        setLegalMoves(getLegalMoves(board, pos));
+      // If invalid, check if clicked own piece to reselect
+      const piece = g.get(square);
+      if (piece && piece.color === "w") {
+        setSelectedSquare(square);
+        setLegalMoves(g.moves({ square, verbose: true }).map((m) => m.to as Square));
         return;
       }
-      setSelected(null);
+      setSelectedSquare(null);
       setLegalMoves([]);
       return;
     }
-    if (piece?.color === "w") {
-      setSelected(pos);
-      setLegalMoves(getLegalMoves(board, pos));
+
+    // First click: select own piece
+    const piece = g.get(square);
+    if (piece && piece.color === "w") {
+      setSelectedSquare(square);
+      setLegalMoves(g.moves({ square, verbose: true }).map((m) => m.to as Square));
     }
-  }, [board, selected, legalMoves, isWhiteTurn, gameOver, activeQuestion]);
+  }, [selectedSquare, gameOver, activeQuestion, syncState, checkGameEnd, level]);
 
-  // Bot Turn
-  useEffect(() => {
-    if (isWhiteTurn || gameOver || phase !== "playing" || activeQuestion) return;
-    
-    const timer = setTimeout(() => {
-      const move = getBotMove(board, level);
-      if (!move) {
-        setGameOver(isInCheck(board, "b") ? "checkmate_w" : "stalemate");
-        return;
-      }
-      const captured = board[move.to];
-      const newBoard = makeMove(board, move.from, move.to);
-      setBoard(newBoard);
-      setLastMove(move);
-      setMoveCount(c => c + 1);
-      if (captured) setCapturedWhite(prev => [...prev, captured]);
+  // ---- Bot move ----
+  const doBotMove = useCallback(() => {
+    const g = gameRef.current;
+    if (g.isGameOver() || g.turn() !== "b") return;
 
-      if (!hasAnyLegalMove(newBoard, "w")) {
-        setGameOver(isInCheck(newBoard, "w") ? "checkmate_b" : "stalemate");
-        return;
-      }
-      setInCheck(isInCheck(newBoard, "w"));
-      
-      // Before handing turn back to player, 15% chance to trigger a question
-      if (Math.random() < 0.15) {
-        triggerRandomQuestion();
-      } else {
-        setIsWhiteTurn(true);
-      }
+    const move = getBotMove(g, level);
+    if (!move) return;
 
-    }, level > 3 ? 100 : 600);
-    
-    return () => clearTimeout(timer);
-  }, [isWhiteTurn, gameOver, board, level, phase, activeQuestion]);
+    const result = g.move(move);
+    if (!result) return;
 
-  // ELO calculation
+    if (result.captured) {
+      setCapturedWhite((prev) => [...prev, { type: result.captured as PieceSymbol, color: "w" }]);
+    }
+    setLastMove({ from: result.from as Square, to: result.to as Square });
+    setMoveCount((c) => c + 1);
+    setMoveHistory((h) => [...h, result.san]);
+    syncState();
+
+    if (checkGameEnd()) return;
+
+    // 15% chance to trigger a study question before player's turn
+    if (Math.random() < 0.15) {
+      triggerRandomQuestion();
+    }
+  }, [level, syncState, checkGameEnd]);
+
+  // ---- ELO calculation ----
   useEffect(() => {
     if (gameOver && eloDelta === null) {
-      const botElo = 800 + (level * 200); 
+      const botElo = 800 + (level * 200);
       const expectedScore = 1 / (1 + Math.pow(10, (botElo - myElo) / 400));
-      const actualScore = gameOver === "checkmate_w" ? 1 : gameOver === "stalemate" ? 0.5 : 0;
+      const actualScore = gameOver === "checkmate_w" ? 1 : gameOver === "stalemate" || gameOver === "draw" ? 0.5 : 0;
       const kFactor = 32;
       const change = Math.round(kFactor * (actualScore - expectedScore));
-      
       setEloDelta(change);
       const newElo = Math.max(100, myElo + change);
       setMyElo(newElo);
@@ -462,41 +367,144 @@ export default function ChessGame() {
     }
   }, [gameOver, eloDelta, level, myElo]);
 
+  // ---- Derive board pieces from FEN ----
+  const boardPieces = useMemo(() => {
+    const g = gameRef.current;
+    const result: { square: Square; type: PieceSymbol; color: Color }[] = [];
+    const board = g.board();
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = board[r][c];
+        if (p) {
+          result.push({ square: p.square as Square, type: p.type, color: p.color });
+        }
+      }
+    }
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fen]);
+
+  const isWhiteTurn = gameRef.current.turn() === "w";
+  const inCheck = gameRef.current.isCheck();
+  const checkSquare = inCheck
+    ? (boardPieces.find((p) => p.type === "k" && p.color === gameRef.current.turn())?.square || null)
+    : null;
+
+  // ========================
+  // MENU PHASE
+  // ========================
   if (phase === "menu") {
     return (
       <div className="min-h-screen p-4 md:p-6 flex flex-col items-center justify-center relative overflow-hidden">
-        <ChessDefs />
+        <ChessThemeDefs theme={theme} />
+
+        {/* Background glow */}
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none flex items-center justify-center">
-          <div className="w-[800px] h-[800px] bg-[radial-gradient(ellipse_at_center,_rgba(34,211,238,0.15)_0%,_transparent_70%)]" />
+          <div
+            className="w-[800px] h-[800px]"
+            style={{
+              background: `radial-gradient(ellipse at center, ${theme.board.borderColor} 0%, transparent 70%)`,
+            }}
+          />
         </div>
 
         <div className="z-10 text-center space-y-2 mb-6">
-          <Button variant="ghost" size="icon" className="absolute top-4 left-4" onClick={() => navigate("/juegos")}><ArrowLeft className="w-5 h-5" /></Button>
-          <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center backdrop-blur-xl border border-cyan-500/30">
-            <Crown className="w-10 h-10 text-cyan-400" />
+          <Button variant="ghost" size="icon" className="absolute top-4 left-4" onClick={() => navigate("/juegos")}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div
+            className="w-20 h-20 mx-auto rounded-3xl flex items-center justify-center backdrop-blur-xl border"
+            style={{
+              background: `linear-gradient(135deg, ${theme.board.borderColor}, rgba(168,85,247,0.2))`,
+              borderColor: theme.board.borderColor,
+            }}
+          >
+            <Crown className="w-10 h-10" style={{ color: theme.pieces.white.stroke }} />
           </div>
-          <h1 className="text-3xl md:text-5xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
+          <h1
+            className="text-3xl md:text-5xl font-display font-bold bg-clip-text text-transparent"
+            style={{
+              backgroundImage: `linear-gradient(to right, ${theme.pieces.white.stroke}, ${theme.pieces.black.accent})`,
+            }}
+          >
             Ajedrez Académico
           </h1>
-          <Badge variant="outline" className="text-cyan-400 border-cyan-400/50 text-sm px-4 py-1">
+          <Badge variant="outline" className="text-sm px-4 py-1" style={{ color: theme.pieces.white.stroke, borderColor: theme.board.borderColor }}>
             ELO Actual: <strong className="ml-2 text-white">{myElo}</strong>
           </Badge>
         </div>
 
         <div className="w-full max-w-xl z-10 space-y-4">
-          <Card className="card-gamer border-cyan-500/30">
-            <CardContent className="p-6 text-center space-y-4">
-              <BookOpen className="w-10 h-10 mx-auto text-cyan-400 mb-2" />
-              <h2 className="text-xl font-bold font-display">1. Elegí tu mazo de estudio</h2>
+          {/* Theme Selector */}
+          <Card className="card-gamer" style={{ borderColor: theme.board.borderColor }}>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Palette className="w-5 h-5" style={{ color: theme.pieces.white.stroke }} />
+                <h2 className="text-lg font-bold font-display">Elegí tu estilo</h2>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {CHESS_THEMES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => { setThemeId(t.id); saveTheme(t.id); }}
+                    className={cn(
+                      "rounded-xl p-1.5 border-2 transition-all duration-300 group",
+                      themeId === t.id
+                        ? "scale-105 shadow-lg"
+                        : "border-border/30 hover:border-border/60 opacity-70 hover:opacity-100"
+                    )}
+                    style={themeId === t.id ? { borderColor: t.preview.accent, boxShadow: `0 0 20px ${t.preview.accent}40` } : {}}
+                    title={t.name}
+                  >
+                    {/* Mini board preview */}
+                    <div className="grid grid-cols-4 rounded-lg overflow-hidden aspect-square">
+                      {Array.from({ length: 16 }).map((_, i) => {
+                        const r = Math.floor(i / 4);
+                        const c = i % 4;
+                        const isDark = (r + c) % 2 === 1;
+                        return (
+                          <div
+                            key={i}
+                            style={{ backgroundColor: isDark ? t.preview.dark : t.preview.light }}
+                            className="aspect-square"
+                          />
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] md:text-xs text-center mt-1 font-medium truncate">{t.name}</p>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground text-center">{theme.description}</p>
+            </CardContent>
+          </Card>
+
+          {/* Deck Selector */}
+          <Card className="card-gamer" style={{ borderColor: `${theme.board.borderColor}80` }}>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" style={{ color: theme.pieces.white.stroke }} />
+                <h2 className="text-lg font-bold font-display">Elegí tu mazo de estudio</h2>
+              </div>
               <p className="text-xs text-muted-foreground">Durante la partida, el bot intentará interrumpirte. Si fallas una pregunta, ¡pierdes el turno!</p>
-              
-              <div className="space-y-2 max-h-[20vh] overflow-y-auto mt-4 text-left">
+              <div className="space-y-2 max-h-[18vh] overflow-y-auto">
                 {decks.length === 0 ? (
-                  <p className="text-muted-foreground text-sm text-center">No tenés mazos. Crea uno primero.</p>
+                  <p className="text-muted-foreground text-sm text-center py-3">No tenés mazos. Crea uno primero.</p>
                 ) : (
                   decks.map((deck) => (
-                    <button key={deck.id} onClick={() => setSelectedDeck(deck)} className={cn("w-full text-left p-3 rounded-lg border transition-all duration-200", selectedDeck?.id === deck.id ? "border-cyan-500 bg-cyan-500/10 shadow-[0_0_10px_rgba(34,211,238,0.2)]" : "border-border/50 bg-secondary/30 hover:bg-secondary/60")}>
+                    <button
+                      key={deck.id}
+                      onClick={() => setSelectedDeck(deck)}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg border transition-all duration-200",
+                        selectedDeck?.id === deck.id
+                          ? "bg-white/5 shadow-md"
+                          : "border-border/50 bg-secondary/30 hover:bg-secondary/60"
+                      )}
+                      style={selectedDeck?.id === deck.id ? { borderColor: theme.pieces.white.stroke, boxShadow: `0 0 12px ${theme.board.borderColor}` } : {}}
+                    >
                       <p className="font-medium text-sm">{deck.nombre}</p>
+                      <p className="text-xs text-muted-foreground">{deck.total_questions} preguntas</p>
                     </button>
                   ))
                 )}
@@ -504,30 +512,47 @@ export default function ChessGame() {
             </CardContent>
           </Card>
 
+          {/* Level + Start */}
           {selectedDeck && (
-            <Card className="card-gamer border-cyan-400/60 transition-all shadow-[0_0_20px_rgba(34,211,238,0.1)]">
-              <CardContent className="p-6 text-center space-y-4">
-                <Bot className="w-12 h-12 mx-auto text-cyan-400" />
-                <h2 className="text-xl font-bold font-display">2. Nivel de la IA</h2>
-                
-                <div className="pt-2">
-                  <div className="flex justify-center gap-3">
-                    {[1,2,3,4,5].map(lvl => (
-                      <button
-                        key={lvl}
-                        onClick={() => setLevel(lvl)}
-                        className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all",
-                          level === lvl ? "bg-cyan-500 text-white shadow-[0_0_15px_rgba(34,211,238,0.6)] scale-110" : "bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-white"
-                        )}
-                      >
-                        {lvl}
-                      </button>
-                    ))}
-                  </div>
+            <Card className="card-gamer transition-all" style={{ borderColor: theme.board.borderColor, boxShadow: `0 0 25px ${theme.board.borderColor}30` }}>
+              <CardContent className="p-5 text-center space-y-4">
+                <Bot className="w-10 h-10 mx-auto" style={{ color: theme.pieces.white.stroke }} />
+                <h2 className="text-lg font-bold font-display">Nivel de la IA</h2>
+                <div className="flex justify-center gap-3">
+                  {[1, 2, 3, 4, 5].map((lvl) => (
+                    <button
+                      key={lvl}
+                      onClick={() => setLevel(lvl)}
+                      className={cn(
+                        "w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300",
+                        level === lvl
+                          ? "text-white scale-110"
+                          : "bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-white"
+                      )}
+                      style={level === lvl ? {
+                        backgroundColor: theme.pieces.white.stroke,
+                        boxShadow: `0 0 18px ${theme.pieces.white.stroke}`,
+                      } : {}}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
                 </div>
-                
-                <Button className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 mt-4 text-lg font-bold h-12" onClick={startGame}>
+                <p className="text-xs text-muted-foreground">
+                  {level === 1 && "Principiante (800 ELO)"}
+                  {level === 2 && "Aficionado (1000 ELO)"}
+                  {level === 3 && "Intermedio (1200 ELO)"}
+                  {level === 4 && "Avanzado (1400 ELO)"}
+                  {level === 5 && "Gran Maestro (1600 ELO)"}
+                </p>
+
+                <Button
+                  className="w-full mt-2 text-lg font-bold h-12 text-white"
+                  onClick={startGame}
+                  style={{
+                    background: `linear-gradient(to right, ${theme.pieces.white.stroke}, ${theme.pieces.black.accent})`,
+                  }}
+                >
                   <Swords className="w-5 h-5 mr-2" /> ¡Jugar Partida!
                 </Button>
               </CardContent>
@@ -538,17 +563,19 @@ export default function ChessGame() {
     );
   }
 
+  // ========================
   // PLAYING PHASE
+  // ========================
   const isPlayerWin = gameOver === "checkmate_w";
-  const isDraw = gameOver === "stalemate";
+  const isDraw = gameOver === "stalemate" || gameOver === "draw";
 
   return (
-    <div className="min-h-screen p-4 md:p-6 space-y-4 max-w-2xl mx-auto relative">
-      <ChessDefs />
-      
-      {/* Active Question Modal Interruption */}
+    <div className="min-h-screen p-3 md:p-6 space-y-3 max-w-2xl mx-auto relative">
+      <ChessThemeDefs theme={theme} />
+
+      {/* Question Interruption Modal */}
       {activeQuestion && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <Card className="w-full max-w-md border-red-500 shadow-[0_0_40px_rgba(239,68,68,0.3)] animate-in zoom-in-95 duration-200">
             <CardContent className="p-6 text-center space-y-4">
               <div className="flex justify-between items-center mb-2">
@@ -558,15 +585,13 @@ export default function ChessGame() {
                 </div>
               </div>
               <h3 className="font-medium text-lg leading-snug">{activeQuestion.pregunta}</h3>
-              
               <div className="grid grid-cols-1 gap-2 pt-2">
                 {activeQuestion.options.map((option, idx) => {
                   let btnStyle = "border-border/50 bg-secondary/30 hover:bg-secondary/60";
                   if (questionResult) {
-                    if (option.es_correcta) btnStyle = "border-neon-green bg-neon-green/20";
+                    if (option.es_correcta) btnStyle = "border-green-500 bg-green-500/20";
                     else btnStyle = "border-destructive bg-destructive/20 opacity-50";
                   }
-
                   return (
                     <button
                       key={option.id}
@@ -580,9 +605,8 @@ export default function ChessGame() {
                   );
                 })}
               </div>
-
               {questionResult && (
-                <div className={cn("font-bold text-lg mt-4 animate-in slide-in-from-bottom-2", questionResult === "correct" ? "text-neon-green" : "text-destructive")}>
+                <div className={cn("font-bold text-lg mt-4 animate-in slide-in-from-bottom-2", questionResult === "correct" ? "text-green-400" : "text-destructive")}>
                   {questionResult === "correct" ? "¡Salvado! Mueves tú." : questionResult === "timeout" ? "¡Tiempo agotado! Pierdes el turno." : "¡Incorrecto! Pierdes el turno."}
                 </div>
               )}
@@ -591,27 +615,38 @@ export default function ChessGame() {
         </div>
       )}
 
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => setPhase("menu")}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex flex-col">
-             <h1 className="text-xl md:text-2xl font-display font-bold flex items-center gap-2">
+            <h1 className="text-lg md:text-xl font-display font-bold flex items-center gap-2">
               TABE Chess
+              <span className="text-xs font-normal px-2 py-0.5 rounded-full" style={{ backgroundColor: `${theme.board.borderColor}30`, color: theme.pieces.white.stroke }}>
+                {theme.name}
+              </span>
             </h1>
-            <span className="text-xs text-cyan-400 font-medium">Tú ({myElo}) vs Bot Lvl {level}</span>
+            <span className="text-xs font-medium" style={{ color: theme.pieces.white.stroke }}>
+              Tú ({myElo}) vs Bot Lvl {level}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">Jugada #{moveCount}</Badge>
+          <Badge variant="secondary" className="text-xs">#{moveCount}</Badge>
           <Button variant="ghost" size="icon" onClick={startGame} title="Reiniciar"><RotateCcw className="w-4 h-4" /></Button>
         </div>
       </div>
 
-      {/* Status */}
+      {/* Status Bar */}
       <div className="flex items-center justify-between">
-        <Badge className={cn("text-sm px-4 py-1.5 shadow-lg", isWhiteTurn ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50" : "bg-purple-900/50 text-purple-300 border-purple-500/30")}>
+        <Badge
+          className="text-sm px-4 py-1.5 shadow-lg border"
+          style={{
+            backgroundColor: isWhiteTurn ? `${theme.pieces.white.stroke}20` : `${theme.pieces.black.accent}20`,
+            borderColor: isWhiteTurn ? `${theme.pieces.white.stroke}50` : `${theme.pieces.black.accent}30`,
+            color: isWhiteTurn ? theme.pieces.white.stroke : theme.pieces.black.highlight,
+          }}
+        >
           {gameOver
             ? (isPlayerWin ? "🏆 ¡Jaque Mate! Ganaste" : isDraw ? "🤝 Tablas" : "😔 Jaque Mate. Perdiste")
             : inCheck
@@ -619,83 +654,77 @@ export default function ChessGame() {
               : isWhiteTurn ? "♔ Tu turno (blancas)" : "♚ Bot pensando..."}
         </Badge>
         {/* Captured pieces */}
-        <div className="flex gap-4">
-          <div className="flex -space-x-2">
+        <div className="flex gap-3">
+          <div className="flex -space-x-1">
             {capturedBlack.map((p, i) => (
-              <div key={i} className="w-6 h-6">{renderPremiumPiece(p.type, p.color)}</div>
+              <div key={i} className="w-5 h-5">{renderThemedPiece(p.type, p.color, theme)}</div>
             ))}
           </div>
-          <div className="flex -space-x-2">
+          <div className="flex -space-x-1">
             {capturedWhite.map((p, i) => (
-              <div key={i} className="w-6 h-6">{renderPremiumPiece(p.type, p.color)}</div>
+              <div key={i} className="w-5 h-5">{renderThemedPiece(p.type, p.color, theme)}</div>
             ))}
           </div>
         </div>
       </div>
 
       {/* Chess Board */}
-      <Card className="card-gamer overflow-hidden bg-slate-900 border-slate-700">
-        <CardContent className="p-2 md:p-4">
-          <div className="grid grid-cols-8 aspect-square max-w-[480px] mx-auto border border-cyan-500/30 rounded-lg overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.15)] bg-slate-800">
-            {board.map((piece, idx) => {
-              const [r, c] = toRC(idx);
-              const isDark = (r + c) % 2 === 1;
-              const isSelected = selected === idx;
-              const isLegal = legalMoves.includes(idx);
-              const isLastFrom = lastMove?.from === idx;
-              const isLastTo = lastMove?.to === idx;
-              const isCaptureLegal = isLegal && !!piece;
+      <ChessBoardPremium
+        pieces={boardPieces}
+        theme={theme}
+        selectedSquare={selectedSquare}
+        legalMoves={legalMoves}
+        lastMove={lastMove}
+        inCheck={inCheck}
+        checkSquare={checkSquare}
+        isPlayerTurn={isWhiteTurn}
+        gameOver={!!gameOver}
+        disabled={!!activeQuestion}
+        onSquareClick={handleSquareClick}
+      />
 
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleCellClick(idx)}
-                  className={cn(
-                    "aspect-square flex items-center justify-center relative transition-colors duration-200 select-none",
-                    isDark ? "bg-[#1e293b]" : "bg-[#334155]", // Dark premium slate tiles
-                    isSelected && "bg-cyan-500/40 shadow-[inset_0_0_15px_rgba(34,211,238,0.6)]",
-                    (isLastFrom || isLastTo) && !isSelected && "bg-purple-500/30",
-                    piece?.color === "w" && isWhiteTurn && !gameOver && !activeQuestion && "cursor-pointer",
-                    isLegal && !gameOver && !activeQuestion && "cursor-pointer"
-                  )}
-                >
-                  {/* Rank/File labels */}
-                  {c === 0 && <span className="absolute top-0.5 left-0.5 text-[8px] md:text-[10px] font-bold text-slate-500">{8 - r}</span>}
-                  {r === 7 && <span className="absolute bottom-0 right-0.5 text-[8px] md:text-[10px] font-bold text-slate-500">{"abcdefgh"[c]}</span>}
-
-                  {/* Legal move indicators */}
-                  {isLegal && !isCaptureLegal && (
-                    <div className="absolute w-3 h-3 md:w-4 md:h-4 rounded-full bg-cyan-400/50 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                  )}
-                  {isCaptureLegal && (
-                    <div className="absolute inset-0 rounded border-[3px] border-red-500/80 shadow-[inset_0_0_10px_rgba(239,68,68,0.5)]" />
-                  )}
-
-                  {/* SVG Piece */}
-                  {piece && (
-                    <div className={cn("w-[80%] h-[80%] z-10 transition-transform", isSelected && "scale-110")}>
-                      {renderPremiumPiece(piece.type, piece.color)}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Move History (last 10) */}
+      {moveHistory.length > 0 && (
+        <div className="flex flex-wrap gap-1 text-xs text-muted-foreground font-mono px-1">
+          {moveHistory.slice(-12).map((san, i) => {
+            const globalIdx = moveHistory.length - 12 + i;
+            const moveNum = Math.floor((globalIdx < 0 ? i : globalIdx) / 2) + 1;
+            const isWhite = (globalIdx < 0 ? i : globalIdx) % 2 === 0;
+            return (
+              <span key={i} className={cn("px-1 rounded", isWhite ? "text-foreground/70" : "text-foreground/50")}>
+                {isWhite && <span className="text-muted-foreground mr-0.5">{moveNum}.</span>}
+                {san}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {/* Game Over Overlay */}
       {gameOver && (
-        <Card className="card-gamer border-cyan-500/50 shadow-[0_0_30px_rgba(34,211,238,0.2)] mt-4">
+        <Card className="card-gamer mt-3" style={{ borderColor: `${theme.pieces.white.stroke}50`, boxShadow: `0 0 30px ${theme.board.borderColor}` }}>
           <CardContent className="p-6 text-center space-y-4">
-            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
-              {isPlayerWin ? <Trophy className="w-10 h-10 text-cyan-400" /> : <Crown className="w-10 h-10 text-muted-foreground" />}
+            <div
+              className="w-20 h-20 mx-auto rounded-full flex items-center justify-center"
+              style={{ background: `linear-gradient(135deg, ${theme.board.borderColor}, ${theme.pieces.black.accent}30)` }}
+            >
+              {isPlayerWin ? (
+                <Trophy className="w-10 h-10" style={{ color: theme.pieces.white.stroke }} />
+              ) : isDraw ? (
+                <Shield className="w-10 h-10 text-muted-foreground" />
+              ) : (
+                <Flag className="w-10 h-10 text-muted-foreground" />
+              )}
             </div>
             <h2 className="font-display font-bold text-3xl text-white">
               {isPlayerWin ? "¡Jaque Mate!" : isDraw ? "Tablas" : "Derrota"}
             </h2>
-            <p className="text-muted-foreground text-sm">Partida terminada en {moveCount} jugadas</p>
-            
+            <p className="text-muted-foreground text-sm">
+              Partida terminada en {moveCount} jugadas
+              {gameOver === "draw" && " · Empate por repetición o material insuficiente"}
+              {gameOver === "stalemate" && " · Rey ahogado"}
+            </p>
+
             {/* ELO Update */}
             {eloDelta !== null && (
               <div className="flex items-center justify-center gap-4 py-2">
@@ -708,16 +737,20 @@ export default function ChessGame() {
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">Nuevo ELO</p>
-                  <p className="font-bold text-cyan-400">{myElo}</p>
+                  <p className="font-bold" style={{ color: theme.pieces.white.stroke }}>{myElo}</p>
                 </div>
               </div>
             )}
 
             <div className="flex gap-3 pt-4">
               <Button variant="outline" className="flex-1" onClick={() => setPhase("menu")}>
-                 Ir al Menú
+                Ir al Menú
               </Button>
-              <Button className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-500" onClick={startGame}>
+              <Button
+                className="flex-1 text-white"
+                onClick={startGame}
+                style={{ background: `linear-gradient(to right, ${theme.pieces.white.stroke}, ${theme.pieces.black.accent})` }}
+              >
                 <RotateCcw className="w-4 h-4 mr-2" /> Revancha
               </Button>
             </div>
