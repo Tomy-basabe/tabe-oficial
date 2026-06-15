@@ -87,6 +87,7 @@ export default function Quizzes() {
     const [showStudyOptions, setShowStudyOptions] = useState(false);
     const [pendingStudyDeck, setPendingStudyDeck] = useState<QuizDeck | null>(null);
     const [savedWrongIds, setSavedWrongIds] = useState<string[]>([]);
+    const [studyOrder, setStudyOrder] = useState<'random' | 'sequential'>('random');
 
     // Study mode state
     const [studyDeck, setStudyDeck] = useState<QuizDeck | null>(null);
@@ -410,8 +411,12 @@ export default function Quizzes() {
 
     // Study Mode
     const checkStudyOptions = (deck: QuizDeck) => {
+        setPendingStudyDeck(deck);
+        setStudyOrder('random'); // Default
+
         if (!user || isGuest) {
-            startStudy(deck, []);
+            setSavedWrongIds([]);
+            setShowStudyOptions(true);
             return;
         }
         const savedStr = localStorage.getItem(`quiz_wrong_${user.id}_${deck.id}`);
@@ -419,17 +424,18 @@ export default function Quizzes() {
             try {
                 const parsed = JSON.parse(savedStr);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    setPendingStudyDeck(deck);
                     setSavedWrongIds(parsed);
                     setShowStudyOptions(true);
                     return;
                 }
             } catch (e) {}
         }
-        startStudy(deck, []);
+        
+        setSavedWrongIds([]);
+        setShowStudyOptions(true);
     };
 
-    const startStudy = async (deck: QuizDeck, filterIds: string[] = []) => {
+    const startStudy = async (deck: QuizDeck, filterIds: string[] = [], order: 'random' | 'sequential' = 'random') => {
         setStudyDeck(deck);
         setCurrentIndex(0);
         setSelectedAnswer(null);
@@ -455,7 +461,7 @@ export default function Quizzes() {
                         { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracción más", es_correcta: false }
                     ]
                 }));
-                setStudyQuestions(mockQs.sort(() => Math.random() - 0.5));
+                setStudyQuestions(order === 'random' ? mockQs.sort(() => Math.random() - 0.5) : mockQs);
             } else {
                 setStudyQuestions([]);
             }
@@ -485,8 +491,11 @@ export default function Quizzes() {
                 enriched = enriched.filter((q: any) => filterIds.includes(q.id));
             }
 
-            // Shuffle questions
-            setStudyQuestions(enriched.sort(() => Math.random() - 0.5));
+            if (order === 'random') {
+                setStudyQuestions(enriched.sort(() => Math.random() - 0.5));
+            } else {
+                setStudyQuestions(enriched);
+            }
         }
     };
 
@@ -543,7 +552,9 @@ export default function Quizzes() {
         setFinished(false);
         setStudyTime(0);
         setWrongQuestionIds(new Set());
-        setStudyQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
+        if (studyOrder === 'random') {
+            setStudyQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
+        }
     };
 
     const exitStudy = () => {
@@ -1306,26 +1317,71 @@ export default function Quizzes() {
                             Opciones de Práctica
                         </DialogTitle>
                     </DialogHeader>
-                    <p className="text-muted-foreground">
-                        Tenés {savedWrongIds.length} pregunta(s) en las que te equivocaste en tu intento anterior. ¿Qué querés hacer?
-                    </p>
-                    <div className="flex flex-col gap-3 mt-4">
-                        <Button 
-                            className="bg-gradient-to-r from-neon-cyan to-neon-purple hover:opacity-90"
-                            onClick={() => {
-                                if (pendingStudyDeck) startStudy(pendingStudyDeck, savedWrongIds);
-                            }}
-                        >
-                            Repasar mis errores ({savedWrongIds.length})
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            onClick={() => {
-                                if (pendingStudyDeck) startStudy(pendingStudyDeck, []);
-                            }}
-                        >
-                            Empezar de nuevo (Todas las preguntas)
-                        </Button>
+                    
+                    <div className="space-y-6 pt-2">
+                        {savedWrongIds.length > 0 && (
+                            <div className="p-3 bg-neon-purple/10 border border-neon-purple/30 rounded-xl">
+                                <p className="text-sm font-medium">
+                                    Tenés {savedWrongIds.length} pregunta(s) en las que te equivocaste en tu intento anterior.
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            <Label className="text-base font-semibold">Orden de las preguntas</Label>
+                            <RadioGroup value={studyOrder} onValueChange={(v: any) => setStudyOrder(v)}>
+                                <div className="flex flex-col gap-2">
+                                    <label className={cn(
+                                        "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
+                                        studyOrder === 'random' ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                                    )}>
+                                        <RadioGroupItem value="random" className="sr-only" />
+                                        <div className={cn(
+                                            "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                            studyOrder === 'random' ? "border-primary" : "border-muted-foreground"
+                                        )}>
+                                            {studyOrder === 'random' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                        </div>
+                                        <span>Al azar</span>
+                                    </label>
+                                    <label className={cn(
+                                        "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
+                                        studyOrder === 'sequential' ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                                    )}>
+                                        <RadioGroupItem value="sequential" className="sr-only" />
+                                        <div className={cn(
+                                            "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                            studyOrder === 'sequential' ? "border-primary" : "border-muted-foreground"
+                                        )}>
+                                            {studyOrder === 'sequential' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                        </div>
+                                        <span>Orden original (secuencial)</span>
+                                    </label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+
+                        <div className="flex flex-col gap-3 pt-2">
+                            {savedWrongIds.length > 0 && (
+                                <Button 
+                                    className="bg-gradient-to-r from-neon-cyan to-neon-purple hover:opacity-90"
+                                    onClick={() => {
+                                        if (pendingStudyDeck) startStudy(pendingStudyDeck, savedWrongIds, studyOrder);
+                                    }}
+                                >
+                                    Repasar mis errores ({savedWrongIds.length})
+                                </Button>
+                            )}
+                            <Button 
+                                variant={savedWrongIds.length > 0 ? "outline" : "default"}
+                                className={savedWrongIds.length === 0 ? "bg-gradient-to-r from-neon-cyan to-neon-purple hover:opacity-90" : ""}
+                                onClick={() => {
+                                    if (pendingStudyDeck) startStudy(pendingStudyDeck, [], studyOrder);
+                                }}
+                            >
+                                {savedWrongIds.length > 0 ? "Empezar de nuevo (Todas)" : "Comenzar Práctica"}
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
