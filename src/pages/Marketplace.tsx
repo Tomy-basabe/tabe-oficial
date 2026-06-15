@@ -238,12 +238,20 @@ export default function Marketplace() {
           </div>
 
           {item.creator && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4 pb-4 border-b border-border">
-              <User className="w-3 h-3" />
-              <span className="truncate flex-1">
-                {item.creator.nombre || item.creator.username || `#${item.creator.display_id}`}
-              </span>
-              <Badge variant="outline" className="text-[10px]">Nv. {item.creator.nivel}</Badge>
+            <div className="flex flex-col gap-1 mb-4 pb-4 border-b border-border">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <User className="w-3 h-3" />
+                <span className="truncate flex-1">
+                  {item.creator.nombre || item.creator.username || `#${item.creator.display_id}`}
+                </span>
+                <Badge variant="outline" className="text-[10px]">Nv. {item.creator.nivel}</Badge>
+              </div>
+              {item.creator.carrera && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground ml-5">
+                  <GraduationCap className="w-3 h-3" />
+                  <span className="truncate">{item.creator.carrera}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -422,7 +430,7 @@ export default function Marketplace() {
       {/* Import Modal Specially for Decks and Apuntes (needs subject) */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>Importar {importingResource?.type === 'deck' ? 'Mazo' : 'Apunte'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Importar {importingResource?.type === 'deck' ? 'Mazo' : importingResource?.type === 'quiz' ? 'Cuestionario' : 'Apunte'}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             <Select value={selectedSubject} onValueChange={setSelectedSubject}>
               <SelectTrigger><SelectValue placeholder="Seleccionar materia (Opcional para apuntes)" /></SelectTrigger>
@@ -431,7 +439,7 @@ export default function Marketplace() {
               </SelectContent>
             </Select>
             <Button className="w-full" onClick={handleImport} disabled={importing || (importingResource?.type === 'deck' && !selectedSubject)}>
-                {importing ? "Importando..." : `Importar ${importingResource?.type === 'deck' ? 'Mazo' : 'Apunte'}`}
+                {importing ? "Importando..." : `Importar ${importingResource?.type === 'deck' ? 'Mazo' : importingResource?.type === 'quiz' ? 'Cuestionario' : 'Apunte'}`}
             </Button>
           </div>
         </DialogContent>
