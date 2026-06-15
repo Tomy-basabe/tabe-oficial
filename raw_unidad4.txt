@@ -1,0 +1,239 @@
+1. ¿Cómo viajan los paquetes en la conmutación de paquetes con datagramas?
+- Solo en enlaces dedicados.
+- Sin encabezado.
+* Pueden tomar diferentes rutas.
+- Siempre por la misma ruta.
+
+2. En datagramas, ¿Qué puede ocurrir con los paquetes?
+- Siempre llegan completos.
+- Siempre llegan en orden.
+- No contienen dirección.
+* Pueden llegar desordenados o perderse.
+
+3. ¿Cuál de las siguientes características corresponde a la conmutación de circuitos?
+- Transmisión asincrónica.
+- Compartición dinámica de recursos.
+* Canal dedicado durante toda la comunicación.
+- Enrutamiento por paquetes.
+
+4. ¿Qué protocolo utiliza codificación Manchester?
+- RS-232.
+* Ethernet.
+- TCP/IP.
+- HTTP.
+
+5. ¿Cuál es el objetivo del mecanismo de sustitución de secuencias en el código HDB-3?
+- Simplificar el diseño del receptor.
+- Reducir la cantidad de bits transmitidos.
+- Incrementar la potencia de transmisión.
+* Mantener la sincronización evitando largas secuencias sin cambios de nivel.
+
+6. ¿Cuál es una desventaja de la conmutación de circuitos?
+- Falta de seguridad.
+* Uso ineficiente del ancho de banda en silencio.
+- Complejidad en protocolos.
+- Alta latencia inicial.
+
+7. ¿Cuál es una característica de los circuitos virtuales?
+- No usan encabezados.
+* Los paquetes llegan en orden.
+- No necesitan establecimiento previo de una ruta virtual.
+- No hay control de conexión.
+
+8. ¿Qué técnica se utiliza en sistemas de fibra óptica a 1000 Mbps?
+- NRZ.
+- 4B/5B.
+- AMI.
+* 8B/10B.
+
+9. ¿Cuál es la función principal de un sistema de conmutación en redes?
+- Codificar datos.
+* Conectar usuarios entre sí correctamente.
+- Amplificar señales.
+- Reducir el ruido.
+
+10. ¿Qué propiedad de un código de línea permite recuperar el reloj del sistema?
+- Transparencia.
+* Auto sincronización.
+- Redundancia.
+- Eficiencia.
+
+11. ¿Qué condición debe cumplir un código de linea eficiente?
+- Amplio espectro de energía.
+* Espectro de energía reducido y adecuado.
+- Uso de múltiples canales.
+- Alta componente continua.
+
+12. ¿Qué caracteriza al código MLT-3?
+- Un solo nivel
+- Uso exclusivo en audio.
+- Dos niveles de tensión
+* Se utilizó en redes LAN de 100Mbps.
+
+13. ¿Cuál es la función principal de los códigos de línea en un sistema de comunicaciones digitales?
+- Detectar errores en la transmisión.
+- Comprimir la información.
+- Corregir errores en ráfaga.
+* Convertir bits en señales físicas para transmisión.
+
+14. ¿Cuál es la principal mejora de la conmutación de paquetes respecto a la de mensajes?
+- Elimina la encapsulación.
+- Usa canales dedicados.
+- No usa protocolos.
+* Se dividió los mensajes en paquetes.
+
+15. ¿Cuántos niveles de tensión tiene un código bipolar?
+- 1
+- 2
+* 3
+- 4
+
+16. ¿Qué sucede en el destino en conmutación por paquetes?
+- Se retransmiten siempre.
+- Se comprimen.
+- Se descartan datos.
+* Se ensamblan los paquetes.
+
+17. ¿Cuál es la principal limitación del código AMI?
+- Baja velocidad.
+* Pérdida de sincronismo con secuencias largas de ceros.
+- Alto nivel de continua.
+- Complejidad de implementación.
+
+18. ¿Qué es el encapsulamiento en el modelo OSI?
+* Agregar información de control por capas.
+- Eliminar cabeceras.
+- Codificar señales.
+- Comprimir datos.
+
+19. ¿Qué tipo de código se utiliza comúnmente en memorias RAM para corrección de errores?
+- Manchester.
+- Reed-Solomon.
+* Hamming.
+- NRZ.
+
+20. ¿Cuál es una desventaja de la conmutación de paquetes?
+- No permite múltiples usuarios.
+- No permite transmisión.
+- Alto costo.
+* Posible pérdida de paquetes.
+
+21. ¿Qué códigos pertenecen a la categoría bipolar?
+- 4B/5B y 8B/10B.
+* AMI y HDB-3.
+- NRZ y RZ.
+- Manchester y MLT-3.
+
+22. ¿Qué técnica corresponde a un modelo no orientado a conexión?
+- Multiplexación.
+- Circuitos virtuales.
+- Conmutación de circuitos.
+* Datagramas.
+
+23. ¿Qué aspecto afecta directamente la elección del código de línea?
+- Dirección IP.
+- Capacidad de almacenamiento.
+* Sincronización entre emisor y receptor.
+- Tipo de protocolo de aplicación.
+
+24. ¿Qué hace el código 4B/5B?
+* Sustituye bloques de 4 bits por 5 bits.
+- Codifica señales analógicas.
+- Reduce bits redundantes.
+- Elimina errores completamente.
+
+25. ¿Cuál es el principio fundamental de MPLS?
+* Rutear en bordes y conmutar en núcleo.
+- Usar solo circuitos físicos.
+- Rutear en núcleo y conmutar en bordes.
+- Transmitir sin encabezado.
+
+26. ¿Qué representa la transparencia en un código de linea?
+* Independencia respecto a la secuencia de bits.
+- Alta redundancia.
+- Simetría espectral.
+- Baja atenuación.
+
+27. ¿Cuál es el objetivo principal del uso de 4B/5B?
+* Evitar largas secuencias de ceros.
+- Disminuir la velocidad de transmisión.
+- Simplificar el hardware.
+- Reducir la potencia transmitida.
+
+28. ¿Qué ocurre con el canal en la conmutación de circuitos al finalizar la comunicación?
+- Se convierte en paquete.
+* Se reutiliza para otro usuario.
+- Se rompe fisicamente.
+- Se pierde.
+
+29. ¿Quién es responsable de ordenar los paquetes en datagramas?
+* El receptor.
+- El switch.
+- El nodo intermedio.
+- El transmisor.
+
+30. ¿Cómo se interpreta un "1" en código Manchester?
+* Transición en la mitad del periodo de bit.
+- Nivel alto constante.
+- Nivel bajo constante.
+- Ausencia de señal.
+
+31. ¿Qué se busca al minimizar el nivel de continua en un código de línea?
+- Reducir el ancho de banda.
+- Aumentar la velocidad.
+- Mejorar la compresión
+* El objetivo es evitar una interpretación errónea por cambio de nivel, que genere un dato erróneo.
+
+32. ¿Cuál es una desventaja del código NRZ?
+- Alto consumo de ancho de banda.
+- Exceso de transiciones.
+* Dificultad de sincronización en largas secuencias de bits iguales.
+- Baja eficiencia energética.
+
+33. ¿Qué limitación presenta la conmutación de mensajes?
+- Canal dedicado.
+- Necesidad de sincronismo.
+- Bajo alcance.
+* Tamaño limitado por buffer.
+
+34. ¿Qué describe el modelo OSI en redes?
+- Tipos de cables.
+* Proceso de encapsulamiento en capas.
+- Diseño de hardware.
+- Protocolo único.
+
+35. En la conmutación de mensajes, ¿Qué ocurre en cada nodo intermedio?
+* Se almacena en un buffer y espera turno.
+- Se amplifica la señal.
+- Se eliminan bits erróneos.
+- Se descarta el mensaje.
+
+36. ¿Qué requisito debe cumplir un sistema de conmutación respecto al usuario?
+* Ser transparente.
+- Ser económico.
+- Ser manual.
+- Ser visible y configurable.
+
+37. ¿Cuál es la función principal de los códigos de bloque?
+- Modular señales.
+- Multiplexar datos.
+- Aumentar la frecuencia de transmisión.
+* Detectar y corregir errores.
+
+38. ¿Qué tipo de código tiene sólo un nivel de tensión (+ o -)?
+- Bipolar.
+* Unipolar.
+- Manchester.
+- Polar.
+
+39. ¿Cuál es una ventaja de la conmutación de paquetes?
+* Uso eficiente del ancho de banda.
+- Latencia constante.
+- Canal exclusivo.
+- No requiere control.
+
+40. ¿Qué característica define a la conmutación de mensajes?
+- Transmisión en tiempo real.
+* Envío completo del mensaje a cada nodo.
+- Canal dedicado.
+- División en paquetes.
