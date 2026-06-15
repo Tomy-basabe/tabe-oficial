@@ -1,0 +1,537 @@
+1. ¿Cuál de las siguientes afirmaciones sobre el muestreo es correcta?
+- Elimina el error de cuantificación.
+- Es continuo en tiempo.
+- Es discreto en amplitud.
+* Es discreto en tiempo.
+
+2. La relación correcta entre bits y símbolos es:
+- M=2N
+- M=log2(N)
+- N=M^2
+* N=log2(M)
+
+3. Para una señal con frecuencia máxima de 5 kHz, ¿Cuál es la frecuencia mínima de muestreo?
+- fs=7,5 kHz
+- fs=5 kHz
+* fs=10 kHz
+- fs=2,5 kHz
+
+4. ¿Cuál es el objetivo de la cuantificación?
+* Asignar valores discretos de amplitud a las muestras.
+- Filtrar ruido.
+- Determinar la frecuencia de muestreo.
+- Transmitir la señal.
+
+5. ¿Cuál es el objetivo principal de la digitalización de una señal analógica?
+- Eliminar el ruido completamente.
+- Reducir la frecuencia de la señal.
+- Incrementar la amplitud de la señal.
+* Facilitar su transmisión y procesamiento en sistemas digitales.
+
+6. ¿Qué ocurre si se muestrea una señal por debajo de la frecuencia de Nyquist?
+- Mejora la calidad de la señal.
+- No hay efecto significativo.
+- Se reduce el ancho de banda.
+* Aparece aliasing.
+
+7. ¿Qué eje representa la componente en cuadratura?
+* Q
+- R
+- F
+
+8. ¿Cuál es el orden correcto de las etapas en un sistema PCM?
+- Muestreo - Codificación - Cuantificación.
+- Codificación - Muestreo - Cuantificación.
+* Muestreo - Cuantificación - Codificación.
+- Cuantificación - Codificación - Muestreo.
+
+9. En codificación M-aria, M representa:
+* El número de estados o símbolos.
+- La tasa de bits.
+- El ancho de banda.
+- La frecuencia portadora.
+
+10. ¿Qué condición debe cumplir una señal para poder aplicarle el teorema de Nyquist?
+* Ser de banda espectral finita.
+- Ser digital.
+- Tener ancho de banda infinito.
+- Ser periódica.
+
+11. ¿Cuál es la principal diferencia entre modulación analógica y digital?
+* La naturaleza de la señal modulante.
+- El medio de transmisión.
+- El ancho de banda requerido.
+- El tipo de portadora utilizada.
+
+12. ¿Cuáles son las tres etapas fundamentales del proceso PCM?
+* Muestreo, cuantificación y codificación.
+- Filtrado, muestreo y reconstrucción.
+- Modulación, codificación y transmisión.
+- Muestreo, filtrado, amplificación.
+
+13. ¿Qué dispositivo realiza la multiplexación?
+- Modulador.
+- Codificador.
+* Multiplexor.
+- Oscilador.
+
+14. ¿Qué técnica divide el medio en múltiples caminos físicos?
+* SDM.
+- CDM.
+- TDM.
+- FDM.
+
+15. El sincronismo en TDM es necesario para:
+- Aumentar potencia.
+- Cambiar la modulación.
+* Identificar correctamente cada canal.
+- Reducir ruido.
+
+16. En TDM, cada canal utiliza:
+- Solo una portadora.
+- Cromatismo del canal.
+- Una frecuencia fija.
+* Todo el ancho de banda durante un intervalo de tiempo.
+
+17. ¿Cuántos niveles de amplitud tiene 8QAM?
+- 4
+* 2
+- 1
+
+18. En 8-PSK, el número de bits por símbolo es:
+- 2
+- 4
+* 3
+- 8
+
+19. ¿Cuál es una desventaja de las modulaciones de orden alto?
+* Mayor sensibilidad al ruido.
+- Menor tasa de datos.
+- Menor eficiencia espectral.
+- Mayor ancho de banda.
+
+20. En modulación multinivel, la principal ganancia es:
+- Reducción de ruido.
+- Mayor robustez.
+* Mayor eficiencia espectral.
+- Reducción de la tasa de bits.
+
+21. ¿Qué magnitud está directamente relacionada con la tasa binaria en PCM?
+- Fase de la señal.
+- Tipo de canal.
+- Amplitud máxima.
+* Número de bits por muestra y frecuencia de muestreo.
+
+22. La relación general entre tasa de bits y tasa de baudios es:
+- fb=Bd^2
+- fb=Bd/M
+* fb=Bd * log2(M)
+- fb=Bd/log2(M)
+
+23. ¿Qué establece el teorema de Nyquist?
+- El error de cuantificación debe ser mínimo.
+- La señal debe ser periódica.
+* La frecuencia de muestreo debe ser al menos el doble de la máxima frecuencia de la señal.
+- La señal debe ser continua.
+
+24. En un sistema FSK binario, el parámetro fundamental que diferencia los símbolos transmitidos es:
+* La frecuencia asignada a cada estado binario.
+- El ancho de banda del canal.
+- La amplitud instantánea de la señal.
+- La fase inicial de la portadora.
+
+25. PSK requiere en el receptor:
+* Sincronización de fase.
+- Conversión óptica.
+- Detección de amplitud.
+- Amplificación no lineal.
+
+26. La principal ventaja del TDM digital frente al analógico es:
+- Mayor consumo.
+- Menor velocidad.
+* Mayor inmunidad al ruido.
+- Menor capacidad.
+
+27. El aumento del orden de modulación implica:
+- Mayor margen de ruido.
+* Mayor eficiencia espectral.
+- Mayor simplicidad del receptor.
+- Menor sensibilidad al ruido.
+
+28. ¿Qué dispositivo permite convertir una señal analógica en digital?
+- Codificador de línea.
+- Conversor D/A.
+- Modulador AM.
+* Conversor A/D.
+
+29. Desde el punto de vista de ingeniería, la elección de la modulación depende principalmente de:
+- La frecuencia portadora.
+* La relación señal/ruido del canal.
+- El número de usuarios.
+- El tipo de antena.
+
+30. ¿Qué es la tasa de baudios?
+- Frecuencia de la portadora.
+* Cambios de símbolo por segundo.
+- Bits transmitidos por segundo.
+- Ancho de banda del canal.
+
+31. TDMA es equivalente a:
+- Modulación digital.
+- Multiplexación en frecuencia.
+* Multiplexación en tiempo aplicada a usuarios.
+- Multiplexación en código.
+
+32. La cuantificación en PCM es un proceso:
+- Continuo en tiempo.
+* Discreto en amplitud.
+- Analógico.
+- Continuo en amplitud.
+
+33. En un sistema de modulación digital multinivel, reducir la tasa de baudios manteniendo constante la tasa de bits implica necesariamente:
+- Reducir el ancho de banda del canal.
+- Disminuir la relación señal/ruido requerida.
+- Aumentar la frecuencia portadora.
+* Incrementar el número de bits por símbolo.
+
+34. ¿Cuál es la función principal de la codificación?
+- Ajustar la frecuencia de muestreo.
+* Transformar los niveles cuantificados en bits.
+- Filtrar la señal.
+- Reducir el error de cuantificación.
+
+35. ¿Cuál es la principal consecuencia de no cumplir el teorema de Nyquist?
+- Error de codificación.
+- Pérdida de bits.
+- Saturación.
+* Distorsión por aliasing.
+
+36. La técnica PCM se utiliza en TDM para:
+- Modulación analógica.
+* Codificar muestras en forma binaria.
+- Filtrar señales.
+- Multiplexar frecuencias.
+
+37. En 4QAM, se modula:
+* Fase y amplitud.
+- Solo amplitud.
+- Frecuencia y fase.
+- Solo fase.
+
+38. En el sistema PCM 30+2, el total de canales por trama es:
+- 64.
+- 30.
+- 31.
+* 32.
+
+39. ¿Cuál es el objetivo principal de la multiplexación?
+- Reducir la potencia de transmisión.
+- Eliminar la modulación.
+* Transmitir múltiples señales en un mismo medio.
+- Aumentar el ruido del canal.
+
+40. ¿Qué parámetro se modifica en ASK binaria?
+- La frecuencia.
+- La fase.
+- El ancho de banda.
+* La amplitud.
+
+41. ¿Cuál es el impacto de aumentar la frecuencia de muestreo?
+- Aumenta la distorsión.
+* Se incrementa la tasa de bits.
+- Disminuye la fidelidad.
+- Se pierde información.
+
+42. En FSK binaria, la información se codifica mediante:
+- Cambios de polarización.
+* Cambios discretos de frecuencia.
+- Cambios de fase.
+- Cambios de amplitud.
+
+43. En 16QAM, el número de bits por símbolo es:
+- 16
+* 4
+- 3
+- 5
+
+44. ¿Qué indica una mayor distancia entre puntos en la constelación?
+- Mayor ancho de banda.
+- Mayor tasa de bits.
+* Mayor margen de ruido.
+- Menor eficiencia espectral.
+
+45. ¿Cómo se define la frecuencia de muestreo fs?
+- fs=fmax/2
+* fs=1/Ts
+- fs=2Ts
+- fs=Ts
+
+46. Los 2 canales adicionales en PCM 30+2 corresponden a:
+* Señalización y sincronismo.
+- Datos e imagen.
+- Audio y video.
+- Frecuencia y fase.
+
+47. ¿Cuál es el principal objetivo de emplear modulación QAM frente a sistemas PSK de igual orden M?
+- Reducir la tasa de bits.
+* Mejorar el compromiso entre eficiencia espectral y margen de ruido.
+- Eliminar la necesidad de sincronización de fase.
+- Simplificar el diseño del transmisor.
+
+48. ¿Cuál es el compromiso fundamental al aumentar el orden de QAM?
+- Mayor ancho de banda.
+* Mayor sensibilidad al ruido.
+- Menor complejidad.
+- Menor tasa de datos.
+
+49. La cuantificación introduce un tipo de ruido denominado:
+- Ruido impulsivo
+- Interferencia
+- Ruido térmico
+* Ruido de cuantificación
+
+50. ¿Qué código de línea suele emplearse en sistemas TDM digitales?
+- AM.
+- FM.
+* HDB3.
+- NRZ.
+
+51. ¿Qué etapa del PCM produce un flujo binario?
+- Cuantificación.
+* Codificación.
+- Filtrado.
+- Muestreo.
+
+52. ¿Qué etapa del PCM define principalmente la calidad de reconstrucción de la señal?
+* Muestreo.
+- Modulación.
+- Codificación.
+- Transmisión.
+
+53. ¿Cuál es un uso típico de ASK?
+* RFID y controles remotos.
+- Comunicaciones satelitales.
+- Enlaces de alta velocidad.
+- Redes troncales.
+
+54. ¿Qué modulación ofrece mayor eficiencia espectral?
+- FSK
+- QPSK.
+- BPSK.
+* 64-QAM.
+
+55. ¿Qué sucede con el error de cuantificación al aumentar el número de niveles?
+- Se elimina completamente.
+- No cambia.
+- Aumenta.
+* Disminuye.
+
+56. En TDM, la señal se divide en:
+* Intervalos de tiempo.
+- Longitudes de onda.
+- Códigos.
+- Frecuencias.
+
+57. FSK es especialmente adecuada cuando:
+- Se requiere baja complejidad.
+- Se necesita alta eficiencia espectral.
+- Se minimiza el ancho de banda.
+* El canal tiene mucho ruido.
+
+58. ¿Qué ventaja presenta QAM frente a PSK para un mismo M?
+- Menor tasa de bits.
+- Menor complejidad.
+* Mayor margen de ruido.
+- Menor ancho de banda.
+
+59. ¿Qué representa una palabra de n bits en PCM?
+- Una frecuencia portadora.
+- Una señal analógica.
+- Un período de muestreo.
+* Un valor cuantificado.
+
+60. ¿Qué desventaja característica presentan los sistemas de modulación digital?
+- Baja flexibilidad.
+- Sensibilidad a errores de cuantización.
+* Mayor complejidad de implementación.
+- Ineficiencia espectral.
+
+61. Si se utilizan 8 bits por muestra, ¿Cuántos niveles de cuantificación existen?
+- 8.
+- 16.
+* 256.
+- 128.
+
+62. ¿Qué representa fmax en el teorema de Nyquist?
+- La frecuencia de muestreo.
+- La frecuencia mínima del sistema.
+* La máxima frecuencia presente en la señal.
+- La frecuencia portadora.
+
+63. En modulación digital binaria, cada símbolo representa:
+* Un bit.
+- Dos bits.
+- Un byte.
+- Cuatro bits.
+
+64. ¿Cuál es la función principal del canal de alineación de trama en PCM 30+2?
+- Transportar datos de usuario.
+- Aumentar la velocidad del sistema.
+* Permitir la sincronización entre transmisor y receptor.
+- Transportar voz.
+
+65. ¿Por qué las señales digitales son más convenientes para la transmisión?
+- Son inmunes al ruido.
+- No requieren muestreo.
+* Permiten regeneración y detección de errores.
+- Requieren menos ancho de banda.
+
+66. ¿Qué técnica permite compartir un medio entre usuarios en tiempo?
+- FDMA.
+* TDMA.
+- WDM.
+- CDMA.
+
+67. En FDM se utilizan bandas de guarda para:
+* Evitar interferencias entre canales.
+- Reducir retardo.
+- Aumentar potencia.
+- Sincronizar tramas.
+
+68. Una constelación más dispersa indica:
+- Menor ruido.
+- Mayor potencia.
+- Mejor eficiencia.
+* Presencia de ruido o distorsión.
+
+69. La transmisión en TDM se organiza en:
+- Bytes aislados.
+- Paquetes IP.
+* Tramas.
+- Portadoras.
+
+70. ¿Qué sucede al aumentar el número de bits por muestra?
+- No se cumple la condición de Nyquist.
+* Mejora la resolución en amplitud.
+- Aumenta el error de cuantificación.
+- Disminuye la tasa de bits.
+
+71. El proceso de "desentramado" consiste en:
+- Ajustar la potencia.
+- Modificar la frecuencia.
+* Separar los datos de cada canal.
+- Codificar señales.
+
+72. ¿Qué relación existe entre número de bits y niveles de cuantificación?
+- Los niveles son n/2.
+- Los niveles son iguales al número de bits.
+* Los niveles son 2^n.
+- No existe relación.
+
+73. En un diagrama de constelación, la dispersión angular de los símbolos alrededor del origen es típicamente indicativa de:
+- Atenuación del canal.
+- Ruido aditivo blanco gaussiano.
+- Error de cuantización.
+* Ruido de fase.
+
+74. ¿Qué se entiende por eficiencia espectral?
+- La velocidad de símbolo máxima.
+- La relación señal/ruido.
+* Bits transmitidos por segundo y por Hz.
+- La potencia transmitida por Hz.
+
+75. ¿Qué representa el período de muestreo Ts?
+- La duración de cada bit.
+- El tiempo de cuantificación.
+- El error de cuantificación.
+* El intervalo entre muestras consecutivas.
+
+76. Cada muestra en TDM corresponde a:
+- Un ancho distinto.
+- Una frecuencia distinta.
+* Un canal distinto.
+- Un código distinto.
+
+77. ¿Qué técnica es comúnmente utilizada para digitalizar señales analógicas?
+* PCM.
+- AM.
+- FDM.
+- QAM.
+
+78. Cada trama TDM incluye:
+* Datos, sincronismo y señalización.
+- Solo ruido.
+- Solo datos de usuario.
+- Solo sincronismo.
+
+79. ¿Qué tipo de señal se obtiene luego de la codificación PCM?
+- Continua.
+- Modulada en frecuencia.
+- Analógica.
+* Digital discreta.
+
+80. En QPSK, la tasa de baudios es:
+* La mitad de la tasa de bits.
+- Igual a la tasa de bits.
+- Cuatro veces menor.
+- El doble de la tasa de bits.
+
+81. ¿Qué organismo definió este estándar PCM 30+2 (Trama E1)?
+- IEEE.
+- ANSI.
+* UIT-T.
+- ISO.
+
+82. ¿Qué es el error de cuantificación?
+- Ruido térmico del canal.
+- Diferencia temporal entre muestras.
+- Error en la frecuencia de muestreo.
+* Diferencia entre el valor real y el valor cuantificado.
+
+83. Al aumentar M en PSK:
+* Disminuye el margen de ruido.
+- Aumenta el margen de ruido.
+- Se elimina el ruido de fase.
+- Disminuye la tasa de bits.
+
+84. ¿Cuántos canales se destinan a voz en PCM 30+2?
+- 28.
+- 16.
+* 30.
+- 32.
+
+85. Si un sistema utiliza 16-QAM, cada símbolo transporta:
+* 4 bits.
+- 2 bits.
+- 3 bits.
+- 5 bits.
+
+86. En CDM (CDMA), los usuarios comparten el canal mediante:
+- Frecuencias diferentes.
+- Longitudes de onda.
+- Tiempos diferentes.
+* Códigos diferentes.
+
+87. En QPSK, cada símbolo representa:
+* 2 bits.
+- 4 bits.
+- 3 bits.
+- 1 bit.
+
+88. En FDM, cada canal utiliza:
+- Todo el tiempo y todo el ancho.
+* Una parte del ancho de banda en todo el tiempo.
+- Todo el ancho de banda en un instante.
+- Solo códigos ortogonales.
+
+89. ¿Qué sucede con el área de decisión al aumentar M?
+- Se mantiene.
+* Disminuye.
+- Se vuelve infinita.
+- Aumenta.
+
+90. En CDMA, los usuarios transmiten:
+- En tiempos distintos.
+- En espacios distintos.
+* Simultáneamente con códigos diferentes.
+- En frecuencias distintas.
