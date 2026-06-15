@@ -4,7 +4,8 @@ import {
   Calendar, 
   Timer, 
   Bot, 
-  User
+  User,
+  Gamepad2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,7 @@ export function MobileNavbar() {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Calendar, label: "Calendario", path: "/calendario" },
-    { icon: Timer, label: "Pomodoro", path: "/pomodoro" },
+    { icon: Gamepad2, label: "Juegos", path: "/juegos" },
     { icon: Bot, label: "AI", path: "/TABEAI" },
     { icon: User, label: "Perfil", path: "/configuracion" },
   ];
