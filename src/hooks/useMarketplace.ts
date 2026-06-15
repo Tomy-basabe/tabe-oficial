@@ -165,9 +165,9 @@ export function useMarketplace() {
       const subjectIds = [...new Set(allResources.map(r => r.subject_id).filter(Boolean))];
 
       const [profilesResult, statsResult, subjectsResult] = await Promise.all([
-        supabase.from("profiles").select("user_id, username, display_id, nombre, facultad, carrera").in("user_id", userIds),
-        supabase.from("user_stats").select("user_id, nivel").in("user_id", userIds),
-        supabase.from("subjects").select("id, nombre, año").in("id", subjectIds)
+        userIds.length > 0 ? supabase.from("profiles").select("user_id, username, display_id, nombre, facultad, carrera").in("user_id", userIds) : Promise.resolve({ data: [], error: null }),
+        userIds.length > 0 ? supabase.from("user_stats").select("user_id, nivel").in("user_id", userIds) : Promise.resolve({ data: [], error: null }),
+        subjectIds.length > 0 ? supabase.from("subjects").select("id, nombre, año").in("id", subjectIds) : Promise.resolve({ data: [], error: null })
       ]);
 
       const profileMap = new Map<string, ProfileData>((profilesResult.data || []).map((p: ProfileData) => [p.user_id, p]));
@@ -416,20 +416,20 @@ export function useMarketplace() {
     return { error: null, deckId: newDeck.id };
   };
 
-  const importQuiz = async (sourceQuizId: string, subjectId: string) => {
+  const importQuiz = async (sourceQuizId: string, subjectId: string | null) => {
     if (!user) return { error: "No autenticado" };
 
     const { data: sourceQuiz } = await supabase.from("quiz_decks").select("nombre, description").eq("id", sourceQuizId).single();
     if (!sourceQuiz) return { error: "Cuestionario no encontrado" };
 
-    const { data: sourceQuestions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", sourceQuizId);
+    const { data: sourceQuestions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion, is_multi_select").eq("deck_id", sourceQuizId);
     if (!sourceQuestions || sourceQuestions.length === 0) return { error: "El cuestionario no tiene preguntas" };
 
     const { data: newQuiz, error: quizError } = await supabase
       .from("quiz_decks")
       .insert({
         user_id: user.id,
-        subject_id: subjectId,
+        subject_id: subjectId || null,
         nombre: sourceQuiz.nombre,
         total_questions: sourceQuestions.length
       })
@@ -445,7 +445,8 @@ export function useMarketplace() {
                 user_id: user.id,
                 deck_id: newQuiz.id,
                 pregunta: q.pregunta,
-                explicacion: q.explicacion
+                explicacion: q.explicacion,
+                is_multi_select: q.is_multi_select
             })
             .select()
             .single();
