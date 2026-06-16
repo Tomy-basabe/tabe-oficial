@@ -87,7 +87,14 @@ export default function Quizzes() {
     const [showStudyOptions, setShowStudyOptions] = useState(false);
     const [pendingStudyDeck, setPendingStudyDeck] = useState<QuizDeck | null>(null);
     const [savedWrongIds, setSavedWrongIds] = useState<string[]>([]);
-    const [studyOrder, setStudyOrder] = useState<'random' | 'sequential'>('random');
+    const [studyOrder, setStudyOrder] = useState<'random' | 'sequential'>(() => {
+        const saved = localStorage.getItem('studyOrderPref');
+        return (saved === 'random' || saved === 'sequential') ? saved : 'random';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('studyOrderPref', studyOrder);
+    }, [studyOrder]);
 
     // Study mode state
     const [studyDeck, setStudyDeck] = useState<QuizDeck | null>(null);

@@ -1,0 +1,297 @@
+1. ¿Cuál es la consecuencia principal de una desadaptación de impedancias entre transmisor, línea y receptor en un sistema de transmisión?
+- Mayor ancho de banda.
+- Aumento de potencia.
+* Generación de reflexiones de señal que deterioran la transmisión.
+- Eliminación de ruido.
+
+2. Además de mitigar el ruido electromagnético externo, el trenzado de los pares en cables UTP reduce significativamente un fenómeno que afecta la integridad de múltiples señales simultáneas. ¿Cuál es dicho fenómeno?
+- Desplazamiento de fase.
+- Distorsión de amplitud.
+- Reflexión múltiple.
+* Diafonía entre pares adyacentes.
+
+3. Una de las principales ventajas de la fibra óptica respecto a medios eléctricos es:
+- Baja velocidad.
+- Mayor peso.
+* Inmunidad a interferencias electromagnéticas.
+- Bajo costo.
+
+4. En el comportamiento de la luz al atravesar medios con distinto índice de refracción, ¿qué fenómeno explica el cambio de velocidad y dirección del rayo luminoso?
+- Reflexión.
+- Polarización.
+* Refracción.
+- Difracción.
+
+5. El denominado "cono de aceptación" en fibra óptica representa:
+- La longitud de onda operativa.
+* El rango angular dentro del cual la luz puede ingresar y propagarse correctamente.
+- La potencia máxima de entrada.
+
+6. Los diodos láser presentan ventajas frente a LED debido a:
+- Baja potencia.
+- Bajo costo.
+- Baja coherencia.
+* Alta direccionalidad y control del haz luminoso.
+
+7. En el diseño de redes modernas, la categoría del cable UTP está asociada a sus prestaciones. ¿Qué característica distingue a un cable categoría 6 respecto a categorías inferiores?
+- Mayor diámetro.
+- Menor costo.
+- Uso en telefonía.
+* Capacidad de transmitir hasta 1 Gbps con anchos de banda de hasta 250 MHz.
+
+8. En aplicaciones de banda ancha, el cable coaxial presenta ciertas ventajas operativas. ¿Cuál de las siguientes es correcta?
+- Sin ruido siempre.
+* Transmisión simultánea de múltiples servicios como voz, datos y video.
+- Bajo costo.
+- Sin pérdidas.
+
+9. Desde un punto de vista ingenieril, la clasificación de cables UTP en categorías responde principalmente a:
+- Resistencia mecánica.
+- Longitud máxima.
+* Sus prestaciones eléctricas en términos de frecuencia y velocidad de transmisión.
+- Tipo de aislante.
+
+10. El funcionamiento de la fibra óptica se basa en principios de óptica geométrica. ¿Qué fenómeno físico permite la propagación guiada de la luz dentro del núcleo?
+* Reflexión interna total.
+- Interferencia.
+- Conducción eléctrica.
+- Difracción.
+
+11. Desde el punto de vista de desempeño en telecomunicaciones, la fibra monomodo presenta como principal ventaja:
+- Mayor diámetro.
+* Mayor alcance y menor distorsión de señal.
+- Mayor robustez mecánica.
+- Menor costo de instalación.
+
+12. En la estructura de un cable coaxial, el conductor central (vivo) posee un rol específico en la transmisión. ¿Cuál es su función principal?
+- Es retorno.
+- Actúa como blindaje.
+- Reduce capacitancia.
+* Transportar la señal eléctrica útil.
+
+13. En conexiones de fibra óptica, la desalineación entre núcleos genera:
+* Pérdidas de señal por dispersión y reflexión.
+- Mejora del acoplamiento.
+- Incremento de potencia.
+- Aumento de frecuencia.
+
+14. En líneas de transmisión, la impedancia característica es un parámetro fundamental. ¿Cuál es su correcta interpretación física?
+- Pérdida de potencia.
+* Relación entre tensión y corriente en régimen de propagación de onda.
+- Resistencia en DC.
+- Energía almacenada.
+
+15. En sistemas de fibra óptica de corta distancia (FO multimodo), las fuentes lumínicas utilizadas se caracterizan por:
+- Láser potente.
+- Alta potencia y coherencia.
+- Generación de microondas.
+* Uso de LED o VCSEL de baja potencia.
+
+16. ¿Cuál es la principal diferencia entre GPON y redes punto a punto?
+* GPON comparte fibra mediante arquitectura punto-multipunto.
+- No hay diferencia estructural.
+- GPON requiere más fibras.
+- GPON utiliza fibra exclusiva por usuario.
+
+17. En el contexto de GPON, ¿qué función cumple el encapsulado GEM (GPON Encapsulation Method)?
+- Controlar la potencia óptica de transmisión.
+- Realizar la modulación óptica.
+* Permitir transportar múltiples tipos de tráfico sobre la misma infraestructura.
+- Asignar longitudes de onda dinámicamente.
+
+18. ¿Cuáles son las longitudes de onda típicas utilizadas en GPON?
+- 1310 nm y 1550 nm.
+- 1490 nm y 1610 nm.
+* 1310 nm (upstream) y 1490 nm (downstream).
+- 850 nm y 1310 nm.
+
+19. ¿Qué función cumple la OLT en una red GPON?
+- Es el equipo terminal del usuario.
+- Realiza únicamente funciones de switching local.
+* Actúa como equipo central del operador.
+- Gestiona el acceso inalámbrico.
+
+20. ¿Cuál es la función principal de la ONT/ONU?
+- Multiplexar señales en la OLT.
+- Controlar la red troncal.
+- Administrar múltiples VLANs en el core.
+* Convertir señal óptica a eléctrica para el usuario, entregando los servicios contratados.
+
+21. ¿Cuál es la característica fundamental de una red PON (Passive Optical Network)?
+- Utiliza únicamente transmisión inalámbrica.
+- Requiere amplificadores activos en cada nodo.
+- Es una red punto a punto con enlaces dedicados.
+* No posee elementos activos entre OLT y ONT.
+
+22. En GPON, ¿cómo se transmite la información en el canal descendente (downstream)?
+- En enlaces dedicados por usuario.
+- Mediante TDMA.
+* En modo broadcast.
+- Por multiplexación FDM.
+
+23. Desde el punto de vista de ingeniería de redes, ¿cuál es el principal desafío técnico en una arquitectura GPON compartida?
+- La imposibilidad de implementar QoS.
+- El uso exclusivo de enlaces punto a punto.
+* La gestión eficiente del ancho de banda entre múltiples usuarios.
+- La falta de direccionamiento IP.
+
+24. ¿Cuál es la principal diferencia funcional entre GPON y EPON?
+- EPON utiliza estándares ITU-T mientras que GPON es IEEE.
+- GPON utiliza exclusivamente tráfico ATM.
+* GPON utiliza encapsulado GEM mientras EPON transporta tramas Ethernet nativas.
+- EPON no permite multiplexación.
+
+25. ¿Qué ventaja clave tiene GPON sobre tecnologías xDSL?
+- Uso exclusivo de cobre.
+- Menor costo inicial de instalación.
+* Mayor ancho de banda y distancia.
+- Menor alcance.
+
+26. En un cable coaxial, el dieléctrico influye directamente en el comportamiento eléctrico del sistema. ¿Cuál es su función principal?
+- Reduce frecuencia.
+- Transporta corriente.
+- Amplifica señal.
+* Separar eléctricamente el conductor central del blindaje.
+
+27. En fibras ópticas multimodo, la propagación de la luz presenta una característica distintiva. ¿Cuál es?
+- Sin reflexión.
+- Un solo modo.
+- Propagación uniforme.
+* Múltiples trayectorias de propagación dentro del núcleo.
+
+28. El conector LC es ampliamente utilizado en sistemas modernos debido a:
+* Alta densidad y tamaño compacto.
+- Uso coaxial.
+- Gran tamaño.
+- Conexión roscada.
+
+29. En contraposición a la multimodo, la fibra monomodo se caracteriza por:
+* Propagación de un único modo con mínima dispersión.
+- Múltiples trayectorias.
+- Alta dispersión.
+- Núcleo grande.
+
+30. En el contexto de los sistemas de comunicaciones, los medios de transmisión guiados se caracterizan por ofrecer un camino físico confinado para la señal. ¿Cuál de las siguientes afirmaciones describe correctamente este tipo de medios desde el punto de vista físico y funcional?
+- Transmiten señales sin soporte físico mediante ondas radiadas.
+- La propagación depende exclusivamente de condiciones atmosféricas.
+- Solo pueden transportar señales analógicas.
+* La señal es guiada a través de un soporte material definido entre emisor y receptor.
+
+31. En un cable de par trenzado sin blindaje (UTP), el trenzado de los conductores cumple una función fundamental en la calidad de la señal. ¿Cuál es el principio físico que explica esta mejora?
+- Aumento de resistencia.
+- Amplificación de señal.
+- Incremento de capacitancia.
+* Cancelación de tensiones inducidas por interferencias externas.
+
+32. Considerando la clasificación de los medios de transmisión, ¿cuál de los siguientes corresponde a un medio guiado en el que la energía se transmite predominantemente como corriente eléctrica o campo electromagnético confinado?
+- Enlace satelital.
+- Microondas.
+- Comunicación por radiofrecuencia.
+* Cable coaxial.
+
+33. La dispersión modal en fibras multimodo tiene como consecuencia directa:
+- Incremento de potencia.
+- Reducción de longitud de onda.
+- Mayor frecuencia.
+* Ensanchamiento de los pulsos transmitidos.
+
+34. Desde el punto de vista electromagnético, la malla metálica en un cable coaxial cumple la función de:
+- Generar señal.
+- Aumentar velocidad.
+* Confinar el campo electromagnético y proteger contra interferencias externas.
+- Actuar como dieléctrico.
+
+35. ¿Cuál es la principal ventaja del uso de splitters en redes GPON?
+- Filtran el ruido del canal.
+- Amplifican la señal óptica.
+- Permiten multiplexación temporal.
+* Permiten compartir una fibra entre múltiples usuarios.
+
+36. ¿Cuál es el rango típico de alcance físico máximo en GPON?
+- 1 km.
+* 20 km.
+- 5 km.
+- 100 km.
+
+37. ¿Cuál es el ratio de división típico (split ratio) en GPON?
+- 1:16 máximo.
+* 1:64 o incluso 1:128.
+- 1:8 exclusivamente.
+- 1:32 únicamente.
+
+38. ¿Qué servicio NO es típicamente soportado por GPON?
+- IPTV.
+- Telefonía IP.
+* Radiodifusión analógica exclusiva.
+- Internet.
+
+39. ¿Cuál es la velocidad downstream más común en GPON?
+- 155 Mbps.
+- 1.25 Gbps.
+- 622 Mbps.
+* 2.488 Gbps.
+
+40. En una arquitectura PON, el elemento encargado de dividir la señal óptica es:
+* Splitter óptico.
+- Switch Ethernet.
+- Router.
+- Amplificador.
+
+41. Para que se produzca el fenómeno de reflexión interna total en una fibra óptica, es necesario que:
+* El índice de refracción del núcleo sea mayor que el del revestimiento.
+- La frecuencia sea elevada.
+- El índice del revestimiento sea mayor.
+- No haya diferencia de índices.
+
+42. El comportamiento de la atenuación en función de la frecuencia en un cable coaxial responde a fenómenos físicos del material. ¿Cómo se comporta dicha relación?
+- Disminuye.
+* Aumenta con la frecuencia debido a pérdidas resistivas y dieléctricas.
+- Es nula.
+- Constante.
+
+43. En el análisis de líneas coaxiales, la atenuación es un parámetro crítico. ¿Cómo se define correctamente?
+* Pérdida de potencia de la señal a lo largo del medio.
+- Ruido.
+- Ganancia.
+- Cambio de fase.
+
+44. La ventana óptica de 850 nm se utiliza típicamente en:
+* Redes LAN con fibra multimodo.
+- Redes troncales.
+- Satélite.
+- Enlaces de larga distancia.
+
+45. La velocidad de propagación de una señal en un cable coaxial se expresa como:
+- Voltaje.
+* Relación porcentual respecto a la velocidad de la luz en el vacío.
+- m/s absolutos.
+- Hz.
+
+46. Desde el punto de vista de implementación, una desventaja relevante de la fibra óptica es:
+- Baja capacidad.
+- Sensibilidad al ruido eléctrico.
+* Alto costo y complejidad en instalación y empalme.
+
+47. ¿Qué técnica permite la transmisión bidireccional en una sola fibra en GPON?
+* WDM.
+- CDMA.
+- FDM.
+- TDMA.
+
+48. En el canal ascendente (upstream) de GPON, se utiliza:
+- CDMA.
+- Broadcast.
+* TDMA.
+- WDM exclusivo.
+
+49. ¿Para qué se utiliza el protocolo OMCI en GPON?
+- Realizar multiplexación WDM.
+* Controlar y gestionar las ONT desde la OLT.
+- Transmitir voz IP.
+- Encriptar datos.
+
+50. ¿Cómo impacta el uso de splitters en el presupuesto (cálculo) de potencia de un enlace GPON?
+- Reduce la dispersión cromática.
+- Mejora la potencia recibida al amplificar la señal.
+- No afecta el balance de potencia.
+* Introduce pérdidas significativas que deben ser compensadas en el diseño.
