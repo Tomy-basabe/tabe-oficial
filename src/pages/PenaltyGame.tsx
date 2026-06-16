@@ -394,7 +394,7 @@ export default function PenaltyGame() {
                   fill="none"
                   stroke="url(#gradient)"
                   strokeWidth="2"
-                  strokeDasharray={`${(timeLeft / 14) * 100}, 100`}
+                  strokeDasharray={`${(timeLeft / 15) * 100}, 100`}
                   strokeLinecap="round"
                 />
                 <defs>

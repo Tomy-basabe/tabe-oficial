@@ -1,16 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Zap, Trophy, Swords, Shield, Heart, Flame } from "lucide-react";
+import { ArrowLeft, Zap, Trophy, Swords, Shield, Heart, Flame, Gamepad2, Loader2, Bot, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGames } from "@/hooks/useGames";
+import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { supabase } from "@/integrations/supabase/client";
+import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { cn } from "@/lib/utils";
 
 interface QuizDeck { id: string; nombre: string; total_questions: number; }
 interface QuizQuestion { id: string; pregunta: string; explicacion: string | null; options: { id: string; texto: string; es_correcta: boolean }[]; }
-type GamePhase = "select_deck" | "battle" | "result";
+type GamePhase = "select_deck" | "searching" | "battle" | "result";
 type AttackType = "quick" | "strong" | "magic";
 
 function HPBar({ current, max, color, label }: { current: number; max: number; color: string; label: string }) {
@@ -41,22 +44,17 @@ function PlayerCharacter({ hp, maxHp, shake }: { hp: number; maxHp: number; shak
             <stop offset="100%" stopColor="#8b5cf6" />
           </linearGradient>
         </defs>
-        {/* Shield aura */}
         <circle cx="50" cy="60" r="45" fill="none" stroke="url(#playerGlow)" strokeWidth="1.5" opacity={hp / maxHp} />
-        {/* Body */}
         <rect x="30" y="50" width="40" height="55" rx="8" fill="#0f172a" stroke="#22d3ee" strokeWidth="2" />
         <line x1="42" y1="55" x2="42" y2="95" stroke="#22d3ee" strokeWidth="1" opacity="0.3" />
         <line x1="58" y1="55" x2="58" y2="95" stroke="#22d3ee" strokeWidth="1" opacity="0.3" />
-        {/* Head */}
         <circle cx="50" cy="35" r="20" fill="#1e293b" stroke="#22d3ee" strokeWidth="2" />
         <rect x="38" y="28" width="24" height="8" rx="4" fill="#0ea5e9" />
         <rect x="40" y="30" width="8" height="4" rx="2" fill="#bae6fd" />
         <rect x="52" y="30" width="8" height="4" rx="2" fill="#bae6fd" />
-        {/* Sword */}
         <rect x="72" y="40" width="4" height="45" rx="2" fill="#94a3b8" />
         <rect x="66" y="42" width="16" height="4" rx="2" fill="#64748b" />
         <polygon points="74,40 80,25 68,25" fill="#e2e8f0" />
-        {/* Shoulder pads */}
         <ellipse cx="28" cy="55" rx="10" ry="8" fill="#0284c7" stroke="#22d3ee" strokeWidth="1" />
         <ellipse cx="72" cy="55" rx="10" ry="8" fill="#0284c7" stroke="#22d3ee" strokeWidth="1" />
       </svg>
@@ -75,22 +73,17 @@ function BotCharacter({ hp, maxHp, shake }: { hp: number; maxHp: number; shake: 
           </linearGradient>
         </defs>
         <circle cx="50" cy="60" r="45" fill="none" stroke="url(#botGlow)" strokeWidth="1.5" opacity={hp / maxHp} />
-        {/* Body - Demon/Dark knight */}
         <path d="M 25 55 L 75 55 L 68 110 L 32 110 Z" fill="#1a0a0a" stroke="#ef4444" strokeWidth="2" />
         <line x1="50" y1="60" x2="50" y2="105" stroke="#ef4444" strokeWidth="1" opacity="0.4" />
-        {/* Head - Horned helmet */}
         <circle cx="50" cy="35" r="20" fill="#2a0a0a" stroke="#ef4444" strokeWidth="2" />
         <polygon points="30,25 25,5 35,20" fill="#ef4444" />
         <polygon points="70,25 75,5 65,20" fill="#ef4444" />
-        {/* Evil eyes */}
         <rect x="38" y="28" width="10" height="6" rx="2" fill="#ef4444" />
         <rect x="52" y="28" width="10" height="6" rx="2" fill="#ef4444" />
         <rect x="40" y="30" width="6" height="3" rx="1" fill="#fca5a5" />
         <rect x="54" y="30" width="6" height="3" rx="1" fill="#fca5a5" />
-        {/* Dark axe */}
         <rect x="5" y="30" width="4" height="50" rx="2" fill="#78350f" />
         <path d="M 0 30 Q 8 15 16 30 L 9 35 Z" fill="#7f1d1d" stroke="#ef4444" strokeWidth="1" />
-        {/* Spiky shoulders */}
         <polygon points="25,55 10,45 20,65" fill="#7f1d1d" stroke="#ef4444" strokeWidth="1" />
         <polygon points="75,55 90,45 80,65" fill="#7f1d1d" stroke="#ef4444" strokeWidth="1" />
       </svg>
@@ -101,6 +94,12 @@ function BotCharacter({ hp, maxHp, shake }: { hp: number; maxHp: number; shake: 
 export default function RPGBattleGame() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { userCarrera, submitCareerRequest, updateUserCarrera } = useGames();
+  const { status, matchId, opponentName, timeLeft: searchTimeLeft, joinQueue, leaveQueue, setStatus, setMatchId } = useMatchmaking();
+
+  // Career modal
+  const [showCareerModal, setShowCareerModal] = useState(false);
+
   const [decks, setDecks] = useState<QuizDeck[]>([]);
   const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>("select_deck");
@@ -119,11 +118,85 @@ export default function RPGBattleGame() {
   const [isMyTurn, setIsMyTurn] = useState(true);
   const [winner, setWinner] = useState<"player" | "bot" | null>(null);
 
+  // Online state
+  const [isOnline, setIsOnline] = useState(false);
+  const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const channelRef = useRef<any>(null);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("quiz_decks").select("id, nombre, total_questions").eq("user_id", user.id).gt("total_questions", 0)
       .then(({ data }) => { if (data) setDecks(data as unknown as QuizDeck[]); });
   }, [user]);
+
+  // Handle matchmaking status changes
+  useEffect(() => {
+    if (status === 'found') {
+      setIsOnline(true);
+      setupOnlineMatch();
+    } else if (status === 'bot') {
+      setIsOnline(false);
+      startBattle();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const setupOnlineMatch = async () => {
+    if (!matchId || !user) return;
+    const { data } = await supabase.from("game_matches" as any).select("player1_id").eq("id", matchId).single();
+    const amPlayer1 = data && (data as any).player1_id === user.id;
+
+    const channel = supabase.channel(`rpg_match_${matchId}`, {
+      config: { broadcast: { self: false } }
+    });
+
+    channel.on("broadcast", { event: "rpg_attack" }, ({ payload }) => {
+      // Opponent attacked us
+      const { damage, attackName, missed } = payload;
+      if (missed) {
+        setBattleLog(prev => [...prev, `🛡️ ¡Bloqueaste el ${attackName} del rival!`]);
+      } else {
+        setShakePlayer(true);
+        setTimeout(() => setShakePlayer(false), 400);
+        setMyHP(prev => {
+          const next = Math.max(prev - damage, 0);
+          if (next <= 0) {
+            setWinner("bot");
+            setGamePhase("result");
+          }
+          return next;
+        });
+        setBattleLog(prev => [...prev, `🔥 El rival te hizo ${damage} de daño con ${attackName}.`]);
+      }
+      // Now it's our turn
+      setWaitingForOpponent(false);
+      setIsMyTurn(true);
+    });
+
+    channel.subscribe();
+    channelRef.current = channel;
+
+    // Player1 goes first
+    setGamePhase("battle");
+    setMyHP(maxHP);
+    setBotHP(maxHP);
+    setIsMyTurn(amPlayer1);
+    setWaitingForOpponent(!amPlayer1);
+    setAttackType(null);
+    setBattleLog(["⚔️ ¡Comienza la batalla online!"]);
+    setWinner(null);
+    setQuestionsUsed(new Set());
+  };
+
+  // Cleanup channel on unmount
+  useEffect(() => {
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, []);
 
   const fetchRandomQuestion = useCallback(async () => {
     if (!selectedDeck) return null;
@@ -150,6 +223,31 @@ export default function RPGBattleGame() {
     setQuestionsUsed(new Set());
   };
 
+  // Start searching
+  const handleStartSearch = () => {
+    if (!selectedDeck) return;
+    if (!userCarrera) {
+      setShowCareerModal(true);
+      return;
+    }
+    setGamePhase('searching');
+    joinQueue(selectedDeck.id, selectedDeck.nombre, userCarrera);
+  };
+
+  const handleCareerSelected = async (carrera: string, facultad: string) => {
+    await updateUserCarrera(carrera, facultad);
+    setShowCareerModal(false);
+    if (selectedDeck) {
+      setGamePhase('searching');
+      joinQueue(selectedDeck.id, selectedDeck.nombre, carrera);
+    }
+  };
+
+  const handleCancelSearch = () => {
+    leaveQueue();
+    setGamePhase('select_deck');
+  };
+
   const handleAttackChoice = async (type: AttackType) => {
     setAttackType(type);
     const q = await fetchRandomQuestion();
@@ -164,54 +262,90 @@ export default function RPGBattleGame() {
 
     const dmgMap: Record<AttackType, number> = { quick: 15, strong: 25, magic: 35 };
     const missChance: Record<AttackType, number> = { quick: 0.1, strong: 0.25, magic: 0.4 };
+    const attackNames: Record<AttackType, string> = { quick: "ataque rápido", strong: "ataque fuerte", magic: "magia" };
 
     setTimeout(() => {
+      let damage = 0;
+      let missed = false;
+      const attackName = attackNames[attackType || "quick"];
+
       if (correct) {
         const baseDmg = dmgMap[attackType || "quick"];
         const miss = Math.random() < missChance[attackType || "quick"];
         if (miss) {
-          setBattleLog((prev) => [...prev, `⚡ Tu ${attackType === "quick" ? "ataque rápido" : attackType === "strong" ? "ataque fuerte" : "magia"} falló por poco.`]);
+          missed = true;
+          setBattleLog((prev) => [...prev, `⚡ Tu ${attackName} falló por poco.`]);
         } else {
-          const finalDmg = baseDmg + Math.floor(Math.random() * 10);
+          damage = baseDmg + Math.floor(Math.random() * 10);
           setShakeBot(true);
           setTimeout(() => setShakeBot(false), 400);
           setBotHP((prev) => {
-            const next = Math.max(prev - finalDmg, 0);
+            const next = Math.max(prev - damage, 0);
             if (next <= 0) { setWinner("player"); setGamePhase("result"); }
             return next;
           });
-          setBattleLog((prev) => [...prev, `⚔️ ¡Le hiciste ${finalDmg} de daño con ${attackType === "quick" ? "ataque rápido" : attackType === "strong" ? "ataque fuerte" : "magia"}!`]);
+          setBattleLog((prev) => [...prev, `⚔️ ¡Le hiciste ${damage} de daño con ${attackName}!`]);
         }
       } else {
         setBattleLog((prev) => [...prev, "❌ Respuesta incorrecta. ¡Perdiste tu turno!"]);
       }
 
-      // Bot turn
-      setTimeout(() => {
-        const botDmg = 10 + Math.floor(Math.random() * 15);
-        const botMiss = Math.random() < 0.3;
-        if (botMiss) {
-          setBattleLog((prev) => [...prev, "🛡️ ¡Bloqueaste el ataque del enemigo!"]);
-        } else {
-          setShakePlayer(true);
-          setTimeout(() => setShakePlayer(false), 400);
-          setMyHP((prev) => {
-            const next = Math.max(prev - botDmg, 0);
-            if (next <= 0) { setWinner("bot"); setGamePhase("result"); }
-            return next;
-          });
-          setBattleLog((prev) => [...prev, `🔥 El enemigo te hizo ${botDmg} de daño.`]);
-        }
-
-        // Reset for next turn
-        setTimeout(async () => {
+      if (isOnline) {
+        // Send our attack result to opponent
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "rpg_attack",
+          payload: { damage, attackName, missed: missed || !correct }
+        });
+        // Wait for opponent
+        setWaitingForOpponent(true);
+        setIsMyTurn(false);
+        setTimeout(() => {
           setSelectedAnswer(null);
           setAnsweredCorrectly(null);
           setAttackType(null);
           setCurrentQuestion(null);
         }, 500);
-      }, 800);
+      } else {
+        // Bot turn
+        setTimeout(() => {
+          const botDmg = 10 + Math.floor(Math.random() * 15);
+          const botMiss = Math.random() < 0.3;
+          if (botMiss) {
+            setBattleLog((prev) => [...prev, "🛡️ ¡Bloqueaste el ataque del enemigo!"]);
+          } else {
+            setShakePlayer(true);
+            setTimeout(() => setShakePlayer(false), 400);
+            setMyHP((prev) => {
+              const next = Math.max(prev - botDmg, 0);
+              if (next <= 0) { setWinner("bot"); setGamePhase("result"); }
+              return next;
+            });
+            setBattleLog((prev) => [...prev, `🔥 El enemigo te hizo ${botDmg} de daño.`]);
+          }
+
+          setTimeout(async () => {
+            setSelectedAnswer(null);
+            setAnsweredCorrectly(null);
+            setAttackType(null);
+            setCurrentQuestion(null);
+          }, 500);
+        }, 800);
+      }
     }, 600);
+  };
+
+  const handlePlayAgain = () => {
+    setGamePhase("select_deck");
+    setWinner(null);
+    setIsOnline(false);
+    setWaitingForOpponent(false);
+    setStatus('idle');
+    setMatchId(null);
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
   };
 
   if (gamePhase === "select_deck") {
@@ -241,10 +375,59 @@ export default function RPGBattleGame() {
               ))}
             </div>
             {selectedDeck && (
-              <Button className="w-full bg-gradient-to-r from-purple-600 to-red-600 text-lg py-6 font-display font-bold" onClick={startBattle}>
-                <Swords className="w-5 h-5 mr-2" /> ¡A la batalla!
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-red-600 text-lg py-6 font-display font-bold" onClick={handleStartSearch}>
+                <Gamepad2 className="w-5 h-5 mr-2" /> ¡Buscar Rival!
               </Button>
             )}
+          </CardContent>
+        </Card>
+
+        <CareerSelectModal
+          open={showCareerModal}
+          onClose={() => setShowCareerModal(false)}
+          onCareerSelected={handleCareerSelected}
+          onRequestCareer={submitCareerRequest}
+        />
+      </div>
+    );
+  }
+
+  // SEARCHING PHASE
+  if (gamePhase === 'searching') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="card-gamer max-w-md w-full">
+          <CardContent className="p-8 text-center space-y-6">
+            <div className="relative mx-auto w-32 h-32">
+              <div className="absolute inset-0 rounded-full border-2 border-purple-500/30 animate-ping" />
+              <div className="absolute inset-4 rounded-full border-2 border-red-500/30 animate-ping" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/20 to-red-500/20 flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
+              </div>
+            </div>
+            <div>
+              <h2 className="font-display font-bold text-xl mb-2">Buscando rival...</h2>
+              <p className="text-muted-foreground text-sm mb-4">Emparejando con alguien de tu carrera</p>
+            </div>
+            <div className="relative w-20 h-20 mx-auto">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary" />
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#rpg-gradient)" strokeWidth="2" strokeDasharray={`${(searchTimeLeft / 15) * 100}, 100`} strokeLinecap="round" />
+                <defs>
+                  <linearGradient id="rpg-gradient">
+                    <stop offset="0%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#ef4444" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="font-display font-bold text-2xl">{searchTimeLeft}</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {searchTimeLeft <= 5 ? "Si no se encuentra rival, jugarás contra el Bot 🤖" : "Buscando en tu carrera..."}
+            </p>
+            <Button variant="outline" onClick={handleCancelSearch}>Cancelar</Button>
           </CardContent>
         </Card>
       </div>
@@ -257,7 +440,20 @@ export default function RPGBattleGame() {
         {/* HP Bars */}
         <div className="grid grid-cols-2 gap-4">
           <HPBar current={myHP} max={maxHP} color="bg-gradient-to-r from-cyan-500 to-blue-500" label="Tú" />
-          <HPBar current={botHP} max={maxHP} color="bg-gradient-to-r from-red-500 to-orange-500" label="Enemigo" />
+          <HPBar current={botHP} max={maxHP} color="bg-gradient-to-r from-red-500 to-orange-500" label={isOnline ? (opponentName || "Rival") : "Enemigo"} />
+        </div>
+
+        {/* Online indicator */}
+        <div className="flex justify-center">
+          {isOnline ? (
+            <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
+              <Users className="w-3 h-3 mr-1" /> vs {opponentName || "Rival"}
+            </Badge>
+          ) : (
+            <Badge className="text-xs bg-red-500/20 text-red-400 border-red-500/30">
+              <Bot className="w-3 h-3 mr-1" /> vs Bot
+            </Badge>
+          )}
         </div>
 
         {/* Characters */}
@@ -281,8 +477,20 @@ export default function RPGBattleGame() {
           ))}
         </div>
 
+        {/* Waiting for opponent */}
+        {waitingForOpponent && (
+          <Card className="card-gamer">
+            <CardContent className="p-6 text-center">
+              <div className="animate-pulse text-muted-foreground">
+                <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin text-purple-400" />
+                <p className="text-sm font-medium">Esperando al rival...</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Attack selection or Question */}
-        {!attackType ? (
+        {!waitingForOpponent && !attackType ? (
           <Card className="card-gamer">
             <CardContent className="p-4">
               <h3 className="font-display font-bold text-center mb-3">Elegí tu ataque</h3>
@@ -303,7 +511,7 @@ export default function RPGBattleGame() {
               </div>
             </CardContent>
           </Card>
-        ) : currentQuestion ? (
+        ) : !waitingForOpponent && currentQuestion ? (
           <Card className="card-gamer">
             <CardContent className="p-5 space-y-3">
               <Badge variant="secondary" className="text-xs">
@@ -347,6 +555,9 @@ export default function RPGBattleGame() {
             {isWinner ? <Trophy className="w-12 h-12 text-neon-gold" /> : <Heart className="w-12 h-12 text-destructive" />}
           </div>
           <h2 className="font-display font-bold text-3xl mb-2">{isWinner ? "¡Victoria!" : "Derrota"}</h2>
+          {isOnline && (
+            <p className="text-sm text-muted-foreground">vs {opponentName || "Rival online"}</p>
+          )}
         </div>
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-neon-gold/10 border border-neon-gold/20">
@@ -355,7 +566,7 @@ export default function RPGBattleGame() {
           </div>
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => navigate("/juegos")}><ArrowLeft className="w-4 h-4 mr-2" /> Volver</Button>
-            <Button className="flex-1 bg-gradient-to-r from-purple-600 to-red-600" onClick={() => { setGamePhase("select_deck"); setWinner(null); }}>
+            <Button className="flex-1 bg-gradient-to-r from-purple-600 to-red-600" onClick={handlePlayAgain}>
               Otra batalla
             </Button>
           </div>

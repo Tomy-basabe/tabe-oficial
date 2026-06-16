@@ -1,16 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Zap, Trophy, Bomb, Timer, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Zap, Trophy, Bomb, Timer, AlertTriangle, Gamepad2, Loader2, Bot, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGames } from "@/hooks/useGames";
+import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { supabase } from "@/integrations/supabase/client";
+import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { cn } from "@/lib/utils";
 
 interface QuizDeck { id: string; nombre: string; total_questions: number; }
 interface QuizQuestion { id: string; pregunta: string; explicacion: string | null; options: { id: string; texto: string; es_correcta: boolean }[]; }
-type GamePhase = "select_deck" | "playing" | "result";
+type GamePhase = "select_deck" | "searching" | "playing" | "result";
 
 function BombSVG({ timeLeft, maxTime }: { timeLeft: number; maxTime: number }) {
   const pct = timeLeft / maxTime;
@@ -18,7 +21,6 @@ function BombSVG({ timeLeft, maxTime }: { timeLeft: number; maxTime: number }) {
   return (
     <div className={cn("relative transition-transform", isUrgent && "animate-[shake_0.15s_ease-in-out_infinite]")}>
       <svg viewBox="0 0 120 150" className="w-32 h-40 md:w-40 md:h-48 drop-shadow-[0_15px_30px_rgba(239,68,68,0.5)]">
-        {/* Bomb body */}
         <defs>
           <radialGradient id="bombGrad" cx="40%" cy="35%">
             <stop offset="0%" stopColor="#475569" />
@@ -30,11 +32,8 @@ function BombSVG({ timeLeft, maxTime }: { timeLeft: number; maxTime: number }) {
           </filter>
         </defs>
         <circle cx="60" cy="85" r="45" fill="url(#bombGrad)" stroke="#334155" strokeWidth="3" />
-        {/* Highlight */}
         <ellipse cx="45" cy="70" rx="15" ry="10" fill="white" opacity="0.1" transform="rotate(-30 45 70)" />
-        {/* Fuse */}
         <path d="M 60 40 Q 70 25 80 30 Q 90 35 85 20" fill="none" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
-        {/* Spark/flame */}
         {timeLeft > 0 && (
           <g filter="url(#glow)">
             <ellipse cx="85" cy="15" rx="8" ry="12" fill="#f97316" className="animate-pulse">
@@ -46,12 +45,10 @@ function BombSVG({ timeLeft, maxTime }: { timeLeft: number; maxTime: number }) {
             <ellipse cx="85" cy="10" rx="2" ry="4" fill="white" />
           </g>
         )}
-        {/* Timer text */}
         <text x="60" y="95" textAnchor="middle" fill={isUrgent ? "#ef4444" : "#e2e8f0"} fontSize="28" fontWeight="bold" fontFamily="monospace">
           {timeLeft}
         </text>
       </svg>
-      {/* Danger ring */}
       {isUrgent && (
         <div className="absolute inset-0 rounded-full border-4 border-red-500/50 animate-ping" />
       )}
@@ -62,6 +59,12 @@ function BombSVG({ timeLeft, maxTime }: { timeLeft: number; maxTime: number }) {
 export default function BombGame() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { userCarrera, submitCareerRequest, updateUserCarrera } = useGames();
+  const { status, matchId, opponentName, timeLeft: searchTimeLeft, joinQueue, leaveQueue, setStatus, setMatchId } = useMatchmaking();
+
+  // Career modal
+  const [showCareerModal, setShowCareerModal] = useState(false);
+
   const [decks, setDecks] = useState<QuizDeck[]>([]);
   const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>("select_deck");
@@ -78,11 +81,96 @@ export default function BombGame() {
   const [exploded, setExploded] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Online state
+  const [isOnline, setIsOnline] = useState(false);
+  const channelRef = useRef<any>(null);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("quiz_decks").select("id, nombre, total_questions").eq("user_id", user.id).gt("total_questions", 0)
       .then(({ data }) => { if (data) setDecks(data as unknown as QuizDeck[]); });
   }, [user]);
+
+  // Handle matchmaking status changes
+  useEffect(() => {
+    if (status === 'found') {
+      setIsOnline(true);
+      setupOnlineMatch();
+    } else if (status === 'bot') {
+      setIsOnline(false);
+      startGame();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const setupOnlineMatch = async () => {
+    if (!matchId || !user) return;
+    const { data } = await supabase.from("game_matches" as any).select("player1_id").eq("id", matchId).single();
+    const amPlayer1 = data && (data as any).player1_id === user.id;
+
+    // Player1 starts with the bomb
+    setBombHolder(amPlayer1 ? "player" : "bot");
+
+    const channel = supabase.channel(`bomb_match_${matchId}`, {
+      config: { broadcast: { self: false } }
+    });
+
+    channel.on("broadcast", { event: "bomb_pass" }, ({ payload }) => {
+      // Opponent passed the bomb to us
+      setBombHolder("player");
+      setPassCount(payload.passCount);
+      setTimeLeft(payload.timeLeft);
+      // Load next question
+      loadNextQuestion();
+    });
+
+    channel.on("broadcast", { event: "bomb_stay" }, ({ payload }) => {
+      // Opponent answered wrong, bomb stays with them
+      setTimeLeft(payload.timeLeft);
+    });
+
+    channel.on("broadcast", { event: "bomb_explode" }, ({ payload }) => {
+      // Opponent exploded
+      setExploded(true);
+      setWinner("player");
+      if (timerRef.current) clearInterval(timerRef.current);
+      setTimeout(() => setGamePhase("result"), 1500);
+    });
+
+    channel.subscribe();
+    channelRef.current = channel;
+
+    // Start game
+    setGamePhase("playing");
+    setTimeLeft(maxTime);
+    setPassCount(0);
+    setWinner(null);
+    setExploded(false);
+    setQuestionsUsed(new Set());
+
+    if (amPlayer1) {
+      // Player1 has bomb first, load question
+      const q = await fetchRandomQuestion();
+      if (q) setCurrentQuestion(q);
+    }
+  };
+
+  const loadNextQuestion = async () => {
+    setSelectedAnswer(null);
+    setAnsweredCorrectly(null);
+    const q = await fetchRandomQuestion();
+    if (q) setCurrentQuestion(q);
+  };
+
+  // Cleanup channel on unmount
+  useEffect(() => {
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, []);
 
   const fetchRandomQuestion = useCallback(async () => {
     if (!selectedDeck) return null;
@@ -105,7 +193,14 @@ export default function BombGame() {
         if (prev <= 1) {
           clearInterval(timerRef.current!);
           setExploded(true);
-          setWinner(bombHolder === "player" ? "bot" : "player");
+          if (bombHolder === "player") {
+            setWinner("bot");
+            if (isOnline && channelRef.current) {
+              channelRef.current.send({ type: "broadcast", event: "bomb_explode", payload: {} });
+            }
+          } else {
+            setWinner("player");
+          }
           setTimeout(() => setGamePhase("result"), 1500);
           return 0;
         }
@@ -113,7 +208,7 @@ export default function BombGame() {
       });
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [gamePhase, bombHolder]);
+  }, [gamePhase, bombHolder, isOnline]);
 
   const startGame = async () => {
     if (!selectedDeck) return;
@@ -128,6 +223,31 @@ export default function BombGame() {
     if (q) setCurrentQuestion(q);
   };
 
+  // Start searching
+  const handleStartSearch = () => {
+    if (!selectedDeck) return;
+    if (!userCarrera) {
+      setShowCareerModal(true);
+      return;
+    }
+    setGamePhase('searching');
+    joinQueue(selectedDeck.id, selectedDeck.nombre, userCarrera);
+  };
+
+  const handleCareerSelected = async (carrera: string, facultad: string) => {
+    await updateUserCarrera(carrera, facultad);
+    setShowCareerModal(false);
+    if (selectedDeck) {
+      setGamePhase('searching');
+      joinQueue(selectedDeck.id, selectedDeck.nombre, carrera);
+    }
+  };
+
+  const handleCancelSearch = () => {
+    leaveQueue();
+    setGamePhase('select_deck');
+  };
+
   const handleAnswer = async (optionId: string) => {
     if (selectedAnswer) return;
     setSelectedAnswer(optionId);
@@ -135,34 +255,66 @@ export default function BombGame() {
     setAnsweredCorrectly(correct);
 
     if (correct) {
-      // Pass bomb to bot
       setPassCount((c) => c + 1);
-      setBombHolder("bot");
+      const newPassCount = passCount + 1;
 
-      // Bot's turn: bot tries to answer (simulated)
-      setTimeout(async () => {
-        const botCorrect = Math.random() < 0.5;
-        if (botCorrect) {
-          // Bot passes it back
-          setBombHolder("player");
-        }
-        // else bomb stays with bot until next tick
-
-        // Load next question
-        setSelectedAnswer(null);
-        setAnsweredCorrectly(null);
-        const q = await fetchRandomQuestion();
-        if (q) setCurrentQuestion(q);
-        if (botCorrect) setBombHolder("player");
-      }, 1200);
+      if (isOnline) {
+        // Pass bomb to opponent
+        setBombHolder("bot");
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "bomb_pass",
+          payload: { passCount: newPassCount, timeLeft }
+        });
+        // Wait for opponent - no question to show
+        setTimeout(() => {
+          setSelectedAnswer(null);
+          setAnsweredCorrectly(null);
+          setCurrentQuestion(null);
+        }, 800);
+      } else {
+        // Bot mode: Pass bomb to bot
+        setBombHolder("bot");
+        setTimeout(async () => {
+          const botCorrect = Math.random() < 0.5;
+          if (botCorrect) {
+            setBombHolder("player");
+          }
+          setSelectedAnswer(null);
+          setAnsweredCorrectly(null);
+          const q = await fetchRandomQuestion();
+          if (q) setCurrentQuestion(q);
+          if (botCorrect) setBombHolder("player");
+        }, 1200);
+      }
     } else {
-      // Wrong answer: bomb stays, load new question
+      // Wrong answer: bomb stays
+      if (isOnline) {
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "bomb_stay",
+          payload: { timeLeft }
+        });
+      }
       setTimeout(async () => {
         setSelectedAnswer(null);
         setAnsweredCorrectly(null);
         const q = await fetchRandomQuestion();
         if (q) setCurrentQuestion(q);
       }, 1000);
+    }
+  };
+
+  const handlePlayAgain = () => {
+    setGamePhase("select_deck");
+    setWinner(null);
+    setExploded(false);
+    setIsOnline(false);
+    setStatus('idle');
+    setMatchId(null);
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
   };
 
@@ -195,10 +347,59 @@ export default function BombGame() {
               ))}
             </div>
             {selectedDeck && (
-              <Button className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-lg py-6 font-display font-bold" onClick={startGame}>
-                <Bomb className="w-5 h-5 mr-2" /> ¡Empezar!
+              <Button className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-lg py-6 font-display font-bold" onClick={handleStartSearch}>
+                <Gamepad2 className="w-5 h-5 mr-2" /> ¡Buscar Rival!
               </Button>
             )}
+          </CardContent>
+        </Card>
+
+        <CareerSelectModal
+          open={showCareerModal}
+          onClose={() => setShowCareerModal(false)}
+          onCareerSelected={handleCareerSelected}
+          onRequestCareer={submitCareerRequest}
+        />
+      </div>
+    );
+  }
+
+  // SEARCHING PHASE
+  if (gamePhase === 'searching') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="card-gamer max-w-md w-full">
+          <CardContent className="p-8 text-center space-y-6">
+            <div className="relative mx-auto w-32 h-32">
+              <div className="absolute inset-0 rounded-full border-2 border-orange-500/30 animate-ping" />
+              <div className="absolute inset-4 rounded-full border-2 border-red-500/30 animate-ping" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+              </div>
+            </div>
+            <div>
+              <h2 className="font-display font-bold text-xl mb-2">Buscando rival...</h2>
+              <p className="text-muted-foreground text-sm mb-4">Emparejando con alguien de tu carrera</p>
+            </div>
+            <div className="relative w-20 h-20 mx-auto">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary" />
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#bomb-gradient)" strokeWidth="2" strokeDasharray={`${(searchTimeLeft / 15) * 100}, 100`} strokeLinecap="round" />
+                <defs>
+                  <linearGradient id="bomb-gradient">
+                    <stop offset="0%" stopColor="#f97316" />
+                    <stop offset="100%" stopColor="#dc2626" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="font-display font-bold text-2xl">{searchTimeLeft}</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {searchTimeLeft <= 5 ? "Si no se encuentra rival, jugarás contra el Bot 🤖" : "Buscando en tu carrera..."}
+            </p>
+            <Button variant="outline" onClick={handleCancelSearch}>Cancelar</Button>
           </CardContent>
         </Card>
       </div>
@@ -215,7 +416,7 @@ export default function BombGame() {
               <div className="text-[120px] leading-none mb-4">💥</div>
               <h2 className="font-display font-bold text-4xl text-orange-400">¡BOOM!</h2>
               <p className="text-orange-300/80 mt-2">
-                {bombHolder === "player" ? "La bomba explotó en tu lado..." : "¡La bomba le explotó al rival!"}
+                {bombHolder === "player" ? "La bomba explotó en tu lado..." : `¡La bomba le explotó al ${isOnline ? 'rival' : 'rival'}!`}
               </p>
             </div>
           </div>
@@ -224,9 +425,20 @@ export default function BombGame() {
         {/* Status bar */}
         <div className="flex items-center justify-between">
           <Badge className={cn("text-sm px-4 py-1.5", bombHolder === "player" ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30")}>
-            {bombHolder === "player" ? "💣 ¡La bomba está contigo!" : "😌 La bomba está con el rival"}
+            {bombHolder === "player" ? "💣 ¡La bomba está contigo!" : `😌 La bomba está con el ${isOnline ? 'rival' : 'rival'}`}
           </Badge>
-          <Badge variant="secondary" className="text-xs">Pases: {passCount}</Badge>
+          <div className="flex items-center gap-2">
+            {isOnline ? (
+              <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">
+                <Users className="w-3 h-3 mr-1" /> vs {opponentName || "Rival"}
+              </Badge>
+            ) : (
+              <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
+                <Bot className="w-3 h-3 mr-1" /> vs Bot
+              </Badge>
+            )}
+            <Badge variant="secondary" className="text-xs">Pases: {passCount}</Badge>
+          </div>
         </div>
 
         {/* Bomb visual */}
@@ -276,7 +488,7 @@ export default function BombGame() {
           <Card className="card-gamer">
             <CardContent className="p-8 text-center">
               <div className="animate-pulse text-muted-foreground">
-                <p className="text-lg font-medium mb-2">El rival tiene la bomba...</p>
+                <p className="text-lg font-medium mb-2">{isOnline ? "El rival tiene la bomba..." : "El rival tiene la bomba..."}</p>
                 <p className="text-sm">Está intentando responder para devolvértela</p>
               </div>
             </CardContent>
@@ -298,6 +510,9 @@ export default function BombGame() {
           </div>
           <h2 className="font-display font-bold text-3xl mb-2">{isWinner ? "¡Sobreviviste!" : "¡BOOM!"}</h2>
           <p className="text-muted-foreground">{passCount} pases de bomba exitosos</p>
+          {isOnline && (
+            <p className="text-sm text-muted-foreground mt-1">vs {opponentName || "Rival online"}</p>
+          )}
         </div>
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-neon-gold/10 border border-neon-gold/20">
@@ -306,7 +521,7 @@ export default function BombGame() {
           </div>
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => navigate("/juegos")}><ArrowLeft className="w-4 h-4 mr-2" /> Volver</Button>
-            <Button className="flex-1 bg-gradient-to-r from-orange-500 to-red-600" onClick={() => { setGamePhase("select_deck"); setWinner(null); setExploded(false); }}>
+            <Button className="flex-1 bg-gradient-to-r from-orange-500 to-red-600" onClick={handlePlayAgain}>
               Otra ronda
             </Button>
           </div>

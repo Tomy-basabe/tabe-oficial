@@ -129,8 +129,9 @@ export function useMatchmaking() {
       joined_at: new Date().toISOString()
     } as any, { onConflict: "user_id" });
 
-    // Start 0-second countdown for immediate bot match
-    let remaining = 0;
+    // Start 15-second countdown before falling back to bot match
+    let remaining = 15;
+    setTimeLeft(remaining);
     timerRef.current = setInterval(() => {
       remaining--;
       setTimeLeft(remaining > 0 ? remaining : 0);
@@ -149,7 +150,7 @@ export function useMatchmaking() {
           });
         });
       }
-    }, 10);
+    }, 1000);
 
     // Poll queue for potential matches every 2 seconds
     pollRef.current = setInterval(async () => {
