@@ -239,6 +239,17 @@ export function useFriends() {
       console.error("Error fetching social stats:", statsError);
     }
 
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('user_id, xp_total')
+      .in('user_id', allUserIds);
+
+    if (profilesError) {
+      console.error("Error fetching profiles xp:", profilesError);
+    }
+    
+    const xpMap = new Map((profilesData || []).map(p => [p.user_id, p.xp_total]));
+
     // Reuse profiles from state instead of fetching again (avoids RLS issues)
     const profileMap = new Map<string, Profile>();
     if (myProfile) profileMap.set(myProfile.user_id, myProfile);
@@ -262,7 +273,7 @@ export function useFriends() {
       return {
         user_id: userId,
         profile: finalProfile,
-        weekly_xp: stats?.xp_total || 0,
+        weekly_xp: xpMap.get(userId) || stats?.xp_total || 0,
         // The RPC returns aggregated seconds, convert to hours
         weekly_pomodoro_hours: (stats?.weekly_pomodoro_seconds || 0) / 3600,
         weekly_study_hours: (stats?.weekly_study_seconds || 0) / 3600,

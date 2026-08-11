@@ -277,7 +277,7 @@ export default function Friends() {
           {/* Leaderboard Type Selector */}
           <div className="flex flex-wrap gap-2">
             {[
-              { key: 'xp', label: 'XP Semanal', icon: Zap },
+              { key: 'xp', label: 'XP Total', icon: Zap },
               { key: 'pomodoro', label: 'Horas Pomodoro', icon: Clock },
               { key: 'study', label: 'Horas Estudio', icon: Clock },
               { key: 'streak', label: 'Racha', icon: Flame }
