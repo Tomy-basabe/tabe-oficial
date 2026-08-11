@@ -448,10 +448,14 @@ export default function Friends() {
                         </div>
 
                         {stat && (
-                          <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                          <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <Zap className="w-4 h-4 text-neon-gold" />
                               <span>Nivel {stat.level}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Zap className="w-4 h-4 text-blue-500" />
+                              <span>{stat.weekly_xp} XP</span>
                             </div>
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <Flame className="w-4 h-4 text-orange-500" />
