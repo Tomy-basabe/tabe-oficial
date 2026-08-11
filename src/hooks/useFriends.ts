@@ -231,36 +231,31 @@ export function useFriends() {
     const friendIds = friends.map(f => f.friend.user_id);
     const allUserIds = [user.id, ...friendIds];
 
-    // Get stats for all users using the new RPC (bypasses RLS and aggregates data)
+    // Fetch general stats using new RPC
     const { data: socialStats, error: statsError } = await supabase
-      .rpc('get_social_stats', { target_user_ids: allUserIds });
+      .rpc('get_social_stats_general', { target_user_ids: allUserIds });
 
     if (statsError) {
-      console.error("Error fetching social stats:", statsError);
-    }
-
-    const { data: userStatsData, error: userStatsError } = await supabase
-      .from('user_stats')
-      .select('user_id, xp_total, nivel, racha_actual')
-      .in('user_id', allUserIds);
-
-    if (userStatsError) {
-      console.error("Error fetching user stats:", userStatsError);
+      console.error("Error fetching social stats general:", statsError);
     }
     
-    const statsDataMap = new Map((userStatsData || []).map(p => [p.user_id, p]));
+    // Fallback: If RPC doesn't exist yet, we can try to use the old one to not break completely
+    let fallbackStats = [];
+    if (statsError) {
+      const { data: oldStats } = await supabase.rpc('get_social_stats', { target_user_ids: allUserIds });
+      fallbackStats = oldStats || [];
+    }
 
     // Reuse profiles from state instead of fetching again (avoids RLS issues)
     const profileMap = new Map<string, Profile>();
     if (myProfile) profileMap.set(myProfile.user_id, myProfile);
     friends.forEach(f => profileMap.set(f.friend.user_id, f.friend));
 
-    const statsMap = new Map(((socialStats as any[]) || []).map(s => [s.user_id, s]));
+    const statsMap = new Map(((socialStats || fallbackStats as any[]) || []).map(s => [s.user_id, s]));
 
     const friendStatsData: FriendStats[] = allUserIds.map(userId => {
       const profile = profileMap.get(userId);
       const stats = statsMap.get(userId);
-      const dbStats = statsDataMap.get(userId);
 
       // Improved fallback if profile is missing in map
       const finalProfile = profile || {
@@ -271,15 +266,19 @@ export function useFriends() {
         avatar_url: null
       };
 
+      const xp = stats?.xp_total ?? 0;
+      // Recalculate level dynamically just like MainLayout does to avoid desync
+      const computedLevel = Math.floor(xp / 100) + 1;
+
       return {
         user_id: userId,
         profile: finalProfile,
-        weekly_xp: dbStats?.xp_total ?? stats?.xp_total ?? 0,
+        weekly_xp: xp,
         // The RPC returns aggregated seconds, convert to hours
         weekly_pomodoro_hours: (stats?.weekly_pomodoro_seconds || 0) / 3600,
         weekly_study_hours: (stats?.weekly_study_seconds || 0) / 3600,
-        current_streak: dbStats?.racha_actual ?? stats?.racha_actual ?? 0,
-        level: dbStats?.nivel ?? stats?.nivel ?? 1
+        current_streak: stats?.racha_actual || 0,
+        level: computedLevel
       };
     });
 
