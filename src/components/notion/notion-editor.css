@@ -682,29 +682,350 @@
     margin: 16px 0;
 }
 
-/* Code Block */
-.notion-code-block {
-    background: #2f2f2f;
-    border-radius: 6px;
-    padding: 16px 20px;
-    font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
-    font-size: 14px;
-    line-height: 1.6;
-    overflow-x: auto;
-    margin: 4px 0;
-    tab-size: 2;
-    border: 1px solid rgba(255,255,255,0.04);
+/* ============================= */
+/* Code Block (VS Code Dark+ Theme) */
+/* ============================= */
+
+/* Wrapper */
+.code-block-wrapper {
+    margin: 8px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: #1e1e1e;
 }
 
-.notion-code-block code {
+/* Header bar */
+.code-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: #252526;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    user-select: none;
+}
+
+/* Language selector */
+.code-block-lang-selector {
+    position: relative;
+}
+
+.code-block-lang-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #cccccc;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.code-block-lang-btn:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.1);
+}
+
+.code-block-lang-chevron {
+    width: 12px;
+    height: 12px;
+    opacity: 0.5;
+}
+
+/* Language dropdown */
+.code-block-lang-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 100;
+    min-width: 200px;
+    max-height: 300px;
+    background: #252526;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: codeDropdownIn 0.15s ease;
+}
+
+@keyframes codeDropdownIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.code-block-lang-search {
+    padding: 8px 12px;
+    background: #1e1e1e;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: #cccccc;
+    font-size: 12px;
+    outline: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.code-block-lang-search::placeholder {
+    color: rgba(255,255,255,0.3);
+}
+
+.code-block-lang-list {
+    overflow-y: auto;
+    max-height: 240px;
+    padding: 4px;
+}
+
+.code-block-lang-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.code-block-lang-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.code-block-lang-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}
+
+.code-block-lang-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #cccccc;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.1s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.code-block-lang-option:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.code-block-lang-option.active {
+    background: rgba(0, 122, 204, 0.25);
+    color: #4fc1ff;
+}
+
+.code-block-lang-empty {
+    padding: 12px;
+    text-align: center;
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+}
+
+/* Copy button */
+.code-block-copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.35);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.code-block-copy-btn:hover {
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.07);
+}
+
+/* Code area inside wrapper */
+.code-block-wrapper pre {
+    background: #1e1e1e !important;
+    margin: 0;
+    padding: 16px 20px;
+    font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", "SFMono-Regular", "Menlo", "Consolas", "Liberation Mono", monospace;
+    font-size: 13.5px;
+    line-height: 1.65;
+    overflow-x: auto;
+    tab-size: 2;
+    color: #d4d4d4;
+}
+
+.code-block-wrapper pre code {
     background: transparent !important;
     padding: 0 !important;
     font-size: inherit;
     color: inherit;
+    font-family: inherit;
 }
 
-/* Inline Code */
-.notion-editor-content code:not(.notion-code-block code) {
+/* ============================= */
+/* VS Code Dark+ Syntax Highlighting */
+/* ============================= */
+
+/* Keywords: if, else, return, const, let, var, function, class, import, export, etc */
+.code-block-wrapper .hljs-keyword,
+.code-block-wrapper .hljs-selector-tag {
+    color: #569cd6;
+}
+
+/* Built-in types, this, self */
+.code-block-wrapper .hljs-built_in {
+    color: #4ec9b0;
+}
+
+/* Strings */
+.code-block-wrapper .hljs-string,
+.code-block-wrapper .hljs-selector-attr,
+.code-block-wrapper .hljs-selector-pseudo {
+    color: #ce9178;
+}
+
+/* Numbers */
+.code-block-wrapper .hljs-number {
+    color: #b5cea8;
+}
+
+/* Comments */
+.code-block-wrapper .hljs-comment,
+.code-block-wrapper .hljs-doctag {
+    color: #6a9955;
+    font-style: italic;
+}
+
+/* Function names */
+.code-block-wrapper .hljs-title,
+.code-block-wrapper .hljs-title.function_ {
+    color: #dcdcaa;
+}
+
+/* Class names / Types */
+.code-block-wrapper .hljs-title.class_ {
+    color: #4ec9b0;
+}
+
+/* Variables / Params */
+.code-block-wrapper .hljs-variable,
+.code-block-wrapper .hljs-params {
+    color: #9cdcfe;
+}
+
+/* Attributes (HTML) */
+.code-block-wrapper .hljs-attr,
+.code-block-wrapper .hljs-attribute {
+    color: #9cdcfe;
+}
+
+/* Tags (HTML) */
+.code-block-wrapper .hljs-tag {
+    color: #808080;
+}
+
+.code-block-wrapper .hljs-name {
+    color: #569cd6;
+}
+
+/* Operators */
+.code-block-wrapper .hljs-operator {
+    color: #d4d4d4;
+}
+
+/* Punctuation */
+.code-block-wrapper .hljs-punctuation {
+    color: #d4d4d4;
+}
+
+/* Types */
+.code-block-wrapper .hljs-type {
+    color: #4ec9b0;
+}
+
+/* Constants / Booleans */
+.code-block-wrapper .hljs-literal {
+    color: #569cd6;
+}
+
+/* Regex */
+.code-block-wrapper .hljs-regexp {
+    color: #d16969;
+}
+
+/* Meta / Preprocessor */
+.code-block-wrapper .hljs-meta {
+    color: #569cd6;
+}
+
+.code-block-wrapper .hljs-meta .hljs-keyword {
+    color: #569cd6;
+}
+
+.code-block-wrapper .hljs-meta .hljs-string {
+    color: #ce9178;
+}
+
+/* Symbols / Special */
+.code-block-wrapper .hljs-symbol {
+    color: #b5cea8;
+}
+
+/* Template expressions */
+.code-block-wrapper .hljs-template-variable,
+.code-block-wrapper .hljs-template-tag {
+    color: #569cd6;
+}
+
+/* Subst (template literal expressions) */
+.code-block-wrapper .hljs-subst {
+    color: #d4d4d4;
+}
+
+/* Property */
+.code-block-wrapper .hljs-property {
+    color: #9cdcfe;
+}
+
+/* Selector (CSS) */
+.code-block-wrapper .hljs-selector-class {
+    color: #d7ba7d;
+}
+
+.code-block-wrapper .hljs-selector-id {
+    color: #d7ba7d;
+}
+
+/* Addition / Deletion (Diff) */
+.code-block-wrapper .hljs-addition {
+    color: #b5cea8;
+    background: rgba(155, 185, 85, 0.1);
+}
+
+.code-block-wrapper .hljs-deletion {
+    color: #ce9178;
+    background: rgba(255, 0, 0, 0.1);
+}
+
+/* Emphasis & Strong */
+.code-block-wrapper .hljs-emphasis {
+    font-style: italic;
+}
+
+.code-block-wrapper .hljs-strong {
+    font-weight: bold;
+}
+
+/* Section headers */
+.code-block-wrapper .hljs-section {
+    color: #dcdcaa;
+}
+
+/* Inline Code (unchanged) */
+.notion-editor-content code:not(.code-block-wrapper code):not(pre code) {
     background: hsl(var(--destructive) / 0.1);
     color: hsl(var(--destructive));
     padding: 2px 5px;

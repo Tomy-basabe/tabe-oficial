@@ -15,7 +15,7 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { CustomCodeBlock } from "./extensions/CodeBlockExtension";
 import BulletList from "@tiptap/extension-bullet-list";
 import Blockquote from "@tiptap/extension-blockquote";
 import { wrappingInputRule, PasteRule } from "@tiptap/core";
@@ -181,10 +181,7 @@ export function AdvancedNotionEditor({
       TableRow,
       TableCell,
       TableHeader,
-      CodeBlockLowlight.configure({
-        lowlight,
-        HTMLAttributes: { class: "notion-code-block" },
-      }),
+      CustomCodeBlock(lowlight),
       Callout,
       Details,
       DetailsSummary,

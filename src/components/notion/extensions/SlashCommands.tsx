@@ -335,7 +335,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Bloque de código formateado",
     icon: <Code className="w-4 h-4" />,
     category: "Media",
-    shortcut: "``` Enter",
+    shortcut: "+++ o ``` Enter",
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCodeBlock().run();
     },
