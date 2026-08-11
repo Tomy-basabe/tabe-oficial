@@ -239,16 +239,16 @@ export function useFriends() {
       console.error("Error fetching social stats:", statsError);
     }
 
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('profiles')
-      .select('user_id, xp_total')
+    const { data: userStatsData, error: userStatsError } = await supabase
+      .from('user_stats')
+      .select('user_id, xp_total, nivel, racha_actual')
       .in('user_id', allUserIds);
 
-    if (profilesError) {
-      console.error("Error fetching profiles xp:", profilesError);
+    if (userStatsError) {
+      console.error("Error fetching user stats:", userStatsError);
     }
     
-    const xpMap = new Map((profilesData || []).map(p => [p.user_id, p.xp_total]));
+    const statsDataMap = new Map((userStatsData || []).map(p => [p.user_id, p]));
 
     // Reuse profiles from state instead of fetching again (avoids RLS issues)
     const profileMap = new Map<string, Profile>();
@@ -260,6 +260,7 @@ export function useFriends() {
     const friendStatsData: FriendStats[] = allUserIds.map(userId => {
       const profile = profileMap.get(userId);
       const stats = statsMap.get(userId);
+      const dbStats = statsDataMap.get(userId);
 
       // Improved fallback if profile is missing in map
       const finalProfile = profile || {
@@ -273,12 +274,12 @@ export function useFriends() {
       return {
         user_id: userId,
         profile: finalProfile,
-        weekly_xp: xpMap.get(userId) || stats?.xp_total || 0,
+        weekly_xp: dbStats?.xp_total ?? stats?.xp_total ?? 0,
         // The RPC returns aggregated seconds, convert to hours
         weekly_pomodoro_hours: (stats?.weekly_pomodoro_seconds || 0) / 3600,
         weekly_study_hours: (stats?.weekly_study_seconds || 0) / 3600,
-        current_streak: stats?.racha_actual || 0,
-        level: stats?.nivel || 1
+        current_streak: dbStats?.racha_actual ?? stats?.racha_actual ?? 0,
+        level: dbStats?.nivel ?? stats?.nivel ?? 1
       };
     });
 
