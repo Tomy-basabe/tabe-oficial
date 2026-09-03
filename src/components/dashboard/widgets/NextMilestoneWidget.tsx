@@ -27,7 +27,7 @@ export function NextMilestoneWidget() {
       <div className="bg-[#1a1a1a] p-4 flex items-center justify-between border-b-[4px] border-foreground">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-white rounded-md border-2 border-foreground flex items-center justify-center overflow-hidden shadow-[inset_0_-4px_0_rgba(0,0,0,0.1)]">
-            <User className="w-8 h-8 text-foreground mt-2" />
+            <User className="w-8 h-8 text-black mt-2" />
           </div>
           <div>
             <h3 className="font-black text-xl leading-none uppercase text-[#ffd21c]">Estudiante</h3>
@@ -75,12 +75,12 @@ export function NextMilestoneWidget() {
         </p>
 
         {/* Loot Box */}
-        <div className="mt-4 flex items-center gap-3 bg-[#ffd21c] p-2 rounded-lg border-2 border-foreground text-foreground">
+        <div className="mt-4 flex items-center gap-3 bg-[#ffd21c] p-2 rounded-lg border-2 border-foreground text-black">
           <div className="w-8 h-8 bg-white rounded flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_rgba(0,0,0,1)] shrink-0">
-            <Trophy className="w-4 h-4 text-foreground" />
+            <Trophy className="w-4 h-4 text-black" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase text-foreground/80">Loot al subir de nivel</span>
+            <span className="text-[9px] font-black uppercase text-black/80">Loot al subir de nivel</span>
             <span className="text-xs font-black">{nextReward}</span>
           </div>
         </div>

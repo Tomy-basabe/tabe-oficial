@@ -16,7 +16,7 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
   const last7Days = paddedWeekData.slice(-7);
 
   return (
-    <div className="neo-bento-card bg-[#fff5eb] border-[4px] border-foreground p-5 lg:p-6 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#ff9415] transition-all">
+    <div className="neo-bento-card bg-[#fff5eb] dark:bg-background border-[4px] border-foreground p-5 lg:p-6 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#ff9415] transition-all">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CalendarCheck className="w-6 h-6 text-foreground" />
@@ -28,7 +28,7 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
       </div>
 
       <div className="flex gap-4 mb-6">
-        <div className="flex-1 flex items-center gap-3 bg-white p-3 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000]">
+        <div className="flex-1 flex items-center gap-3 bg-white dark:bg-card p-3 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#ffffff]">
           <div className="w-10 h-10 bg-[#ff9415] rounded-full flex items-center justify-center border-2 border-foreground shrink-0">
             <Flame className="w-5 h-5 text-white" />
           </div>
@@ -37,7 +37,7 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
             <p className="text-[10px] font-black uppercase text-foreground/60 tracking-wider">Racha Actual</p>
           </div>
         </div>
-        <div className="flex-1 flex items-center gap-3 bg-white p-3 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000]">
+        <div className="flex-1 flex items-center gap-3 bg-white dark:bg-card p-3 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#ffffff]">
           <div className="w-10 h-10 bg-[#ffd21c] rounded-full flex items-center justify-center border-2 border-foreground shrink-0">
             <Trophy className="w-5 h-5 text-foreground" />
           </div>
@@ -48,7 +48,7 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
         </div>
       </div>
 
-      <div className="bg-white border-[3px] border-foreground rounded-xl p-4 shadow-[inset_2px_2px_0_rgba(0,0,0,0.05)]">
+      <div className="bg-white dark:bg-card border-[3px] border-foreground rounded-xl p-4 shadow-[inset_2px_2px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_2px_2px_0_rgba(255,255,255,0.05)]">
         <p className="text-[10px] font-black uppercase text-center mb-3 text-foreground/60 tracking-widest">
           Tarjeta de Sellos Semanal
         </p>

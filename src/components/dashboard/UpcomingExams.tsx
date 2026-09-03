@@ -59,10 +59,10 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
               <div
                 key={exam.id}
                 className={cn(
-                  "relative flex items-stretch rounded-lg border-[3px] border-foreground overflow-hidden hover:-translate-y-1 transition-transform group bg-white",
+                  "relative flex items-stretch rounded-lg border-[3px] border-foreground overflow-hidden hover:-translate-y-1 transition-transform group bg-card",
                   isUrgent ? "shadow-[4px_4px_0_0_#ef4444]" :
                     isWarning ? "shadow-[4px_4px_0_0_#ff9415]" :
-                      "shadow-[4px_4px_0_0_#000000]"
+                      "shadow-[4px_4px_0_0_#000000] dark:shadow-[4px_4px_0_0_#ffffff]"
                 )}
               >
                 {/* Ticket Stub (Left Side) */}
@@ -78,7 +78,7 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
                 </div>
 
                 {/* Ticket Body */}
-                <div className="flex-1 p-3 min-w-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmZmZmYiPjwvcmVjdD48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZTVlN2ViIj48L3JlY3Q+PC9zdmc+')]">
+                <div className="flex-1 p-3 min-w-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmZmZmYiPjwvcmVjdD48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZTVlN2ViIj48L3JlY3Q+PC9zdmc+')] dark:bg-none dark:bg-card">
                   <div className="flex justify-between items-start mb-1">
                     <p className="font-black text-sm truncate text-foreground pr-2">{exam.subject}</p>
                     <ArrowRight className="w-4 h-4 text-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />

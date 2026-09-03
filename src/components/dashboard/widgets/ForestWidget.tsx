@@ -9,6 +9,15 @@ export function ForestWidget() {
   const [selectedSeed, setSelectedSeed] = useState("oak");
   const [isHovered, setIsHovered] = useState(false);
 
+  const handleDPad = (direction: 1 | -1) => {
+    if (currentPlant) return;
+    const currentIndex = plantTypes.findIndex(p => p.id === selectedSeed);
+    let nextIndex = currentIndex + direction;
+    if (nextIndex < 0) nextIndex = plantTypes.length - 1;
+    if (nextIndex >= plantTypes.length) nextIndex = 0;
+    setSelectedSeed(plantTypes[nextIndex].id);
+  };
+
   if (loading) {
     return <Skeleton className="w-full h-48 rounded-3xl" />;
   }
@@ -91,10 +100,17 @@ export function ForestWidget() {
 
       {/* Console Controls */}
       <div className="mt-5 flex justify-between items-end px-2">
-        {/* D-Pad (fake) */}
+        {/* D-Pad */}
         <div className="relative w-16 h-16 opacity-80">
-          <div className="absolute top-1/2 left-0 right-0 h-5 bg-foreground -translate-y-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset]"></div>
-          <div className="absolute left-1/2 top-0 bottom-0 w-5 bg-foreground -translate-x-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset]"></div>
+          <div className="absolute top-1/2 left-0 right-0 h-5 bg-foreground -translate-y-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset] flex justify-between overflow-hidden">
+            <button className="w-5 h-full hover:bg-white/20 z-10" onClick={() => handleDPad(-1)} aria-label="Anterior semilla" />
+            <button className="w-5 h-full hover:bg-white/20 z-10" onClick={() => handleDPad(1)} aria-label="Siguiente semilla" />
+          </div>
+          <div className="absolute left-1/2 top-0 bottom-0 w-5 bg-foreground -translate-x-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset] flex flex-col justify-between pointer-events-none overflow-hidden">
+            <button className="w-full h-5 hover:bg-white/20 pointer-events-auto z-10" onClick={() => handleDPad(-1)} aria-label="Anterior semilla" />
+            <button className="w-full h-5 hover:bg-white/20 pointer-events-auto z-10" onClick={() => handleDPad(1)} aria-label="Siguiente semilla" />
+          </div>
+          <div className="absolute top-1/2 left-1/2 w-5 h-5 bg-foreground -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
         </div>
 
         {/* Action Buttons */}
