@@ -115,14 +115,6 @@ export const SubjectNode = memo(({ data }: NodeProps) => {
                     {data.label as string}
                 </div>
 
-                {/* Nota badge */}
-                {status === 'aprobada' && data.nota && (
-                    <div className="mt-1.5">
-                        <span className="text-[9px] font-bold bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
-                            {data.nota as number}/10
-                        </span>
-                    </div>
-                )}
             </div>
 
             <Handle type="source" position={Position.Right} className={cn("!w-2 !h-2 !border-0 !-right-1", style.handleColor)} />

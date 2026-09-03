@@ -2,60 +2,44 @@ import { FunctionSquare, Atom, Zap, Lightbulb } from "lucide-react";
 
 export function SpecializationSection() {
     return (
-        <section className="py-24 relative overflow-hidden bg-background">
+        <section className="py-20 md:py-28 bg-secondary/40">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="text-center max-w-2xl mx-auto mb-16">
-                    <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                        Formación Universitaria Integral
-                    </h2>
-                    <p className="text-lg text-muted-foreground">
-                        Dominá cualquier materia con nuestro método. Nos enfocamos en darte las herramientas para superar los filtros de tu carrera.
-                    </p>
+                    <h2 className="text-3xl md:text-5xl font-black mb-4">Formación Universitaria Integral</h2>
+                    <p className="text-lg text-muted-foreground">Dominá cualquier materia con nuestro método.</p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                    {/* Card Matematica */}
-                    <div className="group relative rounded-3xl border border-border bg-card p-1 overflow-hidden transition-all hover:border-neon-cyan/50 hover:shadow-[0_0_40px_rgba(0,255,170,0.1)]">
-                        <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="relative h-full bg-background rounded-[22px] p-8">
-                            <div className="w-16 h-16 rounded-2xl bg-neon-cyan/10 flex items-center justify-center mb-6">
-                                <FunctionSquare className="w-8 h-8 text-neon-cyan" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-4">Materias Analíticas</h3>
-                            <p className="text-muted-foreground mb-6">
-                                Desde Álgebra Lineal hasta Análisis de Datos y Finanzas. Dejamos de lado la abstracción innecesaria para enfocarnos en la intuición y resolución práctica.
-                            </p>
-                            <ul className="space-y-3">
-                                {["Resolución de Problemas", "Análisis Lógico", "Interpretación de Datos", "Ejercicios Prácticos"].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-sm font-medium">
-                                        <Zap className="w-4 h-4 text-neon-cyan" />
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
+                <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                    {/* Analíticas */}
+                    <div className="group bg-card rounded-xl p-8 border-2 border-border shadow-[4px_4px_0_0_#1475e5] transition-all duration-200 hover:-translate-y-2 hover:shadow-[8px_8px_0_0_#1475e5]">
+                        <div className="w-14 h-14 rounded-xl bg-[#1475e5]/10 border-2 border-[#1475e5]/30 flex items-center justify-center mb-6 transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3">
+                            <FunctionSquare className="w-7 h-7 text-[#1475e5]" />
                         </div>
+                        <h3 className="text-2xl font-extrabold mb-3">Materias Analíticas</h3>
+                        <p className="text-muted-foreground mb-6 text-sm leading-relaxed">Desde Álgebra Lineal hasta Análisis de Datos y Finanzas. Enfocamos en la intuición y resolución práctica.</p>
+                        <ul className="space-y-3">
+                            {["Resolución de Problemas", "Análisis Lógico", "Interpretación de Datos", "Ejercicios Prácticos"].map((item, i) => (
+                                <li key={i} className="flex items-center gap-3 text-sm font-bold">
+                                    <Zap className="w-4 h-4 text-[#1475e5]" /> {item}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
 
-                    {/* Card Fisica */}
-                    <div className="group relative rounded-3xl border border-border bg-card p-1 overflow-hidden transition-all hover:border-neon-purple/50 hover:shadow-[0_0_40px_rgba(176,38,255,0.1)]">
-                        <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="relative h-full bg-background rounded-[22px] p-8">
-                            <div className="w-16 h-16 rounded-2xl bg-neon-purple/10 flex items-center justify-center mb-6">
-                                <Atom className="w-8 h-8 text-neon-purple" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-4">Materias Teóricas</h3>
-                            <p className="text-muted-foreground mb-6">
-                                Dejás de memorizar conceptos de memoria para empezar a visualizar y analizar la información. Conectamos la teoría con la realidad mediante esquemas simples.
-                            </p>
-                            <ul className="space-y-3">
-                                {["Conexión de Conceptos", "Aplicación a la Realidad", "Casos de Estudio", "Mapas Conceptuales"].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-sm font-medium">
-                                        <Lightbulb className="w-4 h-4 text-neon-purple" />
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
+                    {/* Teóricas */}
+                    <div className="group bg-card rounded-xl p-8 border-2 border-border shadow-[4px_4px_0_0_#ff9415] transition-all duration-200 hover:-translate-y-2 hover:shadow-[8px_8px_0_0_#ff9415]">
+                        <div className="w-14 h-14 rounded-xl bg-[#ff9415]/10 border-2 border-[#ff9415]/30 flex items-center justify-center mb-6 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
+                            <Atom className="w-7 h-7 text-[#ff9415]" />
                         </div>
+                        <h3 className="text-2xl font-extrabold mb-3">Materias Teóricas</h3>
+                        <p className="text-muted-foreground mb-6 text-sm leading-relaxed">Dejás de memorizar para empezar a visualizar. Conectamos la teoría con la realidad.</p>
+                        <ul className="space-y-3">
+                            {["Conexión de Conceptos", "Aplicación a la Realidad", "Casos de Estudio", "Mapas Conceptuales"].map((item, i) => (
+                                <li key={i} className="flex items-center gap-3 text-sm font-bold">
+                                    <Lightbulb className="w-4 h-4 text-[#ff9415]" /> {item}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </div>
             </div>

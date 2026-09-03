@@ -1,69 +1,38 @@
-import { AlertTriangle, BookX, ArrowDownRight, TrendingDown } from "lucide-react";
+import { AlertTriangle, Clock, TrendingDown, BookX } from "lucide-react";
+
+const problems = [
+    { icon: BookX, title: "Material desorganizado", desc: "PDFs perdidos, apuntes sueltos y links olvidados.", color: "#ff9415" },
+    { icon: Clock, title: "Horas sin resultados", desc: "Estudiar mucho no significa estudiar bien.", color: "#1475e5" },
+    { icon: TrendingDown, title: "Desmotivación", desc: "Sin metas claras ni feedback, es fácil abandonar.", color: "#ffd21c" },
+    { icon: AlertTriangle, title: "Recursar materias", desc: "Sin plan de carrera claro perdés cuatrimestres.", color: "#e53935" },
+];
 
 export function ProblemSection() {
-    const problems = [
-        {
-            title: "Falta de Bases Sólidas",
-            description: "Muchos estudiantes ingresan a la universidad sin los fundamentos necesarios, dificultando el avance en temas complejos.",
-            icon: BookX,
-            color: "text-red-500",
-            bg: "bg-red-500/10",
-            border: "border-red-500/20",
-        },
-        {
-            title: "Métodos de Estudio Pasivos",
-            description: "Leer apuntes o ver videos no es suficiente para las materias filtro. La falta de práctica activa condena al fracaso en el parcial.",
-            icon: AlertTriangle,
-            color: "text-orange-500",
-            bg: "bg-orange-500/10",
-            border: "border-orange-500/20",
-        },
-        {
-            title: "La Brecha Secundaria-Universidad",
-            description: "El salto de exigencia, velocidad y volumen de estudio entre el colegio y la facultad abruma a la mayoría durante el primer año.",
-            icon: ArrowDownRight,
-            color: "text-yellow-500",
-            bg: "bg-yellow-500/10",
-            border: "border-yellow-500/20",
-        },
-        {
-            title: "Alta Tasa de Deserción",
-            description: "Las materias filtro actúan como grandes obstáculos, llevando a frustración, demoras en la carrera y, frecuentemente, al abandono.",
-            icon: TrendingDown,
-            color: "text-rose-500",
-            bg: "bg-rose-500/10",
-            border: "border-rose-500/20",
-        },
-    ];
-
     return (
-        <section id="problema" className="py-24 relative overflow-hidden bg-secondary/30">
+        <section id="problema" className="py-20 md:py-28">
             <div className="container mx-auto px-4 md:px-6">
-                <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-                    <h2 className="text-3xl md:text-5xl font-display font-bold">
-                        El sistema actual <span className="text-destructive">está fallando</span>
+                <div className="text-center max-w-2xl mx-auto mb-14">
+                    <span className="inline-block px-4 py-2 rounded-lg bg-red-500/10 border-2 border-red-500/20 text-sm font-extrabold text-red-500 mb-5">
+                        ⚠️ El problema
+                    </span>
+                    <h2 className="text-3xl md:text-5xl font-black mb-4">
+                        ¿Te suena <span className="text-red-500">familiar?</span>
                     </h2>
-                    <p className="text-lg text-muted-foreground">
-                        Aprobar materias difíciles en la universidad requiere más que solo asistir y tomar nota.
-                        Identificamos por qué la mayoría se queda en el camino.
-                    </p>
+                    <p className="text-lg text-muted-foreground">Los problemas más comunes que enfrentan los universitarios. TABE los resuelve.</p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                    {problems.map((problem, index) => {
-                        const Icon = problem.icon;
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
+                    {problems.map((p, i) => {
+                        const Icon = p.icon;
                         return (
-                            <div
-                                key={index}
-                                className={`p-6 md:p-8 rounded-2xl bg-card border ${problem.border} hover:shadow-xl transition-all duration-300 group`}
-                            >
-                                <div className={`w-14 h-14 rounded-xl ${problem.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                                    <Icon className={`w-7 h-7 ${problem.color}`} />
+                            <div key={i}
+                                className="group bg-card rounded-xl p-6 border-2 border-border shadow-[4px_4px_0_0_hsl(var(--border))] transition-all duration-200 hover:-translate-y-2 hover:shadow-[8px_8px_0_0_hsl(var(--border))] cursor-default">
+                                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 border-2"
+                                    style={{ borderColor: p.color, backgroundColor: p.color + "15" }}>
+                                    <Icon className="w-6 h-6" style={{ color: p.color }} />
                                 </div>
-                                <h3 className="text-xl font-bold mb-3">{problem.title}</h3>
-                                <p className="text-muted-foreground leading-relaxed">
-                                    {problem.description}
-                                </p>
+                                <h3 className="font-extrabold text-lg mb-2">{p.title}</h3>
+                                <p className="text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
                             </div>
                         );
                     })}

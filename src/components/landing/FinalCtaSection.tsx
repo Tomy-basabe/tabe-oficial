@@ -1,37 +1,30 @@
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { ArrowRight, GraduationCap } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 
 export function FinalCtaSection() {
+    const { theme } = useTheme();
+    const logo = theme === "dark" ? "/logos/tabe-logo-dark.png" : "/logos/tabe-logo-light.png";
+
     return (
-        <section className="py-32 relative overflow-hidden bg-background flex justify-center">
-            {/* Glow Effects */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-neon-cyan/5 pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-neon-cyan/20 rounded-full blur-[150px] mix-blend-screen -z-10" />
+        <section className="py-20 md:py-28 bg-secondary/40">
+            <div className="container mx-auto px-4 md:px-6">
+                <div className="max-w-3xl mx-auto text-center space-y-8">
+                    <img src={logo} alt="TABE" className="w-20 h-20 mx-auto hover:scale-110 hover:-rotate-6 transition-all duration-300" />
 
-            <div className="container px-4 relative z-10 text-center max-w-4xl">
-                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-neon-cyan to-neon-purple rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-neon-cyan/30">
-                    <GraduationCap className="w-10 h-10 text-white" />
-                </div>
+                    <h2 className="text-3xl md:text-5xl lg:text-6xl font-black leading-tight">
+                        Tu próximo <span className="text-[#ff9415]">aprobado</span> empieza acá
+                    </h2>
 
-                <h2 className="text-4xl md:text-6xl lg:text-7xl font-display font-black mb-8 leading-tight">
-                    Tu rendimiento universitario no depende de la suerte, depende del <span className="gradient-text">método.</span>
-                </h2>
-
-                <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
-                    Únete a los estudiantes que ya dejaron de sobrevivir las materias filtro y empezaron a dominarlas.
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <Link
-                        to="/registro"
-                        className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-xl flex items-center justify-center gap-3 hover:shadow-[0_0_40px_rgba(0,255,170,0.4)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0"
-                    >
-                        Acceder a TABE ahora
-                        <ArrowRight className="w-6 h-6" />
-                    </Link>
-                    <p className="mt-4 sm:mt-0 sm:ml-4 text-sm font-medium text-muted-foreground sm:max-w-[150px] text-left">
-                        Empieza a preparar tu próximo examen
+                    <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+                        Unite a la comunidad de estudiantes que ya transformaron su forma de estudiar con TABE.
                     </p>
+
+                    <Link to="/registro"
+                        className="group inline-flex items-center gap-3 px-10 py-5 bg-foreground text-background rounded-xl font-extrabold text-xl border-2 border-foreground shadow-[5px_5px_0_0_#ff9415] transition-all duration-200 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#ff9415] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#ff9415]">
+                        Empezar Gratis
+                        <ArrowRight className="w-6 h-6 transition-transform group-hover:translate-x-1" />
+                    </Link>
                 </div>
             </div>
         </section>

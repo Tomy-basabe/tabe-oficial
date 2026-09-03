@@ -140,9 +140,9 @@ export default function CareerPlan() {
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="tabe-hero flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
             Plan de Carrera

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TABE — Character Set">
+  <title>TABE — Character Set</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="banner">
+    <span class="decor orange d1"></span>
+    <span class="decor orange d2"></span>
+    <span class="decor blue d3"></span>
+    <span class="decor green d4"></span>
+    <span class="ghost ghost-plus">＋</span>
+    <span class="ghost ghost-star">☆</span>
+    <span class="ghost ghost-gamepad">⌁</span>
+
+    <header class="brand">
+      <div class="notebook" aria-label="Logo TABE">
+        <div class="rings" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="paper">
+          <div class="t-mark">T</div>
+          <div class="mini-gamepad">⌁</div>
+        </div>
+        <div class="tabs" aria-hidden="true">
+          <i class="tab orange-tab"></i>
+          <i class="tab green-tab"></i>
+          <i class="tab blue-tab"></i>
+          <i class="tab yellow-tab"></i>
+        </div>
+      </div>
+      <h1>TABE</h1>
+    </header>
+
+    <section id="characterSet" class="character-list" aria-label="Conjunto de caracteres"></section>
+    <p class="hint">Haz clic en cualquier carácter para copiarlo.</p>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

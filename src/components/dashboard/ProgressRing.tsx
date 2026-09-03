@@ -31,28 +31,19 @@ export function ProgressRing({
           stroke="hsl(var(--secondary))"
           strokeWidth={strokeWidth}
         />
-        {/* Progress circle */}
+        {/* Progress circle — solid blue, no gradient */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="url(#progressGradient)"
+          stroke="#1475e5"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           className="transition-all duration-1000 ease-out"
-          style={{
-            filter: "drop-shadow(0 0 6px hsl(var(--neon-cyan)))",
-          }}
         />
-        <defs>
-          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="hsl(var(--neon-cyan))" />
-            <stop offset="100%" stopColor="hsl(var(--neon-purple))" />
-          </linearGradient>
-        </defs>
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         {children}

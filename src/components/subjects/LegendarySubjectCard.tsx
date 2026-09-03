@@ -33,8 +33,7 @@ export const LegendarySubjectCard = memo(function LegendarySubjectCard({
       onClick={onClick}
       className={cn(
         "w-full rounded-xl transition-all duration-300 text-left relative",
-        "subject-legendary animate-legendary-glow",
-        "hover:scale-[1.03] cursor-pointer",
+        "bg-[#ffd21c] border-[3px] border-foreground hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000000]",
         compact ? "p-3" : "p-4"
       )}
     >

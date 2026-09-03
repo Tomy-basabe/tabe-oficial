@@ -1,72 +1,49 @@
-import { KeyRound, Smartphone, Rocket } from "lucide-react";
+import { UserPlus, Compass, BookOpen, Rocket } from "lucide-react";
+
+const steps = [
+    { icon: UserPlus, title: "Creá tu cuenta", desc: "Registrate gratis y elegí tu carrera. En 30 segundos ya tenés tu espacio listo.", color: "#ff9415" },
+    { icon: Compass, title: "Explorá las herramientas", desc: "Flashcards, cuestionarios, apuntes, calendario, pomodoro... descubrí lo que necesitás.", color: "#48bd22" },
+    { icon: BookOpen, title: "Organizá y estudiá", desc: "Subí tu material, creá tus mazos, usá la IA para generar quizzes y resúmenes.", color: "#1475e5" },
+    { icon: Rocket, title: "Superá tus metas", desc: "Medí tu progreso, desbloqueá logros y compará tu rendimiento con amigos.", color: "#ffd21c" },
+];
 
 export function HowItWorksSection() {
-    const steps = [
-        {
-            num: "01",
-            title: "Recibe tu Acceso",
-            desc: "Al confirmar tu inscripción por WhatsApp, te entregamos usuario y contraseña para nuestra plataforma web y móvil.",
-            icon: KeyRound,
-            color: "from-blue-500 to-cyan-500",
-            delay: "0 delay-[0ms]",
-        },
-        {
-            num: "02",
-            title: "Estudia Interactivo",
-            desc: "No más PDFs aburridos. Usa nuestras flashcards generadas por IA, cuestionarios y mapas de correlatividades.",
-            icon: Smartphone,
-            color: "from-neon-purple to-pink-500",
-            delay: "delay-[200ms]",
-        },
-        {
-            num: "03",
-            title: "Mejora tu Rendimiento",
-            desc: "Mide tu progreso, acumula horas de estudio en tu 'Bosque' personal y aprueba tu próximo examen.",
-            icon: Rocket,
-            color: "from-neon-green to-emerald-500",
-            delay: "delay-[400ms]",
-        }
-    ];
-
     return (
-        <section className="py-24 relative overflow-hidden bg-secondary/20">
+        <section className="py-20 md:py-28">
             <div className="container mx-auto px-4 md:px-6">
-                <div className="text-center max-w-2xl mx-auto mb-20">
-                    <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                        Cómo Funciona TABE
+                <div className="text-center max-w-2xl mx-auto mb-16">
+                    <span className="inline-block px-4 py-2 rounded-lg bg-[#ff9415]/10 border-2 border-[#ff9415]/20 text-sm font-extrabold text-[#ff9415] mb-5">
+                        🚀 Cómo funciona
+                    </span>
+                    <h2 className="text-3xl md:text-5xl font-black mb-4">
+                        Empezar es <span className="text-[#ff9415]">muy fácil</span>
                     </h2>
-                    <p className="text-lg text-muted-foreground">
-                        Un proceso simple y directo para que empieces a mejorar tus notas desde el primer día.
-                    </p>
                 </div>
 
-                <div className="relative">
-                    {/* Connecting Line (Desktop) */}
-                    <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-0.5 bg-border -z-10" />
-
-                    <div className="grid md:grid-cols-3 gap-10">
-                        {steps.map((step, i) => {
-                            const Icon = step.icon;
-                            return (
-                                <div key={i} className={`relative flex flex-col items-center text-center animate-fade-in-up ${step.delay}`}>
-                                    <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${step.color} p-1 mb-8 shadow-xl shadow-background/50 relative z-10`}>
-                                        <div className="w-full h-full bg-card rounded-full flex flex-col items-center justify-center border-4 border-background">
-                                            <Icon className="w-8 h-8 text-foreground" />
-                                        </div>
+                <div className="max-w-3xl mx-auto space-y-0">
+                    {steps.map((s, i) => {
+                        const Icon = s.icon;
+                        return (
+                            <div key={i} className="flex items-start gap-6 py-7 group">
+                                {/* Step circle + connector */}
+                                <div className="relative flex-shrink-0">
+                                    <div className="w-14 h-14 rounded-xl border-2 flex items-center justify-center shadow-[3px_3px_0_0_rgba(0,0,0,.1)] transition-all duration-200 group-hover:scale-110 group-hover:-rotate-6"
+                                        style={{ borderColor: s.color, backgroundColor: s.color }}>
+                                        <Icon className="w-6 h-6 text-white" />
                                     </div>
-
-                                    <div className="absolute top-0 right-1/2 translate-x-12 -translate-y-4 text-6xl font-display font-black text-secondary/50 -z-10">
-                                        {step.num}
-                                    </div>
-
-                                    <h3 className="text-2xl font-bold mb-3">{step.title}</h3>
-                                    <p className="text-muted-foreground leading-relaxed max-w-sm">
-                                        {step.desc}
-                                    </p>
+                                    {i < steps.length - 1 && (
+                                        <div className="absolute top-14 left-1/2 -translate-x-1/2 w-0.5 h-10 bg-border" />
+                                    )}
                                 </div>
-                            );
-                        })}
-                    </div>
+                                {/* Text */}
+                                <div className="pt-2">
+                                    <span className="text-xs font-black uppercase tracking-widest mb-1 block" style={{ color: s.color }}>Paso {i + 1}</span>
+                                    <h3 className="font-extrabold text-xl mb-1">{s.title}</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed max-w-md">{s.desc}</p>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </section>

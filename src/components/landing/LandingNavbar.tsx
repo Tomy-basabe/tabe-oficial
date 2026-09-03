@@ -1,243 +1,111 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { GraduationCap, Moon, Sun, Menu, X, Instagram } from "lucide-react";
+import { Moon, Sun, Menu, X, ChevronRight } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 
 export function LandingNavbar() {
     const { theme, toggleTheme } = useTheme();
-    const [isScrolled, setIsScrolled] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [activeSection, setActiveSection] = useState("");
+    const [scrolled, setScrolled] = useState(false);
+    const [open, setOpen] = useState(false);
 
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20);
-        };
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        return () => window.removeEventListener("scroll", handleScroll);
+        const h = () => setScrolled(window.scrollY > 20);
+        window.addEventListener("scroll", h, { passive: true });
+        return () => window.removeEventListener("scroll", h);
     }, []);
 
-    // Track which section is currently in view
-    useEffect(() => {
-        const sectionIds = ["problema", "metodologia", "planes", "faq"];
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        setActiveSection(entry.target.id);
-                    }
-                });
-            },
-            { rootMargin: "-40% 0px -50% 0px", threshold: 0 }
-        );
+    const logo = theme === "dark" ? "/logos/tabe-logo-dark.png" : "/logos/tabe-logo-light.png";
 
-        sectionIds.forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) observer.observe(el);
-        });
-
-        return () => observer.disconnect();
-    }, []);
-
-    const scrollToSection = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-        if (window.location.pathname !== "/") return; // Let default navigation happen if not on home
-
-        e.preventDefault();
-        const targetId = href.replace("/#", "");
-        const el = document.getElementById(targetId);
-        if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-        setMobileMenuOpen(false);
-    }, []);
-
-    const navLinks = [
-        { label: "Carreras", href: "/carreras", isScroll: false },
-        { label: "Metodología", href: "/#metodologia", isScroll: true },
-        { label: "Planes", href: "/#planes", isScroll: true },
-        { label: "FAQ", href: "/#faq", isScroll: true },
-        { label: "Acerca de", href: "/acerca-de", isScroll: false },
-        { label: "Contacto", href: "/contacto", isScroll: false },
+    const links = [
+        { to: "/carreras", label: "Carreras" },
+        { to: "/#metodologia", label: "Metodología", scroll: true },
+        { to: "/#planes", label: "Planes", scroll: true },
+        { to: "/#faq", label: "FAQ", scroll: true },
+        { to: "/acerca-de", label: "Acerca de" },
+        { to: "/contacto", label: "Contacto" },
     ];
 
+    const handleScroll = (e: React.MouseEvent, href: string) => {
+        if (window.location.pathname !== "/") return;
+        e.preventDefault();
+        const id = href.replace("/#", "");
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+        setOpen(false);
+    };
+
     return (
-        <nav
-            className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${isScrolled
-                ? "bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-lg shadow-black/5 py-3"
-                : "bg-transparent py-5"
-                }`}
-        >
+        <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-xl border-b-2 border-border py-2" : "bg-transparent py-5"}`}>
             <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
+
                 {/* Logo */}
-                <Link to="/" className="flex items-center gap-2 group">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                        <GraduationCap className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="font-display font-bold text-2xl tracking-tight">TABE</span>
+                <Link to="/" className="flex items-center gap-3 group">
+                    <img src={logo} alt="TABE" className="w-10 h-10 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6" />
+                    <span className="font-black text-2xl tracking-tight">TABE</span>
                 </Link>
 
-                {/* Desktop Links */}
+                {/* Desktop nav */}
                 <div className="hidden md:flex items-center gap-1">
-                    {navLinks.map((link) => (
-                        link.isScroll ? (
-                            <a
-                                key={link.label}
-                                href={link.href}
-                                onClick={(e) => {
-                                    if (window.location.pathname === "/") {
-                                        scrollToSection(e, link.href);
-                                    } else {
-                                        window.location.href = link.href;
-                                    }
-                                }}
-                                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
-                                    ${activeSection === link.href.replace("/#", "") && window.location.pathname === "/"
-                                        ? "text-foreground"
-                                        : "text-muted-foreground hover:text-foreground"
-                                    }`}
-                            >
-                                {link.label}
-                                <span
-                                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full transition-all duration-300
-                                        ${activeSection === link.href.replace("/#", "") && window.location.pathname === "/" ? "w-6 opacity-100" : "w-0 opacity-0"}`}
-                                />
+                    {links.map(l => (
+                        l.scroll ? (
+                            <a key={l.label} href={l.to} onClick={e => handleScroll(e, l.to)}
+                                className="px-4 py-2 text-sm font-bold text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-all duration-200">
+                                {l.label}
                             </a>
                         ) : (
-                            <Link
-                                key={link.label}
-                                to={link.href}
-                                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
-                                    ${window.location.pathname === link.href
-                                        ? "text-foreground"
-                                        : "text-muted-foreground hover:text-foreground"
-                                    }`}
-                            >
-                                {link.label}
-                                <span
-                                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full transition-all duration-300
-                                        ${window.location.pathname === link.href ? "w-6 opacity-100" : "w-0 opacity-0"}`}
-                                />
+                            <Link key={l.label} to={l.to}
+                                className="px-4 py-2 text-sm font-bold text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-all duration-200">
+                                {l.label}
                             </Link>
                         )
                     ))}
                 </div>
 
                 {/* Actions */}
-                <div className="hidden md:flex items-center gap-4">
-                    <a
-                        href="https://www.instagram.com/tabe_oficial/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 border border-border/50 hover:border-neon-purple/50 transition-all duration-300 hover:scale-105 active:scale-95 text-muted-foreground hover:text-foreground"
-                        aria-label="Instagram"
-                    >
-                        <Instagram className="w-4 h-4 transition-colors group-hover:text-neon-purple" />
-                        <span className="text-xs font-bold uppercase tracking-wider hidden lg:inline">Instagram</span>
-                    </a>
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 rounded-full hover:bg-secondary transition-all duration-300 hover:scale-110 active:scale-95"
-                        aria-label="Toggle theme"
-                    >
-                        {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                <div className="hidden md:flex items-center gap-3">
+                    <button onClick={toggleTheme}
+                        className="p-2.5 rounded-lg border-2 border-border bg-card hover:bg-secondary transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+                        {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                     </button>
-                    <Link
-                        to="/registro"
-                        className="px-6 py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-bold text-sm hover:shadow-[0_0_20px_rgba(0,255,170,0.3)] transition-all duration-300 hover:scale-105 active:scale-95"
-                    >
+                    <Link to="/registro"
+                        className="group flex items-center gap-2 px-5 py-2.5 bg-foreground text-background rounded-lg font-extrabold text-sm border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--tab-orange))] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_hsl(var(--tab-orange))] active:translate-y-0.5 active:shadow-none">
                         Entrar a la App
+                        <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                     </Link>
                 </div>
 
-                {/* Mobile Toggle */}
-                <button
-                    className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    aria-label="Toggle menu"
-                >
-                    <div className="relative w-6 h-6">
-                        <X className={`w-6 h-6 absolute inset-0 transition-all duration-300 ${mobileMenuOpen ? "opacity-100 rotate-0" : "opacity-0 rotate-90"}`} />
-                        <Menu className={`w-6 h-6 absolute inset-0 transition-all duration-300 ${mobileMenuOpen ? "opacity-0 -rotate-90" : "opacity-100 rotate-0"}`} />
-                    </div>
+                {/* Mobile */}
+                <button className="md:hidden p-2" onClick={() => setOpen(!open)}>
+                    {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
             </div>
 
-            {/* Mobile Menu */}
-            <div
-                className={`md:hidden absolute top-full left-0 w-full bg-background/95 backdrop-blur-xl border-b border-border shadow-xl transition-all duration-400 overflow-hidden ${mobileMenuOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
-                    }`}
-            >
-                <div className="py-6 px-4 flex flex-col gap-1">
-                    {/* Top Shortcut for Mobile */}
-                    <Link
-                        to="/registro"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="w-full flex items-center justify-center gap-2 px-5 py-4 mb-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-lg active:scale-95 transition-transform shadow-lg shadow-neon-cyan/20"
-                    >
-                        Entrar a la App
-                        <GraduationCap className="w-5 h-5" />
-                    </Link>
-
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold px-4 mb-2">Menú</div>
-                    {navLinks.map((link, i) => (
-                        link.isScroll ? (
-                            <a
-                                key={link.label}
-                                href={link.href}
-                                onClick={(e) => {
-                                    if (window.location.pathname === "/") {
-                                        scrollToSection(e, link.href);
-                                    } else {
-                                        window.location.href = link.href;
-                                    }
-                                }}
-                                className={`font-medium px-4 py-3 hover:bg-secondary rounded-xl transition-all duration-300 ${activeSection === link.href.replace("/#", "") && window.location.pathname === "/" ? "bg-secondary/50 text-foreground" : "text-muted-foreground"}`}
-                                style={{ transitionDelay: mobileMenuOpen ? `${i * 50}ms` : "0ms" }}
-                            >
-                                {link.label}
+            {/* Mobile menu */}
+            {open && (
+                <div className="md:hidden absolute top-full left-0 w-full bg-background border-b-2 border-border py-4 px-4 space-y-1">
+                    {links.map(l => (
+                        l.scroll ? (
+                            <a key={l.label} href={l.to} onClick={e => handleScroll(e, l.to)}
+                                className="block px-4 py-3 font-bold text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg">
+                                {l.label}
                             </a>
                         ) : (
-                            <Link
-                                key={link.label}
-                                to={link.href}
-                                onClick={() => setMobileMenuOpen(false)}
-                                className={`font-medium px-4 py-3 hover:bg-secondary rounded-xl transition-all duration-300 ${window.location.pathname === link.href ? "bg-secondary/50 text-foreground" : "text-muted-foreground"}`}
-                                style={{ transitionDelay: mobileMenuOpen ? `${i * 50}ms` : "0ms" }}
-                            >
-                                {link.label}
+                            <Link key={l.label} to={l.to} onClick={() => setOpen(false)}
+                                className="block px-4 py-3 font-bold text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg">
+                                {l.label}
                             </Link>
                         )
                     ))}
-                    <div className="flex items-center justify-between px-4 py-3 mt-2 bg-secondary/30 rounded-2xl">
-                        <span className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Seguinos</span>
-                        <a
-                            href="https://www.instagram.com/tabe_oficial/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all duration-300"
-                        >
-                            <Instagram className="w-5 h-5" />
-                            <span>Instagram</span>
-                        </a>
-                    </div>
-                    <div className="flex items-center justify-between px-4 py-2">
-                        <span className="font-medium">Tema</span>
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2.5 rounded-xl bg-secondary hover:scale-110 active:scale-95 transition-all duration-300"
-                        >
+                    <div className="pt-3 flex items-center gap-3">
+                        <button onClick={toggleTheme} className="p-2.5 rounded-lg border-2 border-border">
                             {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </button>
+                        <Link to="/registro" onClick={() => setOpen(false)}
+                            className="flex-1 text-center py-3 bg-foreground text-background rounded-lg font-extrabold border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--tab-orange))]">
+                            Entrar a la App
+                        </Link>
                     </div>
-                    <Link
-                        to="/registro"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="w-full text-center px-5 py-3.5 mt-2 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-xl font-semibold active:scale-95 transition-transform"
-                    >
-                        Acceder a TABE
-                    </Link>
                 </div>
-            </div>
+            )}
         </nav>
     );
 }

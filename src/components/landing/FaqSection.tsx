@@ -7,47 +7,32 @@ import {
 
 export function FaqSection() {
     const faqs = [
-        {
-            q: "¿Necesito conocimientos previos?",
-            a: "No obligatoriamente. La plataforma está diseñada para reforzar las bases desde cero, explicando cada paso fundamental antes de avanzar a temas más complejos."
-        },
-        {
-            q: "¿Cómo empiezo a estudiar?",
-            a: "¡Es muy fácil! Podés registrarte gratis en segundos y empezar a usar las herramientas básicas. No necesitás tarjetas ni pagos previos para probar el potencial de la plataforma."
-        },
-        {
-            q: "¿Qué incluye el acceso Premium?",
-            a: "Tabe Pro te da acceso ilimitado a nuestro asistente con IA, generación automática de cuestionarios y flashcards basadas en tus apuntes, y métricas avanzadas para trackear tu progreso real por materia."
-        },
-        {
-            q: "¿Cómo me ayuda la IA de Tabe?",
-            a: "Nuestra IA analiza tus propios apuntes y documentos para generar material de estudio personalizado. Puede crearte resúmenes, cuestionarios y flashcards exactas, ahorrándote horas de trabajo manual."
-        },
-        {
-            q: "¿Sirve para mi carrera?",
-            a: "Sí. Tabe está diseñado para ser flexible. Ya sea que estudies Medicina, Ingeniería, Derecho o cualquier otra carrera, nuestras herramientas de organización y estudio se adaptan a tus necesidades específicas."
-        }
+        { q: "¿Necesito conocimientos previos?", a: "No. La plataforma está diseñada para reforzar las bases desde cero, explicando cada paso fundamental antes de avanzar." },
+        { q: "¿Cómo empiezo a estudiar?", a: "Registrate gratis en segundos y empezá a usar todas las herramientas. No necesitás tarjetas ni pagos." },
+        { q: "¿Qué incluye el acceso?", a: "Acceso ilimitado al asistente IA, generación automática de cuestionarios y flashcards, y métricas avanzadas." },
+        { q: "¿Cómo me ayuda la IA?", a: "Nuestra IA analiza tus apuntes y documentos para generar material de estudio personalizado: resúmenes, quizzes y flashcards." },
+        { q: "¿Sirve para mi carrera?", a: "Sí. TABE se adapta a cualquier carrera: Medicina, Ingeniería, Derecho, Economía y más." },
     ];
 
     return (
-        <section id="faq" className="py-24 bg-background">
+        <section id="faq" className="py-20 md:py-28">
             <div className="container mx-auto px-4 md:px-6 max-w-3xl">
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                        Preguntas Frecuentes
-                    </h2>
-                    <p className="text-muted-foreground text-lg">
-                        Todo lo que necesitas saber antes de empezar.
-                    </p>
+                <div className="text-center mb-14">
+                    <span className="inline-block px-4 py-2 rounded-lg bg-[#48bd22]/10 border-2 border-[#48bd22]/20 text-sm font-extrabold text-[#48bd22] mb-5">
+                        ❓ FAQ
+                    </span>
+                    <h2 className="text-3xl md:text-5xl font-black mb-4">Preguntas Frecuentes</h2>
+                    <p className="text-muted-foreground text-lg">Todo lo que necesitás saber antes de empezar.</p>
                 </div>
 
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion type="single" collapsible className="w-full space-y-3">
                     {faqs.map((faq, i) => (
-                        <AccordionItem key={i} value={`item-${i}`} className="border-border">
-                            <AccordionTrigger className="text-left font-bold text-lg hover:text-neon-cyan transition-colors">
+                        <AccordionItem key={i} value={`item-${i}`}
+                            className="border-2 border-border rounded-xl px-5 shadow-[3px_3px_0_0_hsl(var(--border))] data-[state=open]:shadow-[3px_3px_0_0_#1475e5] data-[state=open]:border-[#1475e5]/40 transition-all">
+                            <AccordionTrigger className="text-left font-extrabold text-base hover:no-underline py-4">
                                 {faq.q}
                             </AccordionTrigger>
-                            <AccordionContent className="text-muted-foreground leading-relaxed text-base">
+                            <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-4">
                                 {faq.a}
                             </AccordionContent>
                         </AccordionItem>

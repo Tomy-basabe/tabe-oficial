@@ -28,7 +28,7 @@ import {
   CustomSidebarItem,
   ALL_AVAILABLE_ITEMS
 } from "@/lib/sidebar-configs";
-import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
+
 import { MobileNavbar } from "@/components/layout/MobileNavbar";
 
 
@@ -63,23 +63,6 @@ export function MainLayout() {
       });
     }
   });
-
-  // Logo color mapping
-  const getLogoPath = () => {
-    const theme = isGuest ? (profile?.active_theme || null) : profile?.active_theme;
-    switch (theme) {
-      case "theme-cyan": return "/logos/logo-cyan.png";
-      case "theme-green": return "/logos/logo-green.png";
-      case "theme-neon-gold": return "/logos/logo-gold.png";
-      case "theme-red": return "/logos/logo-red.png";
-      case "theme-pink": return "/logos/logo-pink.png";
-      case "theme-black": return "/logos/logo-black.png";
-      case "theme-white": return "/logos/logo-white.png";
-      default: return "/logos/logo-purple.png";
-    }
-  };
-
-  const logoPath = getLogoPath();
 
   // Check if user is admin
   useEffect(() => {
@@ -133,16 +116,21 @@ export function MainLayout() {
   })();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div 
+      className="min-h-screen bg-background relative overflow-hidden"
+      style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, hsl(var(--border)) 2px, transparent 0)`,
+        backgroundSize: '32px 32px'
+      }}
+    >
+      {/* Neo-Brutalism Pattern Background */}
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-16 bg-card/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-16 bg-card/95 backdrop-blur-md border-b border-border/60 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.06)] flex items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-card/50 flex items-center justify-center p-0 border border-border/50 overflow-hidden shadow-lg">
-            <img src={logoPath} alt="T.A.B.E Logo" className="w-full h-full object-cover scale-[1.3] bg-black" />
-          </div>
-          <span className="font-display font-bold text-lg gradient-text">T.A.B.E.</span>
+          <TabeLogo size={38} className="shrink-0" />
+          <span className="font-extrabold text-lg tracking-tight text-foreground">TABE</span>
         </Link>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors">
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </header>
@@ -150,10 +138,8 @@ export function MainLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-full border-r border-sidebar-border transition-all duration-300 flex flex-col bg-sidebar",
-          // Mobile logic
+          "fixed top-0 left-0 z-40 h-full border-r border-border/60 transition-all duration-300 flex flex-col bg-card shadow-[4px_0_20px_-4px_rgba(0,0,0,0.05)]",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          // Desktop collapse logic
           isCollapsed ? "w-20" : "w-64"
         )}
       >
@@ -162,7 +148,7 @@ export function MainLayout() {
           <Button
             size="icon"
             variant="outline"
-            className="h-6 w-6 rounded-full bg-background border-border shadow-sm hover:bg-accent"
+            className="h-6 w-6 rounded-full bg-card border-border/60 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] hover:bg-secondary"
             onClick={() => setIsCollapsed(!isCollapsed)}
           >
             {isCollapsed ? <PanelLeftOpen className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
@@ -170,14 +156,12 @@ export function MainLayout() {
         </div>
 
         {/* Logo */}
-        <div className={cn("h-16 flex items-center border-b border-sidebar-border flex-shrink-0 transition-all overflow-hidden", isCollapsed ? "justify-center px-0" : "justify-start px-6 gap-3")}>
-          <div className="w-10 h-10 rounded-xl bg-card/50 flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)] flex-shrink-0 p-0 border border-border/50 overflow-hidden">
-            <img src={logoPath} alt="T.A.B.E Logo" className="w-full h-full object-cover scale-[1.3] bg-black" />
-          </div>
+        <div className={cn("h-16 flex items-center border-b border-border/40 flex-shrink-0 transition-all overflow-hidden", isCollapsed ? "justify-center px-0" : "justify-start px-6 gap-3")}>
+          <TabeLogo size={46} className="shrink-0" />
           {!isCollapsed && (
             <div className="min-w-0">
-              <h1 className="font-display font-bold text-xl gradient-text truncate">T.A.B.E.</h1>
-              <p className="text-xs text-muted-foreground truncate">Sistema Académico</p>
+              <h1 className="font-extrabold text-xl tracking-tight text-foreground truncate">TABE</h1>
+              <p className="text-xs font-bold text-muted-foreground truncate">Tu espacio académico</p>
             </div>
           )}
         </div>
@@ -186,7 +170,7 @@ export function MainLayout() {
         <ScrollArea className="flex-1 overflow-hidden">
           <nav className={cn("space-y-2 py-4", isCollapsed ? "px-2" : "px-4")}>
             {(() => {
-              const renderNavItem = (item: any, isInsideCategory = false) => {
+              const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                 // Find matching base item to get the icon (including admin)
                 // Use item.path (new) or item.id (legacy/folders)
                 const targetPath = item.path || (item.type === "item" ? item.id : null);
@@ -209,22 +193,22 @@ export function MainLayout() {
                       <CollapsibleTrigger asChild>
                         <button
                           className={cn(
-                            "w-full flex items-center rounded-xl transition-all duration-200 group relative",
+                            "w-full flex items-center rounded-xl transition-all duration-200 group relative border-2 border-transparent",
                             isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
-                            "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            "text-muted-foreground hover:bg-secondary hover:text-foreground hover:border-border"
                           )}
                         >
                           <Icon className={cn("transition-all flex-shrink-0", isCollapsed ? "w-6 h-6" : "w-5 h-5")} />
                           {!isCollapsed && (
                             <>
-                              <span className="font-semibold truncate flex-1 text-left">{item.label}</span>
+                              <span className="font-bold truncate flex-1 text-left">{item.label}</span>
                               <ChevronDown className="w-4 h-4 opacity-50 group-data-[state=open]:rotate-180 transition-transform" />
                             </>
                           )}
                         </button>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-1 ml-4 border-l border-sidebar-border/50 pl-2">
-                        {item.items?.map((subItem: any) => renderNavItem(subItem, true))}
+                      <CollapsibleContent className="space-y-1 ml-4 border-l-2 border-border pl-2">
+                        {item.items?.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
                       </CollapsibleContent>
                     </Collapsible>
                   );
@@ -236,11 +220,11 @@ export function MainLayout() {
                     to={path}
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
-                      "flex items-center rounded-xl transition-all duration-200 group relative",
+                      "flex items-center rounded-xl transition-all duration-200 group relative border-2",
                       isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
                       isActive
-                        ? "bg-primary/10 text-primary border border-primary/30"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        ? "font-extrabold bg-foreground text-background border-foreground shadow-[3px_3px_0_0_#1475e5]"
+                        : "text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground hover:border-border hover:-translate-y-0.5",
                       isInsideCategory && !isCollapsed && "py-2"
                     )}
                     title={isCollapsed ? item.label : undefined}
@@ -248,17 +232,13 @@ export function MainLayout() {
                     <Icon
                       className={cn(
                         "transition-all flex-shrink-0",
-                        isCollapsed ? "w-6 h-6" : "w-5 h-5",
-                        isActive && "text-primary drop-shadow-[0_0_8px_hsl(var(--neon-cyan))]"
+                        isCollapsed ? "w-6 h-6" : "w-5 h-5"
                       )}
                     />
                     {!isCollapsed && (
-                      <span className={cn("font-medium truncate", isActive && "text-glow-cyan")}>
+                      <span className="font-bold truncate">
                         {item.label}
                       </span>
-                    )}
-                    {!isCollapsed && isActive && (
-                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     )}
                   </Link>
                 );
@@ -268,7 +248,6 @@ export function MainLayout() {
                 ? [...profile.sidebar_config] 
                 : baseNavItems.map(i => ({ id: i.path, label: i.label, type: "item" }));
               
-              // Ensure Juegos is always available in the sidebar for preview/testing
               if (!displayItems.some((i: any) => i.id === "/juegos" || i.path === "/juegos" || (i.items?.some((s: any) => s.id === "/juegos" || s.path === "/juegos")))) {
                 displayItems.push({
                   id: "item-/juegos",
@@ -279,40 +258,38 @@ export function MainLayout() {
                 });
               }
               
-              // Always show admin if user is admin and it's not in the config
               if (isAdmin && !displayItems.some((i: any) => i.id === "/admin" || (i.items?.some((s: any) => s.id === "/admin")))) {
                 displayItems = [...displayItems, { id: "/admin", label: "Admin", type: "item" }];
               }
 
-              return displayItems.map((item: any) => renderNavItem(item));
+              return displayItems.map((item: any, idx: number) => renderNavItem(item, false, idx));
             })()}
           </nav>
         </ScrollArea>
-
         {/* User Progress Summary */}
-        <div className={cn("border-t border-sidebar-border flex-shrink-0 transition-all", isCollapsed ? "p-2" : "p-4")}>
-          <div className={cn("card-gamer rounded-xl bg-sidebar-accent/50", isCollapsed ? "p-2 flex flex-col items-center gap-1" : "p-4")}>
+        <div className={cn("border-t border-border/40 flex-shrink-0 transition-all", isCollapsed ? "p-2" : "p-4")}>
+          <div className={cn("rounded-xl bg-secondary/50", isCollapsed ? "p-2 flex flex-col items-center gap-1" : "p-4")}>
             <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3 mb-3")}>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neon-gold to-neon-cyan flex items-center justify-center text-background font-display font-bold text-xs">
+              <div className="w-8 h-8 rounded-full bg-[#1475e5] flex items-center justify-center text-white font-extrabold text-xs">
                 {xpData.level}
               </div>
               {!isCollapsed && (
                 <div className="min-w-0">
-                  <p className="font-medium text-sm truncate">Nivel {xpData.level}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{xpData.currentXp.toLocaleString()} XP</p>
+                  <p className="font-extrabold text-sm truncate">Nivel {xpData.level}</p>
+                  <p className="text-[10px] font-bold text-muted-foreground truncate">{xpData.currentXp.toLocaleString()} XP</p>
                 </div>
               )}
             </div>
 
             {!isCollapsed && (
               <>
-                <div className="progress-gamer h-1.5 mt-1">
+                <div className="h-1.5 mt-1 bg-secondary rounded-full overflow-hidden">
                   <div
-                    className="progress-gamer-bar transition-all duration-500"
+                    className="h-full bg-[#1475e5] rounded-full transition-all duration-500"
                     style={{ width: `${xpData.progress}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+                <p className="text-[10px] font-bold text-muted-foreground mt-1.5 text-center">
                   {Math.round(xpData.xpForNext)} XP para prox. nivel
                 </p>
               </>
@@ -328,11 +305,10 @@ export function MainLayout() {
 
       {/* Main Content */}
       <main className={cn(
-        "min-h-screen transition-all duration-300 pt-16 pb-20 lg:pt-0 lg:pb-0",
+        "min-h-screen transition-all duration-300 pt-16 pb-20 lg:pt-0 lg:pb-0 relative z-[1]",
         isCollapsed ? "lg:ml-20" : "lg:ml-64"
       )}>
         <Outlet />
-        <AdsterraBanner />
       </main>
 
       {/* Global Widgets */}

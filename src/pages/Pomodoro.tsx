@@ -110,9 +110,9 @@ export default function Pomodoro() {
   }
 
   return (
-    <div className="p-3 lg:p-8 space-y-4 lg:space-y-6 pb-24 lg:pb-8">
+    <div className="tabe-page p-3 lg:p-8 space-y-4 lg:space-y-6 pb-24 lg:pb-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="tabe-hero flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
             Pomodoro Global
@@ -131,7 +131,7 @@ export default function Pomodoro() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Timer */}
-        <div className="lg:col-span-2 card-gamer rounded-2xl lg:rounded-xl p-4 sm:p-6 lg:p-10">
+        <div className="tabe-timer-card lg:col-span-2 card-gamer rounded-2xl lg:rounded-xl p-4 sm:p-6 lg:p-10">
           {/* Mode Selector */}
           <div className="flex justify-center gap-2 mb-8">
             {(Object.keys(modeConfig) as TimerMode[]).map((m) => {

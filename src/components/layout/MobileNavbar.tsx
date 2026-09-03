@@ -21,7 +21,7 @@ export function MobileNavbar() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[1001] bg-card/80 backdrop-blur-xl border-t border-border/50 px-2 py-3 safe-area-bottom">
+    <nav className="tabe-mobile-nav lg:hidden fixed bottom-0 left-0 right-0 z-[1001] bg-card/90 backdrop-blur-xl border-t border-border/50 px-2 py-3 safe-area-bottom">
       <div className="flex items-center justify-around">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;

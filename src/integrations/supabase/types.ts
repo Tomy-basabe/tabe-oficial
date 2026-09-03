@@ -953,6 +953,7 @@ export type Database = {
           deck_id: string
           explicacion: string | null
           id: string
+          is_multi_select: boolean | null
           pregunta: string
           user_id: string
         }
@@ -961,6 +962,7 @@ export type Database = {
           deck_id: string
           explicacion?: string | null
           id?: string
+          is_multi_select?: boolean | null
           pregunta: string
           user_id: string
         }
@@ -969,6 +971,7 @@ export type Database = {
           deck_id?: string
           explicacion?: string | null
           id?: string
+          is_multi_select?: boolean | null
           pregunta?: string
           user_id?: string
         }

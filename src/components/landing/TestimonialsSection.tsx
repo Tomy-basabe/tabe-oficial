@@ -1,82 +1,36 @@
-import { useEffect, useState } from "react";
 import { Star, Quote } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
-interface Review {
-    id: string;
-    name: string;
-    career: string;
-    rating: number;
-    description: string;
-}
+const testimonials = [
+    { name: "Valentina R.", career: "Ingeniería Industrial", text: "TABE me ayudó a organizar todas mis materias y subir mi promedio. El sistema de flashcards con IA es increíble.", color: "#ff9415" },
+    { name: "Martín L.", career: "Ingeniería en Sistemas", text: "Lo mejor es el plan de carrera interactivo. Puedo ver qué materias me faltan y planificar el cuatrimestre.", color: "#1475e5" },
+    { name: "Camila S.", career: "Ciencias Económicas", text: "El pomodoro con el bosque virtual me motiva a estudiar más. Es como un juego pero realmente funciona.", color: "#48bd22" },
+];
 
 export function TestimonialsSection() {
-    const [testimonials, setTestimonials] = useState<Review[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetchReviews();
-    }, []);
-
-    const fetchReviews = async () => {
-        try {
-            const { data, error } = await supabase
-                .from("user_reviews")
-                .select("*")
-                .order("rating", { ascending: false })
-                .order("created_at", { ascending: false })
-                .limit(6);
-
-            if (error) {
-                console.error("Error fetching reviews:", error);
-                return;
-            }
-
-            if (data) {
-                setTestimonials(data);
-            }
-        } catch (error) {
-            console.error("Unexpected error fetching reviews:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading || testimonials.length === 0) {
-        return null; // Don't show the section if no reviews exist yet
-    }
-
     return (
-        <section className="py-24 relative overflow-hidden bg-background">
+        <section className="py-20 md:py-28">
             <div className="container mx-auto px-4 md:px-6">
-                <div className="text-center max-w-2xl mx-auto mb-16">
-                    <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                        Historias de <span className="text-neon-cyan">Éxito</span>
+                <div className="text-center max-w-2xl mx-auto mb-14">
+                    <span className="inline-block px-4 py-2 rounded-lg bg-[#ffd21c]/15 border-2 border-[#ffd21c]/25 text-sm font-extrabold text-[#d4a600] dark:text-[#ffd21c] mb-5">
+                        ⭐ Testimonios
+                    </span>
+                    <h2 className="text-3xl md:text-5xl font-black mb-4">
+                        Estudiantes que <span className="text-[#ff9415]">confían</span> en TABE
                     </h2>
-                    <p className="text-lg text-muted-foreground">
-                        Estudiantes que transformaron la frustración en resultados académicos reales usando T.A.B.E.
-                    </p>
                 </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {testimonials.map((t) => (
-                        <div key={t.id} className="relative bg-card border border-border rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                            <Quote className="absolute top-6 right-6 w-8 h-8 text-secondary/50" />
-                            <div className="flex items-center gap-1 mb-6">
-                                {[...Array(5)].map((_, j) => (
-                                    <Star
-                                        key={j}
-                                        className={`w-4 h-4 ${j < t.rating ? "text-neon-gold fill-neon-gold" : "text-muted-foreground/30"}`}
-                                    />
-                                ))}
+                <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    {testimonials.map((t, i) => (
+                        <div key={i}
+                            className="bg-card rounded-xl p-6 border-2 border-border shadow-[4px_4px_0_0_hsl(var(--border))] transition-all duration-200 hover:-translate-y-2 hover:shadow-[8px_8px_0_0_hsl(var(--border))]"
+                            style={{ borderLeftWidth: 4, borderLeftColor: t.color }}>
+                            <Quote className="w-7 h-7 text-muted-foreground/20 mb-3" />
+                            <p className="text-sm leading-relaxed mb-5 text-foreground/80">"{t.text}"</p>
+                            <div className="flex gap-1 mb-3">
+                                {[1,2,3,4,5].map(s => <Star key={s} className="w-3.5 h-3.5 fill-[#ffd21c] text-[#ffd21c]" />)}
                             </div>
-                            <p className="text-muted-foreground leading-relaxed mb-8 relative z-10 italic">
-                                "{t.description}"
-                            </p>
-                            <div>
-                                <div className="font-bold text-foreground">{t.name}</div>
-                                <div className="text-sm text-neon-cyan font-medium">{t.career}</div>
-                            </div>
+                            <p className="font-extrabold text-sm">{t.name}</p>
+                            <p className="text-xs text-muted-foreground">{t.career}</p>
                         </div>
                     ))}
                 </div>

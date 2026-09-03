@@ -21,30 +21,30 @@ const statusConfig = {
   regular: {
     label: "Regular",
     icon: Clock,
-    className: "subject-regular",
-    iconColor: "text-neon-cyan",
-    textColor: "text-neon-cyan",
+    className: "bg-blue-100 border-[3px] border-foreground hover:-translate-y-1 hover:shadow-[3px_3px_0_0_#1475e5] dark:bg-blue-900/40 dark:shadow-[3px_3px_0_0_#1475e5]",
+    iconColor: "text-blue-600 dark:text-blue-400",
+    textColor: "text-blue-600 dark:text-blue-400 font-black",
   },
   cursable: {
     label: "Cursable",
     icon: BookOpen,
-    className: "subject-available",
-    iconColor: "text-neon-green",
-    textColor: "text-neon-green",
+    className: "bg-green-100 border-[3px] border-foreground hover:-translate-y-1 hover:shadow-[3px_3px_0_0_#48bd22] dark:bg-green-900/40 dark:shadow-[3px_3px_0_0_#48bd22]",
+    iconColor: "text-green-600 dark:text-green-400",
+    textColor: "text-green-600 dark:text-green-400 font-black",
   },
   bloqueada: {
     label: "Bloqueada",
     icon: Lock,
-    className: "subject-blocked opacity-60",
+    className: "bg-muted border-[3px] border-dashed border-border opacity-70 cursor-not-allowed",
     iconColor: "text-muted-foreground",
-    textColor: "text-muted-foreground",
+    textColor: "text-muted-foreground font-black",
   },
   recursar: {
     label: "Recursar",
     icon: RotateCcw,
-    className: "bg-neon-red/10 border border-neon-red/50",
-    iconColor: "text-neon-red",
-    textColor: "text-neon-red",
+    className: "bg-red-100 border-[3px] border-foreground hover:-translate-y-1 hover:shadow-[3px_3px_0_0_#ef4444] dark:bg-red-900/40 dark:shadow-[3px_3px_0_0_#ef4444]",
+    iconColor: "text-red-600 dark:text-red-400",
+    textColor: "text-red-600 dark:text-red-400 font-black",
   },
 };
 
@@ -114,14 +114,6 @@ export const SubjectCard = memo(function SubjectCard({
           )}
           <span className="text-xs text-muted-foreground">{codigo}</span>
         </div>
-        {nota !== undefined && nota !== null && (
-          <span className={cn(
-            "text-sm font-display font-bold",
-            nota >= 7 ? "text-neon-gold" : nota >= 4 ? "text-neon-cyan" : "text-neon-red"
-          )}>
-            {nota}
-          </span>
-        )}
       </div>
 
       {/* Show missing requirements for blocked subjects */}
@@ -151,4 +143,3 @@ export const SubjectCard = memo(function SubjectCard({
     </button>
   );
 });
-

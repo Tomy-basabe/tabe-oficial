@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Orbitron', 'sans-serif'],
+        sans: ['Nunito', 'system-ui', 'sans-serif'],
+        display: ['Nunito', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -61,7 +61,14 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Neon Gamer Colors
+        // TABE 2.0 Tab Colors
+        tab: {
+          orange: "hsl(var(--tab-orange))",
+          green: "hsl(var(--tab-green))",
+          blue: "hsl(var(--tab-blue))",
+          gold: "hsl(var(--tab-gold))",
+        },
+        // Legacy Neon Colors (mapped to new palette)
         neon: {
           cyan: "hsl(var(--neon-cyan))",
           green: "hsl(var(--neon-green))",
@@ -127,6 +134,22 @@ export default {
           from: { opacity: "0", transform: "scale(0.9) translateY(20px)" },
           to: { opacity: "1", transform: "scale(1) translateY(0)" },
         },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-12px)" },
+        },
+        "float-slow": {
+          "0%, 100%": { transform: "translateY(0px) rotate(0deg)" },
+          "50%": { transform: "translateY(-8px) rotate(2deg)" },
+        },
+        "tab-slide": {
+          from: { opacity: "0", transform: "translateX(30px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "shimmer": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -139,6 +162,9 @@ export default {
         "fade-in-left": "fade-in-left 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "fade-in-right": "fade-in-right 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "scale-in-up": "scale-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "float": "float 4s ease-in-out infinite",
+        "float-slow": "float-slow 6s ease-in-out infinite",
+        "tab-slide": "tab-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards",
       },
     },
   },

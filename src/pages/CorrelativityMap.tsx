@@ -193,12 +193,12 @@ function CorrelativityMapContent() {
     }
 
     return (
-        <div className="h-screen w-full bg-background flex flex-col relative overflow-hidden">
+        <div className="tabe-map h-screen w-full bg-background flex flex-col relative overflow-hidden">
             <div className="absolute top-4 left-4 z-50 flex gap-2 items-center">
-                <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="bg-background/50 backdrop-blur hover:bg-background">
+                <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="tabe-map-control bg-background/80 backdrop-blur hover:bg-background">
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <Card className="px-4 py-2 bg-background/60 backdrop-blur-xl border-border/30 shadow-2xl flex items-center gap-4">
+                <Card className="tabe-map-control px-4 py-2 bg-background/85 backdrop-blur-xl border-border/60 flex items-center gap-4">
                     <h1 className="font-bold text-lg gradient-text flex items-center gap-2">
                         <Zap className="text-neon-gold w-4 h-4" />
                         Mapa Neural
@@ -208,7 +208,7 @@ function CorrelativityMapContent() {
 
             {/* Legend */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
-                <Card className="px-5 py-2.5 bg-background/70 backdrop-blur-xl border-border/30 shadow-2xl flex gap-5 text-xs rounded-full">
+                <Card className="tabe-map-control px-5 py-2.5 bg-background/85 backdrop-blur-xl border-border/60 flex gap-5 text-xs rounded-full">
                     <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-gold shadow-[0_0_8px_rgba(251,191,36,0.5)]"></div><span className="text-muted-foreground">Aprobada</span></div>
                     <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-cyan shadow-[0_0_8px_rgba(0,217,255,0.5)]"></div><span className="text-muted-foreground">Regular</span></div>
                     <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-green shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div><span className="text-muted-foreground">Cursable</span></div>

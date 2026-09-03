@@ -1,88 +1,82 @@
-import { Sparkles, ArrowRight, CheckCircle2, GraduationCap, BookOpen } from "lucide-react";
+import { ArrowRight, CheckCircle2, BookOpen, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTheme } from "@/hooks/useTheme";
+
 export function HeroSection() {
-    const whatsappUrl = "https://wa.me/5492617737367?text=Hola,%20quiero%20formar%20parte%20de%20TABE%20y%20mejorar%20mi%20rendimiento%20en%20exactas!";
+    const { theme } = useTheme();
+    const logo = theme === "dark" ? "/logos/tabe-logo-dark.png" : "/logos/tabe-logo-light.png";
 
     return (
-        <section id="hero" className="relative pt-28 pb-16 flex flex-col items-center overflow-hidden">
-            {/* Background gradients */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] -z-10" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] -z-10" />
+        <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
+            {/* Subtle decorative bars (like the typography page) */}
+            <div className="absolute top-24 left-[5%] w-20 h-[6px] bg-[#ff9415] rounded-full -rotate-[17deg] opacity-60" />
+            <div className="absolute top-20 right-[8%] w-16 h-[6px] bg-[#1475e5] rounded-full -rotate-[17deg] opacity-50" />
+            <div className="absolute bottom-28 right-[6%] w-20 h-[6px] bg-[#ff9415] rounded-full -rotate-[17deg] opacity-50" />
+            <div className="absolute bottom-40 left-[12%] w-6 h-[6px] bg-[#48bd22] rounded-full opacity-40" />
 
-            <div className="container mx-auto px-4 md:px-6 relative z-20 flex flex-col items-center text-center">
+            <div className="container mx-auto px-4 md:px-6">
+                <div className="flex flex-col lg:flex-row items-center gap-14 lg:gap-20">
 
-                {/* Text Content */}
-                <div className="max-w-4xl space-y-8 animate-fade-in-up flex flex-col items-center" style={{ animationDelay: "0.2s" }}>
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border text-sm font-medium text-muted-foreground">
-                        <Sparkles className="w-4 h-4 text-neon-gold" />
-                        <span>Plataforma Educativa de Alto Rendimiento</span>
+                    {/* Text */}
+                    <div className="flex-1 max-w-2xl space-y-7 text-center lg:text-left">
+                        {/* Badge */}
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1475e5]/10 border-2 border-[#1475e5]/20 text-sm font-extrabold text-[#1475e5]">
+                            <Sparkles className="w-4 h-4" />
+                            Plataforma Educativa Universitaria
+                        </div>
+
+                        {/* Headline — NO gradient, solid colored word */}
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-black leading-[1.05] tracking-tight">
+                            Estudia con método.{" "}
+                            <span className="text-[#ff9415] inline-block hover:-rotate-1 transition-transform duration-200">Aprobá</span>{" "}
+                            con estilo.
+                        </h1>
+
+                        {/* Sub */}
+                        <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-lg mx-auto lg:mx-0">
+                            La plataforma todo‑en‑uno que combina organización académica, gamificación e inteligencia artificial para que domines tus materias.
+                        </p>
+
+                        {/* CTAs — neo-brutalist solid shadow buttons */}
+                        <div className="flex flex-col sm:flex-row gap-4 pt-2 justify-center lg:justify-start">
+                            <Link to="/registro"
+                                className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-foreground text-background rounded-xl font-extrabold text-lg border-2 border-foreground shadow-[4px_4px_0_0_#ff9415] transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#ff9415] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#ff9415]">
+                                Empezar Gratis
+                                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                            </Link>
+                            <Link to="/carreras"
+                                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-card text-foreground rounded-xl font-extrabold text-lg border-2 border-border shadow-[4px_4px_0_0_hsl(var(--border))] transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--border))] active:translate-y-0.5 active:shadow-none">
+                                <BookOpen className="w-5 h-5 text-[#1475e5]" />
+                                Ver Carreras
+                            </Link>
+                        </div>
+
+                        {/* Trust */}
+                        <div className="flex flex-wrap justify-center lg:justify-start gap-5 pt-2 text-sm font-bold text-muted-foreground">
+                            {["Acceso inmediato", "Validado por alumnos", "100% gratuito"].map(t => (
+                                <span key={t} className="flex items-center gap-1.5">
+                                    <CheckCircle2 className="w-4 h-4 text-[#48bd22]" />
+                                    {t}
+                                </span>
+                            ))}
+                        </div>
                     </div>
 
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold leading-[1.1] tracking-tight">
-                        Domina tus materias con un{" "}
-                        <span className="gradient-text">método universitario real.</span>
-                    </h1>
-
-                    <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
-                        No dejes tu rendimiento al azar. Preparación estratégica, resolución guiada y tecnología interactiva para estudiantes exigentes.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4 w-full sm:w-auto items-center">
-                        <Link
-                            to="/registro"
-                            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold text-xl hover:shadow-[0_0_40px_rgba(0,255,170,0.4)] transition-all hover:-translate-y-1 active:scale-95 active:-translate-y-0 relative overflow-hidden group/btn"
-                        >
-                            <div className="absolute inset-0 -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                            Entrar a la App
-                            <ArrowRight className="w-6 h-6 text-white group-hover/btn:translate-x-1.5 transition-transform" />
-                        </Link>
-                        
-                        <Link
-                            to="/carreras"
-                            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-background/50 backdrop-blur-md text-foreground border border-neon-cyan/50 rounded-2xl font-bold text-lg hover:border-neon-cyan transition-all hover:-translate-y-1 active:scale-95 relative overflow-hidden group/careers animate-pulse-glow"
-                        >
-                            <div className="absolute inset-0 bg-neon-cyan/5 opacity-0 group-hover/careers:opacity-100 transition-opacity" />
-                            <GraduationCap className="w-6 h-6 text-neon-cyan group-hover/careers:rotate-12 transition-transform" />
-                            <span>Planes de Carrera</span>
-                            <span className="absolute -top-1 -right-1 px-2 py-0.5 bg-neon-purple text-[10px] text-white rounded-full font-black animate-bounce">
-                                NUEVO
-                            </span>
-                        </Link>
-
-                        <Link
-                            to="/guia-de-estudio"
-                            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-background/50 backdrop-blur-md text-foreground border border-neon-gold/50 rounded-2xl font-bold text-lg hover:border-neon-gold transition-all hover:-translate-y-1 active:scale-95 relative overflow-hidden group/guides"
-                        >
-                            <div className="absolute inset-0 bg-neon-gold/5 opacity-0 group-hover/guides:opacity-100 transition-opacity" />
-                            <BookOpen className="w-6 h-6 text-neon-gold group-hover/guides:scale-110 transition-transform" />
-                            <span>Guías Académicas</span>
-                        </Link>
-
-                        <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-secondary/50 text-muted-foreground border border-border rounded-2xl font-bold text-lg hover:text-foreground transition-all hover:-translate-y-1 active:scale-95"
-                        >
-                            Contacto
-                        </a>
-                    </div>
-
-                    <div className="flex flex-wrap justify-center items-center gap-6 pt-6 text-sm font-medium text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-neon-green" />
-                            Acceso inmediato
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-neon-green" />
-                            Validado por alumnos
-                        </div>
+                    {/* Logo visual */}
+                    <div className="flex-shrink-0 relative">
+                        <img
+                            src={logo}
+                            alt="TABE 2.0"
+                            className="w-56 h-56 md:w-72 md:h-72 lg:w-[380px] lg:h-[380px] object-contain drop-shadow-xl hover:scale-[1.03] hover:-rotate-2 transition-all duration-500"
+                        />
+                        {/* Colored dots around the logo */}
+                        <div className="absolute -top-3 right-4 w-4 h-4 rounded-full bg-[#ff9415] shadow-[2px_2px_0_0_rgba(0,0,0,.15)]" />
+                        <div className="absolute top-1/3 -right-3 w-3 h-3 rounded-full bg-[#48bd22] shadow-[2px_2px_0_0_rgba(0,0,0,.15)]" />
+                        <div className="absolute bottom-8 -left-2 w-3.5 h-3.5 rounded-full bg-[#1475e5] shadow-[2px_2px_0_0_rgba(0,0,0,.15)]" />
+                        <div className="absolute -bottom-2 right-1/3 w-3 h-3 rounded-full bg-[#ffd21c] shadow-[2px_2px_0_0_rgba(0,0,0,.15)]" />
                     </div>
                 </div>
             </div>
-
-            {/* Grid overlay */}
-            <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10 pointer-events-none" />
         </section>
     );
 }

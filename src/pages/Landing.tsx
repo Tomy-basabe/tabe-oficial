@@ -5,7 +5,6 @@ import { ProblemSection } from "@/components/landing/ProblemSection";
 import { MethodologySection } from "@/components/landing/MethodologySection";
 import { SpecializationSection } from "@/components/landing/SpecializationSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
-import { TabeAnimationSection } from "@/components/landing/TabeAnimationSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { FeaturesShowcase } from "@/components/landing/FeaturesShowcase";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -17,10 +16,8 @@ import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 
 export default function Landing() {
     return (
-        <div className="min-h-screen bg-background text-foreground selection:bg-neon-cyan/30 selection:text-neon-cyan">
+        <div className="min-h-screen bg-background text-foreground selection:bg-[#1475e5]/20 selection:text-[#1475e5]">
             <LandingNavbar />
-
-            <TabeAnimationSection />
 
             <HeroSection />
 

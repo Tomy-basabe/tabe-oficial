@@ -1,5 +1,5 @@
-/* T.A.B.E. - Gamer Academic System Design System */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+/* T.A.B.E. 2.0 — Notebook Design System */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
 @import "katex/dist/katex.min.css";
 
 @tailwind base;
@@ -343,6 +343,32 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* Bento-Box Neo-Brutalism Base Card */
+  .neo-bento-card {
+    @apply bg-card rounded-2xl border-[3px] border-foreground relative overflow-hidden;
+    box-shadow: 4px 4px 0 0 hsl(var(--foreground));
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  .neo-bento-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0 0 hsl(var(--foreground));
+  }
+
+  /* Bento Colored Hover Variants */
+  .bento-hover-blue:hover { box-shadow: 8px 8px 0 0 #1475e5; border-color: #1475e5; }
+  .bento-hover-yellow:hover { box-shadow: 8px 8px 0 0 #ffd21c; border-color: #ffd21c; }
+  .bento-hover-red:hover { box-shadow: 8px 8px 0 0 #ef4444; border-color: #ef4444; }
+  .bento-hover-green:hover { box-shadow: 8px 8px 0 0 #48bd22; border-color: #48bd22; }
+  .bento-hover-orange:hover { box-shadow: 8px 8px 0 0 #ff9415; border-color: #ff9415; }
+  .bento-hover-purple:hover { box-shadow: 8px 8px 0 0 #9333ea; border-color: #9333ea; }
+  
+  /* Dark mode tweaks for Bento */
+  .dark .neo-bento-card {
+    box-shadow: 4px 4px 0 0 hsl(var(--foreground));
+    background-color: hsl(var(--background));
   }
 
   /* Card Variants */
