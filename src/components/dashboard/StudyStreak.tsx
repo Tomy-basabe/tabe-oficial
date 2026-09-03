@@ -48,28 +48,28 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
         </div>
       </div>
 
-      <div className="bg-white dark:bg-card border-[3px] border-foreground rounded-xl p-4 shadow-[inset_2px_2px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_2px_2px_0_rgba(255,255,255,0.05)]">
+      <div className="bg-white dark:bg-card border-[3px] border-foreground rounded-xl p-3 sm:p-4 shadow-[inset_2px_2px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_2px_2px_0_rgba(255,255,255,0.05)] overflow-hidden">
         <p className="text-[10px] font-black uppercase text-center mb-3 text-foreground/60 tracking-widest">
           Tarjeta de Sellos Semanal
         </p>
-        <div className="flex justify-between gap-1 sm:gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 items-center justify-items-center w-full">
           {last7Days.map((day, idx) => (
-            <div key={idx} className="flex flex-col items-center gap-2">
+            <div key={idx} className="flex flex-col items-center gap-1.5 w-full">
               <div className={cn(
-                "w-8 h-8 sm:w-10 sm:h-10 rounded-full border-[3px] border-foreground flex items-center justify-center relative",
+                "w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-foreground flex items-center justify-center relative shrink-0",
                 day.studied ? "bg-[#ff9415]" : "bg-muted"
               )}>
                 {day.studied ? (
-                  <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
+                  <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white animate-pulse" />
                 ) : (
-                  <div className="w-2 h-2 rounded-full bg-foreground/20"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-foreground/20"></div>
                 )}
                 {/* Stamp visual effect */}
                 {day.studied && (
-                  <div className="absolute inset-0 border-2 border-white rounded-full opacity-30 scale-90 border-dashed"></div>
+                  <div className="absolute inset-0 border border-white rounded-full opacity-30 scale-90 border-dashed"></div>
                 )}
               </div>
-              <span className="text-[10px] font-black uppercase text-foreground">
+              <span className="text-[10px] font-black uppercase text-foreground text-center">
                 {day.day}
               </span>
             </div>
