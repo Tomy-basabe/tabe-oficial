@@ -579,7 +579,7 @@ export default function Quizzes() {
             const percentage = Math.round((score / studyQuestions.length) * 100);
             return (
                 <div className="min-h-screen flex items-center justify-center p-4">
-                    <Card className="card-gamer max-w-lg w-full">
+                    <Card className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl max-w-lg w-full">
                         <CardContent className="p-8 text-center space-y-6">
                             <div className={cn(
                                 "w-20 h-20 rounded-full mx-auto flex items-center justify-center",
@@ -646,7 +646,7 @@ export default function Quizzes() {
                 </div>
 
                 {/* Question Card */}
-                <Card className="card-gamer max-w-2xl mx-auto">
+                <Card className="bg-card border-[3px] border-foreground shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] rounded-2xl max-w-2xl mx-auto">
                     <CardContent className="p-6 space-y-6">
                         <div className="flex items-start justify-between gap-3">
                             <h3 className="text-lg font-semibold leading-relaxed">{currentQ.pregunta}</h3>
@@ -1148,7 +1148,7 @@ export default function Quizzes() {
                     ))}
                 </div>
             ) : decks.length === 0 && !selectedYear ? (
-                <Card className="card-gamer">
+                <Card className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl">
                     <CardContent className="p-12 text-center">
                         <ClipboardList className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
                         <h3 className="text-lg font-semibold mb-2">Sin cuestionarios</h3>
@@ -1169,7 +1169,7 @@ export default function Quizzes() {
                             return true;
                         })
                         .map((deck) => (
-                            <Card key={deck.id} className="card-gamer hover:glow-cyan transition-all group">
+                            <Card key={deck.id} className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all group">
                                 <CardContent className="p-5">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center gap-3">

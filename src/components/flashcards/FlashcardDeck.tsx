@@ -58,8 +58,8 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
 
       {/* Main card */}
       <div className={cn(
-        "relative card-gamer rounded-2xl p-6 transition-all duration-300 overflow-hidden",
-        isHovered && "glow-cyan -translate-y-1"
+        "relative bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-2xl p-6 transition-all duration-300 overflow-hidden",
+        isHovered && "shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] -translate-y-1"
       )}>
         {/* Animated background particles */}
         {isHovered && (

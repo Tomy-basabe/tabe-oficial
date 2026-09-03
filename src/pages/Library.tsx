@@ -1498,8 +1498,8 @@ export default function Library() {
                 key={folder.id}
                 onClick={() => navigateToFolder(folder.id)}
                 className={cn(
-                  "card-gamer rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-all group relative",
-                  dragOverFolderId === folder.id && "ring-2 ring-neon-cyan bg-neon-cyan/10 scale-[1.02]"
+                  "bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl p-4 cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all group relative",
+                  dragOverFolderId === folder.id && "ring-[3px] ring-foreground bg-primary/10 scale-[1.02]"
                 )}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -1652,7 +1652,7 @@ export default function Library() {
             return (
               <div
                 key={file.id}
-                className="card-gamer rounded-xl p-4 group relative cursor-grab active:cursor-grabbing"
+                className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl p-4 group relative cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all"
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("fileId", file.id);
