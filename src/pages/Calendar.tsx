@@ -9,20 +9,21 @@ import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyn
 import { ExamsListModal } from "@/components/calendar/ExamsListModal";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const eventTypeColors: Record<EventType, string> = {
-  P1: "bg-neon-cyan/20 border-neon-cyan text-neon-cyan",
-  P2: "bg-neon-purple/20 border-neon-purple text-neon-purple",
-  Global: "bg-neon-gold/20 border-neon-gold text-neon-gold",
-  "Recuperatorio P1": "bg-red-500/20 border-red-500 text-red-400",
-  "Recuperatorio P2": "bg-red-500/20 border-red-500 text-red-400",
-  "Recuperatorio Global": "bg-red-500/20 border-red-500 text-red-400",
-  Final: "bg-neon-green/20 border-neon-green text-neon-green",
-  Estudio: "bg-muted border-muted-foreground/50 text-muted-foreground",
-  TP: "bg-orange-500/20 border-orange-500 text-orange-400",
-  Entrega: "bg-pink-500/20 border-pink-500 text-pink-400",
-  Clase: "bg-blue-500/20 border-blue-500 text-blue-400",
-  Otro: "bg-gray-500/20 border-gray-500 text-gray-400",
+  P1: "bg-[#25d06c] border-foreground text-black font-bold",
+  P2: "bg-[#1475e5] border-foreground text-white font-bold",
+  Global: "bg-[#ffd21c] border-foreground text-black font-bold",
+  "Recuperatorio P1": "bg-[#ff4e4e] border-foreground text-white font-bold",
+  "Recuperatorio P2": "bg-[#ff4e4e] border-foreground text-white font-bold",
+  "Recuperatorio Global": "bg-[#ff4e4e] border-foreground text-white font-bold",
+  Final: "bg-[#805ad5] border-foreground text-white font-bold",
+  Estudio: "bg-muted border-foreground text-foreground font-bold",
+  TP: "bg-[#ed8936] border-foreground text-black font-bold",
+  Entrega: "bg-[#ed64a6] border-foreground text-black font-bold",
+  Clase: "bg-[#4299e1] border-foreground text-black font-bold",
+  Otro: "bg-gray-400 border-foreground text-black font-bold",
 };
 
 const recurrenceLabels: Record<string, string> = {
@@ -159,28 +160,23 @@ export default function Calendar() {
           }}
           onDoubleClick={() => handleAddEvent(date)}
           className={cn(
-            "min-h-[70px] h-auto lg:h-32 p-1 lg:p-2 border border-border rounded-lg text-left relative group",
-            "transition-all duration-200 ease-out",
-            "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-0.5",
-            "active:scale-[0.98] active:shadow-none",
-            today && "border-primary ring-1 ring-primary/20",
-            selected && "bg-primary/10 border-primary shadow-md shadow-primary/10",
-            !today && !selected && "hover:bg-secondary/30"
+            "min-h-[80px] h-auto lg:h-32 p-1 lg:p-2 border-[3px] rounded-xl text-left relative group",
+            "transition-all duration-200 ease-out flex flex-col",
+            "hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] dark:hover:shadow-[4px_4px_0_0_#fff] active:translate-y-0 active:shadow-none",
+            today ? "border-foreground bg-[#ffd21c] shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]" : "border-transparent hover:border-foreground bg-card hover:bg-card/90",
+            selected && !today && "border-foreground bg-foreground/5 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]",
           )}
           style={{ animationDelay: `${day * 15}ms` }}
         >
           <span
             className={cn(
-              "text-sm font-medium inline-flex items-center justify-center w-6 h-6 rounded-full transition-all duration-200",
-              today && "bg-primary text-primary-foreground font-bold",
-              !today && "text-foreground group-hover:text-primary"
+              "text-xs lg:text-sm font-black inline-flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 border-2",
+              today ? "bg-foreground text-background border-transparent" : "bg-transparent border-transparent group-hover:border-foreground group-hover:bg-foreground group-hover:text-background"
             )}
           >
             {day}
           </span>
-          {today && (
-            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse" />
-          )}
+          
           {/* Quick add on hover */}
           {dayEvents.length > 0 && (
             <button
@@ -188,28 +184,28 @@ export default function Calendar() {
                 e.stopPropagation();
                 handleAddEvent(date);
               }}
-              className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 rounded bg-primary/20 hover:bg-primary/40 hover:scale-110"
+              className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 rounded-md bg-foreground text-background hover:scale-110 shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]"
             >
-              <Plus className="w-3 h-3 text-primary" />
+              <Plus className="w-3 h-3" />
             </button>
           )}
-          <div className="mt-1 space-y-1 overflow-hidden">
+          <div className="mt-1 space-y-1 overflow-hidden flex-1">
             {dayEvents.slice(0, 2).map((event, idx) => (
               <div
                 key={event.id}
                 className={cn(
-                  "text-[10px] lg:text-xs px-1 lg:px-1.5 py-0.5 rounded border truncate flex items-center gap-1",
+                  "text-[10px] font-black uppercase tracking-widest px-1 lg:px-1.5 py-0.5 rounded-sm border-2 truncate flex items-center gap-1",
                   "transition-all duration-200 hover:scale-[1.02]",
                   !event.color && eventTypeColors[event.tipo_examen]
                 )}
-                style={event.color ? { backgroundColor: `${event.color}33`, borderColor: event.color, color: event.color } : undefined}
+                style={event.color ? { backgroundColor: `${event.color}`, borderColor: 'var(--foreground)', color: '#000' } : undefined}
               >
-                {event.recurrence_rule && <Repeat className="w-2.5 h-2.5 flex-shrink-0 opacity-60 hidden sm:block" />}
+                {event.recurrence_rule && <Repeat className="w-2.5 h-2.5 flex-shrink-0 hidden sm:block" />}
                 <span className="truncate">{event.titulo}</span>
               </div>
             ))}
             {dayEvents.length > 2 && (
-              <p className="text-xs text-muted-foreground">+{dayEvents.length - 2} más</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-foreground/70">+{dayEvents.length - 2} más</p>
             )}
           </div>
         </button>
@@ -225,91 +221,92 @@ export default function Calendar() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando calendario...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-foreground" />
+          <p className="text-foreground font-black uppercase tracking-widest">Cargando calendario...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-3 lg:p-8 space-y-4 lg:space-y-6">
+    <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
+          <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
             Calendario Académico
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
             Planifica y visualiza tus exámenes y sesiones de estudio
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={goToToday}
-            className="px-4 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-secondary/80 transition-all duration-200 hover:shadow-md"
-          >
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={goToToday} variant="secondary">
             Hoy
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowExamsModal(true)}
-            className="px-4 py-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 text-red-400 rounded-lg text-sm font-medium hover:from-red-500/30 hover:to-orange-500/30 transition-all duration-200 flex items-center gap-2 hover:shadow-md hover:shadow-red-500/10"
+            variant="outline"
+            className="text-[#ff4e4e] hover:text-[#ff4e4e] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
           >
-            <GraduationCap className="w-5 h-5 text-red-400" />
+            <GraduationCap className="w-5 h-5 text-[#ff4e4e]" />
             Exámenes
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowSyncModal(true)}
-            className="px-4 py-2 bg-gradient-to-r from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 rounded-lg text-sm font-medium hover:from-neon-cyan/30 hover:to-neon-purple/30 transition-all duration-200 flex items-center gap-2 hover:shadow-md hover:shadow-neon-cyan/10"
+            variant="outline"
+            className="text-neon-cyan border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
           >
             <Link2 className="w-4 h-4 text-neon-cyan" />
             Google Calendar
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowImportModal(true)}
-            className="px-4 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-secondary/80 transition-all duration-200 flex items-center gap-2"
+            variant="secondary"
           >
             <Upload className="w-4 h-4" />
             Importar
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => handleAddEvent()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-all duration-200 flex items-center gap-2 hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
+            className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
           >
             <Plus className="w-4 h-4" />
             Nuevo Evento
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Calendar */}
-        <div className="lg:col-span-3 card-gamer rounded-xl p-3 lg:p-6 overflow-hidden">
+        <div className="lg:col-span-3 bg-card border-[3px] border-foreground rounded-xl p-3 lg:p-6 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] overflow-hidden">
           {/* Month Navigation */}
           <div className="flex items-center justify-between mb-4 lg:mb-6">
-            <h2 className="font-display font-semibold text-xl">
+            <h2 className="font-display font-black text-2xl uppercase tracking-widest">
               {months[month]} {year}
             </h2>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => changeMonth(-1)}
-                className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-all duration-200 hover:scale-105 active:scale-95"
               >
                 <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => changeMonth(1)}
-                className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-all duration-200 hover:scale-105 active:scale-95"
               >
                 <ChevronRight className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 lg:gap-2 mb-2">
             {daysOfWeek.map((day) => (
-              <div key={day} className="text-center text-[10px] lg:text-sm font-medium text-muted-foreground py-1 lg:py-2">
+              <div key={day} className="text-center text-xs lg:text-sm font-black uppercase tracking-widest text-foreground py-1 lg:py-2">
                 {day}
               </div>
             ))}
@@ -329,10 +326,10 @@ export default function Calendar() {
         </div>
 
         {/* Sidebar - Selected Date Events */}
-        <div className="card-gamer rounded-xl p-5 tour-calendar-schedule">
-          <div className="flex items-center gap-2 mb-4">
-            <CalendarIcon className="w-5 h-5 text-primary" />
-            <h3 className="font-display font-semibold text-sm">
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] h-fit sticky top-24 tour-calendar-schedule">
+          <div className="flex items-center gap-2 mb-6">
+            <CalendarIcon className="w-6 h-6 text-foreground" />
+            <h3 className="font-display font-black text-lg uppercase tracking-widest leading-none mt-1">
               {selectedDate
                 ? selectedDate.toLocaleDateString("es-AR", {
                   weekday: "long",
@@ -344,42 +341,43 @@ export default function Calendar() {
           </div>
 
           {selectedDate && selectedDateEvents.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-muted-foreground border-[3px] border-dashed border-foreground/30 rounded-xl">
               <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No hay eventos para este día</p>
-              <button
+              <p className="text-sm font-bold uppercase tracking-widest">Día libre</p>
+              <Button
                 onClick={() => handleAddEvent()}
-                className="mt-4 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 transition-all duration-200 hover:scale-105 active:scale-95"
+                variant="outline"
+                className="mt-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
               >
                 Agregar evento
-              </button>
+              </Button>
             </div>
           )}
 
           {selectedDateEvents.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {selectedDateEvents.map((event, idx) => (
                 <div
                   key={event.id}
                   className={cn(
-                    "p-3 rounded-lg border relative transition-all duration-200 hover:shadow-md",
+                    "p-4 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] relative transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff]",
                     !event.color && eventTypeColors[event.tipo_examen]
                   )}
                   style={{
                     animationDelay: `${idx * 50}ms`,
-                    ...(event.color ? { backgroundColor: `${event.color}15`, borderColor: `${event.color}50` } : {})
+                    ...(event.color ? { backgroundColor: `${event.color}`, color: '#000' } : {})
                   }}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <p className="font-medium text-sm flex items-center gap-1.5" style={event.color ? { color: event.color } : {}}>
+                    <p className="font-black text-base flex items-center gap-2 uppercase tracking-wide leading-tight">
                       {event.recurrence_rule && (
-                        <Repeat className="w-3.5 h-3.5 opacity-60 flex-shrink-0" />
+                        <Repeat className="w-4 h-4 opacity-60 flex-shrink-0" />
                       )}
                       {event.titulo}
                     </p>
                     <button
                       onClick={() => handleEditEvent(event)}
-                      className="p-1 rounded text-xs opacity-50 hover:opacity-100 hover:bg-background/40 transition-all flex-shrink-0"
+                      className="p-1.5 rounded-lg border-2 border-transparent hover:border-current opacity-70 hover:opacity-100 transition-all flex-shrink-0"
                       title="Editar evento"
                     >
                       ✏️
@@ -387,70 +385,71 @@ export default function Calendar() {
                   </div>
 
                   {event.is_all_day ? (
-                    <p className="text-xs opacity-80 mt-1 font-medium">✨ Todo el día</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-2 flex items-center gap-1 bg-background/20 w-fit px-2 py-0.5 rounded-sm">✨ Todo el día</p>
                   ) : event.hora && (
-                    <p className="text-xs opacity-80 mt-1 flex items-center gap-1">🕒 {event.hora}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-2 flex items-center gap-1 bg-background/20 w-fit px-2 py-0.5 rounded-sm">🕒 {event.hora}</p>
                   )}
 
                   {event.subject_nombre && (
-                    <p className="text-xs opacity-80 mt-1 flex items-center gap-1">📚 {event.subject_nombre}</p>
+                    <p className="text-xs font-bold opacity-90 mt-2 flex items-center gap-1">📚 {event.subject_nombre}</p>
                   )}
 
                   {event.ubicacion && (
-                    <p className="text-xs opacity-80 mt-1 flex items-center gap-1">📍 {event.ubicacion}</p>
+                    <p className="text-xs font-bold opacity-90 mt-1 flex items-center gap-1">📍 {event.ubicacion}</p>
                   )}
                   {event.recurrence_rule && (
-                    <p className="text-xs opacity-60 mt-1">
+                    <p className="text-xs font-bold opacity-90 mt-1">
                       🔄 {recurrenceLabels[event.recurrence_rule]}
                     </p>
                   )}
                   {event.notas && (
-                    <p className="text-xs opacity-70 mt-2 italic">{event.notas}</p>
+                    <p className="text-sm opacity-90 mt-3 font-medium bg-background/10 p-2 rounded-lg">{event.notas}</p>
                   )}
                   {/* Action buttons */}
-                  <div className="flex gap-1.5 mt-3 pt-2 border-t border-current/20">
+                  <div className="flex gap-2 mt-4 pt-4 border-t-2 border-current/20">
                     <button
                       onClick={() => handleExportToGoogle(event)}
-                      className="flex-1 py-1.5 rounded text-xs font-medium bg-background/20 hover:bg-background/40 transition-all duration-200 flex items-center justify-center gap-1"
+                      className="flex-1 py-2 rounded-lg border-2 border-current text-xs font-black uppercase tracking-widest hover:bg-background/20 transition-all duration-200 flex items-center justify-center gap-2"
                     >
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                       Google
                     </button>
                     <button
                       onClick={() => handleDuplicateEvent(event)}
-                      className="py-1.5 px-3 rounded text-xs font-medium bg-background/20 hover:bg-primary/20 transition-all duration-200 flex items-center gap-1"
+                      className="py-2 px-3 rounded-lg border-2 border-current text-xs font-black hover:bg-background/20 transition-all duration-200 flex items-center gap-1"
                       title="Duplicar evento"
                     >
-                      <Copy className="w-3 h-3" />
+                      <Copy className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteEvent(event.id)}
-                      className="py-1.5 px-3 rounded text-xs font-medium bg-background/20 hover:bg-red-500/30 transition-all duration-200"
+                      className="py-2 px-3 rounded-lg border-2 border-current text-xs font-black hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200"
                       title="Eliminar evento"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
               ))}
-              <button
+              <Button
                 onClick={() => handleAddEvent()}
-                className="w-full py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-secondary/80 transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+                variant="secondary"
+                className="w-full mt-4 border-dashed"
               >
                 <Plus className="w-4 h-4" />
                 Agregar otro
-              </button>
+              </Button>
             </div>
           )}
 
           {/* Legend */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <h4 className="text-sm font-medium mb-3">Tipos de evento</h4>
-            <div className="space-y-2">
+          <div className="mt-8 pt-6 border-t-[3px] border-foreground/10">
+            <h4 className="text-sm font-black uppercase tracking-widest mb-4">Tipos de evento</h4>
+            <div className="grid grid-cols-2 gap-2">
               {Object.entries(eventTypeColors).map(([type, colors]) => (
                 <div key={type} className="flex items-center gap-2">
-                  <div className={cn("w-3 h-3 rounded-full border", colors)} />
-                  <span className="text-xs text-muted-foreground">{type}</span>
+                  <div className={cn("w-4 h-4 rounded-md border-[2px] border-foreground shadow-[2px_2px_0_0_#000]", colors)} />
+                  <span className="text-[10px] font-black uppercase tracking-wider">{type}</span>
                 </div>
               ))}
             </div>

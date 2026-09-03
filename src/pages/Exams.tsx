@@ -30,22 +30,22 @@ const EXAM_TYPES = [
 ];
 
 const eventTypeColors: Record<string, string> = {
-  P1: "bg-neon-cyan/20 border-neon-cyan text-neon-cyan",
-  P2: "bg-neon-purple/20 border-neon-purple text-neon-purple",
-  Global: "bg-neon-gold/20 border-neon-gold text-neon-gold",
-  "Recuperatorio P1": "bg-red-500/20 border-red-500 text-red-400",
-  "Recuperatorio P2": "bg-red-500/20 border-red-500 text-red-400",
-  "Recuperatorio Global": "bg-red-500/20 border-red-500 text-red-400",
-  Final: "bg-neon-green/20 border-neon-green text-neon-green",
+  P1: "bg-[#25d06c] border-foreground text-black font-bold",
+  P2: "bg-[#1475e5] border-foreground text-white font-bold",
+  Global: "bg-[#ffd21c] border-foreground text-black font-bold",
+  "Recuperatorio P1": "bg-[#ff4e4e] border-foreground text-white font-bold",
+  "Recuperatorio P2": "bg-[#ff4e4e] border-foreground text-white font-bold",
+  "Recuperatorio Global": "bg-[#ff4e4e] border-foreground text-white font-bold",
+  Final: "bg-[#805ad5] border-foreground text-white font-bold",
 };
 
 type KanbanStatus = "pending" | "studying" | "ready" | "done";
 
 const KANBAN_COLUMNS: { id: KanbanStatus; label: string; icon: any; color: string }[] = [
-  { id: "pending", label: "Pendiente", icon: Timer, color: "text-muted-foreground" },
-  { id: "studying", label: "En Estudio", icon: BookOpen, color: "text-neon-cyan" },
-  { id: "ready", label: "Listo para rendir", icon: AlertCircle, color: "text-neon-gold" },
-  { id: "done", label: "Rendido", icon: CheckCircle2, color: "text-neon-green" },
+  { id: "pending", label: "Pendiente", icon: Timer, color: "bg-muted text-muted-foreground" },
+  { id: "studying", label: "En Estudio", icon: BookOpen, color: "bg-[#1475e5] text-white" },
+  { id: "ready", label: "Listo para rendir", icon: AlertCircle, color: "bg-[#ffd21c] text-black" },
+  { id: "done", label: "Rendido", icon: CheckCircle2, color: "bg-[#25d06c] text-black" },
 ];
 
 export default function Exams() {
@@ -68,7 +68,6 @@ export default function Exams() {
 
     return events
       .filter((e) => {
-        // Incluir cualquier parcial (P1, P2, P3...), Global, Recuperatorios o Final
         const isExam = e.tipo_examen.startsWith("P") || 
                        e.tipo_examen.includes("Global") || 
                        e.tipo_examen.includes("Final") ||
@@ -162,84 +161,85 @@ export default function Exams() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <Timer className="w-12 h-12 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando exámenes...</p>
+          <Timer className="w-12 h-12 animate-spin text-foreground" />
+          <p className="text-foreground font-black uppercase tracking-widest">Cargando exámenes...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="tabe-page p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
         <div className="flex items-center gap-4">
           <Link to="/calendario">
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="outline" size="icon" className="border-foreground shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]">
               <ChevronLeft className="w-5 h-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold font-display gradient-text flex items-center gap-2">
-              <GraduationCap className="w-8 h-8 text-red-500" />
+            <h1 className="text-2xl lg:text-3xl font-black font-display uppercase tracking-widest flex items-center gap-2">
+              <GraduationCap className="w-8 h-8 text-[#ff4e4e]" />
               Gestión de Exámenes
             </h1>
-            <p className="text-muted-foreground mt-1">
-              Organiza tu estudio y sigue tu progreso en las evaluaciones
+            <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
+              Organiza tu estudio y sigue tu progreso
             </p>
           </div>
         </div>
 
-        <div className="flex p-1 bg-secondary/50 rounded-lg border border-border self-start md:self-center">
+        <div className="flex bg-background border-[3px] border-foreground rounded-xl overflow-hidden self-start md:self-center shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
           <button
             onClick={() => setViewMode("list")}
             className={cn(
-              "px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all",
-              viewMode === "list" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+              "px-5 py-2.5 text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all",
+              viewMode === "list" ? "bg-foreground text-background" : "hover:bg-foreground/10 text-foreground"
             )}
           >
             <ListIcon className="w-4 h-4" />
             Lista
           </button>
+          <div className="w-[3px] bg-foreground" />
           <button
             onClick={() => setViewMode("kanban")}
             className={cn(
-              "px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all",
-              viewMode === "kanban" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+              "px-5 py-2.5 text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all",
+              viewMode === "kanban" ? "bg-foreground text-background" : "hover:bg-foreground/10 text-foreground"
             )}
           >
             <LayoutPanelLeft className="w-4 h-4" />
-            Kanban 📋
+            Kanban
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-card border border-border shadow-sm">
-        <div className="flex items-center gap-2 text-muted-foreground min-w-fit">
-          <Filter className="w-4 h-4" />
-          <span className="text-sm font-medium">Filtrar:</span>
+      <div className="flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+        <div className="flex items-center gap-2 text-foreground min-w-fit">
+          <Filter className="w-5 h-5" />
+          <span className="text-sm font-black uppercase tracking-widest">Filtrar:</span>
         </div>
         
         <div className="flex flex-wrap gap-3 w-full">
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="bg-background border-[3px] border-foreground rounded-lg px-4 py-2 font-bold text-sm min-w-[140px] focus:outline-none focus:translate-y-0.5 focus:shadow-none shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] transition-all"
           >
-            <option value="all">Todos los años</option>
+            <option value="all">TODOS LOS AÑOS</option>
             {availableYears.map((y) => (
-              <option key={y} value={y}>{y}° Año</option>
+              <option key={y} value={y}>{y}° AÑO</option>
             ))}
           </select>
 
           <select
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm flex-1 md:flex-none md:min-w-[240px] focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="bg-background border-[3px] border-foreground rounded-lg px-4 py-2 font-bold text-sm flex-1 md:flex-none md:min-w-[240px] focus:outline-none focus:translate-y-0.5 focus:shadow-none shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] transition-all"
           >
-            <option value="all">Todas las materias</option>
+            <option value="all">TODAS LAS MATERIAS</option>
             {availableSubjects.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+              <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>
             ))}
           </select>
         </div>
@@ -248,14 +248,14 @@ export default function Exams() {
       {/* Content */}
       <div className="min-h-[500px]">
         {filteredExams.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-20 text-center text-muted-foreground border-2 border-dashed border-border rounded-2xl bg-secondary/10">
-            <GraduationCap className="w-16 h-16 mb-4 opacity-10" />
-            <p className="font-medium text-xl">No se encontraron exámenes</p>
-            <p className="text-sm mt-2 max-w-md mx-auto">
-              Asegúrate de tener eventos de tipo Parcial, Final o Global creados en tu calendario para verlos aquí.
+          <div className="flex flex-col items-center justify-center p-20 text-center text-foreground border-[3px] border-dashed border-foreground/30 rounded-2xl bg-card">
+            <GraduationCap className="w-16 h-16 mb-4 opacity-50" />
+            <p className="font-black text-xl uppercase tracking-widest">No hay exámenes a la vista</p>
+            <p className="font-bold mt-2 max-w-md mx-auto opacity-70">
+              Asegúrate de tener eventos de tipo Parcial, Final o Global creados en tu calendario.
             </p>
-            <Link to="/calendario" className="mt-6">
-              <Button variant="outline">Ir al Calendario</Button>
+            <Link to="/calendario" className="mt-8">
+              <Button variant="default">Ir al Calendario</Button>
             </Link>
           </div>
         ) : viewMode === "list" ? (
@@ -268,42 +268,42 @@ export default function Exams() {
               return (
                 <div 
                   key={exam.id}
-                  className="card-gamer p-5 rounded-xl transition-all hover:scale-[1.005] hover:shadow-lg flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group"
-                  style={exam.color ? { borderColor: `${exam.color}40` } : {}}
+                  className="bg-card p-5 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group"
+                  style={exam.color ? { backgroundColor: `${exam.color}` } : {}}
                 >
                   <div className="flex-1 space-y-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span 
                         className={cn(
-                          "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                          !exam.color && (eventTypeColors[exam.tipo_examen] || (exam.tipo_examen.startsWith("P") ? eventTypeColors["P1"] : "bg-muted text-muted-foreground"))
+                          "px-3 py-1 rounded-sm text-[10px] font-black uppercase tracking-widest border-2",
+                          !exam.color && (eventTypeColors[exam.tipo_examen] || (exam.tipo_examen.startsWith("P") ? eventTypeColors["P1"] : "bg-muted text-foreground border-foreground"))
                         )}
-                        style={exam.color ? { backgroundColor: `${exam.color}20`, borderColor: exam.color, color: exam.color } : undefined}
+                        style={exam.color ? { backgroundColor: `rgba(255,255,255,0.2)`, borderColor: "var(--foreground)", color: "#000" } : undefined}
                       >
                         {exam.tipo_examen}
                       </span>
                       {exam.subject_nombre && (
-                        <span className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5 px-2">
+                        <span className="text-xs font-black uppercase tracking-widest text-foreground flex items-center gap-1.5 px-2 bg-background/50 py-1 rounded-sm border-2 border-foreground/20">
                           📚 {exam.subject_nombre}
                         </span>
                       )}
                     </div>
                     
-                    <h4 className="text-xl font-bold group-hover:text-primary transition-colors" style={exam.color ? { color: exam.color } : {}}>
+                    <h4 className="text-xl font-black uppercase tracking-wide leading-tight group-hover:text-foreground/80 transition-colors">
                       {exam.titulo}
                     </h4>
                     
                     {exam.notas && (
-                      <p className="text-sm text-muted-foreground italic line-clamp-2 max-w-2xl">
+                      <p className="text-sm font-bold bg-background/30 p-2 rounded-lg italic line-clamp-2 max-w-2xl border-2 border-foreground/10">
                         {exam.notas.replace(/\[status:\w+\]/g, "").trim()}
                       </p>
                     )}
                   </div>
 
-                  <div className="flex flex-row md:flex-col items-center md:items-end justify-between min-w-[180px] w-full md:w-auto gap-4 pl-0 md:pl-8 md:border-l border-border/50">
+                  <div className="flex flex-row md:flex-col items-center md:items-end justify-between min-w-[180px] w-full md:w-auto gap-4 pl-0 md:pl-8 md:border-l-[3px] border-foreground/20">
                     <div className="text-right">
-                      <span className="text-sm font-bold flex items-center gap-2 md:justify-end">
-                        <CalendarIcon className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-black uppercase tracking-widest flex items-center gap-2 md:justify-end">
+                        <CalendarIcon className="w-5 h-5 text-foreground" />
                         {new Date(exam.fecha).toLocaleDateString('es-AR', {
                           weekday: 'short',
                           day: 'numeric',
@@ -311,20 +311,20 @@ export default function Exams() {
                         })}
                       </span>
                       {exam.hora && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-2 mt-1 md:justify-end">
-                          <Clock className="w-3.5 h-3.5" />
+                        <span className="text-xs font-bold flex items-center gap-2 mt-1 md:justify-end opacity-80">
+                          <Clock className="w-4 h-4" />
                           {exam.hora} hs
                         </span>
                       )}
                     </div>
 
                     <div className={cn(
-                      "flex items-center gap-2 text-sm font-black px-4 py-2 rounded-xl",
+                      "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border-[3px] shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]",
                       isToday 
-                        ? "bg-red-500 text-white shadow-lg shadow-red-500/20 animate-pulse" 
+                        ? "bg-[#ff4e4e] text-white border-foreground animate-pulse" 
                         : isUrgent 
-                          ? "bg-red-500/10 text-red-500 border border-red-500/20" 
-                          : "bg-primary/10 text-primary border border-primary/20"
+                          ? "bg-[#ff4e4e]/20 text-[#ff4e4e] border-[#ff4e4e]" 
+                          : "bg-background text-foreground border-foreground"
                     )}>
                       {isToday ? (
                         <>
@@ -345,20 +345,20 @@ export default function Exams() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
             {KANBAN_COLUMNS.map((col) => (
-              <div key={col.id} className="flex flex-col gap-4 bg-secondary/20 p-3 rounded-2xl border border-border/50 h-full min-h-[500px]">
-                <div className="flex items-center justify-between px-2 py-1">
+              <div key={col.id} className="flex flex-col gap-4 bg-card border-[3px] border-foreground p-3 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] h-full min-h-[500px]">
+                <div className="flex items-center justify-between px-2 py-1 border-b-[3px] border-foreground/10 pb-4">
                   <div className="flex items-center gap-2">
-                    <div className={cn("p-1.5 rounded-lg bg-background border border-border", col.color)}>
+                    <div className={cn("p-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000]", col.color)}>
                       <col.icon className="w-4 h-4" />
                     </div>
-                    <span className="text-sm font-bold">{col.label}</span>
+                    <span className="text-xs font-black uppercase tracking-widest leading-none mt-1">{col.label}</span>
                   </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-background border border-border text-muted-foreground">
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-sm bg-foreground text-background">
                     {filteredExams.filter(e => getExamStatus(e.notas) === col.id).length}
                   </span>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 pt-2">
                   {filteredExams
                     .filter(e => getExamStatus(e.notas) === col.id)
                     .map((exam) => {
@@ -369,50 +369,50 @@ export default function Exams() {
                         <div 
                           key={exam.id}
                           className={cn(
-                            "card-gamer p-4 rounded-xl border-2 flex flex-col gap-3 transition-all hover:scale-[1.02] hover:shadow-xl group",
-                            isUrgent ? "border-red-500/30 bg-red-500/5 shadow-red-500/5" : "border-transparent bg-card shadow-sm"
+                            "bg-background p-4 rounded-xl border-[3px] flex flex-col gap-3 transition-all hover:-translate-y-1 group relative",
+                            isUrgent ? "border-[#ff4e4e] shadow-[4px_4px_0_0_#ff4e4e]" : "border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
                           )}
                         >
                           <div className="flex justify-between items-start gap-2">
-                            <span className="text-[10px] font-black tracking-tighter opacity-70 uppercase truncate">
+                            <span className="text-[9px] font-black tracking-widest opacity-80 uppercase truncate bg-foreground/10 px-2 py-0.5 rounded-sm">
                               {exam.subject_nombre || "General"}
                             </span>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all absolute top-2 right-2">
                               {col.id !== "pending" && (
                                 <button 
                                   onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1].id)}
-                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-secondary border border-border text-[10px]"
-                                  title="Anterior"
+                                  className="w-7 h-7 flex items-center justify-center rounded-md bg-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-0.5 hover:shadow-none text-[12px] font-bold"
+                                  title="Mover anterior"
                                 >
-                                  ⬅️
+                                  ⬅
                                 </button>
                               )}
                               {col.id !== "done" && (
                                 <button 
                                   onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id)}
-                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-primary/20 border border-primary/30 text-[10px]"
-                                  title="Siguiente"
+                                  className="w-7 h-7 flex items-center justify-center rounded-md bg-foreground text-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-0.5 hover:shadow-none text-[12px] font-bold"
+                                  title="Mover siguiente"
                                 >
-                                  ➡️
+                                  ➡
                                 </button>
                               )}
                             </div>
                           </div>
                           
-                          <h5 className="text-sm font-bold leading-tight line-clamp-2 min-h-[2.5rem]">
+                          <h5 className="text-sm font-black leading-tight line-clamp-2 min-h-[2.5rem] uppercase">
                             {exam.titulo}
                           </h5>
 
-                          <div className="flex items-center justify-between pt-2 border-t border-border/30">
-                            <div className="flex items-center gap-1.5">
-                              <CalendarIcon className="w-3 h-3 text-primary opacity-70" />
-                              <span className="text-[10px] font-medium">
+                          <div className="flex items-center justify-between pt-3 border-t-[3px] border-foreground/10">
+                            <div className="flex items-center gap-1.5 font-bold">
+                              <CalendarIcon className="w-3.5 h-3.5 opacity-80" />
+                              <span className="text-[10px] uppercase">
                                 {new Date(exam.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                               </span>
                             </div>
                             <span className={cn(
-                              "text-[10px] font-black",
-                              isUrgent ? "text-red-500" : "text-muted-foreground"
+                              "text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm border-2",
+                              isUrgent ? "bg-[#ff4e4e] text-white border-transparent" : "border-foreground"
                             )}>
                               {daysRemaining === 0 ? "¡HOY!" : `FALTAN ${daysRemaining}D`}
                             </span>
