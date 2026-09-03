@@ -749,19 +749,19 @@ export default function Flashcards() {
 
   // Browsing Mode
   return (
-    <div className="p-4 lg:p-8 space-y-6 min-h-screen">
+    <div className="tabe-page p-4 lg:p-8 space-y-6 min-h-screen">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center glow-cyan">
-            <BookOpen className="w-7 h-7 text-background" />
+          <div className="w-14 h-14 rounded-xl bg-[#25d06c] border-[3px] border-foreground flex items-center justify-center shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]">
+            <BookOpen className="w-7 h-7 text-black" />
           </div>
           <div>
-            <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text flex items-center gap-2">
+            <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
               Flashcards
-              <Sparkles className="w-6 h-6 text-neon-gold animate-pulse" />
+              <Sparkles className="w-6 h-6 text-[#ffd21c]" />
             </h1>
-            <p className="text-muted-foreground mt-0.5">
+            <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
               Estudia con tarjetas interactivas
             </p>
           </div>
@@ -769,14 +769,14 @@ export default function Flashcards() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowMergeModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-secondary text-foreground border border-border rounded-xl font-semibold hover:bg-secondary/80 transition-all hover:scale-105"
+            className="flex items-center gap-2 px-5 py-3 bg-background text-foreground border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-0 active:shadow-none transition-all"
           >
-            <Layers className="w-5 h-5 text-neon-cyan" />
+            <Layers className="w-5 h-5" />
             Juntar Mazos
           </button>
           <button
             onClick={() => setShowNewDeckModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold hover:shadow-lg hover:shadow-neon-cyan/25 transition-all hover:scale-105"
+            className="flex items-center gap-2 px-5 py-3 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-0 active:shadow-none transition-all"
           >
             <Plus className="w-5 h-5" />
             Nuevo Mazo
@@ -785,45 +785,45 @@ export default function Flashcards() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="card-gamer rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-neon-cyan/20 flex items-center justify-center">
-            <Layers className="w-5 h-5 text-neon-cyan" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#25d06c]/20 flex items-center justify-center">
+            <Layers className="w-6 h-6 text-[#25d06c]" />
           </div>
           <div>
-            <p className="text-2xl font-display font-bold">{decks.length}</p>
-            <p className="text-xs text-muted-foreground">Mazos</p>
+            <p className="text-3xl font-display font-black leading-none">{decks.length}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Mazos</p>
           </div>
         </div>
-        <div className="card-gamer rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-neon-purple/20 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-neon-purple" />
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#1475e5]/20 flex items-center justify-center">
+            <Zap className="w-6 h-6 text-[#1475e5]" />
           </div>
           <div>
-            <p className="text-2xl font-display font-bold">
+            <p className="text-3xl font-display font-black leading-none">
               {decks.reduce((acc, d) => acc + d.total_cards, 0)}
             </p>
-            <p className="text-xs text-muted-foreground">Tarjetas</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Tarjetas</p>
           </div>
         </div>
-        <div className="card-gamer rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-neon-green/20 flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-neon-green" />
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#ff4e4e]/20 flex items-center justify-center">
+            <GraduationCap className="w-6 h-6 text-[#ff4e4e]" />
           </div>
           <div>
-            <p className="text-2xl font-display font-bold">
+            <p className="text-3xl font-display font-black leading-none">
               {new Set(decks.map(d => d.subject_id)).size}
             </p>
-            <p className="text-xs text-muted-foreground">Materias</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Materias</p>
           </div>
         </div>
-        <div className="card-gamer rounded-xl p-4 flex items-center gap-3 col-span-2 lg:col-span-1">
-          <div className="w-10 h-10 rounded-lg bg-neon-gold/20 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-neon-gold" />
+        <div className="bg-[#ffd21c] border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 col-span-2 lg:col-span-1 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-background flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-foreground" />
           </div>
           <div>
-            <p className="text-sm font-medium text-neon-gold">¡Estudia hoy!</p>
-            <p className="text-xs text-muted-foreground">Mantén tu racha</p>
+            <p className="text-sm font-black uppercase tracking-widest text-black">¡Estudia hoy!</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-black/70 mt-1">Mantén tu racha</p>
           </div>
         </div>
       </div>

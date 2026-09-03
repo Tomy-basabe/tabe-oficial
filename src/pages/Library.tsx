@@ -1186,40 +1186,42 @@ export default function Library() {
   }, [showPreviewModal, previewFile, user]);
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
+          <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
             Biblioteca
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
             Organiza tus recursos de estudio por año y materia
           </p>
         </div>
         <div className="flex gap-3 flex-wrap items-center mt-2 lg:mt-0 tour-library-upload">
-          <div className="flex gap-1.5 bg-black/20 backdrop-blur-md p-1.5 rounded-xl border border-white/5">
+          <div className="flex gap-1.5 bg-background border-[3px] border-foreground p-1.5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
             <button
               onClick={openFolderModal}
               title="Nueva Carpeta"
-              className="flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all text-xs font-medium"
+              className="flex items-center gap-2 px-3 py-1.5 font-bold uppercase tracking-widest text-foreground hover:bg-foreground/10 rounded-lg transition-all text-xs"
             >
               <FolderPlus className="w-4 h-4" />
               <span className="hidden lg:inline">Nueva Carpeta</span>
             </button>
+            <div className="w-[3px] bg-foreground/20 rounded-full" />
             <button
               onClick={openLinkModal}
               title="Agregar Link"
-              className="flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all text-xs font-medium"
+              className="flex items-center gap-2 px-3 py-1.5 font-bold uppercase tracking-widest text-foreground hover:bg-foreground/10 rounded-lg transition-all text-xs"
             >
               <LinkIcon className="w-4 h-4" />
               <span className="hidden lg:inline">Agregar Link</span>
             </button>
+            <div className="w-[3px] bg-foreground/20 rounded-full" />
             <button
               onClick={() => folderInputRef.current?.click()}
               disabled={uploading || isGuest}
               title="Subir Carpeta"
-              className="flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all text-xs font-medium disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 font-bold uppercase tracking-widest text-foreground hover:bg-foreground/10 rounded-lg transition-all text-xs disabled:opacity-50"
             >
               <FolderUp className="w-4 h-4" />
               <span className="hidden lg:inline">Subir Carpeta</span>
@@ -1227,11 +1229,10 @@ export default function Library() {
           </div>
           <button
             onClick={openUploadModal}
-            className="group relative flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-neon-purple to-neon-cyan text-white rounded-xl font-bold shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] hover:scale-105 transition-all active:scale-95 overflow-hidden border border-white/20"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#805ad5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-0 active:shadow-none transition-all"
           >
-            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-            <Upload className="w-5 h-5 relative z-10" />
-            <span className="relative z-10 text-sm italic tracking-wide">SUBIR ARCHIVO</span>
+            <Upload className="w-5 h-5" />
+            <span>Subir Archivo</span>
           </button>
         </div>
         {/* Hidden folder input */}
@@ -1246,7 +1247,7 @@ export default function Library() {
       </div>
 
       {/* Year and Subject Filters */}
-      <div className="card-gamer rounded-xl p-4">
+      <div className="bg-card border-[3px] border-foreground rounded-xl p-5 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-4 h-4 text-primary" />
           <span className="font-medium text-sm">Filtrar por</span>

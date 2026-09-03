@@ -1040,23 +1040,27 @@ export default function Quizzes() {
 
     // ---------- MAIN DECK LIST VIEW ----------
     return (
-        <div className="min-h-screen p-4 md:p-6 space-y-6">
+        <div className="tabe-page p-4 md:p-8 space-y-6 min-h-screen">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-3">
-                        <ClipboardList className="w-8 h-8 text-neon-cyan" />
-                        Cuestionarios
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Crea y practica cuestionarios de opción múltiple
-                    </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-[#00d9ff] border-[3px] border-foreground flex items-center justify-center shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]">
+                        <ClipboardList className="w-7 h-7 text-black" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-display font-black uppercase tracking-widest text-foreground">
+                            Cuestionarios
+                        </h1>
+                        <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
+                            Crea y practica cuestionarios de opción múltiple
+                        </p>
+                    </div>
                 </div>
                 <Button
                     onClick={() => setShowCreateDeck(true)}
-                    className="bg-gradient-to-r from-neon-cyan to-neon-purple hover:opacity-90"
+                    className="flex items-center gap-2 px-6 py-3 bg-[#00d9ff] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-0 active:shadow-none transition-all"
                 >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-5 h-5" />
                     Nuevo Cuestionario
                 </Button>
             </div>
