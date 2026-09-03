@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, GraduationCap, Calendar, BookOpen, ChevronRight, FileJson, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Dynamic import of all career templates
 const careerTemplates = import.meta.glob('../data/*_template.json', { eager: true });
@@ -15,13 +16,13 @@ export default function CareerDetail() {
   if (!module) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center card-gamer p-12 rounded-3xl border border-border max-w-md">
+        <div className="text-center bg-card border-[3px] border-foreground shadow-[8px_8px_0_0_#000] dark:shadow-[8px_8px_0_0_#fff] p-12 rounded-3xl max-w-md">
           <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-6" />
-          <h1 className="text-2xl font-bold mb-4">Plan no encontrado</h1>
-          <p className="text-muted-foreground mb-8">Lo sentimos, el plan de estudios que estás buscando no existe en nuestra base de datos pública.</p>
-          <Link to="/carreras" className="inline-flex items-center gap-2 text-neon-cyan font-bold">
+          <h1 className="text-2xl font-black uppercase tracking-widest mb-4">Plan no encontrado</h1>
+          <p className="text-muted-foreground font-bold mb-8">Lo sentimos, el plan de estudios que estás buscando no existe en nuestra base de datos pública.</p>
+          <Button onClick={() => navigate("/carreras")} variant="default">
             <ArrowLeft className="w-5 h-5" /> Volver al listado
-          </Link>
+          </Button>
         </div>
       </div>
     );
@@ -60,32 +61,31 @@ export default function CareerDetail() {
         {JSON.stringify(structuredData)}
       </script>
 
-      <nav className="border-b border-border/50 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
+      <nav className="border-b-[3px] border-foreground/10 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/carreras" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group">
+          <Button variant="ghost" onClick={() => navigate("/carreras")} className="flex items-center gap-2 border-[3px] border-transparent hover:border-foreground transition-colors group px-3 py-1.5 h-auto">
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span>Volver a Carreras</span>
-          </Link>
-          <div className="font-display font-bold text-xl tracking-tight gradient-text">TABE</div>
+            <span className="font-bold">Volver a Carreras</span>
+          </Button>
+          <div className="font-display font-black text-2xl tracking-widest uppercase">TABE</div>
         </div>
       </nav>
 
       <header className="relative py-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-neon-cyan/5 to-transparent pointer-events-none" />
         <div className="container mx-auto px-4 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background border border-border shadow-sm mb-6">
-            <GraduationCap className="w-5 h-5 text-neon-cyan" />
-            <span className="text-sm font-bold uppercase tracking-wider">Plan de Estudios Oficial</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#ffd21c] text-black rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] mb-6">
+            <GraduationCap className="w-5 h-5" />
+            <span className="text-sm font-black uppercase tracking-widest">Plan de Estudios Oficial</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-display font-bold mb-6 tracking-tight">
+          <h1 className="text-4xl md:text-6xl font-display font-black mb-6 tracking-widest uppercase">
             {name}
           </h1>
-          <div className="flex flex-wrap justify-center gap-8 text-muted-foreground">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap justify-center gap-4 text-foreground">
+            <div className="flex items-center gap-2 bg-card border-[3px] border-foreground px-4 py-2 rounded-lg shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] font-bold">
               <Calendar className="w-5 h-5" />
               <span>{years.length} Años de cursado</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-card border-[3px] border-foreground px-4 py-2 rounded-lg shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] font-bold">
               <BookOpen className="w-5 h-5" />
               <span>{subjects.length} Materias totales</span>
             </div>
@@ -98,11 +98,11 @@ export default function CareerDetail() {
           {years.map((year) => (
             <section key={year} className="space-y-6">
               <div className="flex items-center gap-4 transition-all">
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
-                <h2 className="text-2xl font-display font-bold px-6 py-2 rounded-2xl bg-secondary/50 border border-border/50 shadow-sm">
+                <div className="h-[3px] flex-1 bg-foreground/20 rounded-full" />
+                <h2 className="text-2xl font-black px-6 py-2 rounded-lg bg-foreground text-background shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] uppercase tracking-widest border-[3px] border-transparent">
                   {year}° Año
                 </h2>
-                <div className="h-px flex-1 bg-gradient-to-r from-border via-border to-transparent" />
+                <div className="h-[3px] flex-1 bg-foreground/20 rounded-full" />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -112,22 +112,23 @@ export default function CareerDetail() {
                   .map((subject: any) => (
                     <div 
                       key={subject.id} 
-                      className="group card-gamer p-6 rounded-2xl border border-border/50 bg-background/40 hover:border-neon-cyan/30 transition-all duration-300"
+                      className="group bg-card p-6 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all duration-300"
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 leading-none mb-1">
-                            <span className="w-1 h-1 rounded-full bg-neon-cyan shadow-[0_0_5px_cyan]" />
-                            Materia {subject.numero_materia}
+                        <div className="space-y-2">
+                          <div className="inline-flex items-center gap-1.5 bg-foreground text-background px-2 py-0.5 rounded-sm">
+                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                              Materia {subject.numero_materia}
+                            </span>
                           </div>
-                          <h3 className="text-lg font-bold group-hover:text-neon-cyan transition-colors leading-tight">
+                          <h3 className="text-lg font-black leading-tight uppercase">
                             {subject.nombre}
                           </h3>
                           {subject.codigo && (
-                            <p className="text-xs text-muted-foreground font-mono">ID: {subject.codigo}</p>
+                            <p className="text-xs text-muted-foreground font-bold font-mono">ID: {subject.codigo}</p>
                           )}
                         </div>
-                        <FileJson className="w-5 h-5 text-muted-foreground/30 group-hover:text-neon-cyan/50 transition-colors" />
+                        <FileJson className="w-6 h-6 text-foreground/30 group-hover:text-foreground transition-colors shrink-0" />
                       </div>
                     </div>
                   ))}
@@ -136,18 +137,14 @@ export default function CareerDetail() {
           ))}
         </div>
 
-        <section className="mt-24 text-center max-w-2xl mx-auto p-12 rounded-[2rem] border border-border bg-secondary/10 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/5 to-neon-cyan/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <h2 className="text-3xl font-display font-bold mb-6">¿Querés gestionar este plan?</h2>
-          <p className="text-muted-foreground mb-10 leading-relaxed italic">
-            Registrate en TABE para marcar tus materias aprobadas, ver correlatividades interactivas y recibir sugerencias de estudio personalizadas con nuestra IA.
+        <section className="mt-24 text-center max-w-2xl mx-auto p-8 rounded-2xl border-[3px] border-foreground bg-card shadow-[8px_8px_0_0_#000] dark:shadow-[8px_8px_0_0_#fff]">
+          <h2 className="text-3xl font-display font-black mb-4 uppercase tracking-widest">¿Querés gestionar este plan?</h2>
+          <p className="text-muted-foreground mb-8 font-bold text-sm">
+            Registrate en TABE para marcar tus materias aprobadas, ver correlatividades interactivas y recibir sugerencias de estudio personalizadas.
           </p>
-          <Link 
-            to="/auth" 
-            className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-2xl font-bold hover:shadow-[0_0_40px_rgba(34,211,238,0.3)] hover:scale-[1.02] transition-all"
-          >
+          <Button size="lg" onClick={() => navigate("/auth")} className="text-lg bg-[#25d06c] text-black hover:bg-[#25d06c]/90">
             Empezar gratis <ChevronRight className="w-5 h-5" />
-          </Link>
+          </Button>
         </section>
       </main>
     </div>

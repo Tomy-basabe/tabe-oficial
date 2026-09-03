@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,9 +16,9 @@ import { cn } from "@/lib/utils";
 
 const statusFilters = [
   { value: "all", label: "Todas", color: "bg-secondary text-foreground" },
-  { value: "aprobada", label: "Aprobadas", color: "bg-neon-gold/20 text-neon-gold" },
-  { value: "regular", label: "Regulares", color: "bg-neon-cyan/20 text-neon-cyan" },
-  { value: "cursable", label: "Cursables", color: "bg-neon-green/20 text-neon-green" },
+  { value: "aprobada", label: "Aprobadas", color: "bg-[#ffd21c] text-black" },
+  { value: "regular", label: "Regulares", color: "bg-[#1475e5] text-white" },
+  { value: "cursable", label: "Cursables", color: "bg-[#25d06c] text-black" },
   { value: "bloqueada", label: "Bloqueadas", color: "bg-muted text-muted-foreground" },
 ];
 
@@ -57,7 +58,7 @@ export default function CareerPlan() {
 
   const years = getYears();
 
-  // Memoize filtered subjects — only recalculates when filters or data change
+  // Memoize filtered subjects
   const filteredSubjects = useMemo(() => {
     const query = searchQuery.toLowerCase();
     return subjects.filter((subject) => {
@@ -132,8 +133,8 @@ export default function CareerPlan() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando plan de carrera...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-foreground" />
+          <p className="text-foreground font-black uppercase tracking-widest">Cargando plan...</p>
         </div>
       </div>
     );
@@ -142,49 +143,49 @@ export default function CareerPlan() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="tabe-hero flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
+          <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
             Plan de Carrera
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
             Gestiona tus materias y correlativas
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {!isGuestMode && (
-            <button
+            <Button
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all tour-career-add"
+              className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 tour-career-add"
             >
               <Plus className="w-4 h-4" />
               Agregar Materia
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             onClick={() => navigate("/consultas")}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 border border-border hover:bg-secondary transition-all text-foreground font-medium"
+            variant="secondary"
           >
-            <Zap className="w-4 h-4 text-neon-cyan" />
+            <Zap className="w-4 h-4" />
             Consultas
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => navigate("/mapa")}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 border border-border hover:bg-secondary transition-all text-foreground font-medium"
+            variant="secondary"
           >
-            <Zap className="w-4 h-4 text-neon-gold" />
+            <Zap className="w-4 h-4 text-[#ffd21c]" />
             Ver Mapa
-          </button>
+          </Button>
           {!isGuestMode && (
             <>
-              <button
+              <Button
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan font-medium hover:bg-neon-cyan/20 transition-all"
+                variant="outline"
               >
                 <BookOpen className="w-4 h-4" />
                 Importar Plan
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => {
                   const confirm1 = window.confirm("¿Estás SEGURO de que quieres borrar TODAS tus materias y progreso?");
                   if (confirm1) {
@@ -194,38 +195,37 @@ export default function CareerPlan() {
                     }
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-medium hover:bg-destructive/20 transition-all"
+                variant="destructive"
               >
                 Borrar Todo
-              </button>
+              </Button>
             </>
           )}
-          <div className="card-gamer rounded-lg px-3 py-1.5 flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-neon-gold" />
-            <span className="text-sm font-medium">{stats.aprobadas}/{stats.total}</span>
-            <span className="text-xs text-muted-foreground">materias</span>
+          <div className="bg-[#ffd21c] text-black px-3 py-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center gap-2">
+            <GraduationCap className="w-4 h-4" />
+            <span className="text-sm font-black">{stats.aprobadas}/{stats.total}</span>
           </div>
         </div>
       </div>
 
       {/* Stats Bar */}
-      <div className="card-gamer rounded-xl p-4">
+      <div className="bg-card border-[3px] border-foreground rounded-xl p-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-neon-gold">{stats.aprobadas}</p>
-            <p className="text-xs text-muted-foreground">Aprobadas</p>
+            <p className="text-3xl font-black text-[#ffd21c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.aprobadas}</p>
+            <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Aprobadas</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-neon-cyan">{stats.regulares}</p>
-            <p className="text-xs text-muted-foreground">Regulares</p>
+            <p className="text-3xl font-black text-[#1475e5] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.regulares}</p>
+            <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Regulares</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-neon-green">{stats.cursables}</p>
-            <p className="text-xs text-muted-foreground">Cursables</p>
+            <p className="text-3xl font-black text-[#25d06c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.cursables}</p>
+            <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Cursables</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-muted-foreground">{stats.bloqueadas}</p>
-            <p className="text-xs text-muted-foreground">Bloqueadas</p>
+            <p className="text-3xl font-black text-muted-foreground drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.bloqueadas}</p>
+            <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Bloqueadas</p>
           </div>
         </div>
       </div>
@@ -237,41 +237,31 @@ export default function CareerPlan() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar materia..."
+            placeholder="BUSCAR MATERIA..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-background rounded-lg border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] focus:outline-none focus:translate-y-1 focus:shadow-none transition-all font-black uppercase tracking-wider text-sm"
           />
         </div>
 
         {/* Year Filter */}
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <div className="flex gap-1 flex-wrap">
-            <button
+          <Filter className="w-5 h-5 text-foreground" />
+          <div className="flex gap-1.5 flex-wrap">
+            <Button
               onClick={() => setSelectedYear(null)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                selectedYear === null
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary hover:bg-secondary/80"
-              )}
+              variant={selectedYear === null ? "default" : "outline"}
             >
               Todos
-            </button>
+            </Button>
             {years.map((year) => (
-              <button
+              <Button
                 key={year}
                 onClick={() => setSelectedYear(year)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                  selectedYear === year
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary hover:bg-secondary/80"
-                )}
+                variant={selectedYear === year ? "default" : "outline"}
               >
                 Año {year}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -280,32 +270,28 @@ export default function CareerPlan() {
       {/* Status Filter Pills */}
       <div className="flex flex-wrap gap-2">
         {statusFilters.map((filter) => (
-          <button
+          <Button
             key={filter.value}
             onClick={() => setSelectedStatus(filter.value)}
+            variant={selectedStatus === filter.value ? "default" : "outline"}
             className={cn(
-              "px-4 py-2 rounded-full text-sm font-medium transition-all border",
-              selectedStatus === filter.value
-                ? cn(filter.color, "border-current")
-                : "bg-secondary border-transparent hover:bg-secondary/80"
+              selectedStatus === filter.value && filter.value === "aprobada" && "bg-[#ffd21c] text-black hover:bg-[#ffd21c]/90",
+              selectedStatus === filter.value && filter.value === "regular" && "bg-[#1475e5] text-white hover:bg-[#1475e5]/90",
+              selectedStatus === filter.value && filter.value === "cursable" && "bg-[#25d06c] text-black hover:bg-[#25d06c]/90",
             )}
           >
             {filter.label}
-          </button>
+          </Button>
         ))}
 
         {/* Toggle Hide Approved (Mobile primary) */}
-        <button
+        <Button
           onClick={() => setHideApproved(!hideApproved)}
-          className={cn(
-            "px-4 py-2 rounded-full text-sm font-medium transition-all border flex items-center gap-2",
-            hideApproved
-              ? "bg-neon-gold/20 border-neon-gold text-neon-gold"
-              : "bg-secondary border-transparent text-muted-foreground hover:bg-secondary/80"
-          )}
+          variant={hideApproved ? "default" : "outline"}
+          className={cn(hideApproved && "bg-[#ffd21c] text-black hover:bg-[#ffd21c]/90")}
         >
           {hideApproved ? "Mostrando Pendientes" : "Ocultar Aprobadas"}
-        </button>
+        </Button>
       </div>
 
       {/* Subjects Grid by Year */}
@@ -313,13 +299,13 @@ export default function CareerPlan() {
         {subjectsByYear.map(({ year, subjects: yearSubjects }) => (
           yearSubjects.length > 0 && (
             <div key={year}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
-                  <span className="font-display font-bold text-background">{year}</span>
+              <div className="flex items-center gap-3 mb-6 bg-card border-[3px] border-foreground p-3 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] w-fit">
+                <div className="w-10 h-10 rounded-lg bg-foreground text-background flex items-center justify-center">
+                  <span className="font-black text-xl">{year}</span>
                 </div>
-                <div>
-                  <h2 className="font-display font-semibold text-lg">Año {year}</h2>
-                  <p className="text-xs text-muted-foreground">
+                <div className="pr-2">
+                  <h2 className="font-black text-lg uppercase tracking-widest">Año {year}</h2>
+                  <p className="text-[10px] font-black uppercase text-foreground/60 tracking-wider">
                     {yearSubjects.filter(s => s.status === "aprobada").length}/{yearSubjects.length} completadas
                   </p>
                 </div>
@@ -347,73 +333,51 @@ export default function CareerPlan() {
         ))}
       </div>
 
-
-      {
-        subjects.length === 0 && (
-          <div className="text-center py-12">
-            <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground mb-4">No hay materias cargadas todavía</p>
-            <button
-              onClick={handleOpenAddModal}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
-            >
-              Agregar tu primera materia
-            </button>
-          </div>
-        )
-      }
-
-      {
-        subjects.length > 0 && filteredSubjects.length === 0 && (
-          <div className="text-center py-12">
-            <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">No se encontraron materias con los filtros seleccionados</p>
-          </div>
-        )
-      }
-
       {/* Modals */}
-      <SubjectStatusModal
-        subject={selectedSubject}
-        open={showStatusModal}
-        onClose={handleCloseStatusModal}
-        onUpdate={updateSubjectStatus}
-        onUpdatePartialGrades={updatePartialGrades}
-        onEditDetails={handleEditDetails}
-        onEditDependencies={handleEditDependencies}
-        onDelete={deleteSubject}
-        readOnly={isGuestMode}
-      />
+      {selectedSubject && (
+        <SubjectStatusModal
+          isOpen={showStatusModal}
+          onClose={handleCloseStatusModal}
+          subject={selectedSubject}
+          onStatusChange={updateSubjectStatus}
+          onGradesChange={updatePartialGrades}
+          onEditDetails={() => handleEditDetails(selectedSubject)}
+          onEditDependencies={() => handleEditDependencies(selectedSubject)}
+        />
+      )}
+
+      {selectedSubject && (
+        <EditSubjectModal
+          isOpen={showEditDetailsModal}
+          onClose={handleCloseEditDetailsModal}
+          subject={selectedSubject}
+          onSave={updateSubjectDetails}
+          onDelete={deleteSubject}
+        />
+      )}
+
+      {selectedSubject && (
+        <EditDependenciesModal
+          isOpen={showDepsModal}
+          onClose={handleCloseDepsModal}
+          subject={selectedSubject}
+          allSubjects={rawSubjects}
+          onSave={updateSubjectDependencies}
+        />
+      )}
 
       <AddSubjectModal
-        open={showAddModal}
+        isOpen={showAddModal}
         onClose={handleCloseAddModal}
-        onSubmit={createSubject}
-        existingSubjects={rawSubjects}
-        years={years}
-      />
-
-      <EditSubjectModal
-        subject={selectedSubject}
-        open={showEditDetailsModal}
-        onClose={handleCloseEditDetailsModal}
-        onSubmit={updateSubjectDetails}
-      />
-
-      <EditDependenciesModal
-        subject={selectedSubject}
-        open={showDepsModal}
-        onClose={handleCloseDepsModal}
-        onUpdate={updateSubjectDependencies}
+        onAdd={createSubject}
         allSubjects={rawSubjects}
       />
 
       <ImportCareerModal
-        open={showImportModal}
+        isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={importCareerPlan}
       />
-    </div >
+    </div>
   );
 }
-
