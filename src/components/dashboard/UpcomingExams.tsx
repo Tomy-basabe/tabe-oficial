@@ -1,84 +1,110 @@
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { format, isToday, isTomorrow, differenceInDays } from "date-fns";
+import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 interface Exam {
   id: string;
   subject: string;
-  type: "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "TP" | "Entrega" | "Clase" | "Otro";
   date: Date;
+  type?: "Parcial 1" | "Parcial 2" | "Final" | "Recuperatorio" | "Global";
   daysLeft: number;
 }
+
+const examTypeConfig = {
+  "Parcial 1": { label: "1º Parcial", color: "bg-blue-200 text-blue-900 border-blue-900" },
+  "Parcial 2": { label: "2º Parcial", color: "bg-purple-200 text-purple-900 border-purple-900" },
+  "Final": { label: "Final", color: "bg-red-200 text-red-900 border-red-900" },
+  "Recuperatorio": { label: "Recuperatorio", color: "bg-orange-200 text-orange-900 border-orange-900" },
+  "Global": { label: "Global", color: "bg-yellow-200 text-yellow-900 border-yellow-900" }
+};
 
 interface UpcomingExamsProps {
   exams: Exam[];
 }
 
-const examTypeConfig = {
-  P1: { label: "Parcial 1", color: "bg-[#1475e5]/12 text-[#1475e5] border-[#1475e5]/20" },
-  P2: { label: "Parcial 2", color: "bg-[#ff9415]/12 text-[#ff9415] border-[#ff9415]/20" },
-  Global: { label: "Global", color: "bg-[#ffd21c]/12 text-[#d4a600] border-[#ffd21c]/20" },
-  "Recuperatorio P1": { label: "Recup. P1", color: "bg-red-500/12 text-red-500 border-red-500/20" },
-  "Recuperatorio P2": { label: "Recup. P2", color: "bg-red-500/12 text-red-500 border-red-500/20" },
-  "Recuperatorio Global": { label: "Recup. Global", color: "bg-red-500/12 text-red-500 border-red-500/20" },
-  Final: { label: "Final", color: "bg-[#48bd22]/12 text-[#48bd22] border-[#48bd22]/20" },
-  TP: { label: "TP", color: "bg-[#ff9415]/12 text-[#ff9415] border-[#ff9415]/20" },
-  Entrega: { label: "Entrega", color: "bg-[#ff9415]/12 text-[#ff9415] border-[#ff9415]/20" },
-  Clase: { label: "Clase", color: "bg-[#1475e5]/12 text-[#1475e5] border-[#1475e5]/20" },
-  Otro: { label: "Otro", color: "bg-secondary text-muted-foreground border-border" },
-};
-
 export function UpcomingExams({ exams }: UpcomingExamsProps) {
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString("es-AR", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
+    if (isToday(date)) return "Hoy";
+    if (isTomorrow(date)) return "Mañana";
+    return format(date, "EEE, d MMM", { locale: es });
   };
 
   return (
-    <div className="neo-bento-card bento-hover-red p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-extrabold text-lg">Próximos Exámenes</h3>
-        <Calendar className="w-5 h-5 text-[#1475e5]" />
+    <div className="neo-bento-card bg-background p-6 lg:p-8">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-foreground" />
+          <h2 className="font-black text-2xl uppercase">Tus Turnos</h2>
+        </div>
       </div>
 
       {exams.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-bold">No hay exámenes próximos</p>
+        <div className="text-center py-8 bg-muted/30 border-[3px] border-dashed border-border rounded-xl">
+          <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30 text-foreground" />
+          <p className="text-sm font-bold text-foreground">No hay turnos agendados</p>
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-4">
           {exams.map((exam) => {
             const typeConfig = (examTypeConfig as any)[exam.type] || {
               label: exam.type || "Examen",
-              color: "bg-secondary text-muted-foreground border-border"
+              color: "bg-secondary text-muted-foreground border-foreground"
             };
+            
+            const isUrgent = exam.daysLeft <= 3;
+            const isWarning = exam.daysLeft > 3 && exam.daysLeft <= 7;
+
             return (
               <div
                 key={exam.id}
-                className="flex items-center gap-4 p-3 rounded-xl bg-background border-[3px] border-foreground hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#ef4444] transition-all cursor-pointer"
+                className={cn(
+                  "relative flex items-stretch rounded-lg border-[3px] border-foreground overflow-hidden hover:-translate-y-1 transition-transform group bg-white",
+                  isUrgent ? "shadow-[4px_4px_0_0_#ef4444]" : 
+                  isWarning ? "shadow-[4px_4px_0_0_#ff9415]" : 
+                  "shadow-[4px_4px_0_0_#000000]"
+                )}
               >
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{exam.subject}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={cn("text-xs font-extrabold px-2 py-0.5 rounded-full border", typeConfig.color)}>
+                {/* Ticket Stub (Left Side) */}
+                <div className={cn(
+                  "w-16 flex flex-col items-center justify-center border-r-[3px] border-dashed border-foreground/50 shrink-0",
+                  isUrgent ? "bg-red-500 text-white" : 
+                  isWarning ? "bg-orange-400 text-foreground" : 
+                  "bg-foreground text-background"
+                )}>
+                  <span className="text-[10px] font-black uppercase tracking-widest mb-1">Faltan</span>
+                  <span className="text-2xl font-black leading-none">{exam.daysLeft}</span>
+                  <span className="text-[10px] font-black uppercase">días</span>
+                </div>
+
+                {/* Ticket Body */}
+                <div className="flex-1 p-3 min-w-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmZmZmYiPjwvcmVjdD48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZTVlN2ViIj48L3JlY3Q+PC9zdmc+')]">
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="font-black text-sm truncate text-foreground pr-2">{exam.subject}</p>
+                    <ArrowRight className="w-4 h-4 text-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  
+                  <div className="flex items-center flex-wrap gap-2 mt-2">
+                    <span className={cn(
+                      "text-[10px] font-black px-1.5 py-0.5 rounded-sm border-2 uppercase", 
+                      typeConfig.color
+                    )}>
                       {typeConfig.label}
                     </span>
-                    <span className="text-xs text-muted-foreground font-bold">
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-foreground/70 bg-secondary px-1.5 py-0.5 rounded-sm border-2 border-foreground/10">
+                      <Clock className="w-3 h-3" />
                       {formatDate(exam.date)}
-                    </span>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className={cn(
-                    "flex items-center gap-1 text-sm font-extrabold",
-                    exam.daysLeft <= 3 ? "text-red-500" : exam.daysLeft <= 7 ? "text-[#ff9415]" : "text-[#48bd22]"
-                  )}>
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{exam.daysLeft}d</span>
-                  </div>
+                
+                {/* Right edge perforation decorative */}
+                <div className="absolute right-0 top-0 bottom-0 w-2 flex flex-col justify-around py-1 overflow-hidden opacity-20">
+                  <div className="w-2 h-2 rounded-full bg-foreground -translate-x-1"></div>
+                  <div className="w-2 h-2 rounded-full bg-foreground -translate-x-1"></div>
+                  <div className="w-2 h-2 rounded-full bg-foreground -translate-x-1"></div>
+                  <div className="w-2 h-2 rounded-full bg-foreground -translate-x-1"></div>
+                  <div className="w-2 h-2 rounded-full bg-foreground -translate-x-1"></div>
                 </div>
               </div>
             );

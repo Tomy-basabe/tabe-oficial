@@ -1,6 +1,7 @@
 import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { Zap, Trophy, Star } from "lucide-react";
+import { User, Shield, Sword, Trophy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export function NextMilestoneWidget() {
   const { userStats, loading } = useDashboardStats();
@@ -17,55 +18,73 @@ export function NextMilestoneWidget() {
   const xpRequiredSegment = xpForNextLevel - xpCurrentLevel;
   const percentage = Math.min(Math.round((xpProgress / xpRequiredSegment) * 100), 100);
 
-  const rewards = ["Nueva Insignia", "Marco de Avatar Épico", "Color de Tema Exclusivo"];
+  const rewards = ["Nueva Insignia", "Marco de Avatar Épico", "Color Exclusivo"];
   const nextReward = rewards[(currentLevel - 1) % rewards.length];
 
   return (
-    <div className="neo-bento-card bento-hover-yellow p-6">
-      <div className="flex flex-col h-full justify-between">
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-[#ffd21c]/12 rounded-xl">
-                <Zap className="w-5 h-5 text-[#ffd21c]" />
-              </div>
-              <h3 className="font-extrabold text-lg">Próximo Nivel</h3>
-            </div>
-            <span className="font-black text-xl text-[#ffd21c]">
-              Lvl {currentLevel}
-            </span>
+    <div className="neo-bento-card bg-[#2b2b2b] text-white p-0 overflow-hidden border-[4px] border-foreground hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#ffd21c] transition-all">
+      {/* RPG Card Header */}
+      <div className="bg-[#1a1a1a] p-4 flex items-center justify-between border-b-[4px] border-foreground">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-white rounded-md border-2 border-foreground flex items-center justify-center overflow-hidden shadow-[inset_0_-4px_0_rgba(0,0,0,0.1)]">
+            <User className="w-8 h-8 text-foreground mt-2" />
           </div>
-          
-          <div className="space-y-2 mt-6">
-            <div className="flex justify-between items-end">
-              <span className="text-2xl font-black">{xp} <span className="text-sm font-extrabold text-muted-foreground uppercase tracking-widest">XP</span></span>
-              <span className="text-sm font-bold text-muted-foreground">{xpForNextLevel} XP</span>
-            </div>
-            
-            {/* Clean progress bar — solid color, no gradient stripes */}
-            <div className="relative h-3 bg-secondary rounded-full overflow-hidden">
-              <div 
-                className="absolute top-0 left-0 h-full bg-[#ffd21c] rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${percentage}%` }}
-              />
-            </div>
-            <p className="text-xs font-bold text-right text-muted-foreground mt-1">
-              Faltan {xpForNextLevel - xp} XP para subir
-            </p>
+          <div>
+            <h3 className="font-black text-xl leading-none uppercase text-[#ffd21c]">Estudiante</h3>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Clase: Ingeniero</span>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-3xl font-black text-white italic drop-shadow-[2px_2px_0_#ef4444]">
+            LVL {currentLevel}
+          </div>
+        </div>
+      </div>
+
+      {/* RPG Stats & XP */}
+      <div className="p-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMyYjJiMmIiPjwvcmVjdD48cmVjdCB3aWR0aD0iMiIgaGVpZ2h0PSIyIiBmaWxsPSIjMzMzMzMzIj48L3JlY3Q+PC9zdmc+')]">
+        
+        {/* Fake Stats */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="flex items-center gap-2 bg-[#1a1a1a] p-1.5 rounded border-2 border-foreground/50">
+            <Shield className="w-4 h-4 text-blue-400" />
+            <span className="text-xs font-bold font-mono">INT: 99</span>
+          </div>
+          <div className="flex items-center gap-2 bg-[#1a1a1a] p-1.5 rounded border-2 border-foreground/50">
+            <Sword className="w-4 h-4 text-red-400" />
+            <span className="text-xs font-bold font-mono">FOC: {Math.floor(xp / 200)}</span>
           </div>
         </div>
 
-        <div className="mt-6 p-3 bg-secondary/40 rounded-xl flex items-start gap-3">
-          <div className="p-1.5 bg-[#ffd21c]/15 rounded-lg shrink-0">
-            <Trophy className="w-4 h-4 text-[#ffd21c]" />
-          </div>
-          <div>
-            <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider mb-0.5">Recompensa Sig. Nivel</p>
-            <p className="text-sm font-extrabold flex items-center gap-1.5">
-              {nextReward} <Star className="w-3 h-3 text-[#ffd21c] fill-[#ffd21c]" />
-            </p>
+        {/* XP Bar */}
+        <div className="mb-1 flex justify-between items-end">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#ffd21c]">Experiencia</span>
+          <span className="text-xs font-bold font-mono text-gray-300">{xp} / {xpForNextLevel}</span>
+        </div>
+        <div className="h-4 bg-[#1a1a1a] rounded-sm border-2 border-foreground relative overflow-hidden p-0.5">
+          <div 
+            className="h-full bg-gradient-to-r from-[#ffd21c] to-[#ff9415] rounded-sm relative"
+            style={{ width: `${percentage}%` }}
+          >
+            {/* Glossy top effect */}
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/30"></div>
           </div>
         </div>
+        <p className="text-[9px] font-bold text-right text-gray-400 mt-1 uppercase">
+          Faltan {xpForNextLevel - xp} XP
+        </p>
+
+        {/* Loot Box */}
+        <div className="mt-4 flex items-center gap-3 bg-[#ffd21c] p-2 rounded-lg border-2 border-foreground text-foreground">
+          <div className="w-8 h-8 bg-white rounded flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_rgba(0,0,0,1)] shrink-0">
+            <Trophy className="w-4 h-4 text-foreground" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black uppercase text-foreground/80">Loot al subir de nivel</span>
+            <span className="text-xs font-black">{nextReward}</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );

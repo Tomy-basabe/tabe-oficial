@@ -12,7 +12,6 @@ import { Link } from "react-router-dom";
 
 // Widgets
 import { ForestWidget } from "@/components/dashboard/widgets/ForestWidget";
-import { AIAssistantWidget } from "@/components/dashboard/widgets/AIAssistantWidget";
 import { PomodoroGoalWidget } from "@/components/dashboard/widgets/PomodoroGoalWidget";
 import { NextMilestoneWidget } from "@/components/dashboard/widgets/NextMilestoneWidget";
 
@@ -194,9 +193,6 @@ export default function Dashboard() {
             weekData={weekData}
           />
           <UpcomingExams exams={upcomingExams} />
-          <div className="flex-1">
-            <AIAssistantWidget />
-          </div>
         </div>
 
       </div>
