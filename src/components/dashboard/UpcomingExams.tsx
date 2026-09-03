@@ -31,7 +31,7 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
   };
 
   return (
-    <div className="neo-bento-card bg-background p-6 lg:p-8">
+    <div className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Calendar className="w-6 h-6 text-foreground" />

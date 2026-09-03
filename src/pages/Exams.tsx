@@ -250,8 +250,8 @@ export default function Exams() {
         {filteredExams.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-20 text-center text-foreground border-[3px] border-dashed border-foreground/30 rounded-2xl bg-card">
             <GraduationCap className="w-16 h-16 mb-4 opacity-50" />
-            <p className="font-black text-xl uppercase tracking-widest">No hay exámenes a la vista</p>
-            <p className="font-bold mt-2 max-w-md mx-auto opacity-70">
+            <p className="font-display font-black text-xl tracking-wide">No hay exámenes a la vista</p>
+            <p className="font-medium mt-2 max-w-md mx-auto opacity-70">
               Asegúrate de tener eventos de tipo Parcial, Final o Global creados en tu calendario.
             </p>
             <Link to="/calendario" className="mt-8">
@@ -289,7 +289,7 @@ export default function Exams() {
                       )}
                     </div>
                     
-                    <h4 className="text-xl font-black uppercase tracking-wide leading-tight group-hover:text-foreground/80 transition-colors">
+                    <h4 className="text-xl font-display font-black tracking-wide leading-tight group-hover:text-foreground/80 transition-colors">
                       {exam.titulo}
                     </h4>
                     
@@ -399,7 +399,7 @@ export default function Exams() {
                             </div>
                           </div>
                           
-                          <h5 className="text-sm font-black leading-tight line-clamp-2 min-h-[2.5rem] uppercase">
+                          <h5 className="text-sm font-display font-black leading-tight line-clamp-2 min-h-[2.5rem]">
                             {exam.titulo}
                           </h5>
 

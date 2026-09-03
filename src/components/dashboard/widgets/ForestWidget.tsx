@@ -101,34 +101,25 @@ export function ForestWidget() {
       {/* Console Controls */}
       <div className="mt-5 flex justify-between items-end px-2">
         {/* D-Pad */}
-        <div className="relative w-16 h-16 opacity-80">
-          <div className="absolute top-1/2 left-0 right-0 h-5 bg-foreground -translate-y-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset] flex justify-between overflow-hidden">
-            <button className="w-5 h-full hover:bg-white/20 z-10" onClick={() => handleDPad(-1)} aria-label="Anterior semilla" />
-            <button className="w-5 h-full hover:bg-white/20 z-10" onClick={() => handleDPad(1)} aria-label="Siguiente semilla" />
+        <div className="relative w-16 h-16 opacity-100">
+          <div className="absolute top-1/2 left-0 right-0 h-6 bg-foreground -translate-y-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset] flex justify-between overflow-hidden">
+            <button className="w-6 h-full hover:bg-white/20 z-20 pointer-events-auto" onClick={() => handleDPad(-1)} aria-label="Anterior semilla" />
+            <button className="w-6 h-full hover:bg-white/20 z-20 pointer-events-auto" onClick={() => handleDPad(1)} aria-label="Siguiente semilla" />
           </div>
-          <div className="absolute left-1/2 top-0 bottom-0 w-5 bg-foreground -translate-x-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset] flex flex-col justify-between pointer-events-none overflow-hidden">
-            <button className="w-full h-5 hover:bg-white/20 pointer-events-auto z-10" onClick={() => handleDPad(-1)} aria-label="Anterior semilla" />
-            <button className="w-full h-5 hover:bg-white/20 pointer-events-auto z-10" onClick={() => handleDPad(1)} aria-label="Siguiente semilla" />
+          <div className="absolute left-1/2 top-0 bottom-0 w-6 bg-foreground -translate-x-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset] flex flex-col justify-between pointer-events-none overflow-hidden">
+            <button className="w-full h-6 hover:bg-white/20 pointer-events-auto z-20" onClick={() => handleDPad(-1)} aria-label="Anterior semilla" />
+            <button className="w-full h-6 hover:bg-white/20 pointer-events-auto z-20" onClick={() => handleDPad(1)} aria-label="Siguiente semilla" />
           </div>
-          <div className="absolute top-1/2 left-1/2 w-5 h-5 bg-foreground -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+          <div className="absolute top-1/2 left-1/2 w-6 h-6 bg-foreground -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30">
+             <div className="w-2 h-2 rounded-full bg-white/10 mx-auto mt-2"></div>
+          </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-col items-end gap-3">
           {!currentPlant && (
-            <div className="flex bg-foreground rounded-full p-1 shadow-[2px_2px_0_rgba(0,0,0,0.5)]">
-              {plantTypes.map(pt => (
-                <button 
-                  key={pt.id}
-                  onClick={() => setSelectedSeed(pt.id)}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all",
-                    selectedSeed === pt.id ? "bg-white scale-110 shadow-lg" : "hover:bg-white/20 grayscale"
-                  )}
-                >
-                  {pt.emoji}
-                </button>
-              ))}
+            <div className="text-[10px] font-black uppercase text-foreground bg-white/50 px-2 py-1 rounded-md border-2 border-foreground mb-1">
+              {plantTypes.find(p => p.id === selectedSeed)?.name}
             </div>
           )}
 

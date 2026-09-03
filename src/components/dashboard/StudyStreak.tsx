@@ -16,7 +16,7 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
   const last7Days = paddedWeekData.slice(-7);
 
   return (
-    <div className="neo-bento-card bg-[#fff5eb] dark:bg-background border-[4px] border-foreground p-5 lg:p-6 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#ff9415] transition-all">
+    <div className="bg-card border-[3px] border-foreground p-5 lg:p-6 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CalendarCheck className="w-6 h-6 text-foreground" />
@@ -52,12 +52,12 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
         <p className="text-[10px] font-black uppercase text-center mb-3 text-foreground/60 tracking-widest">
           Tarjeta de Sellos Semanal
         </p>
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 items-center justify-items-center w-full">
+        <div className="flex justify-between items-center w-full px-1">
           {last7Days.map((day, idx) => (
-            <div key={idx} className="flex flex-col items-center gap-1.5 w-full">
+            <div key={idx} className="flex flex-col items-center gap-1.5">
               <div className={cn(
-                "w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-foreground flex items-center justify-center relative shrink-0",
-                day.studied ? "bg-[#ff9415]" : "bg-muted"
+                "w-7 h-7 sm:w-8 sm:h-8 rounded-full border-[3px] border-foreground flex items-center justify-center relative shrink-0",
+                day.studied ? "bg-[#ff9415] shadow-[2px_2px_0_0_#000]" : "bg-muted"
               )}>
                 {day.studied ? (
                   <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white animate-pulse" />
