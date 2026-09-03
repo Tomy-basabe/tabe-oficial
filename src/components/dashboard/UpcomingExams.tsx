@@ -35,7 +35,7 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Calendar className="w-6 h-6 text-foreground" />
-          <h2 className="font-black text-2xl uppercase">Tus Turnos</h2>
+          <h2 className="font-black text-2xl uppercase">Tus Examenes</h2>
         </div>
       </div>
 
@@ -51,7 +51,7 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
               label: exam.type || "Examen",
               color: "bg-secondary text-muted-foreground border-foreground"
             };
-            
+
             const isUrgent = exam.daysLeft <= 3;
             const isWarning = exam.daysLeft > 3 && exam.daysLeft <= 7;
 
@@ -60,17 +60,17 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
                 key={exam.id}
                 className={cn(
                   "relative flex items-stretch rounded-lg border-[3px] border-foreground overflow-hidden hover:-translate-y-1 transition-transform group bg-white",
-                  isUrgent ? "shadow-[4px_4px_0_0_#ef4444]" : 
-                  isWarning ? "shadow-[4px_4px_0_0_#ff9415]" : 
-                  "shadow-[4px_4px_0_0_#000000]"
+                  isUrgent ? "shadow-[4px_4px_0_0_#ef4444]" :
+                    isWarning ? "shadow-[4px_4px_0_0_#ff9415]" :
+                      "shadow-[4px_4px_0_0_#000000]"
                 )}
               >
                 {/* Ticket Stub (Left Side) */}
                 <div className={cn(
                   "w-16 flex flex-col items-center justify-center border-r-[3px] border-dashed border-foreground/50 shrink-0",
-                  isUrgent ? "bg-red-500 text-white" : 
-                  isWarning ? "bg-orange-400 text-foreground" : 
-                  "bg-foreground text-background"
+                  isUrgent ? "bg-red-500 text-white" :
+                    isWarning ? "bg-orange-400 text-foreground" :
+                      "bg-foreground text-background"
                 )}>
                   <span className="text-[10px] font-black uppercase tracking-widest mb-1">Faltan</span>
                   <span className="text-2xl font-black leading-none">{exam.daysLeft}</span>
@@ -83,10 +83,10 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
                     <p className="font-black text-sm truncate text-foreground pr-2">{exam.subject}</p>
                     <ArrowRight className="w-4 h-4 text-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  
+
                   <div className="flex items-center flex-wrap gap-2 mt-2">
                     <span className={cn(
-                      "text-[10px] font-black px-1.5 py-0.5 rounded-sm border-2 uppercase", 
+                      "text-[10px] font-black px-1.5 py-0.5 rounded-sm border-2 uppercase",
                       typeConfig.color
                     )}>
                       {typeConfig.label}
@@ -97,7 +97,7 @@ export function UpcomingExams({ exams }: UpcomingExamsProps) {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Right edge perforation decorative */}
                 <div className="absolute right-0 top-0 bottom-0 w-2 flex flex-col justify-around py-1 overflow-hidden opacity-20">
                   <div className="w-2 h-2 rounded-full bg-foreground -translate-x-1"></div>

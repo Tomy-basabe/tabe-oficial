@@ -86,10 +86,10 @@ export const SubjectCard = memo(function SubjectCard({
   const Icon = config.icon;
 
   return (
-    <div className="relative group cursor-pointer transition-transform duration-200 hover:-translate-y-1 mt-3" onClick={onClick}>
+    <div className="relative group cursor-pointer transition-transform duration-200 hover:-translate-y-1 mt-6" onClick={onClick}>
       {/* Folder Tab */}
       <div className={cn(
-        "absolute -top-3 left-0 px-3 py-1 rounded-t-lg border-[3px] border-b-0 border-foreground font-black text-[10px] tracking-wider z-0 flex items-center gap-1",
+        "absolute bottom-[calc(100%-3px)] left-0 px-3 py-1.5 pb-2 rounded-t-lg border-[3px] border-foreground font-black text-[10px] tracking-wider z-0 flex items-center gap-1",
         config.tabClass
       )}>
         <Icon className="w-3 h-3" />

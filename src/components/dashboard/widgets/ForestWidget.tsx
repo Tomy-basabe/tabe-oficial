@@ -64,9 +64,11 @@ export function ForestWidget() {
                 "text-6xl mb-2 transition-transform duration-500",
                 isHovered && "scale-125"
               )}>
-                {plantInfo?.emoji}
+                {currentPlant.growth_percentage < 25 ? "🌱" : currentPlant.growth_percentage < 75 ? "🌿" : plantInfo?.emoji}
               </div>
-              <p className="font-black text-sm uppercase text-foreground">{plantInfo?.name}</p>
+              <p className="font-black text-sm uppercase text-foreground">
+                {currentPlant.growth_percentage < 25 ? "Semilla" : currentPlant.growth_percentage < 75 ? "Brote" : plantInfo?.name}
+              </p>
               
               {isGrowing && (
                 <div className="absolute top-1/2 -translate-y-1/2 right-4 flex flex-col gap-2">
