@@ -408,26 +408,26 @@ export default function AIAssistant() {
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text flex items-center gap-3">
+                  <h1 className="font-black text-2xl lg:text-3xl uppercase text-black flex items-center gap-3">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="hidden md:flex"
+                      className="hidden md:flex border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_#000]"
                       onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                     >
-                      <Menu className="w-5 h-5" />
+                      <Menu className="w-5 h-5 text-black" />
                     </Button>
                     {activePersona?.avatar_emoji || "🤖"} {activePersona?.name || "Asistente IA"}
                   </h1>
                   {activePersona?.description && (
-                    <p className="text-muted-foreground text-sm mt-0.5 ml-12">
+                    <p className="font-bold text-black/60 text-sm mt-0.5 ml-12 uppercase">
                       {activePersona.description}
                     </p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 self-end md:self-auto">
-                  <div className="px-3 py-1.5 bg-neon-green/10 text-neon-green rounded-full text-xs font-medium flex items-center gap-1 border border-neon-green/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neon-green animate-pulse" />
+                  <div className="px-3 py-1.5 bg-[#BFFF00] text-black border-2 border-black rounded-full font-black uppercase text-xs flex items-center gap-2 shadow-[2px_2px_0_0_#000]">
+                    <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
                     Online
                   </div>
                 </div>
@@ -435,19 +435,19 @@ export default function AIAssistant() {
             </div>
 
             {messages.length <= 1 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {quickActions.map((action) => {
                   const Icon = action.icon;
                   return (
                     <button
                       key={action.id}
                       onClick={() => handleQuickAction(action.prompt)}
-                      className="flex flex-col items-center justify-center gap-2 p-3 bg-card hover:bg-accent/50 border border-border/50 rounded-xl transition-all text-center group"
+                      className="flex flex-col items-center justify-center gap-3 p-4 bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_#000] transition-all text-center group"
                     >
-                      <div className="p-2 rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform">
-                        <Icon className="w-4 h-4" />
+                      <div className="p-3 rounded-xl bg-gray-100 border-2 border-black shadow-[2px_2px_0_0_#000] text-black group-hover:bg-[#00E5FF] transition-colors">
+                        <Icon className="w-6 h-6" strokeWidth={2.5} />
                       </div>
-                      <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                      <span className="text-sm font-black uppercase text-black">
                         {action.label}
                       </span>
                     </button>
@@ -467,35 +467,35 @@ export default function AIAssistant() {
                 >
                   <div
                     className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm mt-1",
+                      "w-10 h-10 border-2 border-black shadow-[2px_2px_0_0_#000] rounded-xl flex items-center justify-center flex-shrink-0 mt-1 text-black",
                       message.role === "assistant"
-                        ? "bg-gradient-to-br from-neon-cyan to-neon-purple"
-                        : "bg-secondary text-foreground"
+                        ? "bg-[#C688EB]"
+                        : "bg-[#FFD700]"
                     )}
                   >
                     {message.role === "assistant" ? (
-                      <span className="text-sm">{activePersona?.avatar_emoji || "🤖"}</span>
+                      <span className="text-lg font-black">{activePersona?.avatar_emoji || "🤖"}</span>
                     ) : (
-                      <User className="w-5 h-5" />
+                      <User className="w-5 h-5" strokeWidth={2.5} />
                     )}
                   </div>
                   <div
                     className={cn(
-                      "max-w-[85%] lg:max-w-[75%] rounded-2xl px-5 py-4 shadow-sm overflow-hidden",
+                      "max-w-[85%] lg:max-w-[75%] rounded-xl px-5 py-4 border-4 border-black shadow-[4px_4px_0_0_#000] overflow-hidden relative text-black",
                       message.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-tr-sm"
-                        : "bg-card border border-border/50 rounded-tl-sm"
+                        ? "bg-[#BFFF00]"
+                        : "bg-white"
                     )}
                   >
-                    <div className="text-sm space-y-2 leading-relaxed break-words">
+                    <div className="text-base font-bold space-y-2 leading-relaxed break-words">
                       {renderContent(message.content, message.role)}
                     </div>
                     <div
                       className={cn(
-                        "flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-50 transition-opacity text-[10px]",
+                        "flex items-center gap-2 mt-2 opacity-50 text-[10px] font-black uppercase",
                         message.role === "user"
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground"
+                          ? "text-black"
+                          : "text-black"
                       )}
                     >
                       <span>
@@ -513,7 +513,7 @@ export default function AIAssistant() {
           </div>
         </div>
 
-        <div className="p-4 lg:p-6 bg-gradient-to-t from-background via-background/95 to-transparent sticky bottom-0 z-20">
+        <div className="p-4 lg:p-6 bg-transparent sticky bottom-0 z-20">
           <div className="max-w-3xl mx-auto relative">
             <input
               type="file"
@@ -522,20 +522,19 @@ export default function AIAssistant() {
               className="hidden"
               accept=".pdf,.txt,.md"
             />
-            <div className="absolute inset-0 bg-neon-cyan/5 blur-3xl -z-10 rounded-full opacity-20" />
-            <div className="flex gap-2 items-end bg-card/80 backdrop-blur-xl p-2 rounded-2xl border border-border/50 shadow-lg">
+            <div className="flex gap-2 items-end bg-white p-3 rounded-xl border-4 border-black shadow-[8px_8px_0_0_#000]">
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-muted-foreground hover:text-primary mb-1"
+                className="text-black mb-1 hover:bg-gray-200 border-2 border-transparent hover:border-black rounded-lg"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading || isStreaming}
                 title="Adjuntar PDF/Texto"
               >
                 {isUploading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
-                  <Paperclip className="w-5 h-5" />
+                  <Paperclip className="w-6 h-6" strokeWidth={2.5} />
                 )}
               </Button>
 
@@ -558,39 +557,39 @@ export default function AIAssistant() {
                     ? "Procesando archivo..."
                     : `Preguntale a ${activePersona?.name || "tu IA"}... (Shift+Enter para nueva línea)`
                 }
-                className="flex-1 px-4 py-3 bg-transparent border-none focus:outline-none text-sm placeholder:text-muted-foreground/50 resize-none overflow-y-auto"
+                className="flex-1 px-4 py-3 bg-transparent border-none focus:outline-none text-base font-bold placeholder:text-black/50 placeholder:font-bold resize-none overflow-y-auto text-black"
                 style={{ minHeight: "44px", maxHeight: "200px" }}
                 rows={1}
                 disabled={isStreaming || isUploading}
               />
 
-              <div className="flex gap-1 pb-1 pr-1">
+              <div className="flex gap-2 pb-1 pr-1">
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-black mb-1 hover:bg-gray-200 border-2 border-transparent hover:border-black rounded-lg"
                   onClick={startVoiceInput}
                   title="Dictar por voz"
                   disabled={isStreaming}
                 >
-                  <Mic className="w-5 h-5" />
+                  <Mic className="w-6 h-6" strokeWidth={2.5} />
                 </Button>
                 <Button
                   onClick={handleSend}
                   disabled={!inputValue.trim() || isStreaming}
                   size="icon"
                   className={cn(
-                    "rounded-xl transition-all duration-300",
+                    "rounded-xl transition-all duration-300 border-4 border-black mb-1 h-12 w-12",
                     inputValue.trim() && !isStreaming
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
-                      : "bg-secondary text-muted-foreground cursor-not-allowed"
+                      ? "bg-[#00E5FF] text-black hover:bg-[#00cce6] hover:translate-y-[2px] shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000]"
+                      : "bg-gray-200 text-gray-500 cursor-not-allowed shadow-[4px_4px_0_0_#000]"
                   )}
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-6 h-6" strokeWidth={3} />
                 </Button>
               </div>
             </div>
-            <p className="text-[10px] text-center text-muted-foreground/50 mt-2">
+            <p className="text-[10px] text-center font-black uppercase text-black/50 mt-4">
               {activePersona?.name || "T.A.B.E. IA"} puede cometer errores. El modo offline para archivos está activo.
             </p>
           </div>
