@@ -1107,7 +1107,7 @@ export default function Notion() {
     if (filterYear !== "all") {
       result = result.filter(doc => {
         const docSubject = subjects.find(s => s.id === doc.subject_id);
-        return docSubject && docSubject.año.toString() === filterYear;
+        return docSubject && docSubject.año != null && docSubject.año.toString() === filterYear;
       });
     }
 
