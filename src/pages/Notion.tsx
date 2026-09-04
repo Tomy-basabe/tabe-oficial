@@ -348,8 +348,14 @@ export default function Notion() {
   // Gallery view filters
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubject, setFilterSubject] = useState<string>("all");
+  const [filterYear, setFilterYear] = useState<string>("all");
   const [filterOwner, setFilterOwner] = useState<"all" | "mine" | "friends">("all");
   const [sortBy, setSortBy] = useState<"updated" | "alpha_asc" | "alpha_desc">("updated");
+
+  const uniqueYears = useMemo(() => {
+    const years = new Set(subjects.map(s => s.año).filter(y => y != null));
+    return Array.from(years).sort((a, b) => a - b);
+  }, [subjects]);
 
   // Fetch subjects
   useEffect(() => {
@@ -1097,6 +1103,14 @@ export default function Notion() {
   const filteredAndSortedDocuments = useMemo(() => {
     let result = [...documents];
 
+    // Filter by year
+    if (filterYear !== "all") {
+      result = result.filter(doc => {
+        const docSubject = subjects.find(s => s.id === doc.subject_id);
+        return docSubject && docSubject.año.toString() === filterYear;
+      });
+    }
+
     // Filter by subject
     if (filterSubject !== "all") {
       result = result.filter(doc => doc.subject_id === filterSubject);
@@ -1128,7 +1142,7 @@ export default function Notion() {
     });
 
     return result;
-  }, [documents, filterSubject, searchQuery, sortBy, filterOwner, user]);
+  }, [documents, filterSubject, filterYear, searchQuery, sortBy, filterOwner, user, subjects]);
 
   // Loading
   if (loading && documents.length === 0) {
@@ -1514,15 +1528,31 @@ export default function Notion() {
                   </div>
 
                   <div className="flex items-center gap-3">
+                    {/* Filter by Year */}
+                    <Select value={filterYear} onValueChange={(val) => { setFilterYear(val); setFilterSubject("all"); }}>
+                      <SelectTrigger className="w-[140px] bg-white border-4 border-black font-bold shadow-[4px_4px_0_0_#000] rounded-none focus:ring-0">
+                        <Filter className="w-4 h-4 mr-2" />
+                        <SelectValue placeholder="Año" />
+                      </SelectTrigger>
+                      <SelectContent className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
+                        <SelectItem value="all" className="font-bold cursor-pointer">Todos los años</SelectItem>
+                        {uniqueYears.map(year => (
+                          <SelectItem key={year} value={year.toString()} className="font-bold cursor-pointer">Año {year}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
                     {/* Filter by Subject */}
                     <Select value={filterSubject} onValueChange={setFilterSubject}>
-                      <SelectTrigger className="w-[180px] bg-white border-4 border-black font-bold shadow-[4px_4px_0_0_#000] rounded-none focus:ring-0">
+                      <SelectTrigger className="w-[160px] bg-white border-4 border-black font-bold shadow-[4px_4px_0_0_#000] rounded-none focus:ring-0">
                         <Filter className="w-4 h-4 mr-2" />
                         <SelectValue placeholder="Materias" />
                       </SelectTrigger>
                       <SelectContent className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
                         <SelectItem value="all" className="font-bold cursor-pointer">Todas las materias</SelectItem>
-                        {subjects.map(sub => (
+                        {subjects
+                          .filter(sub => filterYear === "all" || sub.año.toString() === filterYear)
+                          .map(sub => (
                           <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer">{sub.codigo || sub.nombre}</SelectItem>
                         ))}
                       </SelectContent>
