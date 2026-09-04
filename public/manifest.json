@@ -15,15 +15,15 @@
     ],
     "icons": [
         {
-            "src": "/favicon.svg",
+            "src": "/favicon.png",
             "sizes": "any",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/favicon.svg",
+            "src": "/favicon.png",
             "sizes": "any",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "maskable"
         },
         {
@@ -51,28 +51,28 @@
             "short_name": "Focus",
             "description": "Inicia una sesión de estudio profundo",
             "url": "/pomodoro",
-            "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+            "icons": [{ "src": "/favicon.png", "sizes": "any", "type": "image/png" }]
         },
         {
             "name": "Asistente TABE",
             "short_name": "AI Coach",
             "description": "Habla con la Inteligencia Artificial",
             "url": "/TABEAI",
-            "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+            "icons": [{ "src": "/favicon.png", "sizes": "any", "type": "image/png" }]
         },
         {
             "name": "Calendario",
             "short_name": "Eventos",
             "description": "Revisa tus próximos exámenes",
             "url": "/calendario",
-            "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+            "icons": [{ "src": "/favicon.png", "sizes": "any", "type": "image/png" }]
         },
         {
             "name": "Dashboard",
             "short_name": "Inicio",
             "description": "Ir al panel principal",
             "url": "/dashboard",
-            "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+            "icons": [{ "src": "/favicon.png", "sizes": "any", "type": "image/png" }]
         }
     ]
 }
