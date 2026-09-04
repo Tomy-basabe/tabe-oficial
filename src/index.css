@@ -1168,3 +1168,56 @@
 .animate-plant-grow-pulse {
   animation: plant-grow-pulse 4s ease-in-out infinite;
 }
+
+/*
+ * Dark-mode compatibility layer
+ *
+ * Some of the earlier screens use literal Tailwind neutral colours instead of
+ * the design tokens (`bg-white`, `text-black`, etc.).  Those values are fine
+ * in light mode but make cards, headings and form controls unreadable in dark
+ * mode.  Keep this here, after the Tailwind utilities, so it also protects
+ * pages added before they are migrated to semantic tokens.
+ */
+.dark [class~="bg-white"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+.dark [class*="bg-white/"] {
+  background-color: hsl(var(--card) / 0.82) !important;
+}
+
+.dark [class~="bg-gray-50"],
+.dark [class~="bg-gray-100"],
+.dark [class~="bg-gray-200"],
+.dark [class~="bg-gray-300"],
+.dark [class~="bg-gray-400"] {
+  background-color: hsl(var(--muted)) !important;
+}
+
+.dark [class~="border-black"],
+.dark [class*="border-black/"] {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Only replace literal black text when the same element is not a coloured
+ * control. Bright buttons intentionally retain black text for contrast. */
+.dark [class~="text-black"]:not([class*="bg-"]),
+.dark [class*="text-black/"]:not([class*="bg-"]) {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark input[class*="text-black"],
+.dark textarea[class*="text-black"],
+.dark select[class*="text-black"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark input[class*="placeholder:text-black"]::placeholder,
+.dark textarea[class*="placeholder:text-black"]::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 1;
+}
+
+.dark [class*="hover:bg-gray-"]:hover {
+  background-color: hsl(var(--secondary)) !important;
+}

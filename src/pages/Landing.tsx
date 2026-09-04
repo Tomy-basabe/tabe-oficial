@@ -6,11 +6,9 @@ import { MethodologySection } from "@/components/landing/MethodologySection";
 import { SpecializationSection } from "@/components/landing/SpecializationSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
-import { PricingSection } from "@/components/landing/PricingSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
-import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 
 
 export default function Landing() {
@@ -19,17 +17,14 @@ export default function Landing() {
             <LandingNavbar />
 
             <HeroSection />
+            <FinalCtaSection />
 
             <TestimonialsSection />
-            <AdsterraBanner />
-
             <ProblemSection />
             <MethodologySection />
             <SpecializationSection />
             <HowItWorksSection />
-            <PricingSection />
             <FaqSection />
-            <FinalCtaSection />
             <LandingFooter />
         </div>
     );

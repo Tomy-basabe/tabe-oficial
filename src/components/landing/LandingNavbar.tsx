@@ -14,12 +14,11 @@ export function LandingNavbar() {
         return () => window.removeEventListener("scroll", h);
     }, []);
 
-    const logo = theme === "dark" ? "/logos/tabe-logo-dark.png" : "/logos/tabe-logo-light.png";
+    const logo = "/logo.png";
 
     const links = [
         { to: "/carreras", label: "Carreras" },
         { to: "/#metodologia", label: "Metodología", scroll: true },
-        { to: "/#planes", label: "Planes", scroll: true },
         { to: "/#faq", label: "FAQ", scroll: true },
         { to: "/acerca-de", label: "Acerca de" },
         { to: "/contacto", label: "Contacto" },

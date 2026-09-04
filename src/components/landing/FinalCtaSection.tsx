@@ -25,7 +25,7 @@ export function FinalCtaSection() {
                 className="absolute top-20 right-20 hidden lg:block"
             >
                 <div className="bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] font-bold text-black rotate-12">
-                    ¡+1000 estudiantes!
+                    ¡+350 estudiantes!
                 </div>
             </motion.div>
 

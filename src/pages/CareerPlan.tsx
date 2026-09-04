@@ -143,8 +143,13 @@ export default function CareerPlan() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 neo-bento-card bento-hover-blue p-5 lg:p-6 bg-blue-50/30 dark:bg-background">
-        <div>
+      <div className="relative overflow-hidden flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5 neo-bento-card bento-hover-blue p-6 lg:p-8 bg-card/80 backdrop-blur-sm">
+        <div className="absolute -top-24 -left-16 h-48 w-48 rounded-full bg-neon-cyan/15 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-28 right-12 h-52 w-52 rounded-full bg-neon-purple/15 blur-3xl pointer-events-none" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-neon-cyan mb-3">
+            Tu progreso académico
+          </span>
           <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
             Plan de Carrera
           </h1>
@@ -152,7 +157,7 @@ export default function CareerPlan() {
             Gestiona tus materias y correlativas
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex flex-wrap items-center gap-2">
           {!isGuestMode && (
             <Button
               onClick={handleOpenAddModal}
