@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, X, BookOpen, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Subject, CreateSubjectData } from "@/hooks/useSubjects";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AddSubjectModalProps {
   open: boolean;
@@ -78,81 +79,89 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="sm:max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl bg-card border-[3px] border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl gradient-text flex items-center gap-2">
-            <Plus className="w-5 h-5" />
+          <DialogTitle className="font-black text-2xl uppercase tracking-widest text-foreground flex items-center gap-2">
+            <Plus className="w-6 h-6 text-[#ffd21c] fill-[#ffd21c]" />
             Agregar Nueva Materia
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           {/* Basic Info */}
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground">Nombre de la materia</label>
+              <label className="text-sm font-black uppercase tracking-widest text-foreground">Nombre de la materia</label>
               <input
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Análisis Matemático I"
-                className="w-full mt-1 px-4 py-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="EJ: ANÁLISIS MATEMÁTICO I"
+                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-y-1 focus:shadow-none transition-all uppercase font-black"
                 required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-foreground">Código</label>
+                <label className="text-sm font-black uppercase tracking-widest text-foreground">Código</label>
                 <input
                   type="text"
                   value={codigo}
                   onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-                  placeholder="Ej: AM1"
-                  maxLength={5}
-                  className="w-full mt-1 px-4 py-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 uppercase"
+                  placeholder="EJ: AM1"
+                  maxLength={10}
+                  className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-y-1 focus:shadow-none transition-all uppercase font-black"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-foreground">Año</label>
-                <select
-                  value={año}
-                  onChange={(e) => setAño(parseInt(e.target.value))}
-                  className="w-full mt-1 px-4 py-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  {[1, 2, 3, 4, 5, 6].map(y => (
-                    <option key={y} value={y}>Año {y}</option>
-                  ))}
-                </select>
+                <label className="text-sm font-black uppercase tracking-widest text-foreground">Año</label>
+                <Select value={año.toString()} onValueChange={(val) => setAño(parseInt(val))}>
+                  <SelectTrigger className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-y-1 focus:shadow-none transition-all h-auto uppercase font-black">
+                    <SelectValue placeholder="SELECCIONE" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl font-black uppercase tracking-widest">
+                    {years.length > 0 ? years.map(y => (
+                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">AÑO {y}</SelectItem>
+                    )) : [1, 2, 3, 4, 5, 6].map(y => (
+                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">AÑO {y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
 
           {/* Dependencies Section */}
           {existingSubjects.length > 0 && (
-            <div>
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={() => setShowDependencies(!showDependencies)}
-                className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[#1475e5] hover:underline"
               >
-                <BookOpen className="w-4 h-4" />
-                {showDependencies ? "Ocultar correlativas" : "Agregar correlativas"}
+                <BookOpen className="w-5 h-5" />
+                {showDependencies ? "OCULTAR CORRELATIVAS" : "AGREGAR CORRELATIVAS"}
               </button>
 
               {showDependencies && (
-                <div className="mt-4 space-y-4 animate-fade-in">
-                  <p className="text-xs text-muted-foreground">
+                <div className="mt-6 space-y-6 animate-fade-in bg-muted/30 border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] p-4 max-h-[300px] overflow-y-auto">
+                  <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
                     Selecciona las materias necesarias para cursar esta materia
                   </p>
 
                   {subjectsByYear.map(({ year, subjects }) => 
                     subjects.length > 0 && (
-                      <div key={year} className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground">Año {year}</p>
-                        <div className="grid grid-cols-1 gap-2">
+                      <div key={year} className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded bg-foreground text-background font-black flex items-center justify-center text-xs">
+                            {year}
+                          </span>
+                          <p className="text-xs font-black uppercase tracking-widest text-foreground">AÑO {year}</p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3">
                           {subjects.map(subject => {
                             const isRegular = requiereRegular.includes(subject.id);
                             const isAprobada = requiereAprobada.includes(subject.id);
@@ -160,9 +169,9 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
                             return (
                               <div 
                                 key={subject.id}
-                                className="flex items-center justify-between p-3 bg-secondary rounded-lg"
+                                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-background border-[3px] border-foreground rounded-xl gap-3"
                               >
-                                <span className="text-sm font-medium">
+                                <span className="text-xs font-black uppercase tracking-widest">
                                   {subject.codigo} - {subject.nombre}
                                 </span>
                                 <div className="flex gap-2">
@@ -170,10 +179,10 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
                                     type="button"
                                     onClick={() => toggleRegular(subject.id)}
                                     className={cn(
-                                      "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1",
+                                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1 border-2 border-foreground",
                                       isRegular 
-                                        ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan" 
-                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                        ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000] -translate-y-0.5" 
+                                        : "bg-background text-muted-foreground hover:bg-muted"
                                     )}
                                   >
                                     <Clock className="w-3 h-3" />
@@ -183,10 +192,10 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
                                     type="button"
                                     onClick={() => toggleAprobada(subject.id)}
                                     className={cn(
-                                      "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1",
+                                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1 border-2 border-foreground",
                                       isAprobada 
-                                        ? "bg-neon-gold/20 text-neon-gold border border-neon-gold" 
-                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                        ? "bg-[#ffd21c] text-black shadow-[2px_2px_0_0_#000] -translate-y-0.5" 
+                                        : "bg-background text-muted-foreground hover:bg-muted"
                                     )}
                                   >
                                     <CheckCircle2 className="w-3 h-3" />
@@ -203,18 +212,18 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
 
                   {/* Selected dependencies summary */}
                   {(requiereRegular.length > 0 || requiereAprobada.length > 0) && (
-                    <div className="p-3 bg-primary/10 rounded-xl space-y-2">
-                      <p className="text-xs font-medium text-foreground">Correlativas seleccionadas:</p>
+                    <div className="p-4 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl space-y-3 mt-6">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-foreground">CORRELATIVAS SELECCIONADAS:</p>
                       <div className="flex flex-wrap gap-2">
                         {requiereRegular.map(id => {
                           const subject = existingSubjects.find(s => s.id === id);
                           return (
                             <span 
                               key={id} 
-                              className="px-2 py-1 bg-neon-cyan/20 text-neon-cyan rounded-lg text-xs flex items-center gap-1"
+                              className="px-2 py-1 bg-[#1475e5] text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 border-2 border-foreground"
                             >
                               {subject?.codigo} Regular
-                              <button type="button" onClick={() => toggleRegular(id)}>
+                              <button type="button" onClick={() => toggleRegular(id)} className="hover:bg-black/20 rounded p-0.5 ml-1">
                                 <X className="w-3 h-3" />
                               </button>
                             </span>
@@ -225,10 +234,10 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
                           return (
                             <span 
                               key={id} 
-                              className="px-2 py-1 bg-neon-gold/20 text-neon-gold rounded-lg text-xs flex items-center gap-1"
+                              className="px-2 py-1 bg-[#ffd21c] text-black rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 border-2 border-foreground"
                             >
                               {subject?.codigo} Aprobada
-                              <button type="button" onClick={() => toggleAprobada(id)}>
+                              <button type="button" onClick={() => toggleAprobada(id)} className="hover:bg-black/20 rounded p-0.5 ml-1">
                                 <X className="w-3 h-3" />
                               </button>
                             </span>
@@ -243,11 +252,11 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
           )}
 
           {/* Submit */}
-          <div className="flex gap-3">
+          <div className="flex gap-4 pt-4 border-t-[3px] border-foreground/20">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-3 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all"
+              className="flex-1 py-3.5 rounded-xl font-black uppercase tracking-widest transition-all bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-1 hover:shadow-none text-foreground"
             >
               Cancelar
             </button>
@@ -255,13 +264,13 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
               type="submit"
               disabled={!nombre || !codigo || loading}
               className={cn(
-                "flex-1 py-3 rounded-xl font-medium transition-all",
-                nombre && codigo
-                  ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90"
-                  : "bg-secondary text-muted-foreground cursor-not-allowed"
+                "flex-1 py-3.5 rounded-xl font-black uppercase tracking-widest transition-all border-[3px] border-foreground",
+                nombre && codigo && !loading
+                  ? "bg-[#ffd21c] text-black shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-1 hover:shadow-none"
+                  : "bg-muted text-muted-foreground opacity-70 cursor-not-allowed shadow-none translate-y-1"
               )}
             >
-              {loading ? "Creando..." : "Crear Materia"}
+              {loading ? "CREANDO..." : "CREAR MATERIA"}
             </button>
           </div>
         </form>

@@ -248,10 +248,10 @@ export function RoutineStats({ dateRange }: Props) {
 
     if (routines.length === 0) {
         return (
-            <div className="card-gamer rounded-xl p-8 text-center">
-                <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Sin rutinas</h3>
-                <p className="text-muted-foreground">Creá rutinas en el apartado de Rutinas para ver métricas aquí.</p>
+            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-8 text-center">
+                <Calendar className="w-12 h-12 mx-auto text-black/50 mb-4" strokeWidth={2} />
+                <h3 className="text-xl font-black uppercase mb-2 text-black">Sin rutinas</h3>
+                <p className="text-black/60 font-bold uppercase text-sm">Creá rutinas en el apartado de Rutinas para ver métricas aquí.</p>
             </div>
         );
     }
@@ -262,102 +262,111 @@ export function RoutineStats({ dateRange }: Props) {
         <div className="space-y-6">
             {/* General compliance */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="card-gamer rounded-xl p-6 text-center">
-                    <Target className="w-8 h-8 mx-auto text-primary mb-2" />
-                    <p className={cn("text-4xl font-display font-bold",
-                        generalPct >= 70 ? "text-neon-green" : generalPct >= 40 ? "text-neon-gold" : "text-destructive"
+                <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6 text-center hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
+                    <div className="w-12 h-12 bg-[#FF9B71] border-2 border-black rounded-lg mx-auto flex items-center justify-center mb-3 rotate-3 group-hover:rotate-0 transition-transform">
+                        <Target className="w-6 h-6 text-black" strokeWidth={2.5} />
+                    </div>
+                    <p className={cn("text-4xl font-black tracking-tighter",
+                        generalPct >= 70 ? "text-black" : generalPct >= 40 ? "text-black" : "text-[#FF5C5C]"
                     )}>{generalPct}%</p>
-                    <p className="text-sm text-muted-foreground mt-1">Cumplimiento general</p>
+                    <p className="text-xs font-bold text-black/60 uppercase mt-1">Cumplimiento general</p>
                 </div>
-                <div className="card-gamer rounded-xl p-6 text-center">
-                    <CheckCircle className="w-8 h-8 mx-auto text-neon-green mb-2" />
-                    <p className="text-4xl font-display font-bold text-neon-green">{logs.filter(l => l.completed).length}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Rutinas completadas</p>
+                <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6 text-center hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
+                    <div className="w-12 h-12 bg-[#BFFF00] border-2 border-black rounded-lg mx-auto flex items-center justify-center mb-3 -rotate-3 group-hover:rotate-0 transition-transform">
+                        <CheckCircle className="w-6 h-6 text-black" strokeWidth={2.5} />
+                    </div>
+                    <p className="text-4xl font-black text-black tracking-tighter">{logs.filter(l => l.completed).length}</p>
+                    <p className="text-xs font-bold text-black/60 uppercase mt-1">Rutinas completadas</p>
                 </div>
-                <div className="card-gamer rounded-xl p-6 text-center">
-                    <TrendingUp className="w-8 h-8 mx-auto text-neon-cyan mb-2" />
-                    <p className="text-4xl font-display font-bold text-neon-cyan">{routines.filter(r => r.is_active).length}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Rutinas activas</p>
+                <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6 text-center hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
+                    <div className="w-12 h-12 bg-[#00E5FF] border-2 border-black rounded-lg mx-auto flex items-center justify-center mb-3 rotate-6 group-hover:rotate-0 transition-transform">
+                        <TrendingUp className="w-6 h-6 text-black" strokeWidth={2.5} />
+                    </div>
+                    <p className="text-4xl font-black text-black tracking-tighter">{routines.filter(r => r.is_active).length}</p>
+                    <p className="text-xs font-bold text-black/60 uppercase mt-1">Rutinas activas</p>
                 </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6">
                 {/* Weekly evolution chart */}
-                <div className="card-gamer rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-display font-semibold flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-primary" /> Evolución semanal
+                <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-6 border-b-4 border-black pb-4">
+                        <h3 className="font-black uppercase text-xl text-black flex items-center gap-2">
+                            <TrendingUp className="w-6 h-6 text-black" strokeWidth={3} /> Evolución semanal
                         </h3>
                         {weeklyEvolution.length > WEEKS_PER_PAGE && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-2">
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="icon"
-                                    className="h-8 w-8"
+                                    className="h-8 w-8 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000]"
                                     onClick={() => setChartOffset(prev => Math.max(0, prev - 1))}
                                     disabled={chartOffset === 0}
                                 >
-                                    <ChevronLeft className="w-4 h-4" />
+                                    <ChevronLeft className="w-4 h-4 text-black" strokeWidth={3} />
                                 </Button>
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="icon"
-                                    className="h-8 w-8"
+                                    className="h-8 w-8 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000]"
                                     onClick={() => setChartOffset(prev => Math.min(weeklyEvolution.length - WEEKS_PER_PAGE, prev + 1))}
                                     disabled={chartOffset >= weeklyEvolution.length - WEEKS_PER_PAGE}
                                 >
-                                    <ChevronRight className="w-4 h-4" />
+                                    <ChevronRight className="w-4 h-4 text-black" strokeWidth={3} />
                                 </Button>
                             </div>
                         )}
                     </div>
-                    <div className="flex items-end justify-between gap-1 h-40">
+                    <div className="flex items-end justify-between gap-2 h-40 px-2">
                         {weeklyEvolution.slice(chartOffset, chartOffset + WEEKS_PER_PAGE).map((w, i) => (
-                            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
-                                <div className="w-full rounded-t-lg transition-all duration-500 relative group"
-                                    style={{
-                                        height: `${Math.max((w.pct / 100) * 100, 4)}%`,
-                                        background: w.pct >= 70
-                                            ? "linear-gradient(to top, hsl(var(--neon-green) / 0.5), hsl(var(--neon-green)))"
-                                            : w.pct >= 40
-                                                ? "linear-gradient(to top, hsl(var(--neon-gold) / 0.5), hsl(var(--neon-gold)))"
-                                                : "linear-gradient(to top, hsl(var(--destructive) / 0.5), hsl(var(--destructive)))",
-                                    }}>
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-card px-2 py-1 rounded text-xs whitespace-nowrap border border-border z-10">
-                                        {w.pct}%
+                            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-2 h-full">
+                                <div className="w-full flex-1 flex flex-col justify-end group">
+                                    <div className="w-full transition-all duration-500 rounded-t-sm relative border-2 border-transparent"
+                                        style={{
+                                            height: `${Math.max((w.pct / 100) * 100, 4)}%`,
+                                            backgroundColor: w.pct >= 70 ? "#BFFF00" : w.pct >= 40 ? "#FFD700" : "#FF5C5C",
+                                            borderTopColor: w.pct > 0 ? "black" : "transparent",
+                                            borderLeftColor: w.pct > 0 ? "black" : "transparent",
+                                            borderRightColor: w.pct > 0 ? "black" : "transparent",
+                                            boxShadow: w.pct > 0 ? "2px_0_0_0_#000" : "none"
+                                        }}>
+                                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded text-xs font-bold whitespace-nowrap z-10 pointer-events-none">
+                                            {w.pct}%
+                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black rotate-45"></div>
+                                        </div>
                                     </div>
                                 </div>
-                                <span className="text-[9px] text-muted-foreground leading-tight text-center">{w.label}</span>
+                                <span className="text-[10px] font-bold text-black uppercase text-center leading-tight">{w.label}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
                 {/* By subject */}
-                <div className="card-gamer rounded-xl p-6">
-                    <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
-                        <BookOpen className="w-5 h-5 text-primary" /> Por Materia
+                <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6">
+                    <h3 className="font-black uppercase text-xl text-black mb-6 flex items-center gap-2 border-b-4 border-black pb-4">
+                        <BookOpen className="w-6 h-6 text-black" strokeWidth={3} /> Por Materia
                     </h3>
                     {bySubject.length === 0 ? (
-                        <p className="text-muted-foreground text-sm text-center py-8">
+                        <p className="text-black/60 font-bold uppercase text-sm text-center py-8">
                             No hay rutinas vinculadas a materias en este período.
                         </p>
                     ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
                             {bySubject.map(s => {
-                                const colors = ["neon-green", "neon-cyan", "neon-purple", "neon-gold"];
-                                const color = s.pct >= 70 ? "neon-green" : s.pct >= 40 ? "neon-gold" : "destructive";
+                                const bgColors = ["#BFFF00", "#00E5FF", "#C688EB", "#FFD700"];
+                                const color = s.pct >= 70 ? "#BFFF00" : s.pct >= 40 ? "#FFD700" : "#FF5C5C";
                                 return (
                                     <div key={s.subject_id}>
-                                        <div className="flex items-center justify-between text-sm mb-1">
-                                            <span className="truncate">{s.año}° — {s.nombre}</span>
-                                            <span className={`font-bold text-${color}`}>{s.pct}%</span>
+                                        <div className="flex items-center justify-between text-sm mb-2">
+                                            <span className="font-bold text-black truncate">{s.año}° — {s.nombre}</span>
+                                            <span className="font-black text-black px-2 py-0.5 border-2 border-black rounded bg-gray-100">{s.pct}%</span>
                                         </div>
-                                        <div className="progress-gamer h-2">
-                                            <div className="h-full rounded-full transition-all duration-500"
+                                        <div className="h-4 bg-gray-200 border-2 border-black rounded-full overflow-hidden shadow-[inset_2px_2px_0_0_rgba(0,0,0,0.1)]">
+                                            <div className="h-full transition-all duration-500 border-r-2 border-black"
                                                 style={{
                                                     width: `${s.pct}%`,
-                                                    background: `linear-gradient(90deg, hsl(var(--${color})) 0%, hsl(var(--${color}) / 0.7) 100%)`,
+                                                    backgroundColor: color,
                                                 }} />
                                         </div>
                                     </div>

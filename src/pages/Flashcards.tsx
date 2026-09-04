@@ -10,6 +10,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FlashcardDeck } from "@/components/flashcards/FlashcardDeck";
 import { StudyMode } from "@/components/flashcards/StudyMode";
 import { CompletionScreen } from "@/components/flashcards/CompletionScreen";
@@ -325,7 +332,7 @@ export default function Flashcards() {
       if (status === 'correct') updates.veces_correcta = (card.veces_correcta || 0) + 1;
       if (status === 'partial') updates.veces_parcial = (card.veces_parcial || 0) + 1;
       if (status === 'incorrect') updates.veces_incorrecta = (card.veces_incorrecta || 0) + 1;
-      
+
       await supabase
         .from("flashcards")
         .update(updates)
@@ -751,7 +758,7 @@ export default function Flashcards() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6 min-h-screen">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-[#25d06c] border-[3px] border-foreground flex items-center justify-center shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]">
             <BookOpen className="w-7 h-7 text-black" />
@@ -769,14 +776,14 @@ export default function Flashcards() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowMergeModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-background text-foreground border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-0 active:shadow-none transition-all"
+            className="flex items-center gap-2 px-5 py-3 bg-background text-foreground border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
           >
             <Layers className="w-5 h-5" />
             Juntar Mazos
           </button>
           <button
             onClick={() => setShowNewDeckModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-0 active:shadow-none transition-all"
+            className="flex items-center gap-2 px-5 py-3 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
           >
             <Plus className="w-5 h-5" />
             Nuevo Mazo
@@ -786,7 +793,7 @@ export default function Flashcards() {
 
       {/* Stats bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
           <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#25d06c]/20 flex items-center justify-center">
             <Layers className="w-6 h-6 text-[#25d06c]" />
           </div>
@@ -795,7 +802,7 @@ export default function Flashcards() {
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Mazos</p>
           </div>
         </div>
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
           <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#1475e5]/20 flex items-center justify-center">
             <Zap className="w-6 h-6 text-[#1475e5]" />
           </div>
@@ -806,7 +813,7 @@ export default function Flashcards() {
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Tarjetas</p>
           </div>
         </div>
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
           <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#ff4e4e]/20 flex items-center justify-center">
             <GraduationCap className="w-6 h-6 text-[#ff4e4e]" />
           </div>
@@ -817,7 +824,7 @@ export default function Flashcards() {
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Materias</p>
           </div>
         </div>
-        <div className="bg-[#ffd21c] border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 col-span-2 lg:col-span-1 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+        <div className="bg-[#ffd21c] border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 col-span-2 lg:col-span-1 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
           <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-background flex items-center justify-center">
             <Sparkles className="w-6 h-6 text-foreground" />
           </div>
@@ -834,26 +841,26 @@ export default function Flashcards() {
           <button
             onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
             className={cn(
-              "px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
+              "px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-[3px] border-foreground transition-all",
               !selectedYear
-                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
-                : "bg-secondary hover:bg-secondary/80"
+                ? "bg-[#1475e5] text-white shadow-[4px_4px_0_0_#000]"
+                : "bg-background text-foreground hover:bg-secondary shadow-[4px_4px_0_0_transparent] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
             )}
           >
-            Todos
+            TODOS
           </button>
           {[1, 2, 3, 4, 5, 6].map(year => (
             <button
               key={year}
               onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
               className={cn(
-                "px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                "px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-[3px] border-foreground transition-all",
                 selectedYear === year
-                  ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
-                  : "bg-secondary hover:bg-secondary/80"
+                  ? "bg-[#1475e5] text-white shadow-[4px_4px_0_0_#000]"
+                  : "bg-background text-foreground hover:bg-secondary shadow-[4px_4px_0_0_transparent] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
               )}
             >
-              Año {year}
+              AÑO {year}
             </button>
           ))}
         </div>
@@ -862,9 +869,9 @@ export default function Flashcards() {
           <select
             value={selectedSubject || ""}
             onChange={(e) => setSelectedSubject(e.target.value || null)}
-            className="px-4 py-2.5 bg-secondary rounded-xl text-sm border border-border font-medium"
+            className="px-5 py-3 bg-background rounded-xl text-[10px] border-[3px] border-foreground font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] focus:outline-none appearance-none"
           >
-            <option value="">Todas las materias</option>
+            <option value="">TODAS LAS MATERIAS</option>
             {filteredSubjects.map(subject => (
               <option key={subject.id} value={subject.id}>
                 {subject.nombre}
@@ -904,9 +911,9 @@ export default function Flashcards() {
           </p>
           <button
             onClick={() => setShowNewDeckModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold hover:shadow-lg hover:shadow-neon-cyan/25 transition-all"
+            className="px-6 py-4 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
           >
-            Crear primer mazo
+            CREAR PRIMER MAZO
           </button>
         </div>
       ) : (
@@ -933,26 +940,26 @@ export default function Flashcards() {
 
       {/* New Deck Modal */}
       <Dialog open={showNewDeckModal} onOpenChange={setShowNewDeckModal}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000]">
           <DialogHeader>
-            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
-              <Layers className="w-5 h-5 text-neon-cyan" />
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+              <Layers className="w-5 h-5 text-foreground" />
               Nuevo Mazo
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 py-4">
+          <div className="space-y-6 py-2">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Seleccionar Año</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Seleccionar Año</label>
               <div className="flex gap-2 mt-2">
                 {[1, 2, 3, 4, 5, 6].map(year => (
                   <button
                     key={year}
                     onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
                     className={cn(
-                      "flex-1 py-3 rounded-xl text-sm font-semibold transition-all",
+                      "flex-1 py-3 rounded-xl text-sm font-black border-[2px] border-foreground transition-all",
                       selectedYear === year
-                        ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
-                        : "bg-secondary hover:bg-secondary/80"
+                        ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000]"
+                        : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                     )}
                   >
                     {year}°
@@ -963,31 +970,31 @@ export default function Flashcards() {
 
             {selectedYear && (
               <div className="animate-fade-in">
-                <label className="text-sm font-medium text-muted-foreground">Materia</label>
-                <select
-                  value={selectedSubject || ""}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border font-medium"
-                >
-                  <option value="">Seleccionar materia</option>
-                  {filteredSubjects.map(subject => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.nombre}
-                    </option>
-                  ))}
-                </select>
+                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Materia</label>
+                <Select value={selectedSubject || ""} onValueChange={setSelectedSubject}>
+                  <SelectTrigger className="w-full mt-2 px-4 py-6 h-auto bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-base data-[state=open]:shadow-[4px_4px_0_0_#000]">
+                    <SelectValue placeholder="Seleccionar materia" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
+                    {filteredSubjects.map(subject => (
+                      <SelectItem key={subject.id} value={subject.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
+                        {subject.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
             {selectedSubject && (
               <div className="animate-fade-in">
-                <label className="text-sm font-medium text-muted-foreground">Nombre del mazo</label>
+                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Nombre del mazo</label>
                 <input
                   type="text"
                   value={newDeckName}
                   onChange={(e) => setNewDeckName(e.target.value)}
                   placeholder="Ej: Unidad 1 - Conceptos básicos"
-                  className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
+                  className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                 />
               </div>
             )}
@@ -995,9 +1002,9 @@ export default function Flashcards() {
             <button
               onClick={createDeck}
               disabled={!selectedSubject || !newDeckName.trim()}
-              className="w-full py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-neon-cyan/25"
+              className="w-full py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed"
             >
-              Crear Mazo
+              CREAR MAZO
             </button>
           </div>
         </DialogContent>
@@ -1005,42 +1012,42 @@ export default function Flashcards() {
 
       {/* New Card Modal */}
       <Dialog open={showNewCardModal} onOpenChange={setShowNewCardModal}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000]">
           <DialogHeader>
-            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
-              <Plus className="w-5 h-5 text-neon-cyan" />
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+              <Plus className="w-5 h-5 text-foreground" />
               Nueva Tarjeta
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 py-4">
+          <div className="space-y-6 py-2">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Pregunta</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Pregunta</label>
               <textarea
                 value={newCardQuestion}
                 onChange={(e) => setNewCardQuestion(e.target.value)}
                 placeholder="Escribe la pregunta..."
                 rows={3}
-                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border resize-none"
+                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all resize-none"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Respuesta</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Respuesta</label>
               <textarea
                 value={newCardAnswer}
                 onChange={(e) => setNewCardAnswer(e.target.value)}
                 placeholder="Escribe la respuesta..."
                 rows={3}
-                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border resize-none"
+                className="w-full mt-2 px-4 py-3 bg-[#ffd21c] rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all resize-none placeholder:text-black/50"
               />
             </div>
 
             <button
               onClick={createCard}
               disabled={!newCardQuestion.trim() || !newCardAnswer.trim()}
-              className="w-full py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-neon-cyan/25"
+              className="w-full py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed"
             >
-              Agregar Tarjeta
+              AGREGAR TARJETA
             </button>
           </div>
         </DialogContent>
@@ -1119,10 +1126,10 @@ export default function Flashcards() {
                 setShowManageCardsModal(false);
                 setShowNewCardModal(true);
               }}
-              className="w-full py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Agregar Tarjeta
+              AGREGAR TARJETA
             </button>
           </div>
         </DialogContent>
@@ -1158,9 +1165,9 @@ export default function Flashcards() {
             </div>
             <button
               onClick={saveDeckSubject}
-              className="w-full py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold transition-all hover:shadow-lg hover:shadow-neon-cyan/25"
+              className="w-full py-4 bg-[#ffd21c] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
             >
-              Guardar Cambios
+              GUARDAR CAMBIOS
             </button>
           </div>
         </DialogContent>
@@ -1343,9 +1350,9 @@ export default function Flashcards() {
                 <button
                   onClick={handleImportConfirm}
                   disabled={selectedImportCards.length === 0}
-                  className="w-full py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg"
+                  className="w-full py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed"
                 >
-                  Importar {selectedImportCards.length} Cartas
+                  IMPORTAR {selectedImportCards.length} CARTAS
                 </button>
               </div>
             </div>
@@ -1355,35 +1362,35 @@ export default function Flashcards() {
 
       {/* Merge Decks Modal */}
       <Dialog open={showMergeModal} onOpenChange={setShowMergeModal}>
-        <DialogContent className="sm:max-w-xl bg-card border-border max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-xl bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
-              <Layers className="w-6 h-6 text-neon-cyan" />
-              Combinar Mazos de Flashcards
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+              <Layers className="w-6 h-6 text-foreground" />
+              Juntar Mazos
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto py-4 space-y-6 pr-1">
+          <div className="flex-1 overflow-y-auto py-4 space-y-6 pr-2">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-muted-foreground">
+                <label className="text-sm font-black uppercase tracking-widest text-foreground">
                   1. Seleccionar Mazos ({selectedDecksToMerge.length} seleccionados)
                 </label>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
                   Mínimo 2 mazos
                 </span>
               </div>
 
               {/* Source Deck Filters */}
-              <div className="space-y-3 bg-secondary/30 p-3 rounded-xl border border-border/50">
+              <div className="space-y-3 bg-secondary/50 p-4 rounded-xl border-[2px] border-foreground">
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   <button
                     onClick={() => { setMergeSourceYearFilter(null); setMergeSourceSubjectFilter(null); }}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap",
+                      "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all border-[2px] border-foreground whitespace-nowrap",
                       !mergeSourceYearFilter
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                        ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000]"
+                        : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                     )}
                   >
                     Todos
@@ -1393,10 +1400,10 @@ export default function Flashcards() {
                       key={year}
                       onClick={() => { setMergeSourceYearFilter(year); setMergeSourceSubjectFilter(null); }}
                       className={cn(
-                        "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap",
+                        "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all border-[2px] border-foreground whitespace-nowrap",
                         mergeSourceYearFilter === year
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                          ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000]"
+                          : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                       )}
                     >
                       {year}° Año
@@ -1405,20 +1412,23 @@ export default function Flashcards() {
                 </div>
 
                 {mergeSourceYearFilter && (
-                  <select
-                    value={mergeSourceSubjectFilter || ""}
-                    onChange={(e) => setMergeSourceSubjectFilter(e.target.value || null)}
-                    className="w-full px-3 py-1.5 bg-background/50 rounded-lg border border-border text-[11px] outline-none"
-                  >
-                    <option value="">Todas las materias del año</option>
-                    {subjects.filter(s => s.año === mergeSourceYearFilter).map(s => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
+                  <Select value={mergeSourceSubjectFilter || "all"} onValueChange={(val) => setMergeSourceSubjectFilter(val === "all" ? null : val)}>
+                    <SelectTrigger className="w-full px-4 py-5 h-auto bg-background rounded-lg border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm data-[state=open]:shadow-[4px_4px_0_0_#000]">
+                      <SelectValue placeholder="Todas las materias del año" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
+                      <SelectItem value="all" className="font-bold uppercase tracking-widest focus:bg-secondary cursor-pointer rounded-lg my-1">Todas las materias del año</SelectItem>
+                      {subjects.filter(s => s.año === mergeSourceYearFilter).map(s => (
+                        <SelectItem key={s.id} value={s.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
+                          {s.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 gap-3 max-h-56 overflow-y-auto pr-1">
                 {decks
                   .filter(deck => {
                     const matchesYear = !mergeSourceYearFilter || deck.subject?.año === mergeSourceYearFilter;
@@ -1430,27 +1440,27 @@ export default function Flashcards() {
                       key={deck.id}
                       onClick={() => toggleMergeDeckSelection(deck.id)}
                       className={cn(
-                        "p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group",
+                        "p-4 rounded-xl border-[2px] border-foreground cursor-pointer transition-all flex items-center justify-between group",
                         selectedDecksToMerge.includes(deck.id)
-                          ? "bg-neon-cyan/10 border-neon-cyan/50"
-                          : "bg-secondary/50 border-border hover:border-neon-cyan/30"
+                          ? "bg-[#25d06c] shadow-[4px_4px_0_0_#000] translate-x-[-2px] translate-y-[-2px]"
+                          : "bg-background hover:bg-secondary hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                       )}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         <div className={cn(
-                          "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                          "w-6 h-6 rounded-md border-[2px] border-foreground flex items-center justify-center transition-all bg-background",
                           selectedDecksToMerge.includes(deck.id)
-                            ? "bg-neon-cyan border-neon-cyan"
-                            : "border-muted-foreground/30"
+                            ? "bg-black"
+                            : ""
                         )}>
-                          {selectedDecksToMerge.includes(deck.id) && <Plus className="w-3.5 h-3.5 text-background" />}
+                          {selectedDecksToMerge.includes(deck.id) && <Plus className="w-4 h-4 text-white" />}
                         </div>
                         <div>
-                          <p className="text-sm font-medium">{deck.nombre}</p>
-                          <p className="text-[10px] text-muted-foreground">{deck.subject?.nombre || "Sin materia"}</p>
+                          <p className="text-sm font-bold text-foreground">{deck.nombre}</p>
+                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{deck.subject?.nombre || "Sin materia"}</p>
                         </div>
                       </div>
-                      <span className="text-[11px] font-mono bg-background/40 px-2 py-0.5 rounded text-muted-foreground">
+                      <span className="text-xs font-black uppercase tracking-widest bg-background border-[2px] border-foreground px-2 py-1 rounded-lg text-foreground shadow-[2px_2px_0_0_#000]">
                         {deck.total_cards} cards
                       </span>
                     </div>
@@ -1458,25 +1468,25 @@ export default function Flashcards() {
               </div>
             </div>
 
-            <div className="space-y-4 pt-2 border-t border-border/50">
-              <label className="text-sm font-semibold text-muted-foreground block">
+            <div className="space-y-4 pt-4 border-t-[3px] border-foreground border-dashed">
+              <label className="text-sm font-black uppercase tracking-widest text-foreground block">
                 2. Configurar Nuevo Mazo
               </label>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground ml-1">Año</label>
-                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Año</label>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
                     {[1, 2, 3, 4, 5, 6].map(year => (
                       <button
                         key={year}
                         type="button"
                         onClick={() => { setMergeYear(year); setMergeSubjectId(null); }}
                         className={cn(
-                          "w-8 h-8 rounded-lg text-xs font-bold transition-all",
+                          "w-10 h-10 rounded-xl text-sm font-black transition-all border-[2px] border-foreground shrink-0",
                           mergeYear === year
-                            ? "bg-neon-cyan text-background"
-                            : "bg-secondary hover:bg-secondary/80 text-muted-foreground"
+                            ? "bg-[#ff4e4e] text-white shadow-[2px_2px_0_0_#000]"
+                            : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                         )}
                       >
                         {year}
@@ -1486,55 +1496,56 @@ export default function Flashcards() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground ml-1">Materia</label>
-                  <select
-                    value={mergeSubjectId || ""}
-                    onChange={(e) => setMergeSubjectId(e.target.value)}
-                    className="w-full px-3 py-2 bg-secondary/50 rounded-lg border border-border text-xs focus:ring-1 focus:ring-neon-cyan outline-none"
-                    disabled={!mergeYear}
-                  >
-                    <option value="">Seleccionar...</option>
-                    {subjects.filter(s => s.año === mergeYear).map(s => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Materia</label>
+                  <Select disabled={!mergeYear} value={mergeSubjectId || ""} onValueChange={setMergeSubjectId}>
+                    <SelectTrigger className="w-full px-4 py-5 h-auto bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm disabled:opacity-50 data-[state=open]:shadow-[4px_4px_0_0_#000]">
+                      <SelectValue placeholder="Seleccionar..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
+                      {subjects.filter(s => s.año === mergeYear).map(s => (
+                        <SelectItem key={s.id} value={s.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
+                          {s.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs text-muted-foreground ml-1">Nombre del Mazo Combinado</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nombre del Mazo Combinado</label>
                 <input
                   type="text"
                   value={mergeNewDeckName}
                   onChange={(e) => setMergeNewDeckName(e.target.value)}
                   placeholder="Ej: Final - Repaso General"
-                  className="w-full px-4 py-3 bg-secondary/50 rounded-xl border border-border text-sm focus:ring-1 focus:ring-neon-cyan outline-none transition-all"
+                  className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                 />
               </div>
             </div>
           </div>
 
-          <div className="pt-4 mt-auto border-t border-border flex gap-3">
+          <div className="pt-4 mt-auto flex gap-3">
             <button
               onClick={() => setShowMergeModal(false)}
-              className="flex-1 py-3 text-sm font-semibold hover:bg-secondary/50 rounded-xl transition-all"
+              className="flex-1 py-3 text-sm font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl bg-background hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
             >
               Cancelar
             </button>
             <button
               onClick={handleMergeDecks}
               disabled={isMerging || selectedDecksToMerge.length < 2 || !mergeNewDeckName.trim() || !mergeSubjectId}
-              className="flex-[2] py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-neon-cyan/20 flex items-center justify-center gap-2"
+              className="flex-[2] py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isMerging ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-                  Combinando...
+                  <div className="w-4 h-4 border-[3px] border-foreground border-t-transparent rounded-full animate-spin" />
+                  COMBINANDO...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Confirmar Combinación
+                  CONFIRMAR COMBINACIÓN
                 </>
               )}
             </button>

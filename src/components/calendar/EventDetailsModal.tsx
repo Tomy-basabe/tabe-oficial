@@ -48,21 +48,21 @@ const eventTypeLabels: Record<string, string> = {
 const getEventLabel = (type: string) => type.startsWith("P") && !["P1", "P2"].includes(type) ? `Parcial ${type.replace("P", "")}` : (eventTypeLabels[type] || type);
 
 const eventTypeColors: Record<string, string> = {
-    P1: "text-neon-cyan bg-neon-cyan/10",
-    P2: "text-neon-purple bg-neon-purple/10",
-    Global: "text-neon-gold bg-neon-gold/10",
-    "Recuperatorio P1": "text-red-400 bg-red-500/10",
-    "Recuperatorio P2": "text-red-400 bg-red-500/10",
-    "Recuperatorio Global": "text-red-400 bg-red-500/10",
-    Final: "text-neon-green bg-neon-green/10",
-    Estudio: "text-muted-foreground bg-muted",
-    TP: "text-orange-400 bg-orange-500/10",
-    Entrega: "text-pink-400 bg-pink-500/10",
-    Clase: "text-blue-400 bg-blue-500/10",
-    Otro: "text-gray-400 bg-gray-500/10",
+    P1: "text-black bg-[#00FF9D] border-2 border-foreground",
+    P2: "text-black bg-[#00F0FF] border-2 border-foreground",
+    Global: "text-black bg-[#FFD21C] border-2 border-foreground",
+    "Recuperatorio P1": "text-black bg-[#FF3366] border-2 border-foreground",
+    "Recuperatorio P2": "text-black bg-[#FF3366] border-2 border-foreground",
+    "Recuperatorio Global": "text-black bg-[#FF3366] border-2 border-foreground",
+    Final: "text-white bg-[#B000FF] border-2 border-foreground",
+    Estudio: "text-black bg-[#4ECDC4] border-2 border-foreground",
+    TP: "text-black bg-[#FF9F1C] border-2 border-foreground",
+    Entrega: "text-white bg-[#FF007F] border-2 border-foreground",
+    Clase: "text-black bg-[#3A86FF] border-2 border-foreground",
+    Otro: "text-black bg-[#E5E5E5] border-2 border-foreground",
 };
 
-const getEventColor = (type: string) => eventTypeColors[type] || "text-indigo-400 bg-indigo-500/10";
+const getEventColor = (type: string) => eventTypeColors[type] || "text-black bg-[#E5E5E5] border-2 border-foreground";
 
 export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetailsModalProps) {
     if (!event) return null;
@@ -89,42 +89,39 @@ export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetai
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-            <DialogContent className="sm:max-w-[400px] bg-card/95 backdrop-blur-xl border-border/50 p-0 overflow-hidden rounded-3xl shadow-2xl">
-                {/* Header Color Bar */}
-                <div className={cn("h-4 w-full", getEventColor(event.tipo_examen).split(' ')[1])} />
-
+            <DialogContent className="sm:max-w-[400px] bg-background border-4 border-foreground p-0 overflow-hidden rounded-xl shadow-[8px_8px_0_0_hsl(var(--foreground))]">
                 <div className="p-6 space-y-6">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
                             <span className={cn(
-                                "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
+                                "px-3 py-1 rounded-sm text-[10px] font-black uppercase tracking-widest",
                                 getEventColor(event.tipo_examen)
                             )}>
                                 {getEventLabel(event.tipo_examen)}
                             </span>
-                            <DialogTitle className="text-2xl font-display font-bold text-foreground pt-2 leading-tight">
+                            <DialogTitle className="text-2xl font-display font-black uppercase tracking-tight text-foreground pt-2 leading-tight">
                                 {event.titulo}
                             </DialogTitle>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-secondary rounded-full transition-colors text-muted-foreground"
+                            className="p-2 border-[3px] border-transparent hover:border-foreground rounded-lg hover:bg-[#FFD21C] transition-all text-foreground hover:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-0 active:shadow-none"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-5 h-5 font-bold" />
                         </button>
                     </div>
 
                     <div className="space-y-4">
                         {/* Date & Time */}
-                        <div className="flex items-center gap-4 text-muted-foreground">
-                            <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                                <CalendarIcon className="w-5 h-5 text-primary" />
+                        <div className="flex items-center gap-4 text-foreground">
+                            <div className="w-12 h-12 rounded-xl bg-[#4ECDC4] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center">
+                                <CalendarIcon className="w-6 h-6 text-black" />
                             </div>
                             <div>
-                                <p className="text-sm font-bold text-foreground capitalize">
+                                <p className="text-sm font-black uppercase tracking-widest text-foreground">
                                     {format(eventDate, "EEEE, d 'de' MMMM", { locale: es })}
                                 </p>
-                                <p className="text-xs">
+                                <p className="text-xs font-bold text-muted-foreground uppercase">
                                     {event.hora ? `De ${event.hora} a ${event.hora_fin || '...'}` : "Todo el día"}
                                 </p>
                             </div>
@@ -132,28 +129,28 @@ export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetai
 
                         {/* Subject */}
                         {event.subject_nombre && (
-                            <div className="flex items-center gap-4 text-muted-foreground">
-                                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                                    <BookOpen className="w-5 h-5 text-neon-cyan" />
+                            <div className="flex items-center gap-4 text-foreground">
+                                <div className="w-12 h-12 rounded-xl bg-[#FFE66D] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center">
+                                    <BookOpen className="w-6 h-6 text-black" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-foreground">
+                                    <p className="text-sm font-black uppercase tracking-widest text-foreground">
                                         {event.subject_nombre}
                                     </p>
-                                    <p className="text-xs">Materia asociada</p>
+                                    <p className="text-xs font-bold text-muted-foreground uppercase">Materia asociada</p>
                                 </div>
                             </div>
                         )}
 
                         {/* Notes */}
                         {event.notas && (
-                            <div className="flex items-start gap-4 text-muted-foreground">
-                                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
-                                    <FileText className="w-5 h-5 text-neon-purple" />
+                            <div className="flex items-start gap-4 text-foreground">
+                                <div className="w-12 h-12 rounded-xl bg-[#00F0FF] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center flex-shrink-0">
+                                    <FileText className="w-6 h-6 text-black" />
                                 </div>
-                                <div className="bg-secondary/30 p-3 rounded-xl flex-1 border border-border/50">
-                                    <p className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-60">Notas</p>
-                                    <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                                <div className="bg-white p-4 rounded-xl flex-1 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] text-black">
+                                    <p className="text-xs font-black uppercase tracking-widest mb-1 opacity-80">Notas</p>
+                                    <p className="text-sm font-bold whitespace-pre-wrap leading-relaxed">
                                         {event.notas}
                                     </p>
                                 </div>
@@ -162,19 +159,19 @@ export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetai
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2 pt-4 border-t border-border/50">
+                    <div className="flex gap-3 pt-4 border-t-4 border-foreground">
                         <button
                             onClick={handleExportToGoogle}
-                            className="flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-[#4285F4] text-white hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+                            className="flex-1 py-3 px-4 rounded-lg text-sm font-black uppercase tracking-widest bg-[#4285F4] text-white border-[3px] border-foreground hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2 shadow-[4px_4px_0_0_#000]"
                         >
-                            <ExternalLink className="w-4 h-4" />
+                            <ExternalLink className="w-5 h-5" />
                             Google
                         </button>
                         <button
                             onClick={handleDelete}
-                            className="px-4 py-3 rounded-xl text-sm font-bold bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all flex items-center justify-center gap-2 border border-red-500/20"
+                            className="px-5 py-3 rounded-lg text-sm font-black uppercase tracking-widest bg-[#FF3366] text-black border-[3px] border-foreground hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2 shadow-[4px_4px_0_0_#000]"
                         >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
                         </button>
                     </div>
                 </div>

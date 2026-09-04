@@ -99,7 +99,7 @@ export default function CareerDetail() {
             <section key={year} className="space-y-6">
               <div className="flex items-center gap-4 transition-all">
                 <div className="h-[3px] flex-1 bg-foreground/20 rounded-full" />
-                <h2 className="text-2xl font-black px-6 py-2 rounded-lg bg-foreground text-background shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] uppercase tracking-widest border-[3px] border-transparent">
+                <h2 className="text-2xl font-black px-6 py-2 rounded-lg bg-foreground text-background shadow-[4px_4px_0_0_hsl(var(--foreground))] uppercase tracking-widest border-[3px] border-transparent">
                   {year}° Año
                 </h2>
                 <div className="h-[3px] flex-1 bg-foreground/20 rounded-full" />
@@ -112,7 +112,7 @@ export default function CareerDetail() {
                   .map((subject: any) => (
                     <div 
                       key={subject.id} 
-                      className="group bg-card p-6 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all duration-300"
+                      className="group bg-card p-6 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all duration-300"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="space-y-2">

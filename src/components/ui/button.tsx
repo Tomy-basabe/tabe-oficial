@@ -9,10 +9,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-1 active:shadow-none dark:active:shadow-none",
-        destructive: "bg-destructive text-destructive-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-1 active:shadow-none dark:active:shadow-none",
-        outline: "border-[3px] border-foreground bg-background hover:bg-accent hover:text-accent-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-1 active:shadow-none dark:active:shadow-none",
-        secondary: "bg-secondary text-secondary-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-1 active:shadow-none dark:active:shadow-none",
+        default: "bg-primary text-primary-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-1 active:shadow-none dark:active:shadow-none",
+        destructive: "bg-destructive text-destructive-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-1 active:shadow-none dark:active:shadow-none",
+        outline: "border-[3px] border-foreground bg-background hover:bg-accent hover:text-accent-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-1 active:shadow-none dark:active:shadow-none",
+        secondary: "bg-secondary text-secondary-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-1 active:shadow-none dark:active:shadow-none",
         ghost: "hover:bg-accent hover:text-accent-foreground border-[3px] border-transparent hover:border-foreground hover:shadow-[4px_4px_0_0_#000] dark:hover:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 active:translate-y-0 active:shadow-none dark:active:shadow-none",
         link: "text-primary underline-offset-4 hover:underline",
       },

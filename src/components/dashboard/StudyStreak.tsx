@@ -16,7 +16,7 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
   const last7Days = paddedWeekData.slice(-7);
 
   return (
-    <div className="bg-card border-[3px] border-foreground p-5 lg:p-6 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all">
+    <div className="neo-bento-card p-5 lg:p-6 bg-muted/30 dark:bg-background hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CalendarCheck className="w-6 h-6 text-foreground" />

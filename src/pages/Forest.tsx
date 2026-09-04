@@ -16,7 +16,8 @@ import {
   Flower2,
   TreePine,
   Palmtree,
-  Map as MapleIcon
+  Map as MapleIcon,
+  Flower
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,58 +46,65 @@ import {
 import { useForest, Plant } from "@/hooks/useForest";
 import { cn } from "@/lib/utils";
 
+// Mapping plant types to Lucide Icons
+const PLANT_ICONS: Record<string, React.ElementType> = {
+  oak: TreeDeciduous,
+  cherry: Flower,
+  pine: TreePine,
+  palm: Palmtree,
+  maple: Flower2
+};
+
 // Plant growth stages with visual representation
 const getPlantStage = (growth: number, isAlive: boolean, plantType: string) => {
   if (!isAlive) {
-    return { icon: <Skull className="w-full h-full text-muted-foreground/50" />, label: "Muerta", color: "text-muted-foreground" };
+    return { icon: <Skull className="w-full h-full text-black/50" />, label: "Muerta", color: "text-gray-500", animation: "" };
   }
 
   if (growth < 10) {
     return {
-      icon: <Sprout className="w-full h-full text-amber-500" />,
+      icon: <Sprout className="w-full h-full text-[#FF9B71]" />,
       label: "Semilla",
-      color: "text-amber-500"
+      color: "text-[#FF9B71]",
+      animation: "animate-plant-pulse"
     };
   } else if (growth < 30) {
     return {
-      icon: <Sprout className="w-full h-full text-green-400" />,
+      icon: <Sprout className="w-full h-full text-[#BFFF00]" />,
       label: "Brote",
-      color: "text-green-400"
+      color: "text-[#BFFF00]",
+      animation: "animate-plant-bounce-soft"
     };
   } else if (growth < 50) {
     return {
       icon: <Sprout className="w-full h-full text-green-500 scale-125" />,
       label: "Plántula",
-      color: "text-green-500"
+      color: "text-green-500",
+      animation: "animate-plant-bounce-soft"
     };
   } else if (growth < 70) {
     return {
       icon: <TreeDeciduous className="w-full h-full text-green-600 scale-75" />,
       label: "Arbusto",
-      color: "text-green-600"
+      color: "text-green-600",
+      animation: "animate-plant-sway"
     };
   } else if (growth < 90) {
     return {
       icon: <TreeDeciduous className="w-full h-full text-emerald-500" />,
       label: "Árbol joven",
-      color: "text-emerald-500"
+      color: "text-emerald-500",
+      animation: "animate-plant-sway"
     };
   } else {
     // Full grown tree based on type
-    const treeIcons: Record<string, any> = {
-      oak: TreeDeciduous,
-      cherry: Flower2, // Was cherry blossom
-      pine: TreePine,
-      palm: Palmtree,
-      maple: Leaf, // Maple leaf representation
-    };
-
-    const PlantIcon = treeIcons[plantType] || TreeDeciduous;
+    const PlantIcon = PLANT_ICONS[plantType] || TreeDeciduous;
 
     return {
-      icon: <PlantIcon className="w-full h-full text-neon-gold animate-pulse-slow" />,
+      icon: <PlantIcon className="w-full h-full text-[#BFFF00]" style={{ filter: 'drop-shadow(2px 2px 0px #000)' }} />,
       label: "Árbol completo",
-      color: "text-neon-gold"
+      color: "text-[#BFFF00]",
+      animation: "animate-plant-grow-pulse"
     };
   }
 };
@@ -110,50 +118,58 @@ function PlantCard({ plant, onRemove }: { plant: Plant; onRemove?: () => void })
   });
 
   return (
-    <Card className={cn(
-      "card-gamer relative overflow-hidden transition-all duration-300",
-      !plant.is_alive && "opacity-60 grayscale",
-      plant.is_completed && "ring-2 ring-neon-gold/50"
+    <div className={cn(
+      "relative overflow-hidden bg-white rounded-xl border-4 border-black shadow-[4px_4px_0_0_#000] p-4 transition-transform hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000]",
+      !plant.is_alive && "bg-[#2D3748] shadow-[4px_4px_0_0_#000] opacity-90",
+      plant.is_completed && "bg-[#BFFF00] shadow-[4px_4px_0_0_#000]"
     )}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10">{stage.icon}</div>
-          {!plant.is_alive && onRemove && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
-          {plant.is_completed && (
-            <Badge className="bg-neon-gold/20 text-neon-gold border-neon-gold/30">
-              ✨ Completo
-            </Badge>
-          )}
+      {plant.is_completed && (
+        <div className="absolute top-0 right-0 bg-[#00E5FF] text-black font-black uppercase text-[10px] px-2 py-1 border-b-4 border-l-4 border-black z-10">
+          Completado
+        </div>
+      )}
+      
+      <div className="flex items-center justify-between mb-4">
+        <div className={cn(
+          "w-12 h-12 bg-white rounded-lg border-2 border-black flex items-center justify-center shadow-[2px_2px_0_0_#000]",
+          !plant.is_alive && "bg-gray-300"
+        )}>
+          {stage.icon}
+        </div>
+        {!plant.is_alive && onRemove && (
+          <button
+            onClick={onRemove}
+            className="w-8 h-8 flex items-center justify-center bg-[#FF5C5C] rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] transition-all text-black"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex flex-col">
+          <span className={cn(
+            "text-lg font-black uppercase leading-tight",
+            plant.is_alive ? "text-black" : "text-white"
+          )}>
+            {stage.label}
+          </span>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className={cn("text-sm font-medium", stage.color)}>
-              {stage.label}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {plant.growth_percentage}%
-            </span>
-          </div>
-
-          <Progress value={plant.growth_percentage} className="h-2" />
-
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="flex justify-between items-end border-t-2 border-black/20 pt-2">
+          <div className="flex items-center gap-1 text-[10px] font-black uppercase text-black/60">
             <Calendar className="w-3 h-3" />
-            <span>Plantado: {plantedDate}</span>
+            <span className={!plant.is_alive ? "text-white/70" : ""}>{plantedDate}</span>
           </div>
+          <span className={cn(
+            "text-sm font-black uppercase",
+            plant.is_alive ? (plant.is_completed ? "text-black" : "text-[#00E5FF]") : "text-[#FF5C5C]"
+          )}>
+            {plant.growth_percentage}%
+          </span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -163,11 +179,13 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
 }) {
   if (!plant) {
     return (
-      <div className="text-center py-12">
-        <Sprout className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-        <p className="text-muted-foreground">No tienes ninguna planta activa</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          ¡Planta una semilla para comenzar!
+      <div className="text-center py-16 bg-[#FFF7E6] rounded-xl border-4 border-black shadow-[8px_8px_0_0_#000]">
+        <div className="w-20 h-20 mx-auto mb-4 bg-white border-4 border-black rounded-full flex items-center justify-center shadow-[4px_4px_0_0_#000]">
+          <Sprout className="w-10 h-10 text-black opacity-50" />
+        </div>
+        <p className="text-xl font-black uppercase text-black">No hay planta activa</p>
+        <p className="text-black/70 font-bold mt-2">
+          ¡Planta una semilla para comenzar a cultivar!
         </p>
       </div>
     );
@@ -177,22 +195,18 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
   const plantedDate = new Date(plant.planted_at);
   const now = new Date();
   const msSincePlanted = now.getTime() - plantedDate.getTime();
-  const daysSincePlanted = msSincePlanted / (1000 * 60 * 60 * 24);
-  const daysAlive = Math.floor(daysSincePlanted);
+  const daysAlive = Math.floor(msSincePlanted / (1000 * 60 * 60 * 24));
 
-  // Grace period: first 2 days after planting (matches hook logic)
   const gracePeriodDays = 2;
-  const deathThresholdDays = 7; // Days without study before death
-  const daysUntilVulnerable = Math.max(0, gracePeriodDays - daysSincePlanted);
+  const deathThresholdDays = 7;
+  const daysUntilVulnerable = Math.max(0, gracePeriodDays - (msSincePlanted / (1000 * 60 * 60 * 24)));
   
-  // After grace, use last_watered_at to compute death countdown
   const lastWateredDate = new Date(plant.last_watered_at);
-  const msSinceWatered = now.getTime() - lastWateredDate.getTime();
-  const daysSinceWatered = msSinceWatered / (1000 * 60 * 60 * 24);
+  const daysSinceWatered = (now.getTime() - lastWateredDate.getTime()) / (1000 * 60 * 60 * 24);
   
   const daysUntilDeath = daysUntilVulnerable > 0
-    ? daysUntilVulnerable + deathThresholdDays // Grace period + full 7 days
-    : Math.max(0, deathThresholdDays - daysSinceWatered); // After grace, based on last watered
+    ? daysUntilVulnerable + deathThresholdDays
+    : Math.max(0, deathThresholdDays - daysSinceWatered);
 
   const hoursUntilDeath = Math.floor((daysUntilDeath % 1) * 24);
   const fullDaysUntilDeath = Math.floor(daysUntilDeath);
@@ -206,39 +220,44 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
   return (
     <div className="text-center space-y-6">
       {/* Main plant visualization */}
-      <div className="relative">
+      <div className="relative mx-auto w-48 h-48 sm:w-64 sm:h-64 mt-4 mb-8">
         <div className={cn(
-          "w-32 h-32 md:w-48 md:h-48 mx-auto transition-all duration-500",
-          plant.is_alive ? "animate-pulse" : "grayscale opacity-50"
+          "absolute inset-0 bg-[#FFF7E6] border-4 border-black rounded-3xl shadow-[8px_8px_0_0_#000] flex items-center justify-center p-8 transition-all duration-500",
+          plant.is_alive ? "scale-100" : "grayscale bg-gray-200"
         )}>
-          {stage.icon}
+          <div className={cn("w-full h-full transition-all duration-500", plant.is_alive ? stage.animation : "opacity-50")}>
+            {stage.icon}
+          </div>
         </div>
 
+        {/* Dirt/Pot base indicator */}
+        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-[#8B5A2B] border-4 border-black rounded-full shadow-[4px_4px_0_0_#000] z-[-1]"></div>
+
         {plant.is_alive && studyActivity.hasStudiedToday && (
-          <div className="absolute -top-2 -right-2 text-2xl animate-bounce">
-            ✨
+          <div className="absolute -top-4 -right-4 w-12 h-12 bg-[#BFFF00] border-4 border-black rounded-full flex items-center justify-center shadow-[4px_4px_0_0_#000] animate-spin-slow">
+            <Sun className="w-6 h-6 text-black" />
           </div>
         )}
 
         {isFertilized && (
-          <div className="absolute -bottom-2 right-1/2 translate-x-1/2 flex items-center gap-1 bg-neon-green/90 text-black px-2 py-0.5 rounded-full text-[10px] font-bold shadow-lg animate-pulse">
-            <Leaf className="w-3 h-3 fill-black" />
-            2x GROWTH
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#00E5FF] text-black px-4 py-1 rounded-full text-xs font-black uppercase border-4 border-black shadow-[4px_4px_0_0_#000] animate-pulse">
+            <Leaf className="w-4 h-4" />
+            2x Crecimiento
           </div>
         )}
       </div>
 
-      {/* Status */}
-      <div>
-        <h3 className={cn("text-xl font-display font-bold", stage.color)}>
+      {/* Status & Name */}
+      <div className="bg-white p-4 rounded-xl border-4 border-black shadow-[4px_4px_0_0_#000] inline-block min-w-[200px]">
+        <h3 className={cn("text-2xl font-black uppercase tracking-widest", plant.is_alive ? "text-black" : "text-gray-500")}>
           {stage.label}
         </h3>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-black/60 font-bold text-sm mt-1 uppercase">
           {daysAlive === 0 ? "Plantada hoy" : `${daysAlive} días creciendo`}
         </p>
 
         {isFertilized && (
-          <div className="mt-2 flex items-center justify-center gap-2 text-xs text-neon-green font-medium">
+          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-black font-black uppercase bg-[#00E5FF] py-1 px-2 border-2 border-black rounded">
             <Droplets className="w-3 h-3" />
             Vence en {fertilizerHoursLeft}h {fertilizerMinutesLeft}m
           </div>
@@ -246,29 +265,35 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
       </div>
 
       {/* Progress */}
-      <div className="max-w-xs mx-auto space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Crecimiento</span>
-          <span className={cn("font-bold", stage.color)}>
+      <div className="max-w-md mx-auto space-y-3 bg-white p-5 rounded-xl border-4 border-black shadow-[4px_4px_0_0_#000]">
+        <div className="flex justify-between text-sm font-black uppercase">
+          <span className="text-black">Progreso</span>
+          <span className={plant.is_alive ? "text-[#00E5FF]" : "text-gray-500"}>
             {plant.growth_percentage}%
           </span>
         </div>
-        <div className="h-4 bg-secondary rounded-full overflow-hidden">
+        <div className="h-6 bg-gray-200 border-4 border-black rounded-full overflow-hidden relative shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]">
           <div
-            className="h-full bg-gradient-to-r from-green-500 via-emerald-500 to-neon-gold transition-all duration-1000"
+            className={cn("h-full transition-all duration-1000", plant.is_alive ? "bg-[#BFFF00]" : "bg-gray-400")}
             style={{ width: `${plant.growth_percentage}%` }}
           />
+          {/* Grid lines to make it blocky */}
+          <div className="absolute inset-0 flex">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="flex-1 border-r-2 border-black/20" />
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Alerts */}
       {!plant.is_alive && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-destructive">
-            <Skull className="w-5 h-5" />
-            <span className="font-medium">Tu planta ha muerto</span>
+        <div className="bg-[#FF5C5C] border-4 border-black rounded-xl p-4 shadow-[4px_4px_0_0_#000] inline-block">
+          <div className="flex items-center gap-2 text-black font-black uppercase">
+            <Skull className="w-6 h-6" />
+            <span>Tu planta ha muerto</span>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-black/80 font-bold mt-1">
             No estudiaste durante una semana
           </p>
         </div>
@@ -277,50 +302,32 @@ function CurrentPlantDisplay({ plant, studyActivity }: {
       {/* Death countdown timer */}
       {plant.is_alive && !plant.is_completed && (
         <div className={cn(
-          "rounded-lg p-4 border",
+          "max-w-md mx-auto rounded-xl p-4 border-4 border-black shadow-[4px_4px_0_0_#000]",
           isInGracePeriod
-            ? "bg-cyan-500/10 border-cyan-500/30"
+            ? "bg-[#00E5FF]"
             : daysUntilDeath <= 2
-              ? "bg-destructive/10 border-destructive/30"
+              ? "bg-[#FF5C5C] animate-pulse"
               : daysUntilDeath <= 4
-                ? "bg-amber-500/10 border-amber-500/30"
-                : "bg-green-500/10 border-green-500/30"
+                ? "bg-[#FFE66D]"
+                : "bg-white"
         )}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className={cn(
-                "w-5 h-5",
-                isInGracePeriod
-                  ? "text-cyan-500"
-                  : daysUntilDeath <= 2
-                    ? "text-destructive"
-                    : daysUntilDeath <= 4
-                      ? "text-amber-500"
-                      : "text-green-500"
-              )} />
-              <span className="font-medium">
+              <Clock className="w-6 h-6 text-black" />
+              <span className="font-black uppercase text-black">
                 {isInGracePeriod ? "Período de gracia" : "Tiempo de vida"}
               </span>
             </div>
-            <div className={cn(
-              "text-lg font-bold",
-              isInGracePeriod
-                ? "text-cyan-500"
-                : daysUntilDeath <= 2
-                  ? "text-destructive"
-                  : daysUntilDeath <= 4
-                    ? "text-amber-500"
-                    : "text-green-500"
-            )}>
+            <div className="text-xl font-black text-black">
               {fullDaysUntilDeath}d {hoursUntilDeath}h
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-black/80 font-bold mt-2 uppercase">
             {isInGracePeriod
-              ? "Tu planta está protegida. Después de 7 días, debes estudiar regularmente."
+              ? "Tu planta está protegida por ahora."
               : studyActivity.hasStudiedToday
-                ? "¡Bien! Estudiaste hoy, tu planta está creciendo."
-                : "Estudia para reiniciar el contador y hacer crecer tu planta."
+                ? "¡Bien! Estudiaste hoy."
+                : "Estudia para reiniciar el contador."
             }
           </p>
         </div>
@@ -365,309 +372,278 @@ export default function Forest() {
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="p-4 lg:p-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
-            Mi Bosque de Estudio 🌲
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Cultiva tu bosque estudiando cada día
-          </p>
+      <div className="bg-[#1B4332] rounded-2xl p-6 lg:p-8 border-4 border-black shadow-[8px_8px_0_0_#000] flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#BFFF00] opacity-20 rounded-full blur-3xl translate-x-10 -translate-y-10" />
+
+        <div className="relative z-10 flex items-center gap-6">
+          <div className="w-16 h-16 bg-[#BFFF00] border-4 border-black rounded-xl shadow-[4px_4px_0_0_#000] flex items-center justify-center -rotate-6 flex-shrink-0">
+            <TreeDeciduous className="w-8 h-8 text-black" />
+          </div>
+          <div>
+            <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-[#BFFF00]" style={{ WebkitTextStroke: '1px black' }}>
+              Mi Bosque de Estudio
+            </h1>
+            <p className="text-[#BFFF00]/80 font-bold mt-1">
+              Cultiva tu bosque estudiando cada día
+            </p>
+          </div>
         </div>
 
         <Dialog open={isPlantDialogOpen} onOpenChange={setIsPlantDialogOpen}>
           <DialogTrigger asChild>
-            <Button
-              className="gap-2"
+            <button
               disabled={forestStats.hasActivePlant}
+              className="relative z-10 flex items-center justify-center gap-2 px-6 py-4 bg-[#BFFF00] border-4 border-black rounded-xl font-black uppercase text-black shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               Plantar Semilla
-            </Button>
+            </button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md bg-[#FFF7E6] border-4 border-black shadow-[8px_8px_0_0_#000] rounded-xl p-6">
             <DialogHeader>
-              <DialogTitle>Elige tu planta</DialogTitle>
+              <DialogTitle className="text-2xl font-black uppercase text-black flex items-center gap-2">
+                <Sprout className="w-6 h-6 text-green-600" /> Elige tu planta
+              </DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
               {plantTypes.map((type) => (
                 <button
                   key={type.id}
                   onClick={() => setSelectedPlantType(type.id)}
                   className={cn(
-                    "p-4 rounded-lg border-2 transition-all",
+                    "p-4 rounded-xl border-4 border-black transition-all flex flex-col items-center justify-center gap-2",
                     selectedPlantType === type.id
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
+                      ? "bg-[#BFFF00] shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] translate-y-[2px]"
+                      : "bg-white hover:bg-black/5 shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000]"
                   )}
                 >
-                  <span className="text-3xl block mb-2">{type.emoji}</span>
-                  <span className="text-sm font-medium">{type.name}</span>
+                  {(() => {
+                    const Icon = PLANT_ICONS[type.id] || TreeDeciduous;
+                    return <Icon className="w-10 h-10 text-black mb-1" />;
+                  })()}
+                  <span className="text-sm font-black uppercase text-black">{type.name}</span>
                 </button>
               ))}
             </div>
-            <Button onClick={handlePlantTree} className="w-full mt-4">
-              🌱 Plantar
-            </Button>
+            <DialogFooter className="mt-6 flex gap-3">
+              <button onClick={() => setIsPlantDialogOpen(false)} className="px-6 py-3 rounded-xl border-4 border-black font-black uppercase bg-white text-black hover:bg-black/5 transition-colors w-full">
+                Cancelar
+              </button>
+              <button onClick={handlePlantTree} className="px-6 py-3 rounded-xl border-4 border-black font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all bg-[#BFFF00] text-black w-full flex justify-center items-center gap-2">
+                <Sprout className="w-5 h-5" /> Plantar
+              </button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="card-gamer">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <TreeDeciduous className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{forestStats.totalTrees}</p>
-                <p className="text-xs text-muted-foreground">Árboles completos</p>
-              </div>
+        {[
+          { icon: TreeDeciduous, val: forestStats.totalTrees, label: "Árboles completos", color: "bg-[#BFFF00]" },
+          { icon: TrendingUp, val: `${forestStats.currentGrowth}%`, label: "Crecimiento actual", color: "bg-[#00E5FF]" },
+          { icon: Clock, val: `${studyActivity.studyMinutesThisWeek}m`, label: "Estudio esta semana", color: "bg-[#FFE66D]" },
+          { icon: Sun, val: `${studyActivity.studyMinutesToday}m`, label: "Estudio hoy", color: "bg-[#FF9B71]" }
+        ].map((s, i) => (
+          <div key={i} className={cn("rounded-xl p-4 border-4 border-black shadow-[4px_4px_0_0_#000] flex items-center gap-4 transition-transform hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000]", s.color)}>
+            <div className="w-12 h-12 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] flex items-center justify-center flex-shrink-0 -rotate-3">
+              <s.icon className="w-6 h-6 text-black" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-gamer">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <TrendingUp className="w-5 h-5 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{forestStats.currentGrowth}%</p>
-                <p className="text-xs text-muted-foreground">Crecimiento actual</p>
-              </div>
+            <div>
+              <p className="text-2xl lg:text-3xl font-black text-black leading-none drop-shadow-[2px_2px_0_#fff]">{s.val}</p>
+              <p className="text-[10px] lg:text-xs font-black uppercase tracking-widest text-black/80 mt-1">{s.label}</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-gamer">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/10">
-                <Clock className="w-5 h-5 text-cyan-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{studyActivity.studyMinutesThisWeek}m</p>
-                <p className="text-xs text-muted-foreground">Estudio esta semana</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-gamer">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Sun className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{studyActivity.studyMinutesToday}m</p>
-                <p className="text-xs text-muted-foreground">Estudio hoy</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        ))}
       </div>
 
       {/* Main Content */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Current Plant */}
-        <Card className="lg:col-span-2 card-gamer tour-forest-tree">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Leaf className="w-5 h-5 text-green-500" />
-              Planta Actual
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CurrentPlantDisplay
-              plant={currentPlant}
-              studyActivity={studyActivity}
-            />
+        <div className="lg:col-span-2 bg-[#FFF7E6] rounded-xl border-4 border-black shadow-[8px_8px_0_0_#000] p-6 tour-forest-tree">
+          <div className="flex items-center gap-2 mb-6 border-b-4 border-black pb-4">
+            <Leaf className="w-8 h-8 text-green-600" />
+            <h2 className="text-2xl font-black uppercase text-black">Planta Actual</h2>
+          </div>
+          
+          <CurrentPlantDisplay
+            plant={currentPlant}
+            studyActivity={studyActivity}
+          />
 
-            {!currentPlant && (
-              <div className="mt-4 flex justify-center">
-                <Button
-                  onClick={() => setIsPlantDialogOpen(true)}
-                  className="gap-2"
-                >
-                  <Sprout className="w-4 h-4" />
-                  Plantar mi primera semilla
-                </Button>
-              </div>
-            )}
+          {!currentPlant && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => setIsPlantDialogOpen(true)}
+                className="flex items-center gap-2 px-6 py-4 rounded-xl border-4 border-black bg-[#BFFF00] font-black uppercase shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all text-black"
+              >
+                <Sprout className="w-5 h-5" />
+                Plantar mi primera semilla
+              </button>
+            </div>
+          )}
 
-            {currentPlant && !currentPlant.is_alive && (
-              <div className="mt-4 flex justify-center gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => removeDeadPlant(currentPlant.id)}
-                  className="gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar
-                </Button>
-                <Button
-                  onClick={() => {
-                    removeDeadPlant(currentPlant.id);
-                    setIsPlantDialogOpen(true);
-                  }}
-                  className="gap-2"
-                >
-                  <Sprout className="w-4 h-4" />
-                  Plantar nueva
-                </Button>
-              </div>
-            )}
+          {currentPlant && !currentPlant.is_alive && (
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+              <button
+                onClick={() => removeDeadPlant(currentPlant.id)}
+                className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border-4 border-black bg-white font-black uppercase shadow-[4px_4px_0_0_#000] hover:bg-gray-100 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all text-black"
+              >
+                <Trash2 className="w-5 h-5" />
+                Eliminar
+              </button>
+              <button
+                onClick={() => {
+                  removeDeadPlant(currentPlant.id);
+                  setIsPlantDialogOpen(true);
+                }}
+                className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border-4 border-black bg-[#BFFF00] font-black uppercase shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all text-black"
+              >
+                <Sprout className="w-5 h-5" />
+                Plantar nueva
+              </button>
+            </div>
+          )}
 
-            {currentPlant?.is_completed && (
-              <div className="mt-4 flex justify-center">
-                <Button
-                  onClick={() => setIsPlantDialogOpen(true)}
-                  className="gap-2 bg-gradient-to-r from-green-500 to-emerald-500"
-                >
-                  <Plus className="w-4 h-4" />
-                  Plantar nuevo árbol
-                </Button>
-              </div>
-            )}
+          {currentPlant?.is_completed && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => setIsPlantDialogOpen(true)}
+                className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl border-4 border-black bg-[#00E5FF] font-black uppercase shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all text-black"
+              >
+                <Plus className="w-6 h-6" />
+                Plantar nuevo árbol
+              </button>
+            </div>
+          )}
 
-            {currentPlant && currentPlant.is_alive && !currentPlant.is_completed && (
-              <div className="mt-6 flex justify-center">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-2 text-destructive hover:bg-destructive/10"
+          {currentPlant && currentPlant.is_alive && !currentPlant.is_completed && (
+            <div className="mt-8 flex justify-center border-t-4 border-black pt-6">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl border-4 border-black bg-[#FF5C5C] font-black uppercase shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all text-black"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    Abandonar planta
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-[#FFF7E6] border-4 border-black shadow-[8px_8px_0_0_#000] rounded-xl p-6">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-2xl font-black uppercase text-black flex items-center gap-2">
+                      <Skull className="w-8 h-8 text-[#FF5C5C]" />
+                      ¿Abandonar tu planta?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-black/80 font-bold mt-2 text-base">
+                      Esta acción no se puede deshacer. Tu planta morirá inmediatamente y tendrás que empezar de cero con una nueva semilla.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="mt-6 flex gap-3">
+                    <AlertDialogCancel className="px-6 py-3 rounded-xl border-4 border-black font-black uppercase bg-white text-black hover:bg-black/5 transition-colors w-full m-0">
+                      Cancelar
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => abandonPlant(currentPlant.id)}
+                      className="px-6 py-3 rounded-xl border-4 border-black font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all bg-[#FF5C5C] text-black w-full m-0 flex items-center justify-center gap-2"
                     >
-                      <XCircle className="w-4 h-4" />
-                      Abandonar planta
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Abandonar tu planta?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta acción no se puede deshacer. Tu planta morirá y no podrás recuperarla.
-                        Tendrás que plantar una nueva semilla.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => abandonPlant(currentPlant.id)}
-                        className="bg-destructive hover:bg-destructive/90"
-                      >
-                        Sí, abandonar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      <Trash2 className="w-5 h-5" /> Sí, abandonar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+        </div>
 
         {/* Study Tips */}
-        <Card className="card-gamer">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Droplets className="w-5 h-5 text-cyan-500" />
-              Cómo Crecer
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3 text-sm">
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
-                <span className="text-lg">🌱</span>
-                <div>
-                  <p className="font-medium">Estudia cada día</p>
-                  <p className="text-muted-foreground text-xs">
-                    Tu planta crece 15-50% por día según cuánto estudies
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
-                <span className="text-lg">⏰</span>
-                <div>
-                  <p className="font-medium">Usa el Pomodoro</p>
-                  <p className="text-muted-foreground text-xs">
-                    +5% extra por cada 30 min de estudio
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
-                <span className="text-lg">⚠️</span>
-                <div>
-                  <p className="font-medium">No abandones</p>
-                  <p className="text-muted-foreground text-xs">
-                    7 días sin estudiar = planta muerta
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
-                <span className="text-lg">🏆</span>
-                <div>
-                  <p className="font-medium">Completa tu bosque</p>
-                  <p className="text-muted-foreground text-xs">
-                    Cada árbol al 100% se suma a tu bosque
-                  </p>
-                </div>
+        <div className="bg-[#FFE66D] rounded-xl border-4 border-black shadow-[8px_8px_0_0_#000] p-6 h-fit">
+          <div className="flex items-center gap-2 mb-6 border-b-4 border-black pb-4">
+            <Droplets className="w-8 h-8 text-[#00E5FF]" />
+            <h2 className="text-2xl font-black uppercase text-black">Cómo Crecer</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-start gap-4 bg-white p-4 rounded-xl border-4 border-black shadow-[4px_4px_0_0_#000]">
+              <Sprout className="w-8 h-8 text-[#1B4332]" />
+              <div>
+                <p className="font-black uppercase text-black">Estudia cada día</p>
+                <p className="text-black/80 font-bold text-sm mt-1">
+                  Tu planta crece 15-50% por día según cuánto estudies
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="flex items-start gap-4 bg-white p-4 rounded-xl border-4 border-black shadow-[4px_4px_0_0_#000]">
+              <Clock className="w-8 h-8 text-[#1B4332]" />
+              <div>
+                <p className="font-black uppercase text-black">Usa el Pomodoro</p>
+                <p className="text-black/80 font-bold text-sm mt-1">
+                  +5% extra por cada 30 min de estudio
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 bg-[#FF5C5C] p-4 rounded-xl border-4 border-black shadow-[4px_4px_0_0_#000]">
+              <Skull className="w-8 h-8 text-black" />
+              <div>
+                <p className="font-black uppercase text-black">No abandones</p>
+                <p className="text-black/80 font-bold text-sm mt-1">
+                  7 días sin estudiar = planta muerta
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 bg-[#00E5FF] p-4 rounded-xl border-4 border-black shadow-[4px_4px_0_0_#000]">
+              <TrendingUp className="w-8 h-8 text-black" />
+              <div>
+                <p className="font-black uppercase text-black">Completa tu bosque</p>
+                <p className="text-black/80 font-bold text-sm mt-1">
+                  Cada árbol al 100% se suma a tu colección
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Completed Forest */}
       {completedTrees.length > 0 && (
-        <Card className="card-gamer">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TreeDeciduous className="w-5 h-5 text-green-500" />
-              Mi Bosque ({completedTrees.length} árboles)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {completedTrees.map((tree) => (
-                <PlantCard key={tree.id} plant={tree} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-[#BFFF00] rounded-xl border-4 border-black shadow-[8px_8px_0_0_#000] p-6 mt-8">
+          <div className="flex items-center gap-2 mb-6 border-b-4 border-black pb-4">
+            <TreeDeciduous className="w-8 h-8 text-black" />
+            <h2 className="text-2xl font-black uppercase text-black">
+              Mi Bosque ({completedTrees.length} {completedTrees.length === 1 ? 'árbol' : 'árboles'})
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {completedTrees.map((tree) => (
+              <PlantCard key={tree.id} plant={tree} />
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Dead Plants Cemetery */}
       {deadPlants.length > 0 && (
-        <Card className="card-gamer opacity-75">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-muted-foreground">
-              <Skull className="w-5 h-5" />
+        <div className="bg-[#2D3748] rounded-xl border-4 border-black shadow-[8px_8px_0_0_#000] p-6 mt-8 opacity-95">
+          <div className="flex items-center gap-2 mb-6 border-b-4 border-black/50 pb-4">
+            <Skull className="w-8 h-8 text-[#FF5C5C]" />
+            <h2 className="text-2xl font-black uppercase text-white">
               Cementerio ({deadPlants.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {deadPlants.map((plant) => (
-                <PlantCard
-                  key={plant.id}
-                  plant={plant}
-                  onRemove={() => removeDeadPlant(plant.id)}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {deadPlants.map((plant) => (
+              <PlantCard
+                key={plant.id}
+                plant={plant}
+                onRemove={() => removeDeadPlant(plant.id)}
+              />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

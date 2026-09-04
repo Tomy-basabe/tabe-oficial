@@ -25,13 +25,13 @@ const EXAM_TYPES = [
 ];
 
 const eventTypeColors: Record<string, string> = {
-  P1: "bg-neon-cyan/20 border-neon-cyan text-neon-cyan",
-  P2: "bg-neon-purple/20 border-neon-purple text-neon-purple",
-  Global: "bg-neon-gold/20 border-neon-gold text-neon-gold",
-  "Recuperatorio P1": "bg-red-500/20 border-red-500 text-red-400",
-  "Recuperatorio P2": "bg-red-500/20 border-red-500 text-red-400",
-  "Recuperatorio Global": "bg-red-500/20 border-red-500 text-red-400",
-  Final: "bg-neon-green/20 border-neon-green text-neon-green",
+  P1: "bg-[#00FF9D] border-foreground text-black font-black",
+  P2: "bg-[#00F0FF] border-foreground text-black font-black",
+  Global: "bg-[#FFD21C] border-foreground text-black font-black",
+  "Recuperatorio P1": "bg-[#FF3366] border-foreground text-black font-black",
+  "Recuperatorio P2": "bg-[#FF3366] border-foreground text-black font-black",
+  "Recuperatorio Global": "bg-[#FF3366] border-foreground text-black font-black",
+  Final: "bg-[#B000FF] border-foreground text-white font-black",
 };
 
 export type KanbanStatus = "pending" | "studying" | "ready" | "done";
@@ -154,35 +154,35 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-6">
+      <DialogContent className="max-w-3xl bg-background border-4 border-foreground shadow-[12px_12px_0_0_hsl(var(--foreground))] rounded-xl max-h-[85vh] flex flex-col p-6">
         <DialogHeader className="mb-4">
-          <div className="flex items-center justify-between w-full">
-            <DialogTitle className="text-2xl font-display flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center border border-red-500/30">
-                <GraduationCap className="w-6 h-6 text-red-500" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4">
+            <DialogTitle className="text-2xl font-display font-black uppercase tracking-tight flex items-center gap-3 text-foreground">
+              <div className="w-12 h-12 rounded-xl bg-[#FF3366] flex items-center justify-center border-4 border-foreground shadow-[4px_4px_0_0_#000]">
+                <GraduationCap className="w-7 h-7 text-black" />
               </div>
               Próximos Exámenes
             </DialogTitle>
             
-            <div className="flex p-1 bg-secondary/50 rounded-lg border border-border">
+            <div className="flex gap-2">
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all",
-                  viewMode === "list" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                  "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all border-[3px] border-foreground",
+                  viewMode === "list" ? "bg-[#FFD21C] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white text-black hover:bg-muted shadow-[2px_2px_0_0_#000]"
                 )}
               >
-                <ListIcon className="w-3.5 h-3.5" />
+                <ListIcon className="w-4 h-4" />
                 Lista
               </button>
               <button
                 onClick={() => setViewMode("kanban")}
                 className={cn(
-                  "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all",
-                  viewMode === "kanban" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                  "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all border-[3px] border-foreground",
+                  viewMode === "kanban" ? "bg-[#FFD21C] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white text-black hover:bg-muted shadow-[2px_2px_0_0_#000]"
                 )}
               >
-                <LayoutPanelLeft className="w-3.5 h-3.5" />
+                <LayoutPanelLeft className="w-4 h-4" />
                 Kanban 📋
               </button>
             </div>
@@ -195,10 +195,10 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
         </DialogHeader>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 rounded-xl bg-secondary/50 border border-border">
-          <div className="flex items-center gap-2 text-muted-foreground mr-2">
-            <Filter className="w-4 h-4" />
-            <span className="text-sm font-medium whitespace-nowrap">Filtros:</span>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 rounded-xl bg-[#4ECDC4] border-4 border-foreground shadow-[4px_4px_0_0_#000]">
+          <div className="flex items-center gap-2 text-black mr-2">
+            <Filter className="w-5 h-5" />
+            <span className="text-sm font-black uppercase tracking-widest whitespace-nowrap">Filtros:</span>
           </div>
           
           <div className="flex flex-wrap gap-2 w-full">
@@ -206,9 +206,9 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
               value={selectedYear}
               onChange={(e) => {
                 setSelectedYear(e.target.value);
-                setSelectedSubject("all"); // Reset subject when year changes
+                setSelectedSubject("all");
               }}
-              className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm min-w-[120px] focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="bg-white text-black border-[3px] border-foreground rounded-lg px-3 py-2 text-sm min-w-[120px] focus:outline-none focus:shadow-[2px_2px_0_0_#000] transition-all font-bold"
             >
               <option value="all">Todos los años</option>
               {availableYears.map((y) => (
@@ -219,7 +219,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm flex-1 md:flex-none min-w-[200px] focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="bg-white text-black border-[3px] border-foreground rounded-lg px-3 py-2 text-sm flex-1 md:flex-none min-w-[200px] focus:outline-none focus:shadow-[2px_2px_0_0_#000] transition-all font-bold"
             >
               <option value="all">Todas las materias</option>
               {availableSubjects.map((s) => (
@@ -249,17 +249,16 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                 return (
                   <div 
                     key={exam.id}
-                    className="card-gamer p-4 rounded-xl transition-all hover:scale-[1.01] flex flex-col md:flex-row gap-4 justify-between"
-                    style={exam.color ? { borderColor: `${exam.color}50` } : {}}
+                    className="p-4 bg-white text-black rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] transition-all hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] flex flex-col md:flex-row gap-4 justify-between"
                   >
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span 
                           className={cn(
-                            "px-2.5 py-0.5 rounded-full text-xs font-semibold border",
+                            "px-2.5 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border-2",
                             !exam.color && eventTypeColors[exam.tipo_examen]
                           )}
-                          style={exam.color ? { backgroundColor: `${exam.color}20`, borderColor: exam.color, color: exam.color } : undefined}
+                          style={exam.color ? { backgroundColor: exam.color, borderColor: 'var(--foreground)', color: '#000' } : undefined}
                         >
                           {exam.tipo_examen}
                         </span>
@@ -270,7 +269,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                         )}
                       </div>
                       
-                      <h4 className="text-lg font-bold" style={exam.color ? { color: exam.color } : {}}>
+                      <h4 className="text-xl font-black uppercase tracking-tight text-black">
                         {exam.titulo}
                       </h4>
                       
@@ -281,7 +280,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                       )}
                     </div>
 
-                    <div className="flex flex-col items-start md:items-end justify-between min-w-[140px] gap-2 md:gap-0 pl-0 md:pl-4 md:border-l border-border/50">
+                    <div className="flex flex-col items-start md:items-end justify-between min-w-[140px] gap-2 md:gap-0 pl-0 md:pl-4 md:border-l-[3px] border-foreground">
                       <div className="flex flex-col items-start md:items-end">
                         <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           <CalendarIcon className="w-4 h-4 opacity-70" />
@@ -300,12 +299,12 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                       </div>
 
                       <div className={cn(
-                        "flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg w-full md:w-auto mt-2",
+                        "flex items-center gap-1.5 text-sm font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] w-full md:w-auto mt-2",
                         isToday 
-                          ? "bg-red-500 text-white animate-pulse" 
+                          ? "bg-[#FF3366] text-black animate-pulse" 
                           : isUrgent 
-                            ? "bg-red-500/20 text-red-500" 
-                            : "bg-primary/10 text-primary"
+                            ? "bg-[#FFE66D] text-black" 
+                            : "bg-[#00F0FF] text-black"
                       )}>
                         {isToday ? (
                           <>
@@ -327,10 +326,10 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-full min-h-[400px]">
               {KANBAN_COLUMNS.map((col) => (
                 <div key={col.id} className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 px-2 py-1 bg-secondary/30 rounded-lg border border-border/50">
-                    <col.icon className={cn("w-4 h-4", col.color)} />
-                    <span className="text-sm font-bold truncate">{col.label}</span>
-                    <span className="ml-auto text-[10px] px-1.5 rounded-full bg-background border border-border">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-muted text-foreground rounded-lg border-4 border-foreground shadow-[4px_4px_0_0_#000]">
+                    <col.icon className="w-5 h-5 text-foreground" />
+                    <span className="text-sm font-black uppercase tracking-widest truncate">{col.label}</span>
+                    <span className="ml-auto text-xs font-black px-2 py-0.5 rounded-sm bg-background border-2 border-foreground">
                       {filteredExams.filter(e => getExamStatus(e.notas) === col.id).length}
                     </span>
                   </div>
@@ -346,8 +345,8 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                           <div 
                             key={exam.id}
                             className={cn(
-                              "card-gamer p-3 rounded-lg border flex flex-col gap-2 transition-all hover:border-primary/50 group",
-                              isUrgent && "border-red-500/50 shadow-lg shadow-red-500/5"
+                              "p-3 rounded-lg border-[3px] border-foreground bg-white text-black flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] group shadow-[2px_2px_0_0_#000]",
+                              isUrgent && "bg-[#FF6B6B]"
                             )}
                           >
                             <div className="flex justify-between items-start">
@@ -355,28 +354,28 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                                 {exam.subject_nombre || "Sin materia"}
                               </span>
                               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                {col.id !== "done" && (
-                                  <button 
-                                    onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id)}
-                                    className="p-1 rounded hover:bg-primary/20 text-primary"
-                                    title="Mover a siguiente etapa"
-                                  >
-                                    ➡️
-                                  </button>
-                                )}
-                                {col.id !== "pending" && (
+                                {col.id !== "todo" && (
                                   <button 
                                     onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1].id)}
-                                    className="p-1 rounded hover:bg-secondary/40 text-muted-foreground"
+                                    className="p-1 rounded hover:bg-black/10 text-black border-2 border-transparent hover:border-black transition-all"
                                     title="Mover a etapa anterior"
                                   >
                                     ⬅️
                                   </button>
                                 )}
+                                {col.id !== "done" && (
+                                  <button 
+                                    onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id)}
+                                    className="p-1 rounded hover:bg-black/10 text-black border-2 border-transparent hover:border-black transition-all"
+                                    title="Mover a siguiente etapa"
+                                  >
+                                    ➡️
+                                  </button>
+                                )}
                               </div>
                             </div>
                             
-                            <h5 className="text-sm font-bold leading-tight line-clamp-2">
+                            <h5 className="text-sm font-black uppercase tracking-tight leading-tight line-clamp-2">
                               {exam.titulo}
                             </h5>
 
@@ -386,8 +385,8 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                                 {new Date(exam.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                               </span>
                               <span className={cn(
-                                "font-bold",
-                                isUrgent ? "text-red-500" : "text-muted-foreground"
+                                "font-black uppercase tracking-widest text-[9px] px-1.5 py-0.5 rounded-sm border-2 border-black bg-white",
+                                isUrgent && "bg-black text-white"
                               )}>
                                 {daysRemaining === 0 ? "¡Hoy!" : `Faltan ${daysRemaining}d`}
                               </span>

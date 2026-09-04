@@ -1135,3 +1135,36 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
+
+/* Plant Animations for Forest UI */
+@keyframes plant-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+.animate-plant-pulse {
+  animation: plant-pulse 3s ease-in-out infinite;
+}
+
+@keyframes plant-bounce-soft {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.02); }
+}
+.animate-plant-bounce-soft {
+  animation: plant-bounce-soft 4s ease-in-out infinite;
+}
+
+@keyframes plant-sway {
+  0%, 100% { transform: rotate(-3deg); transform-origin: bottom center; }
+  50% { transform: rotate(3deg); transform-origin: bottom center; }
+}
+.animate-plant-sway {
+  animation: plant-sway 5s ease-in-out infinite;
+}
+
+@keyframes plant-grow-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(191, 255, 0, 0.2)); }
+  50% { transform: scale(1.03); filter: drop-shadow(0 0 20px rgba(191, 255, 0, 0.8)); }
+}
+.animate-plant-grow-pulse {
+  animation: plant-grow-pulse 4s ease-in-out infinite;
+}

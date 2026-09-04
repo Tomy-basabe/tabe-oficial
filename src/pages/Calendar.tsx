@@ -12,18 +12,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 const eventTypeColors: Record<EventType, string> = {
-  P1: "bg-[#25d06c] border-foreground text-black font-bold",
-  P2: "bg-[#1475e5] border-foreground text-white font-bold",
-  Global: "bg-[#ffd21c] border-foreground text-black font-bold",
-  "Recuperatorio P1": "bg-[#ff4e4e] border-foreground text-white font-bold",
-  "Recuperatorio P2": "bg-[#ff4e4e] border-foreground text-white font-bold",
-  "Recuperatorio Global": "bg-[#ff4e4e] border-foreground text-white font-bold",
-  Final: "bg-[#805ad5] border-foreground text-white font-bold",
-  Estudio: "bg-muted border-foreground text-foreground font-bold",
-  TP: "bg-[#ed8936] border-foreground text-black font-bold",
-  Entrega: "bg-[#ed64a6] border-foreground text-black font-bold",
-  Clase: "bg-[#4299e1] border-foreground text-black font-bold",
-  Otro: "bg-gray-400 border-foreground text-black font-bold",
+  P1: "bg-[#00FF9D] border-foreground text-black font-black",
+  P2: "bg-[#00F0FF] border-foreground text-black font-black",
+  Global: "bg-[#FFD21C] border-foreground text-black font-black",
+  "Recuperatorio P1": "bg-[#FF3366] border-foreground text-black font-black",
+  "Recuperatorio P2": "bg-[#FF3366] border-foreground text-black font-black",
+  "Recuperatorio Global": "bg-[#FF3366] border-foreground text-black font-black",
+  Final: "bg-[#B000FF] border-foreground text-white font-black",
+  Estudio: "bg-muted border-foreground text-foreground font-black",
+  TP: "bg-[#FF9900] border-foreground text-black font-black",
+  Entrega: "bg-[#FF66B2] border-foreground text-black font-black",
+  Clase: "bg-[#4299e1] border-foreground text-black font-black",
+  Otro: "bg-gray-400 border-foreground text-black font-black",
 };
 
 const recurrenceLabels: Record<string, string> = {
@@ -163,8 +163,8 @@ export default function Calendar() {
             "min-h-[80px] h-auto lg:h-32 p-1 lg:p-2 border-[3px] rounded-xl text-left relative group",
             "transition-all duration-200 ease-out flex flex-col",
             "hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] dark:hover:shadow-[4px_4px_0_0_#fff] active:translate-y-0 active:shadow-none",
-            today ? "border-foreground bg-[#ffd21c] shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]" : "border-transparent hover:border-foreground bg-card hover:bg-card/90",
-            selected && !today && "border-foreground bg-foreground/5 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]",
+            today ? "border-foreground bg-[#ffd21c] shadow-[4px_4px_0_0_hsl(var(--foreground))]" : "border-transparent hover:border-foreground bg-card hover:bg-card/90",
+            selected && !today && "border-foreground bg-foreground/5 shadow-[4px_4px_0_0_hsl(var(--foreground))]",
           )}
           style={{ animationDelay: `${day * 15}ms` }}
         >
@@ -231,75 +231,72 @@ export default function Calendar() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-[#FF6B6B] border-4 border-foreground p-6 rounded-xl shadow-[8px_8px_0_0_hsl(var(--foreground))]">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
+          <h1 className="font-display text-3xl lg:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-3">
+            <CalendarIcon className="w-8 h-8 lg:w-10 lg:h-10" />
             Calendario Académico
           </h1>
-          <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
-            Planifica y visualiza tus exámenes y sesiones de estudio
+          <p className="text-black font-bold uppercase tracking-wider text-sm mt-2 flex items-center gap-2">
+            PLANIFICÁ Y VISUALIZÁ TUS EXÁMENES Y SESIONES DE ESTUDIO
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={goToToday} variant="secondary">
+        <div className="flex flex-wrap items-center gap-3">
+          <button onClick={goToToday} className="px-4 py-2 bg-white text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all">
             Hoy
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={() => setShowExamsModal(true)}
-            variant="outline"
-            className="text-[#ff4e4e] hover:text-[#ff4e4e] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
+            className="px-4 py-2 bg-[#FF3366] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2"
           >
-            <GraduationCap className="w-5 h-5 text-[#ff4e4e]" />
+            <GraduationCap className="w-5 h-5" />
             Exámenes
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={() => setShowSyncModal(true)}
-            variant="outline"
-            className="text-neon-cyan border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
+            className="px-4 py-2 bg-[#00F0FF] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2"
           >
-            <Link2 className="w-4 h-4 text-neon-cyan" />
-            Google Calendar
-          </Button>
-          <Button
+            <Link2 className="w-5 h-5" />
+            Sincronizar
+          </button>
+          <button
             onClick={() => setShowImportModal(true)}
-            variant="secondary"
+            className="px-4 py-2 bg-[#FFE66D] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2"
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-5 h-5" />
             Importar
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={() => handleAddEvent()}
-            className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
+            className="px-4 py-2 bg-[#00FF9D] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             Nuevo Evento
-          </Button>
+          </button>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Calendar */}
-        <div className="lg:col-span-3 bg-card border-[3px] border-foreground rounded-xl p-3 lg:p-6 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] overflow-hidden">
+        <div className="lg:col-span-3 bg-card border-[3px] border-foreground rounded-xl p-3 lg:p-6 shadow-[4px_4px_0_0_hsl(var(--foreground))] overflow-hidden">
           {/* Month Navigation */}
           <div className="flex items-center justify-between mb-4 lg:mb-6">
             <h2 className="font-display font-black text-2xl uppercase tracking-widest">
               {months[month]} {year}
             </h2>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
+            <div className="flex items-center gap-3">
+              <button
+                className="p-2 bg-muted text-foreground border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all"
                 onClick={() => changeMonth(-1)}
               >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                className="p-2 bg-muted text-foreground border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all"
                 onClick={() => changeMonth(1)}
               >
-                <ChevronRight className="w-5 h-5" />
-              </Button>
+                <ChevronRight className="w-6 h-6" />
+              </button>
             </div>
           </div>
 
@@ -326,7 +323,7 @@ export default function Calendar() {
         </div>
 
         {/* Sidebar - Selected Date Events */}
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] h-fit sticky top-24 tour-calendar-schedule">
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))] h-fit sticky top-24 tour-calendar-schedule">
           <div className="flex items-center gap-2 mb-6">
             <CalendarIcon className="w-6 h-6 text-foreground" />
             <h3 className="font-display font-black text-lg uppercase tracking-widest leading-none mt-1">
@@ -341,16 +338,15 @@ export default function Calendar() {
           </div>
 
           {selectedDate && selectedDateEvents.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground border-[3px] border-dashed border-foreground/30 rounded-xl">
+            <div className="text-center py-8 text-foreground border-4 border-dashed border-foreground/30 rounded-xl bg-muted/50">
               <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm font-bold uppercase tracking-widest">Día libre</p>
-              <Button
+              <p className="text-sm font-black uppercase tracking-widest">Día libre</p>
+              <button
                 onClick={() => handleAddEvent()}
-                variant="outline"
-                className="mt-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
+                className="mt-6 px-4 py-2 bg-[#4ECDC4] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all"
               >
                 Agregar evento
-              </Button>
+              </button>
             </div>
           )}
 
@@ -360,7 +356,7 @@ export default function Calendar() {
                 <div
                   key={event.id}
                   className={cn(
-                    "p-4 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] relative transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff]",
+                    "p-4 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] relative transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))]",
                     !event.color && eventTypeColors[event.tipo_examen]
                   )}
                   style={{
@@ -431,14 +427,13 @@ export default function Calendar() {
                   </div>
                 </div>
               ))}
-              <Button
+              <button
                 onClick={() => handleAddEvent()}
-                variant="secondary"
-                className="w-full mt-4 border-dashed"
+                className="w-full mt-4 px-4 py-3 bg-muted text-foreground border-4 border-dashed border-foreground rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all flex items-center justify-center gap-2"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
                 Agregar otro
-              </Button>
+              </button>
             </div>
           )}
 

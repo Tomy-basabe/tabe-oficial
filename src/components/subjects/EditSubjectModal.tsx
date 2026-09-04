@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SubjectWithStatus } from "@/hooks/useSubjects";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface EditSubjectModalProps {
   subject: SubjectWithStatus | null;
@@ -102,15 +103,16 @@ export function EditSubjectModal({ subject, open, onClose, onSubmit }: EditSubje
 
               <div>
                 <label className="text-sm font-medium text-foreground">Año de Cursada</label>
-                <select
-                  value={año}
-                  onChange={(e) => setAño(parseInt(e.target.value))}
-                  className="w-full mt-1 px-4 py-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  {[1, 2, 3, 4, 5, 6].map(y => (
-                    <option key={y} value={y}>Año {y}</option>
-                  ))}
-                </select>
+                <Select value={año.toString()} onValueChange={(val) => setAño(parseInt(val))}>
+                  <SelectTrigger className="w-full mt-1 px-4 py-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 h-auto">
+                    <SelectValue placeholder="Seleccione el año" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl font-bold">
+                    {[1, 2, 3, 4, 5, 6].map(y => (
+                      <SelectItem key={y} value={y.toString()}>Año {y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

@@ -89,40 +89,40 @@ export function PomodoroSettings({
   };
 
   const settingsConfig = [
-    { key: "work" as const, label: "Trabajo", unit: "min", color: "text-neon-cyan" },
-    { key: "shortBreak" as const, label: "Descanso corto", unit: "min", color: "text-neon-green" },
-    { key: "longBreak" as const, label: "Descanso largo", unit: "min", color: "text-neon-purple" },
-    { key: "longBreakInterval" as const, label: "Intervalo descanso largo", unit: "pomodoros", color: "text-neon-gold" },
+    { key: "work" as const, label: "TRABAJO", unit: "min", color: "text-[#FF6B6B]" },
+    { key: "shortBreak" as const, label: "DESCANSO CORTO", unit: "min", color: "text-[#4ECDC4]" },
+    { key: "longBreak" as const, label: "DESCANSO LARGO", unit: "min", color: "text-[#FFE66D]" },
+    { key: "longBreakInterval" as const, label: "INTERVALO LARGO", unit: "pomodoros", color: "text-foreground" },
   ];
 
   return (
-    <div className="card-gamer rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display font-semibold">Configuración</h3>
+    <div className="p-5">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b-4 border-foreground">
+        <h3 className="font-display font-black text-xl uppercase tracking-wider text-foreground">CONFIGURACIÓN</h3>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+          className="p-1.5 rounded-lg bg-muted text-foreground border-2 border-foreground hover:bg-[#ff3366] hover:text-black hover:border-black shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-none transition-all"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5 font-bold" />
         </button>
       </div>
       <div className="space-y-4">
         {settingsConfig.map(({ key, label, unit, color }) => (
           <div key={key} className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">{label}</span>
+            <span className="font-bold text-foreground text-sm uppercase tracking-wider">{label}</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => updateSetting(key, -1)}
                 disabled={isRunning}
                 className={cn(
-                  "w-8 h-8 rounded-lg bg-secondary flex items-center justify-center transition-all",
+                  "w-8 h-8 rounded-md bg-muted text-foreground border-2 border-foreground flex items-center justify-center transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))]",
                   isRunning
                     ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-primary/20 hover:text-primary hover:scale-105 active:scale-95"
+                    : "hover:bg-[#00f0ff] hover:text-black hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-none"
                 )}
               >
-                <Minus className="w-4 h-4" />
+                <Minus className="w-4 h-4 font-bold" />
               </button>
               <input
                 type="number"
@@ -132,10 +132,10 @@ export function PomodoroSettings({
                 onKeyDown={(e) => handleKeyDown(e, key)}
                 disabled={isRunning}
                 className={cn(
-                  "font-display font-black w-16 text-center bg-secondary/30 border border-white/10 rounded-lg py-1 transition-all outline-none focus:ring-2 focus:ring-primary/50 focus:bg-secondary/80 focus:border-primary/50",
+                  "font-display font-black w-16 text-center bg-background border-[3px] border-foreground rounded-lg py-1 transition-all outline-none focus:ring-4 focus:ring-[#00f0ff] shadow-[2px_2px_0_0_hsl(var(--foreground))]",
                   "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
                   color,
-                  isRunning ? "cursor-not-allowed opacity-70" : "cursor-text hover:bg-secondary/50"
+                  isRunning ? "cursor-not-allowed opacity-70" : "cursor-text hover:bg-muted/50"
                 )}
               />
               <button
@@ -143,61 +143,62 @@ export function PomodoroSettings({
                 onClick={() => updateSetting(key, 1)}
                 disabled={isRunning}
                 className={cn(
-                  "w-8 h-8 rounded-lg bg-secondary flex items-center justify-center transition-all",
+                  "w-8 h-8 rounded-md bg-muted text-foreground border-2 border-foreground flex items-center justify-center transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))]",
                   isRunning
                     ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-primary/20 hover:text-primary hover:scale-105 active:scale-95"
+                    : "hover:bg-[#00f0ff] hover:text-black hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-none"
                 )}
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 font-bold" />
               </button>
-              <span className="text-xs text-muted-foreground w-16">{unit}</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground w-16">{unit}</span>
             </div>
           </div>
         ))}
         
         {/* Sound Type */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+        <div className="flex items-center justify-between pt-6 mt-4 border-t-4 border-foreground">
           <div className="flex items-center gap-2">
-            <Volume2 className="w-4 h-4 text-muted-foreground" />
-            <span className="text-muted-foreground text-sm">Sonido de Alarma</span>
+            <Volume2 className="w-5 h-5 text-foreground" />
+            <span className="font-bold text-foreground text-sm uppercase tracking-wider">Sonido de Alarma</span>
           </div>
-          <div className="w-32">
+          <div className="w-40 relative">
             <Select 
               value={settings.soundType} 
               onValueChange={(val: SoundType) => onSettingsChange({ ...settings, soundType: val })}
               disabled={isRunning}
             >
-              <SelectTrigger className="h-8 text-xs bg-secondary border-none">
+              <SelectTrigger className="h-10 text-xs font-bold bg-background border-[3px] border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg">
                 <SelectValue placeholder="Sonido" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="classic">Clásico (Beep)</SelectItem>
-                <SelectItem value="zen">Zen (Campana)</SelectItem>
-                <SelectItem value="arcade">Arcade (Despertador)</SelectItem>
+              <SelectContent className="border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] font-bold rounded-xl bg-background">
+                <SelectItem value="classic" className="focus:bg-[#FFE66D] focus:text-black">Clásico (Beep)</SelectItem>
+                <SelectItem value="zen" className="focus:bg-[#4ECDC4] focus:text-black">Zen (Campana)</SelectItem>
+                <SelectItem value="arcade" className="focus:bg-[#FF6B6B] focus:text-black">Arcade</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         {/* Continuous Alarm */}
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between pt-4 border-t-2 border-dashed border-foreground/30 mt-4">
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <Repeat className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground text-sm">Alarma Continua</span>
+              <Repeat className="w-5 h-5 text-foreground" />
+              <span className="font-bold text-foreground text-sm uppercase tracking-wider">Alarma Continua</span>
             </div>
-            <span className="text-[10px] text-muted-foreground ml-6">Suena hasta que la detengas</span>
+            <span className="text-[10px] font-bold text-muted-foreground ml-7 uppercase tracking-wider">Suena hasta detenerla</span>
           </div>
           <Switch 
             checked={settings.continuousAlarm}
             onCheckedChange={(checked) => onSettingsChange({ ...settings, continuousAlarm: checked })}
             disabled={isRunning}
+            className="border-2 border-foreground data-[state=checked]:bg-[#00ff9d]"
           />
         </div>
       </div>
       {isRunning && (
-        <p className="text-xs text-muted-foreground mt-3 text-center">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-6 text-center bg-muted p-2 rounded-lg border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
           ⏸️ Pausá el timer para cambiar la configuración
         </p>
       )}

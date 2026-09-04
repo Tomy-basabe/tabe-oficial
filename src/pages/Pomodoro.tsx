@@ -1,13 +1,11 @@
-
 import { useState, useEffect } from "react";
-import { Play, Pause, RotateCcw, Settings, Coffee, BookOpen, Target, Loader2, Save } from "lucide-react";
+import { Play, Pause, RotateCcw, Settings, Coffee, BookOpen, Target, Loader2, Save, Gamepad2, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { usePomodoro, TimerMode } from "@/contexts/PomodoroContext";
 import { PomodoroSettings } from "@/components/pomodoro/PomodoroSettings";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Filter, X } from "lucide-react";
 
 interface Subject {
@@ -21,23 +19,23 @@ const modeConfig = {
   work: {
     label: "Trabajo",
     icon: BookOpen,
-    color: "text-neon-cyan",
-    bgColor: "bg-neon-cyan/20",
-    borderColor: "border-neon-cyan",
+    color: "text-black",
+    bgColor: "bg-[#FF6B6B]",
+    borderColor: "border-black",
   },
   shortBreak: {
     label: "Descanso Corto",
     icon: Coffee,
-    color: "text-neon-green",
-    bgColor: "bg-neon-green/20",
-    borderColor: "border-neon-green",
+    color: "text-black",
+    bgColor: "bg-[#4ECDC4]",
+    borderColor: "border-black",
   },
   longBreak: {
     label: "Descanso Largo",
     icon: Target,
-    color: "text-neon-purple",
-    bgColor: "bg-neon-purple/20",
-    borderColor: "border-neon-purple",
+    color: "text-black",
+    bgColor: "bg-[#FFE66D]",
+    borderColor: "border-black",
   },
 };
 
@@ -112,18 +110,25 @@ export default function Pomodoro() {
   return (
     <div className="tabe-page p-3 lg:p-8 space-y-4 lg:space-y-6 pb-24 lg:pb-8">
       {/* Header */}
-      <div className="tabe-hero flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text">
+      <div className="relative overflow-hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-6 bg-[#ff4747] border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl mb-6">
+        {/* Decorative Element */}
+        <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-8 -translate-y-8">
+          <Gamepad2 className="w-48 h-48 text-black" />
+        </div>
+        
+        <div className="relative z-10">
+          <h1 className="font-display text-3xl lg:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-3">
+            <Gamepad2 className="w-8 h-8 lg:w-10 lg:h-10 text-black" />
             Pomodoro Global
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Tu tiempo se sincroniza en toda la app 🍅
+          <p className="text-black font-bold uppercase tracking-wider mt-2 text-sm flex items-center gap-2">
+            <Swords className="w-4 h-4" />
+            ESTUDIÁ COMO JUGÁS. TÉCNICA POMODORO SINCRONIZADA.
           </p>
         </div>
         {isActive && mode === "work" && (
-          <div className="flex items-center gap-2 text-sm text-neon-green">
-            <Save className="w-4 h-4 animate-pulse" />
+          <div className="relative z-10 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-black bg-white px-4 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] animate-pulse">
+            <Save className="w-4 h-4" />
             Guardando sesión...
           </div>
         )}
@@ -131,9 +136,9 @@ export default function Pomodoro() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Timer */}
-        <div className="tabe-timer-card lg:col-span-2 card-gamer rounded-2xl lg:rounded-xl p-4 sm:p-6 lg:p-10">
+        <div className="lg:col-span-2 rounded-xl p-4 sm:p-6 lg:p-10 border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] bg-background">
           {/* Mode Selector */}
-          <div className="flex justify-center gap-2 mb-8">
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
             {(Object.keys(modeConfig) as TimerMode[]).map((m) => {
               const mConfig = modeConfig[m];
               return (
@@ -142,11 +147,11 @@ export default function Pomodoro() {
                   onClick={() => changeMode(m)}
                   // disabled={isActive} // Allow changing mode even if active (context handles save)
                   className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                    "px-4 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all border-[3px] border-foreground",
                     mode === m
-                      ? cn(mConfig.bgColor, mConfig.color, "border", mConfig.borderColor)
-                      : "bg-secondary hover:bg-secondary/80",
-                    isActive && mode !== m && "opacity-50"
+                      ? cn(mConfig.bgColor, mConfig.color, "shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]")
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px]",
+                    isActive && mode !== m && "opacity-50 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-0"
                   )}
                 >
                   {mConfig.label}
@@ -165,23 +170,20 @@ export default function Pomodoro() {
                   cy="50%"
                   r="45%"
                   fill="none"
-                  stroke="hsl(var(--secondary))"
-                  strokeWidth="8"
+                  stroke="hsl(var(--muted))"
+                  strokeWidth="12"
                 />
                 <circle
                   cx="50%"
                   cy="50%"
                   r="45%"
                   fill="none"
-                  stroke={`hsl(var(--${mode === "work" ? "neon-cyan" : mode === "shortBreak" ? "neon-green" : "neon-purple"}))`}
-                  strokeWidth="8"
-                  strokeLinecap="round"
+                  stroke={mode === "work" ? "#FF6B6B" : mode === "shortBreak" ? "#4ECDC4" : "#FFE66D"}
+                  strokeWidth="12"
+                  strokeLinecap="square"
                   strokeDasharray={`${2 * Math.PI * 45} ${2 * Math.PI * 45}`}
                   strokeDashoffset={2 * Math.PI * 45 * (1 - progress / 100)}
                   className="transition-all duration-1000"
-                  style={{
-                    filter: `drop-shadow(0 0 10px hsl(var(--${mode === "work" ? "neon-cyan" : mode === "shortBreak" ? "neon-green" : "neon-purple"})))`,
-                  }}
                 />
               </svg>
 
@@ -189,25 +191,21 @@ export default function Pomodoro() {
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 {isRinging ? (
                   <>
-                    <Target className={cn("w-8 h-8 mb-2 text-neon-red animate-bounce")} />
-                    <span className="font-display text-4xl lg:text-5xl font-bold text-neon-red text-glow-red tracking-widest uppercase animate-pulse">
+                    <Target className={cn("w-10 h-10 mb-2 text-[#ff3366] animate-bounce")} />
+                    <span className="font-display text-4xl lg:text-5xl font-black text-[#ff3366] tracking-tight uppercase animate-pulse">
                       ¡TIEMPO!
                     </span>
-                    <span className="text-sm text-neon-red font-medium mt-2 animate-pulse">
+                    <span className="text-sm font-bold uppercase text-[#ff3366] tracking-wider mt-2 animate-pulse">
                       Alarma Sonando
                     </span>
                   </>
                 ) : (
                   <>
-                    <Icon className={cn("w-8 h-8 mb-2", config.color)} />
-                    <span className={cn(
-                      "font-display text-5xl lg:text-6xl font-bold",
-                      config.color,
-                      "text-glow-cyan"
-                    )}>
+                    <Icon className={cn("w-8 h-8 mb-2 text-foreground")} />
+                    <span className="font-black text-5xl lg:text-7xl text-foreground tracking-tighter">
                       {formatTime(timeLeft)}
                     </span>
-                    <span className="text-sm text-muted-foreground mt-2">
+                    <span className="text-sm font-bold uppercase tracking-wider text-muted-foreground mt-2">
                       {config.label}
                     </span>
                   </>
@@ -221,8 +219,8 @@ export default function Pomodoro() {
                 onClick={resetTimer}
                 disabled={isRinging}
                 className={cn(
-                  "p-4 rounded-2xl transition-all duration-200", 
-                  isRinging ? "opacity-30 cursor-not-allowed" : "bg-secondary hover:bg-secondary/80 hover:scale-105 active:scale-95"
+                  "p-4 rounded-xl border-[3px] border-foreground transition-all duration-200", 
+                  isRinging ? "opacity-30 cursor-not-allowed" : "bg-muted text-foreground hover:bg-muted/80 shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                 )}
               >
                 <RotateCcw className="w-6 h-6 lg:w-7 lg:h-7" />
@@ -231,25 +229,25 @@ export default function Pomodoro() {
               {isRinging ? (
                 <button
                   onClick={stopAlarm}
-                  className="px-8 py-6 rounded-3xl bg-neon-red/20 text-neon-red hover:bg-neon-red/40 border border-neon-red glow-red flex items-center gap-3 transition-all animate-pulse shadow-[0_0_30px_rgba(255,51,102,0.3)] active:scale-95"
+                  className="px-8 py-6 rounded-2xl bg-[#ff3366] text-black border-4 border-foreground flex items-center gap-3 transition-all animate-pulse shadow-[8px_8px_0_0_hsl(var(--foreground))] active:translate-y-[4px] active:shadow-[4px_4px_0_0_hsl(var(--foreground))]"
                 >
                   <Target className="w-7 h-7" />
-                  <span className="font-bold tracking-wider text-lg">APAGAR</span>
+                  <span className="font-black tracking-wider text-xl uppercase">APAGAR</span>
                 </button>
               ) : (
                 <button
                   onClick={toggleTimer}
                   className={cn(
-                    "p-8 rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl",
+                    "p-6 lg:p-8 rounded-2xl border-4 border-foreground transition-all duration-200",
                     isActive
-                      ? "bg-neon-red/20 text-neon-red border border-neon-red/50 shadow-[0_0_20px_rgba(255,51,102,0.2)]"
-                      : cn(config.bgColor, config.color, "border border-current/30", `shadow-[0_0_25px_var(--${config.color.split('-')[1]}-${config.color.split('-')[2]})]`)
+                      ? "bg-[#ff3366] text-black shadow-[8px_8px_0_0_hsl(var(--foreground))] active:translate-y-[4px] active:shadow-[4px_4px_0_0_hsl(var(--foreground))]"
+                      : cn(config.bgColor, config.color, "shadow-[8px_8px_0_0_hsl(var(--foreground))] active:translate-y-[4px] active:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[10px_10px_0_0_hsl(var(--foreground))]")
                   )}
                 >
                   {isActive ? (
-                     <Pause className="w-10 h-10 lg:w-12 lg:h-12 drop-shadow-lg" />
+                     <Pause className="w-10 h-10 lg:w-12 lg:h-12" />
                   ) : (
-                    <Play className="w-10 h-10 lg:w-12 lg:h-12 ml-1 drop-shadow-lg" />
+                    <Play className="w-10 h-10 lg:w-12 lg:h-12 ml-1" />
                   )}
                 </button>
               )}
@@ -258,8 +256,8 @@ export default function Pomodoro() {
                 onClick={() => setShowSettings(!showSettings)}
                 disabled={isRinging}
                 className={cn(
-                  "p-4 rounded-2xl transition-all duration-200",
-                  isRinging ? "opacity-30 cursor-not-allowed" : showSettings ? "bg-primary/20 text-primary border border-primary/30" : "bg-secondary hover:bg-secondary/80 hover:scale-105 active:scale-95"
+                  "p-4 rounded-xl border-[3px] border-foreground transition-all duration-200",
+                  isRinging ? "opacity-30 cursor-not-allowed" : showSettings ? "bg-primary text-primary-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[2px]" : "bg-muted text-foreground hover:bg-muted/80 shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                 )}
               >
                 <Settings className="w-6 h-6 lg:w-7 lg:h-7" />
@@ -273,15 +271,15 @@ export default function Pomodoro() {
                 <div
                   key={i}
                   className={cn(
-                    "w-4 h-4 rounded-full transition-all",
+                    "w-4 h-4 rounded-sm border-2 border-foreground transition-all",
                     i < completedPomodoros % 4
-                      ? "bg-neon-gold glow-gold"
-                      : "bg-secondary"
+                      ? "bg-[#ffd21c] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                      : "bg-muted"
                   )}
                 />
               ))}
-              <span className="text-sm text-muted-foreground ml-2">
-                {completedPomodoros} pomodoros hoy
+              <span className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-2">
+                {completedPomodoros} hoy
               </span>
             </div>
           </div>
@@ -290,17 +288,17 @@ export default function Pomodoro() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Subject Selector */}
-          <div className="card-gamer rounded-xl p-6 tour-pomodoro-stats border border-white/5 bg-black/40 backdrop-blur-xl">
-            <h3 className="font-display font-semibold mb-6 flex items-center gap-2 text-lg">
-              <BookOpen className="w-5 h-5 text-neon-cyan" />
-              Sesión de Estudio
+          <div className="rounded-xl p-6 tour-pomodoro-stats border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] bg-background">
+            <h3 className="font-display font-black mb-6 flex items-center gap-2 text-xl tracking-tight">
+              <BookOpen className="w-6 h-6 text-foreground" />
+              SESIÓN DE ESTUDIO
             </h3>
 
             <div className="space-y-6">
               {/* Year Filter (Horizontal Button Group like Flashcards) */}
               <div className="space-y-3">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider ml-1">
-                  Filtrar por Año
+                <label className="text-xs font-black text-foreground uppercase tracking-wider ml-1">
+                  FILTRAR POR AÑO
                 </label>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -309,10 +307,10 @@ export default function Pomodoro() {
                       // Optionally we don't reset subject if all is selected
                     }}
                     className={cn(
-                      "px-3 py-2 rounded-xl text-xs font-bold transition-all",
+                      "px-3 py-2 rounded-lg text-xs font-bold transition-all border-[3px] border-foreground",
                       yearFilter === "all"
-                        ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
-                        : "bg-secondary/50 hover:bg-secondary border border-white/5"
+                        ? "bg-foreground text-background shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                     )}
                   >
                     Todos
@@ -331,10 +329,10 @@ export default function Pomodoro() {
                         }
                       }}
                       className={cn(
-                        "px-3 py-2 rounded-xl text-xs font-bold transition-all",
+                        "px-3 py-2 rounded-lg text-xs font-bold transition-all border-[3px] border-foreground",
                         yearFilter === year.toString()
-                          ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
-                          : "bg-secondary/50 hover:bg-secondary border border-white/5"
+                          ? "bg-foreground text-background shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                       )}
                     >
                       {year}°
@@ -345,42 +343,41 @@ export default function Pomodoro() {
 
               {/* Subject Selector (Styled Select like Flashcards) */}
               <div className="space-y-3">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider ml-1">
-                  Materia
+                <label className="text-xs font-black text-foreground uppercase tracking-wider ml-1">
+                  MATERIA
                 </label>
-                <select
-                  value={selectedSubject || "none"}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedSubject(val === "none" ? null : val);
-                  }}
-                  className="w-full bg-secondary/50 border border-white/10 p-3 rounded-xl text-sm font-medium focus:outline-none focus:border-neon-cyan/50 transition-all appearance-none cursor-pointer"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(255,255,255,0.5)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 12px center',
-                    backgroundSize: '16px'
-                  }}
-                >
-                  <option value="none" className="bg-black text-white">Sin materia específica</option>
-                  {subjects
-                    .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
-                    .map((subject) => (
-                      <option key={subject.id} value={subject.id} className="bg-black text-white">
-                        {subject.nombre} ({subject.codigo})
-                      </option>
-                    ))}
-                </select>
+                <div className="relative">
+                  <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none bg-foreground text-background border-l-[3px] border-foreground rounded-r-lg">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                  </div>
+                  <select
+                    value={selectedSubject || "none"}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedSubject(val === "none" ? null : val);
+                    }}
+                    className="w-full bg-background border-[3px] border-foreground p-3 pr-12 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-foreground/20 transition-all appearance-none cursor-pointer shadow-[4px_4px_0_0_hsl(var(--foreground))]"
+                  >
+                    <option value="none">Sin materia específica</option>
+                    {subjects
+                      .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
+                      .map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.nombre} ({subject.codigo})
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
 
               {/* Selection Status Indicator */}
               {selectedSubject && (
-                <div className="mt-2 p-4 rounded-2xl bg-gradient-to-br from-neon-cyan/10 to-neon-purple/5 border border-white/10 flex flex-col items-center gap-1 animate-in fade-in zoom-in-95 duration-300">
+                <div className="mt-2 p-4 rounded-xl bg-[#ffd21c] border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] flex flex-col items-center gap-1 animate-in fade-in zoom-in-95 duration-300">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse" />
-                    <span className="text-[10px] text-neon-cyan font-bold uppercase tracking-widest">Estudiando ahora</span>
+                    <div className="w-2 h-2 rounded-sm border-[1px] border-black bg-[#ff3366] animate-pulse" />
+                    <span className="text-[10px] text-black font-black uppercase tracking-widest">Estudiando ahora</span>
                   </div>
-                  <span className="font-display font-bold text-sm text-center line-clamp-2">
+                  <span className="font-display font-black text-black text-sm text-center line-clamp-2">
                     {subjects.find(s => s.id === selectedSubject)?.nombre}
                   </span>
                 </div>
@@ -390,7 +387,7 @@ export default function Pomodoro() {
 
           {/* Settings Panel */}
           {showSettings && (
-            <div className="card-gamer rounded-xl overflow-hidden border border-white/5 animate-in zoom-in-95 duration-200">
+            <div className="rounded-xl overflow-hidden border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] animate-in zoom-in-95 duration-200 bg-background">
               <PomodoroSettings
                 settings={pomodoroSettings}
                 onSettingsChange={updateSettings}
@@ -400,15 +397,15 @@ export default function Pomodoro() {
             </div>
           )}
 
-          <div className="card-gamer rounded-xl p-5 border border-white/5 bg-black/20">
+          <div className="rounded-xl p-5 border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] bg-muted/30">
             <div className="flex items-center gap-3 justify-center mb-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-neon-green animate-pulse" />
-              <p className="text-xs text-muted-foreground">
-                Sincronización en tiempo real activa
+              <div className="w-2 h-2 rounded-sm bg-[#00ff9d] border-[1px] border-black animate-pulse" />
+              <p className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Sincronización activa
               </p>
             </div>
-            <p className="text-[10px] text-muted-foreground/60 text-center">
-              Tu progreso se guarda automáticamente cada 30 segundos.
+            <p className="text-[10px] font-bold text-muted-foreground text-center uppercase tracking-wider mt-2">
+              Autoguardado cada 30s
             </p>
           </div>
         </div>

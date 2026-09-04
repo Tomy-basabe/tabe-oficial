@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    SelectGroup, SelectLabel
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -578,36 +581,48 @@ export default function Quizzes() {
         if (finished) {
             const percentage = Math.round((score / studyQuestions.length) * 100);
             return (
-                <div className="min-h-screen flex items-center justify-center p-4">
-                    <Card className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl max-w-lg w-full">
-                        <CardContent className="p-8 text-center space-y-6">
-                            <div className={cn(
-                                "w-20 h-20 rounded-full mx-auto flex items-center justify-center",
-                                percentage >= 70 ? "bg-green-500/20" : percentage >= 40 ? "bg-yellow-500/20" : "bg-red-500/20"
-                            )}>
-                                <Trophy className={cn(
-                                    "w-10 h-10",
-                                    percentage >= 70 ? "text-green-500" : percentage >= 40 ? "text-yellow-500" : "text-red-500"
-                                )} />
-                            </div>
-                            <h2 className="text-2xl font-bold">
-                                {percentage >= 70 ? "¡Excelente!" : percentage >= 40 ? "¡Buen intento!" : "Seguí practicando"}
+                <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
+                    {/* Decorative Elements */}
+                    <div className="absolute top-10 left-10 w-24 h-24 bg-[#ff4e4e] rounded-full border-[3px] border-foreground shadow-[8px_8px_0_0_#000] animate-bounce delay-100 hidden md:block" />
+                    <div className="absolute bottom-10 right-10 w-32 h-32 bg-[#1475e5] rounded-xl rotate-12 border-[3px] border-foreground shadow-[8px_8px_0_0_#000] hidden md:block" />
+                    
+                    <Card className="bg-background border-[3px] border-foreground shadow-[12px_12px_0_0_#000] max-w-lg w-full relative z-10 rounded-2xl overflow-hidden">
+                        <div className="bg-[#ffd21c] border-b-[3px] border-foreground p-6 text-center">
+                            <h2 className="text-3xl font-display font-black uppercase tracking-widest text-foreground">
+                                {percentage >= 70 ? "¡Excelente!" : percentage >= 40 ? "¡Buen Intento!" : "A Seguir Practicando"}
                             </h2>
-                            <div className="text-4xl font-display font-bold bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">
-                                {score}/{studyQuestions.length}
+                        </div>
+                        <CardContent className="p-8 text-center space-y-8">
+                            <div className={cn(
+                                "w-24 h-24 rounded-2xl mx-auto flex items-center justify-center border-[3px] border-foreground shadow-[6px_6px_0_0_#000] rotate-[-5deg]",
+                                percentage >= 70 ? "bg-[#25d06c]" : percentage >= 40 ? "bg-[#ffd21c]" : "bg-[#ff4e4e]"
+                            )}>
+                                <Trophy className="w-12 h-12 text-white" />
                             </div>
-                            <p className="text-muted-foreground">{percentage}% de respuestas correctas</p>
-                            <p className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1 mt-2">
-                                <Timer className="w-4 h-4" />
-                                Tiempo: {Math.floor(studyTime / 60)}:{(studyTime % 60).toString().padStart(2, '0')}
-                            </p>
-                            <div className="flex gap-3 justify-center pt-2">
-                                <Button variant="outline" onClick={exitStudy}>
-                                    <X className="w-4 h-4 mr-2" /> Salir
-                                </Button>
-                                <Button onClick={restartStudy} className="bg-gradient-to-r from-neon-cyan to-neon-purple">
-                                    <RotateCcw className="w-4 h-4 mr-2" /> Reintentar
-                                </Button>
+                            
+                            <div className="space-y-2">
+                                <div className="text-6xl font-display font-black text-foreground drop-shadow-[2px_2px_0_#000]">
+                                    {score}/{studyQuestions.length}
+                                </div>
+                                <div className="inline-block px-4 py-2 bg-background border-[2px] border-foreground rounded-lg shadow-[4px_4px_0_0_#000] rotate-2">
+                                    <p className="text-sm font-black uppercase tracking-widest text-foreground">{percentage}% correctas</p>
+                                </div>
+                            </div>
+
+                            <div className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-secondary border-[2px] border-foreground rounded-lg shadow-[2px_2px_0_0_#000]">
+                                <Timer className="w-5 h-5 text-foreground" />
+                                <span className="text-sm font-black text-foreground">
+                                    {Math.floor(studyTime / 60)}:{(studyTime % 60).toString().padStart(2, '0')}
+                                </span>
+                            </div>
+
+                            <div className="flex gap-4 justify-center pt-4">
+                                <button onClick={exitStudy} className="flex items-center px-6 py-3 bg-background text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all">
+                                    <X className="w-5 h-5 mr-2" /> Salir
+                                </button>
+                                <button onClick={restartStudy} className="flex items-center px-6 py-3 bg-[#00ffcc] text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all">
+                                    <RotateCcw className="w-5 h-5 mr-2" /> Reintentar
+                                </button>
                             </div>
                         </CardContent>
                     </Card>
@@ -617,19 +632,26 @@ export default function Quizzes() {
 
         const currentQ = studyQuestions[currentIndex];
         return (
-            <div className="min-h-screen p-4 md:p-6 space-y-6">
+            <div className="min-h-screen p-4 md:p-8 space-y-8 bg-background">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="icon" onClick={exitStudy}>
-                            <ChevronLeft className="w-5 h-5" />
-                        </Button>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-3xl mx-auto w-full">
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={exitStudy}
+                            className="w-12 h-12 flex items-center justify-center bg-background border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all shrink-0"
+                        >
+                            <ChevronLeft className="w-6 h-6 text-foreground" />
+                        </button>
                         <div>
-                            <h2 className="font-semibold">{studyDeck.nombre}</h2>
-                            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                <span>Pregunta {currentIndex + 1} de {studyQuestions.length} · Correctas: {score}</span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1 font-medium bg-secondary px-2 py-0.5 rounded-full">
+                            <h2 className="text-xl font-display font-black uppercase tracking-widest text-foreground">{studyDeck.nombre}</h2>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <span className="text-xs font-black uppercase tracking-widest px-2 py-1 bg-[#1475e5] text-white border-[2px] border-foreground rounded-md shadow-[2px_2px_0_0_#000]">
+                                    {currentIndex + 1} / {studyQuestions.length}
+                                </span>
+                                <span className="text-xs font-black uppercase tracking-widest px-2 py-1 bg-[#25d06c] text-white border-[2px] border-foreground rounded-md shadow-[2px_2px_0_0_#000]">
+                                    Correctas: {score}
+                                </span>
+                                <span className="flex items-center gap-1 text-xs font-black uppercase tracking-widest px-2 py-1 bg-background text-foreground border-[2px] border-foreground rounded-md shadow-[2px_2px_0_0_#000]">
                                     <Timer className="w-3 h-3" />
                                     {Math.floor(studyTime / 60)}:{(studyTime % 60).toString().padStart(2, '0')}
                                 </span>
@@ -637,47 +659,57 @@ export default function Quizzes() {
                         </div>
                     </div>
                     {/* Progress bar */}
-                    <div className="w-32 h-2 bg-secondary rounded-full overflow-hidden">
+                    <div className="w-full md:w-48 h-4 bg-secondary border-[2px] border-foreground rounded-full overflow-hidden shadow-[2px_2px_0_0_#000]">
                         <div
-                            className="h-full bg-gradient-to-r from-neon-cyan to-neon-purple transition-all"
+                            className="h-full bg-[#ff4e4e] transition-all duration-500 ease-out border-r-[2px] border-foreground"
                             style={{ width: `${((currentIndex + 1) / studyQuestions.length) * 100}%` }}
                         />
                     </div>
                 </div>
 
                 {/* Question Card */}
-                <Card className="bg-card border-[3px] border-foreground shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] rounded-2xl max-w-2xl mx-auto">
-                    <CardContent className="p-6 space-y-6">
-                        <div className="flex items-start justify-between gap-3">
-                            <h3 className="text-lg font-semibold leading-relaxed">{currentQ.pregunta}</h3>
+                <Card className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl max-w-3xl mx-auto overflow-hidden">
+                    <CardContent className="p-6 md:p-8 space-y-8">
+                        <div className="flex items-start justify-between gap-4">
+                            <h3 className="text-xl md:text-2xl font-bold leading-relaxed text-foreground">{currentQ.pregunta}</h3>
                             {currentQ.is_multi_select && (
-                                <Badge variant="outline" className="shrink-0 bg-neon-purple/10 text-neon-purple border-neon-purple/30">
-                                    <ListChecks className="w-3 h-3 mr-1" /> Múltiple
+                                <Badge className="shrink-0 bg-[#ffd21c] text-black border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider hover:bg-[#ffd21c]">
+                                    <ListChecks className="w-4 h-4 mr-1" /> Múltiple
                                 </Badge>
                             )}
                         </div>
 
                         {currentQ.is_multi_select ? (
                             /* Multi-select: checkboxes */
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 {currentQ.options.map((opt, i) => {
                                     const letter = String.fromCharCode(65 + i);
                                     const isSelected = selectedAnswers.has(opt.id);
-                                    let optClass = "border-border hover:border-primary/50";
+                                    
+                                    let optClass = "bg-background hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]";
+                                    let letterClass = "bg-secondary text-foreground";
+                                    
                                     if (answered) {
-                                        if (opt.es_correcta) optClass = "border-green-500 bg-green-500/10";
-                                        else if (isSelected && !opt.es_correcta) optClass = "border-red-500 bg-red-500/10";
+                                        optClass = "cursor-default";
+                                        if (opt.es_correcta) {
+                                            optClass += " bg-[#25d06c]/20 border-[#25d06c] shadow-[2px_2px_0_0_#25d06c]";
+                                            letterClass = "bg-[#25d06c] text-white";
+                                        }
+                                        else if (isSelected && !opt.es_correcta) {
+                                            optClass += " bg-[#ff4e4e]/20 border-[#ff4e4e] shadow-[2px_2px_0_0_#ff4e4e]";
+                                            letterClass = "bg-[#ff4e4e] text-white";
+                                        }
                                     } else if (isSelected) {
-                                        optClass = "border-primary bg-primary/10";
+                                        optClass += " bg-[#00ffcc] border-foreground shadow-[4px_4px_0_0_#000] -translate-y-1";
+                                        letterClass = "bg-foreground text-white";
                                     }
 
                                     return (
                                         <div
                                             key={opt.id}
                                             className={cn(
-                                                "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                                                optClass,
-                                                answered && "cursor-default"
+                                                "flex items-center gap-4 p-4 rounded-xl border-[3px] border-foreground cursor-pointer transition-all",
+                                                optClass
                                             )}
                                             onClick={(e) => {
                                                 e.preventDefault();
@@ -691,20 +723,17 @@ export default function Quizzes() {
                                             }}
                                         >
                                             <div className={cn(
-                                                "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0",
-                                                isSelected && !answered ? "bg-primary text-primary-foreground" :
-                                                    answered && opt.es_correcta ? "bg-green-500 text-white" :
-                                                        answered && isSelected && !opt.es_correcta ? "bg-red-500 text-white" :
-                                                            "bg-secondary"
+                                                "w-10 h-10 rounded-lg flex items-center justify-center text-lg font-black shrink-0 border-[2px] border-foreground transition-colors",
+                                                letterClass
                                             )}>
-                                                {answered && opt.es_correcta ? <Check className="w-4 h-4" /> :
-                                                    answered && isSelected && !opt.es_correcta ? <X className="w-4 h-4" /> :
+                                                {answered && opt.es_correcta ? <Check className="w-6 h-6" /> :
+                                                    answered && isSelected && !opt.es_correcta ? <X className="w-6 h-6" /> :
                                                         letter}
                                             </div>
-                                            <span className="flex-1">{opt.texto}</span>
+                                            <span className="flex-1 font-semibold text-lg">{opt.texto}</span>
                                             <Checkbox
                                                 checked={isSelected}
-                                                className="pointer-events-none"
+                                                className="w-6 h-6 border-[2px] border-foreground data-[state=checked]:bg-foreground data-[state=checked]:text-white pointer-events-none rounded-md"
                                                 disabled={answered}
                                             />
                                         </div>
@@ -714,39 +743,47 @@ export default function Quizzes() {
                         ) : (
                             /* Single-select: radio buttons */
                             <RadioGroup value={selectedAnswer || ""} onValueChange={(v) => { if (!answered) setSelectedAnswer(v); }}>
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {currentQ.options.map((opt, i) => {
                                         const letter = String.fromCharCode(65 + i);
-                                        let optClass = "border-border hover:border-primary/50";
+                                        const isSelected = selectedAnswer === opt.id;
+
+                                        let optClass = "bg-background hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]";
+                                        let letterClass = "bg-secondary text-foreground";
+
                                         if (answered) {
-                                            if (opt.es_correcta) optClass = "border-green-500 bg-green-500/10";
-                                            else if (selectedAnswer === opt.id && !opt.es_correcta) optClass = "border-red-500 bg-red-500/10";
-                                        } else if (selectedAnswer === opt.id) {
-                                            optClass = "border-primary bg-primary/10";
+                                            optClass = "cursor-default";
+                                            if (opt.es_correcta) {
+                                                optClass += " bg-[#25d06c]/20 border-[#25d06c] shadow-[2px_2px_0_0_#25d06c]";
+                                                letterClass = "bg-[#25d06c] text-white";
+                                            }
+                                            else if (isSelected && !opt.es_correcta) {
+                                                optClass += " bg-[#ff4e4e]/20 border-[#ff4e4e] shadow-[2px_2px_0_0_#ff4e4e]";
+                                                letterClass = "bg-[#ff4e4e] text-white";
+                                            }
+                                        } else if (isSelected) {
+                                            optClass += " bg-[#00ffcc] border-foreground shadow-[4px_4px_0_0_#000] -translate-y-1";
+                                            letterClass = "bg-foreground text-white";
                                         }
 
                                         return (
                                             <label
                                                 key={opt.id}
                                                 className={cn(
-                                                    "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                                                    optClass,
-                                                    answered && "cursor-default"
+                                                    "flex items-center gap-4 p-4 rounded-xl border-[3px] border-foreground cursor-pointer transition-all relative overflow-hidden group",
+                                                    optClass
                                                 )}
                                             >
                                                 <RadioGroupItem value={opt.id} className="sr-only" />
                                                 <div className={cn(
-                                                    "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0",
-                                                    selectedAnswer === opt.id && !answered ? "bg-primary text-primary-foreground" :
-                                                        answered && opt.es_correcta ? "bg-green-500 text-white" :
-                                                            answered && selectedAnswer === opt.id && !opt.es_correcta ? "bg-red-500 text-white" :
-                                                                "bg-secondary"
+                                                    "w-10 h-10 rounded-lg flex items-center justify-center text-lg font-black shrink-0 border-[2px] border-foreground transition-colors",
+                                                    letterClass
                                                 )}>
-                                                    {answered && opt.es_correcta ? <Check className="w-4 h-4" /> :
-                                                        answered && selectedAnswer === opt.id && !opt.es_correcta ? <X className="w-4 h-4" /> :
+                                                    {answered && opt.es_correcta ? <Check className="w-6 h-6" /> :
+                                                        answered && isSelected && !opt.es_correcta ? <X className="w-6 h-6" /> :
                                                             letter}
                                                 </div>
-                                                <span className="flex-1">{opt.texto}</span>
+                                                <span className="flex-1 font-semibold text-lg">{opt.texto}</span>
                                             </label>
                                         );
                                     })}
@@ -755,25 +792,31 @@ export default function Quizzes() {
                         )}
 
                         {answered && currentQ.explicacion && (
-                            <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                                <p className="text-sm"><strong>Explicación:</strong> {currentQ.explicacion}</p>
+                            <div className="p-4 bg-background border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] mt-6 flex gap-4">
+                                <div className="w-10 h-10 shrink-0 bg-[#ffd21c] border-[2px] border-foreground rounded-lg flex items-center justify-center rotate-[-5deg]">
+                                    <Sparkles className="w-6 h-6 text-black" />
+                                </div>
+                                <div>
+                                    <h4 className="font-black uppercase tracking-widest text-foreground text-sm mb-1">Explicación</h4>
+                                    <p className="text-base font-medium text-foreground">{currentQ.explicacion}</p>
+                                </div>
                             </div>
                         )}
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-end pt-4 border-t-[3px] border-foreground border-dashed mt-6">
                             {!answered ? (
-                                <Button 
+                                <button 
                                     onClick={submitAnswer} 
                                     disabled={currentQ.is_multi_select ? selectedAnswers.size === 0 : !selectedAnswer} 
-                                    className="bg-gradient-to-r from-neon-cyan to-neon-purple"
+                                    className="px-6 py-3 bg-[#1475e5] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all"
                                 >
                                     Confirmar Respuesta
-                                </Button>
+                                </button>
                             ) : (
-                                <Button onClick={nextQuestion}>
+                                <button onClick={nextQuestion} className="flex items-center px-6 py-3 bg-[#ff4e4e] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all">
                                     {currentIndex + 1 >= studyQuestions.length ? "Ver Resultado" : "Siguiente"}
-                                    <ChevronRight className="w-4 h-4 ml-2" />
-                                </Button>
+                                    <ChevronRight className="w-5 h-5 ml-2" />
+                                </button>
                             )}
                         </div>
                     </CardContent>
@@ -785,55 +828,81 @@ export default function Quizzes() {
     // ---------- MANAGE QUESTIONS VIEW ----------
     if (manageDeck) {
         return (
-            <div className="min-h-screen p-4 md:p-6 space-y-6">
-                <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => { setManageDeck(null); setDeckQuestions([]); }}>
-                        <ChevronLeft className="w-5 h-5" />
-                    </Button>
-                    <div>
-                        <h2 className="text-xl font-bold">{manageDeck.nombre}</h2>
-                        <p className="text-sm text-muted-foreground">{manageDeck.total_questions} preguntas</p>
+            <div className="min-h-screen p-4 md:p-8 space-y-8 bg-background">
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => { setManageDeck(null); setDeckQuestions([]); }}
+                            className="w-12 h-12 flex items-center justify-center bg-background border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all shrink-0"
+                        >
+                            <ChevronLeft className="w-6 h-6 text-foreground" />
+                        </button>
+                        <div>
+                            <h2 className="text-2xl font-display font-black uppercase tracking-widest text-foreground">{manageDeck.nombre}</h2>
+                            <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{manageDeck.total_questions} preguntas</p>
+                        </div>
                     </div>
-                    <div className="ml-auto flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setShowPublishDialog(true)}>
+                    <div className="md:ml-auto flex items-center gap-3">
+                        <button 
+                            onClick={() => setShowPublishDialog(true)}
+                            className="flex items-center px-4 py-2 bg-[#ff4e4e] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all text-sm"
+                        >
                             <Store className="w-4 h-4 mr-2" /> Publicar
-                        </Button>
-                        <Button size="sm" onClick={() => setShowAddQuestion(true)}>
+                        </button>
+                        <button 
+                            onClick={() => setShowAddQuestion(true)}
+                            className="flex items-center px-4 py-2 bg-[#1475e5] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all text-sm"
+                        >
                             <Plus className="w-4 h-4 mr-2" /> Agregar Pregunta
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
                 {/* Subject Assignment */}
-                <Card className="card-gamer">
-                    <CardContent className="p-4">
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
-                            <div className="flex items-center gap-2">
-                                <GraduationCap className="w-5 h-5 text-neon-cyan" />
-                                <Label className="font-semibold text-sm">Materia asignada</Label>
+                <Card className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
+                    <CardContent className="p-6">
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-[#00ffcc] border-[2px] border-foreground rounded-lg flex items-center justify-center shrink-0">
+                                    <GraduationCap className="w-5 h-5 text-foreground" />
+                                </div>
+                                <Label className="font-black uppercase tracking-widest text-foreground">Materia asignada</Label>
                             </div>
-                            <select
-                                value={manageDeck.subject_id || ""}
-                                onChange={(e) => {
-                                    if (e.target.value) updateDeckSubject(manageDeck.id, e.target.value);
-                                }}
-                                className="flex-1 w-full md:w-auto px-4 py-2.5 bg-secondary rounded-xl border border-border font-medium text-sm"
-                            >
-                                <option value="">Sin materia asignada</option>
-                                {[1, 2, 3, 4, 5, 6].map(year => {
-                                    const yearSubjects = subjects.filter(s => s.año === year);
-                                    if (yearSubjects.length === 0) return null;
-                                    return (
-                                        <optgroup key={year} label={`${year}° Año`}>
-                                            {yearSubjects.map(s => (
-                                                <option key={s.id} value={s.id}>{s.nombre}</option>
-                                            ))}
-                                        </optgroup>
-                                    );
-                                })}
-                            </select>
+                            
+                            <div className="w-full md:w-auto flex-1 max-w-md">
+                                <Select 
+                                    value={manageDeck.subject_id || "none"}
+                                    onValueChange={(val) => {
+                                        if (val !== "none") updateDeckSubject(manageDeck.id, val);
+                                    }}
+                                >
+                                    <SelectTrigger className="w-full px-4 py-6 h-auto bg-background rounded-xl border-[3px] border-foreground font-black shadow-[4px_4px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[6px_6px_0_0_#000] transition-all text-sm data-[state=open]:shadow-[6px_6px_0_0_#000]">
+                                        <SelectValue placeholder="Sin materia asignada" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-xl">
+                                        <SelectItem value="none" className="font-bold uppercase tracking-widest text-muted-foreground focus:bg-secondary cursor-pointer rounded-lg my-1">
+                                            Sin materia asignada
+                                        </SelectItem>
+                                        {[1, 2, 3, 4, 5, 6].map(year => {
+                                            const yearSubjects = subjects.filter(s => s.año === year);
+                                            if (yearSubjects.length === 0) return null;
+                                            return (
+                                                <SelectGroup key={year}>
+                                                    <SelectLabel className="font-black uppercase tracking-widest text-muted-foreground">{year}° Año</SelectLabel>
+                                                    {yearSubjects.map(s => (
+                                                        <SelectItem key={s.id} value={s.id} className="font-bold focus:bg-secondary cursor-pointer rounded-lg my-1">
+                                                            {s.nombre}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
                             {manageDeck.subject && (
-                                <Badge variant="outline" className="bg-primary/10 shrink-0">
+                                <Badge className="bg-[#ffd21c] text-black border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider px-3 py-1.5 shrink-0 hover:bg-[#ffd21c]">
                                     Año {manageDeck.subject.año} · {manageDeck.subject.nombre}
                                 </Badge>
                             )}
@@ -843,47 +912,69 @@ export default function Quizzes() {
 
                 {loadingQuestions ? (
                     <div className="flex justify-center py-12">
-                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                        <div className="w-12 h-12 border-4 border-foreground border-t-[#00ffcc] rounded-full animate-spin shadow-[4px_4px_0_0_#000]" />
                     </div>
                 ) : deckQuestions.length === 0 ? (
-                    <Card className="card-gamer">
-                        <CardContent className="p-8 text-center">
-                            <ClipboardList className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <p className="text-muted-foreground">Aún no hay preguntas. ¡Agregá la primera!</p>
+                    <Card className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl border-dashed">
+                        <CardContent className="p-12 text-center">
+                            <div className="w-20 h-20 bg-secondary border-[3px] border-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-[-5deg] shadow-[4px_4px_0_0_#000]">
+                                <ClipboardList className="w-10 h-10 text-muted-foreground" />
+                            </div>
+                            <h3 className="text-xl font-black uppercase tracking-widest text-foreground mb-2">Aún no hay preguntas</h3>
+                            <p className="text-muted-foreground font-bold">¡Agregá la primera pregunta para empezar a estudiar!</p>
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {deckQuestions.map((q, qi) => (
-                            <Card key={q.id} className="card-gamer">
-                                <CardContent className="p-4">
-                                    <div className="flex items-start justify-between mb-3">
+                            <Card key={q.id} className="bg-background border-[3px] border-foreground shadow-[6px_6px_0_0_#000] rounded-2xl overflow-hidden hover:shadow-[8px_8px_0_0_#000] transition-shadow">
+                                <CardContent className="p-6">
+                                    <div className="flex items-start justify-between mb-4">
                                         <div className="flex-1">
-                                            <p className="font-semibold"><span className="text-muted-foreground mr-2">{qi + 1}.</span>{q.pregunta}</p>
+                                            <div className="flex items-start gap-3">
+                                                <span className="flex items-center justify-center w-8 h-8 bg-secondary border-[2px] border-foreground rounded-lg font-black shrink-0 text-sm">
+                                                    {qi + 1}
+                                                </span>
+                                                <p className="font-bold text-lg leading-snug">{q.pregunta}</p>
+                                            </div>
                                             {q.is_multi_select && (
-                                                <Badge variant="outline" className="mt-1 text-xs bg-neon-purple/10 text-neon-purple border-neon-purple/30">
+                                                <Badge className="mt-3 ml-11 bg-[#ffd21c] text-black border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider text-xs hover:bg-[#ffd21c]">
                                                     <ListChecks className="w-3 h-3 mr-1" /> Múltiple
                                                 </Badge>
                                             )}
                                         </div>
-                                        <Button variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => deleteQuestion(q.id)}>
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                        <button 
+                                            onClick={() => deleteQuestion(q.id)}
+                                            className="w-10 h-10 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all shrink-0 ml-4"
+                                            title="Eliminar pregunta"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
                                     </div>
-                                    <div className="grid gap-2 ml-6">
+                                    <div className="grid gap-3 ml-11">
                                         {q.options.map((o, oi) => (
                                             <div key={o.id} className={cn(
-                                                "text-sm px-3 py-2 rounded-lg flex items-center gap-2",
-                                                o.es_correcta ? "bg-green-500/15 text-green-400 border border-green-500/30" : "bg-secondary/50"
+                                                "px-4 py-3 rounded-xl border-[2px] border-foreground flex items-center gap-3 font-semibold text-sm",
+                                                o.es_correcta 
+                                                    ? "bg-[#25d06c]/20 shadow-[2px_2px_0_0_#25d06c]" 
+                                                    : "bg-secondary"
                                             )}>
-                                                <span className="font-bold text-xs w-5">{String.fromCharCode(65 + oi)})</span>
-                                                {o.texto}
-                                                {o.es_correcta && <Check className="w-3 h-3 ml-auto" />}
+                                                <span className={cn(
+                                                    "flex items-center justify-center w-7 h-7 rounded-md border-[2px] border-foreground font-black text-xs shrink-0",
+                                                    o.es_correcta ? "bg-[#25d06c] text-white" : "bg-background text-foreground"
+                                                )}>
+                                                    {String.fromCharCode(65 + oi)}
+                                                </span>
+                                                <span className="flex-1">{o.texto}</span>
+                                                {o.es_correcta && <Check className="w-4 h-4 text-[#25d06c]" />}
                                             </div>
                                         ))}
                                     </div>
                                     {q.explicacion && (
-                                        <p className="text-xs text-muted-foreground mt-2 ml-6 italic">💡 {q.explicacion}</p>
+                                        <div className="mt-4 ml-11 p-3 bg-secondary/50 border-[2px] border-foreground border-dashed rounded-xl flex gap-2 items-start">
+                                            <Sparkles className="w-4 h-4 text-[#ffd21c] shrink-0 mt-0.5" />
+                                            <p className="text-sm font-medium text-foreground">{q.explicacion}</p>
+                                        </div>
                                     )}
                                 </CardContent>
                             </Card>
@@ -893,26 +984,27 @@ export default function Quizzes() {
 
                 {/* Add Question Dialog */}
                 <Dialog open={showAddQuestion} onOpenChange={setShowAddQuestion}>
-                    <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-w-lg max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>Nueva Pregunta</DialogTitle>
+                            <DialogTitle className="font-display font-black uppercase tracking-widest text-xl text-foreground">Nueva Pregunta</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4 pt-2">
+                        <div className="space-y-6 pt-4">
                             <div className="space-y-2">
-                                <Label>Pregunta *</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Pregunta *</Label>
                                 <Textarea
                                     placeholder="Escribe la pregunta..."
                                     value={newQuestion}
                                     onChange={(e) => setNewQuestion(e.target.value)}
                                     rows={2}
+                                    className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                                 />
                             </div>
 
                             {/* Multi-select toggle */}
-                            <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl border border-border">
-                                <div className="flex items-center gap-2">
-                                    <ListChecks className="w-4 h-4 text-neon-purple" />
-                                    <Label className="text-sm font-medium cursor-pointer">Permitir múltiples respuestas</Label>
+                            <div className="flex items-center justify-between p-4 bg-background rounded-xl border-[2px] border-foreground shadow-[2px_2px_0_0_#000]">
+                                <div className="flex items-center gap-3">
+                                    <ListChecks className="w-5 h-5 text-[#ffd21c]" />
+                                    <Label className="text-sm font-black uppercase tracking-widest cursor-pointer">Permitir múltiples respuestas</Label>
                                 </div>
                                 <button
                                     type="button"
@@ -921,21 +1013,21 @@ export default function Quizzes() {
                                         setCorrectOptions(new Set([0]));
                                     }}
                                     className={cn(
-                                        "relative w-11 h-6 rounded-full transition-colors",
-                                        isMultiSelect ? "bg-neon-purple" : "bg-border"
+                                        "relative w-12 h-6 border-[2px] border-foreground rounded-full transition-colors",
+                                        isMultiSelect ? "bg-[#25d06c]" : "bg-secondary"
                                     )}
                                 >
                                     <span className={cn(
-                                        "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform",
-                                        isMultiSelect && "translate-x-5"
+                                        "absolute top-0.5 left-0.5 w-4 h-4 rounded-full border-[2px] border-foreground bg-white transition-transform",
+                                        isMultiSelect && "translate-x-6"
                                     )} />
                                 </button>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>{isMultiSelect ? "Opciones (marcar las correctas)" : "Opciones (marcar la correcta)"}</Label>
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{isMultiSelect ? "Opciones (marcar las correctas)" : "Opciones (marcar la correcta)"}</Label>
                                 {newOptions.map((opt, i) => (
-                                    <div key={i} className="flex items-center gap-2">
+                                    <div key={i} className="flex items-center gap-3">
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -951,15 +1043,15 @@ export default function Quizzes() {
                                                 }
                                             }}
                                             className={cn(
-                                                "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 border-2 transition-all",
+                                                "w-10 h-10 rounded-lg flex items-center justify-center text-sm font-black shrink-0 border-[2px] border-foreground transition-all",
                                                 correctOptions.has(i)
-                                                    ? "bg-green-500 text-white border-green-500"
-                                                    : "bg-secondary border-border hover:border-green-500/50"
+                                                    ? "bg-[#25d06c] text-white shadow-[2px_2px_0_0_#25d06c]"
+                                                    : "bg-secondary hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                                             )}
                                         >
-                                            {correctOptions.has(i) ? <Check className="w-4 h-4" /> : String.fromCharCode(65 + i)}
+                                            {correctOptions.has(i) ? <Check className="w-5 h-5" /> : String.fromCharCode(65 + i)}
                                         </button>
-                                        <Input
+                                        <input
                                             placeholder={`Opción ${String.fromCharCode(65 + i)}${i < 2 ? " *" : " (opcional)"}`}
                                             value={opt}
                                             onChange={(e) => {
@@ -967,70 +1059,77 @@ export default function Quizzes() {
                                                 copy[i] = e.target.value;
                                                 setNewOptions(copy);
                                             }}
+                                            className="w-full px-4 py-2.5 bg-background rounded-lg border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                                         />
                                     </div>
                                 ))}
                             </div>
                             <div className="space-y-2">
-                                <Label>Explicación (opcional)</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Explicación (opcional)</Label>
                                 <Textarea
                                     placeholder="Explicación de por qué la respuesta es correcta..."
                                     value={newExplanation}
                                     onChange={(e) => setNewExplanation(e.target.value)}
                                     rows={2}
+                                    className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                                 />
                             </div>
-                            <Button
-                                className="w-full"
+                            <button
+                                className="w-full py-3 bg-[#1475e5] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all"
                                 onClick={addQuestion}
                                 disabled={!newQuestion.trim() || newOptions.filter(o => o.trim()).length < 2 || correctOptions.size === 0}
                             >
                                 Agregar Pregunta
-                            </Button>
+                            </button>
                         </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Publish to Marketplace Dialog */}
                 <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
-                    <DialogContent className="bg-card border-border max-w-md">
+                    <DialogContent className="bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-w-md">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Store className="w-5 h-5 text-neon-purple" />
+                            <DialogTitle className="font-display font-black uppercase tracking-widest text-xl flex items-center gap-2">
+                                <Store className="w-6 h-6 text-foreground" />
                                 Publicar en Marketplace
                             </DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4 pt-2">
-                            <div className="p-4 bg-neon-purple/10 border border-neon-purple/30 rounded-xl">
-                                <p className="font-semibold">{manageDeck.nombre}</p>
-                                <p className="text-sm text-muted-foreground">{manageDeck.total_questions} preguntas · {manageDeck.subject?.nombre || 'Sin materia'}</p>
+                        <div className="space-y-6 pt-4">
+                            <div className="p-4 bg-secondary/50 border-[2px] border-foreground rounded-xl flex items-start gap-4">
+                                <div className="w-10 h-10 bg-[#00ffcc] border-[2px] border-foreground rounded-lg flex items-center justify-center shrink-0">
+                                    <ClipboardList className="w-5 h-5 text-foreground" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-foreground text-lg leading-snug">{manageDeck.nombre}</p>
+                                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-1">{manageDeck.total_questions} preguntas · {manageDeck.subject?.nombre || 'Sin materia'}</p>
+                                </div>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-muted-foreground uppercase">Descripción *</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Descripción *</Label>
                                 <Textarea
                                     placeholder="Describe este cuestionario para que otros sepan de qué se trata..."
                                     value={publishDescription}
                                     onChange={(e) => setPublishDescription(e.target.value)}
                                     rows={3}
-                                    className="bg-secondary/30 border-border"
+                                    className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-muted-foreground uppercase">Categoría / Etiquetas *</Label>
-                                <Input
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Categoría / Etiquetas *</Label>
+                                <input
                                     placeholder="Ej: Parcial, Final, Resumen..."
                                     value={publishCategory}
                                     onChange={(e) => setPublishCategory(e.target.value)}
-                                    className="bg-secondary/30 border-border"
+                                    className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                                 />
                             </div>
-                            <Button
-                                className="w-full bg-gradient-to-r from-neon-purple to-neon-cyan hover:opacity-90"
+                            <button
+                                className="w-full py-3 bg-[#ff4e4e] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 transition-all"
                                 onClick={publishToMarketplace}
                                 disabled={isPublishing || !publishDescription.trim() || !publishCategory.trim()}
                             >
                                 {isPublishing ? "Publicando..." : "Publicar Ahora"}
-                            </Button>
+                            </button>
                         </div>
                     </DialogContent>
                 </Dialog>
@@ -1042,7 +1141,7 @@ export default function Quizzes() {
     return (
         <div className="tabe-page p-4 md:p-8 space-y-6 min-h-screen">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
                 <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-xl bg-[#00d9ff] border-[3px] border-foreground flex items-center justify-center shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]">
                         <ClipboardList className="w-7 h-7 text-black" />
@@ -1058,7 +1157,7 @@ export default function Quizzes() {
                 </div>
                 <Button
                     onClick={() => setShowCreateDeck(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-[#00d9ff] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-0 active:shadow-none transition-all"
+                    className="flex items-center gap-2 px-6 py-3 bg-[#00d9ff] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
                 >
                     <Plus className="w-5 h-5" />
                     Nuevo Cuestionario
@@ -1066,20 +1165,20 @@ export default function Quizzes() {
             </div>
 
             {/* Filters */}
-            <div className="card-gamer rounded-xl p-4 space-y-4">
+            <div className="bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] p-6 space-y-6">
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                        <Filter className="w-4 h-4 text-primary" />
-                        <span className="font-medium text-sm">Filtrar por Año</span>
+                        <Filter className="w-5 h-5 text-foreground" />
+                        <span className="font-black uppercase tracking-widest text-sm text-foreground">Filtrar por Año</span>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-3 flex-wrap">
                         <button
                             onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
                             className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                                "px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all",
                                 selectedYear === null
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-secondary hover:bg-secondary/80"
+                                    ? "bg-[#25d06c] text-white"
+                                    : "bg-background text-foreground"
                             )}
                         >
                             Todos
@@ -1089,10 +1188,10 @@ export default function Quizzes() {
                                 key={y}
                                 onClick={() => { setSelectedYear(y); setSelectedSubject(null); }}
                                 className={cn(
-                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                                    "px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all",
                                     selectedYear === y
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-secondary hover:bg-secondary/80"
+                                        ? "bg-[#25d06c] text-white"
+                                        : "bg-background text-foreground"
                                 )}
                             >
                                 {y}° Año
@@ -1102,19 +1201,19 @@ export default function Quizzes() {
                 </div>
 
                 {selectedYear !== null && (
-                    <div className="space-y-3 pt-3 border-t border-border/50 animate-in fade-in slide-in-from-top-2">
+                    <div className="space-y-3 pt-6 border-t-[3px] border-foreground border-dashed animate-in fade-in slide-in-from-top-2">
                         <div className="flex items-center gap-2">
-                            <GraduationCap className="w-4 h-4 text-neon-cyan" />
-                            <span className="font-medium text-sm">Materia</span>
+                            <GraduationCap className="w-5 h-5 text-foreground" />
+                            <span className="font-black uppercase tracking-widest text-sm text-foreground">Materia</span>
                         </div>
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="flex gap-3 flex-wrap">
                             <button
                                 onClick={() => setSelectedSubject(null)}
                                 className={cn(
-                                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                    "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all",
                                     selectedSubject === null
-                                        ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30"
-                                        : "bg-secondary hover:bg-secondary/80 border border-transparent"
+                                        ? "bg-[#1475e5] text-white"
+                                        : "bg-secondary text-foreground"
                                 )}
                             >
                                 Todas las materias
@@ -1124,10 +1223,10 @@ export default function Quizzes() {
                                     key={sub.id}
                                     onClick={() => setSelectedSubject(sub.id)}
                                     className={cn(
-                                        "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                        "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all",
                                         selectedSubject === sub.id
-                                            ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30"
-                                            : "bg-secondary hover:bg-secondary/80 border border-transparent"
+                                            ? "bg-[#1475e5] text-white"
+                                            : "bg-secondary text-foreground"
                                     )}
                                 >
                                     {sub.nombre}
@@ -1140,28 +1239,33 @@ export default function Quizzes() {
 
             {/* Decks Grid */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1, 2, 3].map((i) => (
-                        <Card key={i} className="card-gamer animate-pulse">
+                        <Card key={i} className="bg-secondary/50 border-[3px] border-foreground rounded-2xl animate-pulse">
                             <CardContent className="p-6 h-48" />
                         </Card>
                     ))}
                 </div>
             ) : decks.length === 0 && !selectedYear ? (
-                <Card className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl">
+                <Card className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl border-dashed">
                     <CardContent className="p-12 text-center">
-                        <ClipboardList className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
-                        <h3 className="text-lg font-semibold mb-2">Sin cuestionarios</h3>
-                        <p className="text-muted-foreground mb-4">
+                        <div className="w-20 h-20 bg-[#ffd21c] border-[3px] border-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-[-5deg] shadow-[4px_4px_0_0_#000]">
+                            <ClipboardList className="w-10 h-10 text-black" />
+                        </div>
+                        <h3 className="text-xl font-black uppercase tracking-widest text-foreground mb-2">Sin cuestionarios</h3>
+                        <p className="text-muted-foreground font-bold mb-6">
                             Crea tu primer cuestionario o pedile a la IA que genere uno automáticamente
                         </p>
-                        <Button onClick={() => setShowCreateDeck(true)}>
-                            <Plus className="w-4 h-4 mr-2" /> Crear Cuestionario
-                        </Button>
+                        <button 
+                            onClick={() => setShowCreateDeck(true)}
+                            className="inline-flex items-center px-6 py-3 bg-[#00ffcc] text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+                        >
+                            <Plus className="w-5 h-5 mr-2" /> Crear Cuestionario
+                        </button>
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 tour-quizzes-decks">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 tour-quizzes-decks">
                     {decks
                         .filter(d => {
                             if (selectedYear && d.subject?.año !== selectedYear) return false;
@@ -1169,40 +1273,38 @@ export default function Quizzes() {
                             return true;
                         })
                         .map((deck) => (
-                            <Card key={deck.id} className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all group">
-                                <CardContent className="p-5">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
-                                                <ClipboardList className="w-6 h-6 text-background" />
+                            <Card key={deck.id} className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl hover:-translate-y-2 hover:shadow-[12px_12px_0_0_#000] transition-all group flex flex-col">
+                                <CardContent className="p-6 flex flex-col flex-1">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-[#ffd21c] border-[3px] border-foreground flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
+                                                <ClipboardList className="w-6 h-6 text-black" />
                                             </div>
                                             <div>
-                                                <h3 className="font-semibold line-clamp-1">{deck.nombre}</h3>
-                                                <p className="text-sm text-muted-foreground">{deck.total_questions} preguntas</p>
+                                                <h3 className="font-black text-lg leading-snug line-clamp-2 uppercase">{deck.nombre}</h3>
+                                                <p className="text-sm font-bold text-muted-foreground">{deck.total_questions} preguntas</p>
                                             </div>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="opacity-0 group-hover:opacity-100 text-destructive"
+                                        <button
+                                            className="w-10 h-10 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-xl shadow-[2px_2px_0_0_#000] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all opacity-0 group-hover:opacity-100 shrink-0 ml-2"
                                             onClick={() => setDeleteDeck(deck)}
+                                            title="Eliminar"
                                         >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
                                     </div>
 
                                     {deck.subject && (
-                                        <Badge variant="outline" className="text-xs mb-3 bg-primary/10">
-                                            <GraduationCap className="w-3 h-3 mr-1" />
+                                        <Badge className="bg-secondary text-foreground border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider mb-4 mt-auto">
+                                            <GraduationCap className="w-4 h-4 mr-1.5" />
                                             Año {deck.subject.año} · {deck.subject.nombre}
                                         </Badge>
                                     )}
+                                    {!deck.subject && <div className="mt-auto" />}
 
-                                    <div className="flex gap-2 mt-4">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1 border-primary text-primary hover:bg-primary/10"
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            className="flex-1 flex items-center justify-center py-2.5 bg-background text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all text-sm"
                                             onClick={() => {
                                                 setManageDeck(deck);
                                                 fetchQuestions(deck.id);
@@ -1210,16 +1312,15 @@ export default function Quizzes() {
                                         >
                                             <Edit className="w-4 h-4 mr-2" />
                                             Gestionar
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple"
+                                        </button>
+                                        <button
+                                            className="flex-1 flex items-center justify-center py-2.5 bg-[#00ffcc] text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all text-sm"
                                             disabled={deck.total_questions === 0}
                                             onClick={() => checkStudyOptions(deck)}
                                         >
                                             <Zap className="w-4 h-4 mr-2" />
                                             Practicar
-                                        </Button>
+                                        </button>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -1229,26 +1330,26 @@ export default function Quizzes() {
 
             {/* Create Deck Dialog */}
             <Dialog open={showCreateDeck} onOpenChange={setShowCreateDeck}>
-                <DialogContent className="sm:max-w-md bg-card border-border">
+                <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000]">
                     <DialogHeader>
-                        <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
-                            <ClipboardList className="w-5 h-5 text-neon-cyan" />
+                        <DialogTitle className="font-display font-black uppercase tracking-widest text-xl flex items-center gap-2">
+                            <ClipboardList className="w-6 h-6 text-foreground" />
                             Nuevo Cuestionario
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-5 py-4">
+                    <div className="space-y-6 pt-4">
                         <div>
-                            <label className="text-sm font-medium text-muted-foreground">Seleccionar Año *</label>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Seleccionar Año *</Label>
                             <div className="flex gap-2 mt-2">
                                 {[1, 2, 3, 4, 5, 6].map(year => (
                                     <button
                                         key={year}
                                         onClick={() => { setNewDeckYear(year); setNewDeckSubject(""); }}
                                         className={cn(
-                                            "flex-1 py-3 rounded-xl text-sm font-semibold transition-all",
+                                            "flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-widest border-[3px] border-foreground transition-all",
                                             newDeckYear === year
-                                                ? "bg-gradient-to-r from-neon-cyan to-neon-purple text-background"
-                                                : "bg-secondary hover:bg-secondary/80"
+                                                ? "bg-[#25d06c] text-white shadow-[4px_4px_0_0_#000] -translate-y-1"
+                                                : "bg-background hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
                                         )}
                                     >
                                         {year}°
@@ -1258,33 +1359,36 @@ export default function Quizzes() {
                         </div>
 
                         {newDeckYear && (
-                            <div className="animate-fade-in">
-                                <label className="text-sm font-medium text-muted-foreground">Materia *</label>
-                                <select
+                            <div className="animate-in fade-in">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Materia *</Label>
+                                <Select
                                     value={newDeckSubject}
-                                    onChange={(e) => setNewDeckSubject(e.target.value)}
-                                    className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border font-medium"
+                                    onValueChange={setNewDeckSubject}
                                 >
-                                    <option value="">Seleccionar materia</option>
-                                    {subjects
-                                        .filter(s => s.año === newDeckYear)
-                                        .map(subject => (
-                                            <option key={subject.id} value={subject.id}>
-                                                {subject.nombre}
-                                            </option>
-                                        ))}
-                                </select>
+                                    <SelectTrigger className="w-full mt-2 px-4 py-6 h-auto bg-background rounded-xl border-[3px] border-foreground font-black shadow-[4px_4px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[6px_6px_0_0_#000] transition-all text-sm data-[state=open]:shadow-[6px_6px_0_0_#000]">
+                                        <SelectValue placeholder="Seleccionar materia" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-xl">
+                                        {subjects
+                                            .filter(s => s.año === newDeckYear)
+                                            .map(subject => (
+                                                <SelectItem key={subject.id} value={subject.id} className="font-bold focus:bg-secondary cursor-pointer rounded-lg my-1">
+                                                    {subject.nombre}
+                                                </SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
 
                         {newDeckSubject && (
-                            <div className="animate-fade-in space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground">Nombre del Cuestionario *</label>
-                                <Input
+                            <div className="animate-in fade-in space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nombre del Cuestionario *</Label>
+                                <input
                                     placeholder="Ej: Parcial 1 - Sistemas Operativos"
                                     value={newDeckName}
                                     onChange={(e) => setNewDeckName(e.target.value)}
-                                    className="px-4 py-6 bg-secondary rounded-xl border-border"
+                                    className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                                 />
                             </div>
                         )}
@@ -1292,7 +1396,7 @@ export default function Quizzes() {
                         <button
                             onClick={createDeck}
                             disabled={!newDeckSubject || !newDeckName.trim()}
-                            className="w-full py-3.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-background rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-neon-cyan/25"
+                            className="w-full py-3 bg-[#1475e5] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all"
                         >
                             Crear Cuestionario
                         </button>
@@ -1302,96 +1406,106 @@ export default function Quizzes() {
 
             {/* Delete Confirm Dialog */}
             <Dialog open={!!deleteDeck} onOpenChange={() => setDeleteDeck(null)}>
-                <DialogContent className="bg-card border-border">
+                <DialogContent className="bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-w-sm">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-destructive">
-                            <AlertCircle className="w-5 h-5" />
+                        <DialogTitle className="flex items-center gap-2 font-black uppercase tracking-widest text-[#ff4e4e]">
+                            <AlertCircle className="w-6 h-6" />
                             Eliminar Cuestionario
                         </DialogTitle>
                     </DialogHeader>
-                    <p className="text-muted-foreground">
+                    <p className="text-foreground font-medium py-2">
                         ¿Estás seguro de que querés eliminar <strong>{deleteDeck?.nombre}</strong>? Se borrarán todas las preguntas.
                     </p>
-                    <div className="flex gap-3 justify-end">
-                        <Button variant="outline" onClick={() => setDeleteDeck(null)}>Cancelar</Button>
-                        <Button variant="destructive" onClick={confirmDeleteDeck}>Eliminar</Button>
+                    <div className="flex gap-4 pt-4">
+                        <button 
+                            className="flex-1 py-3 bg-background text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+                            onClick={() => setDeleteDeck(null)}
+                        >
+                            Cancelar
+                        </button>
+                        <button 
+                            className="flex-1 py-3 bg-[#ff4e4e] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+                            onClick={confirmDeleteDeck}
+                        >
+                            Eliminar
+                        </button>
                     </div>
                 </DialogContent>
             </Dialog>
 
             {/* Study Options Dialog */}
             <Dialog open={showStudyOptions} onOpenChange={setShowStudyOptions}>
-                <DialogContent className="bg-card border-border">
+                <DialogContent className="bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-w-sm">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Zap className="w-5 h-5 text-neon-cyan" />
+                        <DialogTitle className="flex items-center gap-2 font-black uppercase tracking-widest text-xl">
+                            <Zap className="w-6 h-6 text-[#00ffcc]" />
                             Opciones de Práctica
                         </DialogTitle>
                     </DialogHeader>
                     
-                    <div className="space-y-6 pt-2">
+                    <div className="space-y-6 pt-4">
                         {savedWrongIds.length > 0 && (
-                            <div className="p-3 bg-neon-purple/10 border border-neon-purple/30 rounded-xl">
-                                <p className="text-sm font-medium">
+                            <div className="p-4 bg-[#ff4e4e]/20 border-[3px] border-[#ff4e4e] rounded-xl text-[#ff4e4e] font-bold">
+                                <p>
                                     Tenés {savedWrongIds.length} pregunta(s) en las que te equivocaste en tu intento anterior.
                                 </p>
                             </div>
                         )}
 
                         <div className="space-y-3">
-                            <Label className="text-base font-semibold">Orden de las preguntas</Label>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Orden de las preguntas</Label>
                             <RadioGroup value={studyOrder} onValueChange={(v: any) => setStudyOrder(v)}>
-                                <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-3">
                                     <label className={cn(
-                                        "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
-                                        studyOrder === 'random' ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                                        "flex items-center gap-4 p-4 rounded-xl border-[3px] border-foreground cursor-pointer transition-all",
+                                        studyOrder === 'random' ? "bg-[#00ffcc] shadow-[4px_4px_0_0_#000] -translate-y-1" : "bg-background hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
                                     )}>
                                         <RadioGroupItem value="random" className="sr-only" />
                                         <div className={cn(
-                                            "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                            studyOrder === 'random' ? "border-primary" : "border-muted-foreground"
+                                            "w-6 h-6 rounded-full border-[2px] border-foreground flex items-center justify-center bg-white",
                                         )}>
-                                            {studyOrder === 'random' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                            {studyOrder === 'random' && <div className="w-3 h-3 rounded-full bg-foreground" />}
                                         </div>
-                                        <span>Al azar</span>
+                                        <span className="font-bold">Al azar</span>
                                     </label>
                                     <label className={cn(
-                                        "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
-                                        studyOrder === 'sequential' ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                                        "flex items-center gap-4 p-4 rounded-xl border-[3px] border-foreground cursor-pointer transition-all",
+                                        studyOrder === 'sequential' ? "bg-[#00ffcc] shadow-[4px_4px_0_0_#000] -translate-y-1" : "bg-background hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
                                     )}>
                                         <RadioGroupItem value="sequential" className="sr-only" />
                                         <div className={cn(
-                                            "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                            studyOrder === 'sequential' ? "border-primary" : "border-muted-foreground"
+                                            "w-6 h-6 rounded-full border-[2px] border-foreground flex items-center justify-center bg-white",
                                         )}>
-                                            {studyOrder === 'sequential' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                            {studyOrder === 'sequential' && <div className="w-3 h-3 rounded-full bg-foreground" />}
                                         </div>
-                                        <span>Orden original (secuencial)</span>
+                                        <span className="font-bold">Orden original</span>
                                     </label>
                                 </div>
                             </RadioGroup>
                         </div>
 
-                        <div className="flex flex-col gap-3 pt-2">
+                        <div className="flex flex-col gap-4 pt-4 border-t-[3px] border-foreground border-dashed mt-4">
                             {savedWrongIds.length > 0 && (
-                                <Button 
-                                    className="bg-gradient-to-r from-neon-cyan to-neon-purple hover:opacity-90"
+                                <button 
+                                    className="w-full py-3 bg-[#ff4e4e] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
                                     onClick={() => {
                                         if (pendingStudyDeck) startStudy(pendingStudyDeck, savedWrongIds, studyOrder);
                                     }}
                                 >
                                     Repasar mis errores ({savedWrongIds.length})
-                                </Button>
+                                </button>
                             )}
-                            <Button 
-                                variant={savedWrongIds.length > 0 ? "outline" : "default"}
-                                className={savedWrongIds.length === 0 ? "bg-gradient-to-r from-neon-cyan to-neon-purple hover:opacity-90" : ""}
+                            <button 
+                                className={cn(
+                                    "w-full py-3 font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all",
+                                    savedWrongIds.length > 0 ? "bg-background text-foreground" : "bg-[#00ffcc] text-foreground"
+                                )}
                                 onClick={() => {
                                     if (pendingStudyDeck) startStudy(pendingStudyDeck, [], studyOrder);
                                 }}
                             >
-                                {savedWrongIds.length > 0 ? "Empezar de nuevo (Todas)" : "Comenzar Práctica"}
-                            </Button>
+                                {savedWrongIds.length > 0 ? "Empezar de nuevo" : "Comenzar Práctica"}
+                            </button>
                         </div>
                     </div>
                 </DialogContent>

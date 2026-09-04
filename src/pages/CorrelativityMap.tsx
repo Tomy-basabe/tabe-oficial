@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import { useSubjects, Subject } from "@/hooks/useSubjects";
 import { Loader2 } from "lucide-react";
 import { SubjectNode } from "@/components/correlativity/SubjectNode";
+import { useTheme } from "@/hooks/useTheme";
 
 // --- Error Boundary Component ---
 class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -119,6 +120,7 @@ function CorrelativityMapContent() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { subjects, loading } = useSubjects();
+    const { theme } = useTheme();
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -155,8 +157,8 @@ function CorrelativityMapContent() {
                             target: subject.id,
                             type: 'smoothstep',
                             animated: true,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: '#fbbf24', width: 14, height: 14 },
-                            style: { stroke: '#fbbf24', strokeWidth: 1.5, opacity: 0.6 },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: '#ffd21c', width: 14, height: 14 },
+                            style: { stroke: '#ffd21c', strokeWidth: 3, opacity: 0.8 },
                         });
                     }
                     if (dep.requiere_regular) {
@@ -166,8 +168,8 @@ function CorrelativityMapContent() {
                             target: subject.id,
                             type: 'smoothstep',
                             animated: true,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: '#00d9ff', width: 14, height: 14 },
-                            style: { stroke: '#00d9ff', strokeWidth: 1.5, strokeDasharray: '6,4', opacity: 0.5 },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: '#1475e5', width: 14, height: 14 },
+                            style: { stroke: '#1475e5', strokeWidth: 3, strokeDasharray: '6,4', opacity: 0.8 },
                         });
                     }
                 });
@@ -195,24 +197,24 @@ function CorrelativityMapContent() {
     return (
         <div className="tabe-map h-screen w-full bg-background flex flex-col relative overflow-hidden">
             <div className="absolute top-4 left-4 z-50 flex gap-2 items-center">
-                <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="tabe-map-control bg-background/80 backdrop-blur hover:bg-background">
-                    <ArrowLeft className="h-4 w-4" />
+                <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="border-[3px] border-foreground bg-card hover:-translate-y-0.5 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all rounded-xl h-10 w-10">
+                    <ArrowLeft className="h-5 w-5 text-foreground" />
                 </Button>
-                <Card className="tabe-map-control px-4 py-2 bg-background/85 backdrop-blur-xl border-border/60 flex items-center gap-4">
-                    <h1 className="font-bold text-lg gradient-text flex items-center gap-2">
-                        <Zap className="text-neon-gold w-4 h-4" />
-                        Mapa Neural
+                <Card className="px-4 py-2 bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl flex items-center gap-4">
+                    <h1 className="font-black text-lg uppercase tracking-widest flex items-center gap-2 text-foreground">
+                        <Zap className="text-foreground w-5 h-5 fill-yellow-400" />
+                        Mapa de Correlativas
                     </h1>
                 </Card>
             </div>
 
             {/* Legend */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
-                <Card className="tabe-map-control px-5 py-2.5 bg-background/85 backdrop-blur-xl border-border/60 flex gap-5 text-xs rounded-full">
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-gold shadow-[0_0_8px_rgba(251,191,36,0.5)]"></div><span className="text-muted-foreground">Aprobada</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-cyan shadow-[0_0_8px_rgba(0,217,255,0.5)]"></div><span className="text-muted-foreground">Regular</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-neon-green shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div><span className="text-muted-foreground">Cursable</span></div>
-                    <div className="flex items-center gap-1.5 opacity-40"><div className="w-2 h-2 rounded-full bg-zinc-500"></div><span className="text-muted-foreground">Bloqueada</span></div>
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 hidden sm:block">
+                <Card className="px-5 py-3 bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] flex gap-5 text-[10px] rounded-xl font-black uppercase tracking-widest">
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-yellow-300 dark:bg-yellow-900/60 border-2 border-foreground"></div><span className="text-foreground">Aprobada</span></div>
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-blue-300 dark:bg-blue-900/60 border-2 border-foreground"></div><span className="text-foreground">Regular</span></div>
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-green-300 dark:bg-green-900/60 border-2 border-foreground"></div><span className="text-foreground">Cursable</span></div>
+                    <div className="flex items-center gap-2 opacity-50"><div className="w-3 h-3 rounded bg-zinc-200 dark:bg-zinc-800/60 border-2 border-foreground"></div><span className="text-foreground">Bloqueada</span></div>
                 </Card>
             </div>
 
@@ -225,15 +227,15 @@ function CorrelativityMapContent() {
                     onEdgesChange={onEdgesChange}
                     fitView
                     fitViewOptions={{ padding: 0.2 }}
-                    className="bg-background"
-                    colorMode="dark"
+                    className="bg-muted/10"
+                    colorMode={theme}
                     minZoom={0.1}
                     proOptions={{ hideAttribution: true }}
                     defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
                 >
-                    <Controls className="bg-card/80 backdrop-blur border-border/50 rounded-xl text-foreground fill-foreground" position="bottom-right" />
-                    <MiniMap className="bg-card/60 backdrop-blur border-border/50 rounded-xl" nodeColor="#4ade80" maskColor="rgba(0,0,0,0.7)" position="bottom-left" />
-                    <Background gap={30} size={1} color="rgba(255,255,255,0.03)" variant={BackgroundVariant.Dots} />
+                    <Controls className="bg-card border-[3px] border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground fill-foreground overflow-hidden" position="bottom-right" />
+                    <MiniMap className="bg-card border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]" nodeColor="hsl(var(--foreground))" maskColor="rgba(100,100,100,0.2)" position="bottom-left" />
+                    <Background gap={30} size={1} color="hsl(var(--foreground))" variant={BackgroundVariant.Dots} />
                 </ReactFlow>
             </div>
         </div>

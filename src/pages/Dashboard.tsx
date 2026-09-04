@@ -69,10 +69,10 @@ export default function Dashboard() {
     <div className="p-4 lg:p-6 max-w-[1600px] mx-auto">
       {/* Bento Grid Container */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
-        
+
         {/* LADO IZQUIERDO (Principal) */}
         <div className="lg:col-span-8 flex flex-col gap-5 lg:gap-6">
-          
+
           {/* Bento: Header */}
           <div className="neo-bento-card bento-hover-blue p-6 lg:p-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
@@ -178,7 +178,7 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          
+
           <NextMilestoneWidget />
 
         </div>

@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const EXAM_TYPES = [
   "P1",
@@ -170,7 +171,7 @@ export default function Exams() {
 
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
         <div className="flex items-center gap-4">
           <Link to="/calendario">
             <Button variant="outline" size="icon" className="border-foreground shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]">
@@ -188,7 +189,7 @@ export default function Exams() {
           </div>
         </div>
 
-        <div className="flex bg-background border-[3px] border-foreground rounded-xl overflow-hidden self-start md:self-center shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+        <div className="flex bg-background border-[3px] border-foreground rounded-xl overflow-hidden self-start md:self-center shadow-[4px_4px_0_0_hsl(var(--foreground))]">
           <button
             onClick={() => setViewMode("list")}
             className={cn(
@@ -214,34 +215,36 @@ export default function Exams() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+      <div className="flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]">
         <div className="flex items-center gap-2 text-foreground min-w-fit">
           <Filter className="w-5 h-5" />
           <span className="text-sm font-black uppercase tracking-widest">Filtrar:</span>
         </div>
         
         <div className="flex flex-wrap gap-3 w-full">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="bg-background border-[3px] border-foreground rounded-lg px-4 py-2 font-bold text-sm min-w-[140px] focus:outline-none focus:translate-y-0.5 focus:shadow-none shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] transition-all"
-          >
-            <option value="all">TODOS LOS AÑOS</option>
-            {availableYears.map((y) => (
-              <option key={y} value={y}>{y}° AÑO</option>
-            ))}
-          </select>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="bg-background border-[3px] border-foreground rounded-lg px-4 py-2 font-bold text-sm min-w-[140px] focus:outline-none focus:translate-y-0.5 focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all h-auto">
+              <SelectValue placeholder="TODOS LOS AÑOS" />
+            </SelectTrigger>
+            <SelectContent className="border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl font-bold">
+              <SelectItem value="all">TODOS LOS AÑOS</SelectItem>
+              {availableYears.map((y) => (
+                <SelectItem key={y} value={y}>{y}° AÑO</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <select
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            className="bg-background border-[3px] border-foreground rounded-lg px-4 py-2 font-bold text-sm flex-1 md:flex-none md:min-w-[240px] focus:outline-none focus:translate-y-0.5 focus:shadow-none shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] transition-all"
-          >
-            <option value="all">TODAS LAS MATERIAS</option>
-            {availableSubjects.map((s) => (
-              <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>
-            ))}
-          </select>
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger className="bg-background border-[3px] border-foreground rounded-lg px-4 py-2 font-bold text-sm flex-1 md:flex-none md:min-w-[240px] focus:outline-none focus:translate-y-0.5 focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all h-auto">
+              <SelectValue placeholder="TODAS LAS MATERIAS" />
+            </SelectTrigger>
+            <SelectContent className="border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl font-bold max-h-[300px]">
+              <SelectItem value="all">TODAS LAS MATERIAS</SelectItem>
+              {availableSubjects.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name.toUpperCase()}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -268,7 +271,7 @@ export default function Exams() {
               return (
                 <div 
                   key={exam.id}
-                  className="bg-card p-5 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group"
+                  className="neo-bento-card p-5 bg-muted/30 dark:bg-background transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group"
                   style={exam.color ? { backgroundColor: `${exam.color}` } : {}}
                 >
                   <div className="flex-1 space-y-3">
@@ -345,7 +348,7 @@ export default function Exams() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
             {KANBAN_COLUMNS.map((col) => (
-              <div key={col.id} className="flex flex-col gap-4 bg-card border-[3px] border-foreground p-3 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] h-full min-h-[500px]">
+              <div key={col.id} className="flex flex-col gap-4 bg-card border-[3px] border-foreground p-3 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] h-full min-h-[500px]">
                 <div className="flex items-center justify-between px-2 py-1 border-b-[3px] border-foreground/10 pb-4">
                   <div className="flex items-center gap-2">
                     <div className={cn("p-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000]", col.color)}>
@@ -370,7 +373,7 @@ export default function Exams() {
                           key={exam.id}
                           className={cn(
                             "bg-background p-4 rounded-xl border-[3px] flex flex-col gap-3 transition-all hover:-translate-y-1 group relative",
-                            isUrgent ? "border-[#ff4e4e] shadow-[4px_4px_0_0_#ff4e4e]" : "border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]"
+                            isUrgent ? "border-[#ff4e4e] shadow-[4px_4px_0_0_#ff4e4e]" : "border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]"
                           )}
                         >
                           <div className="flex justify-between items-start gap-2">

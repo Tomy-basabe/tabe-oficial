@@ -75,26 +75,26 @@ export function GoogleCalendarSyncModal({
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-            <DialogContent className="sm:max-w-lg bg-card border-border max-h-[85vh] overflow-hidden flex flex-col">
+            <DialogContent className="sm:max-w-lg bg-background border-4 border-foreground shadow-[12px_12px_0_0_hsl(var(--foreground))] rounded-xl max-h-[85vh] overflow-hidden flex flex-col">
                 <DialogHeader>
-                    <DialogTitle className="font-display text-xl gradient-text flex items-center gap-2">
-                        <Link2 className="w-5 h-5" />
+                    <DialogTitle className="font-display font-black text-2xl uppercase tracking-widest flex items-center gap-2 text-foreground">
+                        <Link2 className="w-6 h-6 text-foreground" />
                         Vincular con Google Calendar
                     </DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="font-bold">
                         Sincroniza tus eventos de TABE con Google Calendar
                     </DialogDescription>
                 </DialogHeader>
 
                 {/* Tabs */}
-                <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
+                <div className="flex gap-2 p-1">
                     <button
                         onClick={() => setActiveTab("export")}
                         className={cn(
-                            "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2",
+                            "flex-1 py-2 px-3 rounded-lg text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-[3px] border-foreground",
                             activeTab === "export"
-                                ? "bg-background shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
+                                ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]"
+                                : "bg-white text-black hover:bg-muted shadow-[2px_2px_0_0_#000]"
                         )}
                     >
                         <ExternalLink className="w-4 h-4" />
@@ -103,10 +103,10 @@ export function GoogleCalendarSyncModal({
                     <button
                         onClick={() => setActiveTab("import")}
                         className={cn(
-                            "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2",
+                            "flex-1 py-2 px-3 rounded-lg text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-[3px] border-foreground",
                             activeTab === "import"
-                                ? "bg-background shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
+                                ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]"
+                                : "bg-white text-black hover:bg-muted shadow-[2px_2px_0_0_#000]"
                         )}
                     >
                         <Upload className="w-4 h-4" />
@@ -137,12 +137,12 @@ export function GoogleCalendarSyncModal({
                                 <button
                                     onClick={handleGenerate}
                                     disabled={generating}
-                                    className="px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2 mx-auto"
+                                    className="px-6 py-3 rounded-lg font-black uppercase tracking-widest bg-[#00FF9D] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all disabled:opacity-50 flex items-center gap-2 mx-auto"
                                 >
                                     {generating ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
-                                        <Link2 className="w-4 h-4" />
+                                        <Link2 className="w-5 h-5" />
                                     )}
                                     Activar Feed
                                 </button>
@@ -152,22 +152,22 @@ export function GoogleCalendarSyncModal({
                             <div className="space-y-4">
                                 {/* Feed URL */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Tu URL del feed:</label>
+                                    <label className="text-sm font-black uppercase tracking-widest">Tu URL del feed:</label>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
                                             value={feedUrl || ""}
                                             readOnly
-                                            className="flex-1 px-3 py-2 bg-secondary/50 border border-border rounded-lg text-xs font-mono truncate"
+                                            className="flex-1 px-4 py-2 bg-white text-black border-[3px] border-foreground rounded-lg text-xs font-mono font-bold truncate focus:outline-none focus:shadow-[4px_4px_0_0_#000]"
                                         />
                                         <button
                                             onClick={handleCopy}
-                                            className="px-3 py-2 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                                            className="px-4 py-2 bg-white text-black border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all font-black uppercase tracking-widest flex items-center gap-2 text-sm"
                                         >
                                             {copied ? (
                                                 <Check className="w-4 h-4 text-green-500" />
                                             ) : (
-                                                <Copy className="w-4 h-4 text-primary" />
+                                                <Copy className="w-4 h-4" />
                                             )}
                                             {copied ? "Copiado" : "Copiar"}
                                         </button>
@@ -175,7 +175,7 @@ export function GoogleCalendarSyncModal({
                                 </div>
 
                                 {/* Instructions */}
-                                <div className="bg-secondary/30 rounded-lg p-4 space-y-3">
+                                <div className="bg-[#FFE66D] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl p-5 space-y-3">
                                     <h4 className="font-medium text-sm">
                                         📋 Cómo agregar en Google Calendar:
                                     </h4>
@@ -213,17 +213,17 @@ export function GoogleCalendarSyncModal({
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex gap-2 pt-2">
+                                <div className="flex gap-3 pt-2">
                                     <button
                                         onClick={handleRegenerate}
-                                        className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
+                                        className="flex-1 py-3 rounded-lg text-sm font-black uppercase tracking-widest bg-white border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2"
                                     >
                                         <RefreshCw className="w-4 h-4" />
                                         Regenerar URL
                                     </button>
                                     <button
                                         onClick={handleDisable}
-                                        className="py-2.5 px-4 rounded-lg text-sm font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
+                                        className="flex-1 py-3 px-4 rounded-lg text-sm font-black uppercase tracking-widest bg-[#FF3366] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2"
                                     >
                                         <ShieldAlert className="w-4 h-4" />
                                         Desactivar
@@ -238,22 +238,22 @@ export function GoogleCalendarSyncModal({
                 {activeTab === "import" && (
                     <div className="space-y-4 py-4">
                         <div className="text-center space-y-4">
-                            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                                <Upload className="w-8 h-8 text-primary" />
+                            <div className="w-16 h-16 mx-auto rounded-xl bg-[#00F0FF] border-4 border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center">
+                                <Upload className="w-8 h-8 text-black" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-lg">Importar eventos de Google</h3>
-                                <p className="text-sm text-muted-foreground mt-1">
+                                <h3 className="font-black text-xl uppercase tracking-tight">Importar eventos de Google</h3>
+                                <p className="text-sm font-bold mt-1">
                                     Exporta tu calendario de Google como archivo .ics e impórtalo aquí
                                     para traer tus eventos a TABE.
                                 </p>
                             </div>
 
-                            <div className="bg-secondary/30 rounded-lg p-4 text-left">
-                                <h4 className="font-medium text-sm mb-2">
+                            <div className="bg-[#FFE66D] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl p-5 text-left">
+                                <h4 className="font-black uppercase tracking-widest text-sm mb-2">
                                     📋 Cómo exportar desde Google Calendar:
                                 </h4>
-                                <ol className="list-decimal list-inside space-y-1.5 text-sm text-muted-foreground">
+                                <ol className="list-decimal list-inside space-y-1.5 text-sm font-bold text-foreground/80">
                                     <li>
                                         Abre{" "}
                                         <a
@@ -276,7 +276,7 @@ export function GoogleCalendarSyncModal({
                                     onClose();
                                     onOpenImport();
                                 }}
-                                className="px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90 transition-all flex items-center gap-2 mx-auto"
+                                className="px-6 py-3 rounded-lg font-black uppercase tracking-widest bg-[#4ECDC4] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2 mx-auto"
                             >
                                 <Upload className="w-4 h-4" />
                                 Importar archivo .ics

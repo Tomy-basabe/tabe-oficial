@@ -118,51 +118,49 @@ export default function Friends() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-3">
-            <Users className="w-8 h-8 text-neon-cyan" />
+          <h1 className="text-3xl md:text-4xl font-black uppercase text-black flex items-center gap-3">
+            <Users className="w-10 h-10 text-black" strokeWidth={3} />
             Amigos
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-black/60 font-bold uppercase mt-1">
             Compite con tus amigos y mide tu progreso
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           {/* My ID Card */}
-          <Card className="card-gamer px-4 py-2">
-            <div className="flex items-center gap-3">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Mi ID: </span>
-                <span className="font-mono font-bold text-neon-cyan">
-                  #{myProfile?.display_id || '...'}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={copyId}
-              >
-                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
+          <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] px-4 py-2 rounded-xl flex items-center justify-between gap-4 flex-1">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase text-black/50 leading-none">Mi ID</span>
+              <span className="font-black text-lg text-black leading-tight">
+                #{myProfile?.display_id || '...'}
+              </span>
             </div>
-          </Card>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 bg-[#BFFF00] border-2 border-black rounded-lg hover:bg-[#a6e600] hover:translate-y-[-2px] hover:shadow-[2px_2px_0_0_#000] transition-all"
+              onClick={copyId}
+            >
+              {copied ? <Check className="w-5 h-5 text-black" strokeWidth={3} /> : <Copy className="w-5 h-5 text-black" strokeWidth={2.5} />}
+            </Button>
+          </div>
 
           {/* Add Friend Button */}
           <Dialog open={addFriendOpen} onOpenChange={setAddFriendOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-neon-cyan to-neon-purple tour-friends-add">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Agregar Amigo
+              <Button className="bg-[#00E5FF] text-black border-4 border-black shadow-[4px_4px_0_0_#000] hover:bg-[#00cce6] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all font-black uppercase h-14 px-6 rounded-xl text-lg w-full sm:w-auto">
+                <UserPlus className="w-6 h-6 mr-2" strokeWidth={3} />
+                Agregar
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border">
+            <DialogContent className="bg-white border-4 border-black shadow-[8px_8px_0_0_#000] rounded-xl sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Agregar Amigo</DialogTitle>
+                <DialogTitle className="font-black uppercase text-2xl border-b-4 border-black pb-4">Agregar Amigo</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 pt-4">
+              <div className="space-y-6 pt-4">
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">
+                  <label className="text-xs font-black uppercase text-black/60">
                     Ingresa el ID o username de tu amigo
                   </label>
                   <Input
@@ -170,10 +168,11 @@ export default function Friends() {
                     value={friendIdentifier}
                     onChange={(e) => setFriendIdentifier(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
+                    className="border-4 border-black shadow-[4px_4px_0_0_#000] rounded-lg h-12 font-bold text-lg focus-visible:ring-0 focus-visible:border-black focus-visible:shadow-[2px_2px_0_0_#000]"
                   />
                 </div>
                 <Button
-                  className="w-full"
+                  className="w-full bg-[#BFFF00] text-black border-4 border-black shadow-[4px_4px_0_0_#000] hover:bg-[#a6e600] hover:translate-y-[2px] hover:shadow-[0px_0px_0_0_#000] transition-all font-black uppercase h-14 rounded-xl text-lg"
                   onClick={handleSendRequest}
                   disabled={sendingRequest || !friendIdentifier.trim()}
                 >
@@ -186,69 +185,65 @@ export default function Friends() {
       </div>
 
       {/* Username Section */}
-      <Card className="card-gamer">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground">Tu username: </span>
-              {myProfile?.username ? (
-                <span className="font-semibold">@{myProfile.username}</span>
-              ) : (
-                <span className="text-muted-foreground italic">No configurado</span>
-              )}
-            </div>
-            {editingUsername ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="nuevo_username"
-                  className="w-40"
-                />
-                <Button size="sm" onClick={handleUpdateUsername}>Guardar</Button>
-                <Button size="sm" variant="ghost" onClick={() => setEditingUsername(false)}>Cancelar</Button>
-              </div>
+      <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <span className="text-xs font-black uppercase text-black/50">Tu username</span>
+            {myProfile?.username ? (
+              <span className="font-black text-xl text-black">@{myProfile.username}</span>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setEditingUsername(true)}>
-                {myProfile?.username ? "Cambiar" : "Configurar"}
-              </Button>
+              <span className="font-bold text-black/40 italic">No configurado</span>
             )}
           </div>
-        </CardContent>
-      </Card>
+          {editingUsername ? (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="nuevo_username"
+                className="w-full sm:w-48 border-2 border-black rounded-lg font-bold focus-visible:ring-0 focus-visible:border-black shadow-[2px_2px_0_0_#000]"
+              />
+              <div className="flex gap-2">
+                <Button className="bg-[#BFFF00] text-black border-2 border-black hover:bg-[#a6e600] font-black uppercase rounded-lg shadow-[2px_2px_0_0_#000] flex-1" onClick={handleUpdateUsername}>Guardar</Button>
+                <Button className="bg-white text-black border-2 border-black hover:bg-gray-100 font-black uppercase rounded-lg shadow-[2px_2px_0_0_#000] flex-1" onClick={() => setEditingUsername(false)}>Cancelar</Button>
+              </div>
+            </div>
+          ) : (
+            <Button className="bg-white text-black border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-gray-100 hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_#000] transition-all font-black uppercase rounded-lg w-full sm:w-auto" onClick={() => setEditingUsername(true)}>
+              {myProfile?.username ? "Cambiar" : "Configurar"}
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Pending Requests */}
       {pendingRequests.length > 0 && (
-        <Card className="card-gamer border-neon-gold/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Bell className="w-5 h-5 text-neon-gold" />
-              Solicitudes Pendientes ({pendingRequests.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="bg-[#FFD700] border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl overflow-hidden">
+          <div className="bg-black text-[#FFD700] p-4 flex items-center gap-3">
+            <Bell className="w-6 h-6" strokeWidth={3} />
+            <h2 className="font-black uppercase text-xl">Solicitudes Pendientes ({pendingRequests.length})</h2>
+          </div>
+          <div className="p-4 space-y-3">
             {pendingRequests.map((request) => (
-              <div key={request.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-purple to-neon-cyan flex items-center justify-center text-background font-bold">
+              <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border-2 border-black shadow-[2px_2px_0_0_#000] rounded-xl gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-[#C688EB] border-2 border-black flex items-center justify-center text-black font-black text-xl shadow-[2px_2px_0_0_#000]">
                     {request.friend.nombre?.[0]?.toUpperCase() || request.friend.username?.[0]?.toUpperCase() || '?'}
                   </div>
                   <div>
-                    <p className="font-medium">{request.friend.nombre || request.friend.username || `Usuario #${request.friend.display_id}`}</p>
-                    <p className="text-sm text-muted-foreground">#{request.friend.display_id}</p>
+                    <p className="font-black text-lg text-black uppercase leading-tight">{request.friend.nombre || request.friend.username || `Usuario #${request.friend.display_id}`}</p>
+                    <p className="font-bold text-black/50 text-sm">#{request.friend.display_id}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-[#BFFF00] text-black border-2 border-black hover:bg-[#a6e600] font-black uppercase rounded-lg shadow-[2px_2px_0_0_#000] flex-1 sm:flex-none"
                     onClick={() => respondToRequest(request.id, true)}
                   >
                     Aceptar
                   </Button>
                   <Button
-                    size="sm"
-                    variant="outline"
+                    className="bg-[#FF5C5C] text-black border-2 border-black hover:bg-[#e64c4c] font-black uppercase rounded-lg shadow-[2px_2px_0_0_#000] flex-1 sm:flex-none"
                     onClick={() => respondToRequest(request.id, false)}
                   >
                     Rechazar
@@ -256,158 +251,158 @@ export default function Friends() {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      <Tabs defaultValue="leaderboard" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 bg-secondary/50">
-          <TabsTrigger value="leaderboard">
-            <Trophy className="w-4 h-4 mr-2" />
+      <Tabs defaultValue="leaderboard" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 bg-gray-200 p-1 border-4 border-black rounded-xl h-auto">
+          <TabsTrigger value="leaderboard" className="data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-black data-[state=active]:shadow-[2px_2px_0_0_#000] font-black uppercase py-3 rounded-lg text-black transition-all">
+            <Trophy className="w-5 h-5 mr-2" strokeWidth={2.5} />
             Ranking
           </TabsTrigger>
-          <TabsTrigger value="friends">
-            <Users className="w-4 h-4 mr-2" />
+          <TabsTrigger value="friends" className="data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-black data-[state=active]:shadow-[2px_2px_0_0_#000] font-black uppercase py-3 rounded-lg text-black transition-all">
+            <Users className="w-5 h-5 mr-2" strokeWidth={2.5} />
             Lista de Amigos
           </TabsTrigger>
         </TabsList>
 
         {/* Leaderboard Tab */}
-        <TabsContent value="leaderboard" className="space-y-4">
+        <TabsContent value="leaderboard" className="space-y-6">
           {/* Leaderboard Type Selector */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3 p-4 bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl">
             {[
-              { key: 'xp', label: 'XP Total', icon: Zap },
-              { key: 'pomodoro', label: 'Horas Pomodoro', icon: Clock },
-              { key: 'study', label: 'Horas Estudio', icon: Clock },
-              { key: 'streak', label: 'Racha', icon: Flame }
-            ].map(({ key, label, icon: Icon }) => (
+              { key: 'xp', label: 'XP Total', icon: Zap, color: '#FFD700' },
+              { key: 'pomodoro', label: 'Horas Pomodoro', icon: Clock, color: '#00E5FF' },
+              { key: 'study', label: 'Horas Estudio', icon: Clock, color: '#C688EB' },
+              { key: 'streak', label: 'Racha', icon: Flame, color: '#FF5C5C' }
+            ].map(({ key, label, icon: Icon, color }) => (
               <Button
                 key={key}
-                variant={leaderboardType === key ? "default" : "outline"}
-                size="sm"
                 onClick={() => setLeaderboardType(key as typeof leaderboardType)}
                 className={cn(
-                  leaderboardType === key && "bg-gradient-to-r from-neon-cyan to-neon-purple"
+                  "font-black uppercase border-2 border-black rounded-lg transition-all h-10",
+                  leaderboardType === key 
+                    ? `bg-[${color}] text-black shadow-[2px_2px_0_0_#000]` 
+                    : "bg-white text-black hover:bg-gray-100 hover:shadow-[2px_2px_0_0_#000] hover:translate-y-[-2px]"
                 )}
+                style={leaderboardType === key ? { backgroundColor: color } : {}}
               >
-                <Icon className="w-4 h-4 mr-2" />
+                <Icon className="w-4 h-4 mr-2" strokeWidth={3} />
                 {label}
               </Button>
             ))}
           </div>
 
           {/* Leaderboard */}
-          <Card className="card-gamer">
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="p-8 text-center text-muted-foreground">Cargando...</div>
-              ) : friendStats.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Agrega amigos para ver el ranking</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {getSortedStats().map((stat, index) => {
-                    const isMe = stat.user_id === user?.id;
-                    const position = index + 1;
+          <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center text-black font-bold uppercase">Cargando...</div>
+            ) : friendStats.length === 0 ? (
+              <div className="p-12 text-center text-black/50">
+                <Users className="w-16 h-16 mx-auto mb-4 opacity-50" strokeWidth={2} />
+                <p className="font-black uppercase text-xl">Agrega amigos para ver el ranking</p>
+              </div>
+            ) : (
+              <div className="divide-y-4 divide-black">
+                {getSortedStats().map((stat, index) => {
+                  const isMe = stat.user_id === user?.id;
+                  const position = index + 1;
 
-                    return (
-                      <div
-                        key={stat.user_id}
-                        className={cn(
-                          "flex items-center justify-between p-4 transition-colors",
-                          isMe && "bg-neon-cyan/10",
-                          position === 1 && "bg-gradient-to-r from-neon-gold/10 to-transparent"
-                        )}
-                      >
-                        <div className="flex items-center gap-4">
-                          {/* Position */}
-                          <div className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
-                            position === 1 && "bg-neon-gold text-background",
-                            position === 2 && "bg-gray-400 text-background",
-                            position === 3 && "bg-amber-700 text-background",
-                            position > 3 && "bg-secondary text-muted-foreground"
-                          )}>
-                            {position === 1 ? <Crown className="w-4 h-4" /> : position}
-                          </div>
-
-                          {/* Avatar */}
-                          <div className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center font-bold",
-                            isMe
-                              ? "bg-gradient-to-br from-neon-cyan to-neon-purple text-background"
-                              : "bg-secondary text-foreground"
-                          )}>
-                            {stat.profile.nombre?.[0]?.toUpperCase() || stat.profile.username?.[0]?.toUpperCase() || '?'}
-                          </div>
-
-                          {/* Name */}
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">
-                                {stat.profile.nombre || stat.profile.username || `Usuario #${stat.profile.display_id}`}
-                              </p>
-                              {/* @ts-ignore */}
-                              {(stat.profile as any).active_badge === 'badge_supporter' && (
-                                <Crown className="w-3.5 h-3.5 text-neon-gold fill-neon-gold animate-pulse shadow-sm" />
-                              )}
-                              {isMe && <Badge variant="secondary" className="text-xs">Tú</Badge>}
-                            </div>
-                            <p className="text-sm text-muted-foreground">Nivel {stat.level}</p>
-                          </div>
+                  return (
+                    <div
+                      key={stat.user_id}
+                      className={cn(
+                        "flex items-center justify-between p-4 sm:p-6 transition-colors",
+                        isMe && "bg-[#BFFF00]/30",
+                        position === 1 && !isMe && "bg-[#FFD700]/30",
+                        position === 2 && !isMe && "bg-gray-200",
+                        position === 3 && !isMe && "bg-[#FF9B71]/30"
+                      )}
+                    >
+                      <div className="flex items-center gap-4 sm:gap-6">
+                        {/* Position */}
+                        <div className={cn(
+                          "w-10 h-10 border-2 border-black rounded-lg flex items-center justify-center font-black text-lg shadow-[2px_2px_0_0_#000]",
+                          position === 1 ? "bg-[#FFD700] text-black" :
+                          position === 2 ? "bg-gray-300 text-black" :
+                          position === 3 ? "bg-[#FF9B71] text-black" :
+                          "bg-white text-black"
+                        )}>
+                          {position === 1 ? <Crown className="w-5 h-5" strokeWidth={3} /> : position}
                         </div>
 
-                        {/* Stat Value */}
-                        <div className="flex items-center gap-2 text-right">
-                          {getLeaderboardIcon()}
-                          <span className={cn(
-                            "font-bold text-lg",
-                            position === 1 && "text-neon-gold"
-                          )}>
-                            {getStatValue(stat)}
-                          </span>
+                        {/* Avatar */}
+                        <div className={cn(
+                          "w-12 h-12 border-2 border-black rounded-lg flex items-center justify-center font-black text-xl shadow-[2px_2px_0_0_#000]",
+                          isMe ? "bg-[#00E5FF] text-black" : "bg-[#C688EB] text-black"
+                        )}>
+                          {stat.profile.nombre?.[0]?.toUpperCase() || stat.profile.username?.[0]?.toUpperCase() || '?'}
+                        </div>
+
+                        {/* Name */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-black uppercase text-lg leading-none">
+                              {stat.profile.nombre || stat.profile.username || `Usuario #${stat.profile.display_id}`}
+                            </p>
+                            {/* @ts-ignore */}
+                            {(stat.profile as any).active_badge === 'badge_supporter' && (
+                              <Crown className="w-4 h-4 text-[#FFD700] fill-[#FFD700] drop-shadow-[1px_1px_0_rgba(0,0,0,1)]" />
+                            )}
+                            {isMe && <span className="bg-black text-white text-[10px] px-2 py-0.5 rounded font-black uppercase">Tú</span>}
+                          </div>
+                          <p className="font-bold text-black/60 uppercase text-xs">Nivel {stat.level}</p>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+
+                      {/* Stat Value */}
+                      <div className="flex items-center gap-2 text-right">
+                        <span className={cn(
+                          "font-black text-xl sm:text-2xl",
+                          position === 1 && "text-[#d1b000]"
+                        )}>
+                          {getStatValue(stat)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         {/* Friends List Tab */}
-        <TabsContent value="friends" className="space-y-4">
+        <TabsContent value="friends" className="space-y-6">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-black/50" strokeWidth={3} />
             <Input
               placeholder="Buscar amigos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-12 h-14 bg-white border-4 border-black rounded-xl font-bold text-lg shadow-[4px_4px_0_0_#000] focus-visible:ring-0 focus-visible:border-black focus-visible:shadow-[2px_2px_0_0_#000]"
             />
           </div>
 
           {/* Friends Grid */}
           {loading ? (
-            <div className="p-8 text-center text-muted-foreground">Cargando...</div>
+            <div className="p-8 text-center font-black uppercase text-black">Cargando...</div>
           ) : friends.length === 0 ? (
-            <Card className="card-gamer">
-              <CardContent className="p-8 text-center">
-                <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground mb-4">Aún no tienes amigos</p>
-                <Button onClick={() => setAddFriendOpen(true)}>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Agregar tu primer amigo
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-12 text-center">
+              <Users className="w-16 h-16 mx-auto mb-4 text-black/30" strokeWidth={2} />
+              <p className="font-black text-black text-xl uppercase mb-6">Aún no tienes amigos</p>
+              <Button 
+                onClick={() => setAddFriendOpen(true)}
+                className="bg-[#BFFF00] text-black border-4 border-black shadow-[4px_4px_0_0_#000] hover:bg-[#a6e600] hover:translate-y-[2px] hover:shadow-[0px_0px_0_0_#000] transition-all font-black uppercase h-12 rounded-lg text-base"
+              >
+                <UserPlus className="w-5 h-5 mr-2" strokeWidth={3} />
+                Agregar tu primer amigo
+              </Button>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {friends
                 .filter(f =>
                   !searchQuery ||
@@ -419,52 +414,53 @@ export default function Friends() {
                   const stat = friendStats.find(s => s.user_id === friendship.friend.user_id);
 
                   return (
-                    <Card key={friendship.id} className="card-gamer hover:glow-cyan transition-all">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-neon-purple to-neon-cyan flex items-center justify-center text-background font-bold text-lg">
-                              {friendship.friend.nombre?.[0]?.toUpperCase() || friendship.friend.username?.[0]?.toUpperCase() || '?'}
-                            </div>
-                            <div>
-                              <p className="font-semibold">
+                    <div key={friendship.id} className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-4px] hover:shadow-[8px_8px_0_0_#000] transition-all flex flex-col group">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-14 h-14 border-2 border-black rounded-lg bg-[#C688EB] flex items-center justify-center text-black font-black text-2xl shadow-[2px_2px_0_0_#000] group-hover:rotate-6 transition-transform">
+                            {friendship.friend.nombre?.[0]?.toUpperCase() || friendship.friend.username?.[0]?.toUpperCase() || '?'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-black text-lg uppercase leading-tight truncate max-w-[120px]" title={friendship.friend.nombre || friendship.friend.username || `Usuario #${friendship.friend.display_id}`}>
                                 {friendship.friend.nombre || friendship.friend.username || `Usuario #${friendship.friend.display_id}`}
                               </p>
                               {/* @ts-ignore */}
                               {(friendship.friend as any).active_badge === 'badge_supporter' && (
-                                <Crown className="w-3.5 h-3.5 text-neon-gold fill-neon-gold" />
+                                <Crown className="w-4 h-4 text-[#FFD700] fill-[#FFD700] drop-shadow-[1px_1px_0_rgba(0,0,0,1)] flex-shrink-0" />
                               )}
-                              <p className="text-sm text-muted-foreground">#{friendship.friend.display_id}</p>
                             </div>
+                            <p className="font-bold text-black/50 text-sm mt-0.5">#{friendship.friend.display_id}</p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => removeFriend(friendship.id)}
-                          >
-                            <UserX className="w-4 h-4" />
-                          </Button>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-black bg-white border-2 border-black rounded-lg hover:bg-[#FF5C5C] hover:text-black shadow-[2px_2px_0_0_#000] transition-colors h-8 w-8"
+                          onClick={() => removeFriend(friendship.id)}
+                          title="Eliminar amigo"
+                        >
+                          <UserX className="w-4 h-4" strokeWidth={2.5} />
+                        </Button>
+                      </div>
 
-                        {stat && (
-                          <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Zap className="w-4 h-4 text-neon-gold" />
-                              <span>Nivel {stat.level}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Zap className="w-4 h-4 text-blue-500" />
-                              <span>{stat.weekly_xp} XP</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Flame className="w-4 h-4 text-orange-500" />
-                              <span>{stat.current_streak} días</span>
-                            </div>
+                      {stat && (
+                        <div className="mt-auto grid grid-cols-3 gap-2 pt-4 border-t-4 border-black/10">
+                          <div className="flex flex-col gap-1 items-center bg-gray-100 p-2 rounded-lg border-2 border-black shadow-[1px_1px_0_0_#000]">
+                            <Zap className="w-4 h-4 text-[#FFD700]" strokeWidth={3} />
+                            <span className="font-black text-[10px] uppercase">Lvl {stat.level}</span>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                          <div className="flex flex-col gap-1 items-center bg-gray-100 p-2 rounded-lg border-2 border-black shadow-[1px_1px_0_0_#000]">
+                            <span className="font-black text-[10px] uppercase text-[#00E5FF] drop-shadow-[1px_1px_0_rgba(0,0,0,1)] text-center">XP</span>
+                            <span className="font-black text-[10px] uppercase">{stat.weekly_xp}</span>
+                          </div>
+                          <div className="flex flex-col gap-1 items-center bg-gray-100 p-2 rounded-lg border-2 border-black shadow-[1px_1px_0_0_#000]">
+                            <Flame className="w-4 h-4 text-[#FF5C5C]" strokeWidth={3} />
+                            <span className="font-black text-[10px] uppercase">{stat.current_streak} d</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
             </div>
@@ -472,24 +468,26 @@ export default function Friends() {
 
           {/* Sent Requests */}
           {sentRequests.length > 0 && (
-            <Card className="card-gamer mt-6">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Solicitudes Enviadas ({sentRequests.length})</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl overflow-hidden mt-8">
+              <div className="bg-gray-200 border-b-4 border-black p-4">
+                <h3 className="font-black text-black uppercase text-lg">Solicitudes Enviadas ({sentRequests.length})</h3>
+              </div>
+              <div className="p-4 space-y-3">
                 {sentRequests.map((request) => (
-                  <div key={request.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <div key={request.id} className="flex items-center justify-between p-3 bg-white border-2 border-black shadow-[2px_2px_0_0_#000] rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg border-2 border-black bg-gray-200 flex items-center justify-center font-black">
                         {request.friend.nombre?.[0]?.toUpperCase() || '?'}
                       </div>
-                      <span>{request.friend.nombre || `Usuario #${request.friend.display_id}`}</span>
+                      <span className="font-black uppercase">{request.friend.nombre || `Usuario #${request.friend.display_id}`}</span>
                     </div>
-                    <Badge variant="secondary">Pendiente</Badge>
+                    <span className="bg-[#FFD700] text-black border-2 border-black px-3 py-1 rounded text-xs font-black uppercase shadow-[1px_1px_0_0_#000]">
+                      Pendiente
+                    </span>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </TabsContent>
       </Tabs>

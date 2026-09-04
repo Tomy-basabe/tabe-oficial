@@ -4,120 +4,122 @@ import { Handle, Position, NodeProps } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { Trophy, Lock, CheckCircle, Clock, BookOpen, X } from 'lucide-react';
 
-const statusStyles = {
+const statusColors = {
     aprobada: {
-        ring: "ring-yellow-500/60",
-        bg: "bg-yellow-500/15",
-        dot: "bg-neon-gold",
-        text: "text-neon-gold",
+        bgLight: "#fced47ff",
+        bgDark: "#713f1280",
+        handle: "#000000",
         icon: CheckCircle,
-        glow: "shadow-[0_0_20px_rgba(251,191,36,0.25)]",
-        handleColor: "!bg-neon-gold",
     },
     regular: {
-        ring: "ring-cyan-500/60",
-        bg: "bg-cyan-500/15",
-        dot: "bg-neon-cyan",
-        text: "text-neon-cyan",
+        bgLight: "#dbeafe",
+        bgDark: "#1e3a8a80",
+        handle: "#000000",
         icon: Clock,
-        glow: "shadow-[0_0_20px_rgba(6,182,212,0.25)]",
-        handleColor: "!bg-neon-cyan",
     },
     cursable: {
-        ring: "ring-green-500/60",
-        bg: "bg-green-500/15",
-        dot: "bg-neon-green",
-        text: "text-neon-green",
+        bgLight: "#3aff7fff",
+        bgDark: "#14532d80",
+        handle: "#000000",
         icon: BookOpen,
-        glow: "shadow-[0_0_20px_rgba(34,197,94,0.25)]",
-        handleColor: "!bg-neon-green",
     },
     bloqueada: {
-        ring: "ring-zinc-600/40",
-        bg: "bg-zinc-800/30",
-        dot: "bg-zinc-500",
-        text: "text-muted-foreground",
+        bgLight: "#f4f4f580",
+        bgDark: "#27272a33",
+        handle: "#a1a1aa",
         icon: Lock,
-        glow: "",
-        handleColor: "!bg-zinc-500",
     },
     recursar: {
-        ring: "ring-red-500/60",
-        bg: "bg-red-500/15",
-        dot: "bg-red-400",
-        text: "text-red-400",
+        bgLight: "#c40000ff",
+        bgDark: "#7f1d1d80",
+        handle: "#000000",
         icon: X,
-        glow: "shadow-[0_0_20px_rgba(239,68,68,0.25)]",
-        handleColor: "!bg-red-400",
     },
 };
 
 export const SubjectNode = memo(({ data }: NodeProps) => {
-    const status = (data.status as keyof typeof statusStyles) || 'bloqueada';
-    const style = statusStyles[status];
-    const Icon = style.icon;
+    const status = (data.status as keyof typeof statusColors) || 'bloqueada';
+    const config = statusColors[status];
+    const Icon = config.icon;
     const isFinalProject = data.label?.toString().toLowerCase().includes('proyecto final') ||
         data.label?.toString().toLowerCase().includes('tesis') ||
         data.label?.toString().toLowerCase().includes('práctica profesional');
 
     if (isFinalProject) {
         return (
-            <div className="relative group">
-                <Handle type="target" position={Position.Left} className="!bg-yellow-400 !w-2.5 !h-2.5 !border-0 !-left-1" />
-                <div className={cn(
-                    "relative w-[200px] p-4 rounded-2xl border border-yellow-500/40 transition-all duration-500",
-                    "bg-gradient-to-br from-yellow-500/10 via-amber-500/5 to-orange-500/10",
-                    "shadow-[0_0_30px_rgba(250,204,21,0.2)] hover:shadow-[0_0_50px_rgba(250,204,21,0.4)]",
-                    "hover:scale-105 backdrop-blur-xl ring-1 ring-yellow-500/30",
-                )}>
-                    <div className="absolute -top-2.5 -right-2.5">
-                        <div className="bg-gradient-to-br from-yellow-400 to-amber-500 text-black p-1.5 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse">
-                            <Trophy className="w-3.5 h-3.5" />
+            <div className="relative group hover:-translate-y-1 transition-transform">
+                <Handle type="target" position={Position.Left} className="!bg-foreground !w-2 !h-2 !border-[2px] !border-foreground !-left-1.5" />
+                <div
+                    style={{
+                        '--project-bg-light': "#fef9c3",
+                        '--project-bg-dark': "#713f1280",
+                    } as React.CSSProperties}
+                    className={cn(
+                        "relative w-[210px] p-4 rounded-xl border-[3px] border-foreground transition-all duration-300",
+                        "bg-[var(--project-bg-light)] dark:bg-[var(--project-bg-dark)] text-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))]",
+                    )}>
+                    <div className="absolute -top-3 -right-3">
+                        <div className="bg-foreground text-background p-2 rounded-lg border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                            <Trophy className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                         </div>
                     </div>
 
-                    <div className="text-[10px] font-mono text-yellow-500/70 uppercase tracking-widest mb-1">
+                    <div className="text-[10px] font-black uppercase tracking-widest mb-1.5 bg-background border-2 border-foreground px-1.5 py-0.5 rounded w-fit text-foreground">
                         {data.codigo as string}
                     </div>
 
-                    <div className="text-sm font-display font-bold text-foreground leading-tight">
+                    <div className="text-[13px] font-black uppercase tracking-wider leading-tight line-clamp-2">
                         {data.label as string}
                     </div>
 
-                    <div className="mt-2 flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                        <span className="text-[10px] text-yellow-400/80 font-semibold uppercase tracking-wider">Meta Final</span>
+                    <div className="mt-2 pt-2 border-t-[3px] border-foreground/20 flex items-center justify-between">
+                        <span className="text-[10px] text-foreground font-black uppercase tracking-widest">Meta Final</span>
                     </div>
                 </div>
-                <Handle type="source" position={Position.Right} className="!bg-yellow-400 !w-2.5 !h-2.5 !border-0 !-right-1" />
+                <Handle type="source" position={Position.Right} className="!bg-foreground !w-2 !h-2 !border-[2px] !border-foreground !-right-1.5" />
             </div>
         );
     }
 
+    const nodeStyle = {
+        '--node-bg-light': config.bgLight,
+        '--node-bg-dark': config.bgDark,
+        '--node-handle': config.handle,
+    } as React.CSSProperties;
+
     return (
-        <div className="relative group">
-            <Handle type="target" position={Position.Left} className={cn("!w-2 !h-2 !border-0 !-left-1", style.handleColor)} />
+        <div className="relative group hover:-translate-y-0.5 transition-transform" style={nodeStyle}>
+            <Handle type="target" position={Position.Left} className={cn("!w-2 !h-2 !border-[2px] !border-foreground !-left-1.5")} style={{ backgroundColor: 'var(--node-handle)' }} />
 
             <div className={cn(
-                "w-[170px] p-3 rounded-xl border border-white/[0.06] backdrop-blur-md transition-all duration-300",
-                "ring-1", style.ring, style.bg, style.glow,
-                "group-hover:scale-[1.04] group-hover:ring-2",
+                "w-[180px] p-3 rounded-xl border-[3px] border-foreground transition-all duration-200 text-left relative overflow-hidden",
+                "bg-[var(--node-bg-light)] dark:bg-[var(--node-bg-dark)]",
+                status !== 'bloqueada' ? "shadow-[4px_4px_0_0_hsl(var(--foreground))] text-foreground" : "border-opacity-70 shadow-none text-muted-foreground hover:border-red-500 hover:border-opacity-100"
             )}>
-                {/* Status dot + code */}
-                <div className="flex items-center gap-1.5 mb-1.5">
-                    <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", style.dot)} />
-                    <span className="text-[10px] font-mono opacity-50 uppercase tracking-wider truncate">{data.codigo as string}</span>
-                    <Icon className={cn("w-3 h-3 flex-shrink-0 ml-auto opacity-70", style.text)} />
+                {/* Locked Hover Overlay */}
+                {status === 'bloqueada' && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <X className="w-14 h-14 text-red-500 scale-50 group-hover:scale-100 transition-transform duration-500 ease-out drop-shadow-[2px_2px_0_#000]" strokeWidth={3} />
+                    </div>
+                )}
+
+                {/* Header: Code & Icon */}
+                <div className="flex items-start justify-between mb-2">
+                    <span className={cn("text-[10px] font-black uppercase px-1.5 py-0.5 rounded border-2",
+                        status === 'bloqueada' ? "bg-background border-muted-foreground text-muted-foreground" : "bg-background border-foreground text-foreground"
+                    )}>
+                        {data.codigo as string}
+                    </span>
+                    <Icon className={cn("w-4 h-4 mt-0.5")} />
                 </div>
 
                 {/* Name */}
-                <div className="font-semibold text-[13px] text-foreground line-clamp-2 leading-snug">
+                <div className="font-black text-[11px] uppercase tracking-wider line-clamp-2 leading-tight">
                     {data.label as string}
                 </div>
-
             </div>
 
-            <Handle type="source" position={Position.Right} className={cn("!w-2 !h-2 !border-0 !-right-1", style.handleColor)} />
+            <Handle type="source" position={Position.Right} className={cn("!w-2 !h-2 !border-[2px] !border-foreground !-right-1.5")} style={{ backgroundColor: 'var(--node-handle)' }} />
         </div>
     );
 });

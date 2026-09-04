@@ -143,7 +143,7 @@ export default function CareerPlan() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 neo-bento-card bento-hover-blue p-5 lg:p-6 bg-blue-50/30 dark:bg-background">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
             Plan de Carrera
@@ -209,7 +209,7 @@ export default function CareerPlan() {
       </div>
 
       {/* Stats Bar */}
-      <div className="bg-card border-[3px] border-foreground rounded-xl p-4 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+      <div className="neo-bento-card p-4 bg-muted/30 dark:bg-background">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-3xl font-black text-[#ffd21c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.aprobadas}</p>
@@ -240,7 +240,7 @@ export default function CareerPlan() {
             placeholder="BUSCAR MATERIA..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-background rounded-lg border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] focus:outline-none focus:translate-y-1 focus:shadow-none transition-all font-black uppercase tracking-wider text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-background rounded-lg border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-y-1 focus:shadow-none transition-all font-black uppercase tracking-wider text-sm"
           />
         </div>
 
@@ -299,7 +299,7 @@ export default function CareerPlan() {
         {subjectsByYear.map(({ year, subjects: yearSubjects }) => (
           yearSubjects.length > 0 && (
             <div key={year}>
-              <div className="flex items-center gap-3 mb-6 bg-card border-[3px] border-foreground p-3 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] w-fit">
+              <div className="flex items-center gap-3 mb-6 neo-bento-card p-3 w-fit bg-muted/30 dark:bg-background">
                 <div className="w-10 h-10 rounded-lg bg-foreground text-background flex items-center justify-center">
                   <span className="font-black text-xl">{year}</span>
                 </div>
@@ -311,8 +311,7 @@ export default function CareerPlan() {
                 </div>
               </div>
               <div
-                className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                style={{ contentVisibility: 'auto', containIntrinsicSize: '200px' } as React.CSSProperties}
+                className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10 pt-8 pb-4"
               >
                 {yearSubjects.map((subject) => (
                   <SubjectCard
@@ -336,7 +335,7 @@ export default function CareerPlan() {
       {/* Modals */}
       {selectedSubject && (
         <SubjectStatusModal
-          isOpen={showStatusModal}
+          open={showStatusModal}
           onClose={handleCloseStatusModal}
           subject={selectedSubject}
           onStatusChange={updateSubjectStatus}
@@ -348,7 +347,7 @@ export default function CareerPlan() {
 
       {selectedSubject && (
         <EditSubjectModal
-          isOpen={showEditDetailsModal}
+          open={showEditDetailsModal}
           onClose={handleCloseEditDetailsModal}
           subject={selectedSubject}
           onSave={updateSubjectDetails}
@@ -358,23 +357,24 @@ export default function CareerPlan() {
 
       {selectedSubject && (
         <EditDependenciesModal
-          isOpen={showDepsModal}
+          open={showDepsModal}
           onClose={handleCloseDepsModal}
           subject={selectedSubject}
           allSubjects={rawSubjects}
-          onSave={updateSubjectDependencies}
+          onUpdate={updateSubjectDependencies}
         />
       )}
 
       <AddSubjectModal
-        isOpen={showAddModal}
+        open={showAddModal}
         onClose={handleCloseAddModal}
-        onAdd={createSubject}
-        allSubjects={rawSubjects}
+        onSubmit={createSubject}
+        existingSubjects={rawSubjects}
+        years={years}
       />
 
       <ImportCareerModal
-        isOpen={showImportModal}
+        open={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={importCareerPlan}
       />

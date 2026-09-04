@@ -115,168 +115,174 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="card-gamer rounded-xl p-5">
+        <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-neon-purple/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-neon-purple" />
+            <div className="w-12 h-12 border-2 border-black rounded-lg bg-[#C688EB] flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
+              <TrendingUp className="w-6 h-6 text-black" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Promedio</p>
-              <p className="text-2xl font-display font-bold text-neon-purple">{formatHours(avgHours)}</p>
+              <p className="text-xs text-black/60 uppercase font-bold">Promedio</p>
+              <p className="text-3xl font-black text-black tracking-tighter">{formatHours(avgHours)}</p>
             </div>
           </div>
         </div>
 
-        <div className="card-gamer rounded-xl p-5 border-neon-green/30">
+        <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-neon-green/20 flex items-center justify-center">
-              <Star className="w-4 h-4 text-neon-green" />
+            <div className="w-10 h-10 border-2 border-black rounded-lg bg-[#BFFF00] flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
+              <Star className="w-5 h-5 text-black" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Sueño Bueno</p>
-              <p className="text-lg font-display font-bold text-neon-green">{qualityCounts.buena} días</p>
+              <p className="text-xs font-bold text-black/60 uppercase">Sueño Bueno</p>
+              <p className="text-2xl font-black text-black">{qualityCounts.buena} días</p>
             </div>
           </div>
         </div>
 
-        <div className="card-gamer rounded-xl p-5 border-neon-gold/30">
+        <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-neon-gold/20 flex items-center justify-center">
-              <CloudMoon className="w-4 h-4 text-neon-gold" />
+            <div className="w-10 h-10 border-2 border-black rounded-lg bg-[#FFD700] flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
+              <CloudMoon className="w-5 h-5 text-black" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Sueño Regular</p>
-              <p className="text-lg font-display font-bold text-neon-gold">{qualityCounts.regular} días</p>
+              <p className="text-xs font-bold text-black/60 uppercase">Sueño Regular</p>
+              <p className="text-2xl font-black text-black">{qualityCounts.regular} días</p>
             </div>
           </div>
         </div>
 
-        <div className="card-gamer rounded-xl p-5 border-neon-red/30">
+        <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-neon-red/20 flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-neon-red" />
+            <div className="w-10 h-10 border-2 border-black rounded-lg bg-[#FF5C5C] flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
+              <AlertTriangle className="w-5 h-5 text-black" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Sueño Malo</p>
-              <p className="text-lg font-display font-bold text-neon-red">{qualityCounts.mala} días</p>
+              <p className="text-xs font-bold text-black/60 uppercase">Sueño Malo</p>
+              <p className="text-2xl font-black text-black">{qualityCounts.mala} días</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card-gamer rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="lg:col-span-2 bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6 border-b-4 border-black pb-4">
             <div className="flex items-center gap-2">
-              <MoonStar className="w-5 h-5 text-neon-cyan" />
-              <h2 className="font-display font-semibold text-lg">Horas de Sueño</h2>
+              <MoonStar className="w-6 h-6 text-black" strokeWidth={3} />
+              <h2 className="font-black uppercase text-xl text-black">Horas de Sueño</h2>
             </div>
             <Button 
               onClick={handleAdd}
-              className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 h-8 gap-2"
+              className="bg-[#C688EB] text-black border-2 border-black hover:bg-[#b078d4] hover:translate-y-[2px] hover:shadow-[0px_0px_0_0_#000] shadow-[2px_2px_0_0_#000] transition-all font-bold h-10 gap-2 rounded-lg"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" strokeWidth={3} />
               Registrar Sueño
             </Button>
           </div>
 
           {logsLoading ? (
             <div className="h-48 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-black border-t-[#C688EB] rounded-full animate-spin" />
             </div>
           ) : logs.length === 0 ? (
             <div className="h-48 flex flex-col items-center justify-center text-center p-4">
-              <Moon className="w-12 h-12 text-muted-foreground/30 mb-2" />
-              <p className="text-muted-foreground">No hay registros para este periodo</p>
+              <Moon className="w-12 h-12 text-black/30 mb-2" strokeWidth={2} />
+              <p className="text-black/60 font-bold uppercase text-sm">No hay registros para este periodo</p>
               <Button 
                 variant="link" 
                 onClick={handleAdd}
-                className="text-primary mt-2"
+                className="text-black font-black uppercase mt-2 underline"
               >
                 Cargar mi primer sueño
               </Button>
             </div>
           ) : (
-            <div className="flex items-end justify-between gap-1 h-48 overflow-x-auto pb-2">
+            <div className="flex items-end justify-between gap-1 h-48 overflow-x-auto pb-2 px-2">
               {chartData.map((item, idx) => (
                 <div key={`${item.date}-${idx}`} className="flex-1 min-w-[28px] max-w-[60px] flex flex-col items-center justify-end gap-1 h-full group">
-                  <div
-                    className={cn(
-                      "w-full rounded-t-lg transition-all duration-500 relative",
-                      getQualityColor(item.calidad)
-                    )}
-                    style={{
-                      height: `${Math.max((item.horas / 12) * 100, 4)}%`,
-                    }}
-                  >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-card px-2 py-1 rounded text-xs whitespace-nowrap border border-border z-10 shadow-lg">
-                      {formatHours(item.horas)} - {item.calidad || 'Sin datos'}
+                  <div className="w-full flex-1 flex flex-col justify-end">
+                    <div
+                      className={cn(
+                        "w-full transition-all duration-500 rounded-t-sm relative border-2 border-transparent",
+                        item.calidad === 'buena' ? "bg-[#BFFF00] border-black border-b-0 shadow-[2px_0_0_0_#000]" :
+                        item.calidad === 'regular' ? "bg-[#FFD700] border-black border-b-0 shadow-[2px_0_0_0_#000]" :
+                        item.calidad === 'mala' ? "bg-[#FF5C5C] border-black border-b-0 shadow-[2px_0_0_0_#000]" :
+                        "bg-gray-200"
+                      )}
+                      style={{
+                        height: `${Math.max((item.horas / 12) * 100, 4)}%`,
+                      }}
+                    >
+                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded text-xs font-bold whitespace-nowrap z-10 pointer-events-none">
+                        {formatHours(item.horas)} - {item.calidad || 'Sin datos'}
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black rotate-45"></div>
+                      </div>
                     </div>
                   </div>
-                  <span className="text-[10px] text-muted-foreground leading-tight">{item.label}</span>
-                  <span className="text-[9px] text-muted-foreground/70 leading-tight">{item.sublabel}</span>
+                  <span className="text-[10px] font-bold text-black uppercase leading-tight">{item.label}</span>
+                  <span className="text-[9px] font-bold text-black/50 leading-tight">{item.sublabel}</span>
                 </div>
               ))}
             </div>
           )}
 
-          <div className="mt-6 pt-6 border-t border-border flex items-center justify-between">
+          <div className="mt-6 pt-6 border-t-4 border-black flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Total del periodo</p>
-              <p className="text-2xl font-display font-bold gradient-text">
+              <p className="text-sm font-bold text-black/60 uppercase mb-1">Total del periodo</p>
+              <p className="text-3xl font-black text-black">
                 {formatHours(logs.reduce((acc, l) => acc + l.horas, 0))}
               </p>
             </div>
-            <div className="flex items-center gap-4 text-xs font-medium">
+            <div className="flex items-center gap-4 text-xs font-black uppercase text-black">
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-neon-green" />
+                <div className="w-3 h-3 border-2 border-black rounded-sm bg-[#BFFF00]" />
                 <span>Bueno</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-neon-gold" />
+                <div className="w-3 h-3 border-2 border-black rounded-sm bg-[#FFD700]" />
                 <span>Regular</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-neon-red" />
+                <div className="w-3 h-3 border-2 border-black rounded-sm bg-[#FF5C5C]" />
                 <span>Malo</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card-gamer rounded-xl p-6">
-          <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
-            <Moon className="w-5 h-5 text-neon-purple" />
-            Análisis de Descanso
+        <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6">
+          <h3 className="font-black uppercase text-xl text-black mb-6 flex items-center gap-2 border-b-4 border-black pb-4">
+            <Moon className="w-6 h-6 text-black" strokeWidth={3} />
+            Análisis
           </h3>
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
-              <p className="text-sm text-foreground mb-1 font-semibold">Consejo Pro</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+          <div className="space-y-6">
+            <div className="p-4 rounded-xl bg-[#C688EB] border-4 border-black shadow-[2px_2px_0_0_#000]">
+              <p className="text-sm text-black font-black uppercase mb-1">Consejo Pro</p>
+              <p className="text-xs font-bold text-black/80 leading-relaxed">
                 {avgHours < 7 
                   ? "Tu promedio de sueño está por debajo de las 7 horas recomendadas. Trata de aumentar tu descanso para mejorar la retención de memoria."
                   : "¡Excelente descanso! Mantener un ritmo de sueño constante ayuda a que tu cerebro procese mejor lo estudiado durante el día."}
               </p>
             </div>
             
-            <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Distribución de Calidad</p>
+            <div className="space-y-4">
+              <p className="text-xs font-black uppercase tracking-widest text-black/60">Distribución de Calidad</p>
               {[
-                { label: 'Buena', count: qualityCounts.buena, color: 'neon-green' },
-                { label: 'Regular', count: qualityCounts.regular, color: 'neon-gold' },
-                { label: 'Mala', count: qualityCounts.mala, color: 'neon-red' },
+                { label: 'Buena', count: qualityCounts.buena, color: '#BFFF00' },
+                { label: 'Regular', count: qualityCounts.regular, color: '#FFD700' },
+                { label: 'Mala', count: qualityCounts.mala, color: '#FF5C5C' },
               ].map(q => {
                 const percentage = logs.length > 0 ? (q.count / logs.length) * 100 : 0;
                 return (
                   <div key={q.label}>
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span>{q.label}</span>
-                      <span className={`font-bold text-${q.color}`}>{Math.round(percentage)}%</span>
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="font-bold text-black uppercase">{q.label}</span>
+                      <span className="font-black text-black px-2 py-0.5 border-2 border-black rounded bg-gray-100">{Math.round(percentage)}%</span>
                     </div>
-                    <div className="progress-gamer h-1.5">
+                    <div className="h-4 bg-gray-200 border-2 border-black rounded-full overflow-hidden shadow-[inset_2px_2px_0_0_rgba(0,0,0,0.1)]">
                       <div 
-                        className={cn("h-full rounded-full transition-all duration-500", `bg-${q.color}`)}
-                        style={{ width: `${percentage}%` }}
+                        className="h-full border-r-2 border-black transition-all duration-500"
+                        style={{ width: `${percentage}%`, backgroundColor: q.color }}
                       />
                     </div>
                   </div>
@@ -289,42 +295,46 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
 
       {/* Logs list with edit/delete */}
       {logs.length > 0 && (
-        <div className="card-gamer rounded-xl p-6">
-          <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
-            <Moon className="w-5 h-5 text-neon-cyan" />
+        <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6">
+          <h3 className="font-black uppercase text-xl text-black mb-6 flex items-center gap-2 border-b-4 border-black pb-4">
+            <Moon className="w-6 h-6 text-black" strokeWidth={3} />
             Registros del Periodo
           </h3>
-          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
             {[...logs].reverse().map(log => (
               <div
                 key={log.id}
-                className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border/50 hover:bg-secondary/50 transition-all group"
+                className="flex items-center justify-between p-3 rounded-xl bg-gray-100 border-2 border-black hover:translate-y-[-2px] hover:shadow-[2px_2px_0_0_#000] transition-all group"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  {getQualityIcon(log.calidad)}
+                  <div className="w-10 h-10 bg-white border-2 border-black rounded-lg flex items-center justify-center">
+                    {log.calidad === 'buena' ? <Star className="w-5 h-5 text-black" strokeWidth={2.5} /> :
+                     log.calidad === 'regular' ? <CloudMoon className="w-5 h-5 text-black" strokeWidth={2.5} /> :
+                     <AlertTriangle className="w-5 h-5 text-black" strokeWidth={2.5} />}
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
+                    <p className="text-sm font-black uppercase text-black truncate">
                       {format(parseISO(log.fecha), "EEEE d 'de' MMM", { locale: es })}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs font-bold text-black/60 uppercase mt-0.5">
                       {formatHours(log.horas)} · {getQualityLabel(log.calidad)}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
                   <button
                     onClick={() => handleEdit(log)}
-                    className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-all"
+                    className="p-2 rounded-lg bg-white border-2 border-black hover:bg-gray-200 text-black transition-all shadow-[2px_2px_0_0_#000]"
                     title="Editar registro"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    <Pencil className="w-4 h-4" strokeWidth={2.5} />
                   </button>
                   <button
                     onClick={() => handleDelete(log)}
-                    className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-all"
+                    className="p-2 rounded-lg bg-[#FF5C5C] border-2 border-black hover:bg-red-500 text-black transition-all shadow-[2px_2px_0_0_#000]"
                     title="Eliminar registro"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" strokeWidth={2.5} />
                   </button>
                 </div>
               </div>

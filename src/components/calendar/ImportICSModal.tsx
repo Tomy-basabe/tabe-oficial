@@ -121,13 +121,13 @@ export function ImportICSModal({ open, onClose, onImport }: ImportICSModalProps)
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="sm:max-w-lg bg-card border-border max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-lg bg-background border-4 border-foreground shadow-[12px_12px_0_0_hsl(var(--foreground))] rounded-xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl gradient-text flex items-center gap-2">
-            <Upload className="w-5 h-5" />
+          <DialogTitle className="font-display font-black text-2xl uppercase tracking-widest flex items-center gap-2 text-foreground">
+            <Upload className="w-6 h-6 text-foreground" />
             Importar desde Google Calendar
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="font-bold">
             Sube un archivo .ics exportado desde Google Calendar
           </DialogDescription>
         </DialogHeader>
@@ -140,13 +140,13 @@ export function ImportICSModal({ open, onClose, onImport }: ImportICSModalProps)
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
-                dragActive ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                "border-[3px] border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
+                dragActive ? "border-[#00F0FF] bg-[#00F0FF]/10 shadow-[4px_4px_0_0_#000]" : "border-foreground hover:border-[#00F0FF] hover:bg-[#00F0FF]/5 hover:shadow-[4px_4px_0_0_#000]"
               )}
             >
-              <FileUp className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="font-medium mb-1">Arrastra tu archivo .ics aquí</p>
-              <p className="text-sm text-muted-foreground">o haz clic para seleccionarlo</p>
+              <FileUp className="w-12 h-12 mx-auto mb-4 text-foreground" />
+              <p className="font-black uppercase tracking-widest mb-1">Arrastra tu archivo .ics aquí</p>
+              <p className="text-sm font-bold text-muted-foreground">o haz clic para seleccionarlo</p>
             </div>
             
             <input
@@ -157,12 +157,12 @@ export function ImportICSModal({ open, onClose, onImport }: ImportICSModalProps)
               className="hidden"
             />
 
-            <div className="bg-secondary/50 rounded-lg p-4 text-sm">
-              <h4 className="font-medium mb-2 flex items-center gap-2">
+            <div className="bg-[#FFE66D] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl p-5 text-sm mt-6">
+              <h4 className="font-black uppercase tracking-widest mb-2 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 ¿Cómo exportar desde Google Calendar?
               </h4>
-              <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
+              <ol className="list-decimal list-inside space-y-1 font-bold text-foreground/80 text-xs">
                 <li>Abre Google Calendar en tu navegador</li>
                 <li>Ve a Configuración → Importar y exportar</li>
                 <li>Haz clic en "Exportar"</li>
@@ -175,20 +175,20 @@ export function ImportICSModal({ open, onClose, onImport }: ImportICSModalProps)
 
         {step === "select" && (
           <div className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between mb-3 border-b-2 border-foreground pb-2">
+              <p className="text-sm font-black uppercase tracking-widest">
                 {selectedEvents.size} de {parsedEvents.length} seleccionados
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={selectAll}
-                  className="text-xs text-primary hover:underline"
+                  className="text-xs font-bold text-[#00F0FF] hover:underline"
                 >
                   Seleccionar todos
                 </button>
                 <button
                   onClick={deselectAll}
-                  className="text-xs text-muted-foreground hover:underline"
+                  className="text-xs font-bold text-muted-foreground hover:underline"
                 >
                   Deseleccionar
                 </button>
@@ -201,26 +201,26 @@ export function ImportICSModal({ open, onClose, onImport }: ImportICSModalProps)
                   key={event.uid}
                   onClick={() => toggleEvent(event.uid)}
                   className={cn(
-                    "w-full p-3 rounded-lg border text-left transition-all",
+                    "w-full p-3 rounded-lg border-[3px] border-foreground text-left transition-all hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_#000]",
                     selectedEvents.has(event.uid)
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:bg-secondary/50"
+                      ? "bg-[#00FF9D] text-black shadow-[4px_4px_0_0_#000]"
+                      : "bg-white text-black"
                   )}
                 >
                   <div className="flex items-start gap-3">
                     <div className={cn(
-                      "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
+                      "w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
                       selectedEvents.has(event.uid) 
-                        ? "border-primary bg-primary" 
-                        : "border-muted-foreground"
+                        ? "border-black bg-black" 
+                        : "border-black bg-white"
                     )}>
                       {selectedEvents.has(event.uid) && (
-                        <Check className="w-3 h-3 text-primary-foreground" />
+                        <Check className="w-4 h-4 text-[#00FF9D]" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-black uppercase tracking-tight text-sm truncate">{event.title}</p>
+                      <p className="text-xs font-bold opacity-80">
                         {new Date(event.date + "T12:00:00").toLocaleDateString("es-AR", {
                           weekday: "short",
                           day: "numeric",
@@ -230,7 +230,7 @@ export function ImportICSModal({ open, onClose, onImport }: ImportICSModalProps)
                         {event.time && ` a las ${event.time}`}
                       </p>
                       {event.location && (
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="text-xs font-bold opacity-80 truncate mt-0.5">
                           📍 {event.location}
                         </p>
                       )}
@@ -240,31 +240,31 @@ export function ImportICSModal({ open, onClose, onImport }: ImportICSModalProps)
               ))}
             </div>
 
-            <div className="flex gap-3 pt-4 mt-4 border-t border-border">
+            <div className="flex gap-3 pt-4 mt-4 border-t-2 border-foreground">
               <button
                 onClick={() => setStep("upload")}
-                className="flex-1 py-3 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all"
+                className="flex-1 py-3 bg-muted text-foreground border-[3px] border-foreground rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all"
               >
                 Atrás
               </button>
               <button
                 onClick={handleImport}
                 disabled={selectedEvents.size === 0}
-                className="flex-1 py-3 rounded-xl font-medium bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90 transition-all disabled:opacity-50"
+                className="flex-1 py-3 bg-[#00FF9D] text-black border-[3px] border-foreground rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all disabled:opacity-50 disabled:translate-y-0 disabled:shadow-[4px_4px_0_0_#000]"
               >
-                Importar {selectedEvents.size} eventos
+                Importar {selectedEvents.size}
               </button>
             </div>
           </div>
         )}
 
         {step === "importing" && (
-          <div className="py-12 text-center">
-            <div className="w-16 h-16 mx-auto rounded-full bg-primary/20 flex items-center justify-center animate-pulse mb-4">
-              <Upload className="w-8 h-8 text-primary" />
+          <div className="py-12 text-center flex flex-col items-center">
+            <div className="w-16 h-16 mx-auto rounded-xl bg-[#00F0FF] border-4 border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center animate-pulse mb-6">
+              <Upload className="w-8 h-8 text-black" />
             </div>
-            <p className="font-medium">Importando eventos...</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="font-black text-xl uppercase tracking-widest text-foreground">Importando eventos...</p>
+            <p className="text-sm font-bold text-muted-foreground mt-2">
               Por favor espera mientras se crean los eventos
             </p>
           </div>

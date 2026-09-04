@@ -1188,7 +1188,7 @@ export default function Library() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
             Biblioteca
@@ -1198,7 +1198,7 @@ export default function Library() {
           </p>
         </div>
         <div className="flex gap-3 flex-wrap items-center mt-2 lg:mt-0 tour-library-upload">
-          <div className="flex gap-1.5 bg-background border-[3px] border-foreground p-1.5 rounded-xl shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+          <div className="flex gap-1.5 bg-background border-[3px] border-foreground p-1.5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
             <button
               onClick={openFolderModal}
               title="Nueva Carpeta"
@@ -1229,7 +1229,7 @@ export default function Library() {
           </div>
           <button
             onClick={openUploadModal}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#805ad5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-y-0 active:shadow-none transition-all"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#805ad5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
           >
             <Upload className="w-5 h-5" />
             <span>Subir Archivo</span>
@@ -1247,7 +1247,7 @@ export default function Library() {
       </div>
 
       {/* Year and Subject Filters */}
-      <div className="bg-card border-[3px] border-foreground rounded-xl p-5 shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]">
+      <div className="bg-card border-[3px] border-foreground rounded-xl p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-4 h-4 text-primary" />
           <span className="font-medium text-sm">Filtrar por</span>
@@ -1256,31 +1256,31 @@ export default function Library() {
         <div className="flex flex-wrap gap-4">
           {/* Year Filter */}
           <div className="flex-1 min-w-[200px]">
-            <label className="text-xs text-muted-foreground mb-2 block">Año</label>
+            <label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2 block">AÑO</label>
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setSelectedYear(null)}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  "px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all border-[3px] border-foreground",
                   selectedYear === null
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary hover:bg-secondary/80"
+                    ? "bg-[#1475e5] text-white shadow-[4px_4px_0_0_#000] -translate-y-1"
+                    : "bg-background text-foreground hover:bg-muted shadow-[2px_2px_0_0_#000]"
                 )}
               >
-                Todos
+                TODOS
               </button>
               {years.map(year => (
                 <button
                   key={year}
                   onClick={() => setSelectedYear(year)}
                   className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    "px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all border-[3px] border-foreground",
                     selectedYear === year
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary hover:bg-secondary/80"
+                      ? "bg-[#ffd21c] text-black shadow-[4px_4px_0_0_#000] -translate-y-1"
+                      : "bg-background text-foreground hover:bg-muted shadow-[2px_2px_0_0_#000]"
                   )}
                 >
-                  {year}° Año
+                  {year}° AÑO
                 </button>
               ))}
             </div>
@@ -1289,18 +1289,18 @@ export default function Library() {
           {/* Subject Filter - Only shown when year is selected */}
           {selectedYear && (
             <div className="flex-1 min-w-[250px]">
-              <label className="text-xs text-muted-foreground mb-2 block">Materia</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2 block">MATERIA</label>
               <Select
                 value={selectedSubjectId || "all"}
                 onValueChange={(val) => setSelectedSubjectId(val === "all" ? null : val)}
               >
-                <SelectTrigger className="bg-secondary border-border">
-                  <SelectValue placeholder="Todas las materias" />
+                <SelectTrigger className="bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest h-auto py-2 px-4 focus:shadow-none focus:translate-y-1 transition-all">
+                  <SelectValue placeholder="TODAS LAS MATERIAS" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las materias</SelectItem>
+                <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                  <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODAS LAS MATERIAS</SelectItem>
                   {filteredSubjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id}>
+                    <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
                       {subject.nombre}
                     </SelectItem>
                   ))}
@@ -1312,51 +1312,51 @@ export default function Library() {
 
         {/* Current filter info */}
         {(selectedYear || selectedSubjectId) && (
-          <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              <GraduationCap className="w-4 h-4 text-primary" />
+          <div className="mt-6 pt-4 border-t-[3px] border-foreground/20 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+              <GraduationCap className="w-4 h-4 text-foreground" />
               <span className="text-muted-foreground">
                 {selectedSubject
-                  ? `${selectedSubject.nombre} (${selectedSubject.año}° año)`
+                  ? `${selectedSubject.nombre} (${selectedSubject.año}° AÑO)`
                   : selectedYear
-                    ? `Todas las materias de ${selectedYear}° año`
-                    : "Todos los archivos"
+                    ? `TODAS LAS MATERIAS DE ${selectedYear}° AÑO`
+                    : "TODOS LOS ARCHIVOS"
                 }
               </span>
-              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
-                {totalFilesInFilter} archivos
+              <span className="px-2 py-0.5 bg-[#1475e5] text-white rounded-md shadow-[2px_2px_0_0_#000] border-2 border-foreground">
+                {totalFilesInFilter} ARCHIVOS
               </span>
             </div>
             <button
               onClick={() => { setSelectedYear(null); setSelectedSubjectId(null); }}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-[#ef4444] hover:underline"
             >
-              Limpiar filtros
+              LIMPIAR FILTROS
             </button>
           </div>
         )}
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] p-3 rounded-xl w-fit">
         <button
           onClick={() => navigateToFolder(null)}
           className={cn(
-            "flex items-center gap-1 hover:text-primary transition-colors",
-            currentFolderId === null ? "text-primary font-medium" : "text-muted-foreground"
+            "flex items-center gap-1 hover:text-[#1475e5] transition-colors",
+            currentFolderId === null ? "text-[#1475e5] font-black" : "text-foreground"
           )}
         >
           <FolderOpen className="w-4 h-4" />
-          Biblioteca
+          BIBLIOTECA
         </button>
         {folderPath.map((folder, index) => (
           <div key={folder.id} className="flex items-center gap-2">
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            <ChevronRight className="w-4 h-4 text-foreground" />
             <button
               onClick={() => navigateToFolder(folder.id)}
               className={cn(
-                "hover:text-primary transition-colors",
-                index === folderPath.length - 1 ? "text-primary font-medium" : "text-muted-foreground"
+                "hover:text-[#1475e5] transition-colors",
+                index === folderPath.length - 1 ? "text-[#1475e5] font-black" : "text-foreground"
               )}
             >
               {folder.nombre}
@@ -1372,10 +1372,10 @@ export default function Library() {
             const parentId = folderPath.length > 1 ? folderPath[folderPath.length - 2].id : null;
             navigateToFolder(parentId);
           }}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground hover:text-[#1475e5] transition-colors w-fit px-3 py-2 bg-background border-[3px] border-foreground shadow-[2px_2px_0_0_#000] rounded-lg mt-2 hover:translate-y-0.5 hover:shadow-none"
         >
           <ArrowLeft className="w-4 h-4" />
-          Volver
+          VOLVER
         </button>
       )}
 
@@ -1391,28 +1391,28 @@ export default function Library() {
           ))}
         </div>
       ) : currentFolders.length === 0 && currentFiles.length === 0 ? (
-        <div className="text-center py-16">
-          <FolderOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground mb-4">
+        <div className="text-center py-16 bg-card border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000]">
+          <FolderOpen className="w-16 h-16 mx-auto mb-4 text-foreground" />
+          <p className="text-foreground font-black uppercase tracking-widest text-sm mb-6">
             {selectedYear || selectedSubjectId
-              ? "No hay archivos para este filtro"
+              ? "NO HAY ARCHIVOS PARA ESTE FILTRO"
               : currentFolderId
-                ? "Esta carpeta está vacía"
-                : "No hay archivos en tu biblioteca"
+                ? "ESTA CARPETA ESTÁ VACÍA"
+                : "NO HAY ARCHIVOS EN TU BIBLIOTECA"
             }
           </p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-4 justify-center flex-wrap">
             <button
               onClick={() => openFolderModal()}
-              className="px-4 py-2 bg-secondary rounded-lg font-medium"
+              className="px-6 py-3 bg-background border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-1 hover:shadow-none transition-all"
             >
-              Crear carpeta
+              CREAR CARPETA
             </button>
             <button
               onClick={openUploadModal}
-              className="px-6 py-2.5 bg-gradient-to-r from-neon-purple to-neon-cyan text-white rounded-xl font-bold shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] hover:scale-105 transition-all active:scale-95 border border-white/20"
+              className="px-6 py-3 bg-[#805ad5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-1 hover:shadow-none transition-all"
             >
-              Subir primer archivo
+              SUBIR PRIMER ARCHIVO
             </button>
           </div>
         </div>
@@ -1498,8 +1498,8 @@ export default function Library() {
                 key={folder.id}
                 onClick={() => navigateToFolder(folder.id)}
                 className={cn(
-                  "bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl p-4 cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all group relative",
-                  dragOverFolderId === folder.id && "ring-[3px] ring-foreground bg-primary/10 scale-[1.02]"
+                  "bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] p-4 rounded-xl cursor-pointer hover:-translate-y-1 hover:shadow-none transition-all group relative",
+                  dragOverFolderId === folder.id && "ring-[4px] ring-[#1475e5] bg-[#1475e5]/10 scale-[1.02]"
                 )}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -1594,32 +1594,32 @@ export default function Library() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-2">
                   <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${folder.color}20` }}
+                    className="w-12 h-12 rounded-xl flex items-center justify-center border-[3px] border-foreground shadow-[2px_2px_0_0_#000]"
+                    style={{ backgroundColor: folder.color }}
                   >
-                    <Folder className="w-6 h-6" style={{ color: folder.color }} />
+                    <Folder className="w-6 h-6 text-foreground" fill="currentColor" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium truncate">{folder.nombre}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {folderFilesCount} archivos
+                    <h3 className="font-black uppercase tracking-widest text-sm truncate">{folder.nombre}</h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">
+                      {folderFilesCount} ARCHIVOS
                       {folderSubject && ` • ${folderSubject.codigo}`}
                     </p>
                   </div>
                 </div>
 
-                <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity flex gap-1">
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       openEditFolder(folder);
                     }}
-                    className="p-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30"
+                    className="p-1.5 bg-background border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
                     title="Editar carpeta"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5 text-foreground" />
                   </button>
                   <button
                     onClick={(e) => {
@@ -1627,16 +1627,16 @@ export default function Library() {
                       setPublishingResource({ id: folder.id, type: "folder", nombre: folder.nombre });
                       setShowPublishModal(true);
                     }}
-                    className="p-2 bg-neon-cyan/20 text-neon-cyan rounded-lg hover:bg-neon-cyan/30"
+                    className="p-1.5 bg-[#1475e5] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
                     title="Publicar en Marketplace"
                   >
-                    <ShoppingBag className="w-4 h-4" />
+                    <ShoppingBag className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
-                    className="p-2 bg-destructive/20 text-destructive rounded-lg hover:bg-destructive/30"
+                    className="p-1.5 bg-[#ef4444] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -1652,7 +1652,7 @@ export default function Library() {
             return (
               <div
                 key={file.id}
-                className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] rounded-xl p-4 group relative cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] transition-all"
+                className="bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] p-4 rounded-xl group relative cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:shadow-none transition-all"
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("fileId", file.id);
@@ -1685,45 +1685,45 @@ export default function Library() {
                 {/* PDF icon or other files */}
                 {file.tipo !== "imagen" && (
                   <div className="flex items-start gap-3 mb-3">
-                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", colors)}>
-                      <Icon className="w-5 h-5" />
+                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_#000]", colors)}>
+                      <Icon className="w-5 h-5 text-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm truncate">{file.nombre}</h3>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {file.subject?.nombre || "Sin materia"}
+                      <h3 className="font-black uppercase tracking-widest text-sm truncate">{file.nombre}</h3>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground truncate mt-1">
+                        {file.subject?.nombre || "SIN MATERIA"}
                       </p>
                     </div>
                   </div>
                 )}
 
                 {file.tipo === "imagen" && (
-                  <h3 className="font-medium text-sm truncate mb-1">{file.nombre}</h3>
+                  <h3 className="font-black uppercase tracking-widest text-sm truncate mb-2 mt-2">{file.nombre}</h3>
                 )}
 
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{file.subject?.nombre || "Sin materia"}</span>
-                  <span>{formatFileSize(file.tamaño_bytes)}</span>
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2 pt-2 border-t-2 border-foreground/10">
+                  <span className="truncate">{file.subject?.nombre || "SIN MATERIA"}</span>
+                  <span className="whitespace-nowrap ml-2">{formatFileSize(file.tamaño_bytes)}</span>
                 </div>
 
-                <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity flex gap-1">
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                   <button
                     onClick={() => {
                       setPublishingResource({ id: file.id, type: "file", nombre: file.nombre });
                       setShowPublishModal(true);
                     }}
-                    className="p-2 bg-neon-cyan/20 text-neon-cyan rounded-lg hover:bg-neon-cyan/30"
+                    className="p-1.5 bg-[#1475e5] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
                     title="Publicar en Marketplace"
                   >
-                    <ShoppingBag className="w-4 h-4" />
+                    <ShoppingBag className="w-3.5 h-3.5" />
                   </button>
                   {canPreview && (
                     <button
                       onClick={() => openFullScreenViewer(file)}
-                      className="p-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30"
+                      className="p-1.5 bg-background border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
                       title="Vista previa"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3.5 h-3.5 text-foreground" />
                     </button>
                   )}
                   <button
@@ -1736,17 +1736,17 @@ export default function Library() {
                         window.open(file.url, '_blank');
                       }
                     }}
-                    className="p-2 bg-secondary rounded-lg hover:bg-secondary/80"
+                    className="p-1.5 bg-[#ffd21c] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
                     title="Abrir en nueva pestaña"
                   >
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => deleteFile(file)}
-                    className="p-2 bg-destructive/20 text-destructive rounded-lg hover:bg-destructive/30"
+                    className="p-1.5 bg-[#ef4444] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
                     title="Eliminar"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -1757,22 +1757,22 @@ export default function Library() {
 
       {/* Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-4xl h-[85vh] p-0 overflow-hidden bg-card border-border">
+        <DialogContent className="max-w-4xl h-[85vh] p-0 overflow-hidden bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-medium truncate">{previewFile?.nombre}</h3>
+            <div className="flex items-center justify-between p-4 border-b-[3px] border-foreground bg-muted/50">
+              <h3 className="font-black uppercase tracking-widest text-sm truncate">{previewFile?.nombre}</h3>
               <div className="flex items-center gap-2">
                 <a
                   href={previewFile?.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 bg-secondary rounded-lg hover:bg-secondary/80"
+                  className="p-1.5 bg-[#ffd21c] text-black border-[3px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl hover:-translate-y-1 hover:shadow-none transition-all"
                 >
                   <ExternalLink className="w-4 h-4" />
                 </a>
                 <button
                   onClick={() => setShowPreviewModal(false)}
-                  className="p-2 bg-secondary rounded-lg hover:bg-secondary/80"
+                  className="p-1.5 bg-[#ef4444] text-white border-[3px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl hover:-translate-y-1 hover:shadow-none transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1780,14 +1780,14 @@ export default function Library() {
             </div>
 
             {/* AI Actions Toolbar */}
-            <div className="bg-secondary/30 border-b border-border p-2 flex flex-col gap-2">
-              <div className="flex gap-2 justify-center flex-wrap">
+            <div className="bg-background border-b-[3px] border-foreground p-4 flex flex-col gap-4">
+              <div className="flex gap-3 justify-center flex-wrap">
                 <button
                   onClick={() => setShowGenOptions(showGenOptions === 'flashcards' ? null : 'flashcards')}
                   disabled={generating !== null}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
-                    showGenOptions === 'flashcards' ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary/20"
+                    "flex items-center gap-2 px-4 py-2 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 hover:-translate-y-1 hover:shadow-none",
+                    showGenOptions === 'flashcards' ? "bg-[#00ffcc] text-black" : "bg-background text-foreground"
                   )}
                 >
                   {generating === 'flashcards' ? (
@@ -1795,14 +1795,14 @@ export default function Library() {
                   ) : (
                     <span className="text-lg">✨</span>
                   )}
-                  {generating === 'flashcards' ? "Generando..." : "Flashcards"}
+                  {generating === 'flashcards' ? "GENERANDO..." : "FLASHCARDS"}
                 </button>
                 <button
                   onClick={() => setShowGenOptions(showGenOptions === 'quiz' ? null : 'quiz')}
                   disabled={generating !== null}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
-                    showGenOptions === 'quiz' ? "bg-primary text-primary-foreground" : "bg-neon-purple/10 text-neon-purple hover:bg-neon-purple/20"
+                    "flex items-center gap-2 px-4 py-2 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 hover:-translate-y-1 hover:shadow-none",
+                    showGenOptions === 'quiz' ? "bg-[#ffd21c] text-black" : "bg-background text-foreground"
                   )}
                 >
                   {generating === 'quiz' ? (
@@ -1810,38 +1810,38 @@ export default function Library() {
                   ) : (
                     <span className="text-lg">📋</span>
                   )}
-                  {generating === 'quiz' ? "Generando..." : "Cuestionario"}
+                  {generating === 'quiz' ? "GENERANDO..." : "CUESTIONARIO"}
                 </button>
                 <button
                   onClick={() => previewFile && handleGenerateContent(previewFile, 'summary')}
                   disabled={generating !== null}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-background text-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 hover:-translate-y-1 hover:shadow-none"
                 >
                   {generating === 'summary' ? (
                     <span className="animate-spin">⏳</span>
                   ) : (
                     <span className="text-lg">📝</span>
                   )}
-                  {generating === 'summary' ? "Resumiendo..." : "Resumir"}
+                  {generating === 'summary' ? "RESUMIENDO..." : "RESUMIR"}
                 </button>
               </div>
 
               {/* Quantity selector for flashcards/quiz */}
               {showGenOptions && (
-                <div className="flex items-center gap-3 justify-center bg-background/50 rounded-lg p-2">
-                  <span className="text-xs text-muted-foreground">
-                    {showGenOptions === 'flashcards' ? 'Cantidad de tarjetas:' : 'Cantidad de preguntas:'}
+                <div className="flex items-center gap-4 justify-center bg-muted/30 border-[3px] border-foreground rounded-xl p-3 shadow-[4px_4px_0_0_#000]">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {showGenOptions === 'flashcards' ? 'CANTIDAD:' : 'PREGUNTAS:'}
                   </span>
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     {[5, 10, 15, 20, 30].map(n => (
                       <button
                         key={n}
                         onClick={() => setGenCount(n)}
                         className={cn(
-                          "px-2 py-1 rounded text-xs font-medium transition-all",
+                          "px-2 py-1 border-2 border-foreground rounded font-black text-xs transition-all",
                           genCount === n
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary hover:bg-secondary/80"
+                            ? "bg-foreground text-background shadow-none translate-y-0.5"
+                            : "bg-background text-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-none"
                         )}
                       >
                         {n}
@@ -1851,9 +1851,9 @@ export default function Library() {
                   <button
                     onClick={() => previewFile && handleGenerateContent(previewFile, showGenOptions, genCount)}
                     disabled={generating !== null}
-                    className="px-3 py-1 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                    className="px-4 py-2 bg-[#805ad5] text-white border-[3px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl text-[10px] font-black uppercase tracking-widest hover:-translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
                   >
-                    Generar {genCount}
+                    GENERAR {genCount}
                   </button>
                 </div>
               )}
@@ -1885,28 +1885,28 @@ export default function Library() {
         setShowFolderModal(open);
         if (open) setNewFolderYear(selectedYear);
       }}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display gradient-text flex items-center gap-2">
-              <FolderPlus className="w-5 h-5 text-primary" />
-              Nueva Carpeta
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+              <FolderPlus className="w-6 h-6" />
+              NUEVA CARPETA
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Nombre</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">NOMBRE</label>
               <input
                 type="text"
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Nombre de la carpeta"
-                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
+                placeholder="NOMBRE DE LA CARPETA"
+                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Año</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AÑO</label>
                 <Select
                   value={newFolderYear ? newFolderYear.toString() : "all"}
                   onValueChange={(val) => {
@@ -1915,33 +1915,33 @@ export default function Library() {
                     setNewFolderSubject("");
                   }}
                 >
-                  <SelectTrigger className="mt-2 bg-secondary border-border">
-                    <SelectValue placeholder="Todos" />
+                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
+                    <SelectValue placeholder="TODOS" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                    <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
                     {years.map(y => (
-                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">MATERIA (OPCIONAL)</label>
                 <Select
                   value={newFolderSubject || "none"}
                   onValueChange={(val) => setNewFolderSubject(val === "none" ? "" : val)}
                 >
-                  <SelectTrigger className="mt-2 bg-secondary border-border">
-                    <SelectValue placeholder="Sin materia asignada" />
+                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
+                    <SelectValue placeholder="SIN MATERIA ASIGNADA" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                    <SelectItem value="none" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">SIN MATERIA ASIGNADA</SelectItem>
                     {subjects
                       .filter(s => !newFolderYear || s.año === newFolderYear)
                       .map(subject => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.nombre} ({subject.año}° año)
+                        <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
+                          {subject.nombre} ({subject.año}° AÑO)
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -1950,15 +1950,15 @@ export default function Library() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Color</label>
-              <div className="flex gap-2 mt-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">COLOR</label>
+              <div className="flex gap-3 mt-2">
                 {folderColors.map(color => (
                   <button
                     key={color.value}
                     onClick={() => setNewFolderColor(color.value)}
                     className={cn(
-                      "w-10 h-10 rounded-xl transition-all",
-                      newFolderColor === color.value && "ring-2 ring-offset-2 ring-offset-background ring-primary"
+                      "w-10 h-10 rounded-xl border-[3px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-1 transition-all",
+                      newFolderColor === color.value && "ring-[4px] ring-foreground ring-offset-2 ring-offset-background scale-110"
                     )}
                     style={{ backgroundColor: color.value }}
                   />
@@ -1969,9 +1969,9 @@ export default function Library() {
             <button
               onClick={createFolder}
               disabled={!newFolderName.trim()}
-              className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50 transition-all"
+              className="w-full py-3 mt-4 bg-[#1475e5] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest disabled:opacity-50 hover:-translate-y-1 hover:shadow-none transition-all"
             >
-              Crear Carpeta
+              CREAR CARPETA
             </button>
           </div>
         </DialogContent>
@@ -1982,14 +1982,17 @@ export default function Library() {
         setShowUploadModal(open);
         if (open) setUploadYear(selectedYear); // Default to current filter
       }}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display gradient-text">Subir Archivo</DialogTitle>
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+              <Upload className="w-6 h-6" />
+              SUBIR ARCHIVO
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Año</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AÑO</label>
                 <Select
                   value={uploadYear ? uploadYear.toString() : "all"}
                   onValueChange={(val) => {
@@ -1998,34 +2001,34 @@ export default function Library() {
                     setUploadSubject(""); // Reset subject when year changes
                   }}
                 >
-                  <SelectTrigger className="mt-2 bg-secondary border-border">
-                    <SelectValue placeholder="Todos" />
+                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
+                    <SelectValue placeholder="TODOS" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                    <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
                     {years.map(y => (
-                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
-                  Materia
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  MATERIA
                 </label>
                 <Select
                   value={uploadSubject || "none"}
                   onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
                 >
-                  <SelectTrigger className="mt-2 bg-secondary border-border">
-                    <SelectValue placeholder="Sin materia" />
+                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
+                    <SelectValue placeholder="SIN MATERIA" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                    <SelectItem value="none" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">SIN MATERIA ASIGNADA</SelectItem>
                     {subjects
                       .filter(s => !uploadYear || s.año === uploadYear)
                       .map(subject => (
-                        <SelectItem key={subject.id} value={subject.id}>
+                        <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
                           {subject.nombre} ({subject.año}°)
                         </SelectItem>
                       ))}
@@ -2036,14 +2039,14 @@ export default function Library() {
 
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-primary/50 hover:border-primary bg-primary/5 rounded-xl p-8 text-center transition-colors cursor-pointer"
+              className="border-[3px] border-dashed border-foreground bg-background rounded-xl p-8 text-center transition-all cursor-pointer hover:bg-muted shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-y-0.5"
             >
-              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-sm font-medium">
-                {uploading ? "Subiendo..." : "Click para seleccionar archivo"}
+              <Upload className="w-10 h-10 mx-auto mb-3 text-foreground" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-foreground mt-2">
+                {uploading ? "SUBIENDO..." : "CLICK PARA SELECCIONAR ARCHIVO"}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                PDF, imágenes (máx 20MB)
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">
+                PDF, IMÁGENES (MÁX 20MB)
               </p>
               <input
                 ref={fileInputRef}
@@ -2063,14 +2066,17 @@ export default function Library() {
         setShowLinkModal(open);
         if (open) setUploadYear(selectedYear);
       }}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display gradient-text">Agregar Link</DialogTitle>
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+              <LinkIcon className="w-6 h-6" />
+              AGREGAR LINK
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Año</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AÑO</label>
                 <Select
                   value={uploadYear ? uploadYear.toString() : "all"}
                   onValueChange={(val) => {
@@ -2079,34 +2085,34 @@ export default function Library() {
                     setUploadSubject("");
                   }}
                 >
-                  <SelectTrigger className="mt-2 bg-secondary border-border">
-                    <SelectValue placeholder="Todos" />
+                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
+                    <SelectValue placeholder="TODOS" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                    <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
                     {years.map(y => (
-                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">
-                  Materia
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  MATERIA
                 </label>
                 <Select
                   value={uploadSubject || "none"}
                   onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
                 >
-                  <SelectTrigger className="mt-2 bg-secondary border-border">
-                    <SelectValue placeholder="Sin materia" />
+                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
+                    <SelectValue placeholder="SIN MATERIA" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                    <SelectItem value="none" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">SIN MATERIA ASIGNADA</SelectItem>
                     {subjects
                       .filter(s => !uploadYear || s.año === uploadYear)
                       .map(subject => (
-                        <SelectItem key={subject.id} value={subject.id}>
+                        <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
                           {subject.nombre} ({subject.año}°)
                         </SelectItem>
                       ))}
@@ -2116,33 +2122,33 @@ export default function Library() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Nombre del recurso</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">NOMBRE DEL RECURSO</label>
               <input
                 type="text"
                 value={linkName}
                 onChange={(e) => setLinkName(e.target.value)}
-                placeholder="Ej: Video explicativo - Tema 1"
-                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
+                placeholder="EJ: VIDEO EXPLICATIVO - TEMA 1"
+                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-muted-foreground">URL</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">URL</label>
               <input
                 type="url"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
-                placeholder="https://..."
-                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border"
+                placeholder="HTTPS://..."
+                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
               />
             </div>
 
             <button
               onClick={addLink}
               disabled={!linkUrl.trim() || !linkName.trim()}
-              className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50 transition-all"
+              className="w-full py-3 mt-4 bg-[#805ad5] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest disabled:opacity-50 hover:-translate-y-1 hover:shadow-none transition-all"
             >
-              Agregar Link
+              AGREGAR LINK
             </button>
           </div>
         </DialogContent>
@@ -2151,27 +2157,27 @@ export default function Library() {
       {/* Bulk Actions Floating Bar */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-card/80 backdrop-blur-xl border border-primary/20 shadow-2xl shadow-primary/20 rounded-2xl p-4 flex items-center gap-6 min-w-[300px]">
-            <div className="flex items-center gap-3 pr-6 border-r border-border">
-              <div className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold">
+          <div className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-4 flex items-center gap-6 min-w-[300px]">
+            <div className="flex items-center gap-3 pr-6 border-r-[3px] border-foreground">
+              <div className="w-8 h-8 rounded-xl bg-foreground text-background flex items-center justify-center font-black">
                 {selectedIds.size}
               </div>
-              <span className="text-sm font-medium">seleccionados</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">SELECCIONADOS</span>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={deleteSelected}
-                className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-xl text-sm font-semibold transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#ef4444] text-white border-[3px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-1 hover:shadow-none rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
               >
-                <Trash2 className="w-4 h-4" />
-                Eliminar
+                <Trash2 className="w-3.5 h-3.5" />
+                ELIMINAR
               </button>
               <button
                 onClick={clearSelection}
-                className="px-4 py-2 text-sm font-medium hover:bg-secondary rounded-xl transition-colors"
+                className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
               >
-                Cancelar
+                CANCELAR
               </button>
             </div>
           </div>
@@ -2180,32 +2186,32 @@ export default function Library() {
 
       {/* Edit Folder Modal */}
       <Dialog open={showEditFolderModal} onOpenChange={setShowEditFolderModal}>
-        <DialogContent className="bg-card border-border sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Editar Carpeta</DialogTitle>
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground">EDITAR CARPETA</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Nombre de la carpeta</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">NOMBRE DE LA CARPETA</label>
               <input
                 type="text"
                 value={editFolderName}
                 onChange={(e) => setEditFolderName(e.target.value)}
-                placeholder="Nombre de la carpeta"
-                className="w-full p-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="NOMBRE DE LA CARPETA"
+                className="w-full p-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Color</label>
-              <div className="flex gap-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">COLOR</label>
+              <div className="flex gap-3 mt-2">
                 {folderColors.map((color) => (
                   <button
                     key={color.value}
                     onClick={() => setEditFolderColor(color.value)}
                     className={cn(
-                      "w-8 h-8 rounded-full transition-transform active:scale-90",
-                      editFolderColor === color.value && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-110"
+                      "w-10 h-10 rounded-xl border-[3px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-1 transition-all",
+                      editFolderColor === color.value && "ring-[4px] ring-foreground ring-offset-2 ring-offset-background scale-110"
                     )}
                     style={{ backgroundColor: color.value }}
                     title={color.name}
@@ -2216,7 +2222,7 @@ export default function Library() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Año (opcional)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AÑO (OPCIONAL)</label>
                 <Select
                   value={editFolderYear ? editFolderYear.toString() : "all"}
                   onValueChange={(val) => {
@@ -2225,32 +2231,32 @@ export default function Library() {
                     setEditFolderSubject("");
                   }}
                 >
-                  <SelectTrigger className="mt-2 bg-secondary border-border">
-                    <SelectValue placeholder="Todos" />
+                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
+                    <SelectValue placeholder="TODOS" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                    <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
                     {years.map(y => (
-                      <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
+                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Materia (opcional)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">MATERIA (OPCIONAL)</label>
                 <Select
                   value={editFolderSubject || "none"}
                   onValueChange={(val) => setEditFolderSubject(val === "none" ? "" : val)}
                 >
-                  <SelectTrigger className="mt-2 bg-secondary border-border">
-                    <SelectValue placeholder="Sin materia" />
+                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
+                    <SelectValue placeholder="SIN MATERIA" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin materia asignada</SelectItem>
+                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
+                    <SelectItem value="none" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">SIN MATERIA ASIGNADA</SelectItem>
                     {subjects
                       .filter(s => !editFolderYear || s.año === editFolderYear)
                       .map(subject => (
-                        <SelectItem key={subject.id} value={subject.id}>
+                        <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
                           {subject.nombre} ({subject.año}°)
                         </SelectItem>
                       ))}
@@ -2259,19 +2265,19 @@ export default function Library() {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
             <button
               onClick={() => setShowEditFolderModal(false)}
-              className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors"
+              className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
             >
-              Cancelar
+              CANCELAR
             </button>
             <button
               onClick={updateFolder}
               disabled={!editFolderName.trim()}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/25 hover:scale-105 transition-all active:scale-95 disabled:opacity-50"
+              className="px-6 py-3 bg-[#1475e5] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest hover:-translate-y-1 hover:shadow-none transition-all active:scale-95 disabled:opacity-50"
             >
-              Guardar cambios
+              GUARDAR CAMBIOS
             </button>
           </DialogFooter>
         </DialogContent>
@@ -2279,55 +2285,55 @@ export default function Library() {
 
       {/* Marketplace Publish Modal */}
       <Dialog open={showPublishModal} onOpenChange={setShowPublishModal}>
-        <DialogContent className="bg-card border-border sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-neon-cyan" />
-              Publicar a Marketplace
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+              <ShoppingBag className="w-6 h-6 text-[#1475e5]" />
+              PUBLICAR A MARKETPLACE
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="p-3 bg-secondary/50 rounded-lg border border-border">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Recurso a publicar</p>
-              <p className="font-medium">{publishingResource?.nombre}</p>
-              <p className="text-xs text-muted-foreground italic">
-                {publishingResource?.type === "folder" ? "Toda la estructura y archivos internos se harán públicos" : "Este archivo individual se hará público"}
+            <div className="p-4 bg-[#1475e5]/10 border-[3px] border-[#1475e5] rounded-xl shadow-[4px_4px_0_0_#1475e5] mb-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#1475e5] mb-1">RECURSO A PUBLICAR</p>
+              <p className="font-black uppercase tracking-widest text-sm">{publishingResource?.nombre}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                {publishingResource?.type === "folder" ? "TODA LA ESTRUCTURA Y ARCHIVOS INTERNOS SE HARÁN PÚBLICOS" : "ESTE ARCHIVO INDIVIDUAL SE HARÁ PÚBLICO"}
               </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Descripción</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">DESCRIPCIÓN</label>
               <textarea
                 value={pubDescription}
                 onChange={(e) => setPubDescription(e.target.value)}
-                placeholder="Explica qué contiene este recurso..."
-                className="w-full h-24 p-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-1 focus:ring-primary text-sm resize-none"
+                placeholder="EXPLICA QUÉ CONTIENE ESTE RECURSO..."
+                className="w-full h-24 p-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50 resize-none"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Categoría</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">CATEGORÍA</label>
               <input
                 type="text"
                 value={pubCategory}
                 onChange={(e) => setPubCategory(e.target.value)}
-                placeholder="Ej: Resúmenes, Apunte, Modelos de Examen..."
-                className="w-full p-3 bg-secondary rounded-xl border border-border focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                placeholder="EJ: RESÚMENES, APUNTE, MODELOS DE EXAMEN..."
+                className="w-full p-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
               />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
             <button
               onClick={() => setShowPublishModal(false)}
-              className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors"
+              className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
             >
-              Cancelar
+              CANCELAR
             </button>
             <button
               onClick={handlePublish}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/25 hover:scale-105 transition-all active:scale-95"
+              className="px-6 py-3 bg-[#1475e5] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest hover:-translate-y-1 hover:shadow-none transition-all active:scale-95"
             >
-              Publicar ahora
+              PUBLICAR AHORA
             </button>
           </DialogFooter>
         </DialogContent>

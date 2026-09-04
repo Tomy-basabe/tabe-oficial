@@ -8,21 +8,21 @@ import {
   Clock, Plus, Filter, Trash2, Edit2, X, User, BookOpen,
   ChevronLeft, ChevronRight, Loader2
 } from "lucide-react";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// ── 12 colores predefinidos para las materias ──
 const SUBJECT_COLORS = [
-  { bg: "bg-rose-500/20", border: "border-rose-500/40", text: "text-rose-400", solid: "#f43f5e", label: "Rosa" },
-  { bg: "bg-sky-500/20", border: "border-sky-500/40", text: "text-sky-400", solid: "#0ea5e9", label: "Celeste" },
-  { bg: "bg-amber-500/20", border: "border-amber-500/40", text: "text-amber-400", solid: "#f59e0b", label: "Ámbar" },
-  { bg: "bg-emerald-500/20", border: "border-emerald-500/40", text: "text-emerald-400", solid: "#10b981", label: "Esmeralda" },
-  { bg: "bg-violet-500/20", border: "border-violet-500/40", text: "text-violet-400", solid: "#8b5cf6", label: "Violeta" },
-  { bg: "bg-orange-500/20", border: "border-orange-500/40", text: "text-orange-400", solid: "#f97316", label: "Naranja" },
-  { bg: "bg-cyan-500/20", border: "border-cyan-500/40", text: "text-cyan-400", solid: "#06b6d4", label: "Cian" },
-  { bg: "bg-pink-500/20", border: "border-pink-500/40", text: "text-pink-400", solid: "#ec4899", label: "Rosa fuerte" },
-  { bg: "bg-lime-500/20", border: "border-lime-500/40", text: "text-lime-400", solid: "#84cc16", label: "Lima" },
-  { bg: "bg-indigo-500/20", border: "border-indigo-500/40", text: "text-indigo-400", solid: "#6366f1", label: "Índigo" },
-  { bg: "bg-teal-500/20", border: "border-teal-500/40", text: "text-teal-400", solid: "#14b8a6", label: "Teal" },
-  { bg: "bg-red-500/20", border: "border-red-500/40", text: "text-red-400", solid: "#ef4444", label: "Rojo" },
+  { bg: "bg-[#FF5C5C]", border: "border-black", text: "text-black", solid: "#FF5C5C", label: "Rojo Fuerte" },
+  { bg: "bg-[#4D9DE0]", border: "border-black", text: "text-black", solid: "#4D9DE0", label: "Azul Brillo" },
+  { bg: "bg-[#E1BC29]", border: "border-black", text: "text-black", solid: "#E1BC29", label: "Amarillo" },
+  { bg: "bg-[#3BB273]", border: "border-black", text: "text-black", solid: "#3BB273", label: "Verde Esmeralda" },
+  { bg: "bg-[#7768AE]", border: "border-black", text: "text-black", solid: "#7768AE", label: "Púrpura" },
+  { bg: "bg-[#FF9B71]", border: "border-black", text: "text-black", solid: "#FF9B71", label: "Naranja" },
+  { bg: "bg-[#00E5FF]", border: "border-black", text: "text-black", solid: "#00E5FF", label: "Cian" },
+  { bg: "bg-[#FF007F]", border: "border-black", text: "text-black", solid: "#FF007F", label: "Rosa Neón" },
+  { bg: "bg-[#BFFF00]", border: "border-black", text: "text-black", solid: "#BFFF00", label: "Lima" },
+  { bg: "bg-[#8A2BE2]", border: "border-black", text: "text-black", solid: "#8A2BE2", label: "Azul Violeta" },
+  { bg: "bg-[#40E0D0]", border: "border-black", text: "text-black", solid: "#40E0D0", label: "Turquesa" },
+  { bg: "bg-[#FF3333]", border: "border-black", text: "text-black", solid: "#FF3333", label: "Rojo Intenso" },
 ];
 
 const DAYS = [
@@ -380,37 +380,47 @@ export default function OfficeHours() {
 
   return (
     <div className="p-4 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-bold gradient-text flex items-center gap-3">
-            <Clock className="w-7 h-7" />
-            Consultas de Profesores
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Horarios de consulta organizados por materia
-          </p>
+      {/* Header Banner */}
+      <div className="bg-[#FF9B71] rounded-2xl p-6 lg:p-8 border-4 border-black shadow-[8px_8px_0_0_#000] flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+        {/* Decorative badge */}
+        <div className="absolute top-4 right-4 bg-[#BFFF00] text-black font-black text-xs px-3 py-1 uppercase border-2 border-black rotate-[5deg] shadow-[2px_2px_0_0_#000] hidden md:block">
+          ¡No cuelgues tus dudas!
         </div>
+        
+        <div className="relative z-10 flex items-center gap-6">
+          <div className="w-16 h-16 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0_0_#000] flex items-center justify-center rotate-[-6deg] flex-shrink-0">
+            <Clock className="w-8 h-8 text-black" />
+          </div>
+          <div>
+            <h1 className="font-display text-3xl lg:text-4xl font-black uppercase tracking-wider text-black" style={{ textShadow: '2px 2px 0 #fff, 4px 4px 0 #000' }}>
+              Consultas
+            </h1>
+            <p className="font-bold text-black/90 mt-1 text-sm sm:text-base bg-white/50 px-2 py-1 inline-block rounded-md border-2 border-black">
+              Horarios de profesores organizados por materia
+            </p>
+          </div>
+        </div>
+        
         <button
           onClick={openNewModal}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
+          className="relative z-10 flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black border-4 border-black font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] hover:bg-[#00E5FF] transition-all w-full md:w-auto justify-center"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-6 h-6" />
           Agregar Profesor
         </button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-6 bg-secondary/30 p-4 rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_#000]">
         {/* Year Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <div className="flex gap-1 flex-wrap">
+        <div className="flex items-center gap-3">
+          <Filter className="w-5 h-5 text-foreground" />
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => { setSelectedYear(null); setSelectedSubjectId(null); }}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                selectedYear === null ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"
+                "px-4 py-1.5 rounded-md text-sm font-black uppercase tracking-wider border-[3px] transition-all",
+                selectedYear === null ? "bg-[#FFE66D] border-black text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white border-black text-black hover:bg-[#FFE66D]/50 hover:shadow-[2px_2px_0_0_#000]"
               )}
             >
               Todos
@@ -420,8 +430,8 @@ export default function OfficeHours() {
                 key={year}
                 onClick={() => { setSelectedYear(year); setSelectedSubjectId(null); }}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                  selectedYear === year ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"
+                  "px-4 py-1.5 rounded-md text-sm font-black uppercase tracking-wider border-[3px] transition-all",
+                  selectedYear === year ? "bg-[#FFE66D] border-black text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white border-black text-black hover:bg-[#FFE66D]/50 hover:shadow-[2px_2px_0_0_#000]"
                 )}
               >
                 Año {year}
@@ -432,23 +442,23 @@ export default function OfficeHours() {
 
         {/* Subject Filter */}
         {selectedYear !== null && (
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-2 flex-wrap sm:border-l-[3px] border-black sm:pl-6">
             <button
               onClick={() => setSelectedSubjectId(null)}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                selectedSubjectId === null ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30" : "bg-secondary hover:bg-secondary/80"
+                "px-4 py-1.5 rounded-md text-sm font-black uppercase tracking-wider border-[3px] transition-all",
+                selectedSubjectId === null ? "bg-[#00E5FF] border-black text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white border-black text-black hover:bg-[#00E5FF]/50 hover:shadow-[2px_2px_0_0_#000]"
               )}
             >
-              Todas las materias
+              Todas
             </button>
             {subjects.map(sub => (
               <button
                 key={sub.id}
                 onClick={() => setSelectedSubjectId(sub.id)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                  selectedSubjectId === sub.id ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30" : "bg-secondary hover:bg-secondary/80"
+                  "px-4 py-1.5 rounded-md text-sm font-black uppercase tracking-wider border-[3px] transition-all",
+                  selectedSubjectId === sub.id ? "bg-[#00E5FF] border-black text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white border-black text-black hover:bg-[#00E5FF]/50 hover:shadow-[2px_2px_0_0_#000]"
                 )}
               >
                 {sub.nombre}
@@ -482,43 +492,55 @@ export default function OfficeHours() {
               <div
                 key={prof.id}
                 className={cn(
-                  "card-gamer rounded-xl p-4 border-l-4 transition-all hover:scale-[1.02]",
+                  "bg-white rounded-xl p-4 border-4 transition-all hover:translate-y-[-2px] shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]",
                   color.border
                 )}
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", color.bg)}>
-                      <User className={cn("w-4 h-4", color.text)} />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={cn("w-10 h-10 rounded-full border-[3px] flex items-center justify-center flex-shrink-0 shadow-[2px_2px_0_0_#000]", color.bg, color.border)}>
+                      <User className={cn("w-5 h-5", color.text)} />
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">{prof.nombre}</p>
-                      <p className={cn("text-xs", color.text)}>
-                        {prof.subject_nombre}
-                        {prof.rol && ` · ${prof.rol === "teoria" ? "Teoría" : "Práctica"}`}
-                      </p>
+                    <div className="min-w-0 flex flex-col gap-1">
+                      <p className="font-black text-lg truncate leading-tight">{prof.nombre}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-muted-foreground truncate max-w-[120px]" title={prof.subject_nombre}>
+                          {prof.subject_nombre}
+                        </span>
+                        {prof.rol && (
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border-2 border-black",
+                            prof.rol === "teoria" ? "bg-[#FFE66D] text-black" : "bg-[#00E5FF] text-black"
+                          )}>
+                            {prof.rol === "teoria" ? "Teoría" : "Práctica"}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => openEditModal(prof)} className="p-1 rounded-lg hover:bg-secondary transition-colors">
-                      <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={() => openEditModal(prof)} className="p-1.5 rounded-lg bg-[#FFE66D] border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000] transition-all">
+                      <Edit2 className="w-3.5 h-3.5 text-black" />
                     </button>
-                    <button onClick={() => handleDelete(prof.id)} className="p-1 rounded-lg hover:bg-destructive/20 transition-colors">
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    <button onClick={() => handleDelete(prof.id)} className="p-1.5 rounded-lg bg-[#FF5C5C] border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000] transition-all">
+                      <Trash2 className="w-3.5 h-3.5 text-black" />
                     </button>
                   </div>
                 </div>
                 {prof.descripcion && (
-                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{prof.descripcion}</p>
+                  <p className="text-sm font-medium text-muted-foreground mt-3 line-clamp-2 border-l-2 border-border pl-2">{prof.descripcion}</p>
                 )}
                 {profHours.length > 0 && (
-                  <div className="mt-3 space-y-1">
+                  <div className="mt-4 space-y-1.5">
                     {profHours.map(oh => {
                       const dayLabel = DAYS.find(d => d.key === oh.dia)?.label || oh.dia;
                       return (
-                        <div key={oh.id} className={cn("text-xs rounded-md px-2 py-1 flex items-center gap-1", color.bg)}>
-                          <Clock className={cn("w-3 h-3", color.text)} />
-                          <span className={color.text}>{dayLabel} {oh.hora_inicio.slice(0, 5)} – {oh.hora_fin.slice(0, 5)}</span>
+                        <div key={oh.id} className={cn("text-xs font-bold rounded-lg px-2.5 py-1.5 flex items-center justify-between border-[3px] shadow-[2px_2px_0_0_#000]", color.bg, color.border)}>
+                          <div className="flex items-center gap-1.5">
+                            <Clock className={cn("w-3.5 h-3.5", color.text)} />
+                            <span className={color.text}>{dayLabel}</span>
+                          </div>
+                          <span className={color.text}>{oh.hora_inicio.slice(0, 5)} – {oh.hora_fin.slice(0, 5)}</span>
                         </div>
                       );
                     })}
@@ -531,7 +553,7 @@ export default function OfficeHours() {
       )}
 
       {/* ── TIMELINE VISUAL ── */}
-      <div className="card-gamer rounded-xl p-4 lg:p-6">
+      <div className="bg-white rounded-xl p-4 lg:p-6 border-4 border-black shadow-[6px_6px_0_0_#000]">
         <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-neon-cyan" />
           Grilla Semanal de Consultas
@@ -557,7 +579,7 @@ export default function OfficeHours() {
                 <div className="grid grid-cols-[60px_repeat(6,1fr)] gap-0 mb-0">
                   <div className="h-10" />
                   {DAYS.map(day => (
-                    <div key={day.key} className="h-10 flex items-center justify-center text-sm font-semibold text-foreground border-b border-border">
+                    <div key={day.key} className="h-10 flex items-center justify-center text-sm font-black uppercase border-b-4 border-black">
                       {day.label}
                     </div>
                   ))}
@@ -580,10 +602,10 @@ export default function OfficeHours() {
                     const overlapStyles = calculateOverlaps(dayEntries);
                     
                     return (
-                      <div key={day.key} className="relative border-l border-border/30" style={{ height: `${HOURS.length * 48}px` }}>
+                      <div key={day.key} className="relative border-l-[3px] border-black" style={{ height: `${HOURS.length * 48}px` }}>
                         {/* Grid lines */}
                         {HOURS.map((hour, i) => (
-                          <div key={hour} className="absolute left-0 right-0 border-t border-border/20" style={{ top: `${i * 48}px` }} />
+                          <div key={hour} className="absolute left-0 right-0 border-t-2 border-black/20" style={{ top: `${i * 48}px` }} />
                         ))}
 
                         {/* Schedule blocks */}
@@ -598,8 +620,8 @@ export default function OfficeHours() {
                             <div
                               key={entry.id}
                               className={cn(
-                                "absolute rounded-lg border-2 flex flex-col justify-center px-2 cursor-pointer transition-all hover:scale-[1.03] hover:z-10 overflow-hidden shadow-sm",
-                                color.bg, color.border
+                                "absolute rounded-lg border-[3px] border-black flex flex-col justify-center px-2 cursor-pointer transition-all hover:scale-[1.03] hover:z-10 overflow-hidden shadow-[2px_2px_0_0_#000]",
+                                color.bg
                               )}
                               style={{
                                 top: `${startPx}px`,
@@ -610,12 +632,12 @@ export default function OfficeHours() {
                               onMouseEnter={(e) => setTooltip({ entry, x: e.clientX, y: e.clientY })}
                               onMouseLeave={() => setTooltip(null)}
                             >
-                              <p className={cn("text-xs font-semibold truncate", color.text)}>{entry.professorName}</p>
+                              <p className={cn("text-xs font-black truncate", color.text)}>{entry.professorName}</p>
                               {heightPx > 40 && (
-                                <p className="text-[10px] text-muted-foreground truncate">{entry.subjectName}</p>
+                                <p className="text-[10px] font-bold text-black/70 truncate">{entry.subjectName}</p>
                               )}
                               {heightPx > 56 && (
-                                <p className="text-[10px] text-muted-foreground">
+                                <p className="text-[10px] font-bold text-black/70">
                                   {String(entry.startHour).padStart(2, "0")}:{String(entry.startMinute).padStart(2, "0")} – {String(entry.endHour).padStart(2, "0")}:{String(entry.endMinute).padStart(2, "0")}
                                 </p>
                               )}
@@ -656,8 +678,8 @@ export default function OfficeHours() {
                     key={day.key}
                     onClick={() => setMobileDayIndex(i)}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
-                      mobileDayIndex === i ? "bg-primary text-primary-foreground" : "bg-secondary"
+                      "px-3 py-1.5 rounded-md text-xs font-black uppercase border-[3px] border-black transition-all whitespace-nowrap",
+                      mobileDayIndex === i ? "bg-[#FFE66D] shadow-[2px_2px_0_0_#000] translate-y-[-1px]" : "bg-white hover:bg-black/5"
                     )}
                   >
                     {day.short}
@@ -669,8 +691,8 @@ export default function OfficeHours() {
               <div className="relative" style={{ height: `${HOURS.length * 40}px` }}>
                 {HOURS.map((hour, i) => (
                   <div key={hour} className="absolute left-0 right-0 flex items-start" style={{ top: `${i * 40}px`, height: "40px" }}>
-                    <span className="w-12 text-xs text-muted-foreground text-right pr-2 -mt-2">{String(hour).padStart(2, "0")}:00</span>
-                    <div className="flex-1 border-t border-border/30" />
+                    <span className="w-12 text-xs font-bold text-muted-foreground text-right pr-2 -mt-2">{String(hour).padStart(2, "0")}:00</span>
+                    <div className="flex-1 border-t-2 border-black/20" />
                   </div>
                 ))}
 
@@ -688,8 +710,8 @@ export default function OfficeHours() {
                       <div
                         key={entry.id}
                         className={cn(
-                          "absolute rounded-lg border-2 flex flex-col justify-center px-3 overflow-hidden shadow-sm",
-                          color.bg, color.border
+                          "absolute rounded-lg border-[3px] border-black flex flex-col justify-center px-3 overflow-hidden shadow-[2px_2px_0_0_#000]",
+                          color.bg
                         )}
                         style={{ 
                           top: `${startPx}px`, 
@@ -698,8 +720,8 @@ export default function OfficeHours() {
                           left: overlap ? `calc(48px + ((${overlap.left}) * (100% - 64px) / 100) + 4px)` : "56px"
                         }}
                       >
-                        <p className={cn("text-sm font-semibold truncate", color.text)}>{entry.professorName}</p>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className={cn("text-sm font-black truncate", color.text)}>{entry.professorName}</p>
+                        <p className="text-xs font-bold text-black/70 truncate">
                           {entry.subjectName} · {String(entry.startHour).padStart(2, "0")}:{String(entry.startMinute).padStart(2, "0")} – {String(entry.endHour).padStart(2, "0")}:{String(entry.endMinute).padStart(2, "0")}
                         </p>
                       </div>
@@ -715,13 +737,13 @@ export default function OfficeHours() {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 card-gamer rounded-xl p-3 shadow-2xl border border-border pointer-events-none max-w-[250px]"
+          className="fixed z-50 bg-white rounded-xl p-3 shadow-[4px_4px_0_0_#000] border-[3px] border-black pointer-events-none max-w-[250px]"
           style={{ left: tooltip.x + 12, top: tooltip.y - 10 }}
         >
-          <p className="font-semibold text-sm">{tooltip.entry.professorName}</p>
-          <p className="text-xs text-muted-foreground">{tooltip.entry.subjectName}</p>
+          <p className="font-black text-sm">{tooltip.entry.professorName}</p>
+          <p className="text-xs font-bold">{tooltip.entry.subjectName}</p>
           {tooltip.entry.rol && (
-            <p className="text-xs text-neon-cyan mt-1">{tooltip.entry.rol === "teoria" ? "Teoría" : "Práctica"}</p>
+            <p className="text-[10px] font-black uppercase tracking-wider bg-[#00E5FF] text-black border-2 border-black rounded px-1.5 py-0.5 inline-block mt-1">{tooltip.entry.rol === "teoria" ? "Teoría" : "Práctica"}</p>
           )}
           <p className="text-xs mt-1">
             {DAYS.find(d => d.key === tooltip.entry.day)?.label}: {String(tooltip.entry.startHour).padStart(2, "0")}:{String(tooltip.entry.startMinute).padStart(2, "0")} – {String(tooltip.entry.endHour).padStart(2, "0")}:{String(tooltip.entry.endMinute).padStart(2, "0")}
@@ -733,12 +755,12 @@ export default function OfficeHours() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto card-gamer rounded-2xl p-6 border border-border shadow-2xl">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-6 border-4 border-black shadow-[8px_8px_0_0_#000]">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-display font-bold text-lg">
+              <h3 className="font-display font-black uppercase text-xl text-black">
                 {editingProfessor ? "Editar Profesor" : "Nuevo Profesor"}
               </h3>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-secondary">
+              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg border-2 border-black bg-white hover:bg-[#FF5C5C] hover:shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-all text-black">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -746,70 +768,81 @@ export default function OfficeHours() {
             <div className="space-y-4">
               {/* Name */}
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Nombre *</label>
+                <label className="text-sm font-black uppercase text-black/70">Nombre *</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
                   placeholder="Ej: Dr. García"
-                  className="w-full mt-1 px-4 py-2 rounded-xl bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                  className="w-full mt-1 px-4 py-3 bg-white text-black rounded-lg border-[3px] border-black focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold"
                 />
               </div>
 
               {/* Subject */}
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Materia *</label>
-                <select
-                  value={formSubjectId}
-                  onChange={e => setFormSubjectId(e.target.value)}
-                  className="w-full mt-1 px-4 py-2 rounded-xl bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-                >
-                  <option value="">Seleccionar materia...</option>
-                  {(allSubjects || []).map(sub => (
-                    <option key={sub.id} value={sub.id}>
-                      Año {sub.año} – {sub.nombre}
-                    </option>
-                  ))}
-                </select>
+                <label className="text-sm font-black uppercase text-black/70">Materia *</label>
+                <div className="mt-1">
+                  <Select
+                    value={formSubjectId}
+                    onValueChange={setFormSubjectId}
+                  >
+                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-white text-black rounded-lg border-[3px] border-black focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold text-left truncate">
+                      <SelectValue placeholder="Seleccionar materia..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_#000] rounded-xl max-h-[200px]">
+                      {(allSubjects || []).map(sub => (
+                        <SelectItem key={sub.id} value={sub.id} className="font-bold focus:bg-black/5 cursor-pointer">
+                          Año {sub.año} – {sub.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Rol */}
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Rol (opcional)</label>
-                <select
-                  value={formRol}
-                  onChange={e => setFormRol(e.target.value)}
-                  className="w-full mt-1 px-4 py-2 rounded-xl bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-                >
-                  <option value="">No especificado</option>
-                  <option value="teoria">Teoría</option>
-                  <option value="practica">Práctica</option>
-                </select>
+                <label className="text-sm font-black uppercase text-black/70">Rol (opcional)</label>
+                <div className="mt-1">
+                  <Select
+                    value={formRol || "none"}
+                    onValueChange={(val) => setFormRol(val === "none" ? "" : val)}
+                  >
+                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-white text-black rounded-lg border-[3px] border-black focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold text-left truncate">
+                      <SelectValue placeholder="No especificado" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_#000] rounded-xl">
+                      <SelectItem value="none" className="font-bold focus:bg-black/5 cursor-pointer">No especificado</SelectItem>
+                      <SelectItem value="teoria" className="font-bold focus:bg-black/5 cursor-pointer">Teoría</SelectItem>
+                      <SelectItem value="practica" className="font-bold focus:bg-black/5 cursor-pointer">Práctica</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Description */}
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Descripción (opcional)</label>
+                <label className="text-sm font-black uppercase text-black/70">Descripción (opcional)</label>
                 <textarea
                   value={formDesc}
                   onChange={e => setFormDesc(e.target.value)}
                   placeholder="Notas sobre el profesor..."
                   rows={2}
-                  className="w-full mt-1 px-4 py-2 rounded-xl bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm resize-none"
+                  className="w-full mt-1 px-4 py-3 bg-white text-black rounded-lg border-[3px] border-black focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold resize-none"
                 />
               </div>
 
               {/* Color */}
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Color</label>
+                <label className="text-sm font-black uppercase text-black/70">Color</label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {SUBJECT_COLORS.map((color, i) => (
                     <button
                       key={i}
                       onClick={() => setFormColorIndex(i)}
                       className={cn(
-                        "w-7 h-7 rounded-full border-2 transition-all",
-                        formColorIndex === i ? "scale-125 ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:scale-110"
+                        "w-8 h-8 rounded-full border-[3px] border-black transition-all",
+                        formColorIndex === i ? "scale-125 shadow-[2px_2px_0_0_#000]" : "hover:scale-110"
                       )}
                       style={{ backgroundColor: color.solid }}
                       title={color.label}
@@ -821,39 +854,45 @@ export default function OfficeHours() {
               {/* Schedules */}
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-muted-foreground">Horarios de consulta</label>
-                  <button onClick={addScheduleRow} className="text-xs text-neon-cyan hover:underline flex items-center gap-1">
+                  <label className="text-sm font-black uppercase text-black/70">Horarios de consulta</label>
+                  <button onClick={addScheduleRow} className="text-xs font-black uppercase bg-[#00E5FF] text-black px-2 py-1 border-2 border-black rounded-md hover:translate-y-[-1px] hover:shadow-[2px_2px_0_0_#000] flex items-center gap-1 transition-all">
                     <Plus className="w-3 h-3" /> Agregar día
                   </button>
                 </div>
-                <div className="space-y-2 mt-2">
+                <div className="space-y-3 mt-3">
                   {formSchedules.map((sched, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-secondary/50 rounded-xl p-2">
-                      <select
-                        value={sched.dia}
-                        onChange={e => updateScheduleRow(idx, "dia", e.target.value)}
-                        className="flex-1 px-2 py-1.5 rounded-lg bg-background border border-border text-sm"
-                      >
-                        {DAYS.map(d => (
-                          <option key={d.key} value={d.key}>{d.label}</option>
-                        ))}
-                      </select>
+                    <div key={idx} className="flex items-center gap-2 bg-[#F4F4F5] border-[3px] border-black rounded-xl p-3 shadow-[2px_2px_0_0_#000]">
+                      <div className="w-[120px]">
+                        <Select
+                          value={sched.dia}
+                          onValueChange={(val) => updateScheduleRow(idx, "dia", val)}
+                        >
+                          <SelectTrigger className="w-full h-auto px-2 py-2 bg-white text-black rounded-lg border-2 border-black focus:ring-0 focus:outline-none font-bold text-xs truncate">
+                            <SelectValue placeholder="Día" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-2 border-black shadow-[4px_4px_0_0_#000] rounded-xl">
+                            {DAYS.map(d => (
+                              <SelectItem key={d.key} value={d.key} className="font-bold focus:bg-black/5 cursor-pointer text-xs">{d.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <input
                         type="time"
                         value={sched.hora_inicio}
                         onChange={e => updateScheduleRow(idx, "hora_inicio", e.target.value)}
-                        className="w-24 px-2 py-1.5 rounded-lg bg-background border border-border text-sm"
+                        className="w-[100px] px-2 py-2 rounded-lg bg-white border-2 border-black font-bold text-xs focus:outline-none"
                       />
-                      <span className="text-muted-foreground text-sm">a</span>
+                      <span className="text-black font-black text-xs">a</span>
                       <input
                         type="time"
                         value={sched.hora_fin}
                         onChange={e => updateScheduleRow(idx, "hora_fin", e.target.value)}
-                        className="w-24 px-2 py-1.5 rounded-lg bg-background border border-border text-sm"
+                        className="w-[100px] px-2 py-2 rounded-lg bg-white border-2 border-black font-bold text-xs focus:outline-none"
                       />
                       {formSchedules.length > 1 && (
-                        <button onClick={() => removeScheduleRow(idx)} className="p-1 rounded hover:bg-destructive/20">
-                          <X className="w-3.5 h-3.5 text-destructive" />
+                        <button onClick={() => removeScheduleRow(idx)} className="p-1.5 ml-auto rounded-lg bg-[#FF5C5C] border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000] transition-all">
+                          <X className="w-4 h-4 text-black" />
                         </button>
                       )}
                     </div>
@@ -863,19 +902,19 @@ export default function OfficeHours() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-4 mt-8">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-foreground font-medium hover:bg-secondary/80 transition-all"
+                className="flex-1 px-4 py-3 rounded-xl bg-white text-black font-black uppercase tracking-wider border-[3px] border-black hover:bg-[#FF5C5C] hover:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] transition-all"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving || !formName.trim() || !formSubjectId}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-[#00E5FF] text-black font-black uppercase tracking-wider border-[3px] border-black hover:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:hover:bg-[#00E5FF]"
               >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : editingProfessor ? "Guardar Cambios" : "Agregar"}
+                {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : editingProfessor ? "Guardar" : "Agregar"}
               </button>
             </div>
           </div>
