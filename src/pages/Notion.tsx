@@ -19,7 +19,6 @@ import { EmojiPicker } from "@/components/notion/EmojiPicker";
 import { TabeIconRenderer } from "@/components/notion/TabeIcons";
 import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
-import { NotionSidebar } from "@/components/notion/NotionSidebar";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { KeyboardShortcutsModal } from "@/components/notion/KeyboardShortcutsModal";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
@@ -138,24 +137,25 @@ const GalleryCard = ({
     <div 
       onClick={() => onClick(doc)}
       onMouseEnter={() => onHover?.(doc)}
-      className="group flex flex-col bg-card rounded-xl overflow-hidden border border-border/50 hover:border-primary/40 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 h-[300px]"
+      className="group flex flex-col bg-white border-4 border-black rounded-none overflow-hidden transition-all duration-300 cursor-pointer shadow-[8px_8px_0_0_#000] hover:shadow-[4px_4px_0_0_#000] hover:translate-x-[4px] hover:translate-y-[4px] h-[300px]"
     >
       {/* Top Area: Cover Image or Content Snippet */}
-      <div className={cn("h-40 w-full relative border-b border-border/30 bg-background overflow-hidden", !hasCover && "p-5")}>
+      <div className={cn("h-40 w-full relative border-b-4 border-black bg-gray-50 overflow-hidden", !hasCover && "p-5")}>
         {/* Card Actions Overlay (Dropdown) - ONLY FOR OWNER */}
         {isOwner && (
           <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                  <button
-                   className="p-1.5 rounded-md bg-background/80 hover:bg-background shadow-sm border border-border/50 text-foreground/70 hover:text-foreground transition-all"
+                   className="p-1.5 bg-white border-2 border-black shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] text-black transition-all"
                    onClick={(e) => e.stopPropagation()}
                  >
                     <MoreHorizontal className="w-4 h-4" />
                  </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
                  <DropdownMenuItem
+                    className="font-bold cursor-pointer"
                     onClick={(e) => {
                        e.stopPropagation();
                        onRename(doc);
@@ -163,8 +163,9 @@ const GalleryCard = ({
                  >
                     Renombrar
                  </DropdownMenuItem>
-                 <DropdownMenuSeparator />
+                 <DropdownMenuSeparator className="bg-black h-0.5" />
                  <DropdownMenuItem
+                    className="font-bold cursor-pointer"
                     onClick={(e) => {
                        e.stopPropagation();
                        onChangeSubject(doc);
@@ -172,9 +173,9 @@ const GalleryCard = ({
                  >
                     Cambiar Materia
                  </DropdownMenuItem>
-                 <DropdownMenuSeparator />
+                 <DropdownMenuSeparator className="bg-black h-0.5" />
                  <DropdownMenuItem
-                    className="text-destructive focus:bg-accent text-sm"
+                    className="text-red-600 focus:bg-red-50 focus:text-red-700 font-black cursor-pointer"
                     onClick={(e) => {
                        e.stopPropagation();
                        onDelete(doc);
@@ -192,32 +193,32 @@ const GalleryCard = ({
         ) : (
           <div className="w-full h-full relative">
             {/* Simulated mini page header line */}
-            <div className="w-12 h-1 bg-primary/20 rounded-full mb-3" />
+            <div className="w-12 h-2 bg-black mb-3" />
             
             {textSnippet ? (
                <div className="opacity-80">
-                 <p className="text-[11px] text-foreground font-medium leading-[1.7] line-clamp-5 mix-blend-plus-lighter text-left">
+                 <p className="text-[11px] text-black font-bold leading-[1.7] line-clamp-5 text-left">
                    {textSnippet}
                  </p>
                </div>
             ) : (
               <div className="w-full h-full flex mt-4 justify-center">
-                 <span className="text-muted-foreground/40 text-[10px] uppercase font-bold tracking-widest border border-dashed border-muted-foreground/30 px-3 py-1 rounded h-fit">Vacío</span>
+                 <span className="text-black text-[10px] uppercase font-black tracking-widest border-2 border-dashed border-black px-3 py-1 bg-gray-200 h-fit">Vacío</span>
               </div>
             )}
             {/* Gradient fade to hide text bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent" />
           </div>
         )}
       </div>
       
       {/* Info Area */}
-      <div className="p-4 flex flex-col flex-1 bg-card">
+      <div className="p-4 flex flex-col flex-1 bg-white">
         <div className="flex items-center gap-3 mb-2">
-           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border/50 text-foreground shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
-              {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={20} /> : <FileText className="w-4 h-4" />}
+           <div className="flex items-center justify-center w-10 h-10 border-4 border-black bg-[#FFD700] group-hover:bg-[#FF9B71] group-hover:-rotate-6 transition-all duration-300 text-black shrink-0 shadow-[2px_2px_0_0_#000]">
+              {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={22} /> : <FileText className="w-5 h-5" />}
            </div>
-           <h3 className="font-bold text-[15px] text-foreground truncate group-hover:text-primary transition-colors tracking-tight flex-1" title={doc.titulo}>
+           <h3 className="font-black text-[16px] text-black truncate tracking-tight flex-1" title={doc.titulo}>
               {doc.titulo || "Sin título"}
            </h3>
         </div>
@@ -226,15 +227,15 @@ const GalleryCard = ({
         <div className="flex mt-auto pt-2 gap-2 flex-wrap">
           {subject ? (
             <>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
+              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-[#00E5FF] text-black border-2 border-black shadow-[1px_1px_0_0_#000] uppercase tracking-wider">
                 {subject.codigo || subject.nombre}
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/80 text-muted-foreground border border-border/50 uppercase tracking-wider">
+              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-gray-200 text-black border-2 border-black shadow-[1px_1px_0_0_#000] uppercase tracking-wider">
                 Año {subject.año}
               </span>
             </>
           ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/80 text-muted-foreground border border-border/50 uppercase tracking-wider">
+            <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-gray-200 text-black border-2 border-black shadow-[1px_1px_0_0_#000] uppercase tracking-wider">
               Sin materia
             </span>
           )}
@@ -242,16 +243,16 @@ const GalleryCard = ({
 
         {/* Owner indicator for friend docs */}
         {!isOwner && doc.owner && (
-          <div className="mt-2 flex items-center gap-2 px-1">
+          <div className="mt-3 flex items-center gap-2 px-2 py-1 bg-gray-100 border-2 border-black w-fit">
              {doc.owner.avatar_url ? (
-               <img src={doc.owner.avatar_url} className="w-4 h-4 rounded-full" alt="" />
+               <img src={doc.owner.avatar_url} className="w-5 h-5 rounded-full border border-black" alt="" />
              ) : (
-               <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[8px] font-bold">
+               <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">
                   {(doc.owner.nombre || doc.owner.username || "A").charAt(0)}
                </div>
              )}
-             <span className="text-[10px] text-muted-foreground font-medium truncate">
-                {doc.owner.nombre || doc.owner.username || "Amigo"}
+             <span className="text-[11px] text-black font-black uppercase truncate">
+                De: {doc.owner.nombre || doc.owner.username || "Amigo"}
              </span>
           </div>
         )}
@@ -1140,47 +1141,12 @@ export default function Notion() {
 
   return (
     <div className="notion-app">
-      {/* Sidebar */}
-      <NotionSidebar
-        documents={documents}
-        subjects={subjects}
-        activeDocId={activeDocument?.id || null}
-        collapsed={sidebarCollapsed}
-        currentUserId={user?.id}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        onSelectDocument={openDocument}
-        onNewDocument={handleSidebarNewDoc}
-        onNewSubPage={handleNewSubPage}
-        onDeleteDocument={(doc) => {
-          setDocToDelete(doc);
-          setShowDeleteModal(true);
-        }}
-        onToggleFavorite={handleToggleFavorite}
-        onHoverDocument={(doc) => prefetchDocumentContent(doc.id)}
-      />
-
-      {/* Mobile overlay */}
-      {!sidebarCollapsed && (
-        <div
-          className="notion-mobile-overlay hidden max-md:block"
-          onClick={() => setSidebarCollapsed(true)}
-        />
-      )}
 
       {/* Main area */}
       <div className="notion-main">
         {/* Top bar */}
         <div className="notion-topbar">
           <div className="notion-topbar-left">
-            {sidebarCollapsed && (
-              <button
-                className="notion-topbar-btn"
-                onClick={() => setSidebarCollapsed(false)}
-                title="Abrir sidebar"
-              >
-                <Menu className="w-4 h-4" />
-              </button>
-            )}
 
             {activeDocument ? (
               <NotionBreadcrumb
@@ -1496,69 +1462,85 @@ export default function Notion() {
           ) : (
             /* Empty state / Gallery View */
             <div className="flex flex-col h-full bg-background text-foreground">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-8 md:px-12 py-8 border-b border-border/40 gap-4">
-                <h1 className="text-3xl font-bold tracking-tight">Tus Apuntes</h1>
-                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              {/* Header and Tabs */}
+              <div className="flex flex-col gap-6 px-8 md:px-12 py-8 border-b-4 border-black bg-white">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <h1 className="text-4xl font-black tracking-tight uppercase">Tus Apuntes</h1>
                   
-                  {/* Search */}
-                  <div className="relative flex-1 sm:flex-none">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <input 
-                      type="text" 
-                      placeholder="Buscar por título..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 pr-4 py-2 text-sm bg-secondary/50 border border-border/50 rounded-md focus:outline-none focus:ring-1 focus:ring-primary w-full sm:w-48 transition-all"
-                    />
+                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    {/* Search */}
+                    <div className="relative flex-1 sm:flex-none">
+                      <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-black" />
+                      <input 
+                        type="text" 
+                        placeholder="Buscar apunte..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 pr-4 py-2 font-bold bg-white border-4 border-black shadow-[4px_4px_0_0_#000] focus:shadow-[2px_2px_0_0_#000] focus:translate-x-[2px] focus:translate-y-[2px] transition-all outline-none w-full sm:w-56 rounded-none"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => setShowNewDocModal(true)}
+                      className="inline-flex items-center gap-2 px-6 py-2 bg-[#00E5FF] text-black font-black uppercase border-4 border-black shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all ml-auto sm:ml-0 rounded-none"
+                    >
+                      + Nueva Página
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabs & Filters Bar */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  {/* Tabs */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[
+                      { id: "all", label: "Todos" },
+                      { id: "mine", label: "Mis Apuntes" },
+                      { id: "friends", label: "De Amigos" }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setFilterOwner(tab.id as any)}
+                        className={cn(
+                          "px-4 py-2 font-black uppercase border-4 border-black transition-all rounded-none",
+                          filterOwner === tab.id 
+                            ? "bg-[#FFD700] shadow-[2px_2px_0_0_#000] translate-x-[2px] translate-y-[2px]" 
+                            : "bg-white shadow-[4px_4px_0_0_#000] hover:bg-gray-100 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000]"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
 
-                  {/* Filter by Subject */}
-                  <Select value={filterSubject} onValueChange={setFilterSubject}>
-                    <SelectTrigger className="w-full sm:w-[160px] bg-secondary/50 border-border/50 h-9">
-                      <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <SelectValue placeholder="Todas las materias" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas las materias</SelectItem>
-                      {subjects.map(sub => (
-                        <SelectItem key={sub.id} value={sub.id}>{sub.codigo || sub.nombre}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Filter by Owner */}
-                  <Select value={filterOwner} onValueChange={(val: any) => setFilterOwner(val)}>
-                    <SelectTrigger className="w-full sm:w-[150px] bg-secondary/50 border-border/50 h-9">
-                      <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <SelectValue placeholder="Propiedad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="mine">Mis apuntes</SelectItem>
-                      <SelectItem value="friends">De amigos</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-3">
+                    {/* Filter by Subject */}
+                    <Select value={filterSubject} onValueChange={setFilterSubject}>
+                      <SelectTrigger className="w-[180px] bg-white border-4 border-black font-bold shadow-[4px_4px_0_0_#000] rounded-none focus:ring-0">
+                        <Filter className="w-4 h-4 mr-2" />
+                        <SelectValue placeholder="Materias" />
+                      </SelectTrigger>
+                      <SelectContent className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
+                        <SelectItem value="all" className="font-bold cursor-pointer">Todas las materias</SelectItem>
+                        {subjects.map(sub => (
+                          <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer">{sub.codigo || sub.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                  {/* Sort */}
-                  <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-                    <SelectTrigger className="w-full sm:w-[140px] bg-secondary/50 border-border/50 h-9">
-                      <ArrowUpDown className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <SelectValue placeholder="Ordenar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="updated">Por fecha (recientes)</SelectItem>
-                      <SelectItem value="alpha_asc">Nombre (A a Z)</SelectItem>
-                      <SelectItem value="alpha_desc">Nombre (Z a A)</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <button
-                    onClick={() => setShowNewDocModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all hover:bg-primary/90 bg-primary text-primary-foreground text-sm shadow-sm ml-auto sm:ml-0"
-                  >
-                    + Nueva Página
-                  </button>
+                    {/* Sort */}
+                    <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+                      <SelectTrigger className="w-[160px] bg-white border-4 border-black font-bold shadow-[4px_4px_0_0_#000] rounded-none focus:ring-0">
+                        <ArrowUpDown className="w-4 h-4 mr-2" />
+                        <SelectValue placeholder="Ordenar" />
+                      </SelectTrigger>
+                      <SelectContent className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
+                        <SelectItem value="updated" className="font-bold cursor-pointer">Recientes</SelectItem>
+                        <SelectItem value="alpha_asc" className="font-bold cursor-pointer">A - Z</SelectItem>
+                        <SelectItem value="alpha_desc" className="font-bold cursor-pointer">Z - A</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
