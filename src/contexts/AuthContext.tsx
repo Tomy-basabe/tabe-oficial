@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { setStoredGoogleToken } from "@/lib/googleCalendarSync";
+import { setStoredGoogleToken, disconnectGoogleCalendar } from "@/lib/googleCalendarSync";
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +11,10 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   connectGoogleCalendar: () => Promise<{ error: Error | null }>;
+  linkGoogleAccount: () => Promise<{ error: Error | null; data?: any }>;
+  unlinkGoogleAccount: () => Promise<{ error: Error | null }>;
+  isGoogleLinked: boolean;
+  googleIdentity: any | null;
   signOut: () => Promise<void>;
   profile: { active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null;
   updateTheme: (theme: string) => Promise<void>;
@@ -206,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider: "google",
         options: {
           redirectTo,
+          scopes: "https://www.googleapis.com/auth/calendar.events email profile",
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -236,6 +241,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
+  const linkGoogleAccount = async () => {
+    try {
+      const redirectTo = `${window.location.origin}/configuracion`;
+      const { data, error } = await supabase.auth.linkIdentity({
+        provider: "google",
+        options: {
+          redirectTo,
+          scopes: "https://www.googleapis.com/auth/calendar.events email profile",
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) throw error;
+      return { error: null, data };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
+  const unlinkGoogleAccount = async () => {
+    try {
+      const gIdentity = user?.identities?.find((id) => id.provider === "google");
+      if (!gIdentity) throw new Error("No hay cuenta de Google vinculada.");
+
+      if (user?.identities && user.identities.length <= 1) {
+        throw new Error("No puedes desvincular Google porque es tu único método de inicio de sesión.");
+      }
+
+      const { error } = await supabase.auth.unlinkIdentity(gIdentity);
+      if (error) throw error;
+
+      disconnectGoogleCalendar();
+
+      // Refresh session
+      const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+      setSession(refreshedSession);
+      setUser(refreshedSession?.user ?? null);
+
       return { error: null };
     } catch (error) {
       return { error: error as Error };
@@ -285,8 +337,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     applyTheme(savedTheme);
   };
 
+  const googleIdentity = user?.identities?.find((id) => id.provider === "google") || null;
+  const isGoogleLinked = !!googleIdentity || user?.app_metadata?.providers?.includes("google") || false;
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, connectGoogleCalendar, signOut, profile, updateTheme, updateSidebarConfig, isGuest, loginAsGuest }}>
+    <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
+      signUp,
+      signIn,
+      signInWithGoogle,
+      connectGoogleCalendar,
+      linkGoogleAccount,
+      unlinkGoogleAccount,
+      isGoogleLinked,
+      googleIdentity,
+      signOut,
+      profile,
+      updateTheme,
+      updateSidebarConfig,
+      isGuest,
+      loginAsGuest
+    }}>
       {children}
     </AuthContext.Provider>
   );
