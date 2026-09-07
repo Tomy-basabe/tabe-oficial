@@ -230,7 +230,10 @@ export function useCalendarEvents() {
     return allEvents.sort((a, b) => a.fecha.localeCompare(b.fecha));
   }, [rawEvents]);
 
-  const createEvent = async (data: CreateEventData) => {
+  const createEvent = async (
+    data: CreateEventData,
+    options?: { silent?: boolean; skipRefetch?: boolean }
+  ) => {
     if (!user) return;
 
     try {
@@ -266,18 +269,22 @@ export function useCalendarEvents() {
             notas: data.notas,
             ubicacion: data.ubicacion,
             is_all_day: data.is_all_day,
+            recurrence_rule: data.recurrence_rule,
+            recurrence_end: data.recurrence_end,
           });
           if (res.gcalId) {
             eventData.notas = injectGoogleEventId(eventData.notas, res.gcalId);
-            toast.success("Evento agregado a Google Calendar", { icon: "📅" });
-          } else if (res.error) {
+            if (!options?.silent) {
+              toast.success("Evento agregado a Google Calendar", { icon: "📅" });
+            }
+          } else if (res.error && !options?.silent) {
             console.warn("Google Calendar sync warning:", res.error);
             toast.warning(`Google Calendar: ${res.error}`);
           }
         } catch (syncErr) {
           console.warn("Auto-sync to Google Calendar failed on create:", syncErr);
         }
-      } else if (!isGoogleCalendarConnected() && !existingGcalId) {
+      } else if (!isGoogleCalendarConnected() && !existingGcalId && !options?.silent) {
         toast.info("Evento creado en TABE. (Google Calendar no está conectado en esta sesión)", { duration: 3500 });
       }
 
@@ -287,13 +294,17 @@ export function useCalendarEvents() {
 
       if (error) throw error;
 
-      await fetchEvents();
-      if (!existingGcalId) {
+      if (!options?.skipRefetch) {
+        await fetchEvents();
+      }
+      if (!existingGcalId && !options?.silent) {
         toast.success("Evento creado correctamente");
       }
     } catch (error) {
       console.error("Error creating event:", error);
-      toast.error("Error al crear el evento");
+      if (!options?.silent) {
+        toast.error("Error al crear el evento");
+      }
       throw error;
     }
   };
@@ -330,7 +341,11 @@ export function useCalendarEvents() {
     }
   };
 
-  const updateEvent = async (eventId: string, data: Partial<CreateEventData>) => {
+  const updateEvent = async (
+    eventId: string,
+    data: Partial<CreateEventData>,
+    options?: { silent?: boolean; skipRefetch?: boolean }
+  ) => {
     if (!user) return;
 
     try {
@@ -351,12 +366,16 @@ export function useCalendarEvents() {
               notas: data.notas !== undefined ? data.notas : target.notas,
               ubicacion: data.ubicacion !== undefined ? data.ubicacion : target.ubicacion,
               is_all_day: data.is_all_day !== undefined ? data.is_all_day : target.is_all_day,
+              recurrence_rule: data.recurrence_rule !== undefined ? data.recurrence_rule : target.recurrence_rule,
+              recurrence_end: data.recurrence_end !== undefined ? data.recurrence_end : target.recurrence_end,
             };
             const res = await pushEventToGoogleCalendar(updatedForGoogle);
             if (res.gcalId) {
               data.notas = injectGoogleEventId(data.notas !== undefined ? data.notas : target.notas, res.gcalId);
-              toast.success("Actualizado en Google Calendar", { icon: "📅" });
-            } else if (res.error) {
+              if (!options?.silent) {
+                toast.success("Actualizado en Google Calendar", { icon: "📅" });
+              }
+            } else if (res.error && !options?.silent) {
               console.warn("Google Calendar sync warning:", res.error);
               toast.warning(`Google Calendar: ${res.error}`);
             }
@@ -379,11 +398,17 @@ export function useCalendarEvents() {
 
       if (error) throw error;
 
-      await fetchEvents();
-      toast.success("Evento actualizado");
+      if (!options?.skipRefetch) {
+        await fetchEvents();
+      }
+      if (!isJustGcalIdSync && !options?.silent) {
+        toast.success("Evento actualizado");
+      }
     } catch (error) {
       console.error("Error updating event:", error);
-      toast.error("Error al actualizar el evento");
+      if (!options?.silent) {
+        toast.error("Error al actualizar el evento");
+      }
       throw error;
     }
   };

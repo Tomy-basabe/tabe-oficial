@@ -128,12 +128,12 @@ export function GoogleCalendarSyncModal({
                 tabeEvents: events,
                 createTabeEvent: createEvent,
                 updateTabeEvent: updateEvent,
+                refetchEvents: refetch,
             });
 
             if (result.success) {
                 setSyncResult({ pushed: result.pushedCount, pulled: result.pulledCount });
                 setLastSync(new Date().toISOString());
-                if (refetch) await refetch();
                 toast.success(
                     `¡Sincronizado! ${result.pushedCount} a Google, ${result.pulledCount} traídos a TABE`
                 );

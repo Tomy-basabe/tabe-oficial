@@ -208,6 +208,8 @@ function mapTabeEventToGoogleResource(event: {
   notas?: string | null;
   ubicacion?: string | null;
   is_all_day?: boolean;
+  recurrence_rule?: string | null;
+  recurrence_end?: string | null;
 }) {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Argentina/Buenos_Aires";
   const cleanDescription = stripGoogleEventId(event.notas);
@@ -252,12 +254,23 @@ function mapTabeEventToGoogleResource(event: {
     }
   }
 
+  let recurrence: string[] | undefined = undefined;
+  if (event.recurrence_rule) {
+    let rrule = `RRULE:FREQ=${event.recurrence_rule.toUpperCase()}`;
+    if (event.recurrence_end) {
+      const cleanEnd = event.recurrence_end.replace(/-/g, "");
+      rrule += `;UNTIL=${cleanEnd}T235959Z`;
+    }
+    recurrence = [rrule];
+  }
+
   return {
     summary: event.titulo,
     description: cleanDescription || "Evento de TABE (Tu Asistente de Bolsillo Estudiantil)",
     location: event.ubicacion || undefined,
     start,
     end,
+    recurrence,
     reminders: {
       useDefault: true,
     },
@@ -276,6 +289,8 @@ export async function pushEventToGoogleCalendar(event: {
   notas?: string | null;
   ubicacion?: string | null;
   is_all_day?: boolean;
+  recurrence_rule?: string | null;
+  recurrence_end?: string | null;
 }): Promise<{ gcalId?: string; error?: string }> {
   const token = getStoredGoogleToken();
   if (!token) {
@@ -412,8 +427,15 @@ export async function fetchEventsFromGoogleCalendar(options?: {
   const token = getStoredGoogleToken();
   if (!token) return { items: [], error: "No conectado" };
 
-  const timeMin = options?.timeMin || new Date(Date.now() - 90 * 86400000).toISOString();
-  const timeMax = options?.timeMax || new Date(Date.now() + 180 * 86400000).toISOString();
+  // Filter events from the start of today (local time) onwards
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const timeMin = options?.timeMin || today.toISOString();
+
+  // Look ahead 1 year
+  const oneYearAhead = new Date(today);
+  oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
+  const timeMax = options?.timeMax || oneYearAhead.toISOString();
 
   try {
     const calendars = await fetchUserCalendarList(token);
@@ -431,7 +453,7 @@ export async function fetchEventsFromGoogleCalendar(options?: {
       const calId = encodeURIComponent(cal.id);
       const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?singleEvents=true&orderBy=startTime&timeMin=${encodeURIComponent(
         timeMin
-      )}&timeMax=${encodeURIComponent(timeMax)}&maxResults=250`;
+      )}&timeMax=${encodeURIComponent(timeMax)}&maxResults=2500`;
 
       try {
         const res = await fetch(url, {
@@ -473,8 +495,9 @@ export async function fetchEventsFromGoogleCalendar(options?: {
  */
 export async function performBidirectionalSync(params: {
   tabeEvents: CalendarEvent[];
-  createTabeEvent: (event: CreateEventData) => Promise<any>;
-  updateTabeEvent: (id: string, event: Partial<CreateEventData>) => Promise<any>;
+  createTabeEvent: (event: CreateEventData, options?: { silent?: boolean; skipRefetch?: boolean }) => Promise<any>;
+  updateTabeEvent: (id: string, event: Partial<CreateEventData>, options?: { silent?: boolean; skipRefetch?: boolean }) => Promise<any>;
+  refetchEvents?: () => Promise<any>;
 }): Promise<{
   success: boolean;
   pushedCount: number;
@@ -487,7 +510,7 @@ export async function performBidirectionalSync(params: {
   }
 
   try {
-    // 1. Fetch events from Google Calendar
+    // 1. Fetch events from Google Calendar (from today onwards)
     const { items: googleEvents, error: fetchErr } = await fetchEventsFromGoogleCalendar();
     if (fetchErr) {
       return { success: false, pushedCount: 0, pulledCount: 0, error: fetchErr };
@@ -530,9 +553,9 @@ export async function performBidirectionalSync(params: {
           const pushResult = await pushEventToGoogleCalendar(tEvent);
           if (pushResult.gcalId) {
             pushedCount++;
-            // Update TABE event note with the new gcal_id
+            // Update TABE event note with the new gcal_id silently
             const newNotas = injectGoogleEventId(tEvent.notas, pushResult.gcalId);
-            await params.updateTabeEvent(tEvent.id, { notas: newNotas });
+            await params.updateTabeEvent(tEvent.id, { notas: newNotas }, { silent: true, skipRefetch: true });
             tabeByGcalId.set(pushResult.gcalId, { ...tEvent, notas: newNotas });
           }
         } catch (pushErr) {
@@ -541,13 +564,36 @@ export async function performBidirectionalSync(params: {
       }
     }
 
-    // STEP B: PULL events from Google Calendar into TABE (Viceversa)
+    // Cache for recurring master events
+    const masterEventsCache = new Map<string, any>();
+    const handledRecurringMasterIds = new Set<string>();
+
+    async function getMasterRecurringEvent(calId: string, recurringEventId: string): Promise<any> {
+      const cacheKey = `${calId}_${recurringEventId}`;
+      if (masterEventsCache.has(cacheKey)) return masterEventsCache.get(cacheKey);
+      try {
+        const mRes = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(recurringEventId)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (mRes.ok) {
+          const master = await mRes.json();
+          masterEventsCache.set(cacheKey, master);
+          return master;
+        }
+      } catch (err) {
+        console.warn("Could not fetch master recurring event:", recurringEventId, err);
+      }
+      return null;
+    }
+
+    // STEP B: PULL events from Google Calendar into TABE (from today onwards, handling repeating events)
     for (const gEv of googleEvents) {
       if (gEv.status === "cancelled") continue;
 
       try {
         const gcalId = gEv.id;
-        const alreadyInTabe = tabeByGcalId.get(gcalId);
+        const recurringEventId = gEv.recurringEventId;
 
         // Parse Google dates
         const startDateTime = gEv.start?.dateTime || gEv.start?.date;
@@ -579,6 +625,88 @@ export async function performBidirectionalSync(params: {
         }
 
         const title = gEv.summary || "Evento de Google Calendar";
+
+        // --- CASE 1: RECURRING EVENT (e.g. daily, weekly repeated events) ---
+        if (recurringEventId) {
+          // If we already imported or processed the master event for this series, skip all other instances
+          if (handledRecurringMasterIds.has(recurringEventId)) {
+            continue;
+          }
+          if (tabeByGcalId.has(recurringEventId)) {
+            handledRecurringMasterIds.add(recurringEventId);
+            continue;
+          }
+
+          // Fetch master recurring event definition to get recurrence RRULE
+          const master = await getMasterRecurringEvent(gEv._calendarId || "primary", recurringEventId);
+
+          let rule: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" = "DAILY";
+          let recurrenceEnd: string | null = null;
+
+          if (master?.recurrence && Array.isArray(master.recurrence)) {
+            const rruleStr = master.recurrence.find((r: string) => typeof r === "string" && r.startsWith("RRULE:"));
+            if (rruleStr) {
+              if (rruleStr.includes("FREQ=DAILY")) rule = "DAILY";
+              else if (rruleStr.includes("FREQ=WEEKLY")) rule = "WEEKLY";
+              else if (rruleStr.includes("FREQ=MONTHLY")) rule = "MONTHLY";
+              else if (rruleStr.includes("FREQ=YEARLY")) rule = "YEARLY";
+
+              const untilMatch = rruleStr.match(/UNTIL=([0-9]{4})([0-9]{2})([0-9]{2})/);
+              if (untilMatch) {
+                recurrenceEnd = `${untilMatch[1]}-${untilMatch[2]}-${untilMatch[3]}`;
+              }
+            }
+          }
+
+          // Deduce event type
+          let tipo_examen: EventType = "Otro";
+          const lower = (master?.summary || title).toLowerCase();
+          if (lower.includes("parcial 1") || lower.includes("1er parcial") || lower.includes("primer parcial") || lower.includes("p1")) {
+            tipo_examen = "P1";
+          } else if (lower.includes("parcial 2") || lower.includes("2do parcial") || lower.includes("segundo parcial") || lower.includes("p2")) {
+            tipo_examen = "P2";
+          } else if (lower.includes("final")) {
+            tipo_examen = "Final";
+          } else if (lower.includes("recuperatorio") || lower.includes("recu")) {
+            tipo_examen = "Recuperatorio P1";
+          } else if (lower.includes("otp") || lower.includes("tp") || lower.includes("entrega") || lower.includes("laboratorio")) {
+            tipo_examen = "Entrega";
+          } else if (lower.includes("clase") || lower.includes("teórica") || lower.includes("práctica") || lower.includes("virtual") || lower.includes("redes") || lower.includes("análisis") || lower.includes("sistemas") || lower.includes("software")) {
+            tipo_examen = "Clase";
+          } else if (lower.includes("estudio") || lower.includes("repaso")) {
+            tipo_examen = "Estudio";
+          } else if (hora) {
+            tipo_examen = "Clase";
+          }
+
+          let eventNotes = injectGoogleEventId(master?.description || gEv.description, recurringEventId);
+          if (gEv._calendarName && gEv._calendarName !== "Principal" && !gEv._calendarName.toLowerCase().includes("tomas")) {
+            eventNotes = `[${gEv._calendarName}] ${eventNotes}`.trim();
+          }
+
+          // Create ONE master recurring event in TABE starting from current date
+          // TABE's internal engine will generate virtual instances for every day dynamically into infinity!
+          await params.createTabeEvent({
+            titulo: master?.summary || title,
+            fecha: datePart,
+            hora,
+            hora_fin,
+            is_all_day: isAllDay,
+            ubicacion: master?.location || gEv.location || undefined,
+            notas: eventNotes,
+            tipo_examen,
+            recurrence_rule: rule,
+            recurrence_end: recurrenceEnd || undefined,
+          }, { silent: true, skipRefetch: true });
+
+          pulledCount++;
+          handledRecurringMasterIds.add(recurringEventId);
+          tabeByGcalId.set(recurringEventId, { id: "synced" } as any);
+          continue;
+        }
+
+        // --- CASE 2: SINGLE EVENT ---
+        const alreadyInTabe = tabeByGcalId.get(gcalId);
         const titleDateKey = `${title.trim().toLowerCase()}_${datePart}`;
         const matchedByTitleDate = tabeByTitleDate.get(titleDateKey);
 
@@ -596,18 +724,17 @@ export async function performBidirectionalSync(params: {
               hora: hora || undefined,
               hora_fin: hora_fin || undefined,
               ubicacion: gEv.location || alreadyInTabe.ubicacion || undefined,
-            });
+            }, { silent: true, skipRefetch: true });
           }
         } else if (matchedByTitleDate) {
           // Match found by title and date: attach the gcalId to TABE event
           const newNotas = injectGoogleEventId(matchedByTitleDate.notas, gcalId);
-          await params.updateTabeEvent(matchedByTitleDate.id, { notas: newNotas });
+          await params.updateTabeEvent(matchedByTitleDate.id, { notas: newNotas }, { silent: true, skipRefetch: true });
           tabeByGcalId.set(gcalId, { ...matchedByTitleDate, notas: newNotas });
         } else {
-          // Completely new event from Google Calendar: create in TABE!
+          // Completely new single event from Google Calendar: create in TABE!
           const notas = injectGoogleEventId(gEv.description, gcalId);
 
-          // Deduce event type from title and timing
           let tipo_examen: EventType = "Otro";
           const lower = title.toLowerCase();
           if (lower.includes("parcial 1") || lower.includes("1er parcial") || lower.includes("primer parcial") || lower.includes("p1")) {
@@ -642,7 +769,7 @@ export async function performBidirectionalSync(params: {
             ubicacion: gEv.location || undefined,
             notas: eventNotes,
             tipo_examen,
-          });
+          }, { silent: true, skipRefetch: true });
 
           pulledCount++;
         }
@@ -653,6 +780,11 @@ export async function performBidirectionalSync(params: {
 
     // Save last sync time
     localStorage.setItem(GCAL_LAST_SYNC_KEY, new Date().toISOString());
+
+    // Single refetch after all batch operations finish
+    if (params.refetchEvents) {
+      await params.refetchEvents();
+    }
 
     return {
       success: true,

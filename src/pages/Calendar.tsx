@@ -75,11 +75,11 @@ export default function Calendar() {
         tabeEvents: events,
         createTabeEvent: createEvent,
         updateTabeEvent: updateEvent,
+        refetchEvents: refetch,
       }).then(res => {
         if (res.success) {
           if (res.pushedCount > 0 || res.pulledCount > 0) {
             toast.success(`Google Calendar: ${res.pushedCount} enviados, ${res.pulledCount} importados`, { icon: "📅", duration: 5000 });
-            refetch();
           }
         } else if (res.error) {
           toast.warning(res.error, { duration: 6000 });
