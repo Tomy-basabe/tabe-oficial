@@ -92,6 +92,9 @@ function advanceDate(date: Date, rule: RecurrenceRule) {
 }
 
 // Module-level cache for instantaneous navigation between pages (stale-while-revalidate)
+let _cachedEvents: CalendarEvent[] | null = null;
+let _cachedUserId: string | null = null;
+
 export const isExamType = (tipo: string): boolean => {
   if (!tipo) return false;
   const t = tipo.trim().toLowerCase();
