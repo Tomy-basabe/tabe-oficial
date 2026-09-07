@@ -78,7 +78,8 @@ export default function Settings() {
     isGoogleLinked,
     googleIdentity,
     linkGoogleAccount,
-    unlinkGoogleAccount
+    unlinkGoogleAccount,
+    connectGoogleCalendar
   } = useAuth();
   const { comicMode, toggleComicMode, soundEnabled, toggleSound, triggerBurst } = useComic();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -280,21 +281,38 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="shrink-0">
+              <div className="shrink-0 flex flex-wrap items-center gap-2">
                 {isGoogleLinked ? (
-                  <button
-                    type="button"
-                    onClick={handleUnlinkGoogle}
-                    disabled={unlinkingGoogle}
-                    className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-white text-black border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {unlinkingGoogle ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Unlink className="w-4 h-4 text-red-500" />
-                    )}
-                    Desvincular
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          toast.info("Iniciando autorización de Google Calendar...");
+                          await connectGoogleCalendar();
+                        } catch (e: any) {
+                          toast.error(e?.message || "Error al conectar Google");
+                        }
+                      }}
+                      className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00FF9D] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Zap className="w-4 h-4 fill-current" />
+                      Reconectar Calendar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleUnlinkGoogle}
+                      disabled={unlinkingGoogle}
+                      className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-white text-black border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {unlinkingGoogle ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Unlink className="w-4 h-4 text-red-500" />
+                      )}
+                      Desvincular
+                    </button>
+                  </>
                 ) : (
                   <button
                     type="button"

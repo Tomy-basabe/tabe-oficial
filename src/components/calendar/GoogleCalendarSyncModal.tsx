@@ -401,14 +401,25 @@ export function GoogleCalendarSyncModal({
                                     </a>
                                 </div>
 
-                                {/* Disconnect Button */}
-                                <div className="pt-2 text-center">
+                                {/* Refresh Permissions / Reconnect & Disconnect */}
+                                <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-2 border-t-2 border-foreground/15">
                                     <button
+                                        type="button"
+                                        onClick={handleConnectGoogle}
+                                        disabled={isConnecting}
+                                        className="text-xs font-black uppercase tracking-wider text-foreground hover:text-primary hover:underline inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                                    >
+                                        <Zap className="w-3.5 h-3.5 fill-current text-[#00FF9D]" />
+                                        Actualizar permisos de Google Calendar
+                                    </button>
+
+                                    <button
+                                        type="button"
                                         onClick={handleDisconnect}
-                                        className="text-xs font-black uppercase tracking-wider text-muted-foreground hover:text-red-500 hover:underline inline-flex items-center gap-1.5 transition-colors"
+                                        className="text-xs font-black uppercase tracking-wider text-muted-foreground hover:text-red-500 hover:underline inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                                     >
                                         <Unlink className="w-3.5 h-3.5" />
-                                        Desconectar cuenta de Google Calendar
+                                        Desconectar
                                     </button>
                                 </div>
                             </div>
