@@ -23,6 +23,7 @@ import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { KeyboardShortcutsModal } from "@/components/notion/KeyboardShortcutsModal";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { useAchievements } from "@/hooks/useAchievements";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { JSONContent } from "@tiptap/core";
 import { tipTapTemplates, TipTapTemplate } from "@/lib/tipTapTemplates";
 import { ensureTipTapFormat } from "@/lib/contentMigration";
@@ -1154,11 +1155,7 @@ export default function Notion() {
 
   // Loading
   if (loading && documents.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingScreen message="Cargando Apuntes..." submessage="Abriendo tu espacio de notas..." />;
   }
 
   return (

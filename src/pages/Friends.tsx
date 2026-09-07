@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 export default function Friends() {
   const { user } = useAuth();
@@ -26,13 +27,21 @@ export default function Friends() {
     updateUsername
   } = useFriends();
 
+  const [activeTab, setActiveTab] = useState("ranking");
+  const [rankingPeriod, setRankingPeriod] = useState<"weekly" | "monthly" | "all">("weekly");
   const [searchQuery, setSearchQuery] = useState("");
+  const [friendCodeInput, setFriendCodeInput] = useState("");
+  const [copied, setCopied] = useState(false);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
+
+  if (loading && friends.length === 0 && friendStats.length === 0) {
+    return <LoadingScreen message="Cargando Amigos..." submessage="Buscando compañeros de estudio..." />;
+  }
+
   const [friendIdentifier, setFriendIdentifier] = useState("");
   const [sendingRequest, setSendingRequest] = useState(false);
   const [editingUsername, setEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
-  const [copied, setCopied] = useState(false);
   const [leaderboardType, setLeaderboardType] = useState<'xp' | 'pomodoro' | 'study' | 'streak'>('xp');
 
   const handleSendRequest = async () => {

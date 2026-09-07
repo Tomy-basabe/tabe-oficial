@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 
 interface Subject {
@@ -362,9 +363,7 @@ export default function Marketplace() {
 
         <TabsContent value="decks">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => <div key={i} className="h-64 bg-secondary/20 animate-pulse rounded-xl" />)}
-            </div>
+            <LoadingScreen message="Cargando mazos de la comunidad..." submessage="Explorando tarjetas compartidas por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {publicDecks.map(deck => <ResourceCard key={deck.id} item={deck} type="deck" />)}
@@ -375,9 +374,7 @@ export default function Marketplace() {
 
         <TabsContent value="quizzes">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => <div key={i} className="h-64 bg-secondary/20 animate-pulse rounded-xl" />)}
-            </div>
+            <LoadingScreen message="Cargando cuestionarios de la comunidad..." submessage="Explorando trivias y tests creados por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {publicQuizzes.map(quiz => <ResourceCard key={quiz.id} item={quiz} type="quiz" />)}

@@ -13,6 +13,7 @@ import { EditDependenciesModal } from "@/components/subjects/EditDependenciesMod
 import { ImportCareerModal } from "@/components/subjects/ImportCareerModal";
 import { useSubjects, SubjectWithStatus, SubjectStatus } from "@/hooks/useSubjects";
 import { cn } from "@/lib/utils";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 const statusFilters = [
   { value: "all", label: "Todas", color: "bg-secondary text-foreground" },
@@ -130,14 +131,7 @@ export default function CareerPlan() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-foreground" />
-          <p className="text-foreground font-black uppercase tracking-widest">Cargando plan...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Cargando Plan de Carrera..." submessage="Calculando correlatividades y materias..." />;
   }
 
   return (

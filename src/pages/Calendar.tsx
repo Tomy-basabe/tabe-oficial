@@ -18,6 +18,7 @@ import {
 } from "@/lib/googleCalendarSync";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 const eventTypeColors: Record<EventType, string> = {
   P1: "bg-[#00FF9D] border-foreground text-black font-black",
@@ -294,14 +295,7 @@ export default function Calendar() {
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
 
   if (loading && events.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-foreground" />
-          <p className="text-foreground font-black uppercase tracking-widest">Cargando calendario...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Cargando Calendario..." submessage="Organizando eventos académicos..." />;
   }
 
   return (

@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -362,14 +365,7 @@ export default function Forest() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando tu bosque...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Cargando tu Bosque..." submessage="Haciendo crecer tus árboles..." />;
   }
 
   return (

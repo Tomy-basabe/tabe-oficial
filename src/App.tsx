@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 // Eagerly loaded (lightweight pages)
 import Dashboard from "@/pages/Dashboard";
@@ -69,16 +70,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isGuest } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center animate-pulse">
-            <span className="font-display font-bold text-white text-lg">T</span>
-          </div>
-          <p className="text-muted-foreground text-sm">Cargando T.A.B.E...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen fullScreen message="Cargando T.A.B.E..." submessage="Verificando sesión académica..." />;
   }
 
   if (!user && !isGuest) {
@@ -92,13 +84,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center animate-pulse">
-          <span className="font-display font-bold text-white text-lg">T</span>
-        </div>
-      </div>
-    );
+    return <LoadingScreen fullScreen message="Cargando T.A.B.E..." submessage="Iniciando..." />;
   }
 
   // ONLY redirect if they are a logged-in user. Guests can see /auth to sign up.
@@ -110,14 +96,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 const LazyFallback = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center animate-pulse">
-        <span className="font-display font-bold text-white text-sm">T</span>
-      </div>
-      <p className="text-muted-foreground text-xs">Cargando módulo...</p>
-    </div>
-  </div>
+  <LoadingScreen message="Cargando módulo..." submessage="Preparando vista..." />
 );
 
 const AppRoutes = () => (

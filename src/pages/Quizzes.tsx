@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 interface QuizDeck {
     id: string;
@@ -1607,13 +1608,7 @@ export default function Quizzes() {
 
             {/* Decks Grid */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map((i) => (
-                        <Card key={i} className="bg-secondary/50 border-[3px] border-foreground rounded-2xl animate-pulse">
-                            <CardContent className="p-6 h-48" />
-                        </Card>
-                    ))}
-                </div>
+                <LoadingScreen message="Cargando cuestionarios..." submessage="Organizando tus trivias y preguntas de examen" />
             ) : decks.length === 0 && !selectedYear ? (
                 <Card className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl border-dashed">
                     <CardContent className="p-12 text-center">

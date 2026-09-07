@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { usePomodoro, TimerMode } from "@/contexts/PomodoroContext";
 import { PomodoroSettings } from "@/components/pomodoro/PomodoroSettings";
 import { Calendar, Filter, X } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 interface Subject {
   id: string;
@@ -100,11 +101,7 @@ export default function Pomodoro() {
   const Icon = config.icon;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingScreen message="Cargando Pomodoro..." submessage="Preparando tu sala de estudio..." />;
   }
 
   return (

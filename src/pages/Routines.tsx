@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -633,9 +634,7 @@ export default function Routines() {
       </div>
 
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
+                <LoadingScreen message="Cargando Rutinas..." submessage="Organizando tus bloques semanales..." />
             ) : (
                 <>
                     {/* Weekly Calendar Grid */}

@@ -23,6 +23,7 @@ import { CompletionScreen } from "@/components/flashcards/CompletionScreen";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { toLocalDateStr } from "@/lib/utils";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 interface Deck {
   id: string;
   nombre: string;
@@ -883,23 +884,7 @@ export default function Flashcards() {
 
       {/* Decks Grid */}
       {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="card-gamer rounded-2xl p-6 animate-pulse">
-              <div className="flex justify-between mb-4">
-                <div className="w-14 h-14 bg-secondary rounded-xl" />
-                <div className="w-16 h-6 bg-secondary rounded-lg" />
-              </div>
-              <div className="h-6 bg-secondary rounded mb-2 w-3/4" />
-              <div className="h-4 bg-secondary rounded w-1/2 mb-4" />
-              <div className="h-2 bg-secondary rounded-full mb-4" />
-              <div className="flex gap-2">
-                <div className="flex-1 h-10 bg-secondary rounded-xl" />
-                <div className="w-10 h-10 bg-secondary rounded-xl" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <LoadingScreen message="Cargando flashcards..." submessage="Preparando tus mazos de estudio y repaso espaciado" />
       ) : filteredDecks.length === 0 ? (
         <div className="text-center py-20">
           <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-secondary/50 flex items-center justify-center">

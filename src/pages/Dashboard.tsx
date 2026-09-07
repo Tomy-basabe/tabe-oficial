@@ -8,6 +8,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 
 // Widgets
@@ -51,14 +52,7 @@ export default function Dashboard() {
   });
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-[#1475e5]" />
-          <p className="text-muted-foreground font-bold">Cargando dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Cargando Dashboard..." submessage="Reuniendo materias y progreso..." />;
   }
 
   /* Brand color mapping for year progress */

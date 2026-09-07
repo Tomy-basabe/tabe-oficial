@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAchievements } from "@/hooks/useAchievements";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 const iconMap: Record<string, any> = {
   trophy: Trophy,
@@ -79,6 +80,10 @@ export default function Achievements() {
   const filteredAchievements = achievements.filter(
     a => !selectedCategory || a.categoria === selectedCategory
   );
+
+  if (loading && achievements.length === 0) {
+    return <LoadingScreen message="Cargando Logros..." submessage="Revisando tus metas alcanzadas..." />;
+  }
 
   const groupedAchievements = {
     academico: filteredAchievements.filter(a => a.categoria === "academico"),

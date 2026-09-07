@@ -28,6 +28,7 @@ import * as pdfjsLib from "pdfjs-dist";
 // @ts-ignore
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 interface LibraryFolder {
   id: string;
@@ -1381,15 +1382,7 @@ export default function Library() {
 
       {/* Content Grid */}
       {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="card-gamer rounded-xl p-4 animate-pulse">
-              <div className="w-12 h-12 bg-secondary rounded-lg mb-4" />
-              <div className="h-4 bg-secondary rounded mb-2" />
-              <div className="h-3 bg-secondary rounded w-2/3" />
-            </div>
-          ))}
-        </div>
+        <LoadingScreen message="Cargando biblioteca..." submessage="Organizando tus carpetas y archivos de estudio" />
       ) : currentFolders.length === 0 && currentFiles.length === 0 ? (
         <div className="text-center py-16 bg-card border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000]">
           <FolderOpen className="w-16 h-16 mx-auto mb-4 text-foreground" />

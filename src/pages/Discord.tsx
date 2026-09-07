@@ -5,6 +5,7 @@ import { DiscordChannelSidebar } from "@/components/discord/DiscordChannelSideba
 import { DiscordTextChannel } from "@/components/discord/DiscordTextChannel";
 import { DiscordVoiceChannel } from "@/components/discord/DiscordVoiceChannel";
 import { Loader2, ArrowLeft, Hash, Volume2 } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 // Mobile view states: which panel is shown on small screens
 type MobileView = "servers" | "channels" | "main";
@@ -72,11 +73,7 @@ export default function Discord() {
   };
 
   if (loading && servers.length === 0) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background text-primary">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+    return <LoadingScreen message="Cargando Comunidad..." submessage="Conectando canales de estudio..." />;
   }
 
   return (

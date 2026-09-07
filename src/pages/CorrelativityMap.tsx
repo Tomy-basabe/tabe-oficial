@@ -23,6 +23,7 @@ import { ArrowLeft, RefreshCw, ZoomIn, ZoomOut, Zap, AlertTriangle } from "lucid
 import { useNavigate } from "react-router-dom";
 import { useSubjects, Subject } from "@/hooks/useSubjects";
 import { Loader2 } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { SubjectNode } from "@/components/correlativity/SubjectNode";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -191,7 +192,7 @@ function CorrelativityMapContent() {
 
 
     if (loading) {
-        return <div className="h-screen w-full flex items-center justify-center bg-background text-foreground"><Loader2 className="animate-spin mr-2" /> Cargando mapa...</div>;
+        return <LoadingScreen fullScreen message="Cargando Mapa de Correlativas..." submessage="Generando grafo de la carrera..." />;
     }
 
     return (

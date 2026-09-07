@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock, BookOpen, Loader2, Search, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
 import { generateId } from "@/lib/utils/id";
 
@@ -374,11 +375,7 @@ const AdminPanel = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingScreen message="Cargando Panel de Administración..." submessage="Verificando permisos..." />;
   }
 
   if (!isAdmin) {

@@ -12,6 +12,7 @@ import { PersonaSidebar } from "@/components/ai/PersonaSidebar";
 import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
 import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
 import { Button } from "@/components/ui/button";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -340,14 +341,7 @@ export default function AIAssistant() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground">Cargando asistente...</span>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Cargando Asistente T.A.B.E..." submessage="Iniciando inteligencia artificial..." />;
   }
 
   return (

@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, Pencil
 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 const SUBJECT_COLORS = [
   { bg: "bg-[#FF5C5C]", border: "border-black", text: "text-black", solid: "#FF5C5C", label: "Rojo Fuerte" },
@@ -368,14 +369,7 @@ export default function OfficeHours() {
   };
 
   if (loading || subjectsLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando consultas...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Cargando Consultas..." submessage="Obteniendo horarios de profesores..." />;
   }
 
   return (

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 const EXAM_TYPES = [
   "P1",
@@ -184,14 +185,7 @@ export default function Exams() {
   };
 
   if (loading && upcomingExams.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Timer className="w-12 h-12 animate-spin text-foreground" />
-          <p className="text-foreground font-black uppercase tracking-widest">Cargando exámenes...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Cargando Exámenes..." submessage="Sincronizando fechas clave..." />;
   }
 
   return (
