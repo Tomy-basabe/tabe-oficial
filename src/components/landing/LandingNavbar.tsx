@@ -4,7 +4,7 @@ import { Moon, Sun, Menu, X, ChevronRight } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 
 export function LandingNavbar() {
-    const { theme, toggleTheme } = useTheme();
+    const { toggleTheme, resolvedTheme } = useTheme();
     const [scrolled, setScrolled] = useState(false);
     const [open, setOpen] = useState(false);
 
@@ -62,8 +62,9 @@ export function LandingNavbar() {
                 {/* Actions */}
                 <div className="hidden md:flex items-center gap-3">
                     <button onClick={toggleTheme}
+                        aria-label="Cambiar tema"
                         className="p-2.5 rounded-lg border-2 border-border bg-card hover:bg-secondary transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
-                        {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                        {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                     </button>
                     <Link to="/registro"
                         className="group flex items-center gap-2 px-5 py-2.5 bg-foreground text-background rounded-lg font-extrabold text-sm border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--tab-orange))] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_hsl(var(--tab-orange))] active:translate-y-0.5 active:shadow-none">
@@ -95,8 +96,8 @@ export function LandingNavbar() {
                         )
                     ))}
                     <div className="pt-3 flex items-center gap-3">
-                        <button onClick={toggleTheme} className="p-2.5 rounded-lg border-2 border-border">
-                            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                        <button onClick={toggleTheme} aria-label="Cambiar tema" className="p-2.5 rounded-lg border-2 border-border">
+                            {resolvedTheme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </button>
                         <Link to="/registro" onClick={() => setOpen(false)}
                             className="flex-1 text-center py-3 bg-foreground text-background rounded-lg font-extrabold border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--tab-orange))]">

@@ -308,7 +308,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                     value={customParcialNum}
                     onChange={(e) => handleCustomNumChange(e.target.value)}
                     placeholder="Número de parcial (ej: 3)"
-                    className="w-full px-4 py-2 bg-white text-black rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm font-bold"
+                    className="w-full px-4 py-2 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all text-sm font-bold"
                     required
                   />
                   <p className="text-xs text-muted-foreground mt-1">Escribe manualmente el número del parcial. Por ejemplo, "3" o "4".</p>
@@ -332,13 +332,13 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                       setSubjectId(""); 
                     }}
                   >
-                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-[#FFE66D] text-black rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all text-sm font-black uppercase tracking-widest">
+                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-[#FFE66D] text-black rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all text-sm font-black uppercase tracking-widest">
                       <SelectValue placeholder="Filtrar por año (Todos)" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#FFE66D] border-4 border-foreground shadow-[8px_8px_0_0_#000] rounded-xl font-bold">
-                      <SelectItem value="all" className="font-black focus:bg-black/10 cursor-pointer">Años (Todos)</SelectItem>
+                    <SelectContent className="bg-popover text-popover-foreground border-[3px] border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl font-bold">
+                      <SelectItem value="all" className="font-black text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">Años (Todos)</SelectItem>
                       {subjectsByYear.map(({ year }) => (
-                        <SelectItem key={year} value={year.toString()} className="font-bold focus:bg-black/10 cursor-pointer">Año {year}</SelectItem>
+                        <SelectItem key={year} value={year.toString()} className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">Año {year}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -347,17 +347,17 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                     value={subjectId}
                     onValueChange={handleSubjectChange}
                   >
-                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-white text-black rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all text-sm font-bold text-left truncate">
+                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all text-sm font-bold text-left truncate">
                       <SelectValue placeholder="Seleccionar materia..." />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-4 border-foreground shadow-[8px_8px_0_0_#000] rounded-xl max-h-[250px]">
+                    <SelectContent className="bg-popover text-popover-foreground border-[3px] border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl max-h-[250px] z-50">
                       {subjectsByYear
                         .filter(g => selectedYearFilter === "all" || g.year.toString() === selectedYearFilter)
                         .map(({ year, subjects: yearSubjects }) => (
                           <SelectGroup key={year}>
-                            <SelectLabel className="font-black text-black/50 text-xs uppercase tracking-wider bg-black/5 rounded-md mt-1 mx-1">Año {year}</SelectLabel>
+                            <SelectLabel className="font-black text-foreground/70 text-xs uppercase tracking-wider bg-muted/60 rounded-md mt-1 mx-1 px-2 py-1">Año {year}</SelectLabel>
                             {yearSubjects.map((subject) => (
-                              <SelectItem key={subject.id} value={subject.id} className="font-bold focus:bg-black/5 cursor-pointer rounded-lg mx-1 my-0.5">
+                              <SelectItem key={subject.id} value={subject.id} className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer rounded-lg mx-1 my-0.5">
                                 #{subject.numero_materia} - {subject.nombre}
                               </SelectItem>
                             ))}
@@ -377,7 +377,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 placeholder="Ej: Parcial 1 - Análisis Matemático"
-                className="w-full px-4 py-2.5 bg-white text-black rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold"
+                className="w-full px-4 py-2.5 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold"
                 required
               />
             </div>
@@ -394,14 +394,14 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                     <button
                       type="button"
                       className={cn(
-                        "w-full px-4 py-2.5 bg-white text-black rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm font-bold text-left",
+                        "w-full px-4 py-2.5 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all text-sm font-bold text-left",
                         !fecha && "text-muted-foreground"
                       )}
                     >
                       {fecha ? format(fecha, "PPP", { locale: es }) : "Seleccionar"}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 bg-popover text-popover-foreground border-[3px] border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl" align="start">
                     <Calendar
                       mode="single"
                       selected={fecha}
@@ -441,7 +441,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                         value={hora}
                         onChange={(e) => setHora(e.target.value)}
                         required={tipoExamen === "Clase"}
-                        className="flex-1 px-4 py-2.5 bg-white text-black rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold"
+                        className="flex-1 px-4 py-2.5 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold"
                       />
                     </div>
                     <div className="w-full flex space-x-2 items-center">
@@ -451,7 +451,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                         value={horaFin}
                         onChange={(e) => setHoraFin(e.target.value)}
                         required={tipoExamen === "Clase"}
-                        className="flex-1 px-4 py-2.5 bg-white text-black rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold"
+                        className="flex-1 px-4 py-2.5 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold"
                       />
                     </div>
                   </div>
@@ -469,15 +469,15 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                       value={recurrenceRule || "NONE"}
                       onValueChange={(val) => setRecurrenceRule(val === "NONE" ? null : val as RecurrenceRule)}
                     >
-                      <SelectTrigger className="w-full h-auto px-4 py-3 bg-white text-black rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all text-sm font-bold">
+                      <SelectTrigger className="w-full h-auto px-4 py-3 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all text-sm font-bold">
                         <SelectValue placeholder="No se repite" />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-4 border-foreground shadow-[8px_8px_0_0_#000] rounded-xl">
-                        <SelectItem value="NONE" className="font-bold focus:bg-black/5 cursor-pointer">No se repite</SelectItem>
-                        <SelectItem value="DAILY" className="font-bold focus:bg-black/5 cursor-pointer">Diariamente</SelectItem>
-                        <SelectItem value="WEEKLY" className="font-bold focus:bg-black/5 cursor-pointer">Semanalmente</SelectItem>
-                        <SelectItem value="MONTHLY" className="font-bold focus:bg-black/5 cursor-pointer">Mensualmente</SelectItem>
-                        <SelectItem value="YEARLY" className="font-bold focus:bg-black/5 cursor-pointer">Anualmente</SelectItem>
+                      <SelectContent className="bg-popover text-popover-foreground border-[3px] border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl">
+                        <SelectItem value="NONE" className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer rounded-lg mx-1 my-0.5">No se repite</SelectItem>
+                        <SelectItem value="DAILY" className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer rounded-lg mx-1 my-0.5">Diariamente</SelectItem>
+                        <SelectItem value="WEEKLY" className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer rounded-lg mx-1 my-0.5">Semanalmente</SelectItem>
+                        <SelectItem value="MONTHLY" className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer rounded-lg mx-1 my-0.5">Mensualmente</SelectItem>
+                        <SelectItem value="YEARLY" className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer rounded-lg mx-1 my-0.5">Anualmente</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -490,7 +490,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                       type="date"
                       value={recurrenceEnd}
                       onChange={(e) => setRecurrenceEnd(e.target.value)}
-                      className="w-2/3 px-3 py-2 bg-white text-black rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm font-bold"
+                      className="w-2/3 px-3 py-2 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all text-sm font-bold"
                     />
                   </div>
                 )}
@@ -508,7 +508,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                 value={ubicacion}
                 onChange={(e) => setUbicacion(e.target.value)}
                 placeholder="Añadir lugar..."
-                className="w-full px-4 py-2.5 bg-white text-black rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold"
+                className="w-full px-4 py-2.5 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold"
               />
             </div>
 
@@ -553,7 +553,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
                 onChange={(e) => setNotas(e.target.value)}
                 placeholder="Añadir descripción..."
                 rows={2}
-                className="w-full px-4 py-2.5 bg-white text-black rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all resize-none font-bold"
+                className="w-full px-4 py-2.5 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all resize-none font-bold"
               />
             </div>
 

@@ -18,10 +18,10 @@ import {
   Repeat2, 
   Clock,
   Folder,
-  Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
+  Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2,
-  Search
+  Search, Compass
 } from "lucide-react";
 import { NotionIcon } from "@/components/icons/NotionIcon";
 
@@ -45,10 +45,10 @@ export interface CustomSidebarItem {
 
 export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar,
-  Trophy, Brain, Target, Lightbulb, Rocket, Book, PenTool, Microscope, FlaskConical, Calculator,
+  Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
-  NotionIcon, Shield
+  NotionIcon, Shield, Compass, Bot, Repeat2, Timer, BarChart3, TreeDeciduous
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);
@@ -73,8 +73,80 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/admin": "Shield",
   "/configuracion": "Settings",
   "/examenes": "GraduationCap",
-  "/juegos": "Gamepad2"
+  "/juegos": "Gamepad2",
+  "/mapa": "Compass",
+  "/discord": "MessageSquare"
 };
+
+export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
+  {
+    id: "item-/dashboard",
+    path: "/dashboard",
+    label: "Dashboard",
+    type: "item",
+    iconName: "LayoutDashboard"
+  },
+  {
+    id: "item-/TABEAI",
+    path: "/TABEAI",
+    label: "TABE IA",
+    type: "item",
+    iconName: "Bot"
+  },
+  {
+    id: "cat-academico",
+    label: "Académico",
+    type: "category",
+    iconName: "GraduationCap",
+    items: [
+      { id: "item-/carrera", path: "/carrera", label: "Plan de Carrera", type: "item", iconName: "GraduationCap" },
+      { id: "item-/apuntes", path: "/apuntes", label: "Apuntes", type: "item", iconName: "NotionIcon" },
+      { id: "item-/flashcards", path: "/flashcards", label: "Flashcards", type: "item", iconName: "Layers" },
+      { id: "item-/cuestionarios", path: "/cuestionarios", label: "Cuestionarios", type: "item", iconName: "ClipboardList" },
+      { id: "item-/consultas", path: "/consultas", label: "Consultas", type: "item", iconName: "Clock" },
+      { id: "item-/biblioteca", path: "/biblioteca", label: "Biblioteca", type: "item", iconName: "Library" },
+      { id: "item-/mapa", path: "/mapa", label: "Correlatividades", type: "item", iconName: "Compass" }
+    ]
+  },
+  {
+    id: "cat-organizacion",
+    label: "Productividad",
+    type: "category",
+    iconName: "Calendar",
+    items: [
+      { id: "item-/calendario", path: "/calendario", label: "Calendario", type: "item", iconName: "Calendar" },
+      { id: "item-/pomodoro", path: "/pomodoro", label: "Pomodoro", type: "item", iconName: "Timer" },
+      { id: "item-/rutinas", path: "/rutinas", label: "Rutinas", type: "item", iconName: "Repeat2" }
+    ]
+  },
+  {
+    id: "cat-comunidad",
+    label: "Comunidad & Juegos",
+    type: "category",
+    iconName: "Gamepad2",
+    items: [
+      { id: "item-/amigos", path: "/amigos", label: "Amigos", type: "item", iconName: "Users" },
+      { id: "item-/bosque", path: "/bosque", label: "Mi Bosque", type: "item", iconName: "TreeDeciduous" },
+      { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Gamepad2" },
+      { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
+      { id: "item-/marketplace", path: "/marketplace", label: "Marketplace", type: "item", iconName: "Store" }
+    ]
+  },
+  {
+    id: "item-/metricas",
+    path: "/metricas",
+    label: "Métricas",
+    type: "item",
+    iconName: "BarChart3"
+  },
+  {
+    id: "item-/configuracion",
+    path: "/configuracion",
+    label: "Configuración",
+    type: "item",
+    iconName: "Settings"
+  }
+];
 
 export const baseNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
@@ -102,5 +174,6 @@ export const adminNavItem = { icon: Shield, label: "Admin", path: "/admin" };
 export const ALL_AVAILABLE_ITEMS = [
   ...baseNavItems,
   { icon: GraduationCap, label: "Exámenes", path: "/examenes" },
-  { icon: Gamepad2, label: "Juegos", path: "/juegos" }
+  { icon: Gamepad2, label: "Juegos", path: "/juegos" },
+  { icon: Compass, label: "Correlatividades", path: "/mapa" }
 ];

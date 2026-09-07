@@ -20,9 +20,9 @@ export function GlobalPomodoroWidget() {
     if (!isSessionActive) return null;
 
     return (
-        <div className="fixed bottom-4 right-[76px] z-50 animate-in slide-in-from-bottom-10 fade-in duration-300">
+        <div className="fixed bottom-20 right-[70px] lg:bottom-6 lg:right-[84px] z-50 animate-in slide-in-from-bottom-10 fade-in duration-300 max-w-[calc(100vw-5.5rem)]">
             <div className={cn(
-                "backdrop-blur-xl border rounded-2xl shadow-2xl p-3 flex items-center gap-3 w-64 ring-1 overflow-hidden transition-all duration-300",
+                "backdrop-blur-xl border rounded-2xl shadow-2xl p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 w-56 sm:w-64 ring-1 overflow-hidden transition-all duration-300",
                 isRinging ? "bg-neon-red/20 border-neon-red ring-neon-red/50 animate-pulse" : "bg-card/90 border-primary/20 ring-border/50"
             )}>
 

@@ -3,8 +3,8 @@ import { Instagram, Heart } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 
 export function LandingFooter() {
-    const { theme } = useTheme();
-    const logo = theme === "dark" ? "/logos/tabe-logo-dark.png" : "/logos/tabe-logo-light.png";
+    const { resolvedTheme } = useTheme();
+    const logo = resolvedTheme === "dark" ? "/logos/tabe-logo-dark.png" : "/logos/tabe-logo-light.png";
 
     return (
         <footer className="border-t-2 border-border bg-card/50">
@@ -46,7 +46,7 @@ export function LandingFooter() {
                 </div>
                 <div className="mt-10 pt-6 border-t-2 border-border flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p className="text-xs text-muted-foreground flex items-center gap-1 font-bold">
-                        Hecho con <Heart className="w-3 h-3 text-[#ff9415] fill-[#ff9415]" /> por estudiantes, para estudiantes
+                        Hecho por estudiantes y para estudiantes <Heart className="w-3 h-3 text-[#ff9415] fill-[#ff9415]" />
                     </p>
                     <p className="text-xs text-muted-foreground font-bold">© {new Date().getFullYear()} TABE. Todos los derechos reservados.</p>
                 </div>

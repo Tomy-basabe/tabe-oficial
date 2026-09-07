@@ -8,7 +8,7 @@ export function GuestModeBanner() {
     if (!isGuest || user) return null;
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[95%] max-w-2xl">
+        <div className="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[95%] max-w-2xl">
             <div className="card-gamer p-4 md:p-6 rounded-2xl bg-background/60 backdrop-blur-xl border border-neon-cyan/20 shadow-2xl shadow-neon-cyan/10 animate-in fade-in slide-in-from-bottom-5">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-start gap-4">

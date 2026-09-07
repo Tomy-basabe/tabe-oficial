@@ -8,7 +8,8 @@ import {
   ICON_NAMES,
   DEFAULT_ICON_MAPPING,
   CustomSidebarItem,
-  ALL_AVAILABLE_ITEMS
+  ALL_AVAILABLE_ITEMS,
+  DEFAULT_CATEGORIZED_SIDEBAR
 } from "@/lib/sidebar-configs";
 import { 
   ChevronUp, 
@@ -69,22 +70,49 @@ export function SidebarCustomizer() {
       });
     };
 
-    if (profile?.sidebar_config) {
+    if (profile?.sidebar_config && profile.sidebar_config.some((i: any) => i.type === "category") && profile.sidebar_config.length >= 4) {
       setConfig(sanitizeItems(profile.sidebar_config));
     } else {
-      const defaultConfig = ALL_AVAILABLE_ITEMS.map(item => ({
-        id: `item-${item.path}`,
-        path: item.path,
-        label: item.label,
-        type: "item" as "item",
-        iconName: DEFAULT_ICON_MAPPING[item.path] || "FileText"
-      }));
-      setConfig(defaultConfig);
+      try {
+        const local = localStorage.getItem("tabe-custom-sidebar-config");
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (parsed && Array.isArray(parsed) && parsed.length >= 4) {
+            setConfig(sanitizeItems(parsed));
+            return;
+          }
+        }
+      } catch (e) {}
+      setConfig(sanitizeItems(DEFAULT_CATEGORIZED_SIDEBAR));
     }
   }, [profile]);
 
+  const resetToDefaultCategories = () => {
+    const sanitizeItems = (items: any[]): CustomSidebarItem[] => {
+      return items.map(item => {
+        let newItem = { ...item };
+        if (!newItem.id) newItem.id = `item-${Date.now()}-${Math.random()}`;
+        if (newItem.type === "item") {
+          if (!newItem.path) newItem.path = newItem.id;
+          if (!newItem.iconName || newItem.iconName === "FileText") {
+            newItem.iconName = DEFAULT_ICON_MAPPING[newItem.path] || "FileText";
+          }
+        }
+        if (newItem.items) {
+          newItem.items = sanitizeItems(newItem.items);
+        }
+        return newItem as CustomSidebarItem;
+      });
+    };
+    setConfig(sanitizeItems(DEFAULT_CATEGORIZED_SIDEBAR));
+    toast.info("Categorías recomendadas cargadas. Haz clic en 'Guardar Cambios' para aplicar.");
+  };
+
   const saveConfig = async () => {
     try {
+      try {
+        localStorage.setItem("tabe-custom-sidebar-config", JSON.stringify(config));
+      } catch (e) {}
       await updateSidebarConfig(config);
       toast.success("Configuración del panel lateral guardada");
     } catch (error) {
@@ -611,7 +639,15 @@ export function SidebarCustomizer() {
         </div>
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border/40">
+        <Button 
+          type="button"
+          variant="outline" 
+          onClick={resetToDefaultCategories}
+          className="border-border text-muted-foreground hover:text-foreground"
+        >
+          Restablecer a Categorías Recomendadas
+        </Button>
         <Button onClick={saveConfig} className="bg-primary text-primary-foreground shadow-lg shadow-primary/20">
           Guardar Cambios
         </Button>

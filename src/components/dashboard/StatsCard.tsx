@@ -14,8 +14,8 @@ interface StatsCardProps {
 }
 
 /* Claymorphism color mapping */
-const variantStyles = {
-  default: { color: "#171b21", bg: "bg-secondary" },
+const variantStyles: Record<string, { color?: string; bg: string; textClass?: string }> = {
+  default: { bg: "bg-secondary", textClass: "text-foreground" },
   gold: { color: "#ffd21c", bg: "bg-[#ffd21c]/12" },
   green: { color: "#48bd22", bg: "bg-[#48bd22]/12" },
   cyan: { color: "#1475e5", bg: "bg-[#1475e5]/12" },
@@ -44,7 +44,7 @@ export function StatsCard({
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-sm font-bold text-muted-foreground">{title}</p>
-          <p className="text-3xl font-black" style={{ color: styles.color }}>
+          <p className={cn("text-3xl font-black", styles.textClass)} style={styles.color ? { color: styles.color } : undefined}>
             {value}
           </p>
           {subtitle && (
@@ -52,7 +52,7 @@ export function StatsCard({
           )}
         </div>
         <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", styles.bg)}>
-          <Icon className="w-6 h-6" style={{ color: styles.color }} />
+          <Icon className={cn("w-6 h-6", styles.textClass)} style={styles.color ? { color: styles.color } : undefined} />
         </div>
       </div>
 

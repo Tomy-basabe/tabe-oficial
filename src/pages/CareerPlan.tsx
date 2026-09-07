@@ -143,11 +143,11 @@ export default function CareerPlan() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5 neo-bento-card bento-hover-blue p-6 lg:p-8 bg-card/80 backdrop-blur-sm">
+      <div className="relative overflow-hidden flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 sm:gap-5 neo-bento-card bento-hover-blue p-4 sm:p-6 lg:p-8 bg-card/80 backdrop-blur-sm">
         <div className="absolute -top-24 -left-16 h-48 w-48 rounded-full bg-neon-cyan/15 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-28 right-12 h-52 w-52 rounded-full bg-neon-purple/15 blur-3xl pointer-events-none" />
         <div className="relative">
-          <span className="inline-flex items-center gap-2 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-neon-cyan mb-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-neon-cyan mb-2 sm:mb-3">
             Tu progreso académico
           </span>
           <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
@@ -157,28 +157,33 @@ export default function CareerPlan() {
             Gestiona tus materias y correlativas
           </p>
         </div>
-        <div className="relative flex flex-wrap items-center gap-2">
+        <div className="relative flex flex-wrap items-center gap-1.5 sm:gap-2">
           {!isGuestMode && (
             <Button
               onClick={handleOpenAddModal}
-              className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 tour-career-add"
+              size="sm"
+              className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 tour-career-add text-xs sm:text-sm font-black"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
               Agregar Materia
             </Button>
           )}
           <Button
             onClick={() => navigate("/consultas")}
             variant="secondary"
+            size="sm"
+            className="text-xs sm:text-sm font-bold"
           >
-            <Zap className="w-4 h-4" />
+            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
             Consultas
           </Button>
           <Button
             onClick={() => navigate("/mapa")}
             variant="secondary"
+            size="sm"
+            className="text-xs sm:text-sm font-bold"
           >
-            <Zap className="w-4 h-4 text-[#ffd21c]" />
+            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 text-[#ffd21c]" />
             Ver Mapa
           </Button>
           {!isGuestMode && (
@@ -186,8 +191,10 @@ export default function CareerPlan() {
               <Button
                 onClick={() => setShowImportModal(true)}
                 variant="outline"
+                size="sm"
+                className="text-xs sm:text-sm font-bold"
               >
-                <BookOpen className="w-4 h-4" />
+                <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                 Importar Plan
               </Button>
               <Button
@@ -201,14 +208,16 @@ export default function CareerPlan() {
                   }
                 }}
                 variant="destructive"
+                size="sm"
+                className="text-xs sm:text-sm font-bold"
               >
                 Borrar Todo
               </Button>
             </>
           )}
-          <div className="bg-[#ffd21c] text-black px-3 py-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center gap-2">
+          <div className="bg-[#ffd21c] text-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 sm:gap-2">
             <GraduationCap className="w-4 h-4" />
-            <span className="text-sm font-black">{stats.aprobadas}/{stats.total}</span>
+            <span className="text-xs sm:text-sm font-black">{stats.aprobadas}/{stats.total}</span>
           </div>
         </div>
       </div>
@@ -250,12 +259,17 @@ export default function CareerPlan() {
         </div>
 
         {/* Year Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-foreground" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+            <span className="text-xs font-black uppercase tracking-wider sm:hidden">Filtrar por año:</span>
+          </div>
           <div className="flex gap-1.5 flex-wrap">
             <Button
               onClick={() => setSelectedYear(null)}
               variant={selectedYear === null ? "default" : "outline"}
+              size="sm"
+              className="text-xs font-bold"
             >
               Todos
             </Button>
@@ -264,6 +278,8 @@ export default function CareerPlan() {
                 key={year}
                 onClick={() => setSelectedYear(year)}
                 variant={selectedYear === year ? "default" : "outline"}
+                size="sm"
+                className="text-xs font-bold"
               >
                 Año {year}
               </Button>

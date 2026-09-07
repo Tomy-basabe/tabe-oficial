@@ -15,8 +15,12 @@ export function HowItWorksSection() {
                     <span className="inline-block px-4 py-2 rounded-lg bg-[#ff9415]/10 border-2 border-[#ff9415]/20 text-sm font-extrabold text-[#ff9415] mb-5">
                         🚀 Cómo funciona
                     </span>
-                    <h2 className="text-3xl md:text-5xl font-black mb-4">
-                        Empezar es <span className="text-[#ff9415]">muy fácil</span>
+                    <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">
+                        Empezar es{" "}
+                        <span className="relative inline-block text-[#ff9415] transition-transform duration-200 hover:scale-105 hover:rotate-1 cursor-pointer">
+                            muy fácil
+                            <span className="absolute -bottom-1 left-0 w-full h-1 bg-[#ff9415]/30 rounded-full" />
+                        </span>
                     </h2>
                 </div>
 
@@ -24,21 +28,21 @@ export function HowItWorksSection() {
                     {steps.map((s, i) => {
                         const Icon = s.icon;
                         return (
-                            <div key={i} className="flex items-start gap-6 py-7 group">
+                            <div key={i} className="flex items-start gap-6 py-7 px-4 rounded-2xl transition-all duration-200 hover:bg-muted/40 group cursor-default">
                                 {/* Step circle + connector */}
                                 <div className="relative flex-shrink-0">
-                                    <div className="w-14 h-14 rounded-xl border-2 flex items-center justify-center shadow-[3px_3px_0_0_rgba(0,0,0,.1)] transition-all duration-200 group-hover:scale-110 group-hover:-rotate-6"
+                                    <div className="w-14 h-14 rounded-xl border-2 flex items-center justify-center shadow-[3px_3px_0_0_rgba(0,0,0,.1)] transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6 group-hover:shadow-[5px_5px_0_0_rgba(0,0,0,.15)]"
                                         style={{ borderColor: s.color, backgroundColor: s.color }}>
-                                        <Icon className="w-6 h-6 text-white" />
+                                        <Icon className="w-6 h-6 text-white transition-transform group-hover:scale-110" />
                                     </div>
                                     {i < steps.length - 1 && (
-                                        <div className="absolute top-14 left-1/2 -translate-x-1/2 w-0.5 h-10 bg-border" />
+                                        <div className="absolute top-14 left-1/2 -translate-x-1/2 w-0.5 h-10 bg-border group-hover:bg-border/80" />
                                     )}
                                 </div>
                                 {/* Text */}
                                 <div className="pt-2">
-                                    <span className="text-xs font-black uppercase tracking-widest mb-1 block" style={{ color: s.color }}>Paso {i + 1}</span>
-                                    <h3 className="font-extrabold text-xl mb-1">{s.title}</h3>
+                                    <span className="text-xs font-black uppercase tracking-widest mb-1 block transition-transform group-hover:translate-x-1" style={{ color: s.color }}>Paso {i + 1}</span>
+                                    <h3 className="font-extrabold text-xl mb-1 group-hover:text-primary transition-colors">{s.title}</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed max-w-md">{s.desc}</p>
                                 </div>
                             </div>

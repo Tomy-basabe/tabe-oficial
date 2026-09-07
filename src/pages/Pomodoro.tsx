@@ -110,24 +110,24 @@ export default function Pomodoro() {
   return (
     <div className="tabe-page p-3 lg:p-8 space-y-4 lg:space-y-6 pb-24 lg:pb-8">
       {/* Header */}
-      <div className="relative overflow-hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-6 bg-[#ff4747] border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl mb-6">
+      <div className="relative overflow-hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 sm:p-6 bg-[#ff4747] border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] sm:shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl mb-6">
         {/* Decorative Element */}
         <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-8 -translate-y-8">
           <Gamepad2 className="w-48 h-48 text-black" />
         </div>
         
         <div className="relative z-10">
-          <h1 className="font-display text-3xl lg:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-3">
-            <Gamepad2 className="w-8 h-8 lg:w-10 lg:h-10 text-black" />
-            Pomodoro Global
+          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2 sm:gap-3">
+            <Gamepad2 className="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-black shrink-0" />
+            <span>Pomodoro Global</span>
           </h1>
-          <p className="text-black font-bold uppercase tracking-wider mt-2 text-sm flex items-center gap-2">
-            <Swords className="w-4 h-4" />
-            ESTUDIÁ COMO JUGÁS. TÉCNICA POMODORO SINCRONIZADA.
+          <p className="text-black font-bold uppercase tracking-wider mt-1 sm:mt-2 text-xs sm:text-sm flex items-center gap-2">
+            <Swords className="w-4 h-4 shrink-0" />
+            <span>ESTUDIÁ COMO JUGÁS. TÉCNICA POMODORO SINCRONIZADA.</span>
           </p>
         </div>
         {isActive && mode === "work" && (
-          <div className="relative z-10 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-black bg-white px-4 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] animate-pulse">
+          <div className="relative z-10 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-black bg-white px-4 py-2 border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] animate-pulse">
             <Save className="w-4 h-4" />
             Guardando sesión...
           </div>
@@ -162,7 +162,7 @@ export default function Pomodoro() {
 
           {/* Timer Display */}
           <div className="flex flex-col items-center">
-            <div className="relative w-72 h-72 lg:w-80 lg:h-80 select-none">
+            <div className="relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 select-none">
               {/* Background Circle */}
               <svg className="w-full h-full transform -rotate-90">
                 <circle
@@ -191,21 +191,21 @@ export default function Pomodoro() {
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 {isRinging ? (
                   <>
-                    <Target className={cn("w-10 h-10 mb-2 text-[#ff3366] animate-bounce")} />
-                    <span className="font-display text-4xl lg:text-5xl font-black text-[#ff3366] tracking-tight uppercase animate-pulse">
+                    <Target className={cn("w-8 h-8 sm:w-10 sm:h-10 mb-2 text-[#ff3366] animate-bounce")} />
+                    <span className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-[#ff3366] tracking-tight uppercase animate-pulse">
                       ¡TIEMPO!
                     </span>
-                    <span className="text-sm font-bold uppercase text-[#ff3366] tracking-wider mt-2 animate-pulse">
+                    <span className="text-xs sm:text-sm font-bold uppercase text-[#ff3366] tracking-wider mt-1 sm:mt-2 animate-pulse">
                       Alarma Sonando
                     </span>
                   </>
                 ) : (
                   <>
-                    <Icon className={cn("w-8 h-8 mb-2 text-foreground")} />
-                    <span className="font-black text-5xl lg:text-7xl text-foreground tracking-tighter">
+                    <Icon className={cn("w-6 h-6 sm:w-8 sm:h-8 mb-1 sm:mb-2 text-foreground")} />
+                    <span className="font-black text-4xl sm:text-6xl lg:text-7xl text-foreground tracking-tighter">
                       {formatTime(timeLeft)}
                     </span>
-                    <span className="text-sm font-bold uppercase tracking-wider text-muted-foreground mt-2">
+                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground mt-1 sm:mt-2">
                       {config.label}
                     </span>
                   </>

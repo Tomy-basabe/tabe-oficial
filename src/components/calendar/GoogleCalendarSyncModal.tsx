@@ -94,7 +94,7 @@ export function GoogleCalendarSyncModal({
                             "flex-1 py-2 px-3 rounded-lg text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-[3px] border-foreground",
                             activeTab === "export"
                                 ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]"
-                                : "bg-white text-black hover:bg-muted shadow-[2px_2px_0_0_#000]"
+                                : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                         )}
                     >
                         <ExternalLink className="w-4 h-4" />
@@ -106,7 +106,7 @@ export function GoogleCalendarSyncModal({
                             "flex-1 py-2 px-3 rounded-lg text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-[3px] border-foreground",
                             activeTab === "import"
                                 ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]"
-                                : "bg-white text-black hover:bg-muted shadow-[2px_2px_0_0_#000]"
+                                : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                         )}
                     >
                         <Upload className="w-4 h-4" />
@@ -158,11 +158,11 @@ export function GoogleCalendarSyncModal({
                                             type="text"
                                             value={feedUrl || ""}
                                             readOnly
-                                            className="flex-1 px-4 py-2 bg-white text-black border-[3px] border-foreground rounded-lg text-xs font-mono font-bold truncate focus:outline-none focus:shadow-[4px_4px_0_0_#000]"
+                                            className="flex-1 px-4 py-2 bg-background text-foreground border-[3px] border-foreground rounded-lg text-xs font-mono font-bold truncate focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))]"
                                         />
                                         <button
                                             onClick={handleCopy}
-                                            className="px-4 py-2 bg-white text-black border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all font-black uppercase tracking-widest flex items-center gap-2 text-sm"
+                                            className="px-4 py-2 bg-background text-foreground border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-black uppercase tracking-widest flex items-center gap-2 text-sm"
                                         >
                                             {copied ? (
                                                 <Check className="w-4 h-4 text-green-500" />

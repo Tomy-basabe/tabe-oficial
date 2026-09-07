@@ -169,7 +169,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                 onClick={() => setViewMode("list")}
                 className={cn(
                   "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all border-[3px] border-foreground",
-                  viewMode === "list" ? "bg-[#FFD21C] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white text-black hover:bg-muted shadow-[2px_2px_0_0_#000]"
+                  viewMode === "list" ? "bg-[#FFD21C] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                 )}
               >
                 <ListIcon className="w-4 h-4" />
@@ -179,7 +179,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                 onClick={() => setViewMode("kanban")}
                 className={cn(
                   "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all border-[3px] border-foreground",
-                  viewMode === "kanban" ? "bg-[#FFD21C] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white text-black hover:bg-muted shadow-[2px_2px_0_0_#000]"
+                  viewMode === "kanban" ? "bg-[#FFD21C] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                 )}
               >
                 <LayoutPanelLeft className="w-4 h-4" />
@@ -208,7 +208,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                 setSelectedYear(e.target.value);
                 setSelectedSubject("all");
               }}
-              className="bg-white text-black border-[3px] border-foreground rounded-lg px-3 py-2 text-sm min-w-[120px] focus:outline-none focus:shadow-[2px_2px_0_0_#000] transition-all font-bold"
+              className="bg-background text-foreground border-[3px] border-foreground rounded-lg px-3 py-2 text-sm min-w-[120px] focus:outline-none focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold"
             >
               <option value="all">Todos los años</option>
               {availableYears.map((y) => (
@@ -219,7 +219,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="bg-white text-black border-[3px] border-foreground rounded-lg px-3 py-2 text-sm flex-1 md:flex-none min-w-[200px] focus:outline-none focus:shadow-[2px_2px_0_0_#000] transition-all font-bold"
+              className="bg-background text-foreground border-[3px] border-foreground rounded-lg px-3 py-2 text-sm flex-1 md:flex-none min-w-[200px] focus:outline-none focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold"
             >
               <option value="all">Todas las materias</option>
               {availableSubjects.map((s) => (
@@ -249,7 +249,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                 return (
                   <div 
                     key={exam.id}
-                    className="p-4 bg-white text-black rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] transition-all hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] flex flex-col md:flex-row gap-4 justify-between"
+                    className="p-4 bg-card text-foreground rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-4 justify-between"
                   >
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -345,8 +345,8 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                           <div 
                             key={exam.id}
                             className={cn(
-                              "p-3 rounded-lg border-[3px] border-foreground bg-white text-black flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] group shadow-[2px_2px_0_0_#000]",
-                              isUrgent && "bg-[#FF6B6B]"
+                              "p-3 rounded-lg border-[3px] border-foreground bg-card text-foreground flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] group shadow-[2px_2px_0_0_hsl(var(--foreground))]",
+                              isUrgent && "bg-[#FF6B6B] text-black"
                             )}
                           >
                             <div className="flex justify-between items-start">

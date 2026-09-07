@@ -119,7 +119,7 @@
 
     /* Purple Accent */
     --accent: 265 90% 65%;
-    --accent-foreground: 222 47% 6%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
@@ -1220,4 +1220,190 @@
 
 .dark [class*="hover:bg-gray-"]:hover {
   background-color: hsl(var(--secondary)) !important;
+}
+
+/* ==========================================================================
+   COMIC STYLE DESIGN SYSTEM (CSS & JS PREMIUM)
+   ========================================================================== */
+
+/* Ben-Day Halftone Dot Patterns */
+.comic-halftone {
+  background-image: radial-gradient(currentColor 1.5px, transparent 1.5px);
+  background-size: 10px 10px;
+  opacity: 0.12;
+}
+
+.comic-halftone-primary {
+  background-image: radial-gradient(hsl(var(--primary)) 1.5px, transparent 1.5px);
+  background-size: 10px 10px;
+  opacity: 0.2;
+}
+
+.comic-dots-overlay {
+  background-image: radial-gradient(hsl(var(--foreground) / 0.1) 1.2px, transparent 1.2px);
+  background-size: 12px 12px;
+}
+
+/* Comic Panel Containers */
+.comic-panel {
+  border: 2.5px solid hsl(var(--foreground)) !important;
+  box-shadow: 4px 4px 0 0 hsl(var(--foreground)) !important;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dark .comic-panel {
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 4px 4px 0 0 #000, 4px 4px 0 1.5px rgba(255, 255, 255, 0.4) !important;
+}
+
+.comic-panel:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 hsl(var(--foreground)) !important;
+}
+
+.dark .comic-panel:hover {
+  box-shadow: 6px 6px 0 0 #000, 6px 6px 0 1.5px rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Comic Action Badges & Starbursts */
+.comic-badge {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 2px solid hsl(var(--foreground));
+  box-shadow: 2.5px 2.5px 0 0 hsl(var(--foreground));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dark .comic-badge {
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 2.5px 2.5px 0 0 #000;
+}
+
+.comic-burst {
+  position: relative;
+  font-weight: 900;
+  display: inline-block;
+  transform: rotate(-2deg);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.comic-burst:hover {
+  transform: rotate(2deg) scale(1.05);
+}
+
+/* Comic Speech Bubble */
+.comic-bubble {
+  position: relative;
+  border: 2.5px solid hsl(var(--foreground));
+  border-radius: 1rem;
+  box-shadow: 3.5px 3.5px 0 0 hsl(var(--foreground));
+}
+
+.comic-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 20px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 10px solid hsl(var(--foreground));
+}
+
+/* Comic Typography */
+.comic-title {
+  font-family: inherit;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 hsl(var(--foreground) / 0.25);
+}
+
+.dark .comic-title {
+  text-shadow: 2px 2px 0 #000, 0 0 10px hsl(var(--primary) / 0.3);
+}
+
+/* Global Comic Mode Enhancer */
+.comic-mode-active {
+  /* Subtle global comic page background */
+  background-image: 
+    radial-gradient(hsl(var(--foreground) / 0.06) 1.2px, transparent 1.2px),
+    linear-gradient(to bottom, transparent, hsl(var(--background)));
+  background-size: 16px 16px, 100% 100%;
+}
+
+.comic-mode-active .card,
+.comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic) {
+  border-width: 2px !important;
+  border-color: hsl(var(--foreground) / 0.85) !important;
+  box-shadow: 3.5px 3.5px 0 0 hsl(var(--foreground) / 0.9) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dark.comic-mode-active .card,
+.dark .comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic) {
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 3.5px 3.5px 0 0 #000, 3.5px 3.5px 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+.comic-mode-active .card:hover,
+.comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic):hover {
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0 0 hsl(var(--foreground) / 0.9) !important;
+}
+
+.dark.comic-mode-active .card:hover,
+.dark .comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic):hover {
+  box-shadow: 5px 5px 0 0 #000, 5px 5px 0 1px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Comic Button Spring Active State */
+.comic-mode-active button:active,
+.comic-mode-active [role="button"]:active {
+  transform: translate(2px, 2px) !important;
+}
+
+/* Comic Particle Pop Animations */
+@keyframes comic-pop-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) rotate(-15deg);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(-50%, -65%) scale(1.25) rotate(5deg);
+  }
+  70% {
+    transform: translate(-50%, -85%) scale(1.05) rotate(-3deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -110%) scale(0.85) rotate(0deg);
+  }
+}
+
+.animate-comic-pop {
+  animation: comic-pop-in 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes comic-sparkle {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(1.4) rotate(45deg);
+  }
+}
+
+.animate-comic-sparkle {
+  animation: comic-sparkle 0.65s ease-out forwards;
+  pointer-events: none;
 }

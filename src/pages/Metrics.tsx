@@ -307,84 +307,84 @@ export default function Metrics() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="font-black text-3xl lg:text-4xl uppercase tracking-widest text-black">
+            <h1 className="font-black text-2xl sm:text-3xl lg:text-4xl uppercase tracking-widest text-foreground">
               Métricas y Rendimiento
             </h1>
-            <p className="text-black/60 font-bold mt-2 uppercase text-sm">
+            <p className="text-muted-foreground font-bold mt-1 sm:mt-2 uppercase text-xs sm:text-sm">
               Analiza tu progreso y optimiza tu estudio
             </p>
           </div>
 
           {/* Date Range Filter & Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 max-w-full overflow-x-auto">
             <button
               onClick={() => handleNavigate("prev")}
-              className="bg-white border-4 border-black hover:translate-y-[-2px] shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000] h-10 w-10 flex items-center justify-center transition-all rounded-xl"
+              className="bg-card text-foreground border-2 sm:border-4 border-foreground hover:translate-y-[-2px] shadow-[2px_2px_0_0_hsl(var(--foreground))] sm:shadow-[4px_4px_0_0_hsl(var(--foreground))] h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center transition-all rounded-xl shrink-0"
             >
-              <ChevronLeft className="w-5 h-5 text-black" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
             </button>
             
-            <div className="border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl bg-white font-black uppercase text-black flex items-center justify-center min-w-[200px]">
+            <div className="border-2 sm:border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] sm:shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl bg-card font-black uppercase text-foreground flex items-center justify-center min-w-[160px] sm:min-w-[200px]">
               <DateRangeFilter value={dateRange} onChange={setDateRange} />
             </div>
 
             <button
               onClick={() => handleNavigate("next")}
-              className="bg-white border-4 border-black hover:translate-y-[-2px] shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000] h-10 w-10 flex items-center justify-center transition-all rounded-xl"
+              className="bg-card text-foreground border-2 sm:border-4 border-foreground hover:translate-y-[-2px] shadow-[2px_2px_0_0_hsl(var(--foreground))] sm:shadow-[4px_4px_0_0_hsl(var(--foreground))] h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center transition-all rounded-xl shrink-0"
             >
-              <ChevronRight className="w-5 h-5 text-black" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
             </button>
           </div>
         </div>
 
         {/* Tab Selector */}
-        <div className="flex bg-gray-200 border-4 border-black rounded-xl p-2 gap-2 w-fit max-w-full overflow-x-auto shadow-[inset_0_4px_0_0_rgba(0,0,0,0.1)]">{/* scrollable on mobile */}
+        <div className="flex bg-muted border-2 sm:border-4 border-foreground rounded-xl p-1.5 sm:p-2 gap-1.5 sm:gap-2 w-full sm:w-fit overflow-x-auto no-scrollbar shadow-[inset_0_4px_0_0_rgba(0,0,0,0.1)]">
           <button
             onClick={() => setActiveTab("general")}
             className={cn(
-              "px-5 py-2 rounded-lg text-sm font-black uppercase transition-all whitespace-nowrap flex items-center",
+              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
               activeTab === "general"
-                ? "bg-[#BFFF00] text-black border-4 border-black shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-white text-black/60 border-2 border-transparent hover:text-black hover:bg-white/80"
+                ? "bg-[#BFFF00] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
+                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
             )}
           >
-            <BarChart3 className="w-4 h-4 mr-2" />
+            <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             General
           </button>
           <button
             onClick={() => setActiveTab("flashcards")}
             className={cn(
-              "px-5 py-2 rounded-lg text-sm font-black uppercase transition-all whitespace-nowrap flex items-center",
+              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
               activeTab === "flashcards"
-                ? "bg-[#FF9B71] text-black border-4 border-black shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-white text-black/60 border-2 border-transparent hover:text-black hover:bg-white/80"
+                ? "bg-[#FF9B71] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
+                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
             )}
           >
-            <Layers className="w-4 h-4 mr-2" />
+            <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             Flashcards
           </button>
           <button
             onClick={() => setActiveTab("rutinas")}
             className={cn(
-              "px-5 py-2 rounded-lg text-sm font-black uppercase transition-all whitespace-nowrap flex items-center",
+              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
               activeTab === "rutinas"
-                ? "bg-[#00E5FF] text-black border-4 border-black shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-white text-black/60 border-2 border-transparent hover:text-black hover:bg-white/80"
+                ? "bg-[#00E5FF] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
+                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
             )}
           >
-            <Calendar className="w-4 h-4 mr-2" />
+            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             Rutinas
           </button>
           <button
             onClick={() => setActiveTab("sueno")}
             className={cn(
-              "px-5 py-2 rounded-lg text-sm font-black uppercase transition-all whitespace-nowrap flex items-center",
+              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
               activeTab === "sueno"
-                ? "bg-[#C688EB] text-black border-4 border-black shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-white text-black/60 border-2 border-transparent hover:text-black hover:bg-white/80"
+                ? "bg-[#C688EB] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
+                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
             )}
           >
-            <Moon className="w-4 h-4 mr-2" />
+            <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             Sueño
           </button>
         </div>
@@ -396,7 +396,7 @@ export default function Metrics() {
           <div className="flex justify-end -mt-2 mb-2">
             <button
               onClick={() => setShowManualDialog(true)}
-              className="bg-[#BFFF00] text-black font-black uppercase text-xs px-4 py-2 border-4 border-black shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all flex items-center gap-2"
+              className="bg-[#BFFF00] text-black font-black uppercase text-xs px-4 py-2 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2"
             >
               <Plus className="w-4 h-4" strokeWidth={3} />
               Cargar Tiempo Manual
@@ -405,117 +405,117 @@ export default function Metrics() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 tour-metrics-overview">
-            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
+            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#00E5FF] border-2 border-black rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
+                <div className="w-10 h-10 bg-[#00E5FF] border-2 border-foreground rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
                   <Clock className="w-5 h-5 text-black" strokeWidth={2.5} />
                 </div>
               </div>
-              <p className="text-3xl font-black text-black tracking-tighter">{formatHours(totalHours)}</p>
-              <p className="text-xs font-bold text-black/60 uppercase">Horas totales</p>
+              <p className="text-3xl font-black text-foreground tracking-tighter">{formatHours(totalHours)}</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Horas totales</p>
             </div>
-            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
+            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#FFD700] border-2 border-black rounded-lg flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
+                <div className="w-10 h-10 bg-[#FFD700] border-2 border-foreground rounded-lg flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
                   <Timer className="w-5 h-5 text-black" strokeWidth={2.5} />
                 </div>
               </div>
-              <p className="text-3xl font-black text-black tracking-tighter">{totalPomodoros}</p>
-              <p className="text-xs font-bold text-black/60 uppercase">Pomodoros</p>
+              <p className="text-3xl font-black text-foreground tracking-tighter">{totalPomodoros}</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Pomodoros</p>
             </div>
-            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
+            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#BFFF00] border-2 border-black rounded-lg flex items-center justify-center -rotate-6 group-hover:rotate-0 transition-transform">
+                <div className="w-10 h-10 bg-[#BFFF00] border-2 border-foreground rounded-lg flex items-center justify-center -rotate-6 group-hover:rotate-0 transition-transform">
                   <BookOpen className="w-5 h-5 text-black" strokeWidth={2.5} />
                 </div>
               </div>
-              <p className="text-3xl font-black text-black tracking-tighter">{studiedSubjects}</p>
-              <p className="text-xs font-bold text-black/60 uppercase">Materias</p>
+              <p className="text-3xl font-black text-foreground tracking-tighter">{studiedSubjects}</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Materias</p>
             </div>
-            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
+            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#FF9B71] border-2 border-black rounded-lg flex items-center justify-center rotate-6 group-hover:rotate-0 transition-transform">
+                <div className="w-10 h-10 bg-[#FF9B71] border-2 border-foreground rounded-lg flex items-center justify-center rotate-6 group-hover:rotate-0 transition-transform">
                   <Layers className="w-5 h-5 text-black" strokeWidth={2.5} />
                 </div>
               </div>
-              <p className="text-3xl font-black text-black tracking-tighter">{totalFlashcardSessions}</p>
-              <p className="text-xs font-bold text-black/60 uppercase">Flashcards</p>
+              <p className="text-3xl font-black text-foreground tracking-tighter">{totalFlashcardSessions}</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Flashcards</p>
             </div>
-            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] transition-all group">
+            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#C688EB] border-2 border-black rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
+                <div className="w-10 h-10 bg-[#C688EB] border-2 border-foreground rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
                   <Video className="w-5 h-5 text-black" strokeWidth={2.5} />
                 </div>
               </div>
-              <p className="text-3xl font-black text-black tracking-tighter">{totalVideocallSessions}</p>
-              <p className="text-xs font-bold text-black/60 uppercase">Videollamadas</p>
+              <p className="text-3xl font-black text-foreground tracking-tighter">{totalVideocallSessions}</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Videollamadas</p>
             </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Weekly Chart */}
-            <div className="lg:col-span-2 bg-white border-4 border-black shadow-[8px_8px_0_0_#000] rounded-xl p-6">
+            <div className="lg:col-span-2 bg-card border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-black text-xl uppercase tracking-wider">{getChartTitle()}</h2>
-                <div className="w-8 h-8 bg-[#00E5FF] border-2 border-black rounded-lg flex items-center justify-center rotate-3">
+                <h2 className="font-black text-xl uppercase tracking-wider text-foreground">{getChartTitle()}</h2>
+                <div className="w-8 h-8 bg-[#00E5FF] border-2 border-foreground rounded-lg flex items-center justify-center rotate-3">
                   <BarChart3 className="w-4 h-4 text-black" strokeWidth={3} />
                 </div>
               </div>
 
               {loading ? (
                 <div className="h-48 flex items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-4 border-foreground border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
-                <div className="flex items-end justify-between gap-2 h-48 overflow-x-auto pb-2 px-2 border-b-4 border-black">
+                <div className="flex items-end justify-between gap-2 h-48 overflow-x-auto pb-2 px-2 border-b-4 border-foreground">
                   {chartData.map((item, idx) => (
                     <div key={`${item.date}-${idx}`} className="flex-1 min-w-[32px] max-w-[60px] flex flex-col items-center justify-end gap-2 h-full">
                       <div
                         className={cn(
                           "w-full transition-all duration-500 relative group rounded-t-sm",
-                          item.hours > 0 ? "bg-[#BFFF00] border-2 border-black border-b-0 shadow-[2px_0_0_0_#000]" : "bg-gray-200 border-2 border-transparent"
+                          item.hours > 0 ? "bg-[#BFFF00] border-2 border-foreground border-b-0 shadow-[2px_0_0_0_hsl(var(--foreground))]" : "bg-muted border-2 border-transparent"
                         )}
                         style={{
                           height: `${Math.max((item.hours / maxHours) * 100, 4)}%`,
                         }}
                       >
                         {item.hours > 0 && (
-                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded text-xs font-bold whitespace-nowrap z-10 pointer-events-none">
+                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background px-2 py-1 rounded text-xs font-bold whitespace-nowrap z-10 pointer-events-none">
                             {formatHours(item.hours)}
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black rotate-45"></div>
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45"></div>
                           </div>
                         )}
                       </div>
-                      <span className="text-xs font-bold text-black">{item.label}</span>
-                      <span className="text-[10px] font-bold text-black/50">{item.sublabel}</span>
+                      <span className="text-xs font-bold text-foreground">{item.label}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground">{item.sublabel}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="mt-6 pt-6 border-t-4 border-black">
-                <p className="text-sm font-bold text-black/60 uppercase mb-1">Promedio diario</p>
-                <p className="text-4xl font-black text-black">
+              <div className="mt-6 pt-6 border-t-4 border-foreground">
+                <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Promedio diario</p>
+                <p className="text-4xl font-black text-foreground">
                   {formatHours(totalHours / totalDays)}
                 </p>
               </div>
             </div>
 
             {/* Subject Progress */}
-            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-5">
-              <h3 className="font-black uppercase text-lg mb-4 text-black">Por Materia</h3>
+            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5">
+              <h3 className="font-black uppercase text-lg mb-4 text-foreground">Por Materia</h3>
 
               {loading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 border-2 border-black rounded w-3/4 mb-2" />
-                      <div className="h-4 bg-gray-200 border-2 border-black rounded-full" />
+                      <div className="h-4 bg-muted border-2 border-foreground rounded w-3/4 mb-2" />
+                      <div className="h-4 bg-muted border-2 border-foreground rounded-full" />
                     </div>
                   ))}
                 </div>
               ) : subjectProgress.length === 0 ? (
-                <p className="text-black/60 font-bold uppercase text-sm text-center py-8">
+                <p className="text-muted-foreground font-bold uppercase text-sm text-center py-8">
                   No hay datos de estudio aún
                 </p>
               ) : (
@@ -529,14 +529,14 @@ export default function Metrics() {
                     return (
                       <div key={subject.subject_id}>
                         <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="font-bold text-black truncate">{subject.nombre}</span>
-                          <span className="font-black text-black">
+                          <span className="font-bold text-foreground truncate">{subject.nombre}</span>
+                          <span className="font-black text-foreground">
                             {formatHours(subject.total_seconds / 3600)}
                           </span>
                         </div>
-                        <div className="h-4 border-2 border-black bg-gray-100 rounded-full overflow-hidden shadow-[inset_2px_2px_0_0_rgba(0,0,0,0.1)]">
+                        <div className="h-4 border-2 border-foreground bg-muted rounded-full overflow-hidden shadow-[inset_2px_2px_0_0_rgba(0,0,0,0.1)]">
                           <div
-                            className="h-full border-r-2 border-black transition-all duration-500"
+                            className="h-full border-r-2 border-foreground transition-all duration-500"
                             style={{
                               width: `${progress}%`,
                               background: color,
@@ -552,8 +552,8 @@ export default function Metrics() {
           </div>
 
           {/* Session Type Breakdown */}
-          <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] rounded-xl p-6">
-            <h3 className="font-black uppercase text-xl mb-4 text-black">Tipos de Sesión</h3>
+          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-6">
+            <h3 className="font-black uppercase text-xl mb-4 text-foreground">Tipos de Sesión</h3>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {(() => {
                 const types = {
@@ -578,13 +578,13 @@ export default function Metrics() {
                 return Object.entries(types).map(([key, { label, icon: Icon, color }]) => {
                   const data = typeCounts[key] || { count: 0, seconds: 0 };
                   return (
-                    <div key={key} className="p-4 rounded-xl bg-white border-4 border-black shadow-[2px_2px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_#000] transition-all group">
-                      <div className="w-10 h-10 border-2 border-black rounded-lg flex items-center justify-center mb-3 rotate-3 group-hover:rotate-0 transition-transform" style={{ backgroundColor: color }}>
+                    <div key={key} className="p-4 rounded-xl bg-card border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all group">
+                      <div className="w-10 h-10 border-2 border-foreground rounded-lg flex items-center justify-center mb-3 rotate-3 group-hover:rotate-0 transition-transform" style={{ backgroundColor: color }}>
                         <Icon className="w-5 h-5 text-black" strokeWidth={2.5} />
                       </div>
-                      <p className="text-2xl font-black text-black">{data.count}</p>
-                      <p className="text-xs font-bold text-black/60 uppercase">{label}</p>
-                      <p className="text-xs font-bold text-black/80 mt-1 bg-gray-100 border-2 border-black px-2 py-0.5 rounded-full inline-block">
+                      <p className="text-2xl font-black text-foreground">{data.count}</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase">{label}</p>
+                      <p className="text-xs font-bold text-foreground mt-1 bg-muted border-2 border-foreground px-2 py-0.5 rounded-full inline-block">
                         {formatHours(data.seconds / 3600)} total
                       </p>
                     </div>

@@ -66,18 +66,40 @@ export default function Quizzes() {
     const [newDeckSubject, setNewDeckSubject] = useState("");
     const [showCreateDeck, setShowCreateDeck] = useState(false);
 
+    // Draft questions when creating deck
+    interface DraftQuestion {
+        pregunta: string;
+        explicacion: string;
+        is_multi_select: boolean;
+        options: { texto: string; es_correcta: boolean }[];
+    }
+    const [creationQuestions, setCreationQuestions] = useState<DraftQuestion[]>([]);
+
     // Manage questions state
     const [manageDeck, setManageDeck] = useState<QuizDeck | null>(null);
     const [deckQuestions, setDeckQuestions] = useState<QuizQuestion[]>([]);
     const [loadingQuestions, setLoadingQuestions] = useState(false);
 
-    // Add question state
-    const [showAddQuestion, setShowAddQuestion] = useState(false);
-    const [newQuestion, setNewQuestion] = useState("");
-    const [newExplanation, setNewExplanation] = useState("");
-    const [newOptions, setNewOptions] = useState(["", "", "", "", ""]);
-    const [correctOptions, setCorrectOptions] = useState<Set<number>>(new Set([0]));
-    const [isMultiSelect, setIsMultiSelect] = useState(false);
+    // Unified Question Form State (for adding/editing in deck or drafting during creation)
+    interface FormOptionItem {
+        id?: string;
+        texto: string;
+        es_correcta: boolean;
+    }
+    const [questionFormOpen, setQuestionFormOpen] = useState(false);
+    const [questionFormTarget, setQuestionFormTarget] = useState<'manage' | 'draft'>('manage');
+    const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+    const [editingDraftIndex, setEditingDraftIndex] = useState<number | null>(null);
+
+    const [formQuestionText, setFormQuestionText] = useState("");
+    const [formExplanation, setFormExplanation] = useState("");
+    const [formIsMultiSelect, setFormIsMultiSelect] = useState(false);
+    const [formOptions, setFormOptions] = useState<FormOptionItem[]>([
+        { texto: "", es_correcta: true },
+        { texto: "", es_correcta: false },
+        { texto: "", es_correcta: false },
+        { texto: "", es_correcta: false },
+    ]);
 
     // Publish to Marketplace state
     const [showPublishDialog, setShowPublishDialog] = useState(false);
@@ -273,73 +295,326 @@ export default function Quizzes() {
         setLoadingQuestions(false);
     };
 
+    const openAddQuestionForManage = () => {
+        setQuestionFormTarget('manage');
+        setEditingQuestion(null);
+        setEditingDraftIndex(null);
+        setFormQuestionText("");
+        setFormExplanation("");
+        setFormIsMultiSelect(false);
+        setFormOptions([
+            { texto: "", es_correcta: true },
+            { texto: "", es_correcta: false },
+            { texto: "", es_correcta: false },
+            { texto: "", es_correcta: false },
+        ]);
+        setQuestionFormOpen(true);
+    };
+
+    const openEditQuestionForManage = (q: QuizQuestion) => {
+        setQuestionFormTarget('manage');
+        setEditingQuestion(q);
+        setEditingDraftIndex(null);
+        setFormQuestionText(q.pregunta);
+        setFormExplanation(q.explicacion || "");
+        setFormIsMultiSelect(q.is_multi_select);
+        setFormOptions(
+            q.options && q.options.length > 0
+                ? q.options.map(o => ({ id: o.id, texto: o.texto, es_correcta: o.es_correcta }))
+                : [
+                    { texto: "", es_correcta: true },
+                    { texto: "", es_correcta: false },
+                ]
+        );
+        setQuestionFormOpen(true);
+    };
+
+    const openAddQuestionForDraft = () => {
+        setQuestionFormTarget('draft');
+        setEditingQuestion(null);
+        setEditingDraftIndex(null);
+        setFormQuestionText("");
+        setFormExplanation("");
+        setFormIsMultiSelect(false);
+        setFormOptions([
+            { texto: "", es_correcta: true },
+            { texto: "", es_correcta: false },
+            { texto: "", es_correcta: false },
+            { texto: "", es_correcta: false },
+        ]);
+        setQuestionFormOpen(true);
+    };
+
+    const openEditQuestionForDraft = (index: number) => {
+        const qDraft = creationQuestions[index];
+        if (!qDraft) return;
+        setQuestionFormTarget('draft');
+        setEditingQuestion(null);
+        setEditingDraftIndex(index);
+        setFormQuestionText(qDraft.pregunta);
+        setFormExplanation(qDraft.explicacion || "");
+        setFormIsMultiSelect(qDraft.is_multi_select);
+        setFormOptions(
+            qDraft.options.map(o => ({ texto: o.texto, es_correcta: o.es_correcta }))
+        );
+        setQuestionFormOpen(true);
+    };
+
+    const removeQuestionFromDraft = (index: number) => {
+        setCreationQuestions(prev => prev.filter((_, i) => i !== index));
+        toast.info("Pregunta removida de la lista");
+    };
+
+    const handleAddOption = () => {
+        setFormOptions(prev => [...prev, { texto: "", es_correcta: false }]);
+    };
+
+    const handleDeleteOption = (index: number) => {
+        if (formOptions.length <= 2) {
+            toast.error("Una pregunta debe tener como mínimo 2 opciones");
+            return;
+        }
+        setFormOptions(prev => {
+            const next = prev.filter((_, i) => i !== index);
+            if (!next.some(o => o.es_correcta)) {
+                next[0].es_correcta = true;
+            }
+            return next;
+        });
+    };
+
+    const handleToggleOptionCorrect = (index: number) => {
+        setFormOptions(prev => prev.map((opt, i) => {
+            if (formIsMultiSelect) {
+                return i === index ? { ...opt, es_correcta: !opt.es_correcta } : opt;
+            } else {
+                return { ...opt, es_correcta: i === index };
+            }
+        }));
+    };
+
+    const handleSetMultiSelect = (multi: boolean) => {
+        setFormIsMultiSelect(multi);
+        if (!multi) {
+            let found = false;
+            setFormOptions(prev => prev.map((opt) => {
+                if (opt.es_correcta && !found) {
+                    found = true;
+                    return opt;
+                }
+                return { ...opt, es_correcta: false };
+            }));
+            if (!found) {
+                setFormOptions(prev => prev.map((opt, i) => ({ ...opt, es_correcta: i === 0 })));
+            }
+        }
+    };
+
+    const handleSaveQuestionForm = async () => {
+        if (!formQuestionText.trim()) {
+            toast.error("Por favor escribe el texto de la pregunta");
+            return;
+        }
+        const filledOptions = formOptions.filter(o => o.texto.trim());
+        if (filledOptions.length < 2) {
+            toast.error("Debes ingresar al menos 2 opciones con texto");
+            return;
+        }
+        const correctCount = filledOptions.filter(o => o.es_correcta).length;
+        if (correctCount === 0) {
+            toast.error("Debes marcar al menos una opción como correcta");
+            return;
+        }
+
+        if (questionFormTarget === 'draft') {
+            const newDraftQ: DraftQuestion = {
+                pregunta: formQuestionText.trim(),
+                explicacion: formExplanation.trim(),
+                is_multi_select: formIsMultiSelect,
+                options: filledOptions.map(o => ({
+                    texto: o.texto.trim(),
+                    es_correcta: o.es_correcta
+                }))
+            };
+
+            if (editingDraftIndex !== null) {
+                setCreationQuestions(prev => prev.map((item, idx) => idx === editingDraftIndex ? newDraftQ : item));
+                toast.success("Pregunta actualizada en el borrador");
+            } else {
+                setCreationQuestions(prev => [...prev, newDraftQ]);
+                toast.success("Pregunta agregada al cuestionario");
+            }
+            setQuestionFormOpen(false);
+            return;
+        }
+
+        // Target is 'manage'
+        if (!manageDeck) return;
+
+        if (editingQuestion) {
+            if (isGuest) {
+                setDeckQuestions(prev => prev.map(q => q.id === editingQuestion.id ? {
+                    ...q,
+                    pregunta: formQuestionText.trim(),
+                    explicacion: formExplanation.trim() || null,
+                    is_multi_select: formIsMultiSelect,
+                    options: filledOptions.map((o, idx) => ({
+                        id: o.id || `opt-${Date.now()}-${idx}`,
+                        question_id: editingQuestion.id,
+                        texto: o.texto.trim(),
+                        es_correcta: o.es_correcta
+                    }))
+                } : q));
+                toast.success("Pregunta actualizada exitosamente");
+                setQuestionFormOpen(false);
+                return;
+            }
+
+            const { error: qErr } = await supabase.from("quiz_questions").update({
+                pregunta: formQuestionText.trim(),
+                explicacion: formExplanation.trim() || null,
+                is_multi_select: formIsMultiSelect,
+            } as any).eq("id", editingQuestion.id);
+
+            if (qErr) {
+                toast.error("Error al actualizar la pregunta");
+                return;
+            }
+
+            await supabase.from("quiz_options").delete().eq("question_id", editingQuestion.id);
+            const optionsToInsert = filledOptions.map(o => ({
+                question_id: editingQuestion.id,
+                texto: o.texto.trim(),
+                es_correcta: o.es_correcta
+            }));
+            await supabase.from("quiz_options").insert(optionsToInsert);
+
+            toast.success("Pregunta actualizada exitosamente");
+            setQuestionFormOpen(false);
+            fetchQuestions(manageDeck.id);
+        } else {
+            if (isGuest) {
+                const newQId = `mock-q-${Date.now()}`;
+                const newQ: QuizQuestion = {
+                    id: newQId,
+                    pregunta: formQuestionText.trim(),
+                    explicacion: formExplanation.trim() || null,
+                    is_multi_select: formIsMultiSelect,
+                    options: filledOptions.map((o, idx) => ({
+                        id: `opt-${newQId}-${idx}`,
+                        texto: o.texto.trim(),
+                        es_correcta: o.es_correcta
+                    }))
+                };
+                setDeckQuestions(prev => [...prev, newQ]);
+                setManageDeck(prev => prev ? { ...prev, total_questions: (prev.total_questions || 0) + 1 } : null);
+                toast.success("Pregunta agregada exitosamente");
+                setQuestionFormOpen(false);
+                return;
+            }
+
+            const { data: q, error: qErr } = await supabase.from("quiz_questions").insert({
+                deck_id: manageDeck.id,
+                user_id: user?.id,
+                pregunta: formQuestionText.trim(),
+                explicacion: formExplanation.trim() || null,
+                is_multi_select: formIsMultiSelect
+            } as any).select().single();
+
+            if (qErr || !q) {
+                toast.error("Error al crear la pregunta");
+                return;
+            }
+
+            const optionsToInsert = filledOptions.map(o => ({
+                question_id: q.id,
+                texto: o.texto.trim(),
+                es_correcta: o.es_correcta
+            }));
+            await supabase.from("quiz_options").insert(optionsToInsert);
+
+            await supabase.from("quiz_decks").update({
+                total_questions: (manageDeck.total_questions || 0) + 1,
+                updated_at: new Date().toISOString()
+            }).eq("id", manageDeck.id);
+
+            toast.success("¡Pregunta agregada exitosamente!");
+            setManageDeck({ ...manageDeck, total_questions: (manageDeck.total_questions || 0) + 1 });
+            setQuestionFormOpen(false);
+            fetchQuestions(manageDeck.id);
+            fetchDecks();
+        }
+    };
+
     const createDeck = async () => {
-        if (!newDeckName.trim() || !user) return;
+        if (!newDeckName.trim()) return;
 
-        // Acceso ilimitado (Ads-only model)
+        if (isGuest) {
+            const newDeckId = `mock-${Date.now()}`;
+            const newDeck: QuizDeck = {
+                id: newDeckId,
+                nombre: newDeckName.trim(),
+                subject_id: newDeckSubject || "mock",
+                total_questions: creationQuestions.length,
+                subject: subjects.find(s => s.id === newDeckSubject)
+            };
+            setDecks(prev => [newDeck, ...prev]);
+            toast.success(creationQuestions.length > 0
+                ? `Cuestionario creado con ${creationQuestions.length} pregunta(s)`
+                : "Cuestionario creado");
+            setNewDeckName("");
+            setNewDeckSubject("");
+            setNewDeckYear(null);
+            setCreationQuestions([]);
+            setShowCreateDeck(false);
+            return;
+        }
 
-        const { error } = await supabase.from("quiz_decks").insert({
+        if (!user) return;
+
+        const { data: deckData, error } = await supabase.from("quiz_decks").insert({
             user_id: user.id,
             nombre: newDeckName.trim(),
             subject_id: newDeckSubject || null,
-            total_questions: 0
-        });
-        if (error) { toast.error("Error al crear cuestionario"); return; }
-        toast.success("Cuestionario creado");
+            total_questions: creationQuestions.length
+        }).select().single();
+
+        if (error || !deckData) {
+            toast.error("Error al crear cuestionario");
+            return;
+        }
+
+        if (creationQuestions.length > 0) {
+            for (const qDraft of creationQuestions) {
+                const { data: q, error: qErr } = await supabase.from("quiz_questions").insert({
+                    deck_id: deckData.id,
+                    user_id: user.id,
+                    pregunta: qDraft.pregunta.trim(),
+                    explicacion: qDraft.explicacion.trim() || null,
+                    is_multi_select: qDraft.is_multi_select
+                } as any).select().single();
+
+                if (q && !qErr) {
+                    const optionsToInsert = qDraft.options.map(o => ({
+                        question_id: q.id,
+                        texto: o.texto.trim(),
+                        es_correcta: o.es_correcta
+                    }));
+                    await supabase.from("quiz_options").insert(optionsToInsert);
+                }
+            }
+        }
+
+        toast.success(creationQuestions.length > 0
+            ? `¡Cuestionario creado con ${creationQuestions.length} pregunta(s)!`
+            : "Cuestionario creado");
+
         await incrementUsage('cuestionarios');
         setNewDeckName("");
         setNewDeckSubject("");
+        setNewDeckYear(null);
+        setCreationQuestions([]);
         setShowCreateDeck(false);
-        fetchDecks();
-    };
-
-    const addQuestion = async () => {
-        if (!newQuestion.trim() || !manageDeck || !user) return;
-
-        // No per-quiz question limit - unlimited questions per quiz
-
-        const filledOptions = newOptions.filter(o => o.trim());
-        if (filledOptions.length < 2) { toast.error("Al menos 2 opciones son necesarias"); return; }
-
-        if (correctOptions.size === 0) { toast.error("Selecciona al menos una respuesta correcta"); return; }
-
-        // Insert question
-        const { data: q, error } = await supabase.from("quiz_questions").insert({
-            deck_id: manageDeck.id,
-            user_id: user.id,
-            pregunta: newQuestion.trim(),
-            explicacion: newExplanation.trim() || null,
-            is_multi_select: isMultiSelect
-        } as any).select().single();
-
-        if (error || !q) { toast.error("Error al crear pregunta"); return; }
-
-        // Insert options
-        const optionsToInsert = newOptions
-            .map((o, i) => ({
-                question_id: q.id,
-                texto: o.trim(),
-                es_correcta: correctOptions.has(i)
-            }))
-            .filter(o => o.texto !== "");
-
-        await supabase.from("quiz_options").insert(optionsToInsert);
-
-        // Update total_questions
-        await supabase.from("quiz_decks").update({
-            total_questions: (manageDeck.total_questions || 0) + 1,
-            updated_at: new Date().toISOString()
-        }).eq("id", manageDeck.id);
-
-        toast.success("¡Pregunta agregada! Podés seguir creando más.");
-        setNewQuestion("");
-        setNewExplanation("");
-        setNewOptions(["", "", "", "", ""]);
-        setCorrectOptions(new Set([0]));
-        setIsMultiSelect(false);
-        // Keep modal open so user can continue creating questions
-        setManageDeck({ ...manageDeck, total_questions: (manageDeck.total_questions || 0) + 1 });
-        fetchQuestions(manageDeck.id);
         fetchDecks();
     };
 
@@ -825,6 +1100,191 @@ export default function Quizzes() {
         );
     }
 
+    const renderQuestionDialog = () => (
+        <Dialog open={questionFormOpen} onOpenChange={setQuestionFormOpen}>
+            <DialogContent className="bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-w-xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle className="font-display font-black uppercase tracking-widest text-xl text-foreground flex items-center gap-2">
+                        {editingQuestion || editingDraftIndex !== null ? (
+                            <>
+                                <Edit className="w-6 h-6 text-[#ffd21c]" />
+                                Editar Pregunta
+                            </>
+                        ) : (
+                            <>
+                                <Plus className="w-6 h-6 text-[#1475e5]" />
+                                Nueva Pregunta
+                            </>
+                        )}
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-6 pt-4">
+                    {/* Question text */}
+                    <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Pregunta *</Label>
+                        <Textarea
+                            placeholder="Escribe la pregunta aquí..."
+                            value={formQuestionText}
+                            onChange={(e) => setFormQuestionText(e.target.value)}
+                            rows={3}
+                            className="w-full px-4 py-3 bg-background text-foreground rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
+                        />
+                    </div>
+
+                    {/* Question Type: Single vs Multiple Choice */}
+                    <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
+                            Tipo de Pregunta *
+                        </Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => handleSetMultiSelect(false)}
+                                className={cn(
+                                    "flex flex-col items-center justify-center p-3.5 rounded-xl border-[3px] border-foreground text-center transition-all",
+                                    !formIsMultiSelect
+                                        ? "bg-[#00d9ff] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
+                                        : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000]"
+                                )}
+                            >
+                                <div className="w-8 h-8 rounded-full border-[2px] border-foreground flex items-center justify-center mb-1.5 bg-white text-black font-black text-xs">
+                                    ●
+                                </div>
+                                <span className="font-black text-sm uppercase tracking-wide">Opción Única</span>
+                                <span className="text-[11px] font-bold opacity-80 mt-0.5">1 respuesta correcta</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleSetMultiSelect(true)}
+                                className={cn(
+                                    "flex flex-col items-center justify-center p-3.5 rounded-xl border-[3px] border-foreground text-center transition-all",
+                                    formIsMultiSelect
+                                        ? "bg-[#ffd21c] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
+                                        : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000]"
+                                )}
+                            >
+                                <div className="w-8 h-8 rounded-lg border-[2px] border-foreground flex items-center justify-center mb-1.5 bg-white text-black font-black text-xs">
+                                    <ListChecks className="w-4 h-4 text-black" />
+                                </div>
+                                <span className="font-black text-sm uppercase tracking-wide">Opción Múltiple</span>
+                                <span className="text-[11px] font-bold opacity-80 mt-0.5">Elegir varias correctas</span>
+                            </button>
+                        </div>
+                        <p className="text-[11px] font-bold text-muted-foreground ml-1">
+                            {formIsMultiSelect 
+                                ? "💡 Haz clic en la letra de cada opción para marcar una o más respuestas correctas." 
+                                : "💡 Haz clic en la letra de una opción para seleccionarla como la única correcta."}
+                        </p>
+                    </div>
+
+                    {/* Dynamic Options */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
+                                {formIsMultiSelect ? "Opciones (Marcar las correctas)" : "Opciones (Marcar la correcta)"}
+                            </Label>
+                            <button
+                                type="button"
+                                onClick={handleAddOption}
+                                className="flex items-center gap-1.5 px-3 py-1 bg-[#25d06c] text-white font-black text-xs uppercase tracking-widest border-[2px] border-foreground rounded-lg shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000] active:translate-y-0 transition-all"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                Agregar Opción
+                            </button>
+                        </div>
+
+                        <div className="space-y-2.5">
+                            {formOptions.map((opt, i) => (
+                                <div key={i} className="flex items-center gap-2.5">
+                                    <button
+                                        type="button"
+                                        title={opt.es_correcta ? "Respuesta correcta (Clic para desmarcar)" : "Clic para marcar como correcta"}
+                                        onClick={() => handleToggleOptionCorrect(i)}
+                                        className={cn(
+                                            "w-11 h-11 rounded-xl flex items-center justify-center text-sm font-black shrink-0 border-[2px] border-foreground transition-all",
+                                            opt.es_correcta
+                                                ? "bg-[#25d06c] text-white shadow-[2px_2px_0_0_#25d06c] scale-105"
+                                                : "bg-secondary text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
+                                        )}
+                                    >
+                                        {opt.es_correcta ? <Check className="w-5 h-5 stroke-[3]" /> : String.fromCharCode(65 + i)}
+                                    </button>
+
+                                    <input
+                                        placeholder={`Opción ${String.fromCharCode(65 + i)} ${i < 2 ? '*' : '(opcional)'}`}
+                                        value={opt.texto}
+                                        onChange={(e) => {
+                                            const copy = [...formOptions];
+                                            copy[i] = { ...copy[i], texto: e.target.value };
+                                            setFormOptions(copy);
+                                        }}
+                                        className="flex-1 px-4 py-2.5 bg-background text-foreground rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
+                                    />
+
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteOption(i)}
+                                        disabled={formOptions.length <= 2}
+                                        className={cn(
+                                            "w-10 h-10 flex items-center justify-center rounded-xl border-[2px] border-foreground transition-all shrink-0",
+                                            formOptions.length <= 2 
+                                                ? "opacity-30 cursor-not-allowed bg-secondary text-muted-foreground" 
+                                                : "bg-[#ff4e4e] text-white shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000] active:translate-y-0"
+                                        )}
+                                        title={formOptions.length <= 2 ? "Se requieren mínimo 2 opciones" : "Eliminar esta opción"}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleAddOption}
+                            className="w-full py-2 bg-secondary/50 hover:bg-secondary text-foreground font-black text-xs uppercase tracking-widest border-[2px] border-foreground border-dashed rounded-xl flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all mt-2"
+                        >
+                            <Plus className="w-4 h-4" /> Agregar otra opción ({String.fromCharCode(65 + formOptions.length)})
+                        </button>
+                    </div>
+
+                    {/* Explanation */}
+                    <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Explicación (opcional)</Label>
+                        <Textarea
+                            placeholder="Explicación de por qué la respuesta es correcta..."
+                            value={formExplanation}
+                            onChange={(e) => setFormExplanation(e.target.value)}
+                            rows={2}
+                            className="w-full px-4 py-3 bg-background text-foreground rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
+                        />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={() => setQuestionFormOpen(false)}
+                            className="flex-1 py-3 bg-background text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all text-sm"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSaveQuestionForm}
+                            disabled={!formQuestionText.trim() || formOptions.filter(o => o.texto.trim()).length < 2 || !formOptions.some(o => o.es_correcta)}
+                            className="flex-1 py-3 bg-[#1475e5] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all text-sm"
+                        >
+                            {editingQuestion || editingDraftIndex !== null ? "Guardar Cambios" : "Guardar Pregunta"}
+                        </button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+
     // ---------- MANAGE QUESTIONS VIEW ----------
     if (manageDeck) {
         return (
@@ -850,7 +1310,7 @@ export default function Quizzes() {
                             <Store className="w-4 h-4 mr-2" /> Publicar
                         </button>
                         <button 
-                            onClick={() => setShowAddQuestion(true)}
+                            onClick={openAddQuestionForManage}
                             className="flex items-center px-4 py-2 bg-[#1475e5] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all text-sm"
                         >
                             <Plus className="w-4 h-4 mr-2" /> Agregar Pregunta
@@ -943,13 +1403,22 @@ export default function Quizzes() {
                                                 </Badge>
                                             )}
                                         </div>
-                                        <button 
-                                            onClick={() => deleteQuestion(q.id)}
-                                            className="w-10 h-10 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all shrink-0 ml-4"
-                                            title="Eliminar pregunta"
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
+                                        <div className="flex items-center gap-2 shrink-0 ml-4">
+                                            <button 
+                                                onClick={() => openEditQuestionForManage(q)}
+                                                className="w-10 h-10 flex items-center justify-center bg-[#ffd21c] text-black border-[2px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+                                                title="Editar pregunta"
+                                            >
+                                                <Edit className="w-5 h-5" />
+                                            </button>
+                                            <button 
+                                                onClick={() => deleteQuestion(q.id)}
+                                                className="w-10 h-10 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+                                                title="Eliminar pregunta"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="grid gap-3 ml-11">
                                         {q.options.map((o, oi) => (
@@ -982,108 +1451,7 @@ export default function Quizzes() {
                     </div>
                 )}
 
-                {/* Add Question Dialog */}
-                <Dialog open={showAddQuestion} onOpenChange={setShowAddQuestion}>
-                    <DialogContent className="bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-w-lg max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="font-display font-black uppercase tracking-widest text-xl text-foreground">Nueva Pregunta</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-6 pt-4">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Pregunta *</Label>
-                                <Textarea
-                                    placeholder="Escribe la pregunta..."
-                                    value={newQuestion}
-                                    onChange={(e) => setNewQuestion(e.target.value)}
-                                    rows={2}
-                                    className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
-                                />
-                            </div>
-
-                            {/* Multi-select toggle */}
-                            <div className="flex items-center justify-between p-4 bg-background rounded-xl border-[2px] border-foreground shadow-[2px_2px_0_0_#000]">
-                                <div className="flex items-center gap-3">
-                                    <ListChecks className="w-5 h-5 text-[#ffd21c]" />
-                                    <Label className="text-sm font-black uppercase tracking-widest cursor-pointer">Permitir múltiples respuestas</Label>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsMultiSelect(!isMultiSelect);
-                                        setCorrectOptions(new Set([0]));
-                                    }}
-                                    className={cn(
-                                        "relative w-12 h-6 border-[2px] border-foreground rounded-full transition-colors",
-                                        isMultiSelect ? "bg-[#25d06c]" : "bg-secondary"
-                                    )}
-                                >
-                                    <span className={cn(
-                                        "absolute top-0.5 left-0.5 w-4 h-4 rounded-full border-[2px] border-foreground bg-white transition-transform",
-                                        isMultiSelect && "translate-x-6"
-                                    )} />
-                                </button>
-                            </div>
-
-                            <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{isMultiSelect ? "Opciones (marcar las correctas)" : "Opciones (marcar la correcta)"}</Label>
-                                {newOptions.map((opt, i) => (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (isMultiSelect) {
-                                                    setCorrectOptions(prev => {
-                                                        const next = new Set(prev);
-                                                        if (next.has(i)) next.delete(i);
-                                                        else next.add(i);
-                                                        return next;
-                                                    });
-                                                } else {
-                                                    setCorrectOptions(new Set([i]));
-                                                }
-                                            }}
-                                            className={cn(
-                                                "w-10 h-10 rounded-lg flex items-center justify-center text-sm font-black shrink-0 border-[2px] border-foreground transition-all",
-                                                correctOptions.has(i)
-                                                    ? "bg-[#25d06c] text-white shadow-[2px_2px_0_0_#25d06c]"
-                                                    : "bg-secondary hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
-                                            )}
-                                        >
-                                            {correctOptions.has(i) ? <Check className="w-5 h-5" /> : String.fromCharCode(65 + i)}
-                                        </button>
-                                        <input
-                                            placeholder={`Opción ${String.fromCharCode(65 + i)}${i < 2 ? " *" : " (opcional)"}`}
-                                            value={opt}
-                                            onChange={(e) => {
-                                                const copy = [...newOptions];
-                                                copy[i] = e.target.value;
-                                                setNewOptions(copy);
-                                            }}
-                                            className="w-full px-4 py-2.5 bg-background rounded-lg border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Explicación (opcional)</Label>
-                                <Textarea
-                                    placeholder="Explicación de por qué la respuesta es correcta..."
-                                    value={newExplanation}
-                                    onChange={(e) => setNewExplanation(e.target.value)}
-                                    rows={2}
-                                    className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
-                                />
-                            </div>
-                            <button
-                                className="w-full py-3 bg-[#1475e5] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all"
-                                onClick={addQuestion}
-                                disabled={!newQuestion.trim() || newOptions.filter(o => o.trim()).length < 2 || correctOptions.size === 0}
-                            >
-                                Agregar Pregunta
-                            </button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                {renderQuestionDialog()}
 
                 {/* Publish to Marketplace Dialog */}
                 <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
@@ -1329,8 +1697,16 @@ export default function Quizzes() {
             )}
 
             {/* Create Deck Dialog */}
-            <Dialog open={showCreateDeck} onOpenChange={setShowCreateDeck}>
-                <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000]">
+            <Dialog open={showCreateDeck} onOpenChange={(open) => {
+                setShowCreateDeck(open);
+                if (!open) {
+                    setCreationQuestions([]);
+                    setNewDeckName("");
+                    setNewDeckSubject("");
+                    setNewDeckYear(null);
+                }
+            }}>
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000]">
                     <DialogHeader>
                         <DialogTitle className="font-display font-black uppercase tracking-widest text-xl flex items-center gap-2">
                             <ClipboardList className="w-6 h-6 text-foreground" />
@@ -1393,12 +1769,78 @@ export default function Quizzes() {
                             </div>
                         )}
 
+                        {newDeckSubject && (
+                            <div className="animate-in fade-in space-y-4 pt-4 border-t-[3px] border-foreground border-dashed">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-black uppercase tracking-widest text-xs text-foreground flex items-center gap-1.5">
+                                            <ClipboardList className="w-4 h-4 text-[#1475e5]" />
+                                            Preguntas ({creationQuestions.length})
+                                        </h4>
+                                        <p className="text-[11px] font-bold text-muted-foreground mt-0.5">
+                                            {creationQuestions.length === 0 
+                                                ? "Podés agregarlas ahora o luego" 
+                                                : `${creationQuestions.length} pregunta(s) lista(s)`}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={openAddQuestionForDraft}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ffcc] text-foreground font-black text-xs uppercase tracking-widest border-[2px] border-foreground rounded-xl shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000] active:translate-y-0 transition-all"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Agregar Pregunta
+                                    </button>
+                                </div>
+
+                                {creationQuestions.length > 0 && (
+                                    <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                                        {creationQuestions.map((qDraft, qIdx) => (
+                                            <div key={qIdx} className="p-3 bg-secondary/50 border-[2px] border-foreground rounded-xl flex items-start justify-between gap-3 shadow-[2px_2px_0_0_#000]">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="w-5 h-5 rounded-md bg-foreground text-background text-xs font-black flex items-center justify-center shrink-0">
+                                                            {qIdx + 1}
+                                                        </span>
+                                                        <Badge className="bg-[#ffd21c] text-black border-[1.5px] border-foreground text-[10px] font-black uppercase tracking-wider py-0 px-1.5 hover:bg-[#ffd21c]">
+                                                            {qDraft.is_multi_select ? "Opción Múltiple" : "Opción Única"} · {qDraft.options.length} opciones
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-sm font-bold text-foreground truncate">{qDraft.pregunta}</p>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEditQuestionForDraft(qIdx)}
+                                                        className="w-8 h-8 flex items-center justify-center bg-[#ffd21c] text-black border-[2px] border-foreground rounded-lg shadow-[1px_1px_0_0_#000] hover:-translate-y-0.5 transition-all"
+                                                        title="Editar pregunta"
+                                                    >
+                                                        <Edit className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeQuestionFromDraft(qIdx)}
+                                                        className="w-8 h-8 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-lg shadow-[1px_1px_0_0_#000] hover:-translate-y-0.5 transition-all"
+                                                        title="Eliminar de la lista"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <button
                             onClick={createDeck}
                             disabled={!newDeckSubject || !newDeckName.trim()}
                             className="w-full py-3 bg-[#1475e5] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all"
                         >
-                            Crear Cuestionario
+                            {creationQuestions.length > 0
+                                ? `Crear Cuestionario (${creationQuestions.length} preguntas)`
+                                : "Crear Cuestionario"}
                         </button>
                     </div>
                 </DialogContent>
@@ -1510,6 +1952,9 @@ export default function Quizzes() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Question Editor Dialog in Main View */}
+            {renderQuestionDialog()}
         </div>
     );
 }

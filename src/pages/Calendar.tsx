@@ -139,7 +139,7 @@ export default function Calendar() {
 
     // Empty cells
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="h-24 lg:h-32" />);
+      days.push(<div key={`empty-${i}`} className="min-h-[56px] sm:min-h-[80px] lg:h-32" />);
     }
 
     // Days
@@ -160,18 +160,18 @@ export default function Calendar() {
           }}
           onDoubleClick={() => handleAddEvent(date)}
           className={cn(
-            "min-h-[80px] h-auto lg:h-32 p-1 lg:p-2 border-[3px] rounded-xl text-left relative group",
+            "min-h-[56px] sm:min-h-[80px] h-auto lg:h-32 p-1 sm:p-1.5 lg:p-2 border-2 sm:border-[3px] rounded-xl text-left relative group",
             "transition-all duration-200 ease-out flex flex-col",
             "hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] dark:hover:shadow-[4px_4px_0_0_#fff] active:translate-y-0 active:shadow-none",
-            today ? "border-foreground bg-[#ffd21c] shadow-[4px_4px_0_0_hsl(var(--foreground))]" : "border-transparent hover:border-foreground bg-card hover:bg-card/90",
-            selected && !today && "border-foreground bg-foreground/5 shadow-[4px_4px_0_0_hsl(var(--foreground))]",
+            today ? "border-foreground bg-[#ffd21c] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] sm:shadow-[4px_4px_0_0_hsl(var(--foreground))]" : "border-transparent hover:border-foreground bg-card hover:bg-card/90",
+            selected && !today && "border-foreground bg-foreground/5 shadow-[2px_2px_0_0_hsl(var(--foreground))] sm:shadow-[4px_4px_0_0_hsl(var(--foreground))]",
           )}
           style={{ animationDelay: `${day * 15}ms` }}
         >
           <span
             className={cn(
               "text-xs lg:text-sm font-black inline-flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 border-2",
-              today ? "bg-foreground text-background border-transparent" : "bg-transparent border-transparent group-hover:border-foreground group-hover:bg-foreground group-hover:text-background"
+              today ? "bg-black text-white border-black" : "bg-transparent border-transparent group-hover:border-foreground group-hover:bg-foreground group-hover:text-background"
             )}
           >
             {day}
@@ -184,7 +184,10 @@ export default function Calendar() {
                 e.stopPropagation();
                 handleAddEvent(date);
               }}
-              className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 rounded-md bg-foreground text-background hover:scale-110 shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]"
+              className={cn(
+                "absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 rounded-md hover:scale-110 shadow-[2px_2px_0_0_#000]",
+                today ? "bg-black text-white" : "bg-foreground text-background dark:shadow-[2px_2px_0_0_#fff]"
+              )}
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -205,7 +208,9 @@ export default function Calendar() {
               </div>
             ))}
             {dayEvents.length > 2 && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-foreground/70">+{dayEvents.length - 2} más</p>
+              <p className={cn("text-[10px] font-black uppercase tracking-widest", today ? "text-black/80" : "text-foreground/70")}>
+                +{dayEvents.length - 2} más
+              </p>
             )}
           </div>
         </button>
@@ -231,46 +236,49 @@ export default function Calendar() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-[#FF6B6B] border-4 border-foreground p-6 rounded-xl shadow-[8px_8px_0_0_hsl(var(--foreground))]">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-[#FF6B6B] border-4 border-foreground p-4 sm:p-6 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] sm:shadow-[8px_8px_0_0_hsl(var(--foreground))]">
         <div>
-          <h1 className="font-display text-3xl lg:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-3">
-            <CalendarIcon className="w-8 h-8 lg:w-10 lg:h-10" />
-            Calendario Académico
+          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2 sm:gap-3">
+            <CalendarIcon className="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 shrink-0" />
+            <span>Calendario Académico</span>
           </h1>
-          <p className="text-black font-bold uppercase tracking-wider text-sm mt-2 flex items-center gap-2">
+          <p className="text-black font-bold uppercase tracking-wider text-xs sm:text-sm mt-1 sm:mt-2 flex items-center gap-2">
             PLANIFICÁ Y VISUALIZÁ TUS EXÁMENES Y SESIONES DE ESTUDIO
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button onClick={goToToday} className="px-4 py-2 bg-white text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <button
+            onClick={goToToday}
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#ffffff] dark:bg-[#ffffff] !text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all"
+          >
             Hoy
           </button>
           <button
             onClick={() => setShowExamsModal(true)}
-            className="px-4 py-2 bg-[#FF3366] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2"
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FF3366] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
           >
-            <GraduationCap className="w-5 h-5" />
+            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
             Exámenes
           </button>
           <button
             onClick={() => setShowSyncModal(true)}
-            className="px-4 py-2 bg-[#00F0FF] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2"
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#00F0FF] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
           >
-            <Link2 className="w-5 h-5" />
+            <Link2 className="w-4 h-4 sm:w-5 sm:h-5" />
             Sincronizar
           </button>
           <button
             onClick={() => setShowImportModal(true)}
-            className="px-4 py-2 bg-[#FFE66D] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2"
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FFE66D] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
           >
-            <Upload className="w-5 h-5" />
+            <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
             Importar
           </button>
           <button
             onClick={() => handleAddEvent()}
-            className="px-4 py-2 bg-[#00FF9D] text-black border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center gap-2"
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#00FF9D] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             Nuevo Evento
           </button>
         </div>
@@ -326,15 +334,22 @@ export default function Calendar() {
         <div className="bg-card border-[3px] border-foreground rounded-xl p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))] h-fit sticky top-24 tour-calendar-schedule">
           <div className="flex items-center gap-2 mb-6">
             <CalendarIcon className="w-6 h-6 text-foreground" />
-            <h3 className="font-display font-black text-lg uppercase tracking-widest leading-none mt-1">
-              {selectedDate
-                ? selectedDate.toLocaleDateString("es-AR", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                })
-                : "Selecciona un día"}
-            </h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-display font-black text-lg uppercase tracking-widest leading-none mt-1">
+                {selectedDate
+                  ? selectedDate.toLocaleDateString("es-AR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })
+                  : "Selecciona un día"}
+              </h3>
+              {selectedDate && isToday(selectedDate) && (
+                <span className="text-[10px] bg-[#ffd21c] text-black px-2 py-0.5 rounded border-2 border-foreground font-black uppercase tracking-widest shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                  Hoy
+                </span>
+              )}
+            </div>
           </div>
 
           {selectedDate && selectedDateEvents.length === 0 && (

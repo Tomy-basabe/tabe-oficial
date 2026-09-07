@@ -111,15 +111,15 @@ export default function About() {
 
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
                         {[
-                            { val: "+1.000", label: "Estudiantes", color: "#ff9415" },
+                            { val: "+350", label: "Estudiantes", color: "#ff9415" },
                             { val: "15+", label: "Carreras", color: "#1475e5" },
                             { val: "24/7", label: "Soporte IA", color: "#48bd22" },
                             { val: "Gratis", label: "Acceso Público", color: "#ffd21c" },
                         ].map((stat, i) => (
                             <div key={i} className="group text-center p-6 bg-card rounded-xl border-2 border-border shadow-[4px_4px_0_0_hsl(var(--border))] transition-all duration-200 hover:-translate-y-2 hover:shadow-[8px_8px_0_0_hsl(var(--border))]">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-xl flex items-center justify-center border-2 transition-transform duration-200 group-hover:scale-110"
+                                <div className="w-full max-w-[130px] h-14 sm:h-16 mx-auto mb-4 rounded-xl flex items-center justify-center border-2 transition-transform duration-200 group-hover:scale-105 px-3"
                                     style={{ borderColor: stat.color, backgroundColor: stat.color + "15" }}>
-                                    <div className="text-3xl font-black" style={{ color: stat.color }}>{stat.val}</div>
+                                    <div className={`${stat.val.length > 4 ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"} font-black tracking-tight`} style={{ color: stat.color }}>{stat.val}</div>
                                 </div>
                                 <div className="text-xs uppercase tracking-widest text-muted-foreground font-black">{stat.label}</div>
                             </div>

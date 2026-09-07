@@ -9,7 +9,7 @@ export default function StudyGuides() {
       title: "Método Pomodoro",
       subtitle: "Productividad Real",
       description: "Aprendé a usar intervalos de 25 minutos para maximizar tu enfoque y evitar el agotamiento mental.",
-      icon: <Clock className="w-8 h-8 text-black" />,
+      icon: <Clock className="w-8 h-8 text-red-500" />,
       color: "bg-red-50/50 dark:bg-card border-red-200/30", // Red
       content: `El método Pomodoro no es solo un temporizador; es un sistema de gestión de la atención. Desarrollado por Francesco Cirillo, busca combatir la ansiedad que genera el paso del tiempo. 
       
@@ -114,7 +114,7 @@ export default function StudyGuides() {
         <div className="mt-16 text-center p-12 neo-bento-card bento-hover-yellow bg-yellow-50/50 dark:bg-background">
           <GraduationCap className="w-16 h-16 mx-auto mb-6 text-[#ffd21c]" />
           <h2 className="text-3xl font-display font-black uppercase tracking-widest mb-4 text-foreground">¿Listo para aplicar estas técnicas?</h2>
-          <p className="text-black font-bold text-lg mb-8 max-w-lg mx-auto">
+          <p className="text-foreground/90 font-bold text-lg mb-8 max-w-lg mx-auto">
             TABE integra todas estas metodologías en una sola plataforma gratuita para estudiantes.
           </p>
           <Link to="/auth">

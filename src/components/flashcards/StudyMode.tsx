@@ -479,33 +479,33 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
           </div>
 
           {/* Actions when card is active and flipped */}
-          <div className="absolute top-[80%] left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-4 w-full max-w-sm">
+          <div className="absolute top-[80%] left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-4 w-full max-w-sm px-3 sm:px-4">
             {studyPhase === "viewing" && isFlipped && (
               <div className="animate-fade-in w-full text-center">
                 <p className="text-[10px] font-black uppercase tracking-widest text-background mb-4">
                   ¿ACERTASTE TU RESPUESTA?
                 </p>
-                <div className="flex justify-center gap-3">
+                <div className="flex justify-center gap-2 sm:gap-3">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleResult('incorrect'); }}
-                    className="flex-1 py-4 bg-[#ef4444] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2 group"
+                    className="flex-1 py-3 sm:py-4 px-1.5 sm:px-3 bg-[#ef4444] text-white rounded-xl border-2 sm:border-[3px] border-foreground shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[9px] sm:text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-1 sm:gap-2 group"
                   >
-                    <X className="w-4 h-4 group-hover:rotate-90 transition-transform" />
-                    NO LA SABÍA
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:rotate-90 transition-transform" />
+                    <span className="truncate">NO LA SABÍA</span>
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleResult('partial'); }}
-                    className="flex-1 py-4 bg-[#ffd21c] text-black rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2 group"
+                    className="flex-1 py-3 sm:py-4 px-1.5 sm:px-3 bg-[#ffd21c] text-black rounded-xl border-2 sm:border-[3px] border-foreground shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[9px] sm:text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-1 sm:gap-2 group"
                   >
-                    <Zap className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    A MEDIAS
+                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+                    <span className="truncate">A MEDIAS</span>
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleResult('correct'); }}
-                    className="flex-1 py-4 bg-[#00ffcc] text-black rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2 group"
+                    className="flex-1 py-3 sm:py-4 px-1.5 sm:px-3 bg-[#00ffcc] text-black rounded-xl border-2 sm:border-[3px] border-foreground shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[9px] sm:text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-1 sm:gap-2 group"
                   >
-                    <Check className="w-4 h-4 group-hover:scale-125 transition-transform" />
-                    ¡LA SABÍA!
+                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-125 transition-transform" />
+                    <span className="truncate">¡LA SABÍA!</span>
                   </button>
                 </div>
               </div>

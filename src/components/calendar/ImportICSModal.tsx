@@ -204,18 +204,18 @@ export function ImportICSModal({ open, onClose, onImport }: ImportICSModalProps)
                     "w-full p-3 rounded-lg border-[3px] border-foreground text-left transition-all hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_#000]",
                     selectedEvents.has(event.uid)
                       ? "bg-[#00FF9D] text-black shadow-[4px_4px_0_0_#000]"
-                      : "bg-white text-black"
+                      : "bg-card text-foreground"
                   )}
                 >
                   <div className="flex items-start gap-3">
                     <div className={cn(
                       "w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
                       selectedEvents.has(event.uid) 
-                        ? "border-black bg-black" 
-                        : "border-black bg-white"
+                        ? "border-foreground bg-foreground" 
+                        : "border-foreground bg-background"
                     )}>
                       {selectedEvents.has(event.uid) && (
-                        <Check className="w-4 h-4 text-[#00FF9D]" />
+                        <Check className="w-4 h-4 text-background" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, nombre?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   profile: { active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null;
   updateTheme: (theme: string) => Promise<void>;
@@ -76,13 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateSidebarConfig = async (config: any) => {
-    if (!user) return;
-
     // Optimistic UI update
     setProfile(prev => ({
       ...(prev || { active_theme: null, active_badge: null, sidebar_config: null }),
       sidebar_config: config,
     }));
+
+    try {
+      localStorage.setItem("tabe-custom-sidebar-config", JSON.stringify(config));
+    } catch (e) {}
+
+    if (!user) return;
 
     try {
       const { error } = await supabase
@@ -186,6 +191,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const redirectTo = `${window.location.origin}/dashboard`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
   const signOut = async () => {
     try {
       setLoading(true);
@@ -230,7 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, profile, updateTheme, updateSidebarConfig, isGuest, loginAsGuest }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut, profile, updateTheme, updateSidebarConfig, isGuest, loginAsGuest }}>
       {children}
     </AuthContext.Provider>
   );

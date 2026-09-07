@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Clock, Plus, Filter, Trash2, Edit2, X, User, BookOpen,
-  ChevronLeft, ChevronRight, Loader2
+  ChevronLeft, ChevronRight, Loader2, Pencil
 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -381,21 +381,21 @@ export default function OfficeHours() {
   return (
     <div className="p-4 lg:p-8 space-y-6">
       {/* Header Banner */}
-      <div className="bg-[#FF9B71] rounded-2xl p-6 lg:p-8 border-4 border-black shadow-[8px_8px_0_0_#000] flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+      <div className="bg-[#FF9B71] rounded-2xl p-6 lg:p-8 border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         {/* Decorative badge */}
-        <div className="absolute top-4 right-4 bg-[#BFFF00] text-black font-black text-xs px-3 py-1 uppercase border-2 border-black rotate-[5deg] shadow-[2px_2px_0_0_#000] hidden md:block">
+        <div className="absolute top-4 right-4 bg-[#BFFF00] text-black font-black text-xs px-3 py-1 uppercase border-2 border-foreground rotate-[5deg] shadow-[2px_2px_0_0_hsl(var(--foreground))] hidden md:block">
           ¡No cuelgues tus dudas!
         </div>
         
         <div className="relative z-10 flex items-center gap-6">
-          <div className="w-16 h-16 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0_0_#000] flex items-center justify-center rotate-[-6deg] flex-shrink-0">
-            <Clock className="w-8 h-8 text-black" />
+          <div className="w-16 h-16 bg-card border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] flex items-center justify-center rotate-[-6deg] flex-shrink-0">
+            <Clock className="w-8 h-8 text-foreground" />
           </div>
           <div>
             <h1 className="font-display text-3xl lg:text-4xl font-black uppercase tracking-wider text-black" style={{ textShadow: '2px 2px 0 #fff, 4px 4px 0 #000' }}>
               Consultas
             </h1>
-            <p className="font-bold text-black/90 mt-1 text-sm sm:text-base bg-white/50 px-2 py-1 inline-block rounded-md border-2 border-black">
+            <p className="font-bold text-foreground mt-1 text-sm sm:text-base bg-card/90 px-2.5 py-1 inline-block rounded-md border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
               Horarios de profesores organizados por materia
             </p>
           </div>
@@ -403,7 +403,7 @@ export default function OfficeHours() {
         
         <button
           onClick={openNewModal}
-          className="relative z-10 flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black border-4 border-black font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] hover:bg-[#00E5FF] transition-all w-full md:w-auto justify-center"
+          className="relative z-10 flex items-center gap-2 px-6 py-3 rounded-xl bg-card text-foreground border-4 border-foreground font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] hover:bg-[#00E5FF] hover:text-black transition-all w-full md:w-auto justify-center"
         >
           <Plus className="w-6 h-6" />
           Agregar Profesor
@@ -411,7 +411,7 @@ export default function OfficeHours() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-6 bg-secondary/30 p-4 rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_#000]">
+      <div className="flex flex-col sm:flex-row gap-6 bg-card p-4 rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]">
         {/* Year Filter */}
         <div className="flex items-center gap-3">
           <Filter className="w-5 h-5 text-foreground" />
@@ -420,7 +420,7 @@ export default function OfficeHours() {
               onClick={() => { setSelectedYear(null); setSelectedSubjectId(null); }}
               className={cn(
                 "px-4 py-1.5 rounded-md text-sm font-black uppercase tracking-wider border-[3px] transition-all",
-                selectedYear === null ? "bg-[#FFE66D] border-black text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white border-black text-black hover:bg-[#FFE66D]/50 hover:shadow-[2px_2px_0_0_#000]"
+                selectedYear === null ? "bg-[#FFE66D] border-foreground text-black shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]" : "bg-card border-foreground text-foreground hover:bg-[#FFE66D]/50 hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
               )}
             >
               Todos
@@ -431,7 +431,7 @@ export default function OfficeHours() {
                 onClick={() => { setSelectedYear(year); setSelectedSubjectId(null); }}
                 className={cn(
                   "px-4 py-1.5 rounded-md text-sm font-black uppercase tracking-wider border-[3px] transition-all",
-                  selectedYear === year ? "bg-[#FFE66D] border-black text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white border-black text-black hover:bg-[#FFE66D]/50 hover:shadow-[2px_2px_0_0_#000]"
+                  selectedYear === year ? "bg-[#FFE66D] border-foreground text-black shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]" : "bg-card border-foreground text-foreground hover:bg-[#FFE66D]/50 hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                 )}
               >
                 Año {year}
@@ -442,12 +442,12 @@ export default function OfficeHours() {
 
         {/* Subject Filter */}
         {selectedYear !== null && (
-          <div className="flex gap-2 flex-wrap sm:border-l-[3px] border-black sm:pl-6">
+          <div className="flex gap-2 flex-wrap sm:border-l-[3px] border-foreground sm:pl-6">
             <button
               onClick={() => setSelectedSubjectId(null)}
               className={cn(
                 "px-4 py-1.5 rounded-md text-sm font-black uppercase tracking-wider border-[3px] transition-all",
-                selectedSubjectId === null ? "bg-[#00E5FF] border-black text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white border-black text-black hover:bg-[#00E5FF]/50 hover:shadow-[2px_2px_0_0_#000]"
+                selectedSubjectId === null ? "bg-[#00E5FF] border-foreground text-black shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]" : "bg-card border-foreground text-foreground hover:bg-[#00E5FF]/50 hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
               )}
             >
               Todas
@@ -458,7 +458,7 @@ export default function OfficeHours() {
                 onClick={() => setSelectedSubjectId(sub.id)}
                 className={cn(
                   "px-4 py-1.5 rounded-md text-sm font-black uppercase tracking-wider border-[3px] transition-all",
-                  selectedSubjectId === sub.id ? "bg-[#00E5FF] border-black text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-white border-black text-black hover:bg-[#00E5FF]/50 hover:shadow-[2px_2px_0_0_#000]"
+                  selectedSubjectId === sub.id ? "bg-[#00E5FF] border-foreground text-black shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]" : "bg-card border-foreground text-foreground hover:bg-[#00E5FF]/50 hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                 )}
               >
                 {sub.nombre}
@@ -492,25 +492,27 @@ export default function OfficeHours() {
               <div
                 key={prof.id}
                 className={cn(
-                  "bg-white rounded-xl p-4 border-4 transition-all hover:translate-y-[-2px] shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]",
+                  "bg-card rounded-xl p-4 border-4 transition-all hover:translate-y-[-2px] shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] text-foreground",
                   color.border
                 )}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={cn("w-10 h-10 rounded-full border-[3px] flex items-center justify-center flex-shrink-0 shadow-[2px_2px_0_0_#000]", color.bg, color.border)}>
+                    <div className={cn("w-10 h-10 rounded-full border-[3px] flex items-center justify-center flex-shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]", color.bg, color.border)}>
                       <User className={cn("w-5 h-5", color.text)} />
                     </div>
                     <div className="min-w-0 flex flex-col gap-1">
-                      <p className="font-black text-lg truncate leading-tight">{prof.nombre}</p>
+                      <p className="font-black text-lg truncate leading-tight text-foreground">{prof.nombre}</p>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-muted-foreground truncate max-w-[120px]" title={prof.subject_nombre}>
                           {prof.subject_nombre}
                         </span>
                         {prof.rol && (
                           <span className={cn(
-                            "px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border-2 border-black",
-                            prof.rol === "teoria" ? "bg-[#FFE66D] text-black" : "bg-[#00E5FF] text-black"
+                            "text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border-2",
+                            prof.rol === "teoria"
+                              ? "bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40"
+                              : "bg-[#BFFF00]/20 text-[#BFFF00] border-[#BFFF00]/40"
                           )}>
                             {prof.rol === "teoria" ? "Teoría" : "Práctica"}
                           </span>
@@ -518,24 +520,38 @@ export default function OfficeHours() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => openEditModal(prof)} className="p-1.5 rounded-lg bg-[#FFE66D] border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000] transition-all">
-                      <Edit2 className="w-3.5 h-3.5 text-black" />
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => openEditModal(prof)}
+                      className="p-1 rounded-md border-2 border-foreground/30 hover:border-foreground text-foreground hover:bg-muted transition-colors"
+                      title="Editar profesor"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => handleDelete(prof.id)} className="p-1.5 rounded-lg bg-[#FF5C5C] border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000] transition-all">
-                      <Trash2 className="w-3.5 h-3.5 text-black" />
+                    <button
+                      onClick={() => handleDeleteProfessor(prof.id)}
+                      className="p-1 rounded-md border-2 border-foreground/30 hover:border-destructive text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Eliminar profesor"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
+
                 {prof.descripcion && (
-                  <p className="text-sm font-medium text-muted-foreground mt-3 line-clamp-2 border-l-2 border-border pl-2">{prof.descripcion}</p>
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{prof.descripcion}</p>
                 )}
+
+                {/* Office hours chips */}
                 {profHours.length > 0 && (
-                  <div className="mt-4 space-y-1.5">
+                  <div className="mt-3 pt-2 border-t border-border space-y-1">
                     {profHours.map(oh => {
-                      const dayLabel = DAYS.find(d => d.key === oh.dia)?.label || oh.dia;
+                      const dayLabel = DAYS.find(d => d.key === oh.dia)?.short || oh.dia;
                       return (
-                        <div key={oh.id} className={cn("text-xs font-bold rounded-lg px-2.5 py-1.5 flex items-center justify-between border-[3px] shadow-[2px_2px_0_0_#000]", color.bg, color.border)}>
+                        <div
+                          key={oh.id}
+                          className={cn("flex items-center justify-between text-xs font-bold px-2 py-1 rounded-md border-2", color.bg, color.border)}
+                        >
                           <div className="flex items-center gap-1.5">
                             <Clock className={cn("w-3.5 h-3.5", color.text)} />
                             <span className={color.text}>{dayLabel}</span>
@@ -553,8 +569,8 @@ export default function OfficeHours() {
       )}
 
       {/* ── TIMELINE VISUAL ── */}
-      <div className="bg-white rounded-xl p-4 lg:p-6 border-4 border-black shadow-[6px_6px_0_0_#000]">
-        <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+      <div className="bg-card rounded-xl p-4 lg:p-6 border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] text-foreground">
+        <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2 text-foreground">
           <BookOpen className="w-5 h-5 text-neon-cyan" />
           Grilla Semanal de Consultas
         </h2>
@@ -579,7 +595,7 @@ export default function OfficeHours() {
                 <div className="grid grid-cols-[60px_repeat(6,1fr)] gap-0 mb-0">
                   <div className="h-10" />
                   {DAYS.map(day => (
-                    <div key={day.key} className="h-10 flex items-center justify-center text-sm font-black uppercase border-b-4 border-black">
+                    <div key={day.key} className="h-10 flex items-center justify-center text-sm font-black uppercase border-b-4 border-foreground text-foreground">
                       {day.label}
                     </div>
                   ))}
@@ -602,10 +618,10 @@ export default function OfficeHours() {
                     const overlapStyles = calculateOverlaps(dayEntries);
                     
                     return (
-                      <div key={day.key} className="relative border-l-[3px] border-black" style={{ height: `${HOURS.length * 48}px` }}>
+                      <div key={day.key} className="relative border-l-[3px] border-foreground" style={{ height: `${HOURS.length * 48}px` }}>
                         {/* Grid lines */}
                         {HOURS.map((hour, i) => (
-                          <div key={hour} className="absolute left-0 right-0 border-t-2 border-black/20" style={{ top: `${i * 48}px` }} />
+                          <div key={hour} className="absolute left-0 right-0 border-t-2 border-border" style={{ top: `${i * 48}px` }} />
                         ))}
 
                         {/* Schedule blocks */}
@@ -620,7 +636,7 @@ export default function OfficeHours() {
                             <div
                               key={entry.id}
                               className={cn(
-                                "absolute rounded-lg border-[3px] border-black flex flex-col justify-center px-2 cursor-pointer transition-all hover:scale-[1.03] hover:z-10 overflow-hidden shadow-[2px_2px_0_0_#000]",
+                                "absolute rounded-lg border-[3px] border-foreground flex flex-col justify-center px-2 cursor-pointer transition-all hover:scale-[1.03] hover:z-10 overflow-hidden shadow-[2px_2px_0_0_hsl(var(--foreground))]",
                                 color.bg
                               )}
                               style={{
@@ -661,7 +677,7 @@ export default function OfficeHours() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="font-semibold">{DAYS[mobileDayIndex].label}</span>
+                <span className="font-semibold text-foreground">{DAYS[mobileDayIndex].label}</span>
                 <button
                   onClick={() => setMobileDayIndex(Math.min(5, mobileDayIndex + 1))}
                   disabled={mobileDayIndex === 5}
@@ -678,8 +694,8 @@ export default function OfficeHours() {
                     key={day.key}
                     onClick={() => setMobileDayIndex(i)}
                     className={cn(
-                      "px-3 py-1.5 rounded-md text-xs font-black uppercase border-[3px] border-black transition-all whitespace-nowrap",
-                      mobileDayIndex === i ? "bg-[#FFE66D] shadow-[2px_2px_0_0_#000] translate-y-[-1px]" : "bg-white hover:bg-black/5"
+                      "px-3 py-1.5 rounded-md text-xs font-black uppercase border-[3px] border-foreground transition-all whitespace-nowrap",
+                      mobileDayIndex === i ? "bg-[#FFE66D] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[-1px]" : "bg-card text-foreground hover:bg-muted"
                     )}
                   >
                     {day.short}
@@ -692,7 +708,7 @@ export default function OfficeHours() {
                 {HOURS.map((hour, i) => (
                   <div key={hour} className="absolute left-0 right-0 flex items-start" style={{ top: `${i * 40}px`, height: "40px" }}>
                     <span className="w-12 text-xs font-bold text-muted-foreground text-right pr-2 -mt-2">{String(hour).padStart(2, "0")}:00</span>
-                    <div className="flex-1 border-t-2 border-black/20" />
+                    <div className="flex-1 border-t-2 border-border" />
                   </div>
                 ))}
 
@@ -710,7 +726,7 @@ export default function OfficeHours() {
                       <div
                         key={entry.id}
                         className={cn(
-                          "absolute rounded-lg border-[3px] border-black flex flex-col justify-center px-3 overflow-hidden shadow-[2px_2px_0_0_#000]",
+                          "absolute rounded-lg border-[3px] border-foreground flex flex-col justify-center px-3 overflow-hidden shadow-[2px_2px_0_0_hsl(var(--foreground))]",
                           color.bg
                         )}
                         style={{ 
@@ -737,15 +753,15 @@ export default function OfficeHours() {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 bg-white rounded-xl p-3 shadow-[4px_4px_0_0_#000] border-[3px] border-black pointer-events-none max-w-[250px]"
+          className="fixed z-50 bg-card text-foreground rounded-xl p-3 shadow-[4px_4px_0_0_hsl(var(--foreground))] border-[3px] border-foreground pointer-events-none max-w-[250px]"
           style={{ left: tooltip.x + 12, top: tooltip.y - 10 }}
         >
-          <p className="font-black text-sm">{tooltip.entry.professorName}</p>
-          <p className="text-xs font-bold">{tooltip.entry.subjectName}</p>
+          <p className="font-black text-sm text-foreground">{tooltip.entry.professorName}</p>
+          <p className="text-xs font-bold text-muted-foreground">{tooltip.entry.subjectName}</p>
           {tooltip.entry.rol && (
             <p className="text-[10px] font-black uppercase tracking-wider bg-[#00E5FF] text-black border-2 border-black rounded px-1.5 py-0.5 inline-block mt-1">{tooltip.entry.rol === "teoria" ? "Teoría" : "Práctica"}</p>
           )}
-          <p className="text-xs mt-1">
+          <p className="text-xs mt-1 text-muted-foreground">
             {DAYS.find(d => d.key === tooltip.entry.day)?.label}: {String(tooltip.entry.startHour).padStart(2, "0")}:{String(tooltip.entry.startMinute).padStart(2, "0")} – {String(tooltip.entry.endHour).padStart(2, "0")}:{String(tooltip.entry.endMinute).padStart(2, "0")}
           </p>
         </div>
@@ -755,12 +771,12 @@ export default function OfficeHours() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-6 border-4 border-black shadow-[8px_8px_0_0_#000]">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-card text-foreground rounded-2xl p-6 border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))]">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-display font-black uppercase text-xl text-black">
+              <h3 className="font-display font-black uppercase text-xl text-foreground">
                 {editingProfessor ? "Editar Profesor" : "Nuevo Profesor"}
               </h3>
-              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg border-2 border-black bg-white hover:bg-[#FF5C5C] hover:shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-all text-black">
+              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg border-2 border-foreground bg-card hover:bg-[#FF5C5C] hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all text-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -768,30 +784,30 @@ export default function OfficeHours() {
             <div className="space-y-4">
               {/* Name */}
               <div>
-                <label className="text-sm font-black uppercase text-black/70">Nombre *</label>
+                <label className="text-sm font-black uppercase text-foreground/80">Nombre *</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
                   placeholder="Ej: Dr. García"
-                  className="w-full mt-1 px-4 py-3 bg-white text-black rounded-lg border-[3px] border-black focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold"
+                  className="w-full mt-1 px-4 py-3 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold placeholder:text-muted-foreground"
                 />
               </div>
 
               {/* Subject */}
               <div>
-                <label className="text-sm font-black uppercase text-black/70">Materia *</label>
+                <label className="text-sm font-black uppercase text-foreground/80">Materia *</label>
                 <div className="mt-1">
                   <Select
                     value={formSubjectId}
                     onValueChange={setFormSubjectId}
                   >
-                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-white text-black rounded-lg border-[3px] border-black focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold text-left truncate">
+                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold text-left truncate">
                       <SelectValue placeholder="Seleccionar materia..." />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_#000] rounded-xl max-h-[200px]">
+                    <SelectContent className="bg-card text-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl max-h-[200px]">
                       {(allSubjects || []).map(sub => (
-                        <SelectItem key={sub.id} value={sub.id} className="font-bold focus:bg-black/5 cursor-pointer">
+                        <SelectItem key={sub.id} value={sub.id} className="font-bold focus:bg-accent focus:text-foreground cursor-pointer">
                           Año {sub.año} – {sub.nombre}
                         </SelectItem>
                       ))}
@@ -802,19 +818,19 @@ export default function OfficeHours() {
 
               {/* Rol */}
               <div>
-                <label className="text-sm font-black uppercase text-black/70">Rol (opcional)</label>
+                <label className="text-sm font-black uppercase text-foreground/80">Rol (opcional)</label>
                 <div className="mt-1">
                   <Select
                     value={formRol || "none"}
                     onValueChange={(val) => setFormRol(val === "none" ? "" : val)}
                   >
-                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-white text-black rounded-lg border-[3px] border-black focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold text-left truncate">
+                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold text-left truncate">
                       <SelectValue placeholder="No especificado" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-[3px] border-black shadow-[4px_4px_0_0_#000] rounded-xl">
-                      <SelectItem value="none" className="font-bold focus:bg-black/5 cursor-pointer">No especificado</SelectItem>
-                      <SelectItem value="teoria" className="font-bold focus:bg-black/5 cursor-pointer">Teoría</SelectItem>
-                      <SelectItem value="practica" className="font-bold focus:bg-black/5 cursor-pointer">Práctica</SelectItem>
+                    <SelectContent className="bg-card text-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl">
+                      <SelectItem value="none" className="font-bold focus:bg-accent focus:text-foreground cursor-pointer">No especificado</SelectItem>
+                      <SelectItem value="teoria" className="font-bold focus:bg-accent focus:text-foreground cursor-pointer">Teoría</SelectItem>
+                      <SelectItem value="practica" className="font-bold focus:bg-accent focus:text-foreground cursor-pointer">Práctica</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -822,27 +838,27 @@ export default function OfficeHours() {
 
               {/* Description */}
               <div>
-                <label className="text-sm font-black uppercase text-black/70">Descripción (opcional)</label>
+                <label className="text-sm font-black uppercase text-foreground/80">Descripción (opcional)</label>
                 <textarea
                   value={formDesc}
                   onChange={e => setFormDesc(e.target.value)}
                   placeholder="Notas sobre el profesor..."
                   rows={2}
-                  className="w-full mt-1 px-4 py-3 bg-white text-black rounded-lg border-[3px] border-black focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all font-bold resize-none"
+                  className="w-full mt-1 px-4 py-3 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold resize-none placeholder:text-muted-foreground"
                 />
               </div>
 
               {/* Color */}
               <div>
-                <label className="text-sm font-black uppercase text-black/70">Color</label>
+                <label className="text-sm font-black uppercase text-foreground/80">Color</label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {SUBJECT_COLORS.map((color, i) => (
                     <button
                       key={i}
                       onClick={() => setFormColorIndex(i)}
                       className={cn(
-                        "w-8 h-8 rounded-full border-[3px] border-black transition-all",
-                        formColorIndex === i ? "scale-125 shadow-[2px_2px_0_0_#000]" : "hover:scale-110"
+                        "w-8 h-8 rounded-full border-[3px] border-foreground transition-all",
+                        formColorIndex === i ? "scale-125 shadow-[2px_2px_0_0_hsl(var(--foreground))]" : "hover:scale-110"
                       )}
                       style={{ backgroundColor: color.solid }}
                       title={color.label}
@@ -854,25 +870,25 @@ export default function OfficeHours() {
               {/* Schedules */}
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-black uppercase text-black/70">Horarios de consulta</label>
-                  <button onClick={addScheduleRow} className="text-xs font-black uppercase bg-[#00E5FF] text-black px-2 py-1 border-2 border-black rounded-md hover:translate-y-[-1px] hover:shadow-[2px_2px_0_0_#000] flex items-center gap-1 transition-all">
+                  <label className="text-sm font-black uppercase text-foreground/80">Horarios de consulta</label>
+                  <button onClick={addScheduleRow} className="text-xs font-black uppercase bg-[#00E5FF] text-black px-2 py-1 border-2 border-foreground rounded-md hover:translate-y-[-1px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center gap-1 transition-all">
                     <Plus className="w-3 h-3" /> Agregar día
                   </button>
                 </div>
                 <div className="space-y-3 mt-3">
                   {formSchedules.map((sched, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-[#F4F4F5] border-[3px] border-black rounded-xl p-3 shadow-[2px_2px_0_0_#000]">
+                    <div key={idx} className="flex items-center gap-2 bg-muted/40 border-[3px] border-foreground rounded-xl p-3 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
                       <div className="w-[120px]">
                         <Select
                           value={sched.dia}
                           onValueChange={(val) => updateScheduleRow(idx, "dia", val)}
                         >
-                          <SelectTrigger className="w-full h-auto px-2 py-2 bg-white text-black rounded-lg border-2 border-black focus:ring-0 focus:outline-none font-bold text-xs truncate">
+                          <SelectTrigger className="w-full h-auto px-2 py-2 bg-background text-foreground rounded-lg border-2 border-foreground focus:ring-0 focus:outline-none font-bold text-xs truncate">
                             <SelectValue placeholder="Día" />
                           </SelectTrigger>
-                          <SelectContent className="bg-white border-2 border-black shadow-[4px_4px_0_0_#000] rounded-xl">
+                          <SelectContent className="bg-card text-foreground border-2 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl">
                             {DAYS.map(d => (
-                              <SelectItem key={d.key} value={d.key} className="font-bold focus:bg-black/5 cursor-pointer text-xs">{d.label}</SelectItem>
+                              <SelectItem key={d.key} value={d.key} className="font-bold focus:bg-accent focus:text-foreground cursor-pointer text-xs">{d.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -881,17 +897,17 @@ export default function OfficeHours() {
                         type="time"
                         value={sched.hora_inicio}
                         onChange={e => updateScheduleRow(idx, "hora_inicio", e.target.value)}
-                        className="w-[100px] px-2 py-2 rounded-lg bg-white border-2 border-black font-bold text-xs focus:outline-none"
+                        className="w-[100px] px-2 py-2 rounded-lg bg-background text-foreground border-2 border-foreground font-bold text-xs focus:outline-none"
                       />
-                      <span className="text-black font-black text-xs">a</span>
+                      <span className="text-foreground font-black text-xs">a</span>
                       <input
                         type="time"
                         value={sched.hora_fin}
                         onChange={e => updateScheduleRow(idx, "hora_fin", e.target.value)}
-                        className="w-[100px] px-2 py-2 rounded-lg bg-white border-2 border-black font-bold text-xs focus:outline-none"
+                        className="w-[100px] px-2 py-2 rounded-lg bg-background text-foreground border-2 border-foreground font-bold text-xs focus:outline-none"
                       />
                       {formSchedules.length > 1 && (
-                        <button onClick={() => removeScheduleRow(idx)} className="p-1.5 ml-auto rounded-lg bg-[#FF5C5C] border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000] transition-all">
+                        <button onClick={() => removeScheduleRow(idx)} className="p-1.5 ml-auto rounded-lg bg-[#FF5C5C] border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all">
                           <X className="w-4 h-4 text-black" />
                         </button>
                       )}
@@ -905,14 +921,14 @@ export default function OfficeHours() {
             <div className="flex gap-4 mt-8">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-3 rounded-xl bg-white text-black font-black uppercase tracking-wider border-[3px] border-black hover:bg-[#FF5C5C] hover:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] transition-all"
+                className="flex-1 px-4 py-3 rounded-xl bg-card text-foreground font-black uppercase tracking-wider border-[3px] border-foreground hover:bg-[#FF5C5C] hover:text-black hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] transition-all"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving || !formName.trim() || !formSubjectId}
-                className="flex-1 px-4 py-3 rounded-xl bg-[#00E5FF] text-black font-black uppercase tracking-wider border-[3px] border-black hover:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:hover:bg-[#00E5FF]"
+                className="flex-1 px-4 py-3 rounded-xl bg-[#00E5FF] text-black font-black uppercase tracking-wider border-[3px] border-foreground hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:hover:bg-[#00E5FF]"
               >
                 {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : editingProfessor ? "Guardar" : "Agregar"}
               </button>

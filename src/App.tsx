@@ -123,6 +123,8 @@ const AppRoutes = () => (
       element={<Landing />}
     />
     <Route path="/acerca-de" element={<About />} />
+    <Route path="/acerca de" element={<Navigate to="/acerca-de" replace />} />
+    <Route path="/acerca%20de" element={<Navigate to="/acerca-de" replace />} />
     <Route path="/contacto" element={<Contact />} />
     <Route path="/privacidad" element={<Privacy />} />
     <Route path="/terminos" element={<Terms />} />

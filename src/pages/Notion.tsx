@@ -5,7 +5,7 @@ import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
-  Sparkles, Volume2, Square, X
+  Sparkles, Volume2, Square, X, BookOpen, Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -137,25 +137,25 @@ const GalleryCard = ({
     <div 
       onClick={() => onClick(doc)}
       onMouseEnter={() => onHover?.(doc)}
-      className="group flex flex-col bg-white border-4 border-black rounded-none overflow-hidden transition-all duration-300 cursor-pointer shadow-[8px_8px_0_0_#000] hover:shadow-[4px_4px_0_0_#000] hover:translate-x-[4px] hover:translate-y-[4px] h-[300px]"
+      className="group flex flex-col bg-card border-4 border-foreground rounded-none overflow-hidden transition-all duration-300 cursor-pointer shadow-[8px_8px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-x-[4px] hover:translate-y-[4px] h-[300px]"
     >
       {/* Top Area: Cover Image or Content Snippet */}
-      <div className={cn("h-40 w-full relative border-b-4 border-black bg-gray-50 overflow-hidden", !hasCover && "p-5")}>
+      <div className={cn("h-40 w-full relative border-b-4 border-foreground bg-muted/30 overflow-hidden", !hasCover && "p-5")}>
         {/* Card Actions Overlay (Dropdown) - ONLY FOR OWNER */}
         {isOwner && (
           <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                  <button
-                   className="p-1.5 bg-white border-2 border-black shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] text-black transition-all"
+                   className="p-1.5 bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] text-foreground transition-all"
                    onClick={(e) => e.stopPropagation()}
                  >
                     <MoreHorizontal className="w-4 h-4" />
                  </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
                  <DropdownMenuItem
-                    className="font-bold cursor-pointer"
+                    className="font-bold cursor-pointer focus:bg-accent focus:text-foreground"
                     onClick={(e) => {
                        e.stopPropagation();
                        onRename(doc);
@@ -163,9 +163,9 @@ const GalleryCard = ({
                  >
                     Renombrar
                  </DropdownMenuItem>
-                 <DropdownMenuSeparator className="bg-black h-0.5" />
+                 <DropdownMenuSeparator className="bg-foreground/20 h-0.5" />
                  <DropdownMenuItem
-                    className="font-bold cursor-pointer"
+                    className="font-bold cursor-pointer focus:bg-accent focus:text-foreground"
                     onClick={(e) => {
                        e.stopPropagation();
                        onChangeSubject(doc);
@@ -173,9 +173,9 @@ const GalleryCard = ({
                  >
                     Cambiar Materia
                  </DropdownMenuItem>
-                 <DropdownMenuSeparator className="bg-black h-0.5" />
+                 <DropdownMenuSeparator className="bg-foreground/20 h-0.5" />
                  <DropdownMenuItem
-                    className="text-red-600 focus:bg-red-50 focus:text-red-700 font-black cursor-pointer"
+                    className="text-red-500 focus:bg-red-500/10 focus:text-red-600 font-black cursor-pointer"
                     onClick={(e) => {
                        e.stopPropagation();
                        onDelete(doc);
@@ -193,32 +193,32 @@ const GalleryCard = ({
         ) : (
           <div className="w-full h-full relative">
             {/* Simulated mini page header line */}
-            <div className="w-12 h-2 bg-black mb-3" />
+            <div className="w-12 h-2 bg-foreground mb-3" />
             
             {textSnippet ? (
                <div className="opacity-80">
-                 <p className="text-[11px] text-black font-bold leading-[1.7] line-clamp-5 text-left">
+                 <p className="text-[11px] text-foreground font-bold leading-[1.7] line-clamp-5 text-left">
                    {textSnippet}
                  </p>
                </div>
             ) : (
               <div className="w-full h-full flex mt-4 justify-center">
-                 <span className="text-black text-[10px] uppercase font-black tracking-widest border-2 border-dashed border-black px-3 py-1 bg-gray-200 h-fit">Vacío</span>
+                 <span className="text-foreground text-[10px] uppercase font-black tracking-widest border-2 border-dashed border-foreground px-3 py-1 bg-muted h-fit">Vacío</span>
               </div>
             )}
             {/* Gradient fade to hide text bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card to-transparent" />
           </div>
         )}
       </div>
       
       {/* Info Area */}
-      <div className="p-4 flex flex-col flex-1 bg-white">
+      <div className="p-4 flex flex-col flex-1 bg-card">
         <div className="flex items-center gap-3 mb-2">
-           <div className="flex items-center justify-center w-10 h-10 border-4 border-black bg-[#FFD700] group-hover:bg-[#FF9B71] group-hover:-rotate-6 transition-all duration-300 text-black shrink-0 shadow-[2px_2px_0_0_#000]">
+           <div className="flex items-center justify-center w-10 h-10 border-4 border-foreground bg-[#FFD700] group-hover:bg-[#FF9B71] group-hover:-rotate-6 transition-all duration-300 text-black shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
               {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={22} /> : <FileText className="w-5 h-5" />}
            </div>
-           <h3 className="font-black text-[16px] text-black truncate tracking-tight flex-1" title={doc.titulo}>
+           <h3 className="font-black text-[16px] text-foreground truncate tracking-tight flex-1" title={doc.titulo}>
               {doc.titulo || "Sin título"}
            </h3>
         </div>
@@ -227,15 +227,15 @@ const GalleryCard = ({
         <div className="flex mt-auto pt-2 gap-2 flex-wrap">
           {subject ? (
             <>
-              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-[#00E5FF] text-black border-2 border-black shadow-[1px_1px_0_0_#000] uppercase tracking-wider">
+              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-[#00E5FF] text-black border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
                 {subject.codigo || subject.nombre}
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-gray-200 text-black border-2 border-black shadow-[1px_1px_0_0_#000] uppercase tracking-wider">
+              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-muted text-foreground border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
                 Año {subject.año}
               </span>
             </>
           ) : (
-            <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-gray-200 text-black border-2 border-black shadow-[1px_1px_0_0_#000] uppercase tracking-wider">
+            <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-muted text-foreground border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
               Sin materia
             </span>
           )}
@@ -243,7 +243,7 @@ const GalleryCard = ({
 
         {/* Owner indicator for friend docs */}
         {!isOwner && doc.owner && (
-          <div className="mt-3 flex items-center gap-2 px-2 py-1 bg-gray-100 border-2 border-black w-fit">
+          <div className="mt-3 flex items-center gap-2 px-2 py-1 bg-muted border-2 border-foreground w-fit">
              {doc.owner.avatar_url ? (
                <img src={doc.owner.avatar_url} className="w-5 h-5 rounded-full border border-black" alt="" />
              ) : (
@@ -300,6 +300,7 @@ export default function Notion() {
 
   const [showNewDocModal, setShowNewDocModal] = useState(false);
   const [newDocSubjectId, setNewDocSubjectId] = useState<string | null>(null);
+  const [newDocCustomTitle, setNewDocCustomTitle] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<TipTapTemplate>(tipTapTemplates[0]);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [isOpeningDoc, setIsOpeningDoc] = useState(false);
@@ -967,7 +968,8 @@ export default function Notion() {
 
       const templateContent = selectedTemplate.content;
       const title =
-        selectedTemplate.name === "En blanco" ? "Sin título" : selectedTemplate.name;
+        newDocCustomTitle.trim() ||
+        (selectedTemplate.name === "En blanco" ? "Sin título" : selectedTemplate.name);
 
       const newDoc = await createDocument(targetSubjectId, title);
       if (newDoc) {
@@ -984,6 +986,7 @@ export default function Notion() {
         openDocument(fullDoc);
         setShowNewDocModal(false);
         setNewDocSubjectId(null);
+        setNewDocCustomTitle("");
         setSelectedTemplate(tipTapTemplates[0]);
         await incrementUsage('apuntes');
         checkAndUnlockAchievements();
@@ -991,6 +994,7 @@ export default function Notion() {
     },
     [
       newDocSubjectId,
+      newDocCustomTitle,
       selectedTemplate,
       createDocument,
       updateDocument,
@@ -1095,8 +1099,12 @@ export default function Notion() {
   // Filtered subjects for new doc modal
   const [modalYear, setModalYear] = useState<number | null>(null);
   const modalSubjects = useMemo(
-    () => (modalYear ? subjects.filter((s) => s.año === modalYear) : []),
+    () => (modalYear ? subjects.filter((s) => s.año === modalYear) : subjects),
     [subjects, modalYear]
+  );
+  const selectedDocSubject = useMemo(
+    () => (newDocSubjectId ? subjects.find((s) => s.id === newDocSubjectId) : null),
+    [subjects, newDocSubjectId]
   );
 
   // --- Gallery View Derived State ---
@@ -1477,26 +1485,26 @@ export default function Notion() {
             /* Empty state / Gallery View */
             <div className="flex flex-col h-full bg-background text-foreground">
               {/* Header and Tabs */}
-              <div className="flex flex-col gap-6 px-8 md:px-12 py-8 border-b-4 border-black bg-white">
+              <div className="flex flex-col gap-6 px-8 md:px-12 py-8 border-b-4 border-foreground bg-card text-foreground">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <h1 className="text-4xl font-black tracking-tight uppercase">Tus Apuntes</h1>
                   
                   <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                     {/* Search */}
                     <div className="relative flex-1 sm:flex-none">
-                      <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-black" />
+                      <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input 
                         type="text" 
                         placeholder="Buscar apunte..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 pr-4 py-2 font-bold bg-white border-4 border-black shadow-[4px_4px_0_0_#000] focus:shadow-[2px_2px_0_0_#000] focus:translate-x-[2px] focus:translate-y-[2px] transition-all outline-none w-full sm:w-56 rounded-none"
+                        className="pl-10 pr-4 py-2 font-bold bg-background text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] focus:translate-x-[2px] focus:translate-y-[2px] transition-all outline-none w-full sm:w-56 rounded-none placeholder:text-muted-foreground"
                       />
                     </div>
 
                     <button
                       onClick={() => setShowNewDocModal(true)}
-                      className="inline-flex items-center gap-2 px-6 py-2 bg-[#00E5FF] text-black font-black uppercase border-4 border-black shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all ml-auto sm:ml-0 rounded-none"
+                      className="inline-flex items-center gap-2 px-6 py-2 bg-[#00E5FF] text-black font-black uppercase border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all ml-auto sm:ml-0 rounded-none"
                     >
                       + Nueva Página
                     </button>
@@ -1516,10 +1524,10 @@ export default function Notion() {
                         key={tab.id}
                         onClick={() => setFilterOwner(tab.id as any)}
                         className={cn(
-                          "px-4 py-2 font-black uppercase border-4 border-black transition-all rounded-none",
+                          "px-4 py-2 font-black uppercase border-4 border-foreground transition-all rounded-none",
                           filterOwner === tab.id 
-                            ? "bg-[#FFD700] shadow-[2px_2px_0_0_#000] translate-x-[2px] translate-y-[2px]" 
-                            : "bg-white shadow-[4px_4px_0_0_#000] hover:bg-gray-100 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000]"
+                            ? "bg-[#FFD700] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-x-[2px] translate-y-[2px]" 
+                            : "bg-card text-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-muted hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))]"
                         )}
                       >
                         {tab.label}
@@ -1530,44 +1538,44 @@ export default function Notion() {
                   <div className="flex items-center gap-3">
                     {/* Filter by Year */}
                     <Select value={filterYear} onValueChange={(val) => { setFilterYear(val); setFilterSubject("all"); }}>
-                      <SelectTrigger className="w-[140px] bg-white border-4 border-black font-bold shadow-[4px_4px_0_0_#000] rounded-none focus:ring-0">
+                      <SelectTrigger className="w-[140px] bg-card text-foreground border-4 border-foreground font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-none focus:ring-0">
                         <Filter className="w-4 h-4 mr-2" />
                         <SelectValue placeholder="Año" />
                       </SelectTrigger>
-                      <SelectContent className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
-                        <SelectItem value="all" className="font-bold cursor-pointer">Todos los años</SelectItem>
+                      <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
+                        <SelectItem value="all" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Todos los años</SelectItem>
                         {uniqueYears.map(year => (
-                          <SelectItem key={year} value={year.toString()} className="font-bold cursor-pointer">Año {year}</SelectItem>
+                          <SelectItem key={year} value={year.toString()} className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Año {year}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
 
                     {/* Filter by Subject */}
                     <Select value={filterSubject} onValueChange={setFilterSubject}>
-                      <SelectTrigger className="w-[160px] bg-white border-4 border-black font-bold shadow-[4px_4px_0_0_#000] rounded-none focus:ring-0">
+                      <SelectTrigger className="w-[160px] bg-card text-foreground border-4 border-foreground font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-none focus:ring-0">
                         <Filter className="w-4 h-4 mr-2" />
                         <SelectValue placeholder="Materias" />
                       </SelectTrigger>
-                      <SelectContent className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
-                        <SelectItem value="all" className="font-bold cursor-pointer">Todas las materias</SelectItem>
+                      <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
+                        <SelectItem value="all" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Todas las materias</SelectItem>
                         {subjects
                           .filter(sub => filterYear === "all" || sub.año.toString() === filterYear)
                           .map(sub => (
-                          <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer">{sub.codigo || sub.nombre}</SelectItem>
+                          <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">{sub.codigo || sub.nombre}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
 
                     {/* Sort */}
                     <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-                      <SelectTrigger className="w-[160px] bg-white border-4 border-black font-bold shadow-[4px_4px_0_0_#000] rounded-none focus:ring-0">
+                      <SelectTrigger className="w-[160px] bg-card text-foreground border-4 border-foreground font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-none focus:ring-0">
                         <ArrowUpDown className="w-4 h-4 mr-2" />
                         <SelectValue placeholder="Ordenar" />
                       </SelectTrigger>
-                      <SelectContent className="border-4 border-black rounded-none shadow-[8px_8px_0_0_#000]">
-                        <SelectItem value="updated" className="font-bold cursor-pointer">Recientes</SelectItem>
-                        <SelectItem value="alpha_asc" className="font-bold cursor-pointer">A - Z</SelectItem>
-                        <SelectItem value="alpha_desc" className="font-bold cursor-pointer">Z - A</SelectItem>
+                      <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
+                        <SelectItem value="updated" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Recientes</SelectItem>
+                        <SelectItem value="alpha_asc" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">A - Z</SelectItem>
+                        <SelectItem value="alpha_desc" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Z - A</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1622,13 +1630,15 @@ export default function Notion() {
 
       {/* Rename Document Modal */}
       <Dialog open={showRenameModal} onOpenChange={setShowRenameModal}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6">
           <DialogHeader>
-            <DialogTitle>Renombrar Apunte</DialogTitle>
+            <DialogTitle className="font-display font-black text-xl uppercase tracking-tight text-foreground flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" /> Renombrar Apunte
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-3">
              <div className="space-y-2">
-                <Input
+                <input
                   autoFocus
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
@@ -1636,146 +1646,288 @@ export default function Notion() {
                   onKeyDown={(e) => {
                      if (e.key === "Enter") handleRenameSubmit();
                   }}
+                  className="w-full px-4 py-2.5 bg-background text-foreground rounded-xl border-[3px] border-foreground font-bold text-sm shadow-[3px_3px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-x-[1px] focus:translate-y-[1px] transition-all placeholder:text-muted-foreground"
                 />
              </div>
           </div>
-          <DialogFooter>
-             <Button variant="outline" onClick={() => setShowRenameModal(false)}>Cancelar</Button>
-             <Button onClick={handleRenameSubmit}>Guardar cambios</Button>
+          <DialogFooter className="flex gap-2 sm:gap-3">
+             <button
+               onClick={() => setShowRenameModal(false)}
+               className="flex-1 px-4 py-2.5 rounded-xl border-2 border-foreground font-black uppercase text-xs bg-card text-foreground hover:bg-muted transition-all"
+             >
+               Cancelar
+             </button>
+             <button
+               onClick={handleRenameSubmit}
+               className="flex-1 px-4 py-2.5 rounded-xl border-2 border-foreground font-black uppercase text-xs bg-[#00E5FF] text-black shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all"
+             >
+               Guardar cambios
+             </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* New Document Modal */}
-      <Dialog open={showNewDocModal} onOpenChange={setShowNewDocModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nueva Página</DialogTitle>
-          </DialogHeader>
+      <Dialog open={showNewDocModal} onOpenChange={(open) => {
+        setShowNewDocModal(open);
+        if (!open) {
+          setNewDocCustomTitle("");
+        }
+      }}>
+        <DialogContent className="max-w-2xl bg-card text-foreground border-4 border-foreground shadow-[10px_10px_0_0_hsl(var(--foreground))] rounded-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 pb-4 border-b-4 border-foreground">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-[#00E5FF] border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center justify-center -rotate-3 shrink-0">
+                <FileText className="w-6 h-6 text-black" />
+              </div>
+              <div>
+                <DialogTitle className="font-display font-black text-2xl uppercase tracking-tight text-foreground">
+                  Nuevo Apunte
+                </DialogTitle>
+                <p className="text-xs sm:text-sm font-bold text-muted-foreground mt-0.5">
+                  Elegí una materia, personalizá el título y comenzá con una plantilla.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowNewDocModal(false)}
+              className="p-1.5 rounded-lg border-2 border-foreground bg-card hover:bg-[#FF5C5C] hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all text-foreground shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-          <div className="space-y-4">
-            {!newDocSubjectId && (
-              <>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Año</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {[1, 2, 3, 4, 5, 6].map((year) => (
+          <div className="space-y-5 pt-4">
+            {/* Paso 1: Materia */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-black">1</span>
+                  Materia *
+                </label>
+                {selectedDocSubject && (
+                  <button
+                    type="button"
+                    onClick={() => setNewDocSubjectId(null)}
+                    className="text-xs font-black uppercase text-primary hover:underline flex items-center gap-1"
+                  >
+                    Cambiar materia
+                  </button>
+                )}
+              </div>
+
+              {selectedDocSubject ? (
+                /* Materia seleccionada (card de confirmación) */
+                <div className="bg-muted/40 border-[3px] border-foreground rounded-xl p-3.5 flex items-center justify-between shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="px-2.5 py-1 text-xs font-black bg-[#00E5FF] text-black border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase shrink-0">
+                      {selectedDocSubject.codigo || `Año ${selectedDocSubject.año}`}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-black text-sm text-foreground truncate">
+                        {selectedDocSubject.nombre}
+                      </p>
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">
+                        Año {selectedDocSubject.año}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNewDocSubjectId(null)}
+                    className="px-3 py-1.5 rounded-lg bg-card text-foreground font-black text-xs uppercase border-2 border-foreground hover:bg-[#FF5C5C] hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all shrink-0 ml-3"
+                  >
+                    Cambiar
+                  </button>
+                </div>
+              ) : (
+                /* Selector de Año y Materia */
+                <div className="space-y-3 bg-muted/20 border-2 border-foreground/30 rounded-xl p-3.5">
+                  <div>
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase block mb-1.5">Filtrar por año:</span>
+                    <div className="flex gap-1.5 flex-wrap">
                       <button
-                        key={year}
-                        onClick={() => {
-                          setModalYear(year);
-                          setNewDocSubjectId(null);
-                        }}
+                        type="button"
+                        onClick={() => setModalYear(null)}
                         className={cn(
-                          "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                          modalYear === year
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary hover:bg-secondary/80"
+                          "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
+                          modalYear === null
+                            ? "bg-[#FFD700] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                            : "bg-card text-foreground border-foreground/40 hover:border-foreground"
                         )}
                       >
-                        {year}° Año
+                        Todos
                       </button>
-                    ))}
-                  </div>
-                </div>
-
-                {modalYear && (
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Materia
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                      {modalSubjects.map((subject) => (
+                      {[1, 2, 3, 4, 5, 6].map((year) => (
                         <button
-                          key={subject.id}
-                          onClick={() => setNewDocSubjectId(subject.id)}
+                          key={year}
+                          type="button"
+                          onClick={() => setModalYear(year)}
                           className={cn(
-                            "p-3 rounded-lg text-left text-sm transition-colors",
-                            newDocSubjectId === subject.id
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary hover:bg-secondary/80"
+                            "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
+                            modalYear === year
+                              ? "bg-[#FFD700] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                              : "bg-card text-foreground border-foreground/40 hover:border-foreground"
                           )}
                         >
-                          <p className="font-medium">{subject.codigo}</p>
-                          <p className="text-xs opacity-70 truncate">
-                            {subject.nombre}
-                          </p>
+                          {year}° Año
                         </button>
                       ))}
                     </div>
                   </div>
-                )}
-              </>
-            )}
 
-            {newDocSubjectId && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Plantilla
-                </label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                  {tipTapTemplates.map((template) => (
+                  <div>
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase block mb-1.5">Elegí la materia:</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
+                      {modalSubjects.map((subject) => (
+                        <button
+                          key={subject.id}
+                          type="button"
+                          onClick={() => setNewDocSubjectId(subject.id)}
+                          className="p-2.5 rounded-xl border-2 border-foreground/50 bg-card text-foreground text-left transition-all hover:border-foreground hover:bg-accent hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] group"
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="text-[10px] font-black uppercase px-1.5 py-0.5 bg-[#00E5FF] text-black border border-foreground rounded">
+                              {subject.codigo || `Año ${subject.año}`}
+                            </span>
+                            <span className="text-[10px] font-bold text-muted-foreground">Año {subject.año}</span>
+                          </div>
+                          <p className="font-bold text-xs text-foreground truncate group-hover:text-primary transition-colors">
+                            {subject.nombre}
+                          </p>
+                        </button>
+                      ))}
+                      {modalSubjects.length === 0 && (
+                        <div className="col-span-full py-4 text-center text-xs font-bold text-muted-foreground">
+                          No hay materias registradas para este filtro.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Paso 2: Título (Opcional) */}
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-black">2</span>
+                Título de la Página (opcional)
+              </label>
+              <input
+                type="text"
+                value={newDocCustomTitle}
+                onChange={(e) => setNewDocCustomTitle(e.target.value)}
+                placeholder={selectedTemplate.id === "blank" ? "Ej: Resumen Unidad 1, Clase del Lunes..." : selectedTemplate.name}
+                className="w-full px-4 py-2.5 bg-background text-foreground rounded-xl border-[3px] border-foreground font-bold text-sm shadow-[3px_3px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-x-[1px] focus:translate-y-[1px] transition-all placeholder:text-muted-foreground placeholder:font-medium"
+              />
+            </div>
+
+            {/* Paso 3: Plantilla */}
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-black">3</span>
+                Elegí una Plantilla de Inicio
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {tipTapTemplates.map((template) => {
+                  const isSelected = selectedTemplate.id === template.id;
+                  return (
                     <button
                       key={template.id}
+                      type="button"
                       onClick={() => setSelectedTemplate(template)}
                       className={cn(
-                        "p-3 rounded-lg text-left transition-all",
-                        selectedTemplate.id === template.id
-                          ? "bg-primary/10 border-2 border-primary"
-                          : "bg-secondary hover:bg-secondary/80 border-2 border-transparent"
+                        "p-3 rounded-xl text-left transition-all border-[3px] flex items-start gap-3 relative",
+                        isSelected
+                          ? "bg-[#BFFF00]/15 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
+                          : "bg-card text-foreground border-foreground/40 hover:border-foreground hover:bg-muted/40 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                       )}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{template.emoji}</span>
-                        <p className="font-medium text-sm">{template.name}</p>
+                      <div className={cn(
+                        "w-10 h-10 rounded-lg border-2 border-foreground flex items-center justify-center text-xl shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]",
+                        isSelected ? "bg-[#BFFF00] text-black" : "bg-muted"
+                      )}>
+                        {template.emoji}
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {template.description}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="font-black text-sm text-foreground truncate">{template.name}</p>
+                          {isSelected && (
+                            <span className="text-[9px] font-black uppercase tracking-wider bg-[#BFFF00] text-black border border-foreground rounded px-1.5 py-0.5 shrink-0 flex items-center gap-0.5">
+                              <Check className="w-2.5 h-2.5" /> Activa
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-medium text-muted-foreground line-clamp-2 mt-0.5 leading-snug">
+                          {template.description}
+                        </p>
+                      </div>
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
 
-            <button
-              onClick={() => handleCreateDocument()}
-              disabled={!newDocSubjectId}
-              className={cn(
-                "w-full py-3 rounded-xl font-semibold transition-all",
-                newDocSubjectId
-                  ? "bg-primary text-primary-foreground hover:opacity-90"
-                  : "bg-secondary text-muted-foreground cursor-not-allowed"
-              )}
-            >
-              {selectedTemplate.id === "blank"
-                ? "Crear Página"
-                : `Crear con "${selectedTemplate.name}"`}
-            </button>
+            {/* Footer con acciones */}
+            <div className="flex items-center gap-3 pt-3 border-t-2 border-foreground/20">
+              <button
+                type="button"
+                onClick={() => setShowNewDocModal(false)}
+                className="px-5 py-3 rounded-xl border-[3px] border-foreground font-black uppercase tracking-wider bg-card text-foreground hover:bg-muted transition-all text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCreateDocument()}
+                disabled={!newDocSubjectId}
+                className="flex-1 px-6 py-3.5 rounded-xl border-[3px] border-foreground font-black uppercase tracking-wider bg-[#00E5FF] text-black shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] flex items-center justify-center gap-2 text-xs sm:text-sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                {selectedTemplate.id === "blank" ? "Crear Página en Blanco" : `Crear con "${selectedTemplate.name}"`}
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Change Subject Modal */}
       <Dialog open={showChangeSubjectModal} onOpenChange={setShowChangeSubjectModal}>
-        <DialogContent>
+        <DialogContent className="max-w-lg bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6">
           <DialogHeader>
-            <DialogTitle>Cambiar Materia</DialogTitle>
+            <DialogTitle className="font-display font-black text-xl uppercase tracking-tight text-foreground flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" /> Cambiar Materia
+            </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 mt-2">
             <div>
-              <label className="text-sm font-medium mb-2 block">Año</label>
-              <div className="flex gap-2 flex-wrap">
+              <label className="text-xs font-black uppercase tracking-wider text-muted-foreground mb-2 block">Filtrar por año</label>
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setModalYear(null)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
+                    modalYear === null
+                      ? "bg-[#FFD700] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                      : "bg-card text-foreground border-foreground/40 hover:border-foreground"
+                  )}
+                >
+                  Todos
+                </button>
                 {[1, 2, 3, 4, 5, 6].map((year) => (
                   <button
                     key={year}
+                    type="button"
                     onClick={() => setModalYear(year)}
                     className={cn(
-                      "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                      "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
                       modalYear === year
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary hover:bg-secondary/80"
+                        ? "bg-[#FFD700] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                        : "bg-card text-foreground border-foreground/40 hover:border-foreground"
                     )}
                   >
                     {year}° Año
@@ -1784,32 +1936,36 @@ export default function Notion() {
               </div>
             </div>
 
-            {modalYear && (
-              <div className="animate-in fade-in duration-300">
-                <label className="text-sm font-medium mb-2 block">
-                  Materia Destino
-                </label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                  {modalSubjects.map((subject) => (
-                    <button
-                      key={subject.id}
-                      onClick={() => handleChangeSubjectSubmit(subject.id)}
-                      className="p-3 rounded-lg text-left text-sm transition-colors bg-secondary hover:bg-secondary/80 border border-transparent hover:border-primary/30 group"
-                    >
-                      <p className="font-medium group-hover:text-primary transition-colors">{subject.codigo}</p>
-                      <p className="text-xs opacity-70 truncate">
-                        {subject.nombre}
-                      </p>
-                    </button>
-                  ))}
-                  {modalSubjects.length === 0 && (
-                    <div className="col-span-2 text-center text-sm text-muted-foreground py-4">
-                      No hay materias en este año.
+            <div>
+              <label className="text-xs font-black uppercase tracking-wider text-muted-foreground mb-2 block">
+                Materia Destino
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                {modalSubjects.map((subject) => (
+                  <button
+                    key={subject.id}
+                    type="button"
+                    onClick={() => handleChangeSubjectSubmit(subject.id)}
+                    className="p-2.5 rounded-xl border-2 border-foreground/60 bg-card text-foreground text-left transition-all hover:border-foreground hover:bg-accent hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] group"
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 bg-[#00E5FF] text-black border border-foreground rounded">
+                        {subject.codigo || `Año ${subject.año}`}
+                      </span>
+                      <span className="text-[10px] font-bold text-muted-foreground">Año {subject.año}</span>
                     </div>
-                  )}
-                </div>
+                    <p className="font-bold text-xs text-foreground truncate group-hover:text-primary transition-colors">
+                      {subject.nombre}
+                    </p>
+                  </button>
+                ))}
+                {modalSubjects.length === 0 && (
+                  <div className="col-span-full text-center text-xs font-bold text-muted-foreground py-4">
+                    No hay materias en este año.
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
