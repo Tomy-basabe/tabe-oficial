@@ -334,29 +334,6 @@ export function useSubjects() {
     table: "user_subject_status",
     filter: user ? `user_id=eq.${user.id}` : undefined,
     onChange: useCallback(() => {
-      console.log("📡 Realtime: user_subject_status changed, refetching...");
-      debouncedRefetch();
-    }, [debouncedRefetch]),
-    enabled: !!user,
-  });
-
-  // Realtime subscription for user's subjects
-  useRealtimeSubscription({
-    table: "subjects",
-    filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: useCallback(() => {
-      console.log("📡 Realtime: subjects changed, refetching...");
-      debouncedRefetch();
-    }, [debouncedRefetch]),
-    enabled: !!user,
-  });
-
-  // Realtime subscription for user's dependencies
-  useRealtimeSubscription({
-    table: "subject_dependencies",
-    filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: useCallback(() => {
-      console.log("📡 Realtime: subject_dependencies changed, refetching...");
       debouncedRefetch();
     }, [debouncedRefetch]),
     enabled: !!user,

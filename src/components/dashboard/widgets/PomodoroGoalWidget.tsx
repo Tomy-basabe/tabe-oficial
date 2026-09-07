@@ -3,9 +3,24 @@ import { Target, Flame, TrendingUp } from "lucide-react";
 import { ProgressRing } from "@/components/dashboard/ProgressRing";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function PomodoroGoalWidget() {
+interface PomodoroGoalWidgetProps {
+  weekData?: any[];
+  loading?: boolean;
+}
+
+export function PomodoroGoalWidget(props: PomodoroGoalWidgetProps) {
+  if (props.weekData !== undefined && props.loading !== undefined) {
+    return <PomodoroGoalWidgetContent weekData={props.weekData} loading={props.loading} />;
+  }
+  return <PomodoroGoalWidgetConnected />;
+}
+
+function PomodoroGoalWidgetConnected() {
   const { weekData, loading } = useDashboardStats();
-  
+  return <PomodoroGoalWidgetContent weekData={weekData} loading={loading} />;
+}
+
+function PomodoroGoalWidgetContent({ weekData, loading }: { weekData: any[]; loading: boolean }) {
   if (loading) {
     return <Skeleton className="w-full h-48 rounded-2xl" />;
   }

@@ -173,14 +173,14 @@ export default function Dashboard() {
             )}
           </div>
 
-          <NextMilestoneWidget />
+          <NextMilestoneWidget userStats={userStats} loading={loading} />
 
         </div>
 
         {/* LADO DERECHO (Secundario) */}
         <div className="lg:col-span-4 flex flex-col gap-5 lg:gap-6">
           <ForestWidget />
-          <PomodoroGoalWidget />
+          <PomodoroGoalWidget weekData={weekData} loading={loading} />
           <StudyStreak
             currentStreak={userStats?.racha_actual || 0}
             bestStreak={userStats?.mejor_racha || 0}

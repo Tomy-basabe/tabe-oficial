@@ -3,9 +3,24 @@ import { User, Shield, Sword, Trophy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-export function NextMilestoneWidget() {
-  const { userStats, loading } = useDashboardStats();
+interface NextMilestoneWidgetProps {
+  userStats?: any;
+  loading?: boolean;
+}
 
+export function NextMilestoneWidget(props: NextMilestoneWidgetProps) {
+  if (props.loading !== undefined) {
+    return <NextMilestoneWidgetContent userStats={props.userStats} loading={props.loading} />;
+  }
+  return <NextMilestoneWidgetConnected />;
+}
+
+function NextMilestoneWidgetConnected() {
+  const { userStats, loading } = useDashboardStats();
+  return <NextMilestoneWidgetContent userStats={userStats} loading={loading} />;
+}
+
+function NextMilestoneWidgetContent({ userStats, loading }: { userStats?: any; loading: boolean }) {
   if (loading) {
     return <Skeleton className="w-full h-48 rounded-2xl" />;
   }

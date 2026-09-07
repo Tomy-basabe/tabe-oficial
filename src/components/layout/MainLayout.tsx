@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { Outlet, Link, useLocation } from "react-router-dom";
@@ -158,24 +158,31 @@ export function MainLayout() {
   const userConfig = profile?.sidebar_config || savedLocalConfig;
   const isLegacyOrIncomplete = !userConfig || !hasCategories(userConfig) || countTotalItems(userConfig) < 10;
 
-  let displayItems: CustomSidebarItem[] = isLegacyOrIncomplete 
-    ? DEFAULT_CATEGORIZED_SIDEBAR 
-    : [...userConfig];
+  const displayItems: CustomSidebarItem[] = useMemo(() => {
+    return isLegacyOrIncomplete 
+      ? DEFAULT_CATEGORIZED_SIDEBAR 
+      : [...userConfig];
+  }, [isLegacyOrIncomplete, userConfig]);
 
   // Auto-expand category if current route is inside it
   useEffect(() => {
+    let hasChanges = false;
+    let nextCategories = { ...openCategories };
+
     displayItems.forEach((item: any) => {
       if (item.type === "category" && item.items) {
         const isInside = item.items.some((sub: any) => (sub.path || sub.id) === location.pathname);
-        if (isInside && !openCategories[item.id]) {
-          setOpenCategories(prev => {
-            const next = { ...prev, [item.id]: true };
-            try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
+        if (isInside && !nextCategories[item.id]) {
+          nextCategories[item.id] = true;
+          hasChanges = true;
         }
       }
     });
+
+    if (hasChanges) {
+      setOpenCategories(nextCategories);
+      try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(nextCategories)); } catch (e) {}
+    }
   }, [location.pathname, displayItems]);
 
   const toggleCollapse = () => {

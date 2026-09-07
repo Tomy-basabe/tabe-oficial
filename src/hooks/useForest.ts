@@ -36,18 +36,35 @@ const PLANT_TYPES = [
   { id: 'maple', name: 'Arce', emoji: '🍁' },
 ];
 
+// Module-level cache for instantaneous navigation and zero-flicker UI
+let _cachedPlants: Plant[] | null = null;
+let _cachedCurrentPlant: Plant | null = null;
+let _cachedStudyActivity: StudyActivity | null = null;
+let _cachedForestUserId: string | null = null;
+let _hasRunInitialGrowthCheck = false;
+
 export function useForest() {
   const { user, isGuest } = useAuth();
-  const [plants, setPlants] = useState<Plant[]>([]);
-  const [currentPlant, setCurrentPlant] = useState<Plant | null>(null);
-  const [studyActivity, setStudyActivity] = useState<StudyActivity>({
+
+  if (user && user.id !== _cachedForestUserId) {
+    _cachedPlants = null;
+    _cachedCurrentPlant = null;
+    _cachedStudyActivity = null;
+    _cachedForestUserId = user.id;
+    _hasRunInitialGrowthCheck = false;
+  }
+
+  const [plants, setPlants] = useState<Plant[]>(_cachedPlants || []);
+  const [currentPlant, setCurrentPlant] = useState<Plant | null>(_cachedCurrentPlant);
+  const [studyActivity, setStudyActivity] = useState<StudyActivity>(_cachedStudyActivity || {
     hasStudiedToday: false,
     hasStudiedThisWeek: false,
     daysSinceLastStudy: 0,
     studyMinutesToday: 0,
     studyMinutesThisWeek: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!_cachedPlants);
+  const lastLocalUpdateRef = useRef<number>(0);
 
   const fetchPlants = useCallback(async () => {
     if (!user && !isGuest) return;
@@ -64,11 +81,13 @@ export function useForest() {
         { id: "mock-1", user_id: "guest", plant_type: "oak", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo20.toISOString(), last_watered_at: daysAgo10.toISOString(), completed_at: daysAgo10.toISOString(), died_at: null },
         { id: "mock-2", user_id: "guest", plant_type: "cherry", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo10.toISOString(), last_watered_at: daysAgo5.toISOString(), completed_at: daysAgo5.toISOString(), died_at: null },
         { id: "mock-3", user_id: "guest", plant_type: "pine", growth_percentage: 100, is_alive: true, is_completed: true, planted_at: daysAgo10.toISOString(), last_watered_at: daysAgo2.toISOString(), completed_at: daysAgo2.toISOString(), died_at: null },
-        // Static active plant: last_watered_at always = now so it never dies or grows in guest mode
         { id: "mock-4", user_id: "guest", plant_type: "maple", growth_percentage: 65, is_alive: true, is_completed: false, planted_at: daysAgo5.toISOString(), last_watered_at: now.toISOString(), completed_at: null, died_at: null },
       ];
+      _cachedPlants = mockPlants;
+      const activeMock = mockPlants.find(p => p.is_alive && !p.is_completed) || null;
+      _cachedCurrentPlant = activeMock;
       setPlants(mockPlants);
-      setCurrentPlant(mockPlants.find(p => p.is_alive && !p.is_completed) || null);
+      setCurrentPlant(activeMock);
       return;
     }
 
@@ -82,15 +101,15 @@ export function useForest() {
       if (error) throw error;
 
       const typedData = data as Plant[];
+      const active = typedData.find(p => p.is_alive && !p.is_completed) || null;
+      _cachedPlants = typedData;
+      _cachedCurrentPlant = active;
       setPlants(typedData);
-
-      // Find current active plant (alive and not completed)
-      const active = typedData.find(p => p.is_alive && !p.is_completed);
-      setCurrentPlant(active || null);
+      setCurrentPlant(active);
     } catch (error) {
       console.error("Error fetching plants:", error);
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   const fetchStudyActivity = useCallback(async () => {
     if (!user) return;
@@ -259,6 +278,7 @@ export function useForest() {
             .eq("id", plant.id);
 
           if (!updateError) {
+            lastLocalUpdateRef.current = Date.now();
             if (isCompleted) {
               toast.success("🎉 ¡Tu árbol ha crecido completamente! Puedes plantar uno nuevo.");
             } else if (delta >= 1) {
@@ -276,6 +296,7 @@ export function useForest() {
 
           if (lastWateredDay.getTime() < todayDate.getTime()) {
             const nowIso = new Date().toISOString();
+            lastLocalUpdateRef.current = Date.now();
             await supabase
               .from("user_plants")
               .update({ last_watered_at: nowIso })
@@ -292,7 +313,7 @@ export function useForest() {
     } finally {
       isCheckingRef.current = false;
     }
-  }, [user, currentPlant, isGuest, studyActivity]);
+  }, [user, isGuest, studyActivity]);
 
   const plantNewTree = async (plantType: string = 'oak') => {
     if (!user) return;
@@ -369,7 +390,7 @@ export function useForest() {
 
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
+      if (!_cachedPlants) setLoading(true);
       
       // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs
       const timeoutId = setTimeout(() => {
@@ -392,18 +413,18 @@ export function useForest() {
     loadData();
   }, [fetchPlants, fetchStudyActivity]);
 
-  // Run growth check strictly ONCE after initial data loads
-  const hasRunInitialCheckRef = useRef(false);
+  // Run growth check strictly ONCE per user session
   useEffect(() => {
-    if (!loading && currentPlant && !hasRunInitialCheckRef.current) {
-      hasRunInitialCheckRef.current = true;
+    if (!loading && currentPlant && !_hasRunInitialGrowthCheck) {
+      _hasRunInitialGrowthCheck = true;
       checkAndUpdatePlants(currentPlant);
     }
   }, [loading, currentPlant, checkAndUpdatePlants]);
 
   const plantsDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedFetchPlants = useCallback(() => {
-    if (isCheckingRef.current) return;
+    // Ignore realtime event if triggered by our own local update
+    if (isCheckingRef.current || Date.now() - lastLocalUpdateRef.current < 2500) return;
     if (plantsDebounceTimer.current) clearTimeout(plantsDebounceTimer.current);
     plantsDebounceTimer.current = setTimeout(() => {
       fetchPlants();
