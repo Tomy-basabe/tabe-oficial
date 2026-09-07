@@ -115,7 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.provider_token) {
-          setStoredGoogleToken(session.provider_token, session.user?.email);
+          setStoredGoogleToken(
+            session.provider_token,
+            session.user?.email,
+            session.provider_refresh_token ?? undefined
+          );
         }
         if (session?.user) {
           fetchProfile(session.user.id);
@@ -134,7 +138,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.provider_token) {
-        setStoredGoogleToken(session.provider_token, session.user?.email);
+        setStoredGoogleToken(
+          session.provider_token,
+          session.user?.email,
+          session.provider_refresh_token ?? undefined
+        );
       }
       if (session?.user) {
         fetchProfile(session.user.id);

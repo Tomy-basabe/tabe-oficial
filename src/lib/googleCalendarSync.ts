@@ -10,6 +10,7 @@ export const GCAL_TOKEN_KEY = "tabe_google_calendar_token";
 export const GCAL_EMAIL_KEY = "tabe_google_calendar_email";
 export const GCAL_AUTO_SYNC_KEY = "tabe_gcal_auto_sync";
 export const GCAL_LAST_SYNC_KEY = "tabe_gcal_last_sync";
+export const GCAL_REFRESH_TOKEN_KEY = "tabe_google_calendar_refresh_token";
 
 const GCAL_API_BASE = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
@@ -95,13 +96,24 @@ export function getStoredGoogleToken(): string | null {
 }
 
 /**
- * Saves Google access token
+ * Gets the stored Google refresh token (long-lived)
  */
-export function setStoredGoogleToken(token: string, email?: string) {
+export function getStoredRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(GCAL_REFRESH_TOKEN_KEY);
+}
+
+/**
+ * Saves Google access token (and optionally refresh token)
+ */
+export function setStoredGoogleToken(token: string, email?: string, refreshToken?: string) {
   if (typeof window === "undefined") return;
   localStorage.setItem(GCAL_TOKEN_KEY, token);
   if (email) {
     localStorage.setItem(GCAL_EMAIL_KEY, email);
+  }
+  if (refreshToken) {
+    localStorage.setItem(GCAL_REFRESH_TOKEN_KEY, refreshToken);
   }
 }
 
@@ -113,6 +125,65 @@ export function disconnectGoogleCalendar() {
   localStorage.removeItem(GCAL_TOKEN_KEY);
   localStorage.removeItem(GCAL_EMAIL_KEY);
   localStorage.removeItem(GCAL_LAST_SYNC_KEY);
+  localStorage.removeItem(GCAL_REFRESH_TOKEN_KEY);
+}
+
+/**
+ * Silently refreshes the Google access token using Supabase session refresh.
+ * Supabase re-issues the provider_token when the session is refreshed.
+ * Returns the new token or null if refresh failed.
+ */
+let _refreshPromise: Promise<string | null> | null = null;
+export async function refreshGoogleToken(): Promise<string | null> {
+  // Deduplicate concurrent refresh calls
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    try {
+      // Lazy-import supabase to avoid circular deps
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data, error } = await supabase.auth.refreshSession();
+      if (!error && data?.session?.provider_token) {
+        const newToken = data.session.provider_token;
+        setStoredGoogleToken(
+          newToken,
+          data.session.user?.email,
+          data.session.provider_refresh_token ?? undefined
+        );
+        return newToken;
+      }
+    } catch (e) {
+      console.warn("Google token refresh failed:", e);
+    }
+    return null;
+  })().finally(() => { _refreshPromise = null; });
+
+  return _refreshPromise;
+}
+
+/**
+ * A fetch wrapper that automatically retries once with a fresh token on 401.
+ */
+async function fetchWithAutoRefresh(
+  url: string,
+  init: RequestInit
+): Promise<Response> {
+  let res = await fetch(url, init);
+  if (res.status === 401) {
+    const newToken = await refreshGoogleToken();
+    if (newToken) {
+      const newHeaders = {
+        ...(init.headers as Record<string, string>),
+        Authorization: `Bearer ${newToken}`,
+      };
+      res = await fetch(url, { ...init, headers: newHeaders });
+    }
+    if (res.status === 401) {
+      // Token truly expired and can't be refreshed - disconnect
+      disconnectGoogleCalendar();
+    }
+  }
+  return res;
 }
 
 /**
@@ -302,7 +373,7 @@ export async function pushEventToGoogleCalendar(event: {
 
     if (existingGcalId) {
       // Update existing Google event
-      response = await fetch(`${GCAL_API_BASE}/${existingGcalId}`, {
+      response = await fetchWithAutoRefresh(`${GCAL_API_BASE}/${existingGcalId}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -313,7 +384,7 @@ export async function pushEventToGoogleCalendar(event: {
 
       // If event was deleted in Google (404), recreate it
       if (response.status === 404 || response.status === 410) {
-        response = await fetch(GCAL_API_BASE, {
+        response = await fetchWithAutoRefresh(GCAL_API_BASE, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -324,7 +395,7 @@ export async function pushEventToGoogleCalendar(event: {
       }
     } else {
       // Create new event in Google
-      response = await fetch(GCAL_API_BASE, {
+      response = await fetchWithAutoRefresh(GCAL_API_BASE, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -336,8 +407,7 @@ export async function pushEventToGoogleCalendar(event: {
 
     if (!response.ok) {
       if (response.status === 401) {
-        disconnectGoogleCalendar();
-        return { error: "El token de Google expiró. Vuelve a conectar tu cuenta." };
+        return { error: "El token de Google expiró y no se pudo renovar automáticamente. Vuelve a conectar tu cuenta." };
       }
       const errJson = await response.json().catch(() => null);
       return { error: errJson?.error?.message || `Error ${response.status} en Google Calendar` };
@@ -359,7 +429,7 @@ export async function deleteEventFromGoogleCalendar(gcalId: string): Promise<boo
   if (!token || !gcalId) return false;
 
   try {
-    const res = await fetch(`${GCAL_API_BASE}/${gcalId}`, {
+    const res = await fetchWithAutoRefresh(`${GCAL_API_BASE}/${gcalId}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -378,15 +448,14 @@ export async function deleteEventFromGoogleCalendar(gcalId: string): Promise<boo
  */
 export async function fetchUserCalendarList(token: string): Promise<Array<{ id: string; summary: string; primary?: boolean }>> {
   try {
-    const res = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
+    const res = await fetchWithAutoRefresh("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    if (res.status === 401 || res.status === 403) {
-      console.warn("Google Calendar token expired or insufficient permissions.");
-      disconnectGoogleCalendar();
+    if (res.status === 401) {
+      console.warn("Google Calendar token expired or insufficient permissions even after refresh.");
       return [];
     }
 
@@ -453,7 +522,7 @@ export async function fetchEventsFromGoogleCalendar(options?: {
       )}&timeMax=${encodeURIComponent(timeMax)}&maxResults=2500`;
 
       try {
-        const res = await fetch(url, {
+        const res = await fetchWithAutoRefresh(url, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -471,8 +540,7 @@ export async function fetchEventsFromGoogleCalendar(options?: {
             }
           }
         } else if (res.status === 401) {
-          disconnectGoogleCalendar();
-          return { items: [], error: "Sesión de Google expirada. Vuelve a conectar." };
+          return { items: [], error: "Sesión de Google expirada y no se pudo renovar. Vuelve a conectar." };
         }
       } catch (calErr) {
         console.warn(`Error fetching events for calendar ${cal.summary}:`, calErr);
