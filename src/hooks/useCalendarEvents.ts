@@ -312,13 +312,13 @@ export function useCalendarEvents() {
             }
           } else if (res.error && !options?.silent) {
             console.warn("Google Calendar sync warning:", res.error);
-            toast.warning(`Google Calendar: ${res.error}`);
+            if (!res.error.toLowerCase().includes("expir") && !res.error.toLowerCase().includes("token")) {
+              toast.warning(`Google Calendar: ${res.error}`);
+            }
           }
         } catch (syncErr) {
           console.warn("Auto-sync to Google Calendar failed on create:", syncErr);
         }
-      } else if (!isGoogleCalendarConnected() && !existingGcalId && !options?.silent) {
-        toast.info("Evento creado en TABE. (Google Calendar no está conectado en esta sesión)", { duration: 3500 });
       }
 
       const { error } = await supabase
@@ -410,7 +410,9 @@ export function useCalendarEvents() {
               }
             } else if (res.error && !options?.silent) {
               console.warn("Google Calendar sync warning:", res.error);
-              toast.warning(`Google Calendar: ${res.error}`);
+              if (!res.error.toLowerCase().includes("expir") && !res.error.toLowerCase().includes("token")) {
+                toast.warning(`Google Calendar: ${res.error}`);
+              }
             }
           } catch (syncErr) {
             console.warn("Auto-sync to Google Calendar failed on update:", syncErr);

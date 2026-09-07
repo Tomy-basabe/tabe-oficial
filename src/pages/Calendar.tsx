@@ -115,7 +115,9 @@ export default function Calendar() {
             toast.success(`Google Calendar: ${res.pushedCount} enviados, ${res.pulledCount} importados`, { icon: "📅", duration: 5000 });
           }
         } else if (res.error) {
-          toast.warning(res.error, { duration: 6000 });
+          if (!res.error.toLowerCase().includes("expir") && !res.error.toLowerCase().includes("token")) {
+            toast.warning(res.error, { duration: 6000 });
+          }
           setIsGCalConnected(isGoogleCalendarConnected());
         }
       }).catch(err => {

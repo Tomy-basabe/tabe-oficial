@@ -21,12 +21,16 @@ import {
     AlertCircle,
     Zap,
     Unlink,
+    Sparkles,
+    Infinity as InfinityIcon,
+    ShieldCheck,
 } from "lucide-react";
 import { useCalendarFeed } from "@/hooks/useCalendarFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalendarEvent, CreateEventData } from "@/hooks/useCalendarEvents";
 import {
     isGoogleCalendarConnected,
+    isGoogleTokenNeedsReauth,
     disconnectGoogleCalendar,
     isAutoSyncEnabled,
     setAutoSyncEnabled,
@@ -60,12 +64,14 @@ export function GoogleCalendarSyncModal({
     const { feedToken, feedUrl, loading: feedLoading, generateToken, regenerateToken, disableFeed } =
         useCalendarFeed();
 
-    const [activeTab, setActiveTab] = useState<"live" | "export" | "import">("live");
+    // Default to "permanent" tab so user immediately sees the no-expiration solution
+    const [activeTab, setActiveTab] = useState<"permanent" | "live" | "import">("permanent");
     const [copied, setCopied] = useState(false);
     const [generating, setGenerating] = useState(false);
 
     // Live Sync States
     const [connected, setConnected] = useState(false);
+    const [needsReauth, setNeedsReauth] = useState(false);
     const [autoSync, setAutoSync] = useState(true);
     const [lastSync, setLastSync] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -76,12 +82,19 @@ export function GoogleCalendarSyncModal({
     useEffect(() => {
         if (open) {
             const isConn = isGoogleCalendarConnected();
+            const reauth = isGoogleTokenNeedsReauth();
             setConnected(isConn);
+            setNeedsReauth(reauth);
             setAutoSync(isAutoSyncEnabled());
             setLastSync(getLastSyncTime());
             setConnectedEmail(localStorage.getItem(GCAL_EMAIL_KEY));
+
+            // Auto-generate feed token if not present so it's instantly ready
+            if (!feedLoading && !feedToken) {
+                generateToken();
+            }
         }
-    }, [open]);
+    }, [open, feedLoading, feedToken, generateToken]);
 
     const handleConnectGoogle = async () => {
         try {
@@ -101,6 +114,7 @@ export function GoogleCalendarSyncModal({
         if (confirm("¿Desconectar Google Calendar? Los eventos existentes en TABE no se borrarán.")) {
             disconnectGoogleCalendar();
             setConnected(false);
+            setNeedsReauth(false);
             setSyncResult(null);
             toast.success("Google Calendar desconectado");
         }
@@ -134,28 +148,44 @@ export function GoogleCalendarSyncModal({
             if (result.success) {
                 setSyncResult({ pushed: result.pushedCount, pulled: result.pulledCount });
                 setLastSync(new Date().toISOString());
+                setNeedsReauth(false);
                 toast.success(
                     `¡Sincronizado! ${result.pushedCount} a Google, ${result.pulledCount} traídos a TABE`
                 );
             } else {
                 toast.error(result.error || "Error al sincronizar");
                 setConnected(isGoogleCalendarConnected());
+                setNeedsReauth(isGoogleTokenNeedsReauth());
             }
         } catch (err: any) {
             toast.error(err?.message || "Error inesperado al sincronizar");
             setConnected(isGoogleCalendarConnected());
+            setNeedsReauth(isGoogleTokenNeedsReauth());
         } finally {
             setIsSyncing(false);
         }
     };
 
-    // Feed functions
+    // Feed functions: 1-Click Subscribe in Google Calendar (NEVER EXPIRES)
+    const handleSubscribeGoogleCalendar = () => {
+        if (!feedUrl) {
+            toast.error("El enlace aún se está generando, intenta en un segundo...");
+            handleGenerate();
+            return;
+        }
+        // Google Calendar web subscription URL accepts webcal://
+        const webcalUrl = feedUrl.replace(/^https?:\/\//i, "webcal://");
+        const gcalSubscribeUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`;
+        window.open(gcalSubscribeUrl, "_blank", "noopener,noreferrer");
+        toast.success("Abriendo Google Calendar para suscribirte de forma permanente...");
+    };
+
     const handleCopy = async () => {
         if (!feedUrl) return;
         try {
             await navigator.clipboard.writeText(feedUrl);
             setCopied(true);
-            toast.success("URL copiada al portapapeles");
+            toast.success("URL del feed copiada al portapapeles");
             setTimeout(() => setCopied(false), 2000);
         } catch {
             toast.error("Error al copiar");
@@ -205,35 +235,38 @@ export function GoogleCalendarSyncModal({
                         Sincronizar con Google Calendar
                     </DialogTitle>
                     <DialogDescription className="font-bold text-foreground/80">
-                        Conecta TABE con Google Calendar para sincronizar tus eventos en ambas direcciones.
+                        Ten todos tus parciales, entregas y clases de TABE en tu Google Calendar siempre al día.
                     </DialogDescription>
                 </DialogHeader>
 
                 {/* Comic Style Tabs */}
                 <div className="flex gap-2 p-1 border-b-[3px] border-foreground/15 pb-3">
                     <button
+                        onClick={() => setActiveTab("permanent")}
+                        className={cn(
+                            "flex-1 py-2 px-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground relative",
+                            activeTab === "permanent"
+                                ? "bg-[#00FF9D] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
+                                : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                        )}
+                    >
+                        <InfinityIcon className="w-4 h-4" />
+                        <span>Sin Caducidad</span>
+                        <span className="hidden sm:inline-block bg-black text-[#00FF9D] text-[9px] px-1 py-0.2 rounded font-black tracking-normal uppercase">
+                            ⭐ Top
+                        </span>
+                    </button>
+                    <button
                         onClick={() => setActiveTab("live")}
                         className={cn(
                             "flex-1 py-2 px-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground",
                             activeTab === "live"
-                                ? "bg-[#00FF9D] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
+                                ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
                                 : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                         )}
                     >
                         <Zap className="w-4 h-4 fill-current" />
                         2 Vías (En Vivo)
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("export")}
-                        className={cn(
-                            "flex-1 py-2 px-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground",
-                            activeTab === "export"
-                                ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
-                                : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                        )}
-                    >
-                        <ExternalLink className="w-4 h-4" />
-                        Feed URL
                     </button>
                     <button
                         onClick={() => setActiveTab("import")}
@@ -249,7 +282,99 @@ export function GoogleCalendarSyncModal({
                     </button>
                 </div>
 
-                {/* TAB 1: LIVE 2-WAY SYNC */}
+                {/* TAB 1: PERMANENT CALENDAR (NO EXPIRATION / SIN CADUCIDAD) */}
+                {activeTab === "permanent" && (
+                    <div className="space-y-4 py-2 overflow-y-auto pr-1">
+                        {/* Banner: Sin Caducidad */}
+                        <div className="p-4 bg-gradient-to-r from-[#00FF9D]/20 via-[#00F0FF]/15 to-[#FFE66D]/20 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl space-y-2">
+                            <div className="flex items-center gap-2 font-black uppercase tracking-wider text-sm text-foreground">
+                                <Sparkles className="w-5 h-5 text-[#00FF9D] shrink-0 fill-current" />
+                                Suscripción Permanente (No Caduca Jamás)
+                            </div>
+                            <p className="text-xs font-bold leading-relaxed text-foreground/90">
+                                Con este método <strong>no tienes que volver a iniciar sesión nunca</strong>. Google Calendar se conecta directamente con tu cuenta de TABE y sincroniza todos tus eventos automáticamente:
+                            </p>
+                            <ul className="text-xs font-bold list-disc list-inside space-y-1 pl-1 text-foreground/80">
+                                <li><strong>Sin vencimiento de sesión:</strong> Funciona los 365 días del año sin desconectarse.</li>
+                                <li><strong>En todos tus dispositivos:</strong> Visible en la app de Google Calendar de tu celular, tablet y PC.</li>
+                                <li><strong>Actualización automática:</strong> Todo parcial, entrega o examen nuevo en TABE aparecerá en tu calendario.</li>
+                            </ul>
+                        </div>
+
+                        {/* Action: 1-Click Add to Google Calendar */}
+                        <div className="p-5 bg-card border-[3px] border-foreground shadow-[5px_5px_0_0_hsl(var(--foreground))] rounded-xl text-center space-y-3">
+                            <h3 className="font-black text-base uppercase tracking-tight text-foreground">
+                                Vincular con Google Calendar en 1 Clic
+                            </h3>
+                            <p className="text-xs font-bold text-muted-foreground max-w-md mx-auto">
+                                Haz clic en el botón de abajo. Se abrirá Google Calendar y solo tendrás que presionar <strong>"Añadir calendario"</strong> una sola vez.
+                            </p>
+
+                            <button
+                                onClick={handleSubscribeGoogleCalendar}
+                                disabled={feedLoading || generating}
+                                className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-black uppercase tracking-widest text-xs sm:text-sm bg-[#00FF9D] text-black border-4 border-foreground shadow-[5px_5px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[7px_7px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2.5 mx-auto cursor-pointer disabled:opacity-50"
+                            >
+                                <InfinityIcon className="w-5 h-5" />
+                                Añadir a Google Calendar (Sin Caducidad)
+                            </button>
+                        </div>
+
+                        {/* Copyable Feed URL Box */}
+                        <div className="space-y-2 pt-1">
+                            <label className="text-xs font-black uppercase tracking-widest text-foreground flex items-center justify-between">
+                                <span>O copia tu enlace personal de calendario:</span>
+                                <span className="text-[10px] text-muted-foreground font-mono">iCal / Webcal</span>
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={feedUrl || "Generando enlace permanente..."}
+                                    readOnly
+                                    className="flex-1 px-3.5 py-2.5 bg-background text-foreground border-[3px] border-foreground rounded-lg text-xs font-mono font-bold truncate focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))]"
+                                />
+                                <button
+                                    onClick={handleCopy}
+                                    disabled={!feedUrl}
+                                    className="px-4 py-2 bg-[#00F0FF] text-black border-[3px] border-foreground rounded-lg shadow-[3px_3px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all font-black uppercase tracking-widest flex items-center gap-1.5 text-xs shrink-0 cursor-pointer disabled:opacity-50"
+                                >
+                                    {copied ? (
+                                        <>
+                                            <Check className="w-4 h-4 text-green-700" />
+                                            Copiado
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy className="w-4 h-4" />
+                                            Copiar
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Security / Refresh controls */}
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={handleRegenerate}
+                                disabled={generating}
+                                className="flex-1 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-wider bg-muted text-foreground border-[2px] border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                                <RefreshCw className={cn("w-3.5 h-3.5", generating && "animate-spin")} />
+                                Regenerar Enlace Privado
+                            </button>
+                            <button
+                                onClick={handleDisable}
+                                className="py-2.5 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider bg-[#FF3366]/20 text-foreground border-[2px] border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-[#FF3366] hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                                <ShieldAlert className="w-3.5 h-3.5" />
+                                Desactivar
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* TAB 2: LIVE 2-WAY SYNC (API DIRECTA) */}
                 {activeTab === "live" && (
                     <div className="space-y-4 py-2 overflow-y-auto pr-1">
                         {!connected ? (
@@ -258,16 +383,14 @@ export function GoogleCalendarSyncModal({
                                 <div className="p-4 bg-[#FFE66D] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl text-black space-y-2">
                                     <div className="flex items-center gap-2 font-black uppercase tracking-wider text-sm">
                                         <AlertCircle className="w-5 h-5 shrink-0" />
-                                        Sincronización Bidireccional Directa
+                                        Sincronización Bidireccional Directa (API)
                                     </div>
                                     <p className="text-xs font-bold leading-relaxed">
-                                        Al vincular tu cuenta de Google:
+                                        Permite editar eventos tanto desde TABE como desde Google Calendar y sincronizarlos al instante.
                                     </p>
-                                    <ul className="text-xs font-bold list-disc list-inside space-y-1 pl-1">
-                                        <li>Cualquier parcial, entrega o examen creado en TABE aparecerá en tu Google Calendar.</li>
-                                        <li>Los eventos de Google Calendar se sincronizarán dentro de TABE (viceversa).</li>
-                                        <li>Los cambios de fecha u horarios se actualizarán automáticamente.</li>
-                                    </ul>
+                                    <p className="text-[11px] font-bold text-black/70">
+                                        💡 <em>Nota: Si prefieres que nunca caduque y no tener que loguearte, usa la pestaña <strong>"Sin Caducidad"</strong>.</em>
+                                    </p>
                                 </div>
 
                                 <div className="text-center py-4 space-y-4">
@@ -287,7 +410,7 @@ export function GoogleCalendarSyncModal({
                                     <button
                                         onClick={handleConnectGoogle}
                                         disabled={isConnecting}
-                                        className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-black uppercase tracking-widest text-sm bg-white text-black border-4 border-foreground shadow-[5px_5px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[7px_7px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-3 mx-auto disabled:opacity-50"
+                                        className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-black uppercase tracking-widest text-sm bg-white text-black border-4 border-foreground shadow-[5px_5px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[7px_7px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-3 mx-auto disabled:opacity-50 cursor-pointer"
                                     >
                                         {isConnecting ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -341,6 +464,23 @@ export function GoogleCalendarSyncModal({
                                     </div>
                                 </div>
 
+                                {/* Reauth Banner if Token Expired */}
+                                {needsReauth && (
+                                    <div className="p-3.5 bg-amber-500/15 border-[3px] border-amber-500 rounded-xl flex items-center justify-between gap-3 shadow-[3px_3px_0_0_#F59E0B]">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                                            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                                            <span>Sesión en vivo pausada. Renueva con 1 clic para seguir enviando eventos por API.</span>
+                                        </div>
+                                        <button
+                                            onClick={handleConnectGoogle}
+                                            disabled={isConnecting}
+                                            className="px-3 py-1.5 bg-amber-500 text-black border-2 border-foreground rounded font-black text-xs uppercase shrink-0 shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-transform cursor-pointer"
+                                        >
+                                            {isConnecting ? "Renovando..." : "Renovar"}
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Sync Results Notice */}
                                 {syncResult && (
                                     <div className="p-3.5 bg-[#00F0FF]/15 border-[3px] border-foreground rounded-xl flex items-center gap-3 shadow-[3px_3px_0_0_hsl(var(--foreground))]">
@@ -353,29 +493,25 @@ export function GoogleCalendarSyncModal({
                                     </div>
                                 )}
 
-                                {/* Auto-sync switch */}
-                                <div className="flex items-center justify-between p-3.5 bg-muted/50 border-[3px] border-foreground rounded-xl shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+                                {/* Auto-Sync Toggle */}
+                                <div className="p-4 bg-muted/60 border-[3px] border-foreground rounded-xl flex items-center justify-between shadow-[3px_3px_0_0_hsl(var(--foreground))]">
                                     <div>
-                                        <p className="text-xs font-black uppercase tracking-wider text-foreground">
+                                        <div className="font-black uppercase tracking-wider text-xs sm:text-sm text-foreground">
                                             Sincronización Automática
-                                        </p>
-                                        <p className="text-[11px] font-bold text-muted-foreground">
-                                            Sincroniza en segundo plano al crear, editar o eliminar eventos
+                                        </div>
+                                        <p className="text-xs text-muted-foreground font-bold mt-0.5">
+                                            Guarda y actualiza en Google al crear eventos en TABE.
                                         </p>
                                     </div>
                                     <button
+                                        type="button"
                                         onClick={handleToggleAutoSync}
                                         className={cn(
-                                            "w-12 h-7 rounded-full border-2 border-foreground p-0.5 transition-colors relative shadow-[2px_2px_0_0_#000]",
-                                            autoSync ? "bg-[#00FF9D]" : "bg-muted"
+                                            "w-12 h-7 rounded-full border-2 border-foreground transition-colors p-0.5 flex items-center cursor-pointer shadow-[2px_2px_0_0_hsl(var(--foreground))]",
+                                            autoSync ? "bg-[#00FF9D] justify-end" : "bg-muted-foreground/30 justify-start"
                                         )}
                                     >
-                                        <div
-                                            className={cn(
-                                                "w-5 h-5 rounded-full bg-black border border-foreground transition-transform",
-                                                autoSync ? "translate-x-5 bg-black" : "translate-x-0 bg-white"
-                                            )}
-                                        />
+                                        <div className="w-5 h-5 rounded-full bg-white border border-foreground shadow-sm" />
                                     </button>
                                 </div>
 
@@ -384,7 +520,7 @@ export function GoogleCalendarSyncModal({
                                     <button
                                         onClick={handleRunSync}
                                         disabled={isSyncing}
-                                        className="flex-1 py-3 px-4 rounded-xl font-black uppercase tracking-widest text-xs sm:text-sm bg-[#00F0FF] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                        className="flex-1 py-3 px-4 rounded-xl font-black uppercase tracking-widest text-xs sm:text-sm bg-[#00F0FF] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                                     >
                                         <RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} />
                                         {isSyncing ? "Sincronizando..." : "Sincronizar Ahora (Ambas Vías)"}
@@ -394,7 +530,7 @@ export function GoogleCalendarSyncModal({
                                         href="https://calendar.google.com"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="py-3 px-4 rounded-xl font-black uppercase tracking-widest text-xs sm:text-sm bg-white text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2"
+                                        className="py-3 px-4 rounded-xl font-black uppercase tracking-widest text-xs sm:text-sm bg-white text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2 cursor-pointer"
                                     >
                                         <ExternalLink className="w-4 h-4" />
                                         Abrir Google
@@ -420,96 +556,6 @@ export function GoogleCalendarSyncModal({
                                     >
                                         <Unlink className="w-3.5 h-3.5" />
                                         Desconectar
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* TAB 2: FEED URL */}
-                {activeTab === "export" && (
-                    <div className="space-y-4 py-2 overflow-y-auto">
-                        {feedLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                            </div>
-                        ) : !feedToken ? (
-                            <div className="text-center space-y-4 py-4">
-                                <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                                    <Link2 className="w-8 h-8 text-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg">Activa tu feed de calendario</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Genera una URL pública de sólo lectura para suscribirte en Google Calendar.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={handleGenerate}
-                                    disabled={generating}
-                                    className="px-6 py-3 rounded-lg font-black uppercase tracking-widest bg-[#00FF9D] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all disabled:opacity-50 flex items-center gap-2 mx-auto"
-                                >
-                                    {generating ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                        <Link2 className="w-5 h-5" />
-                                    )}
-                                    Activar Feed
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-black uppercase tracking-widest">Tu URL del feed:</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={feedUrl || ""}
-                                            readOnly
-                                            className="flex-1 px-4 py-2 bg-background text-foreground border-[3px] border-foreground rounded-lg text-xs font-mono font-bold truncate focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))]"
-                                        />
-                                        <button
-                                            onClick={handleCopy}
-                                            className="px-4 py-2 bg-background text-foreground border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-black uppercase tracking-widest flex items-center gap-2 text-sm"
-                                        >
-                                            {copied ? (
-                                                <Check className="w-4 h-4 text-green-500" />
-                                            ) : (
-                                                <Copy className="w-4 h-4" />
-                                            )}
-                                            {copied ? "Copiado" : "Copiar"}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="bg-[#FFE66D] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl p-5 space-y-3">
-                                    <h4 className="font-bold text-sm text-black">
-                                        📋 Cómo agregar como suscripción en Google Calendar:
-                                    </h4>
-                                    <ol className="list-decimal list-inside space-y-1.5 text-xs text-black font-medium">
-                                        <li>Copia la URL de arriba</li>
-                                        <li>Abre Google Calendar en la web</li>
-                                        <li>En la barra lateral, haz clic en "+" junto a "Otros calendarios"</li>
-                                        <li>Selecciona "Desde URL"</li>
-                                        <li>Pega la URL y haz clic en "Agregar calendario"</li>
-                                    </ol>
-                                </div>
-
-                                <div className="flex gap-3 pt-2">
-                                    <button
-                                        onClick={handleRegenerate}
-                                        className="flex-1 py-3 rounded-lg text-xs font-black uppercase tracking-widest bg-white text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <RefreshCw className="w-4 h-4" />
-                                        Regenerar URL
-                                    </button>
-                                    <button
-                                        onClick={handleDisable}
-                                        className="flex-1 py-3 px-4 rounded-lg text-xs font-black uppercase tracking-widest bg-[#FF3366] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <ShieldAlert className="w-4 h-4" />
-                                        Desactivar
                                     </button>
                                 </div>
                             </div>
@@ -559,7 +605,7 @@ export function GoogleCalendarSyncModal({
                                     onClose();
                                     onOpenImport();
                                 }}
-                                className="px-6 py-3 rounded-lg font-black uppercase tracking-widest bg-[#4ECDC4] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] transition-all flex items-center gap-2 mx-auto"
+                                className="px-6 py-3 rounded-lg font-black uppercase tracking-widest bg-[#4ECDC4] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] transition-all flex items-center gap-2 mx-auto cursor-pointer"
                             >
                                 <Upload className="w-4 h-4" />
                                 Importar archivo .ics
