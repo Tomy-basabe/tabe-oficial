@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { setStoredGoogleToken, disconnectGoogleCalendar } from "@/lib/googleCalendarSync";
+import { setStoredGoogleToken, disconnectGoogleCalendar, GCAL_LINKED_KEY, GCAL_EMAIL_KEY } from "@/lib/googleCalendarSync";
 
 interface AuthContextType {
   user: User | null;
@@ -120,6 +120,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             session.user?.email,
             session.provider_refresh_token ?? undefined
           );
+        } else if (session?.user) {
+          const isGoogle =
+            session.user.app_metadata?.provider === "google" ||
+            session.user.app_metadata?.providers?.includes("google") ||
+            session.user.identities?.some((id: any) => id.provider === "google") ||
+            session.user.user_metadata?.gcal_linked === true;
+          if (isGoogle && localStorage.getItem("tabe_gcal_explicitly_disconnected") !== "true") {
+            localStorage.setItem(GCAL_LINKED_KEY, "true");
+            if (session.user.email) {
+              localStorage.setItem(GCAL_EMAIL_KEY, session.user.email);
+            }
+          }
         }
         if (session?.user) {
           fetchProfile(session.user.id);
@@ -143,6 +155,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           session.user?.email,
           session.provider_refresh_token ?? undefined
         );
+      } else if (session?.user) {
+        const isGoogle =
+          session.user.app_metadata?.provider === "google" ||
+          session.user.app_metadata?.providers?.includes("google") ||
+          session.user.identities?.some((id: any) => id.provider === "google") ||
+          session.user.user_metadata?.gcal_linked === true;
+        if (isGoogle && localStorage.getItem("tabe_gcal_explicitly_disconnected") !== "true") {
+          localStorage.setItem(GCAL_LINKED_KEY, "true");
+          if (session.user.email) {
+            localStorage.setItem(GCAL_EMAIL_KEY, session.user.email);
+          }
+        }
       }
       if (session?.user) {
         fetchProfile(session.user.id);
@@ -346,7 +370,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const googleIdentity = user?.identities?.find((id) => id.provider === "google") || null;
-  const isGoogleLinked = !!googleIdentity || user?.app_metadata?.providers?.includes("google") || false;
+  const isGoogleLinked =
+    !!googleIdentity ||
+    user?.app_metadata?.provider === "google" ||
+    user?.app_metadata?.providers?.includes("google") ||
+    user?.user_metadata?.gcal_linked === true ||
+    false;
 
   return (
     <AuthContext.Provider value={{

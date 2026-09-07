@@ -69,7 +69,7 @@ export default function Calendar() {
 
   const handleManualSync = async () => {
     if (isSyncing) return;
-    if (!isGoogleCalendarConnected()) {
+    if (!isGoogleCalendarConnected(user)) {
       setShowSyncModal(true);
       return;
     }
@@ -88,7 +88,7 @@ export default function Calendar() {
         toast.success(msg, { duration: 5000 });
       } else {
         toast.error(result.error || "Error al sincronizar", { duration: 6000 });
-        setIsGCalConnected(isGoogleCalendarConnected());
+        setIsGCalConnected(isGoogleCalendarConnected(user));
       }
     } catch (err: any) {
       toast.error(err?.message || "Error inesperado al sincronizar");
@@ -99,7 +99,7 @@ export default function Calendar() {
 
   useEffect(() => {
     extractAndStoreTokenFromUrl();
-    const conn = isGoogleCalendarConnected();
+    const conn = isGoogleCalendarConnected(user);
     setIsGCalConnected(conn);
 
     if (!loading && user && conn && isAutoSyncEnabled() && !hasAttemptedInitialSync.current) {
@@ -118,7 +118,7 @@ export default function Calendar() {
           if (!res.error.toLowerCase().includes("expir") && !res.error.toLowerCase().includes("token")) {
             toast.warning(res.error, { duration: 6000 });
           }
-          setIsGCalConnected(isGoogleCalendarConnected());
+          setIsGCalConnected(isGoogleCalendarConnected(user));
         }
       }).catch(err => {
         console.warn("Auto-sync error on calendar load:", err);
@@ -637,7 +637,7 @@ export default function Calendar() {
         open={showSyncModal}
         onClose={() => {
           setShowSyncModal(false);
-          setIsGCalConnected(isGoogleCalendarConnected());
+          setIsGCalConnected(isGoogleCalendarConnected(user));
         }}
         onOpenImport={() => setShowImportModal(true)}
         events={events}

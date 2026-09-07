@@ -60,7 +60,7 @@ export function GoogleCalendarSyncModal({
     updateEvent,
     refetch,
 }: GoogleCalendarSyncModalProps) {
-    const { connectGoogleCalendar } = useAuth();
+    const { user, connectGoogleCalendar } = useAuth();
     const { feedToken, feedUrl, loading: feedLoading, generateToken, regenerateToken, disableFeed } =
         useCalendarFeed();
 
@@ -81,13 +81,13 @@ export function GoogleCalendarSyncModal({
 
     useEffect(() => {
         if (open) {
-            const isConn = isGoogleCalendarConnected();
+            const isConn = isGoogleCalendarConnected(user);
             const reauth = isGoogleTokenNeedsReauth();
             setConnected(isConn);
             setNeedsReauth(reauth);
             setAutoSync(isAutoSyncEnabled());
             setLastSync(getLastSyncTime());
-            setConnectedEmail(localStorage.getItem(GCAL_EMAIL_KEY));
+            setConnectedEmail(localStorage.getItem(GCAL_EMAIL_KEY) || user?.email || null);
 
             // Auto-generate feed token if not present so it's instantly ready
             if (!feedLoading && !feedToken) {
@@ -154,12 +154,12 @@ export function GoogleCalendarSyncModal({
                 );
             } else {
                 toast.error(result.error || "Error al sincronizar");
-                setConnected(isGoogleCalendarConnected());
+                setConnected(isGoogleCalendarConnected(user));
                 setNeedsReauth(isGoogleTokenNeedsReauth());
             }
         } catch (err: any) {
             toast.error(err?.message || "Error inesperado al sincronizar");
-            setConnected(isGoogleCalendarConnected());
+            setConnected(isGoogleCalendarConnected(user));
             setNeedsReauth(isGoogleTokenNeedsReauth());
         } finally {
             setIsSyncing(false);

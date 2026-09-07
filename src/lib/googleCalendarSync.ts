@@ -91,13 +91,64 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Checks if Google Calendar is connected (account is linked or has token)
+ * Checks if Google Calendar is connected (account is linked, user logged with Google, or has token)
  */
-export function isGoogleCalendarConnected(): boolean {
+export function isGoogleCalendarConnected(user?: any): boolean {
   if (typeof window === "undefined") return false;
+  if (localStorage.getItem("tabe_gcal_explicitly_disconnected") === "true") {
+    return false;
+  }
   const isLinked = localStorage.getItem(GCAL_LINKED_KEY) === "true";
   const token = getStoredGoogleToken();
-  return isLinked || (!!token && token.trim().length > 10);
+  if (isLinked || (!!token && token.trim().length > 10)) return true;
+
+  // 1. Check passed user object from useAuth
+  if (user) {
+    const isGoogle =
+      user.app_metadata?.provider === "google" ||
+      user.app_metadata?.providers?.includes("google") ||
+      user.identities?.some((id: any) => id.provider === "google") ||
+      user.user_metadata?.gcal_linked === true;
+
+    if (isGoogle) {
+      localStorage.setItem(GCAL_LINKED_KEY, "true");
+      if (user.email) {
+        localStorage.setItem(GCAL_EMAIL_KEY, user.email);
+      }
+      return true;
+    }
+  }
+
+  // 2. Auto-detect if user signed in with Google via Supabase Auth stored session
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const u = parsed?.user;
+          if (u) {
+            const isGoogle =
+              u.app_metadata?.provider === "google" ||
+              u.app_metadata?.providers?.includes("google") ||
+              u.identities?.some((id: any) => id.provider === "google") ||
+              u.user_metadata?.gcal_linked === true;
+
+            if (isGoogle) {
+              localStorage.setItem(GCAL_LINKED_KEY, "true");
+              if (u.email) {
+                localStorage.setItem(GCAL_EMAIL_KEY, u.email);
+              }
+              return true;
+            }
+          }
+        }
+      }
+    }
+  } catch {}
+
+  return false;
 }
 
 /**
@@ -136,6 +187,8 @@ export function setStoredGoogleToken(
   expiresInSeconds?: number
 ) {
   if (typeof window === "undefined") return;
+  localStorage.removeItem("tabe_gcal_explicitly_disconnected");
+
   if (token && token.trim().length > 10) {
     localStorage.setItem(GCAL_TOKEN_KEY, token);
     localStorage.setItem(GCAL_LINKED_KEY, "true");
@@ -152,6 +205,18 @@ export function setStoredGoogleToken(
   if (refreshToken) {
     localStorage.setItem(GCAL_REFRESH_TOKEN_KEY, refreshToken);
   }
+
+  // Persist gcal_linked in user_metadata so it survives across devices and sessions
+  try {
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      supabase.auth.updateUser({
+        data: {
+          gcal_linked: true,
+          gcal_email: email || undefined,
+        },
+      }).catch(() => {});
+    });
+  } catch {}
 }
 
 /**
@@ -166,6 +231,17 @@ export function disconnectGoogleCalendar() {
   localStorage.removeItem(GCAL_LINKED_KEY);
   localStorage.removeItem(GCAL_EXPIRES_AT_KEY);
   localStorage.removeItem(GCAL_NEEDS_REAUTH_KEY);
+  localStorage.setItem("tabe_gcal_explicitly_disconnected", "true");
+
+  try {
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      supabase.auth.updateUser({
+        data: {
+          gcal_linked: false,
+        },
+      }).catch(() => {});
+    });
+  } catch {}
 }
 
 /**
@@ -181,6 +257,21 @@ export async function refreshGoogleToken(): Promise<string | null> {
     try {
       // Lazy-import supabase to avoid circular deps
       const { supabase } = await import("@/integrations/supabase/client");
+
+      // First check if current session has provider_token
+      const { data: currentData } = await supabase.auth.getSession();
+      if (currentData?.session?.provider_token) {
+        const pToken = currentData.session.provider_token;
+        setStoredGoogleToken(
+          pToken,
+          currentData.session.user?.email,
+          currentData.session.provider_refresh_token ?? undefined,
+          currentData.session.expires_in
+        );
+        return pToken;
+      }
+
+      // Then attempt session refresh
       const { data, error } = await supabase.auth.refreshSession();
       if (!error && data?.session) {
         if (data.session.provider_token) {
@@ -421,7 +512,10 @@ export async function pushEventToGoogleCalendar(event: {
   recurrence_rule?: string | null;
   recurrence_end?: string | null;
 }): Promise<{ gcalId?: string; error?: string }> {
-  const token = getStoredGoogleToken();
+  let token = getStoredGoogleToken();
+  if (!token) {
+    token = await refreshGoogleToken();
+  }
   if (!token) {
     return { error: "No hay sesión de Google Calendar activa" };
   }
@@ -506,7 +600,10 @@ export async function pushEventToGoogleCalendar(event: {
  * Delete an event from Google Calendar
  */
 export async function deleteEventFromGoogleCalendar(gcalId: string): Promise<boolean> {
-  const token = getStoredGoogleToken();
+  let token = getStoredGoogleToken();
+  if (!token) {
+    token = await refreshGoogleToken();
+  }
   if (!token || !gcalId) return false;
 
   try {
@@ -571,7 +668,10 @@ export async function fetchEventsFromGoogleCalendar(options?: {
   timeMin?: string;
   timeMax?: string;
 }): Promise<{ items: any[]; error?: string }> {
-  const token = getStoredGoogleToken();
+  let token = getStoredGoogleToken();
+  if (!token) {
+    token = await refreshGoogleToken();
+  }
   if (!token) return { items: [], error: "No conectado" };
 
   // Filter events from the start of today (local time) onwards
@@ -659,7 +759,10 @@ export async function performBidirectionalSync(params: {
   _isSyncInProgress = true;
 
   try {
-    const token = getStoredGoogleToken();
+    let token = getStoredGoogleToken();
+    if (!token) {
+      token = await refreshGoogleToken();
+    }
     if (!token) {
       return { success: false, pushedCount: 0, pulledCount: 0, error: "Conecta tu cuenta de Google primero" };
     }
