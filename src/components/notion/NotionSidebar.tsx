@@ -63,19 +63,19 @@ export function NotionSidebar({
     }, [contextMenu]);
 
     const favorites = useMemo(
-        () => documents.filter((d) => d.is_favorite),
+        () => documents.filter((d) => d.is_favorite && !d.parent_id),
         [documents]
     );
 
     const filteredDocs = useMemo(() => {
         const baseDocs = documents.filter(d => !d.parent_id); // Only root-level docs
         if (!searchQuery) return baseDocs;
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         return baseDocs.filter(
             (d) =>
-                d.titulo.toLowerCase().includes(q) ||
-                d.subject?.nombre?.toLowerCase().includes(q) ||
-                d.subject?.codigo?.toLowerCase().includes(q)
+                (d.titulo || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(q) ||
+                (d.subject?.nombre || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(q) ||
+                (d.subject?.codigo || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(q)
         );
     }, [documents, searchQuery]);
 

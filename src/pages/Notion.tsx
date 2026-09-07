@@ -1110,7 +1110,8 @@ export default function Notion() {
 
   // --- Gallery View Derived State ---
   const filteredAndSortedDocuments = useMemo(() => {
-    let result = [...documents];
+    // Only root-level documents (do not show child pages of other notes in main gallery)
+    let result = documents.filter(doc => !doc.parent_id);
 
     // Filter by year
     if (filterYear !== "all") {
@@ -1132,10 +1133,12 @@ export default function Notion() {
       result = result.filter(doc => doc.user_id !== user.id);
     }
 
-    // Filter by search query
+    // Filter by search query (accent-insensitive)
     if (searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(doc => (doc.titulo || "Sin título").toLowerCase().includes(q));
+      const q = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      result = result.filter(doc => 
+        (doc.titulo || "Sin título").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(q)
+      );
     }
 
     // Sort
@@ -1581,7 +1584,7 @@ export default function Notion() {
 
               {/* Grid */}
               <div className="flex-1 overflow-y-auto p-8 md:p-12">
-                {documents.length === 0 ? (
+                {documents.filter(d => !d.parent_id).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                     <p>No tienes apuntes todavía. ¡Creá una nueva página para empezar!</p>
                   </div>

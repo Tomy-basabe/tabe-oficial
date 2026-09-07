@@ -62,7 +62,16 @@ export interface CommandItem {
   command: (props: { editor: any; range: any }) => void;
   category: string;
   shortcut?: string;
+  keywords?: string[];
 }
+
+export const normalizeSlashText = (str: string): string => {
+  return (str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+};
 
 const getSuggestionItems = (): CommandItem[] => [
   // ========== 1. BLOQUES BÁSICOS ==========
@@ -72,6 +81,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <Type className="w-4 h-4" />,
     category: "Básico",
     shortcut: "Ctrl+Shift+0",
+    keywords: ["parrafo", "texto", "normal", "p"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setParagraph().run();
     },
@@ -82,6 +92,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <Heading1 className="w-4 h-4" />,
     category: "Básico",
     shortcut: "# espacio",
+    keywords: ["h1", "titulo", "titulo 1", "header 1", "encabezado 1"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run();
     },
@@ -92,6 +103,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <Heading2 className="w-4 h-4" />,
     category: "Básico",
     shortcut: "## espacio",
+    keywords: ["h2", "subtitulo", "subtitulo 2", "header 2", "encabezado 2"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run();
     },
@@ -102,6 +114,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <Heading3 className="w-4 h-4" />,
     category: "Básico",
     shortcut: "### espacio",
+    keywords: ["h3", "subtitulo", "subtitulo 3", "header 3", "encabezado 3"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run();
     },
@@ -112,6 +125,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <List className="w-4 h-4" />,
     category: "Básico",
     shortcut: "- espacio",
+    keywords: ["bullet", "bullets", "vineta", "vinetas", "puntos", "lista"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).toggleBulletList().run();
     },
@@ -122,6 +136,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <ListOrdered className="w-4 h-4" />,
     category: "Básico",
     shortcut: "1. espacio",
+    keywords: ["numero", "numeros", "ordenada", "1.", "numeracion"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).toggleOrderedList().run();
     },
@@ -132,6 +147,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <CheckSquare className="w-4 h-4" />,
     category: "Básico",
     shortcut: "[] espacio",
+    keywords: ["todo", "task", "checklist", "check", "casillas", "tarea", "tareas", "checkbox"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).toggleTaskList().run();
     },
@@ -142,6 +158,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <ChevronRight className="w-4 h-4" />,
     category: "Básico",
     shortcut: "> espacio",
+    keywords: ["toggle", "acordeon", "colapsable", "desplegable", "ocultar"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setDetails().run();
     },
@@ -152,6 +169,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <Quote className="w-4 h-4" />,
     category: "Básico",
     shortcut: "\" espacio",
+    keywords: ["quote", "bloque", "cita", "frase"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setBlockquote().run();
     },
@@ -162,6 +180,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <Minus className="w-4 h-4" />,
     category: "Básico",
     shortcut: "--- espacio",
+    keywords: ["hr", "linea", "separador", "barra", "divisor"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setHorizontalRule().run();
     },
@@ -172,6 +191,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <Sigma className="w-4 h-4 text-emerald-500" />,
     category: "Básico",
     shortcut: "Ctrl+M",
+    keywords: ["math", "formula", "latex", "ecuacion", "sigma", "matematica", "matematicas"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setMath({ formula: "" }).run();
       // Dispatch event to open the menu at the new node's position
@@ -186,6 +206,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <BarChart3 className="w-4 h-4 text-orange-500" />,
     category: "Básico",
     shortcut: "Ctrl+Shift+L",
+    keywords: ["chart", "grafico", "estadistica", "barras", "dispersion", "plot"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).insertContent({ type: 'chart' }).run();
     },
@@ -197,6 +218,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Crear sub-página enlazada",
     icon: <FileTextIcon className="w-4 h-4 text-blue-400" />,
     category: "Estructural",
+    keywords: ["page", "subpage", "pagina", "subpagina", "apunte", "nota", "enlace"],
     command: ({ editor, range }) => {
       const title = window.prompt("Título de la sub-página:", "Sub-página");
       if (title) {
@@ -212,6 +234,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Callout informativo azul",
     icon: <Info className="w-4 h-4 text-blue-400" />,
     category: "Estructural",
+    keywords: ["callout", "info", "informacion", "nota", "azul"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "info" }).run();
     },
@@ -221,6 +244,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Callout de éxito verde",
     icon: <Sparkles className="w-4 h-4 text-green-400" />,
     category: "Estructural",
+    keywords: ["success", "exito", "verde", "logro", "completado"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "success" }).run();
     },
@@ -230,6 +254,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Callout de advertencia amarillo",
     icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
     category: "Estructural",
+    keywords: ["warning", "advertencia", "alerta", "aviso", "amarillo", "cuidado"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "warning" }).run();
     },
@@ -239,6 +264,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Callout de error rojo",
     icon: <AlertCircle className="w-4 h-4 text-red-400" />,
     category: "Estructural",
+    keywords: ["danger", "error", "peligro", "rojo", "alerta"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "danger" }).run();
     },
@@ -248,6 +274,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Callout de consejo morado",
     icon: <Lightbulb className="w-4 h-4 text-purple-400" />,
     category: "Estructural",
+    keywords: ["tip", "consejo", "morado", "idea", "sugerencia"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCallout({ type: "tip" }).run();
     },
@@ -257,6 +284,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Insertar tabla 3×3",
     icon: <Table className="w-4 h-4" />,
     category: "Estructural",
+    keywords: ["table", "tabla", "cuadricula", "filas", "columnas"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
     },
@@ -266,6 +294,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Insertar enlace interno a otra página",
     icon: <Link2 className="w-4 h-4 text-blue-400" />,
     category: "Estructural",
+    keywords: ["link", "enlace", "conectar", "subpagina", "pagina"],
     command: ({ editor, range }) => {
       const title = window.prompt("Título de la página a enlazar:");
       if (title) {
@@ -283,6 +312,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Insertar imagen desde URL o archivo",
     icon: <Image className="w-4 h-4" />,
     category: "Media",
+    keywords: ["image", "imagen", "foto", "picture", "subir", "img"],
     command: ({ editor, range }) => {
       const url = window.prompt("URL de la imagen:");
       if (url) {
@@ -295,6 +325,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Insertar video desde URL",
     icon: <Video className="w-4 h-4 text-purple-500" />,
     category: "Media",
+    keywords: ["video", "youtube", "vimeo", "mp4", "reproductor"],
     command: ({ editor, range }) => {
       const url = window.prompt("URL del video (YouTube, Vimeo, MP4, etc.):");
       if (url) {
@@ -315,6 +346,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Insertar audio desde URL",
     icon: <FileAudio className="w-4 h-4 text-orange-500" />,
     category: "Media",
+    keywords: ["audio", "musica", "podcast", "mp3", "sonido", "spotify"],
     command: ({ editor, range }) => {
       const url = window.prompt("URL del audio (MP3, WAV, OGG, Spotify, etc.):");
       if (url) {
@@ -336,6 +368,7 @@ const getSuggestionItems = (): CommandItem[] => [
     icon: <Code className="w-4 h-4" />,
     category: "Media",
     shortcut: "+++ o ``` Enter",
+    keywords: ["code", "codigo", "programacion", "script", "terminal", "bloque"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setCodeBlock().run();
     },
@@ -345,6 +378,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Adjuntar un archivo (subida)",
     icon: <Paperclip className="w-4 h-4 text-gray-400" />,
     category: "Media",
+    keywords: ["file", "archivo", "adjunto", "documento", "subir"],
     command: ({ editor, range }) => {
       // Create a file input to select a file
       const input = document.createElement("input");
@@ -374,6 +408,7 @@ const getSuggestionItems = (): CommandItem[] => [
     description: "Vista previa de enlace web (bookmark)",
     icon: <Bookmark className="w-4 h-4" />,
     category: "Media",
+    keywords: ["bookmark", "marcador", "enlace", "link", "web"],
     command: ({ editor, range }) => {
       const url = window.prompt("URL del enlace:");
       if (url) {
@@ -741,10 +776,18 @@ export const SlashCommands = Extension.create({
         editor: this.editor,
         ...this.options.suggestion,
         items: ({ query }: { query: string }) => {
-          return getSuggestionItems().filter((item) =>
-            item.title.toLowerCase().includes(query.toLowerCase()) ||
-            item.description.toLowerCase().includes(query.toLowerCase())
-          );
+          const cleanQuery = normalizeSlashText(query);
+          if (!cleanQuery) return getSuggestionItems();
+
+          return getSuggestionItems().filter((item) => {
+            const matchTitle = normalizeSlashText(item.title).includes(cleanQuery);
+            const matchDesc = normalizeSlashText(item.description).includes(cleanQuery);
+            const matchCat = normalizeSlashText(item.category).includes(cleanQuery);
+            const matchKeywords = item.keywords?.some((k) =>
+              normalizeSlashText(k).includes(cleanQuery)
+            );
+            return matchTitle || matchDesc || matchCat || matchKeywords;
+          });
         },
         render: () => {
           let component: ReactRenderer<CommandListRef>;
