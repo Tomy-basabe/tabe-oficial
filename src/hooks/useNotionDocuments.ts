@@ -200,6 +200,15 @@ export function useNotionDocuments() {
   };
 
   const deleteDocument = async (id: string) => {
+    // Clean up cover image if stored in notion-images to prevent storage bloat
+    const docToDelete = documents.find(d => d.id === id);
+    if (docToDelete?.cover_url && docToDelete.cover_url.includes('notion-images')) {
+      const fileName = docToDelete.cover_url.split('/').pop()?.split('?')[0];
+      if (fileName) {
+        supabase.storage.from('notion-images').remove([fileName]).catch(console.error);
+      }
+    }
+
     const { error } = await supabase
       .from("notion_documents")
       .delete()
