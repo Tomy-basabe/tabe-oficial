@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap, CheckCircle2, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap, CheckCircle2, Zap, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
 import { useSubjects } from "@/hooks/useSubjects";
@@ -61,9 +61,40 @@ export default function Calendar() {
   const [showExamsModal, setShowExamsModal] = useState(false);
   const [monthTransition, setMonthTransition] = useState<"enter" | "exit" | null>(null);
   const [isGCalConnected, setIsGCalConnected] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Auto-sync existing events bidirectionally with Google Calendar on load
   const hasAttemptedInitialSync = useRef(false);
+
+  const handleManualSync = async () => {
+    if (isSyncing) return;
+    if (!isGoogleCalendarConnected()) {
+      setShowSyncModal(true);
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const result = await performBidirectionalSync({
+        tabeEvents: events,
+        createTabeEvent: createEvent,
+        updateTabeEvent: updateEvent,
+        refetchEvents: refetch,
+      });
+      if (result.success) {
+        const msg = result.pushedCount > 0 || result.pulledCount > 0
+          ? `✅ ${result.pushedCount} enviados a Google, ${result.pulledCount} traídos a TABE`
+          : "✅ Todo sincronizado, no hay cambios nuevos";
+        toast.success(msg, { duration: 5000 });
+      } else {
+        toast.error(result.error || "Error al sincronizar", { duration: 6000 });
+        setIsGCalConnected(isGoogleCalendarConnected());
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Error inesperado al sincronizar");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     extractAndStoreTokenFromUrl();
@@ -301,24 +332,41 @@ export default function Calendar() {
             Exámenes
           </button>
           <button
-            onClick={() => setShowSyncModal(true)}
+            onClick={handleManualSync}
+            onContextMenu={(e) => { e.preventDefault(); setShowSyncModal(true); }}
+            disabled={isSyncing}
+            title={isGCalConnected ? "Click: Sincronizar ahora | Click derecho: Configuración" : "Conectar Google Calendar"}
             className={cn(
-              "px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2",
+              "px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2 disabled:opacity-70 disabled:cursor-wait",
               isGCalConnected ? "bg-[#00FF9D]" : "bg-[#00F0FF]"
             )}
           >
-            {isGCalConnected ? (
+            {isSyncing ? (
               <>
-                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
-                <span>Google Sincronizado</span>
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                <span>Sincronizando...</span>
+              </>
+            ) : isGCalConnected ? (
+              <>
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+                <span>Sincronizar</span>
               </>
             ) : (
               <>
                 <Link2 className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
-                <span>Sincronizar</span>
+                <span>Conectar Google</span>
               </>
             )}
           </button>
+          {isGCalConnected && (
+            <button
+              onClick={() => setShowSyncModal(true)}
+              title="Configuración de sincronización"
+              className="p-2 text-black border-2 border-black rounded-lg font-black bg-white shadow-[2px_2px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all"
+            >
+              <Zap className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setShowImportModal(true)}
             className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FFE66D] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
@@ -591,7 +639,12 @@ export default function Calendar() {
       {/* Google Calendar Sync Modal */}
       <GoogleCalendarSyncModal
         open={showSyncModal}
-        onClose={() => setShowSyncModal(false)}
+        onClose={() => {
+          setShowSyncModal(false);
+          // Reset flag so the next auto-sync cycle picks up any new events
+          hasAttemptedInitialSync.current = false;
+          setIsGCalConnected(isGoogleCalendarConnected());
+        }}
         onOpenImport={() => setShowImportModal(true)}
         events={events}
         createEvent={createEvent}
