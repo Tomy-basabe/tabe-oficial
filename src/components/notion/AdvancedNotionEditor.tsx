@@ -49,6 +49,9 @@ import { ColorPicker, HighlightColorPicker } from "./ColorPicker";
 import { MathExtension } from "./extensions/MathExtension";
 import { ChartExtension } from "./extensions/ChartExtension";
 import { MathMenu } from "./MathMenu";
+import { WordToolbar } from "./WordToolbar";
+import { WordStatusBar } from "./WordStatusBar";
+import { FindReplaceBar } from "./FindReplaceBar";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
@@ -403,6 +406,15 @@ export function AdvancedNotionEditor({
 
   const [mathMenuOpen, setMathMenuOpen] = useState(false);
   const [mathMenuAnchor, setMathMenuAnchor] = useState<DOMRect | null>(null);
+  const [viewMode, setViewMode] = useState<'notion' | 'word-a4' | 'full'>('notion');
+  const [fontFamily, setFontFamily] = useState<'sans' | 'serif' | 'mono'>('sans');
+  const [zoom, setZoom] = useState<number>(100);
+  const [showFindReplace, setShowFindReplace] = useState<boolean>(false);
+  const [isZenMode, setIsZenMode] = useState<boolean>(false);
+
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
 
   // Load content when document changes
   useEffect(() => {
@@ -646,6 +658,11 @@ export function AdvancedNotionEditor({
               editor.chain().focus().insertContentAt(to, slice.content.toJSON()).run();
               return;
             }
+            case "f": {
+              e.preventDefault();
+              setShowFindReplace((prev) => !prev);
+              return;
+            }
           }
         }
       }
@@ -793,9 +810,28 @@ export function AdvancedNotionEditor({
   }
 
   return (
-    <div className="notion-advanced-editor relative">
+    <div className={cn(
+      "notion-advanced-editor flex flex-col h-full min-h-[500px] relative bg-background",
+      isZenMode && "fixed inset-0 z-50 bg-background"
+    )}>
       {!readOnly && (
         <>
+          <WordToolbar
+            editor={editor}
+            fontFamily={fontFamily}
+            onFontFamilyChange={setFontFamily}
+            isZenMode={isZenMode}
+            onToggleZenMode={() => setIsZenMode(prev => !prev)}
+            onToggleFindReplace={() => setShowFindReplace(prev => !prev)}
+          />
+
+          {showFindReplace && (
+            <FindReplaceBar
+              editor={editor}
+              onClose={() => setShowFindReplace(false)}
+            />
+          )}
+
           <MathMenu
             open={mathMenuOpen}
             onOpenChange={setMathMenuOpen}
@@ -806,8 +842,6 @@ export function AdvancedNotionEditor({
               window.dispatchEvent(event);
 
               // 2. If no one handles it (or even if they do), we might want to insert a new one
-              // But actually, if someone handled it, we should probably stop.
-              // For simplicity, we'll try to insert a new one ONLY if no math input is focused.
               const activeEl = document.activeElement;
               const isMathInput = activeEl?.classList.contains('notion-math-input');
 
@@ -1012,8 +1046,36 @@ export function AdvancedNotionEditor({
         </>
       )}
 
-      {/* Editor Content */}
-      <EditorContent editor={editor} />
+      {/* Editor Content Area with View Mode & Font styling */}
+      <div
+        className={cn(
+          "flex-1 overflow-y-auto transition-all",
+          viewMode === 'word-a4' && "word-a4-wrapper",
+          viewMode === 'full' && "word-full-width-wrapper",
+          fontFamily === 'serif' ? 'notion-font-serif' : fontFamily === 'mono' ? 'notion-font-mono' : 'notion-font-sans'
+        )}
+        style={{ zoom: zoom !== 100 ? `${zoom}%` : undefined }}
+      >
+        {viewMode === 'word-a4' ? (
+          <div className="word-a4-page">
+            <EditorContent editor={editor} />
+          </div>
+        ) : (
+          <EditorContent editor={editor} />
+        )}
+      </div>
+
+      {/* Bottom Word Status Bar */}
+      {!readOnly && (
+        <WordStatusBar
+          editor={editor}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          zoom={zoom}
+          onZoomChange={setZoom}
+          onPrint={handlePrint}
+        />
+      )}
     </div>
   );
 }

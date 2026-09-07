@@ -1980,3 +1980,151 @@
         opacity: 1;
     }
 }
+
+/* ========================================
+   WORD & NOTION HYBRID EXTENSIONS
+   ======================================== */
+
+/* --- A4 Page Mode (Microsoft Word style) --- */
+.word-a4-wrapper {
+    background-color: hsl(var(--muted) / 0.4);
+    min-height: 100%;
+    padding: 2.5rem 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+.word-a4-page {
+    width: 100%;
+    max-width: 820px;
+    min-height: 1120px;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.8);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px hsl(var(--border) / 0.2);
+    border-radius: 4px;
+    padding: 3.5rem 4rem;
+    position: relative;
+    transition: box-shadow 0.2s ease;
+}
+
+@media (max-width: 768px) {
+    .word-a4-page {
+        padding: 1.5rem;
+        min-height: auto;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+    }
+    .word-a4-wrapper {
+        padding: 0;
+        background: transparent;
+    }
+}
+
+/* --- Full Width Mode --- */
+.word-full-width-wrapper {
+    width: 100%;
+    max-width: 100% !important;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* --- Typographic Font Families --- */
+.notion-font-sans {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+.notion-font-serif {
+    font-family: 'Merriweather', 'Georgia', 'Cambria', 'Times New Roman', serif !important;
+}
+
+.notion-font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, Consolas, monospace !important;
+}
+
+/* --- Text Alignment Styles (TipTap extension-text-align) --- */
+.ProseMirror [style*="text-align: left"],
+.ProseMirror .has-text-align-left {
+    text-align: left !important;
+}
+
+.ProseMirror [style*="text-align: center"],
+.ProseMirror .has-text-align-center {
+    text-align: center !important;
+}
+
+.ProseMirror [style*="text-align: right"],
+.ProseMirror .has-text-align-right {
+    text-align: right !important;
+}
+
+.ProseMirror [style*="text-align: justify"],
+.ProseMirror .has-text-align-justify {
+    text-align: justify !important;
+    text-justify: inter-word;
+}
+
+/* --- Subscript & Superscript in TipTap --- */
+.ProseMirror sub {
+    vertical-align: sub;
+    font-size: 0.75em;
+    line-height: 0;
+}
+
+.ProseMirror sup {
+    vertical-align: super;
+    font-size: 0.75em;
+    line-height: 0;
+}
+
+/* --- Print Stylesheet (Clean Word A4 Document Output) --- */
+@media print {
+    /* Hide navigation, toolbars, sidebars, buttons, status bars */
+    body, html {
+        background: white !important;
+        color: black !important;
+    }
+
+    .notion-sidebar,
+    .notion-topbar,
+    header,
+    footer,
+    .print\:hidden,
+    button,
+    .notion-floating-toolbar,
+    .bubble-menu {
+        display: none !important;
+    }
+
+    .word-a4-wrapper {
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    .word-a4-page,
+    .notion-editor-content {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+        color: black !important;
+    }
+
+    .ProseMirror {
+        color: black !important;
+        font-size: 12pt !important;
+        line-height: 1.5 !important;
+    }
+
+    /* Page breaks for print */
+    h1, h2 {
+        page-break-after: avoid;
+    }
+
+    table, pre, figure {
+        page-break-inside: avoid;
+    }
+}
