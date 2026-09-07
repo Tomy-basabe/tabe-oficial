@@ -412,26 +412,28 @@ export default function AIAssistant() {
           <div className="max-w-4xl mx-auto p-4 lg:p-8 space-y-6">
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h1 className="font-black text-2xl lg:text-3xl uppercase text-foreground flex items-center gap-3">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="hidden md:flex border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted"
-                      onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    >
-                      <Menu className="w-5 h-5 text-foreground" />
-                    </Button>
-                    <div className="w-9 h-9 rounded-xl bg-black text-white dark:bg-white dark:text-black p-1.5 flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
-                      <TabeAIIcon className="w-full h-full" />
-                    </div>
-                    <span>{activePersona?.name || "TABE AI"}</span>
-                  </h1>
-                  {activePersona?.description && (
-                    <p className="font-bold text-muted-foreground text-sm mt-0.5 ml-12 uppercase">
-                      {activePersona.description}
-                    </p>
-                  )}
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden md:flex border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted shrink-0"
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  >
+                    <Menu className="w-5 h-5 text-foreground" />
+                  </Button>
+                  <div className="w-10 h-10 rounded-xl bg-black text-white dark:bg-white dark:text-black p-2 flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
+                    <TabeAIIcon className="w-full h-full text-white dark:text-black" />
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <h1 className="font-black text-2xl lg:text-3xl uppercase text-foreground leading-tight">
+                      {activePersona?.name || "TABE IA"}
+                    </h1>
+                    {activePersona?.description && (
+                      <p className="font-bold text-muted-foreground text-xs lg:text-sm uppercase tracking-wide">
+                        {activePersona.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 self-end md:self-auto">
                   <div className="px-3 py-1.5 bg-[#BFFF00] !text-black border-2 border-foreground rounded-full font-black uppercase text-xs flex items-center gap-2 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
@@ -475,20 +477,20 @@ export default function AIAssistant() {
                 >
                   <div
                     className={cn(
-                      "w-10 h-10 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center flex-shrink-0 mt-1 !text-black",
+                      "w-10 h-10 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center flex-shrink-0 mt-1",
                       message.role === "assistant"
                         ? "bg-black text-white dark:bg-white dark:text-black p-2"
-                        : "bg-[#FFD700]"
+                        : "bg-[#FFD700] text-black"
                     )}
                   >
                     {message.role === "assistant" ? (
                       activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
                         <span className="text-lg font-black">{activePersona.avatar_emoji}</span>
                       ) : (
-                        <TabeAIIcon className="w-full h-full" />
+                        <TabeAIIcon className="w-full h-full text-white dark:text-black" />
                       )
                     ) : (
-                      <User className="w-5 h-5 !text-black" strokeWidth={2.5} />
+                      <User className="w-5 h-5 text-black" strokeWidth={2.5} />
                     )}
                   </div>
                   <div

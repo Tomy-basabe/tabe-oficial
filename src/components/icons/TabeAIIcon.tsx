@@ -13,7 +13,7 @@ export function TabeAIIcon({ className = "w-5 h-5" }: TabeAIIconProps) {
     <svg
       viewBox="0 0 24 24"
       fill="currentColor"
-      className={cn("w-5 h-5 shrink-0 transition-transform duration-300", className)}
+      className={cn("w-5 h-5 shrink-0 transition-transform duration-300 block m-auto", className)}
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* Central Radiant Intelligence Spark */}

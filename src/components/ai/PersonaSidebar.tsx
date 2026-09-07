@@ -90,7 +90,7 @@ export function PersonaSidebar({
                                 <span className="text-2xl flex-shrink-0">{persona.avatar_emoji}</span>
                             ) : (
                                 <div className="w-7 h-7 rounded-lg bg-black text-white dark:bg-white dark:text-black p-1 flex items-center justify-center border border-foreground/50 shadow-sm shrink-0">
-                                    <TabeAIIcon className="w-full h-full" />
+                                    <TabeAIIcon className="w-full h-full text-white dark:text-black" />
                                 </div>
                             )}
                             <div className="flex-1 min-w-0">
