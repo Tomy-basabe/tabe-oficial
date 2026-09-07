@@ -149,12 +149,9 @@ export function extractGoogleEventId(notas?: string | null): string | null {
   return match ? match[1] : null;
 }
 
-/**
- * Removes Google Event ID tag from notes for display
- */
 export function stripGoogleEventId(notas?: string | null): string {
   if (!notas) return "";
-  return notas.replace(/\[gcal_id:[a-zA-Z0-9_-]+\]/g, "").trim();
+  return notas.replace(/\[gcal_id:[^\]]+\]/g, "").trim();
 }
 
 /**

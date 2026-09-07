@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { EventType, CreateEventData, RecurrenceRule, CalendarEvent } from "@/hooks/useCalendarEvents";
 import { Subject } from "@/hooks/useSubjects";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
+import { stripGoogleEventId } from "@/lib/googleCalendarSync";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
@@ -97,7 +98,7 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
       setTipoExamen(editEvent.tipo_examen);
       setSubjectId(editEvent.subject_id || "");
       setUbicacion(editEvent.ubicacion || "");
-      setNotas(editEvent.notas || "");
+      setNotas(stripGoogleEventId(editEvent.notas) || "");
       
       if (editEvent.tipo_examen.startsWith("P") && !["P1", "P2"].includes(editEvent.tipo_examen)) {
         setCustomParcialNum(editEvent.tipo_examen.replace("P", ""));

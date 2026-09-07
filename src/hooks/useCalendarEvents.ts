@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -95,12 +95,14 @@ export function useCalendarEvents() {
   const { user, isGuest } = useAuth();
   const [rawEvents, setRawEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const isInitialLoadDone = useRef(false);
 
   const fetchEvents = useCallback(async (retries = 2) => {
     if (!user && !isGuest) return;
 
     if (isGuest) {
       setLoading(false);
+      isInitialLoadDone.current = true;
       const today = new Date().toISOString().split("T")[0];
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
       setRawEvents([
@@ -143,7 +145,10 @@ export function useCalendarEvents() {
     }
 
     try {
-      setLoading(true);
+      // Only show full loading on initial load; subsequent updates are seamless
+      if (!isInitialLoadDone.current) {
+        setLoading(true);
+      }
 
       const { data: eventsData, error } = await supabase
         .from("calendar_events")
@@ -184,6 +189,7 @@ export function useCalendarEvents() {
       }));
 
       setRawEvents(eventsWithSubjects);
+      isInitialLoadDone.current = true;
     } catch (error) {
       console.error("Error fetching events:", error);
       if (retries > 0) {

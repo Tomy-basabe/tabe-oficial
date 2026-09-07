@@ -14,6 +14,7 @@ import {
   isAutoSyncEnabled,
   performBidirectionalSync,
   extractAndStoreTokenFromUrl,
+  stripGoogleEventId,
 } from "@/lib/googleCalendarSync";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -89,7 +90,7 @@ export default function Calendar() {
         console.warn("Auto-sync error on calendar load:", err);
       });
     }
-  }, [loading, user, events.length]);
+  }, [loading, user]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -150,7 +151,7 @@ export default function Calendar() {
       title: event.titulo,
       date: event.fecha,
       time: event.hora || undefined,
-      description: event.notas || undefined,
+      description: stripGoogleEventId(event.notas) || undefined,
     });
     window.open(url, "_blank");
     toast.success("Abriendo Google Calendar...");
@@ -261,7 +262,7 @@ export default function Calendar() {
 
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
 
-  if (loading) {
+  if (loading && events.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
@@ -500,8 +501,10 @@ export default function Calendar() {
                       🔄 {recurrenceLabels[event.recurrence_rule]}
                     </p>
                   )}
-                  {event.notas && (
-                    <p className="text-sm opacity-90 mt-3 font-medium bg-background/10 p-2 rounded-lg">{event.notas}</p>
+                  {stripGoogleEventId(event.notas) && (
+                    <p className="text-sm opacity-90 mt-3 font-medium bg-background/10 p-2 rounded-lg whitespace-pre-line">
+                      {stripGoogleEventId(event.notas)}
+                    </p>
                   )}
                   {/* Action buttons */}
                   <div className="flex gap-2 mt-4 pt-4 border-t-2 border-current/20">
