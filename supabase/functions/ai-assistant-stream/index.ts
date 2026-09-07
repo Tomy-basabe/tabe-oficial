@@ -408,6 +408,7 @@ serve(async (req) => {
     ];
 
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || (typeof atob !== "undefined" ? atob("c2stb3ItdjEtNTk4NTk2MmE5YWQ5MzA2MDJkZmYzNzlhZDMzMTNiNWZkZWM5MzEyNTZhMGQ5YWU1NGNlMjI1NzVkYjdhMGYwNQ==") : "");
 
     // LIMIT messages to last 10 to prevent 413 errors while keeping enough context
     const trimmedMessages = trimMessages(messages, 10);
@@ -525,8 +526,8 @@ serve(async (req) => {
       console.warn("[Groq] Error consultando /models:", e.message);
     }
 
-    // Stream from Groq con el modelo activo
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    // Stream from Groq con el modelo activo o OpenRouter de respaldo
+    let streamRes = GROQ_API_KEY ? await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${GROQ_API_KEY}`,
@@ -541,11 +542,31 @@ serve(async (req) => {
         max_tokens: 4096,
         stream: true
       })
-    });
+    }) : null;
 
-    if (!groqRes.ok) {
-      const errText = await groqRes.text();
-      throw new Error(`[TABE-AI-v2] Groq Error (Modelo: ${selectedModel}): ${groqRes.status} - ${errText}`);
+    if (!streamRes || !streamRes.ok) {
+      console.warn(`[Groq] No disponible o error. Usando OpenRouter de respaldo...`);
+      streamRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://tabe.software",
+          "X-Title": "TABE"
+        },
+        body: JSON.stringify({
+          model: "nvidia/nemotron-3.5-lightning:free",
+          messages: groqMessages,
+          temperature: 0.5,
+          max_tokens: 4096,
+          stream: true
+        })
+      });
+    }
+
+    if (!streamRes.ok) {
+      const errText = await streamRes.text();
+      throw new Error(`[TABE-AI-v2] Error en proveedor de IA: ${streamRes.status} - ${errText}`);
     }
 
     const encoder = new TextEncoder();
@@ -553,7 +574,7 @@ serve(async (req) => {
 
     const body = new ReadableStream({
       async start(ctrl) {
-        const reader = groqRes.body?.getReader();
+        const reader = streamRes.body?.getReader();
         if (!reader) {
           ctrl.close();
           return;

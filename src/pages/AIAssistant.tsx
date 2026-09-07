@@ -11,6 +11,7 @@ import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 import { PersonaSidebar } from "@/components/ai/PersonaSidebar";
 import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
 import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
+import { ModelSelector } from "@/components/ai/ModelSelector";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
@@ -48,7 +49,8 @@ export default function AIAssistant() {
     inputValue, setInputValue,
     currentSessionId, setCurrentSessionId,
     currentSessionRef,
-    isStreaming, streamMessage
+    isStreaming, streamMessage,
+    selectedModel, setSelectedModel
   } = useAIChat();
 
   const {
@@ -442,7 +444,15 @@ export default function AIAssistant() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 self-end md:self-auto">
+                <div className="flex items-center gap-2 self-end md:self-auto flex-wrap">
+                  <ModelSelector
+                    selectedModel={selectedModel}
+                    onSelectModel={(m) => {
+                      setSelectedModel(m);
+                      toast.success(`Modelo activo: ${m.name}`);
+                    }}
+                    disabled={isStreaming}
+                  />
                   <div className="px-3 py-1.5 bg-[#BFFF00] !text-black border-2 border-foreground rounded-full font-black uppercase text-xs flex items-center gap-2 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
                     <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
                     Online

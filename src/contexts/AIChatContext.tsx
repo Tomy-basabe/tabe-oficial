@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useRef } from "react";
+import React, { createContext, useContext, useState, useRef, useEffect } from "react";
 import { useStreamingChat } from "@/hooks/useStreamingChat";
+import { AIModelOption, DEFAULT_AI_MODEL, AVAILABLE_AI_MODELS } from "@/config/aiModels";
 
 export interface DisplayMessage {
   id: string;
@@ -17,6 +18,8 @@ interface AIChatContextProps {
   setCurrentSessionId: (id: string | null) => void;
   currentSessionRef: React.MutableRefObject<string | null>;
   isStreaming: boolean;
+  selectedModel: AIModelOption;
+  setSelectedModel: (model: AIModelOption) => void;
   streamMessage: ReturnType<typeof useStreamingChat>["streamMessage"];
 }
 
@@ -28,21 +31,44 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const currentSessionRef = useRef<string | null>(null);
 
-  // useStreamingChat will safely exist at the provider level
-  const { isStreaming, streamMessage } = useStreamingChat();
+  const [selectedModel, setSelectedModelState] = useState<AIModelOption>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedId = localStorage.getItem("tabe_selected_ai_model");
+        if (savedId) {
+          const found = AVAILABLE_AI_MODELS.find((m) => m.id === savedId);
+          if (found) return found;
+        }
+      } catch {}
+    }
+    return DEFAULT_AI_MODEL;
+  });
+
+  const setSelectedModel = (model: AIModelOption) => {
+    setSelectedModelState(model);
+    try {
+      localStorage.setItem("tabe_selected_ai_model", model.id);
+    } catch {}
+  };
+
+  const { isStreaming, streamMessage } = useStreamingChat(selectedModel);
 
   return (
-    <AIChatContext.Provider value={{
-      messages,
-      setMessages,
-      inputValue,
-      setInputValue,
-      currentSessionId,
-      setCurrentSessionId,
-      currentSessionRef,
-      isStreaming,
-      streamMessage
-    }}>
+    <AIChatContext.Provider
+      value={{
+        messages,
+        setMessages,
+        inputValue,
+        setInputValue,
+        currentSessionId,
+        setCurrentSessionId,
+        currentSessionRef,
+        isStreaming,
+        selectedModel,
+        setSelectedModel,
+        streamMessage,
+      }}
+    >
       {children}
     </AIChatContext.Provider>
   );

@@ -57,7 +57,7 @@ export function AIBubbleWidget() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { messages, setMessages, inputValue: input, setInputValue: setInput, isStreaming, streamMessage } = useAIChat();
+    const { messages, setMessages, inputValue: input, setInputValue: setInput, isStreaming, streamMessage, selectedModel } = useAIChat();
     const { activePersona } = useAIPersonas();
 
     // Hide on /asistente page
@@ -176,9 +176,21 @@ export function AIBubbleWidget() {
                                 </p>
                                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                             </div>
-                            <p className="text-[10px] font-bold text-muted-foreground truncate">
-                                📍 {currentContext}
-                            </p>
+                            <div className="flex items-center gap-1.5 truncate">
+                                <span className="text-[10px] font-bold text-muted-foreground truncate">
+                                    📍 {currentContext}
+                                </span>
+                                <span
+                                    className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 hidden sm:inline-block"
+                                    style={{
+                                        borderColor: `${selectedModel?.color || '#00E5FF'}60`,
+                                        color: selectedModel?.color || '#00E5FF',
+                                        backgroundColor: `${selectedModel?.color || '#00E5FF'}15`,
+                                    }}
+                                >
+                                    {selectedModel?.name?.split(" ")[0] || "IA"}
+                                </span>
+                            </div>
                         </div>
                         <button
                             onClick={handleToggle}
