@@ -210,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider: "google",
         options: {
           redirectTo,
-          scopes: "https://www.googleapis.com/auth/calendar.events email profile",
+          scopes: "https://www.googleapis.com/auth/calendar.events",
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -232,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider: "google",
         options: {
           redirectTo,
-          scopes: "https://www.googleapis.com/auth/calendar.events email profile",
+          scopes: "https://www.googleapis.com/auth/calendar.events",
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -254,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider: "google",
         options: {
           redirectTo,
-          scopes: "https://www.googleapis.com/auth/calendar.events email profile",
+          scopes: "https://www.googleapis.com/auth/calendar.events",
           queryParams: {
             access_type: "offline",
             prompt: "consent",
