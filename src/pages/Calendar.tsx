@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap, CheckCircle2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
 import { useSubjects } from "@/hooks/useSubjects";
@@ -49,7 +49,7 @@ const months = [
 export default function Calendar() {
   const { events, loading, createEvent, updateEvent, deleteEvent, duplicateEvent, getEventsForDate, refetch } = useCalendarEvents();
   const { rawSubjects } = useSubjects();
-  const { user } = useAuth();
+  const { user, connectGoogleCalendar } = useAuth();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -69,7 +69,7 @@ export default function Calendar() {
     const conn = isGoogleCalendarConnected();
     setIsGCalConnected(conn);
 
-    if (!loading && user && conn && isAutoSyncEnabled() && !hasAttemptedInitialSync.current && events.length > 0) {
+    if (!loading && user && conn && isAutoSyncEnabled() && !hasAttemptedInitialSync.current) {
       hasAttemptedInitialSync.current = true;
       performBidirectionalSync({
         tabeEvents: events,
@@ -329,6 +329,42 @@ export default function Calendar() {
           </button>
         </div>
       </div>
+
+      {/* Google Calendar Connection Status Banner */}
+      {!isGCalConnected && !loading && (
+        <div className="bg-[#FFE600] border-4 border-foreground p-4 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
+              <CalendarIcon className="w-5 h-5 text-black" />
+            </div>
+            <div>
+              <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-black flex items-center gap-2">
+                <span>Google Calendar no vinculado en esta sesión</span>
+                <span className="text-[10px] bg-[#FF3366] text-white px-2 py-0.5 rounded-md font-black border border-black uppercase tracking-wider">
+                  Acción requerida
+                </span>
+              </p>
+              <p className="text-[11px] sm:text-xs font-bold text-black/80 mt-0.5">
+                Para que tus parciales, materias y clases se sincronicen en ambas direcciones automáticamente, conecta tu cuenta de Google.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                toast.info("Iniciando conexión con Google Calendar...");
+                await connectGoogleCalendar();
+              } catch (e: any) {
+                toast.error(e?.message || "Error al conectar Google");
+              }
+            }}
+            className="w-full md:w-auto px-5 py-2.5 bg-[#00FF9D] text-black font-black text-xs uppercase tracking-wider rounded-lg border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Zap className="w-4 h-4 fill-current" />
+            <span>Conectar Google Calendar</span>
+          </button>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Calendar */}

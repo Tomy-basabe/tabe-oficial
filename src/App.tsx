@@ -56,7 +56,12 @@ const ChessGame = lazy(() => import("@/pages/ChessGame"));
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
 import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
+import { extractAndStoreTokenFromUrl } from "@/lib/googleCalendarSync";
 
+// Automatically capture OAuth provider token from Google redirects globally
+if (typeof window !== "undefined") {
+  extractAndStoreTokenFromUrl();
+}
 
 const queryClient = new QueryClient();
 

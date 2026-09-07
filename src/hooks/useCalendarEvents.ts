@@ -276,6 +276,8 @@ export function useCalendarEvents() {
         } catch (syncErr) {
           console.warn("Auto-sync to Google Calendar failed on create:", syncErr);
         }
+      } else if (!isGoogleCalendarConnected()) {
+        toast.info("Evento creado en TABE. (Google Calendar no está conectado en esta sesión)", { duration: 3500 });
       }
 
       const { error } = await supabase

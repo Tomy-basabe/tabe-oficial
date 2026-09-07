@@ -326,7 +326,43 @@ export async function deleteEventFromGoogleCalendar(gcalId: string): Promise<boo
 }
 
 /**
- * Fetches events from Google Calendar in a specified range
+ * Fetches the user's calendars from Google Calendar API
+ * (e.g. primary + subject-specific calendars like Redes de Datos, Análisis Numérico)
+ */
+export async function fetchUserCalendarList(token: string): Promise<Array<{ id: string; summary: string; primary?: boolean }>> {
+  try {
+    const res = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      return [{ id: "primary", summary: "Principal", primary: true }];
+    }
+
+    const data = await res.json();
+    const items = data.items || [];
+
+    // Filter out holiday or generic contact calendars, and avoid circular sync with TABE feed
+    const filtered = items.filter((c: any) => {
+      if (!c.id) return false;
+      const lowerId = c.id.toLowerCase();
+      const lowerSummary = (c.summary || "").toLowerCase();
+      if (lowerId.includes("#holiday@group.v.calendar.google.com")) return false;
+      if (lowerId.includes("contacts@group.v.calendar.google.com")) return false;
+      if (lowerSummary.startsWith("tabe -") || lowerSummary === "tabe") return false;
+      return true;
+    });
+
+    return filtered.length > 0 ? filtered : [{ id: "primary", summary: "Principal", primary: true }];
+  } catch {
+    return [{ id: "primary", summary: "Principal", primary: true }];
+  }
+}
+
+/**
+ * Fetches events from Google Calendar across ALL user calendars in a specified range
  */
 export async function fetchEventsFromGoogleCalendar(options?: {
   timeMin?: string;
@@ -338,27 +374,45 @@ export async function fetchEventsFromGoogleCalendar(options?: {
   const timeMin = options?.timeMin || new Date(Date.now() - 90 * 86400000).toISOString();
   const timeMax = options?.timeMax || new Date(Date.now() + 180 * 86400000).toISOString();
 
-  const url = `${GCAL_API_BASE}?singleEvents=true&orderBy=startTime&timeMin=${encodeURIComponent(
-    timeMin
-  )}&timeMax=${encodeURIComponent(timeMax)}&maxResults=250`;
-
   try {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const calendars = await fetchUserCalendarList(token);
+    const allItems: any[] = [];
+    const seenIds = new Set<string>();
 
-    if (!res.ok) {
-      if (res.status === 401) {
-        disconnectGoogleCalendar();
-        return { items: [], error: "Sesión de Google expirada. Vuelve a conectar." };
+    for (const cal of calendars) {
+      const calId = encodeURIComponent(cal.id);
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?singleEvents=true&orderBy=startTime&timeMin=${encodeURIComponent(
+        timeMin
+      )}&timeMax=${encodeURIComponent(timeMax)}&maxResults=250`;
+
+      try {
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          for (const item of (data.items || [])) {
+            if (item.id && !seenIds.has(item.id)) {
+              seenIds.add(item.id);
+              // Tag item with source calendar summary and id
+              item._calendarName = cal.summary || "";
+              item._calendarId = cal.id;
+              allItems.push(item);
+            }
+          }
+        } else if (res.status === 401) {
+          disconnectGoogleCalendar();
+          return { items: [], error: "Sesión de Google expirada. Vuelve a conectar." };
+        }
+      } catch (calErr) {
+        console.warn(`Error fetching events for calendar ${cal.summary}:`, calErr);
       }
-      return { items: [], error: `Error ${res.status} al consultar Google Calendar` };
     }
 
-    const data = await res.json();
-    return { items: data.items || [] };
+    return { items: allItems };
   } catch (err: any) {
     console.error("Error fetching Google Calendar events:", err);
     return { items: [], error: err?.message || "Error de conexión con Google" };
@@ -490,7 +544,7 @@ export async function performBidirectionalSync(params: {
         // Completely new event from Google Calendar: create in TABE!
         const notas = injectGoogleEventId(gEv.description, gcalId);
 
-        // Deduce event type from title
+        // Deduce event type from title and timing
         let tipo_examen: EventType = "Otro";
         const lower = title.toLowerCase();
         if (lower.includes("parcial 1") || lower.includes("1er parcial") || lower.includes("primer parcial") || lower.includes("p1")) {
@@ -499,14 +553,21 @@ export async function performBidirectionalSync(params: {
           tipo_examen = "P2";
         } else if (lower.includes("final")) {
           tipo_examen = "Final";
-        } else if (lower.includes("recuperatorio")) {
+        } else if (lower.includes("recuperatorio") || lower.includes("recu")) {
           tipo_examen = "Recuperatorio P1";
-        } else if (lower.includes("clase") || lower.includes("teórica") || lower.includes("práctica")) {
-          tipo_examen = "Clase";
-        } else if (lower.includes("tp") || lower.includes("entrega")) {
+        } else if (lower.includes("otp") || lower.includes("tp") || lower.includes("entrega") || lower.includes("laboratorio")) {
           tipo_examen = "Entrega";
+        } else if (lower.includes("clase") || lower.includes("teórica") || lower.includes("práctica") || lower.includes("virtual") || lower.includes("redes") || lower.includes("análisis") || lower.includes("sistemas") || lower.includes("software")) {
+          tipo_examen = "Clase";
         } else if (lower.includes("estudio") || lower.includes("repaso")) {
           tipo_examen = "Estudio";
+        } else if (hora) {
+          tipo_examen = "Clase";
+        }
+
+        let eventNotes = notas;
+        if (gEv._calendarName && gEv._calendarName !== "Principal" && !gEv._calendarName.toLowerCase().includes("tomas")) {
+          eventNotes = `[${gEv._calendarName}] ${eventNotes}`.trim();
         }
 
         await params.createTabeEvent({
@@ -516,7 +577,7 @@ export async function performBidirectionalSync(params: {
           hora_fin,
           is_all_day: isAllDay,
           ubicacion: gEv.location || undefined,
-          notas,
+          notas: eventNotes,
           tipo_examen,
         });
 
