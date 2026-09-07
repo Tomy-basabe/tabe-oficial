@@ -193,12 +193,12 @@ export function AIBubbleWidget() {
                     <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 relative z-10" style={{ minHeight: "200px" }}>
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground/60">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center p-2.5 mb-2 border border-primary/30">
-                                    <ProfessionalAILogo className="w-full h-full text-primary" />
+                                <div className="w-12 h-12 rounded-2xl bg-black text-white dark:bg-white dark:text-black flex items-center justify-center p-2.5 mb-2 border border-black/20 dark:border-white/20 shadow-sm">
+                                    <ProfessionalAILogo className="w-full h-full" />
                                 </div>
                                 <p className="text-xs font-bold">
                                     Preguntame lo que quieras sobre<br />
-                                    <span className="font-black text-primary uppercase">{currentContext}</span>
+                                    <span className="font-black text-foreground uppercase">{currentContext}</span>
                                 </p>
                             </div>
                         )}
@@ -276,10 +276,10 @@ export function AIBubbleWidget() {
                     isOpen
                         ? "bg-card text-foreground border-[3px] border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] scale-90"
                         : cn(
-                            // Light Mode: Fondo degradé audaz con borde negro sólido y sombra neobrutalista
-                            "bg-gradient-to-tr from-[#1475e5] via-[#805ad5] to-[#00E5FF] text-white border-[3.5px] border-black shadow-[4px_4px_0_0_#000000] hover:shadow-[6px_6px_0_0_#000000] hover:scale-110",
-                            // Dark Mode: Orbe cibernético oscuro con bordes luminosos y halo cian/esmeralda
-                            "dark:bg-gradient-to-tr dark:from-[#0b0f19] dark:via-[#161f38] dark:to-[#1e153a] dark:text-cyan-400 dark:border-cyan-400/50 dark:shadow-[0_0_22px_rgba(6,182,212,0.45)] dark:hover:shadow-[0_0_32px_rgba(6,182,212,0.7)]"
+                            // Light Mode: Fondo negro y logo blanco con sombra brutalista
+                            "bg-black text-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,0.3)] hover:shadow-[6px_6px_0_0_rgba(0,0,0,0.4)] hover:scale-110",
+                            // Dark Mode: Fondo blanco y logo negro con halo blanco limpio
+                            "dark:bg-white dark:text-black dark:border-white dark:shadow-[0_0_20px_rgba(255,255,255,0.35)] dark:hover:shadow-[0_0_28px_rgba(255,255,255,0.55)]"
                         )
                 )}
                 title={isOpen ? "Cerrar IA" : "Abrir Asistente TABE IA"}

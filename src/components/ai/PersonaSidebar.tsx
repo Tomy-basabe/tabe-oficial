@@ -89,7 +89,7 @@ export function PersonaSidebar({
                             {persona.avatar_emoji && persona.avatar_emoji !== "🤖" ? (
                                 <span className="text-2xl flex-shrink-0">{persona.avatar_emoji}</span>
                             ) : (
-                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] p-1 text-white flex items-center justify-center border border-foreground/50 shadow-sm shrink-0">
+                                <div className="w-7 h-7 rounded-lg bg-black text-white dark:bg-white dark:text-black p-1 flex items-center justify-center border border-foreground/50 shadow-sm shrink-0">
                                     <TabeAIIcon className="w-full h-full" />
                                 </div>
                             )}

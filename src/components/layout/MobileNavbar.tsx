@@ -59,7 +59,7 @@ export const ALL_MOBILE_NAV_ITEMS: {
     icon: "⚡",
     items: [
       { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", color: "text-[#1475e5]", bgActive: "bg-[#1475e5] text-white" },
-      { icon: TabeAIIcon, label: "TABE IA", path: "/TABEAI", badge: "AI", color: "text-[#00E5FF]", bgActive: "bg-[#00E5FF] text-black" },
+      { icon: TabeAIIcon, label: "TABE IA", path: "/TABEAI", badge: "AI", color: "text-foreground", bgActive: "bg-black text-white dark:bg-white dark:text-black" },
     ]
   },
   {

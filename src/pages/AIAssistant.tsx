@@ -422,7 +422,7 @@ export default function AIAssistant() {
                     >
                       <Menu className="w-5 h-5 text-foreground" />
                     </Button>
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] p-1.5 text-white flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-black text-white dark:bg-white dark:text-black p-1.5 flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
                       <TabeAIIcon className="w-full h-full" />
                     </div>
                     <span>{activePersona?.name || "TABE AI"}</span>
@@ -477,7 +477,7 @@ export default function AIAssistant() {
                     className={cn(
                       "w-10 h-10 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center flex-shrink-0 mt-1 !text-black",
                       message.role === "assistant"
-                        ? "bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] !text-white p-2"
+                        ? "bg-black text-white dark:bg-white dark:text-black p-2"
                         : "bg-[#FFD700]"
                     )}
                   >
@@ -485,7 +485,7 @@ export default function AIAssistant() {
                       activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
                         <span className="text-lg font-black">{activePersona.avatar_emoji}</span>
                       ) : (
-                        <TabeAIIcon className="w-full h-full text-white" />
+                        <TabeAIIcon className="w-full h-full" />
                       )
                     ) : (
                       <User className="w-5 h-5 !text-black" strokeWidth={2.5} />
