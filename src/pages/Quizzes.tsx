@@ -212,9 +212,19 @@ export default function Quizzes() {
             setSubjects([{ id: "mock", nombre: "Materias Mock", codigo: "MOCK", año: 1 }]);
             return;
         }
-        const { data } = await supabase.from("subjects").select("id, nombre, codigo, año").order("año");
+        let query = supabase.from("subjects").select("id, nombre, codigo, año").order("año");
+        if (user) {
+            query = query.eq("user_id", user.id);
+        }
+        let { data } = await query;
+        if (user && (!data || data.length === 0)) {
+            const fallback = await supabase.from("subjects").select("id, nombre, codigo, año").is("user_id", null).order("año");
+            if (fallback.data && fallback.data.length > 0) {
+                data = fallback.data;
+            }
+        }
         setSubjects((data as unknown as Subject[]) || []);
-    }, [isGuest]);
+    }, [isGuest, user]);
 
     const fetchDecks = useCallback(async () => {
         if (!user && !isGuest) return;

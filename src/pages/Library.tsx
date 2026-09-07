@@ -158,11 +158,28 @@ export default function Library() {
   }, [selectedYear]);
 
   const fetchSubjects = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from("subjects")
       .select("*")
       .order("año", { ascending: true })
       .order("nombre", { ascending: true });
+
+    if (user) {
+      query = query.eq("user_id", user.id);
+    }
+
+    let { data, error } = await query;
+    if (user && (!data || data.length === 0)) {
+      const fallback = await supabase
+        .from("subjects")
+        .select("*")
+        .is("user_id", null)
+        .order("año", { ascending: true })
+        .order("nombre", { ascending: true });
+      if (fallback.data && fallback.data.length > 0) {
+        data = fallback.data;
+      }
+    }
 
     if (!error && data) {
       setSubjects(data);

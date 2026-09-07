@@ -362,10 +362,27 @@ export default function Notion() {
   // Fetch subjects
   useEffect(() => {
     const fetchSubjects = async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("subjects")
         .select("id, nombre, codigo, año")
         .order("año", { ascending: true });
+
+      if (user) {
+        query = query.eq("user_id", user.id);
+      }
+
+      let { data } = await query;
+      if (user && (!data || data.length === 0)) {
+        const fallback = await supabase
+          .from("subjects")
+          .select("id, nombre, codigo, año")
+          .is("user_id", null)
+          .order("año", { ascending: true });
+        if (fallback.data && fallback.data.length > 0) {
+          data = fallback.data;
+        }
+      }
+
       if (data) {
         setSubjects(
           data.map((s: any) => ({
@@ -378,7 +395,7 @@ export default function Notion() {
       }
     };
     fetchSubjects();
-  }, []);
+  }, [user]);
 
   const migrateBase64Images = useCallback(async (content: JSONContent, docId: string): Promise<JSONContent> => {
     let hasChanges = false;

@@ -135,24 +135,49 @@ export function useSubjects() {
         });
       }, 8000);
 
-      // Run all 3 queries in parallel
-      const [subjectsResult, statusResult, depsResult] = await Promise.all([
-        supabase
-          .from("subjects")
-          .select("*")
-          .order("año", { ascending: true })
-          .order("numero_materia", { ascending: true }),
-        supabase
-          .from("user_subject_status")
-          .select("*"),
-        supabase
-          .from("subject_dependencies")
-          .select("*"),
+      // Run all 3 queries in parallel with strict user filtering
+      let subQuery = supabase
+        .from("subjects")
+        .select("*")
+        .order("año", { ascending: true })
+        .order("numero_materia", { ascending: true });
+
+      let stQuery = supabase
+        .from("user_subject_status")
+        .select("*");
+
+      let depQuery = supabase
+        .from("subject_dependencies")
+        .select("*");
+
+      if (user) {
+        subQuery = subQuery.eq("user_id", user.id);
+        stQuery = stQuery.eq("user_id", user.id);
+        depQuery = depQuery.or(`user_id.eq.${user.id},user_id.is.null`);
+      }
+
+      let [subjectsResult, statusResult, depsResult] = await Promise.all([
+        subQuery,
+        stQuery,
+        depQuery,
       ]);
 
       if (subjectsResult.error) throw subjectsResult.error;
       if (statusResult.error) throw statusResult.error;
       if (depsResult.error) throw depsResult.error;
+
+      // Fallback: If user has no subjects specifically with user_id, check for global legacy subjects
+      if (user && (!subjectsResult.data || subjectsResult.data.length === 0)) {
+        const fallbackSubs = await supabase
+          .from("subjects")
+          .select("*")
+          .is("user_id", null)
+          .order("año", { ascending: true })
+          .order("numero_materia", { ascending: true });
+        if (fallbackSubs.data && fallbackSubs.data.length > 0) {
+          subjectsResult = fallbackSubs;
+        }
+      }
 
       const newSubs = subjectsResult.data || [];
       const newStatuses = (statusResult.data || []).map(s => ({
@@ -164,6 +189,7 @@ export function useSubjects() {
       _cachedSubjects = newSubs;
       _cachedUserStatuses = newStatuses;
       _cachedDependencies = newDeps;
+      _cachedUserId = user ? user.id : null;
 
       setSubjects(newSubs);
       setUserStatuses(newStatuses);
@@ -181,7 +207,7 @@ export function useSubjects() {
       setLoading(false);
       isInitialLoad.current = false;
     }
-  }, []);
+  }, [user]);
 
   const loadTemplateIfPending = useCallback(async () => {
     if (!user || isGuest) return false;

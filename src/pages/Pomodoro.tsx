@@ -76,11 +76,26 @@ export default function Pomodoro() {
 
   const fetchSubjects = async () => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from("subjects")
         .select("id, nombre, codigo, año")
         .order("nombre", { ascending: true });
+
+      if (user) {
+        query = query.eq("user_id", user.id);
+      }
+
+      let { data, error } = await query;
+      if (user && (!data || data.length === 0)) {
+        const fallback = await supabase
+          .from("subjects")
+          .select("id, nombre, codigo, año")
+          .is("user_id", null)
+          .order("nombre", { ascending: true });
+        if (fallback.data && fallback.data.length > 0) {
+          data = fallback.data;
+        }
+      }
 
       if (error) throw error;
       setSubjects((data || []).map((s: any) => ({
