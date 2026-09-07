@@ -8,14 +8,17 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
     scroll-padding-top: 5rem;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     overflow-x: hidden;
     min-height: 100dvh;
     -webkit-overflow-scrolling: touch;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Prevent #root from creating secondary scroll context */
@@ -1341,7 +1344,8 @@
   border-width: 2px !important;
   border-color: hsl(var(--foreground) / 0.85) !important;
   box-shadow: 3.5px 3.5px 0 0 hsl(var(--foreground) / 0.9) !important;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease-out;
+  will-change: transform;
 }
 
 .dark.comic-mode-active .card,
@@ -1352,12 +1356,13 @@
 
 .comic-mode-active .card:hover,
 .comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic):hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) translateZ(0);
   box-shadow: 5px 5px 0 0 hsl(var(--foreground) / 0.9) !important;
 }
 
 .dark.comic-mode-active .card:hover,
 .dark .comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic):hover {
+  transform: translateY(-2px) translateZ(0);
   box-shadow: 5px 5px 0 0 #000, 5px 5px 0 1px rgba(255, 255, 255, 0.4) !important;
 }
 

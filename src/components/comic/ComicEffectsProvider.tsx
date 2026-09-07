@@ -125,8 +125,8 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
       if (!comicMode || isApuntes) return;
 
       const now = Date.now();
-      // Throttle bursts to at most 1 every 80ms
-      if (now - lastBurstRef.current < 80) return;
+      // Throttle bursts to at most 1 every 200ms
+      if (now - lastBurstRef.current < 200) return;
       lastBurstRef.current = now;
 
       // Play comic pop sound
@@ -138,9 +138,9 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
       const colorScheme = COMIC_COLORS[Math.floor(Math.random() * COMIC_COLORS.length)];
       const tilt = (Math.random() - 0.5) * 28; // -14deg to +14deg
 
-      const sparkles = Array.from({ length: 5 }).map((_, i) => {
-        const angle = (i * (360 / 5) + Math.random() * 20) * (Math.PI / 180);
-        const distance = 35 + Math.random() * 30;
+      const sparkles = Array.from({ length: 4 }).map((_, i) => {
+        const angle = (i * (360 / 4) + Math.random() * 20) * (Math.PI / 180);
+        const distance = 30 + Math.random() * 25;
         return {
           id: i,
           tx: `${Math.cos(angle) * distance}px`,
@@ -162,12 +162,12 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
         sparkles,
       };
 
-      setParticles((prev) => [...prev.slice(-15), newParticle]);
+      setParticles((prev) => [...prev.slice(-4), newParticle]);
 
       // Remove after animation finishes
       setTimeout(() => {
         setParticles((prev) => prev.filter((p) => p.id !== newId));
-      }, 900);
+      }, 850);
     },
     [comicMode, soundEnabled, isApuntes]
   );
@@ -190,18 +190,21 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
     return () => window.removeEventListener("click", handleClick);
   }, [comicMode, triggerBurst, isApuntes]);
 
+  const contextValue = React.useMemo(
+    () => ({
+      comicMode,
+      toggleComicMode,
+      setComicMode,
+      soundEnabled,
+      toggleSound,
+      setSoundEnabled,
+      triggerBurst,
+    }),
+    [comicMode, toggleComicMode, soundEnabled, toggleSound, triggerBurst]
+  );
+
   return (
-    <ComicContext.Provider
-      value={{
-        comicMode,
-        toggleComicMode,
-        setComicMode,
-        soundEnabled,
-        toggleSound,
-        setSoundEnabled,
-        triggerBurst,
-      }}
-    >
+    <ComicContext.Provider value={contextValue}>
       {children}
 
       {/* Comic Interactive Overlay (Hidden on /apuntes) */}
@@ -210,7 +213,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
           {particles.map((particle) => (
             <div
               key={particle.id}
-              className="absolute animate-comic-pop"
+              className="absolute animate-comic-pop will-change-transform"
               style={{
                 left: `${particle.x}px`,
                 top: `${particle.y}px`,
@@ -220,7 +223,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
               {particle.sparkles.map((sp) => (
                 <span
                   key={sp.id}
-                  className="absolute text-sm font-black animate-comic-sparkle select-none"
+                  className="absolute text-sm font-black animate-comic-sparkle select-none will-change-transform"
                   style={
                     {
                       left: "50%",
@@ -238,7 +241,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
 
               {/* Onomatopoeia Word Bubble */}
               <div
-                className="relative px-3 py-1 rounded-xl font-black text-xs sm:text-sm tracking-widest uppercase border-2 border-black shadow-[3px_3px_0_0_#000] select-none whitespace-nowrap"
+                className="relative px-3 py-1 rounded-xl font-black text-xs sm:text-sm tracking-widest uppercase border-2 border-black shadow-[3px_3px_0_0_#000] select-none whitespace-nowrap will-change-transform"
                 style={{
                   backgroundColor: particle.color,
                   color: particle.textColor,

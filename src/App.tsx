@@ -64,7 +64,16 @@ if (typeof window !== "undefined") {
   extractAndStoreTokenFromUrl();
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes fresh
+      gcTime: 1000 * 60 * 30, // 30 minutes in memory
+      refetchOnWindowFocus: false, // Don't trigger refetches on clicking into the tab
+      retry: 1,
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isGuest } = useAuth();

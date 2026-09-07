@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { NotionIcon } from "@/components/icons/NotionIcon";
 import { ComicAudio } from "@/components/comic/ComicAudio";
+import { preloadRoute } from "@/lib/routePreload";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -143,6 +144,8 @@ export function MobileNavbar() {
                 ref={isActive ? activeItemRef : null}
                 to={item.path}
                 onClick={() => ComicAudio.playPop()}
+                onMouseEnter={() => preloadRoute(item.path)}
+                onTouchStart={() => preloadRoute(item.path)}
                 className={cn(
                   "flex flex-col items-center justify-center min-w-[62px] px-2 py-1.5 rounded-xl border-2 transition-all duration-200 select-none shrink-0",
                   isActive
@@ -269,6 +272,8 @@ export function MobileNavbar() {
                             ComicAudio.playPop();
                             setSheetOpen(false);
                           }}
+                          onMouseEnter={() => preloadRoute(item.path)}
+                          onTouchStart={() => preloadRoute(item.path)}
                           className={cn(
                             "flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center group relative",
                             isActive

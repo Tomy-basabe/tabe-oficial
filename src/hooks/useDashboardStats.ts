@@ -27,14 +27,27 @@ interface WeekDay {
   date: Date;
 }
 
+// Module-level cache for instantaneous navigation between pages (stale-while-revalidate)
+let _cachedUserStats: UserStats | null = null;
+let _cachedStudySessions: StudySession[] | null = null;
+let _cachedStatsUserId: string | null = null;
+
 export function useDashboardStats() {
   const { user, isGuest } = useAuth();
   const { subjects } = useSubjects();
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [studySessions, setStudySessions] = useState<StudySession[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
+  // Invalidate cache if user changes
+  if (user && user.id !== _cachedStatsUserId) {
+    _cachedUserStats = null;
+    _cachedStudySessions = null;
+    _cachedStatsUserId = user.id;
+  }
+
+  const [userStats, setUserStats] = useState<UserStats | null>(_cachedUserStats);
+  const [studySessions, setStudySessions] = useState<StudySession[]>(_cachedStudySessions || []);
+  const [loading, setLoading] = useState<boolean>(!_cachedUserStats);
+
+  const fetchStats = useCallback(async (showLoading = !_cachedUserStats) => {
     if (!user && !isGuest) {
       setLoading(false);
       return;
@@ -43,13 +56,13 @@ export function useDashboardStats() {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     if (isGuest) {
-      setUserStats({
+      const guestStats = {
         xp_total: 4150, // 4150 / 100 + 1 => Nivel 42
         nivel: 42,
         racha_actual: 14,
         mejor_racha: 35,
         horas_estudio_total: 312
-      });
+      };
 
       const today = new Date();
       const sessions = [];
@@ -65,6 +78,9 @@ export function useDashboardStats() {
         });
       }
 
+      _cachedUserStats = guestStats;
+      _cachedStudySessions = sessions;
+      setUserStats(guestStats);
       setStudySessions(sessions);
       setLoading(false);
       return;
@@ -73,7 +89,7 @@ export function useDashboardStats() {
     if (!user) return;
 
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
 
       // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs
       timeoutId = setTimeout(() => {
@@ -103,6 +119,8 @@ export function useDashboardStats() {
         .gte("fecha", toLocalDateStr(thirtyDaysAgo))
         .order("fecha", { ascending: false });
 
+      _cachedUserStats = statsData;
+      _cachedStudySessions = sessionsData || [];
       setUserStats(statsData);
       setStudySessions(sessionsData || []);
     } catch (error) {
@@ -114,7 +132,7 @@ export function useDashboardStats() {
   }, [user, isGuest]);
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(!_cachedUserStats);
   }, [fetchStats]);
 
   // Realtime subscriptions

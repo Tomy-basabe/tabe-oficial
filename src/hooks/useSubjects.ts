@@ -94,13 +94,28 @@ export interface CreateSubjectData {
   requiere_aprobada?: string[];
 }
 
+// Module-level cache for instantaneous navigation between pages (stale-while-revalidate)
+let _cachedSubjects: Subject[] | null = null;
+let _cachedUserStatuses: UserSubjectStatus[] | null = null;
+let _cachedDependencies: Dependency[] | null = null;
+let _cachedUserId: string | null = null;
+
 export function useSubjects() {
   const { user, isGuest } = useAuth();
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [userStatuses, setUserStatuses] = useState<UserSubjectStatus[]>([]);
-  const [dependencies, setDependencies] = useState<Dependency[]>([]);
-  const [loading, setLoading] = useState(true);
-  const isInitialLoad = useRef(true);
+
+  // Invalidate cache if user changes
+  if (user && user.id !== _cachedUserId) {
+    _cachedSubjects = null;
+    _cachedUserStatuses = null;
+    _cachedDependencies = null;
+    _cachedUserId = user.id;
+  }
+
+  const [subjects, setSubjects] = useState<Subject[]>(_cachedSubjects || []);
+  const [userStatuses, setUserStatuses] = useState<UserSubjectStatus[]>(_cachedUserStatuses || []);
+  const [dependencies, setDependencies] = useState<Dependency[]>(_cachedDependencies || []);
+  const [loading, setLoading] = useState(!_cachedSubjects);
+  const isInitialLoad = useRef(!_cachedSubjects);
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async (showLoading = true, retries = 2) => {
@@ -139,12 +154,20 @@ export function useSubjects() {
       if (statusResult.error) throw statusResult.error;
       if (depsResult.error) throw depsResult.error;
 
-      setSubjects(subjectsResult.data || []);
-      setUserStatuses((statusResult.data || []).map(s => ({
+      const newSubs = subjectsResult.data || [];
+      const newStatuses = (statusResult.data || []).map(s => ({
         ...s,
         estado: s.estado as SubjectStatus,
-      })));
-      setDependencies(depsResult.data || []);
+      }));
+      const newDeps = depsResult.data || [];
+
+      _cachedSubjects = newSubs;
+      _cachedUserStatuses = newStatuses;
+      _cachedDependencies = newDeps;
+
+      setSubjects(newSubs);
+      setUserStatuses(newStatuses);
+      setDependencies(newDeps);
     } catch (error) {
       console.error("Error fetching subjects:", error);
       if (retries > 0) {
@@ -233,7 +256,7 @@ export function useSubjects() {
     const initData = async () => {
       if (user) {
         const loadedTemplate = await loadTemplateIfPending();
-        fetchData(true);
+        fetchData(!_cachedSubjects);
       } else if (isGuest) {
         // ALWAYS use the template for Guest Mode, ignore localStorage
         import('@/data/sistemas_template.json').then(module => {

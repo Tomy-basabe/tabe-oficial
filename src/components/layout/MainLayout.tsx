@@ -33,6 +33,7 @@ import {
 import { MobileNavbar } from "@/components/layout/MobileNavbar";
 import { ComicEffectsProvider } from "@/components/comic/ComicEffectsProvider";
 import { ComicAudio } from "@/components/comic/ComicAudio";
+import { preloadRoute } from "@/lib/routePreload";
 
 interface UserStats {
   xp_total: number;
@@ -351,6 +352,9 @@ export function MainLayout() {
                     key={item.id}
                     to={path}
                     onClick={() => ComicAudio.playPop()}
+                    onMouseEnter={() => preloadRoute(path)}
+                    onTouchStart={() => preloadRoute(path)}
+                    onFocus={() => preloadRoute(path)}
                     className={cn(
                       "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
                       isCollapsed ? "justify-center p-2.5" : isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
