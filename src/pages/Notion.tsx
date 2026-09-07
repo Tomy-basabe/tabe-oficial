@@ -1359,128 +1359,117 @@ export default function Notion() {
         )}
 
         {/* Editor area */}
-        <div className="notion-editor-area">
+        <div className="notion-editor-area overflow-hidden flex flex-col h-full min-h-0">
           {activeDocument ? (
-            <div className="notion-editor-wrapper tour-notion-list">
-              {isOpeningDoc ? (
-                <div className="flex flex-col items-center justify-center h-full gap-4">
-                  <Loader2 className="w-12 h-12 animate-spin text-primary" />
-                  <p className="text-muted-foreground animate-pulse font-medium">
-                    Cargando contenido pesado...
-                  </p>
+            isOpeningDoc ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                <p className="text-muted-foreground animate-pulse font-medium">
+                  Cargando contenido pesado...
+                </p>
+              </div>
+            ) : (
+              <Suspense fallback={
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
-              ) : (
-                <>
-                  {/* Cover */}
-                  {activeDocument.cover_url && (
-                    <div className="notion-cover">
-                      <img src={activeDocument.cover_url} alt="cover" />
-                    </div>
-                  )}
+              }>
+                <AdvancedNotionEditor
+                  headerContent={
+                    <>
+                      {/* Cover */}
+                      {activeDocument.cover_url && (
+                        <div className="notion-cover">
+                          <img src={activeDocument.cover_url} alt="cover" />
+                        </div>
+                      )}
 
-                  {/* Title area */}
-                  <div className="notion-title-area">
-                    <EmojiPicker
-                      value={activeDocument.emoji}
-                      onChange={handleEmojiUpdate}
-                    />
+                      {/* Title area */}
+                      <div className="notion-title-area">
+                        <EmojiPicker
+                          value={activeDocument.emoji}
+                          onChange={handleEmojiUpdate}
+                        />
 
-                    <textarea
-                      value={localTitle}
-                      onChange={(e) => {
-                        handleTitleChange(e.target.value);
-                        // Auto-resize
-                        e.target.style.height = "auto";
-                        e.target.style.height = e.target.scrollHeight + "px";
-                      }}
-                      className={cn("notion-title-input", activeDocument.user_id !== user?.id && "cursor-default select-none")}
-                      placeholder="Sin título"
-                      rows={1}
-                      readOnly={activeDocument.user_id !== user?.id}
-                      style={{ overflow: "hidden" }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          // Focus editor
-                          const editor = document.querySelector(
-                            ".ProseMirror"
-                          ) as HTMLElement;
-                          editor?.focus();
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Author indicator in editor */}
-                  {activeDocument.user_id !== user?.id && activeDocument.owner && (
-                    <div className="notion-author-badge flex items-center gap-2 px-14 mb-4 animate-in fade-in slide-in-from-left-2 duration-500">
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
-                        {activeDocument.owner.avatar_url ? (
-                          <img src={activeDocument.owner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
-                            {(activeDocument.owner.nombre || activeDocument.owner.username || "A").charAt(0)}
-                          </div>
-                        )}
-                        <span className="text-xs font-semibold tracking-tight">
-                          Apunte de {activeDocument.owner.nombre || activeDocument.owner.username || "un amigo"}
-                        </span>
-                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary/20 ml-1">Solo lectura</span>
+                        <textarea
+                          value={localTitle}
+                          onChange={(e) => {
+                            handleTitleChange(e.target.value);
+                            // Auto-resize
+                            e.target.style.height = "auto";
+                            e.target.style.height = e.target.scrollHeight + "px";
+                          }}
+                          className={cn("notion-title-input", activeDocument.user_id !== user?.id && "cursor-default select-none")}
+                          placeholder="Sin título"
+                          rows={1}
+                          readOnly={activeDocument.user_id !== user?.id}
+                          style={{ overflow: "hidden" }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const editor = document.querySelector(".ProseMirror") as HTMLElement;
+                              editor?.focus();
+                            }
+                          }}
+                        />
                       </div>
-                    </div>
-                  )}
 
-                  {/* Editor */}
-                  <Suspense fallback={
-                    <div className="flex items-center justify-center py-20">
-                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                  }>
-                    <AdvancedNotionEditor
-                      content={editorContent}
-                      onUpdate={handleContentUpdate}
-                      documentId={activeDocument?.id}
-                      readOnly={activeDocument?.user_id !== user?.id}
-                      onActivity={() => lastActivityRef.current = Date.now()}
-                      onSubPageClick={async (pageId, pageTitle) => {
-                          // Case 1: has a real pageId — find and open it
-                          if (pageId) {
-                            let target = documents.find(d => d.id === pageId);
-                            if (!target) {
-                              // Might be a subpage not in the flat list — fetch from Supabase
-                              const { data } = await supabase
-                                .from("notion_documents")
-                                .select("*")
-                                .eq("id", pageId)
-                                .single();
-                              if (data) target = data as NotionDocument;
-                            }
-                            if (target) {
-                              openDocument(target);
-                              return;
-                            }
-                          }
+                      {/* Author indicator in editor */}
+                      {activeDocument.user_id !== user?.id && activeDocument.owner && (
+                        <div className="notion-author-badge flex items-center gap-2 px-14 mb-4 animate-in fade-in slide-in-from-left-2 duration-500">
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                            {activeDocument.owner.avatar_url ? (
+                              <img src={activeDocument.owner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+                                {(activeDocument.owner.nombre || activeDocument.owner.username || "A").charAt(0)}
+                              </div>
+                            )}
+                            <span className="text-xs font-semibold tracking-tight">
+                              Apunte de {activeDocument.owner.nombre || activeDocument.owner.username || "un amigo"}
+                            </span>
+                            <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary/20 ml-1">Solo lectura</span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  }
+                  content={editorContent}
+                  onUpdate={handleContentUpdate}
+                  documentId={activeDocument?.id}
+                  readOnly={activeDocument?.user_id !== user?.id}
+                  onActivity={() => lastActivityRef.current = Date.now()}
+                  onSubPageClick={async (pageId, pageTitle) => {
+                      if (pageId) {
+                        let target = documents.find(d => d.id === pageId);
+                        if (!target) {
+                          const { data } = await supabase
+                            .from("notion_documents")
+                            .select("*")
+                            .eq("id", pageId)
+                            .single();
+                          if (data) target = data as NotionDocument;
+                        }
+                        if (target) {
+                          openDocument(target);
+                          return;
+                        }
+                      }
 
-                          // Case 2: pageId is null — create a real child document
-                          const subjectId = activeDocument?.subject_id || "";
-                          const newDoc = await createDocument(subjectId, pageTitle || "Sin título", activeDocument?.id || undefined);
-                          if (newDoc) {
-                            // Dispatch event so the SubPage block updates its pageId
-                            document.dispatchEvent(new CustomEvent("notion-subpage-created", {
-                              detail: { oldTitle: pageTitle, newPageId: newDoc.id },
-                            }));
-                            // Save current content so the pageId update persists
-                            await saveDocument(true);
-                            // Open the newly created sub-page
-                            const fullDoc = { ...newDoc, parent_id: activeDocument?.id || null };
-                            openDocument(fullDoc);
-                          }
-                      }}
-                    />
-                  </Suspense>
-                </>
-              )}
-            </div>
+                      const subjectId = activeDocument?.subject_id || "";
+                      const newDoc = await createDocument(subjectId, pageTitle || "Sin título", activeDocument?.id || undefined);
+                      if (newDoc) {
+                        document.dispatchEvent(new CustomEvent("notion-subpage-created", {
+                          detail: { oldTitle: pageTitle, newPageId: newDoc.id },
+                        }));
+                        await saveDocument(true);
+                        const fullDoc = { ...newDoc, parent_id: activeDocument?.id || null };
+                        openDocument(fullDoc);
+                      }
+                  }}
+                />
+              </Suspense>
+            )
           ) : (
             /* Empty state / Gallery View */
             <div className="flex flex-col h-full bg-background text-foreground">

@@ -143,10 +143,7 @@ export const BackgroundColor = Extension.create({
       unsetBackgroundColor:
         () =>
         ({ editor, state, dispatch }) => {
-          // This removes the backgroundColor style from the active selection
-          // without affecting the whole document.
           if (state.selection.empty) {
-            // Si el cursor está vacío pero tiene una marca de estilo, la removemos 
             return editor.commands.unsetMark('textStyle');
           }
 
@@ -154,20 +151,32 @@ export const BackgroundColor = Extension.create({
             const tr = state.tr;
             const { from, to } = state.selection;
 
+            // 1. Quitar la marca nativa de Highlight en el rango exacto de la selección
+            const highlightType = state.schema.marks.highlight;
+            if (highlightType) {
+              tr.removeMark(from, to, highlightType);
+            }
+
+            // 2. Quitar el atributo backgroundColor de textStyle solo en el rango exacto
             state.doc.nodesBetween(from, to, (node, pos) => {
               if (node.isText && node.marks) {
                 node.marks.forEach(mark => {
                   if (mark.type.name === 'textStyle' && mark.attrs.backgroundColor) {
-                     const newAttrs = { ...mark.attrs };
-                     delete newAttrs.backgroundColor;
-                     
-                     // 1. Quitamos la marca original (con el backgroundColor)
-                     tr.removeMark(pos, pos + node.nodeSize, mark.type);
-                     
-                     // 2. Volvemos a añadir la marca con los atributos restantes (si quedó alguno, como el color de texto)
-                     if (Object.keys(newAttrs).length > 0) {
-                        tr.addMark(pos, pos + node.nodeSize, mark.type.create(newAttrs));
-                     }
+                    const fromPos = Math.max(from, pos);
+                    const toPos = Math.min(to, pos + node.nodeSize);
+
+                    if (fromPos < toPos) {
+                      const newAttrs = { ...mark.attrs };
+                      delete newAttrs.backgroundColor;
+
+                      // Quitar la marca de fondo solo en el tramo seleccionado
+                      tr.removeMark(fromPos, toPos, mark.type);
+
+                      // Si tenía otros estilos (ej: color de texto), re-aplicarlos sin backgroundColor
+                      if (Object.keys(newAttrs).length > 0) {
+                        tr.addMark(fromPos, toPos, mark.type.create(newAttrs));
+                      }
+                    }
                   }
                 });
               }

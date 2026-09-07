@@ -64,25 +64,37 @@ interface WordToolbarProps {
   onInsertSubpage?: () => void;
 }
 
-const HIGHLIGHT_COLORS = [
-  { name: 'Sin resaltado', color: '' },
-  { name: 'Amarillo apunte', color: 'rgba(254, 240, 138, 0.6)' },
-  { name: 'Verde menta', color: 'rgba(187, 247, 208, 0.6)' },
-  { name: 'Celeste pastel', color: 'rgba(186, 230, 253, 0.6)' },
-  { name: 'Lavanda suave', color: 'rgba(233, 213, 255, 0.6)' },
-  { name: 'Rosa coral', color: 'rgba(254, 205, 211, 0.6)' },
-  { name: 'Naranja suave', color: 'rgba(254, 215, 170, 0.6)' },
+const STRONG_HIGHLIGHT_COLORS = [
+  { name: 'Amarillo Neón', color: '#facc15' },
+  { name: 'Verde Eléctrico', color: '#22c55e' },
+  { name: 'Celeste Flúor', color: '#06b6d4' },
+  { name: 'Rosa Neón', color: '#ec4899' },
+  { name: 'Naranja Vivo', color: '#f97316' },
+  { name: 'Rojo Intenso', color: '#ef4444' },
+  { name: 'Violeta Neón', color: '#a855f7' },
+];
+
+const PASTEL_HIGHLIGHT_COLORS = [
+  { name: 'Amarillo apunte', color: 'rgba(254, 240, 138, 0.75)' },
+  { name: 'Verde menta', color: 'rgba(187, 247, 208, 0.75)' },
+  { name: 'Celeste pastel', color: 'rgba(186, 230, 253, 0.75)' },
+  { name: 'Lavanda suave', color: 'rgba(233, 213, 255, 0.75)' },
+  { name: 'Rosa coral', color: 'rgba(254, 205, 211, 0.75)' },
+  { name: 'Naranja suave', color: 'rgba(254, 215, 170, 0.75)' },
 ];
 
 const TEXT_COLORS = [
   { name: 'Por defecto', color: '' },
-  { name: 'Negro / Blanco', color: 'currentColor' },
-  { name: 'Azul marino', color: '#2563eb' },
-  { name: 'Verde bosque', color: '#16a34a' },
-  { name: 'Rojo carmín', color: '#dc2626' },
-  { name: 'Púrpura', color: '#9333ea' },
-  { name: 'Ámbar / Dorado', color: '#d97706' },
+  { name: 'Negro intenso', color: '#000000' },
+  { name: 'Azul eléctrico', color: '#1d4ed8' },
+  { name: 'Verde esmeralda', color: '#15803d' },
+  { name: 'Rojo vivo', color: '#dc2626' },
+  { name: 'Púrpura intenso', color: '#7e22ce' },
+  { name: 'Naranja fuerte', color: '#ea580c' },
+  { name: 'Dorado intenso', color: '#d97706' },
 ];
+
+const FONT_SIZES = ['10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36'];
 
 export const WordToolbar: React.FC<WordToolbarProps> = ({
   editor,
@@ -105,6 +117,30 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
     if (editor.isActive('blockquote')) return 'Cita';
     if (editor.isActive('codeBlock')) return 'Código';
     return 'Párrafo';
+  };
+
+  const getCurrentFontSize = () => {
+    const size = editor.getAttributes('textStyle')?.fontSize;
+    if (!size) return '16';
+    return size.replace('px', '').replace('pt', '');
+  };
+
+  const handleSetFontSize = (size: string) => {
+    editor.chain().focus().setFontSize(`${size}px`).run();
+  };
+
+  const increaseFontSize = () => {
+    const current = parseInt(getCurrentFontSize(), 10) || 16;
+    const sizes = [10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
+    const next = sizes.find(s => s > current) || current + 2;
+    editor.chain().focus().setFontSize(`${next}px`).run();
+  };
+
+  const decreaseFontSize = () => {
+    const current = parseInt(getCurrentFontSize(), 10) || 16;
+    const sizes = [10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
+    const prev = [...sizes].reverse().find(s => s < current) || Math.max(8, current - 2);
+    editor.chain().focus().setFontSize(`${prev}px`).run();
   };
 
   const isTableActive = editor.isActive('table');
@@ -255,6 +291,73 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* FONT SIZE SELECTOR (WORD STYLE) */}
+          <div className="flex items-center gap-0.5">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs font-mono font-medium gap-1 border border-border/50 bg-background/50 hover:bg-accent min-w-[42px]"
+                    >
+                      <span>{getCurrentFontSize()}</span>
+                      <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Tamaño de fuente (pt)</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="start" className="w-20 max-h-56 overflow-y-auto">
+                {FONT_SIZES.map((size) => (
+                  <DropdownMenuItem
+                    key={size}
+                    onClick={() => handleSetFontSize(size)}
+                    className={`font-mono text-xs cursor-pointer ${getCurrentFontSize() === size ? 'bg-accent font-bold' : ''}`}
+                  >
+                    {size}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* A+ & A- Buttons */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-7 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-accent"
+                  onClick={increaseFontSize}
+                >
+                  <span className="flex items-center leading-none">
+                    A<span className="text-[9px] font-extrabold ml-0.5">+</span>
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Aumentar tamaño de letra</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-7 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-accent"
+                  onClick={decreaseFontSize}
+                >
+                  <span className="flex items-center leading-none">
+                    A<span className="text-[9px] font-extrabold ml-0.5">-</span>
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Disminuir tamaño de letra</TooltipContent>
+            </Tooltip>
+          </div>
+
           <div className="h-4 w-px bg-border/80 mx-0.5" />
 
           {/* TEXT FORMATTING */}
@@ -355,7 +458,7 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
 
           {/* COLORS & HIGHLIGHT */}
           <div className="flex items-center gap-0.5">
-            {/* Highlighter */}
+            {/* Highlighter with Strong & Pastel colors */}
             <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -369,36 +472,63 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Resaltador de estudio</TooltipContent>
+                <TooltipContent side="bottom">Resaltador (Colores fuertes y suaves)</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="center" className="p-2 w-48">
-                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                  Colores de resaltado
+              <DropdownMenuContent align="center" className="p-2.5 w-60">
+                {/* Colores Fuertes / Flúor */}
+                <DropdownMenuLabel className="text-[11px] font-bold text-foreground flex items-center justify-between pb-1">
+                  <span>Colores Fuertes / Flúor</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Alta visibilidad</span>
                 </DropdownMenuLabel>
-                <div className="grid grid-cols-4 gap-1.5 pt-1">
-                  {HIGHLIGHT_COLORS.map((h, i) => (
+                <div className="grid grid-cols-7 gap-1 pb-2">
+                  {STRONG_HIGHLIGHT_COLORS.map((h, i) => (
                     <button
-                      key={i}
+                      key={`strong-${i}`}
                       type="button"
                       onClick={() => {
-                        if (!h.color) {
-                          editor.chain().focus().unsetHighlight().run();
-                        } else {
-                          editor.chain().focus().setHighlight({ color: h.color }).run();
-                        }
+                        editor.chain().focus().setBackgroundColor(h.color).run();
                       }}
-                      className="h-7 rounded-md border border-border/60 hover:scale-105 transition-transform flex items-center justify-center text-[10px]"
-                      style={{ backgroundColor: h.color || 'transparent' }}
+                      className="h-6 w-6 rounded border border-border/80 hover:scale-115 transition-transform shadow-xs"
+                      style={{ backgroundColor: h.color }}
                       title={h.name}
-                    >
-                      {!h.color ? '✕' : ''}
-                    </button>
+                    />
                   ))}
                 </div>
+
+                {/* Colores Pasteles de Estudio */}
+                <DropdownMenuLabel className="text-[11px] font-bold text-muted-foreground pt-1 pb-1">
+                  Colores Suaves de Estudio
+                </DropdownMenuLabel>
+                <div className="grid grid-cols-6 gap-1 pb-2">
+                  {PASTEL_HIGHLIGHT_COLORS.map((h, i) => (
+                    <button
+                      key={`pastel-${i}`}
+                      type="button"
+                      onClick={() => {
+                        editor.chain().focus().setBackgroundColor(h.color).run();
+                      }}
+                      className="h-6 w-6 rounded border border-border/60 hover:scale-115 transition-transform"
+                      style={{ backgroundColor: h.color }}
+                      title={h.name}
+                    />
+                  ))}
+                </div>
+
+                {/* Quitar resaltado de la selección */}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    editor.chain().focus().unsetBackgroundColor().run();
+                  }}
+                  className="text-xs cursor-pointer flex items-center justify-between font-medium text-destructive focus:bg-destructive/10"
+                >
+                  <span>Quitar resaltado</span>
+                  <kbd className="text-[10px] font-mono opacity-80">Ctrl+Q</kbd>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Text Color */}
+            {/* Text Color with Strong Tones */}
             <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -414,11 +544,11 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Color de letra</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="center" className="p-2 w-48">
-                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                  Color de texto
+              <DropdownMenuContent align="center" className="p-2.5 w-52">
+                <DropdownMenuLabel className="text-xs font-bold text-foreground">
+                  Color de texto intenso
                 </DropdownMenuLabel>
-                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                <div className="grid grid-cols-4 gap-1.5 pt-1 pb-1">
                   {TEXT_COLORS.map((c, i) => (
                     <button
                       key={i}
@@ -430,7 +560,7 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                           editor.chain().focus().setColor(c.color).run();
                         }
                       }}
-                      className="h-7 rounded-md border border-border/60 flex items-center justify-center hover:scale-105 transition-transform font-bold text-xs"
+                      className="h-7 rounded-md border border-border/70 flex items-center justify-center hover:scale-110 transition-transform font-bold text-xs bg-muted/30"
                       style={{ color: c.color || 'inherit' }}
                       title={c.name}
                     >

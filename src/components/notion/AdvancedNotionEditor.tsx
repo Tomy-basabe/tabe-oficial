@@ -38,6 +38,7 @@ import { Callout } from "./extensions/CalloutExtension";
 import { Details, DetailsSummary, DetailsContent } from "./extensions/DetailsExtension";
 import { DragHandle } from "./extensions/DragHandle";
 import { TextStyle, Color, BackgroundColor } from "./extensions/ColorExtension";
+import { FontSize } from "./extensions/FontSizeExtension";
 import { Embed } from "./extensions/EmbedExtension";
 import { ColumnBlock, Column } from "./extensions/ColumnsExtension";
 import { Bookmark } from "./extensions/BookmarkExtension";
@@ -58,6 +59,7 @@ import "tippy.js/dist/tippy.css";
 const lowlight = createLowlight(common);
 
 interface AdvancedNotionEditorProps {
+  headerContent?: React.ReactNode;
   content: any;
   onUpdate: (content: any) => void;
   onActivity?: () => void;
@@ -85,6 +87,7 @@ const BubbleBtn = ({ onClick, isActive, children, title, className }: { onClick:
 );
 
 export function AdvancedNotionEditor({
+  headerContent,
   content,
   onUpdate,
   onActivity,
@@ -166,6 +169,7 @@ export function AdvancedNotionEditor({
       }),
       Highlight.configure({ multicolor: true }),
       TextStyle,
+      FontSize,
       Color,
       BackgroundColor,
       Typography,
@@ -680,6 +684,11 @@ export function AdvancedNotionEditor({
               setShowFindReplace((prev) => !prev);
               return;
             }
+            case "q": {
+              e.preventDefault();
+              editor.chain().focus().unsetBackgroundColor().run();
+              return;
+            }
           }
         }
       }
@@ -1076,10 +1085,14 @@ export function AdvancedNotionEditor({
       >
         {viewMode === 'word-a4' ? (
           <div className="word-a4-page">
+            {headerContent}
             <EditorContent editor={editor} />
           </div>
         ) : (
-          <EditorContent editor={editor} />
+          <div className="notion-editor-wrapper">
+            {headerContent}
+            <EditorContent editor={editor} />
+          </div>
         )}
       </div>
 
