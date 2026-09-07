@@ -167,6 +167,25 @@ export function injectGoogleEventId(notas: string | null | undefined, gcalId: st
 
 /**
  * Helper to add hours to HH:mm string
+/**
+ * Helper to normalize time string to HH:mm format safely
+ */
+function formatTimeToHHMM(time?: string | null): string | null {
+  if (!time) return null;
+  const clean = time.trim();
+  const parts = clean.split(":");
+  if (parts.length >= 2) {
+    const h = String(parseInt(parts[0], 10)).padStart(2, "0");
+    const m = String(parseInt(parts[1], 10)).padStart(2, "0");
+    if (!isNaN(Number(h)) && !isNaN(Number(m))) {
+      return `${h}:${m}`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Helper to add hours to HH:mm string
  */
 function addHours(time: string, hoursToAdd = 1): string {
   try {
@@ -179,7 +198,7 @@ function addHours(time: string, hoursToAdd = 1): string {
 }
 
 /**
- * Converts a TABE event to a Google Calendar resource
+ * Converts a TABE event to a Google Calendar resource safely
  */
 function mapTabeEventToGoogleResource(event: {
   titulo: string;
@@ -192,29 +211,45 @@ function mapTabeEventToGoogleResource(event: {
 }) {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Argentina/Buenos_Aires";
   const cleanDescription = stripGoogleEventId(event.notas);
+  const rawDate = (event.fecha || "").split("T")[0] || new Date().toISOString().split("T")[0];
 
-  let start: any;
-  let end: any;
+  let start: any = { date: rawDate };
+  let end: any = { date: rawDate };
 
-  if (event.hora && !event.is_all_day) {
-    const startStr = `${event.fecha}T${event.hora}:00`;
-    const endHora = event.hora_fin || addHours(event.hora, 1);
-    const endStr = `${event.fecha}T${endHora}:00`;
+  const safeHora = formatTimeToHHMM(event.hora);
+  const safeHoraFin = formatTimeToHHMM(event.hora_fin) || (safeHora ? addHours(safeHora, 1) : null);
 
-    start = {
-      dateTime: new Date(startStr).toISOString(),
-      timeZone,
-    };
-    end = {
-      dateTime: new Date(endStr).toISOString(),
-      timeZone,
-    };
+  if (safeHora && !event.is_all_day) {
+    try {
+      const startD = new Date(`${rawDate}T${safeHora}:00`);
+      const endD = new Date(`${rawDate}T${safeHoraFin || safeHora}:00`);
+
+      if (!isNaN(startD.getTime()) && !isNaN(endD.getTime())) {
+        start = {
+          dateTime: startD.toISOString(),
+          timeZone,
+        };
+        end = {
+          dateTime: endD.toISOString(),
+          timeZone,
+        };
+      }
+    } catch {
+      start = { date: rawDate };
+      end = { date: rawDate };
+    }
   } else {
     // All-day event
-    start = { date: event.fecha };
-    const nextDay = new Date(event.fecha + "T12:00:00");
-    nextDay.setDate(nextDay.getDate() + 1);
-    end = { date: nextDay.toISOString().split("T")[0] };
+    start = { date: rawDate };
+    try {
+      const nextDay = new Date(`${rawDate}T12:00:00`);
+      if (!isNaN(nextDay.getTime())) {
+        nextDay.setDate(nextDay.getDate() + 1);
+        end = { date: nextDay.toISOString().split("T")[0] };
+      }
+    } catch {
+      end = { date: rawDate };
+    }
   }
 
   return {
@@ -490,14 +525,18 @@ export async function performBidirectionalSync(params: {
       const isAlreadyInGoogle = gcalId && googleById.has(gcalId);
 
       if (!isAlreadyInGoogle) {
-        // Push to Google Calendar
-        const pushResult = await pushEventToGoogleCalendar(tEvent);
-        if (pushResult.gcalId) {
-          pushedCount++;
-          // Update TABE event note with the new gcal_id
-          const newNotas = injectGoogleEventId(tEvent.notas, pushResult.gcalId);
-          await params.updateTabeEvent(tEvent.id, { notas: newNotas });
-          tabeByGcalId.set(pushResult.gcalId, { ...tEvent, notas: newNotas });
+        try {
+          // Push to Google Calendar
+          const pushResult = await pushEventToGoogleCalendar(tEvent);
+          if (pushResult.gcalId) {
+            pushedCount++;
+            // Update TABE event note with the new gcal_id
+            const newNotas = injectGoogleEventId(tEvent.notas, pushResult.gcalId);
+            await params.updateTabeEvent(tEvent.id, { notas: newNotas });
+            tabeByGcalId.set(pushResult.gcalId, { ...tEvent, notas: newNotas });
+          }
+        } catch (pushErr) {
+          console.warn("Could not push event to Google Calendar:", tEvent.titulo, pushErr);
         }
       }
     }
@@ -506,95 +545,109 @@ export async function performBidirectionalSync(params: {
     for (const gEv of googleEvents) {
       if (gEv.status === "cancelled") continue;
 
-      const gcalId = gEv.id;
-      const alreadyInTabe = tabeByGcalId.get(gcalId);
+      try {
+        const gcalId = gEv.id;
+        const alreadyInTabe = tabeByGcalId.get(gcalId);
 
-      // Parse Google dates
-      const startDateTime = gEv.start?.dateTime || gEv.start?.date;
-      if (!startDateTime) continue;
+        // Parse Google dates
+        const startDateTime = gEv.start?.dateTime || gEv.start?.date;
+        if (!startDateTime) continue;
 
-      const isAllDay = !gEv.start?.dateTime;
-      const datePart = startDateTime.split("T")[0];
-      let hora: string | undefined = undefined;
-      let hora_fin: string | undefined = undefined;
+        const isAllDay = !gEv.start?.dateTime;
+        const datePart = String(startDateTime).split("T")[0];
+        if (!datePart || datePart.length < 8) continue;
 
-      if (!isAllDay && gEv.start?.dateTime) {
-        const dStart = new Date(gEv.start.dateTime);
-        hora = `${String(dStart.getHours()).padStart(2, "0")}:${String(dStart.getMinutes()).padStart(2, "0")}`;
-      }
+        let hora: string | undefined = undefined;
+        let hora_fin: string | undefined = undefined;
 
-      if (!isAllDay && gEv.end?.dateTime) {
-        const dEnd = new Date(gEv.end.dateTime);
-        hora_fin = `${String(dEnd.getHours()).padStart(2, "0")}:${String(dEnd.getMinutes()).padStart(2, "0")}`;
-      }
+        if (!isAllDay && gEv.start?.dateTime) {
+          try {
+            const dStart = new Date(gEv.start.dateTime);
+            if (!isNaN(dStart.getTime())) {
+              hora = `${String(dStart.getHours()).padStart(2, "0")}:${String(dStart.getMinutes()).padStart(2, "0")}`;
+            }
+          } catch {}
+        }
 
-      const title = gEv.summary || "Evento de Google Calendar";
-      const titleDateKey = `${title.trim().toLowerCase()}_${datePart}`;
-      const matchedByTitleDate = tabeByTitleDate.get(titleDateKey);
+        if (!isAllDay && gEv.end?.dateTime) {
+          try {
+            const dEnd = new Date(gEv.end.dateTime);
+            if (!isNaN(dEnd.getTime())) {
+              hora_fin = `${String(dEnd.getHours()).padStart(2, "0")}:${String(dEnd.getMinutes()).padStart(2, "0")}`;
+            }
+          } catch {}
+        }
 
-      if (alreadyInTabe) {
-        // Event exists in both: verify if time/title changed in Google and update TABE
-        const needsUpdate =
-          alreadyInTabe.titulo !== title ||
-          alreadyInTabe.fecha !== datePart ||
-          (hora && alreadyInTabe.hora !== hora);
+        const title = gEv.summary || "Evento de Google Calendar";
+        const titleDateKey = `${title.trim().toLowerCase()}_${datePart}`;
+        const matchedByTitleDate = tabeByTitleDate.get(titleDateKey);
 
-        if (needsUpdate) {
-          await params.updateTabeEvent(alreadyInTabe.id, {
+        if (alreadyInTabe) {
+          // Event exists in both: verify if time/title changed in Google and update TABE
+          const needsUpdate =
+            alreadyInTabe.titulo !== title ||
+            alreadyInTabe.fecha !== datePart ||
+            (hora && alreadyInTabe.hora !== hora);
+
+          if (needsUpdate) {
+            await params.updateTabeEvent(alreadyInTabe.id, {
+              titulo: title,
+              fecha: datePart,
+              hora: hora || undefined,
+              hora_fin: hora_fin || undefined,
+              ubicacion: gEv.location || alreadyInTabe.ubicacion || undefined,
+            });
+          }
+        } else if (matchedByTitleDate) {
+          // Match found by title and date: attach the gcalId to TABE event
+          const newNotas = injectGoogleEventId(matchedByTitleDate.notas, gcalId);
+          await params.updateTabeEvent(matchedByTitleDate.id, { notas: newNotas });
+          tabeByGcalId.set(gcalId, { ...matchedByTitleDate, notas: newNotas });
+        } else {
+          // Completely new event from Google Calendar: create in TABE!
+          const notas = injectGoogleEventId(gEv.description, gcalId);
+
+          // Deduce event type from title and timing
+          let tipo_examen: EventType = "Otro";
+          const lower = title.toLowerCase();
+          if (lower.includes("parcial 1") || lower.includes("1er parcial") || lower.includes("primer parcial") || lower.includes("p1")) {
+            tipo_examen = "P1";
+          } else if (lower.includes("parcial 2") || lower.includes("2do parcial") || lower.includes("segundo parcial") || lower.includes("p2")) {
+            tipo_examen = "P2";
+          } else if (lower.includes("final")) {
+            tipo_examen = "Final";
+          } else if (lower.includes("recuperatorio") || lower.includes("recu")) {
+            tipo_examen = "Recuperatorio P1";
+          } else if (lower.includes("otp") || lower.includes("tp") || lower.includes("entrega") || lower.includes("laboratorio")) {
+            tipo_examen = "Entrega";
+          } else if (lower.includes("clase") || lower.includes("teórica") || lower.includes("práctica") || lower.includes("virtual") || lower.includes("redes") || lower.includes("análisis") || lower.includes("sistemas") || lower.includes("software")) {
+            tipo_examen = "Clase";
+          } else if (lower.includes("estudio") || lower.includes("repaso")) {
+            tipo_examen = "Estudio";
+          } else if (hora) {
+            tipo_examen = "Clase";
+          }
+
+          let eventNotes = notas;
+          if (gEv._calendarName && gEv._calendarName !== "Principal" && !gEv._calendarName.toLowerCase().includes("tomas")) {
+            eventNotes = `[${gEv._calendarName}] ${eventNotes}`.trim();
+          }
+
+          await params.createTabeEvent({
             titulo: title,
             fecha: datePart,
-            hora: hora || undefined,
-            hora_fin: hora_fin || undefined,
-            ubicacion: gEv.location || alreadyInTabe.ubicacion || undefined,
+            hora,
+            hora_fin,
+            is_all_day: isAllDay,
+            ubicacion: gEv.location || undefined,
+            notas: eventNotes,
+            tipo_examen,
           });
+
+          pulledCount++;
         }
-      } else if (matchedByTitleDate) {
-        // Match found by title and date: attach the gcalId to TABE event
-        const newNotas = injectGoogleEventId(matchedByTitleDate.notas, gcalId);
-        await params.updateTabeEvent(matchedByTitleDate.id, { notas: newNotas });
-        tabeByGcalId.set(gcalId, { ...matchedByTitleDate, notas: newNotas });
-      } else {
-        // Completely new event from Google Calendar: create in TABE!
-        const notas = injectGoogleEventId(gEv.description, gcalId);
-
-        // Deduce event type from title and timing
-        let tipo_examen: EventType = "Otro";
-        const lower = title.toLowerCase();
-        if (lower.includes("parcial 1") || lower.includes("1er parcial") || lower.includes("primer parcial") || lower.includes("p1")) {
-          tipo_examen = "P1";
-        } else if (lower.includes("parcial 2") || lower.includes("2do parcial") || lower.includes("segundo parcial") || lower.includes("p2")) {
-          tipo_examen = "P2";
-        } else if (lower.includes("final")) {
-          tipo_examen = "Final";
-        } else if (lower.includes("recuperatorio") || lower.includes("recu")) {
-          tipo_examen = "Recuperatorio P1";
-        } else if (lower.includes("otp") || lower.includes("tp") || lower.includes("entrega") || lower.includes("laboratorio")) {
-          tipo_examen = "Entrega";
-        } else if (lower.includes("clase") || lower.includes("teórica") || lower.includes("práctica") || lower.includes("virtual") || lower.includes("redes") || lower.includes("análisis") || lower.includes("sistemas") || lower.includes("software")) {
-          tipo_examen = "Clase";
-        } else if (lower.includes("estudio") || lower.includes("repaso")) {
-          tipo_examen = "Estudio";
-        } else if (hora) {
-          tipo_examen = "Clase";
-        }
-
-        let eventNotes = notas;
-        if (gEv._calendarName && gEv._calendarName !== "Principal" && !gEv._calendarName.toLowerCase().includes("tomas")) {
-          eventNotes = `[${gEv._calendarName}] ${eventNotes}`.trim();
-        }
-
-        await params.createTabeEvent({
-          titulo: title,
-          fecha: datePart,
-          hora,
-          hora_fin,
-          is_all_day: isAllDay,
-          ubicacion: gEv.location || undefined,
-          notas: eventNotes,
-          tipo_examen,
-        });
-
-        pulledCount++;
+      } catch (eventErr) {
+        console.warn("Could not process Google Calendar event:", gEv?.summary, eventErr);
       }
     }
 
