@@ -3,13 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Clock, BookOpen, ExternalLink, MapPin, Palette, ChevronDown } from "lucide-react";
+import { CalendarIcon, Clock, BookOpen, MapPin, Palette, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { EventType, CreateEventData, RecurrenceRule, CalendarEvent } from "@/hooks/useCalendarEvents";
 import { Subject } from "@/hooks/useSubjects";
-import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import { stripGoogleEventId } from "@/lib/googleCalendarSync";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -64,13 +63,6 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
 
   const [loading, setLoading] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
-  const [showGoogleButton, setShowGoogleButton] = useState(false);
-  const [savedEventData, setSavedEventData] = useState<{
-    titulo: string;
-    fecha: string;
-    hora?: string;
-    notas?: string;
-  } | null>(null);
 
   const eventTypes = useMemo(() => {
     // Si estamos editando y el tipo de examen es un Parcial custom (ej. "P3"), lo agregamos a las opciones para que se seleccione visualmente
@@ -114,7 +106,6 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
 
       setRecurrenceRule(editEvent.recurrence_rule);
       setRecurrenceEnd(editEvent.recurrence_end || "");
-      setShowGoogleButton(false);
     } else {
       // Create mode
       setTitulo("");
@@ -130,8 +121,6 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
       setCustomColor(null);
       setRecurrenceRule(null);
       setRecurrenceEnd("");
-      setShowGoogleButton(false);
-      setSavedEventData(null);
     }
   }, [open, initialDate, editEvent]);
 
@@ -170,34 +159,13 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
 
       if (editEvent) {
         await onSubmit({ ...eventData, id: editEvent.id });
-        handleClose();
       } else {
         await onSubmit(eventData as CreateEventData);
-        // Only show Google export on creation to avoid complex update logic here
-        setSavedEventData({
-          titulo: eventData.titulo,
-          fecha: eventData.fecha,
-          hora: eventData.hora,
-          notas: eventData.notas,
-        });
-        setShowGoogleButton(true);
       }
+      handleClose();
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAddToGoogleCalendar = () => {
-    if (!savedEventData) return;
-    const url = generateGoogleCalendarUrl({
-      title: savedEventData.titulo,
-      date: savedEventData.fecha,
-      time: savedEventData.hora,
-      description: savedEventData.notas,
-    });
-    window.open(url, "_blank");
-    toast.success("Abriendo Google Calendar...");
-    handleClose();
   };
 
   const generateTitle = (type: string, subId: string, customNum?: string) => {
@@ -244,42 +212,14 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
         <DialogHeader>
           <DialogTitle className="font-display text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-foreground">
             <CalendarIcon className="w-6 h-6 text-foreground" />
-            {showGoogleButton ? "¡Evento Creado!" : editEvent ? "Editar Evento" : "Nuevo Evento"}
+            {editEvent ? "Editar Evento" : "Nuevo Evento"}
           </DialogTitle>
           <DialogDescription className="sr-only">
             Administra los detalles de este evento
           </DialogDescription>
         </DialogHeader>
 
-        {showGoogleButton ? (
-          <div className="space-y-4 py-4 animate-in zoom-in-95 duration-300">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 mx-auto rounded-full bg-neon-green/20 flex items-center justify-center">
-                <CalendarIcon className="w-8 h-8 text-neon-green" />
-              </div>
-              <h3 className="font-medium text-lg">{savedEventData?.titulo}</h3>
-              <p className="text-sm text-muted-foreground">
-                El evento fue guardado en tu calendario
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleAddToGoogleCalendar}
-                className="w-full py-3 rounded-xl font-medium bg-[#4285F4] text-white hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Agregar a Google Calendar
-              </button>
-              <button
-                onClick={handleClose}
-                className="w-full py-3 rounded-xl font-medium bg-secondary hover:bg-secondary/80 transition-all"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
             {/* Event Type */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo de evento</label>
@@ -576,7 +516,6 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
               </button>
             </div>
           </form>
-        )}
       </DialogContent>
     </Dialog>
   );
