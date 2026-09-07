@@ -183,8 +183,10 @@ const AppRoutes = () => (
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
 import { AIChatProvider } from "@/contexts/AIChatContext";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
+import { useTheme } from "@/hooks/useTheme";
 
 const App = () => {
+  useTheme();
   console.log("App.tsx initialized v5.1 (Direct Ads Check)");
   return (
   <QueryClientProvider client={queryClient}>

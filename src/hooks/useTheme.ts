@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export type Theme = "dark" | "light" | "system";
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     // Check localStorage first
-    const stored = localStorage.getItem("theme") as Theme | null;
-    if (stored && (stored === "dark" || stored === "light" || stored === "system")) {
-      return stored;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("theme") as Theme | null;
+      if (stored && (stored === "dark" || stored === "light" || stored === "system")) {
+        return stored;
+      }
     }
-    // Default to system if no preference is stored
-    return "system";
+    // Default to light if no preference is stored
+    return "light";
   });
 
   const getSystemTheme = (): "dark" | "light" => {
@@ -20,13 +22,46 @@ export function useTheme() {
     return "light";
   };
 
-  const getResolvedTheme = (t: Theme): "dark" | "light" => {
+  const getResolvedTheme = useCallback((t: Theme): "dark" | "light" => {
     return t === "system" ? getSystemTheme() : t;
-  };
+  }, []);
 
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() => {
     return getResolvedTheme(theme);
   });
+
+  const setTheme = useCallback((newTheme: Theme | ((prev: Theme) => Theme)) => {
+    setThemeState((prev) => {
+      const nextTheme = typeof newTheme === "function" ? newTheme(prev) : newTheme;
+      try {
+        localStorage.setItem("theme", nextTheme);
+        window.dispatchEvent(new CustomEvent("tabe-theme-change", { detail: nextTheme }));
+      } catch (e) {}
+      return nextTheme;
+    });
+  }, []);
+
+  // Listen for changes from other components/tabs
+  useEffect(() => {
+    const handleCustomChange = (e: Event) => {
+      const customEvent = e as CustomEvent<Theme>;
+      if (customEvent.detail && (customEvent.detail === "dark" || customEvent.detail === "light" || customEvent.detail === "system")) {
+        setThemeState(customEvent.detail);
+      }
+    };
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "theme" && (e.newValue === "dark" || e.newValue === "light" || e.newValue === "system")) {
+        setThemeState(e.newValue as Theme);
+      }
+    };
+
+    window.addEventListener("tabe-theme-change", handleCustomChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("tabe-theme-change", handleCustomChange);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -35,9 +70,6 @@ export function useTheme() {
     root.classList.remove("light", "dark");
     root.classList.add(currentResolved);
     setResolvedTheme(currentResolved);
-
-    // Store in localStorage
-    localStorage.setItem("theme", theme);
 
     // Listen for system theme changes if mode is "system"
     if (theme === "system") {
@@ -52,14 +84,14 @@ export function useTheme() {
       mediaQuery.addEventListener("change", handleChange);
       return () => mediaQuery.removeEventListener("change", handleChange);
     }
-  }, [theme]);
+  }, [theme, getResolvedTheme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme((prev) => {
       const currentResolved = getResolvedTheme(prev);
       return currentResolved === "dark" ? "light" : "dark";
     });
-  };
+  }, [getResolvedTheme, setTheme]);
 
   return { theme, resolvedTheme, setTheme, toggleTheme };
 }
