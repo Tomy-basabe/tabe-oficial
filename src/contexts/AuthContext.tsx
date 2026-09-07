@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { setStoredGoogleToken } from "@/lib/googleCalendarSync";
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, nombre?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  connectGoogleCalendar: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   profile: { active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null;
   updateTheme: (theme: string) => Promise<void>;
@@ -108,6 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        if (session?.provider_token) {
+          setStoredGoogleToken(session.provider_token, session.user?.email);
+        }
         if (session?.user) {
           fetchProfile(session.user.id);
           setIsGuest(false);
@@ -124,6 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.provider_token) {
+        setStoredGoogleToken(session.provider_token, session.user?.email);
+      }
       if (session?.user) {
         fetchProfile(session.user.id);
         setIsGuest(false);
@@ -212,6 +220,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const connectGoogleCalendar = async () => {
+    try {
+      const redirectTo = `${window.location.origin}/calendario`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          scopes: "https://www.googleapis.com/auth/calendar.events email profile",
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
   const signOut = async () => {
     try {
       setLoading(true);
@@ -256,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut, profile, updateTheme, updateSidebarConfig, isGuest, loginAsGuest }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, connectGoogleCalendar, signOut, profile, updateTheme, updateSidebarConfig, isGuest, loginAsGuest }}>
       {children}
     </AuthContext.Provider>
   );

@@ -40,7 +40,7 @@ const months = [
 ];
 
 export default function Calendar() {
-  const { events, loading, createEvent, updateEvent, deleteEvent, duplicateEvent, getEventsForDate } = useCalendarEvents();
+  const { events, loading, createEvent, updateEvent, deleteEvent, duplicateEvent, getEventsForDate, refetch } = useCalendarEvents();
   const { rawSubjects } = useSubjects();
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -503,6 +503,10 @@ export default function Calendar() {
         open={showSyncModal}
         onClose={() => setShowSyncModal(false)}
         onOpenImport={() => setShowImportModal(true)}
+        events={events}
+        createEvent={createEvent}
+        updateEvent={updateEvent}
+        refetch={refetch}
       />
 
       {/* Exams Modal */}

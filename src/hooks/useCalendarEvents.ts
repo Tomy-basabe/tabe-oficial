@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
+import {
+  isGoogleCalendarConnected,
+  isAutoSyncEnabled,
+  pushEventToGoogleCalendar,
+  deleteEventFromGoogleCalendar,
+  extractGoogleEventId,
+  injectGoogleEventId,
+} from "@/lib/googleCalendarSync";
 export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Clase" | "Otro" | string;
 export type RecurrenceRule = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
 
@@ -245,6 +253,27 @@ export function useCalendarEvents() {
         eventData.recurrence_end = data.recurrence_end || null;
       }
 
+      // Auto-sync to Google Calendar if connected
+      if (isGoogleCalendarConnected() && isAutoSyncEnabled()) {
+        try {
+          const res = await pushEventToGoogleCalendar({
+            id: "temp",
+            titulo: data.titulo,
+            fecha: data.fecha,
+            hora: data.hora,
+            hora_fin: data.hora_fin,
+            notas: data.notas,
+            ubicacion: data.ubicacion,
+            is_all_day: data.is_all_day,
+          });
+          if (res.gcalId) {
+            eventData.notas = injectGoogleEventId(eventData.notas, res.gcalId);
+          }
+        } catch (syncErr) {
+          console.warn("Auto-sync to Google Calendar failed on create:", syncErr);
+        }
+      }
+
       const { error } = await supabase
         .from("calendar_events")
         .insert(eventData);
@@ -296,6 +325,31 @@ export function useCalendarEvents() {
     if (!user) return;
 
     try {
+      // Auto-sync update to Google Calendar if connected
+      if (isGoogleCalendarConnected() && isAutoSyncEnabled()) {
+        const target = rawEvents.find(e => e.id === eventId);
+        if (target) {
+          try {
+            const updatedForGoogle = {
+              id: eventId,
+              titulo: data.titulo !== undefined ? data.titulo : target.titulo,
+              fecha: data.fecha !== undefined ? data.fecha : target.fecha,
+              hora: data.hora !== undefined ? data.hora : target.hora,
+              hora_fin: data.hora_fin !== undefined ? data.hora_fin : target.hora_fin,
+              notas: data.notas !== undefined ? data.notas : target.notas,
+              ubicacion: data.ubicacion !== undefined ? data.ubicacion : target.ubicacion,
+              is_all_day: data.is_all_day !== undefined ? data.is_all_day : target.is_all_day,
+            };
+            const res = await pushEventToGoogleCalendar(updatedForGoogle);
+            if (res.gcalId) {
+              data.notas = injectGoogleEventId(data.notas !== undefined ? data.notas : target.notas, res.gcalId);
+            }
+          } catch (syncErr) {
+            console.warn("Auto-sync to Google Calendar failed on update:", syncErr);
+          }
+        }
+      }
+
       const { error } = await supabase
         .from("calendar_events")
         .update({
@@ -325,6 +379,19 @@ export function useCalendarEvents() {
     const actualId = eventId.includes("_") ? eventId.split("_")[0] : eventId;
 
     try {
+      // Auto-sync delete to Google Calendar if connected
+      if (isGoogleCalendarConnected() && isAutoSyncEnabled()) {
+        const target = rawEvents.find(e => e.id === actualId);
+        if (target) {
+          const gcalId = extractGoogleEventId(target.notas);
+          if (gcalId) {
+            deleteEventFromGoogleCalendar(gcalId).catch(err =>
+              console.warn("Error deleting event from Google Calendar:", err)
+            );
+          }
+        }
+      }
+
       const { error } = await supabase
         .from("calendar_events")
         .delete()
