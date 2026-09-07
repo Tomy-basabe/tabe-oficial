@@ -268,6 +268,10 @@ export function useCalendarEvents() {
           });
           if (res.gcalId) {
             eventData.notas = injectGoogleEventId(eventData.notas, res.gcalId);
+            toast.success("Evento agregado a Google Calendar", { icon: "📅" });
+          } else if (res.error) {
+            console.warn("Google Calendar sync warning:", res.error);
+            toast.warning(`Google Calendar: ${res.error}`);
           }
         } catch (syncErr) {
           console.warn("Auto-sync to Google Calendar failed on create:", syncErr);
@@ -343,6 +347,10 @@ export function useCalendarEvents() {
             const res = await pushEventToGoogleCalendar(updatedForGoogle);
             if (res.gcalId) {
               data.notas = injectGoogleEventId(data.notas !== undefined ? data.notas : target.notas, res.gcalId);
+              toast.success("Actualizado en Google Calendar", { icon: "📅" });
+            } else if (res.error) {
+              console.warn("Google Calendar sync warning:", res.error);
+              toast.warning(`Google Calendar: ${res.error}`);
             }
           } catch (syncErr) {
             console.warn("Auto-sync to Google Calendar failed on update:", syncErr);
@@ -385,7 +393,9 @@ export function useCalendarEvents() {
         if (target) {
           const gcalId = extractGoogleEventId(target.notas);
           if (gcalId) {
-            deleteEventFromGoogleCalendar(gcalId).catch(err =>
+            deleteEventFromGoogleCalendar(gcalId).then(ok => {
+              if (ok) toast.info("Eliminado de Google Calendar");
+            }).catch(err =>
               console.warn("Error deleting event from Google Calendar:", err)
             );
           }

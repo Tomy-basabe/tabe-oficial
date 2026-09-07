@@ -238,54 +238,6 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
           ))}
         </div>
       )}
-
-      {/* Comic Mode Floating Toggle Controller */}
-      <div
-        id="comic-mode-toggle"
-        className="fixed bottom-20 left-4 lg:bottom-6 lg:left-6 z-40 select-none pointer-events-auto flex items-center gap-1.5"
-      >
-        <button
-          onClick={toggleComicMode}
-          title={comicMode ? "Modo Cómic Activado (Click para desactivar)" : "Activar Modo Cómic"}
-          className={cn(
-            "group flex items-center gap-2 px-3 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 border-2",
-            comicMode
-              ? "bg-[#FFE600] text-black border-black shadow-[3.5px_3.5px_0_0_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[5px_5px_0_0_#000]"
-              : "bg-card text-muted-foreground border-border shadow-sm hover:text-foreground hover:border-foreground/50"
-          )}
-        >
-          <div className="relative">
-            <Zap
-              className={cn(
-                "w-4 h-4 transition-transform duration-200",
-                comicMode ? "fill-black text-black group-hover:scale-110 rotate-[-8deg]" : "text-muted-foreground"
-              )}
-            />
-            {comicMode && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF2E93] border border-black animate-ping" />
-            )}
-          </div>
-          <span className="hidden sm:inline font-black">
-            {comicMode ? "Comic UI: ON" : "Comic UI: OFF"}
-          </span>
-          {comicMode && <Sparkles className="w-3.5 h-3.5 text-black animate-pulse" />}
-        </button>
-
-        {comicMode && (
-          <button
-            onClick={toggleSound}
-            title={soundEnabled ? "Silenciar efectos cómic" : "Activar sonido cómic"}
-            className={cn(
-              "p-2 rounded-xl font-black text-xs transition-all duration-200 border-2 border-black",
-              soundEnabled
-                ? "bg-[#00E5FF] text-black shadow-[3px_3px_0_0_#000] hover:translate-x-[-1px] hover:translate-y-[-1px]"
-                : "bg-card text-muted-foreground border-border shadow-sm hover:text-foreground"
-            )}
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-        )}
-      </div>
     </ComicContext.Provider>
   );
 }

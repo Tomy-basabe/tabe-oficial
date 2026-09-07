@@ -1,13 +1,20 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
 import { useSubjects } from "@/hooks/useSubjects";
+import { useAuth } from "@/contexts/AuthContext";
 import { AddEventModal } from "@/components/calendar/AddEventModal";
 import { ImportICSModal } from "@/components/calendar/ImportICSModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
 import { ExamsListModal } from "@/components/calendar/ExamsListModal";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
+import {
+  isGoogleCalendarConnected,
+  isAutoSyncEnabled,
+  performBidirectionalSync,
+  extractAndStoreTokenFromUrl,
+} from "@/lib/googleCalendarSync";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -42,6 +49,7 @@ const months = [
 export default function Calendar() {
   const { events, loading, createEvent, updateEvent, deleteEvent, duplicateEvent, getEventsForDate, refetch } = useCalendarEvents();
   const { rawSubjects } = useSubjects();
+  const { user } = useAuth();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -51,6 +59,32 @@ export default function Calendar() {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [showExamsModal, setShowExamsModal] = useState(false);
   const [monthTransition, setMonthTransition] = useState<"enter" | "exit" | null>(null);
+  const [isGCalConnected, setIsGCalConnected] = useState(false);
+
+  // Auto-sync existing events bidirectionally with Google Calendar on load
+  const hasAttemptedInitialSync = useRef(false);
+
+  useEffect(() => {
+    extractAndStoreTokenFromUrl();
+    const conn = isGoogleCalendarConnected();
+    setIsGCalConnected(conn);
+
+    if (!loading && user && conn && isAutoSyncEnabled() && !hasAttemptedInitialSync.current && events.length > 0) {
+      hasAttemptedInitialSync.current = true;
+      performBidirectionalSync({
+        tabeEvents: events,
+        createTabeEvent: createEvent,
+        updateTabeEvent: updateEvent,
+      }).then(res => {
+        if (res.success && (res.pushedCount > 0 || res.pulledCount > 0)) {
+          toast.success(`Google Calendar: ${res.pushedCount} enviados, ${res.pulledCount} importados`, { icon: "📅" });
+          refetch();
+        }
+      }).catch(err => {
+        console.warn("Auto-sync error on calendar load:", err);
+      });
+    }
+  }, [loading, user, events.length]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -262,10 +296,22 @@ export default function Calendar() {
           </button>
           <button
             onClick={() => setShowSyncModal(true)}
-            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#00F0FF] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
+            className={cn(
+              "px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2",
+              isGCalConnected ? "bg-[#00FF9D]" : "bg-[#00F0FF]"
+            )}
           >
-            <Link2 className="w-4 h-4 sm:w-5 sm:h-5" />
-            Sincronizar
+            {isGCalConnected ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+                <span>Google Sincronizado</span>
+              </>
+            ) : (
+              <>
+                <Link2 className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+                <span>Sincronizar</span>
+              </>
+            )}
           </button>
           <button
             onClick={() => setShowImportModal(true)}

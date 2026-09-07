@@ -14,11 +14,73 @@ export const GCAL_LAST_SYNC_KEY = "tabe_gcal_last_sync";
 const GCAL_API_BASE = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
 /**
+ * Automatically inspects URL (hash / search) and Supabase storage to recover Google token
+ */
+export function extractAndStoreTokenFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    // 1. URL Hash check (e.g. #access_token=...&provider_token=ya29...)
+    const hash = window.location.hash;
+    if (hash) {
+      const cleanHash = hash.replace(/^#/, "");
+      const params = new URLSearchParams(cleanHash);
+      const pToken = params.get("provider_token");
+      if (pToken && pToken.length > 10) {
+        setStoredGoogleToken(pToken);
+        return pToken;
+      }
+      // Also check if access_token starts with ya29.
+      const aToken = params.get("access_token");
+      if (aToken && aToken.startsWith("ya29.")) {
+        setStoredGoogleToken(aToken);
+        return aToken;
+      }
+    }
+
+    // 2. URL Search params check
+    const search = window.location.search;
+    if (search) {
+      const params = new URLSearchParams(search);
+      const pToken = params.get("provider_token");
+      if (pToken && pToken.length > 10) {
+        setStoredGoogleToken(pToken);
+        return pToken;
+      }
+    }
+
+    // 3. Check Supabase Auth sessions in localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed?.provider_token && parsed.provider_token.length > 10) {
+              setStoredGoogleToken(parsed.provider_token, parsed?.user?.email);
+              return parsed.provider_token;
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Could not extract token from storage/url:", e);
+  }
+  return null;
+}
+
+// Auto-run on module load
+if (typeof window !== "undefined") {
+  extractAndStoreTokenFromUrl();
+}
+
+/**
  * Checks if a valid Google Calendar token is stored
  */
 export function isGoogleCalendarConnected(): boolean {
   if (typeof window === "undefined") return false;
-  const token = localStorage.getItem(GCAL_TOKEN_KEY);
+  const token = getStoredGoogleToken();
   return !!token && token.trim().length > 10;
 }
 
@@ -27,7 +89,9 @@ export function isGoogleCalendarConnected(): boolean {
  */
 export function getStoredGoogleToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(GCAL_TOKEN_KEY);
+  const direct = localStorage.getItem(GCAL_TOKEN_KEY);
+  if (direct && direct.trim().length > 10) return direct;
+  return extractAndStoreTokenFromUrl();
 }
 
 /**
