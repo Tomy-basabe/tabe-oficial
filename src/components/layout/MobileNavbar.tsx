@@ -25,6 +25,7 @@ import {
   ChevronUp
 } from "lucide-react";
 import { NotionIcon } from "@/components/icons/NotionIcon";
+import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { preloadRoute } from "@/lib/routePreload";
 import { cn } from "@/lib/utils";
@@ -58,7 +59,7 @@ export const ALL_MOBILE_NAV_ITEMS: {
     icon: "⚡",
     items: [
       { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", color: "text-[#1475e5]", bgActive: "bg-[#1475e5] text-white" },
-      { icon: Bot, label: "TABE IA", path: "/TABEAI", badge: "AI", color: "text-[#00E5FF]", bgActive: "bg-[#00E5FF] text-black" },
+      { icon: TabeAIIcon, label: "TABE IA", path: "/TABEAI", badge: "AI", color: "text-[#00E5FF]", bgActive: "bg-[#00E5FF] text-black" },
     ]
   },
   {

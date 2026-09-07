@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, MessageSquareText } from "lucide-react";
+import { ArrowRight, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 
 export function AIAssistantWidget() {
   const [prompt, setPrompt] = useState("");
@@ -23,8 +24,8 @@ export function AIAssistantWidget() {
     <div className="neo-bento-card bento-hover-purple p-6 flex flex-col h-full bg-purple-50/50 dark:bg-background">
       <div className="flex flex-col h-full justify-between">
         <div className="flex items-center gap-2 mb-4">
-          <div className="p-2 bg-[#1475e5]/12 rounded-xl">
-            <Sparkles className="w-5 h-5 text-[#1475e5]" />
+          <div className="p-2 bg-[#1475e5]/15 rounded-xl border border-[#1475e5]/30">
+            <TabeAIIcon className="w-5 h-5 text-[#1475e5]" />
           </div>
           <div>
             <h3 className="font-extrabold text-lg">Asistente TABE AI</h3>

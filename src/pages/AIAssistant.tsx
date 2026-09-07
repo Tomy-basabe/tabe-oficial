@@ -13,6 +13,7 @@ import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
 import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -421,7 +422,10 @@ export default function AIAssistant() {
                     >
                       <Menu className="w-5 h-5 text-foreground" />
                     </Button>
-                    {activePersona?.avatar_emoji || "🤖"} {activePersona?.name || "Asistente IA"}
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] p-1.5 text-white flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
+                      <TabeAIIcon className="w-full h-full" />
+                    </div>
+                    <span>{activePersona?.name || "TABE AI"}</span>
                   </h1>
                   {activePersona?.description && (
                     <p className="font-bold text-muted-foreground text-sm mt-0.5 ml-12 uppercase">
@@ -473,12 +477,16 @@ export default function AIAssistant() {
                     className={cn(
                       "w-10 h-10 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center flex-shrink-0 mt-1 !text-black",
                       message.role === "assistant"
-                        ? "bg-[#C688EB]"
+                        ? "bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] !text-white p-2"
                         : "bg-[#FFD700]"
                     )}
                   >
                     {message.role === "assistant" ? (
-                      <span className="text-lg font-black">{activePersona?.avatar_emoji || "🤖"}</span>
+                      activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
+                        <span className="text-lg font-black">{activePersona.avatar_emoji}</span>
+                      ) : (
+                        <TabeAIIcon className="w-full h-full text-white" />
+                      )
                     ) : (
                       <User className="w-5 h-5 !text-black" strokeWidth={2.5} />
                     )}

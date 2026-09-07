@@ -151,38 +151,54 @@ export function AIBubbleWidget() {
             {isOpen && (
                 <div
                     className={cn(
-                        "fixed bottom-24 right-3 sm:right-4 z-[60] w-[360px] max-w-[calc(100vw-1.5rem)] bg-card/95 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl flex flex-col overflow-hidden",
+                        "fixed bottom-24 right-3 sm:right-4 z-[60] w-[375px] max-w-[calc(100vw-1.5rem)] rounded-2xl flex flex-col overflow-hidden relative",
+                        // Light Mode: Fondo degradé nítido con borde negro sólido y sombra neobrutalista
+                        "bg-gradient-to-b from-white via-slate-50 to-indigo-50/40 border-[3px] border-black shadow-[8px_8px_0_0_#000000]",
+                        // Dark Mode: Fondo cósmico profundo con borde cian tenue y glow tecnológico
+                        "dark:bg-gradient-to-b dark:from-[#0c1222] dark:via-[#090d18] dark:to-[#05070e] dark:border-cyan-500/40 dark:shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_30px_rgba(6,182,212,0.18)]",
                         "animate-in fade-in slide-in-from-bottom-4 duration-300"
                     )}
-                    style={{ maxHeight: "min(500px, 60vh)" }}
+                    style={{ maxHeight: "min(520px, 65vh)" }}
                 >
+                    {/* Atmospheric background glows */}
+                    <div className="absolute -top-16 -right-16 w-44 h-44 bg-gradient-to-br from-indigo-500/15 via-purple-500/15 to-transparent dark:from-cyan-500/15 dark:via-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-gradient-to-tr from-cyan-500/10 via-emerald-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+
                     {/* Header */}
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 bg-gradient-to-r from-primary/5 to-transparent">
-                        <span className="text-lg">{activePersona?.avatar_emoji || "🤖"}</span>
+                    <div className="flex items-center gap-3 px-4 py-3 border-b-2 border-black/10 dark:border-cyan-500/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md relative z-10">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] p-1.5 text-white flex items-center justify-center border-2 border-black dark:border-cyan-400/60 shadow-[2px_2px_0_0_#000000] dark:shadow-[0_0_10px_rgba(6,182,212,0.4)] shrink-0">
+                            <ProfessionalAILogo className="w-full h-full" />
+                        </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">
-                                {activePersona?.name || "T.A.B.E. IA"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground truncate">
+                            <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-black uppercase tracking-wide truncate text-foreground">
+                                    {activePersona?.name || "T.A.B.E. IA"}
+                                </p>
+                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                            </div>
+                            <p className="text-[10px] font-bold text-muted-foreground truncate">
                                 📍 {currentContext}
                             </p>
                         </div>
                         <button
                             onClick={handleToggle}
-                            className="p-1.5 rounded-lg hover:bg-secondary/80 transition-colors text-muted-foreground hover:text-foreground"
+                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                            title="Minimizar"
                         >
                             <Minimize2 className="w-4 h-4" />
                         </button>
                     </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3" style={{ minHeight: "200px" }}>
+                    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 relative z-10" style={{ minHeight: "200px" }}>
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground/60">
-                                <ProfessionalAILogo className="w-10 h-10 mb-2 opacity-35 text-primary" />
-                                <p className="text-xs">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center p-2.5 mb-2 border border-primary/30">
+                                    <ProfessionalAILogo className="w-full h-full text-primary" />
+                                </div>
+                                <p className="text-xs font-bold">
                                     Preguntame lo que quieras sobre<br />
-                                    <span className="font-medium text-primary/70">{currentContext}</span>
+                                    <span className="font-black text-primary uppercase">{currentContext}</span>
                                 </p>
                             </div>
                         )}
@@ -196,10 +212,10 @@ export function AIBubbleWidget() {
                             >
                                 <div
                                     className={cn(
-                                        "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
+                                        "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed font-semibold",
                                         msg.role === "user"
-                                            ? "bg-primary text-primary-foreground rounded-br-md"
-                                            : "bg-secondary/80 text-foreground rounded-bl-md"
+                                            ? "bg-[#1475e5] text-white border-2 border-black/20 dark:border-transparent rounded-br-sm shadow-sm"
+                                            : "bg-white/90 dark:bg-slate-800/90 text-foreground border-2 border-black/10 dark:border-cyan-500/20 rounded-bl-sm shadow-sm"
                                     )}
                                 >
                                     {!msg.content && isStreaming && (
@@ -224,7 +240,7 @@ export function AIBubbleWidget() {
                     </div>
 
                     {/* Input */}
-                    <div className="px-3 py-2.5 border-t border-border/40 bg-background/50">
+                    <div className="px-3 py-2.5 border-t border-black/10 dark:border-cyan-500/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md relative z-10">
                         <div className="flex items-center gap-2">
                             <input
                                 ref={inputRef}
@@ -234,12 +250,12 @@ export function AIBubbleWidget() {
                                 onKeyDown={handleKeyDown}
                                 placeholder="Escribí tu mensaje..."
                                 disabled={isStreaming}
-                                className="flex-1 px-3 py-2 bg-secondary/50 border border-border/30 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+                                className="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-800/70 border-2 border-black/10 dark:border-cyan-500/30 rounded-xl text-sm font-bold focus:outline-none focus:border-primary disabled:opacity-50 text-foreground placeholder:text-muted-foreground/60"
                             />
                             <button
                                 onClick={handleSend}
                                 disabled={isStreaming || !input.trim()}
-                                className="p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="p-2 rounded-xl bg-gradient-to-br from-[#1475e5] to-[#805ad5] text-white hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed border-2 border-black/20 shadow-sm"
                             >
                                 {isStreaming ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -256,19 +272,24 @@ export function AIBubbleWidget() {
             <button
                 onClick={handleToggle}
                 className={cn(
-                    "fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-[60] w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 group tour-header-ai",
+                    "fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-[60] w-12 h-12 lg:w-14 lg:h-14 rounded-full flex items-center justify-center transition-all duration-300 group tour-header-ai",
                     isOpen
-                        ? "bg-secondary hover:bg-secondary/80 text-foreground scale-90"
-                        : "bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground hover:scale-110 hover:shadow-xl hover:shadow-primary/30"
+                        ? "bg-card text-foreground border-[3px] border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] scale-90"
+                        : cn(
+                            // Light Mode: Fondo degradé audaz con borde negro sólido y sombra neobrutalista
+                            "bg-gradient-to-tr from-[#1475e5] via-[#805ad5] to-[#00E5FF] text-white border-[3.5px] border-black shadow-[4px_4px_0_0_#000000] hover:shadow-[6px_6px_0_0_#000000] hover:scale-110",
+                            // Dark Mode: Orbe cibernético oscuro con bordes luminosos y halo cian/esmeralda
+                            "dark:bg-gradient-to-tr dark:from-[#0b0f19] dark:via-[#161f38] dark:to-[#1e153a] dark:text-cyan-400 dark:border-cyan-400/50 dark:shadow-[0_0_22px_rgba(6,182,212,0.45)] dark:hover:shadow-[0_0_32px_rgba(6,182,212,0.7)]"
+                        )
                 )}
-                title={isOpen ? "Cerrar IA" : "Abrir Asistente IA"}
+                title={isOpen ? "Cerrar IA" : "Abrir Asistente TABE IA"}
             >
                 {isOpen ? (
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 stroke-[2.5]" />
                 ) : (
                     <>
                         <ProfessionalAILogo className="w-6 h-6 lg:w-7 lg:h-7" />
-                        <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background animate-pulse" />
+                        <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-black dark:border-background shadow-sm animate-pulse" />
                     </>
                 )}
             </button>

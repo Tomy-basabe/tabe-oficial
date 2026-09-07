@@ -24,6 +24,7 @@ import {
   Search, Compass
 } from "lucide-react";
 import { NotionIcon } from "@/components/icons/NotionIcon";
+import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 
 export interface NavItem {
   icon: any;
@@ -48,7 +49,7 @@ export const ICON_MAP: Record<string, any> = {
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
-  NotionIcon, Shield, Compass, Bot, Repeat2, Timer, BarChart3, TreeDeciduous
+  NotionIcon, TabeAIIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);
@@ -69,7 +70,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/bosque": "TreeDeciduous",
   "/logros": "Trophy",
   "/amigos": "Users",
-  "/TABEAI": "Bot",
+  "/TABEAI": "TabeAIIcon",
   "/admin": "Shield",
   "/configuracion": "Settings",
   "/examenes": "GraduationCap",
@@ -165,7 +166,7 @@ export const baseNavItems: NavItem[] = [
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
   { icon: Gamepad2, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
-  { icon: Bot, label: "TABEAI", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
+  { icon: TabeAIIcon, label: "TABEAI", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];
 

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { AIPersona, AIChatSession } from "@/hooks/useAIPersonas";
+import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 
 interface PersonaSidebarProps {
     personas: AIPersona[];
@@ -85,7 +86,13 @@ export function PersonaSidebar({
                             )}
                             onClick={() => onSelectPersona(persona)}
                         >
-                            <span className="text-2xl flex-shrink-0">{persona.avatar_emoji}</span>
+                            {persona.avatar_emoji && persona.avatar_emoji !== "🤖" ? (
+                                <span className="text-2xl flex-shrink-0">{persona.avatar_emoji}</span>
+                            ) : (
+                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] p-1 text-white flex items-center justify-center border border-foreground/50 shadow-sm shrink-0">
+                                    <TabeAIIcon className="w-full h-full" />
+                                </div>
+                            )}
                             <div className="flex-1 min-w-0">
                                 <span className={cn(
                                     "text-sm font-black uppercase truncate block",
