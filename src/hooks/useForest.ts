@@ -152,8 +152,9 @@ export function useForest() {
         // If lastSession is null → user never studied → daysSinceLastStudy stays 999
       }
 
-      const hasStudiedToday = studySecToday > 0;
-      const hasStudiedThisWeek = studySecThisWeek > 0;
+      // Require at least 5 minutes of study to count as "watered today" (avoids 1s clicks inflating status)
+      const hasStudiedToday = studyMinutesToday >= 5;
+      const hasStudiedThisWeek = studyMinutesThisWeek >= 5;
 
       setStudyActivity({
         hasStudiedToday,
@@ -167,11 +168,8 @@ export function useForest() {
     }
   }, [user]);
 
-  // Track growth already applied today to allow incremental updates
-  const lastGrowthKeyRef = useRef<string>("");
-
   const checkAndUpdatePlants = useCallback(async () => {
-    if (!user || !currentPlant) return;
+    if (!user || !currentPlant || isGuest) return;
 
     const now = new Date();
     const lastWateredDate = new Date(currentPlant.last_watered_at);
@@ -202,75 +200,93 @@ export function useForest() {
       return;
     }
 
-    // Plant growth based on study activity
-    if (studyActivity.hasStudiedToday && currentPlant.is_alive && !currentPlant.is_completed) {
-      const todayStr = toLocalDateStr(now);
-      const storageKey = `plant-growth-${currentPlant.id}-${todayStr}`;
+    // Plant growth based strictly on study sessions conducted AFTER this plant was planted
+    if (currentPlant.is_alive && !currentPlant.is_completed) {
+      try {
+        // Query sessions recorded on or after this tree was planted
+        const { data: plantSessions, error } = await supabase
+          .from("study_sessions")
+          .select("fecha, duracion_segundos, created_at")
+          .eq("user_id", user.id)
+          .gte("created_at", currentPlant.planted_at)
+          .order("created_at", { ascending: true });
 
-      // Check for active fertilizer
-      let multiplier = 1;
-      if (currentPlant.fertilizer_ends_at && new Date(currentPlant.fertilizer_ends_at) > now) {
-        multiplier = currentPlant.growth_multiplier || 1;
-      }
+        if (error) throw error;
 
-      // Calculate the TOTAL growth target for today based on all study minutes
-      const baseGrowth = 15;
-      const bonusGrowth = Math.floor(studyActivity.studyMinutesToday / 30) * 5;
-      const targetGrowthToday = Math.min((baseGrowth + bonusGrowth) * multiplier, 50 * multiplier);
+        // Group valid study sessions by day to enforce realistic daily growth limits
+        // Sessions under 60s (accidental clicks) are ignored
+        const dailyMinutesMap: Record<string, number> = {};
+        (plantSessions || []).forEach(session => {
+          const sec = session.duracion_segundos || 0;
+          if (sec < 60) return;
+          const day = session.fecha || session.created_at?.split("T")[0] || "unknown";
+          dailyMinutesMap[day] = (dailyMinutesMap[day] || 0) + (sec / 60);
+        });
 
-      // How much growth was already applied today (tracked in localStorage)
-      const alreadyApplied = parseFloat(localStorage.getItem(storageKey) || "0");
-      const deltaGrowth = targetGrowthToday - alreadyApplied;
+        // Balanced Growth Rate:
+        // 5 minutes of study = 1% growth (25 min pomodoro = 5% growth)
+        // Daily cap: maximum 15% growth per day (~75 min of study to cap out)
+        // Full tree takes at least 5-7 days of consistent study
+        // With fertilizer: 2x rate, up to 20% max per day
+        const hasFertilizer = currentPlant.fertilizer_ends_at && new Date(currentPlant.fertilizer_ends_at) > now;
+        const multiplier = hasFertilizer ? (currentPlant.growth_multiplier || 2) : 1;
+        const dailyMaxGrowth = hasFertilizer ? 20 : 15;
 
-      if (deltaGrowth > 0) {
-        // There's new growth to apply
-        const newGrowth = Math.min(currentPlant.growth_percentage + deltaGrowth, 100);
-        const isCompleted = newGrowth >= 100;
+        let totalCalculatedGrowth = 0;
+        Object.values(dailyMinutesMap).forEach(minutesInDay => {
+          const earnedInDay = Math.min(dailyMaxGrowth, (minutesInDay / 5) * multiplier);
+          totalCalculatedGrowth += earnedInDay;
+        });
 
-        const updateData: Record<string, unknown> = {
-          growth_percentage: newGrowth,
-          last_watered_at: new Date().toISOString(),
-        };
+        const newGrowthPercentage = Math.min(100, Math.floor(totalCalculatedGrowth));
 
-        if (isCompleted) {
-          updateData.is_completed = true;
-          updateData.completed_at = new Date().toISOString();
-        }
+        // Only update if growth actually increased
+        if (newGrowthPercentage > currentPlant.growth_percentage) {
+          const delta = newGrowthPercentage - currentPlant.growth_percentage;
+          const isCompleted = newGrowthPercentage >= 100;
 
-        const { error } = await supabase
-          .from("user_plants")
-          .update(updateData)
-          .eq("id", currentPlant.id);
-
-        if (!error) {
-          // Save the total growth applied today
-          localStorage.setItem(storageKey, String(targetGrowthToday));
-          lastGrowthKeyRef.current = storageKey;
+          const updateData: Record<string, unknown> = {
+            growth_percentage: newGrowthPercentage,
+            last_watered_at: new Date().toISOString(),
+          };
 
           if (isCompleted) {
-            toast.success("🎉 ¡Tu árbol ha crecido completamente! Puedes plantar uno nuevo.");
-          } else {
-            toast.success(`🌱 ¡Tu planta creció ${deltaGrowth}%!`);
+            updateData.is_completed = true;
+            updateData.completed_at = new Date().toISOString();
           }
-          fetchPlants();
-        }
-      } else {
-        // No new growth, but still update last_watered_at to reset death counter
-        const lastWatered = new Date(currentPlant.last_watered_at);
-        const lastWateredDay = new Date(lastWatered.getFullYear(), lastWatered.getMonth(), lastWatered.getDate());
-        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-        // Only update if last_watered_at isn't from today (avoid unnecessary DB writes)
-        if (lastWateredDay.getTime() < todayDate.getTime()) {
-          await supabase
+          const { error: updateError } = await supabase
             .from("user_plants")
-            .update({ last_watered_at: new Date().toISOString() })
+            .update(updateData)
             .eq("id", currentPlant.id);
-          fetchPlants();
+
+          if (!updateError) {
+            if (isCompleted) {
+              toast.success("🎉 ¡Tu árbol ha crecido completamente! Puedes plantar uno nuevo.");
+            } else if (delta >= 1) {
+              toast.success(`🌱 ¡Tu planta creció ${delta}% con tu sesión de estudio!`);
+            }
+            fetchPlants();
+          }
+        } else if (studyActivity.hasStudiedToday) {
+          // If already at calculated growth, but user studied today, update last_watered_at once per day to reset death counter
+          const lastWatered = new Date(currentPlant.last_watered_at);
+          const lastWateredDay = new Date(lastWatered.getFullYear(), lastWatered.getMonth(), lastWatered.getDate());
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+          if (lastWateredDay.getTime() < todayDate.getTime()) {
+            await supabase
+              .from("user_plants")
+              .update({ last_watered_at: new Date().toISOString() })
+              .eq("id", currentPlant.id);
+            fetchPlants();
+          }
         }
+      } catch (err) {
+        console.error("Error calculating plant growth:", err);
       }
     }
-  }, [user, currentPlant, studyActivity, fetchPlants]);
+  }, [user, currentPlant, isGuest, studyActivity, fetchPlants]);
 
   const plantNewTree = async (plantType: string = 'oak') => {
     if (!user) return;

@@ -377,7 +377,7 @@ export const ShortcutsGuideModal: React.FC<ShortcutsGuideModalProps> = ({
               <DialogTitle className="text-lg font-bold flex items-center gap-2">
                 Guía de Atajos y Comandos de Apuntes
                 <Badge variant="secondary" className="text-[10px] font-normal uppercase tracking-wider">
-                  Notion + Word
+                  TABE
                 </Badge>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">

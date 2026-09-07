@@ -55,7 +55,7 @@ export function ForestWidget() {
             <div className="text-right">
               <span className="text-[10px] font-black uppercase text-foreground/70">Progreso</span>
               <div className="text-xl font-black text-foreground">
-                {currentPlant.growth_progress}%
+                {currentPlant.growth_percentage}%
               </div>
             </div>
           )}

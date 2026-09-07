@@ -565,9 +565,9 @@ export default function Forest() {
             <div className="flex items-start gap-4 bg-card p-4 rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]">
               <Sprout className="w-8 h-8 text-green-500" />
               <div>
-                <p className="font-black uppercase text-foreground">Estudia cada día</p>
+                <p className="font-black uppercase text-foreground">Estudio Enfocado</p>
                 <p className="text-muted-foreground font-bold text-sm mt-1">
-                  Tu planta crece 15-50% por día según cuánto estudies
+                  Tu planta gana +5% por cada bloque de 25 min de estudio real (máx 15% al día)
                 </p>
               </div>
             </div>
@@ -575,9 +575,9 @@ export default function Forest() {
             <div className="flex items-start gap-4 bg-card p-4 rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]">
               <Clock className="w-8 h-8 text-cyan-500" />
               <div>
-                <p className="font-black uppercase text-foreground">Usa el Pomodoro</p>
+                <p className="font-black uppercase text-foreground">Constancia Semanal</p>
                 <p className="text-muted-foreground font-bold text-sm mt-1">
-                  +5% extra por cada 30 min de estudio
+                  Requiere 5 a 7 días de estudio constante para cultivar un árbol completo al 100%
                 </p>
               </div>
             </div>
