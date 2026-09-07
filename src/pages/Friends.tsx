@@ -33,16 +33,15 @@ export default function Friends() {
   const [friendCodeInput, setFriendCodeInput] = useState("");
   const [copied, setCopied] = useState(false);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
-
-  if (loading && friends.length === 0 && friendStats.length === 0 && !myProfile) {
-    return <LoadingScreen message="Cargando Amigos..." submessage="Buscando compañeros de estudio..." />;
-  }
-
   const [friendIdentifier, setFriendIdentifier] = useState("");
   const [sendingRequest, setSendingRequest] = useState(false);
   const [editingUsername, setEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [leaderboardType, setLeaderboardType] = useState<'xp' | 'pomodoro' | 'study' | 'streak'>('xp');
+
+  if (loading && friends.length === 0 && friendStats.length === 0 && !myProfile) {
+    return <LoadingScreen message="Cargando Amigos..." submessage="Buscando compañeros de estudio..." />;
+  }
 
   const handleSendRequest = async () => {
     if (!friendIdentifier.trim()) return;
