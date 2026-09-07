@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
+import { toLocalDateStr } from "@/lib/utils";
 
 interface DeckStats {
   id: string;
@@ -166,20 +167,32 @@ export function useFlashcardStats(): FlashcardStatsData {
   const totalStudyTime = sessionsThisWeek.reduce((acc, s) => acc + s.duration_seconds, 0);
   const averageTimePerCard = totalCardsStudied > 0 ? totalStudyTime / totalCardsStudied : 0;
 
-  // Calculate study streak (simplified - consecutive days with sessions)
-  const today = new Date().toISOString().split('T')[0];
+  // Calculate study streak (consecutive days with sessions)
+  const todayStr = toLocalDateStr(new Date());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = toLocalDateStr(yesterday);
+
+  const dateSet = new Set(sessionsThisWeek.map(s => toLocalDateStr(s.date)));
   let studyStreak = 0;
-  const uniqueDates = [...new Set(sessionsThisWeek.map(s => s.date))].sort().reverse();
-  
-  for (let i = 0; i < uniqueDates.length; i++) {
-    const expectedDate = new Date();
-    expectedDate.setDate(expectedDate.getDate() - i);
-    const expected = expectedDate.toISOString().split('T')[0];
-    
-    if (uniqueDates.includes(expected)) {
-      studyStreak++;
-    } else {
-      break;
+  let checkDate: Date | null = null;
+
+  if (dateSet.has(todayStr)) {
+    checkDate = new Date();
+  } else if (dateSet.has(yesterdayStr)) {
+    checkDate = new Date(yesterday);
+  }
+
+  if (checkDate) {
+    const cur = new Date(checkDate);
+    while (true) {
+      const curStr = toLocalDateStr(cur);
+      if (dateSet.has(curStr)) {
+        studyStreak++;
+        cur.setDate(cur.getDate() - 1);
+      } else {
+        break;
+      }
     }
   }
 

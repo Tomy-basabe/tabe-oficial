@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 interface StudyStreakProps {
   currentStreak: number;
   bestStreak: number;
-  weekData: { day: string; studied: boolean; minutes: number }[];
+  weekData: { day: string; studied: boolean; minutes: number; isToday?: boolean }[];
 }
 
 export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreakProps) {
@@ -34,7 +34,9 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
           </div>
           <div>
             <p className="text-2xl font-black leading-none text-foreground">{currentStreak}</p>
-            <p className="text-[10px] font-black uppercase text-foreground/60 tracking-wider">Racha Actual</p>
+            <p className="text-[10px] font-black uppercase text-foreground/60 tracking-wider">
+              {currentStreak === 1 ? "Día de Racha" : "Días de Racha"}
+            </p>
           </div>
         </div>
         <div className="flex-1 flex items-center gap-3 bg-white dark:bg-card p-3 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#ffffff]">
@@ -43,7 +45,9 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
           </div>
           <div>
             <p className="text-2xl font-black leading-none text-foreground">{bestStreak}</p>
-            <p className="text-[10px] font-black uppercase text-foreground/60 tracking-wider">Mejor Racha</p>
+            <p className="text-[10px] font-black uppercase text-foreground/60 tracking-wider">
+              Mejor Racha ({bestStreak === 1 ? "1 día" : `${bestStreak} días`})
+            </p>
           </div>
         </div>
       </div>
@@ -56,8 +60,12 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
           {last7Days.map((day, idx) => (
             <div key={idx} className="flex flex-col items-center gap-1.5">
               <div className={cn(
-                "w-7 h-7 sm:w-8 sm:h-8 rounded-full border-[3px] border-foreground flex items-center justify-center relative shrink-0",
-                day.studied ? "bg-[#ff9415] shadow-[2px_2px_0_0_#000]" : "bg-muted"
+                "w-7 h-7 sm:w-8 sm:h-8 rounded-full border-[3px] border-foreground flex items-center justify-center relative shrink-0 transition-all",
+                day.studied
+                  ? "bg-[#ff9415] shadow-[2px_2px_0_0_#000]"
+                  : day.isToday
+                    ? "bg-muted border-dashed ring-2 ring-[#ff9415] ring-offset-2 animate-pulse"
+                    : "bg-muted"
               )}>
                 {day.studied ? (
                   <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white animate-pulse" />
@@ -69,9 +77,19 @@ export function StudyStreak({ currentStreak, bestStreak, weekData }: StudyStreak
                   <div className="absolute inset-0 border border-white rounded-full opacity-30 scale-90 border-dashed"></div>
                 )}
               </div>
-              <span className="text-[10px] font-black uppercase text-foreground text-center">
-                {day.day}
-              </span>
+              <div className="flex flex-col items-center">
+                <span className={cn(
+                  "text-[10px] font-black uppercase text-center",
+                  day.isToday ? "text-[#ff9415]" : "text-foreground"
+                )}>
+                  {day.day}
+                </span>
+                {day.isToday && (
+                  <span className="text-[8px] font-black text-[#ff9415] uppercase tracking-tighter leading-none mt-0.5">
+                    HOY
+                  </span>
+                )}
+              </div>
             </div>
           ))}
         </div>

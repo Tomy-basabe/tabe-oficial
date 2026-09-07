@@ -25,6 +25,79 @@ interface WeekDay {
   studied: boolean;
   minutes: number;
   date: Date;
+  isToday?: boolean;
+}
+
+function computeStudyStreak(allDates: string[], storedBestStreak = 0): { currentStreak: number; bestStreak: number } {
+  if (!allDates || allDates.length === 0) {
+    return { currentStreak: 0, bestStreak: storedBestStreak };
+  }
+
+  // Normalize all dates to unique YYYY-MM-DD
+  const dateSet = new Set<string>();
+  for (const d of allDates) {
+    const s = toLocalDateStr(d);
+    if (s) dateSet.add(s);
+  }
+
+  const todayStr = toLocalDateStr(new Date());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = toLocalDateStr(yesterday);
+
+  // 1. Calculate CURRENT STREAK
+  let currentStreak = 0;
+  let startCheckDate: Date | null = null;
+
+  if (dateSet.has(todayStr)) {
+    // Studied today: count starting from today backwards
+    startCheckDate = new Date();
+  } else if (dateSet.has(yesterdayStr)) {
+    // Not studied today yet, but studied yesterday: streak is still active!
+    startCheckDate = new Date(yesterday);
+  }
+
+  if (startCheckDate) {
+    const cursor = new Date(startCheckDate);
+    while (true) {
+      const curStr = toLocalDateStr(cursor);
+      if (dateSet.has(curStr)) {
+        currentStreak++;
+        cursor.setDate(cursor.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  // 2. Calculate BEST STREAK across all history
+  const sortedDatesAsc = Array.from(dateSet).sort();
+  let maxRun = 0;
+  let currentRun = 0;
+  let prevDate: Date | null = null;
+
+  for (const dStr of sortedDatesAsc) {
+    const [y, m, d] = dStr.split("-").map(Number);
+    const curDate = new Date(y, m - 1, d);
+
+    if (!prevDate) {
+      currentRun = 1;
+    } else {
+      const diffMs = curDate.getTime() - prevDate.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) {
+        currentRun++;
+      } else {
+        currentRun = 1;
+      }
+    }
+    if (currentRun > maxRun) maxRun = currentRun;
+    prevDate = curDate;
+  }
+
+  const bestStreak = Math.max(maxRun, storedBestStreak, currentStreak);
+
+  return { currentStreak, bestStreak };
 }
 
 // Module-level cache for instantaneous navigation between pages (stale-while-revalidate)
@@ -102,7 +175,7 @@ export function useDashboardStats() {
         });
       }, 8000);
 
-      // Fetch user stats
+      // Fetch user stats and sessions
       const { data: statsData } = await supabase
         .from("user_stats")
         .select("*")
@@ -112,17 +185,54 @@ export function useDashboardStats() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: sessionsData } = await supabase
-        .from("study_sessions")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("fecha", toLocalDateStr(thirtyDaysAgo))
-        .order("fecha", { ascending: false });
+      const [sessionsRes, allDatesRes] = await Promise.all([
+        supabase
+          .from("study_sessions")
+          .select("*")
+          .eq("user_id", user.id)
+          .gte("fecha", toLocalDateStr(thirtyDaysAgo))
+          .order("fecha", { ascending: false }),
+        supabase
+          .from("study_sessions")
+          .select("fecha")
+          .eq("user_id", user.id)
+      ]);
 
-      _cachedUserStats = statsData;
-      _cachedStudySessions = sessionsData || [];
-      setUserStats(statsData);
-      setStudySessions(sessionsData || []);
+      const sessionsData = sessionsRes.data || [];
+      const allDates = (allDatesRes.data || []).map(r => r.fecha).filter(Boolean);
+
+      const { currentStreak, bestStreak } = computeStudyStreak(
+        allDates,
+        statsData?.mejor_racha || 0
+      );
+
+      const mergedStats: UserStats = {
+        xp_total: statsData?.xp_total ?? 0,
+        nivel: statsData?.nivel ?? 1,
+        racha_actual: currentStreak,
+        mejor_racha: bestStreak,
+        horas_estudio_total: statsData?.horas_estudio_total ?? 0,
+      };
+
+      // Auto-heal database record if out of sync
+      if (statsData && (statsData.racha_actual !== currentStreak || (statsData.mejor_racha ?? 0) < bestStreak)) {
+        supabase
+          .from("user_stats")
+          .update({
+            racha_actual: currentStreak,
+            mejor_racha: bestStreak,
+            updated_at: new Date().toISOString()
+          })
+          .eq("user_id", user.id)
+          .then(({ error }) => {
+            if (error) console.error("Error updating streak in user_stats:", error);
+          });
+      }
+
+      _cachedUserStats = mergedStats;
+      _cachedStudySessions = sessionsData;
+      setUserStats(mergedStats);
+      setStudySessions(sessionsData);
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
     } finally {
@@ -179,7 +289,8 @@ export function useDashboardStats() {
   // Calculate study hours this month
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthSessions = studySessions.filter(s => new Date(s.fecha) >= startOfMonth);
+  const startOfMonthStr = toLocalDateStr(startOfMonth);
+  const monthSessions = studySessions.filter(s => toLocalDateStr(s.fecha) >= startOfMonthStr);
   const monthStudySeconds = monthSessions.reduce((acc, s) => acc + s.duracion_segundos, 0);
   const monthStudyHours = Math.round(monthStudySeconds / 3600);
 
@@ -187,6 +298,7 @@ export function useDashboardStats() {
   const getWeekData = (): WeekDay[] => {
     const days = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
     const today = new Date();
+    const todayStr = toLocalDateStr(today);
     const weekData: WeekDay[] = [];
 
     // Get the start of the current week (Monday)
@@ -203,7 +315,7 @@ export function useDashboardStats() {
 
       const daySessions = studySessions.filter(s => {
         if (!s.fecha) return false;
-        return toLocalDateStr(new Date(s.fecha)) === dateStr;
+        return toLocalDateStr(s.fecha) === dateStr;
       });
       const totalMinutes = Math.round(daySessions.reduce((acc, s) => acc + s.duracion_segundos, 0) / 60);
 
@@ -212,6 +324,7 @@ export function useDashboardStats() {
         studied: totalMinutes > 0,
         minutes: totalMinutes,
         date,
+        isToday: dateStr === todayStr,
       });
     }
 

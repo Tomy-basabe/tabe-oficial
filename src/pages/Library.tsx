@@ -8,7 +8,7 @@ import {
   CheckCircle2, Square, CheckSquare, Repeat2, Clock, Volume2, Loader2
 } from "lucide-react";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
-import { cn } from "@/lib/utils";
+import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
 import { useMarketplace } from "@/hooks/useMarketplace";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -247,7 +247,7 @@ export default function Library() {
         duracion_segundos: secondsToSave,
         tipo: "biblioteca",
         completada: true,
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: toLocalDateStr(),
       }).then(({ error }) => {
         if (error) console.error("Error saving library session:", error);
         else {
@@ -1177,7 +1177,7 @@ export default function Library() {
             duracion_segundos: durationSeconds,
             tipo: "biblioteca",
             completada: true,
-            fecha: new Date().toISOString().split('T')[0],
+            fecha: toLocalDateStr(),
           })
           .then(({ error }) => {
             if (error) console.error("Error saving library session:", error);

@@ -129,6 +129,7 @@ export function useRoutines() {
     const [routines, setRoutines] = useState<Routine[]>([]);
     const [overrides, setOverrides] = useState<RoutineOverride[]>([]);
     const [logs, setLogs] = useState<RoutineLog[]>([]);
+    const [historyLogs, setHistoryLogs] = useState<RoutineLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() =>
         startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -161,14 +162,23 @@ export function useRoutines() {
     const fetchLogsForWeek = useCallback(async (weekStart: Date) => {
         if (!user) return;
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const { data, error } = await supabase
-            .from("routine_logs")
-            .select("*")
-            .eq("user_id", user.id)
-            .gte("log_date", format(weekStart, "yyyy-MM-dd"))
-            .lte("log_date", format(weekEnd, "yyyy-MM-dd"));
-        if (error) { console.error(error); return; }
-        setLogs((data as RoutineLog[]) || []);
+        const past60Days = format(addDays(new Date(), -60), "yyyy-MM-dd");
+        const [weekRes, histRes] = await Promise.all([
+            supabase
+                .from("routine_logs")
+                .select("*")
+                .eq("user_id", user.id)
+                .gte("log_date", format(weekStart, "yyyy-MM-dd"))
+                .lte("log_date", format(weekEnd, "yyyy-MM-dd")),
+            supabase
+                .from("routine_logs")
+                .select("*")
+                .eq("user_id", user.id)
+                .gte("log_date", past60Days)
+        ]);
+        if (weekRes.error) { console.error(weekRes.error); return; }
+        setLogs((weekRes.data as RoutineLog[]) || []);
+        if (histRes.data) setHistoryLogs(histRes.data as RoutineLog[]);
     }, [user]);
 
     // ─── CRUD ─────────────────────────────────────
@@ -333,26 +343,31 @@ export function useRoutines() {
     }, [currentWeekStart, getRoutinesForDate, getLogForRoutineAndDate]);
 
     const getRoutineStreak = useCallback((routineId: string): number => {
+        const allLogs = [...logs, ...historyLogs];
         let streak = 0;
         let checkDate = new Date();
+        const routine = routines.find(r => r.id === routineId);
+        if (!routine) return 0;
+
         for (let i = 0; i < 60; i++) {
             const dateStr = format(checkDate, "yyyy-MM-dd");
-            const routine = routines.find(r => r.id === routineId);
-            if (!routine) break;
             const dayOfWeek = checkDate.getDay();
             const resolved = resolveRoutineForDate(routine, overrides, dateStr);
             if (resolved && resolved.days_of_week.includes(dayOfWeek)) {
-                const log = logs.find(l => l.routine_id === routineId && l.log_date === dateStr);
+                const log = allLogs.find(l => l.routine_id === routineId && l.log_date === dateStr);
                 if (log && (log.completed || log.completion_percentage > 0)) {
                     streak++;
+                } else if (i === 0) {
+                    // Today is scheduled but not finished yet: don't break streak, allow user to complete today!
                 } else {
+                    // Missed a previous scheduled day: break streak
                     break;
                 }
             }
             checkDate = addDays(checkDate, -1);
         }
         return streak;
-    }, [routines, overrides, logs]);
+    }, [routines, overrides, logs, historyLogs]);
 
     // ─── Navigation ───────────────────────────────
 
