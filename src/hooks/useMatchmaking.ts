@@ -129,8 +129,8 @@ export function useMatchmaking() {
       joined_at: new Date().toISOString()
     } as any, { onConflict: "user_id" });
 
-    // Start 15-second countdown before falling back to bot match
-    let remaining = 15;
+    // Start 13-second countdown before falling back to bot match
+    let remaining = 13;
     setTimeLeft(remaining);
     timerRef.current = setInterval(() => {
       remaining--;

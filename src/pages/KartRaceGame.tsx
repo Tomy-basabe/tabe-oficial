@@ -34,7 +34,7 @@ interface RaceKart {
 type GamePhase = "select_deck" | "lobby" | "racing" | "result";
 
 const MAX_PLAYERS = 8;
-const LOBBY_TIMEOUT = 15;
+const LOBBY_TIMEOUT = 13;
 const LOBBY_CHANNEL = "kart_matchmaking_v2";
 
 const KART_PALETTE = [
@@ -115,6 +115,7 @@ export default function KartRaceGame() {
   const [correctCount, setCorrectCount] = useState(0);
   const botTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const raceEndedRef = useRef(false);
+  const isAnsweringRef = useRef(false);
 
   // ============================================================
   // INITIAL DATA
@@ -178,6 +179,7 @@ export default function KartRaceGame() {
   }, [selectedDeck, questionsUsed]);
 
   const loadNextQuestion = useCallback(async () => {
+    isAnsweringRef.current = false;
     setSelectedAnswer(null);
     setAnsweredCorrectly(null);
     const q = await fetchRandomQuestion();
@@ -321,7 +323,7 @@ export default function KartRaceGame() {
     setQuestionsUsed(new Set());
     setCurrentQuestion(null);
     setSelectedAnswer(null);
-    setAnsweredCorrectly(null);
+    isAnsweringRef.current = false;
     setGamePhase("racing");
   };
 
@@ -399,7 +401,8 @@ export default function KartRaceGame() {
   // ============================================================
 
   const handleAnswer = (optionId: string) => {
-    if (selectedAnswer) return;
+    if (isAnsweringRef.current || selectedAnswer) return;
+    isAnsweringRef.current = true;
     setSelectedAnswer(optionId);
     const correct = currentQuestion?.options.find((o) => o.id === optionId)?.es_correcta || false;
     setAnsweredCorrectly(correct);
@@ -673,8 +676,8 @@ export default function KartRaceGame() {
               </div>
               <p className="text-xs text-center text-muted-foreground">
                 {onlineCount >= 2
-                  ? `${onlineCount} jugadores online · ${botsNeeded > 0 ? `${botsNeeded} bots completarán` : "¡Lobby completo!"}`
-                  : "Si no se encuentran rivales, jugarás contra bots"}
+                  ? `${onlineCount} jugadores online · ¡Lobby preparado!`
+                  : "Buscando corredores en tu carrera..."}
               </p>
             </div>
 
@@ -702,8 +705,7 @@ export default function KartRaceGame() {
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between mb-2">
               <Badge variant="secondary" className="text-xs">
-                <Flag className="w-3 h-3 mr-1" /> Copa TABE ({onlinePlayerCount}{" "}
-                {onlinePlayerCount === 1 ? "jugador" : "online"} + {botCount} bots)
+                <Flag className="w-3 h-3 mr-1" /> Copa TABE ({karts.length} corredores)
               </Badge>
               <Badge variant="secondary" className="text-xs">
                 Pregunta #{questionCount + 1}
@@ -774,7 +776,7 @@ export default function KartRaceGame() {
                     <button
                       key={option.id}
                       onClick={() => handleAnswer(option.id)}
-                      disabled={!!selectedAnswer}
+                      disabled={!!selectedAnswer || isAnsweringRef.current}
                       className={cn(
                         "w-full text-left p-3 rounded-xl border transition-all duration-300 flex items-start gap-2",
                         !selectedAnswer && "hover:bg-secondary/60 hover:border-red-500/30 cursor-pointer",

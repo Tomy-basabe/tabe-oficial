@@ -384,7 +384,7 @@ export default function BombGame() {
             <div className="relative w-20 h-20 mx-auto">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary" />
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#bomb-gradient)" strokeWidth="2" strokeDasharray={`${(searchTimeLeft / 15) * 100}, 100`} strokeLinecap="round" />
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#bomb-gradient)" strokeWidth="2" strokeDasharray={`${(searchTimeLeft / 13) * 100}, 100`} strokeLinecap="round" />
                 <defs>
                   <linearGradient id="bomb-gradient">
                     <stop offset="0%" stopColor="#f97316" />
@@ -397,7 +397,7 @@ export default function BombGame() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              {searchTimeLeft <= 5 ? "Si no se encuentra rival, jugarás contra el Bot 🤖" : "Buscando en tu carrera..."}
+              Buscando en tu carrera...
             </p>
             <Button variant="outline" onClick={handleCancelSearch}>Cancelar</Button>
           </CardContent>

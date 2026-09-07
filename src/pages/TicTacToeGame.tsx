@@ -382,7 +382,7 @@ export default function TicTacToeGame() {
             <div className="relative w-20 h-20 mx-auto">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary" />
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#ttt-gradient)" strokeWidth="2" strokeDasharray={`${(timeLeft / 15) * 100}, 100`} strokeLinecap="round" />
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#ttt-gradient)" strokeWidth="2" strokeDasharray={`${(timeLeft / 13) * 100}, 100`} strokeLinecap="round" />
                 <defs>
                   <linearGradient id="ttt-gradient">
                     <stop offset="0%" stopColor="#10b981" />
@@ -395,7 +395,7 @@ export default function TicTacToeGame() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              {timeLeft <= 5 ? "Si no se encuentra rival, jugarás contra el Bot 🤖" : "Buscando en tu carrera..."}
+              Buscando en tu carrera...
             </p>
             <Button variant="outline" onClick={handleCancelSearch}>Cancelar</Button>
           </CardContent>

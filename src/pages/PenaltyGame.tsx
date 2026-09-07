@@ -394,7 +394,7 @@ export default function PenaltyGame() {
                   fill="none"
                   stroke="url(#gradient)"
                   strokeWidth="2"
-                  strokeDasharray={`${(timeLeft / 15) * 100}, 100`}
+                  strokeDasharray={`${(timeLeft / 13) * 100}, 100`}
                   strokeLinecap="round"
                 />
                 <defs>
@@ -410,7 +410,7 @@ export default function PenaltyGame() {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              {timeLeft <= 5 ? "Si no se encuentra rival, jugarás contra el Bot 🤖" : "Buscando en tu carrera..."}
+              Buscando en tu carrera...
             </p>
 
             <Button variant="outline" onClick={handleCancelSearch}>
