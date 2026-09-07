@@ -494,7 +494,38 @@ serve(async (req) => {
 
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
-    // Stream from Groq usando modelo ultrarrápido y universal
+    // Consultar dinámicamente qué modelos tiene habilitados esta API key en Groq
+    let selectedModel = "llama-3.1-8b-instant";
+    try {
+      const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
+      });
+      if (modelsRes.ok) {
+        const modelsData = await modelsRes.json();
+        const available: string[] = (modelsData.data || []).map((m: any) => m.id);
+        console.log("[Groq] Modelos disponibles para esta key:", available);
+
+        const preferred = [
+          "llama-3.1-8b-instant",
+          "llama3-8b-8192",
+          "llama-3.3-70b-versatile",
+          "llama-3.2-3b-preview",
+          "llama-3.2-1b-preview",
+          "mixtral-8x7b-32768",
+          "gemma2-9b-it"
+        ];
+        const match = preferred.find((p) => available.includes(p)) || available.find((id) => id.includes("llama")) || available[0];
+        if (match) selectedModel = match;
+        console.log(`[Groq] Modelo seleccionado automáticamente: ${selectedModel}`);
+      } else {
+        const err = await modelsRes.text();
+        console.warn(`[Groq] No se pudo listar modelos (${modelsRes.status}): ${err}`);
+      }
+    } catch (e: any) {
+      console.warn("[Groq] Error consultando /models:", e.message);
+    }
+
+    // Stream from Groq con el modelo activo
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -502,7 +533,7 @@ serve(async (req) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: selectedModel,
         messages: groqMessages,
         tools: tools,
         tool_choice: "auto",
@@ -514,7 +545,7 @@ serve(async (req) => {
 
     if (!groqRes.ok) {
       const errText = await groqRes.text();
-      throw new Error(`[TABE-AI-v2] Groq Error: ${groqRes.status} - ${errText}`);
+      throw new Error(`[TABE-AI-v2] Groq Error (Modelo: ${selectedModel}): ${groqRes.status} - ${errText}`);
     }
 
     const encoder = new TextEncoder();
