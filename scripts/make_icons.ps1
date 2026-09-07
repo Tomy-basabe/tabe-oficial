@@ -78,24 +78,55 @@ function GenerateSquareIcon {
 }
 
 $publicDir = Join-Path $PSScriptRoot "..\public"
+$tempDir = [System.IO.Path]::GetTempPath()
 
-# 1. Favicon (128x128, transparent, standard padding)
+$tabeDark = [System.Drawing.ColorTranslator]::FromHtml("#0a0a0f")
+
+# 1. Standard PNG Icons for PWA
+GenerateSquareIcon -outputPath (Join-Path $publicDir "pwa-64x64.png") -size 64 -paddingRatio 0.05
 GenerateSquareIcon -outputPath (Join-Path $publicDir "favicon.png") -size 128 -paddingRatio 0.05
-
-# 2. PWA 192x192 (transparent, clean)
 GenerateSquareIcon -outputPath (Join-Path $publicDir "pwa-192x192.png") -size 192 -paddingRatio 0.06
-
-# 3. PWA 512x512 (transparent, clean)
+GenerateSquareIcon -outputPath (Join-Path $publicDir "pwa-256x256.png") -size 256 -paddingRatio 0.06
 GenerateSquareIcon -outputPath (Join-Path $publicDir "pwa-512x512.png") -size 512 -paddingRatio 0.06
 
-# 4. Apple Touch Icon 180x180 (with subtle dark background #0a0a0f so iOS doesn't make transparent pixels black or weird)
-$tabeDark = [System.Drawing.ColorTranslator]::FromHtml("#0a0a0f")
+# 2. Apple Touch Icon 180x180
 GenerateSquareIcon -outputPath (Join-Path $publicDir "apple-touch-icon.png") -size 180 -paddingRatio 0.12 -bgColor $tabeDark
 
-# 5. Maskable Icon 512x512
-# Maskable icons in Android must have a background color (non-transparent)
-# AND the icon must live strictly within the center safe zone (80% diameter circle = 40% radius = ~18-20% margin on all sides)
+# 3. Maskable Icons (Android Adaptive)
+GenerateSquareIcon -outputPath (Join-Path $publicDir "pwa-maskable-192x192.png") -size 192 -paddingRatio 0.20 -bgColor $tabeDark
 GenerateSquareIcon -outputPath (Join-Path $publicDir "pwa-maskable-512x512.png") -size 512 -paddingRatio 0.20 -bgColor $tabeDark
 
+# 4. Generate multi-resolution PNGs for favicon.ico
+$icoSizes = @(16, 32, 48, 64, 128, 256)
+$icoPaths = @()
+foreach ($sz in $icoSizes) {
+    $tPath = Join-Path $tempDir "tabe_ico_$sz.png"
+    GenerateSquareIcon -outputPath $tPath -size $sz -paddingRatio 0.04
+    $icoPaths += "$sz,$tPath"
+}
+
 $img.Dispose()
-Write-Host "All icons generated successfully!"
+
+# 5. Pack into favicon.ico using Node.js
+$icoArg = ($icoPaths -join ";")
+$targetIco = Join-Path $publicDir "favicon.ico"
+
+$nodeScript = @"
+const fs = require('fs');
+const { createIco } = require('./scripts/build_ico.cjs');
+const args = '$icoArg'.split(';');
+const images = args.map(item => {
+  const [sizeStr, filePath] = item.split(',');
+  const size = parseInt(sizeStr, 10);
+  const buf = fs.readFileSync(filePath);
+  try { fs.unlinkSync(filePath); } catch (e) {}
+  return { width: size, height: size, buffer: buf };
+});
+const icoBuf = createIco(images);
+fs.writeFileSync('$($targetIco.Replace('\', '/'))', icoBuf);
+console.log('Successfully created favicon.ico (' + icoBuf.length + ' bytes)');
+"@
+
+node -e "$nodeScript"
+
+Write-Host "All icons (PNG and ICO) generated successfully!"

@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
+        id: "/",
         name: "T.A.B.E. - Tu Asistente de Bolsillo Estudiantil",
         short_name: "T.A.B.E.",
         description: "Plataforma todo-en-uno para estudiantes universitarios argentinos con flashcards, pomodoro y más",
@@ -28,6 +29,17 @@ export default defineConfig(({ mode }) => ({
         scope: "/",
         start_url: "/",
         icons: [
+          {
+            src: "/favicon.ico",
+            sizes: "16x16 32x32 48x48 64x64 128x128 256x256",
+            type: "image/x-icon",
+          },
+          {
+            src: "/pwa-64x64.png",
+            sizes: "64x64",
+            type: "image/png",
+            purpose: "any",
+          },
           {
             src: "/favicon.png",
             sizes: "128x128",
@@ -41,10 +53,22 @@ export default defineConfig(({ mode }) => ({
             purpose: "any",
           },
           {
+            src: "/pwa-256x256.png",
+            sizes: "256x256",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
+          },
+          {
+            src: "/pwa-maskable-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
           },
           {
             src: "/pwa-maskable-512x512.png",
