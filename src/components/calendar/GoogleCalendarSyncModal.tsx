@@ -139,9 +139,11 @@ export function GoogleCalendarSyncModal({
                 );
             } else {
                 toast.error(result.error || "Error al sincronizar");
+                setConnected(isGoogleCalendarConnected());
             }
         } catch (err: any) {
             toast.error(err?.message || "Error inesperado al sincronizar");
+            setConnected(isGoogleCalendarConnected());
         } finally {
             setIsSyncing(false);
         }

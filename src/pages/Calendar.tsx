@@ -76,9 +76,14 @@ export default function Calendar() {
         createTabeEvent: createEvent,
         updateTabeEvent: updateEvent,
       }).then(res => {
-        if (res.success && (res.pushedCount > 0 || res.pulledCount > 0)) {
-          toast.success(`Google Calendar: ${res.pushedCount} enviados, ${res.pulledCount} importados`, { icon: "📅" });
-          refetch();
+        if (res.success) {
+          if (res.pushedCount > 0 || res.pulledCount > 0) {
+            toast.success(`Google Calendar: ${res.pushedCount} enviados, ${res.pulledCount} importados`, { icon: "📅", duration: 5000 });
+            refetch();
+          }
+        } else if (res.error) {
+          toast.warning(res.error, { duration: 6000 });
+          setIsGCalConnected(isGoogleCalendarConnected());
         }
       }).catch(err => {
         console.warn("Auto-sync error on calendar load:", err);

@@ -253,8 +253,9 @@ export function useCalendarEvents() {
         eventData.recurrence_end = data.recurrence_end || null;
       }
 
-      // Auto-sync to Google Calendar if connected
-      if (isGoogleCalendarConnected() && isAutoSyncEnabled()) {
+      // Auto-sync to Google Calendar only if it's a new TABE event (not an import from Google)
+      const existingGcalId = extractGoogleEventId(data.notas);
+      if (!existingGcalId && isGoogleCalendarConnected() && isAutoSyncEnabled()) {
         try {
           const res = await pushEventToGoogleCalendar({
             id: "temp",
@@ -276,7 +277,7 @@ export function useCalendarEvents() {
         } catch (syncErr) {
           console.warn("Auto-sync to Google Calendar failed on create:", syncErr);
         }
-      } else if (!isGoogleCalendarConnected()) {
+      } else if (!isGoogleCalendarConnected() && !existingGcalId) {
         toast.info("Evento creado en TABE. (Google Calendar no está conectado en esta sesión)", { duration: 3500 });
       }
 
@@ -287,7 +288,9 @@ export function useCalendarEvents() {
       if (error) throw error;
 
       await fetchEvents();
-      toast.success("Evento creado correctamente");
+      if (!existingGcalId) {
+        toast.success("Evento creado correctamente");
+      }
     } catch (error) {
       console.error("Error creating event:", error);
       toast.error("Error al crear el evento");
@@ -331,8 +334,11 @@ export function useCalendarEvents() {
     if (!user) return;
 
     try {
-      // Auto-sync update to Google Calendar if connected
-      if (isGoogleCalendarConnected() && isAutoSyncEnabled()) {
+      // Check if update is just adding a gcal_id note from sync
+      const isJustGcalIdSync = data.titulo === undefined && data.fecha === undefined && data.hora === undefined && data.hora_fin === undefined && data.ubicacion === undefined;
+
+      // Auto-sync update to Google Calendar if connected and real event details changed
+      if (!isJustGcalIdSync && isGoogleCalendarConnected() && isAutoSyncEnabled()) {
         const target = rawEvents.find(e => e.id === eventId);
         if (target) {
           try {

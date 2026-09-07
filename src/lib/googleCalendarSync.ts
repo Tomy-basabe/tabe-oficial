@@ -337,6 +337,12 @@ export async function fetchUserCalendarList(token: string): Promise<Array<{ id: 
       },
     });
 
+    if (res.status === 401 || res.status === 403) {
+      console.warn("Google Calendar token expired or insufficient permissions.");
+      disconnectGoogleCalendar();
+      return [];
+    }
+
     if (!res.ok) {
       return [{ id: "primary", summary: "Principal", primary: true }];
     }
@@ -376,6 +382,13 @@ export async function fetchEventsFromGoogleCalendar(options?: {
 
   try {
     const calendars = await fetchUserCalendarList(token);
+    if (calendars.length === 0) {
+      return {
+        items: [],
+        error: "Los permisos de Google Calendar necesitan actualizarse para leer tus materias. Haz clic en Conectar.",
+      };
+    }
+
     const allItems: any[] = [];
     const seenIds = new Set<string>();
 
