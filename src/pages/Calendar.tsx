@@ -637,8 +637,6 @@ export default function Calendar() {
         open={showSyncModal}
         onClose={() => {
           setShowSyncModal(false);
-          // Reset flag so the next auto-sync cycle picks up any new events
-          hasAttemptedInitialSync.current = false;
           setIsGCalConnected(isGoogleCalendarConnected());
         }}
         onOpenImport={() => setShowImportModal(true)}

@@ -5,6 +5,7 @@
 
 import { toast } from "sonner";
 import { CalendarEvent, CreateEventData, EventType } from "@/hooks/useCalendarEvents";
+import { toLocalDateStr } from "@/lib/utils";
 
 export const GCAL_TOKEN_KEY = "tabe_google_calendar_token";
 export const GCAL_EMAIL_KEY = "tabe_google_calendar_email";
@@ -442,18 +443,38 @@ export async function pushEventToGoogleCalendar(event: {
         body: JSON.stringify(resource),
       });
 
-      // If event was deleted in Google (404), recreate it
+      // If event was deleted or not found in Google (404/410), do not resurrect it with a blind POST
       if (response.status === 404 || response.status === 410) {
-        response = await fetchWithAutoRefresh(GCAL_API_BASE, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(resource),
-        });
+        return { error: "El evento ya no existe en Google Calendar" };
       }
     } else {
+      const rawDate = (event.fecha || "").split("T")[0] || toLocalDateStr(new Date());
+      const cleanTitle = (event.titulo || "").trim();
+
+      // Pre-check if an event with the exact title and date already exists in primary Google Calendar
+      try {
+        const checkMin = `${rawDate}T00:00:00Z`;
+        const checkMax = `${rawDate}T23:59:59Z`;
+        const checkUrl = `${GCAL_API_BASE}?timeMin=${encodeURIComponent(checkMin)}&timeMax=${encodeURIComponent(checkMax)}&q=${encodeURIComponent(cleanTitle)}&singleEvents=true`;
+        const checkRes = await fetchWithAutoRefresh(checkUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (checkRes.ok) {
+          const checkData = await checkRes.json();
+          const existingMatch = (checkData.items || []).find(
+            (it: any) =>
+              it.status !== "cancelled" &&
+              (it.summary || "").trim().toLowerCase() === cleanTitle.toLowerCase()
+          );
+          if (existingMatch?.id) {
+            // Re-use existing Google event ID to prevent duplicate upload
+            return { gcalId: existingMatch.id };
+          }
+        }
+      } catch (checkErr) {
+        console.warn("Could not check duplicate in Google Calendar:", checkErr);
+      }
+
       // Create new event in Google
       response = await fetchWithAutoRefresh(GCAL_API_BASE, {
         method: "POST",
@@ -614,6 +635,8 @@ export async function fetchEventsFromGoogleCalendar(options?: {
   }
 }
 
+let _isSyncInProgress = false;
+
 /**
  * Bidirectional Two-Way Synchronization Engine
  * Pushes local changes to Google and brings Google events to TABE
@@ -629,12 +652,18 @@ export async function performBidirectionalSync(params: {
   pulledCount: number;
   error?: string;
 }> {
-  const token = getStoredGoogleToken();
-  if (!token) {
-    return { success: false, pushedCount: 0, pulledCount: 0, error: "Conecta tu cuenta de Google primero" };
+  if (_isSyncInProgress) {
+    console.log("[GoogleSync] Sincronización en curso, omitiendo llamada concurrente");
+    return { success: true, pushedCount: 0, pulledCount: 0 };
   }
+  _isSyncInProgress = true;
 
   try {
+    const token = getStoredGoogleToken();
+    if (!token) {
+      return { success: false, pushedCount: 0, pulledCount: 0, error: "Conecta tu cuenta de Google primero" };
+    }
+
     // 1. Fetch events from Google Calendar (from today onwards)
     const { items: googleEvents, error: fetchErr } = await fetchEventsFromGoogleCalendar();
     if (fetchErr) {
@@ -643,6 +672,8 @@ export async function performBidirectionalSync(params: {
 
     let pushedCount = 0;
     let pulledCount = 0;
+
+    const todayStr = toLocalDateStr(new Date());
 
     // Index existing TABE events by gcal_id and title+date
     const tabeByGcalId = new Map<string, CalendarEvent>();
@@ -653,14 +684,25 @@ export async function performBidirectionalSync(params: {
       if (gcalId) {
         tabeByGcalId.set(gcalId, ev);
       }
-      tabeByTitleDate.set(`${ev.titulo.trim().toLowerCase()}_${ev.fecha}`, ev);
+      const evDate = (ev.fecha || "").split("T")[0];
+      tabeByTitleDate.set(`${ev.titulo.trim().toLowerCase()}_${evDate}`, ev);
     }
 
-    // Index Google events
+    // Index Google events by ID and title+date
     const googleById = new Map<string, any>();
+    const googleByTitleDate = new Map<string, any>();
+
     for (const gEv of googleEvents) {
       if (gEv.id && gEv.status !== "cancelled") {
         googleById.set(gEv.id, gEv);
+        const startDt = gEv.start?.dateTime || gEv.start?.date;
+        if (startDt) {
+          const dPart = String(startDt).split("T")[0];
+          const tNorm = (gEv.summary || "").trim().toLowerCase();
+          if (tNorm && dPart) {
+            googleByTitleDate.set(`${tNorm}_${dPart}`, gEv);
+          }
+        }
       }
     }
 
@@ -669,23 +711,51 @@ export async function performBidirectionalSync(params: {
       // Ignore virtual recurring instances since the parent event handles it
       if (tEvent.isVirtual) continue;
 
-      const gcalId = extractGoogleEventId(tEvent.notas);
-      const isAlreadyInGoogle = gcalId && googleById.has(gcalId);
+      const eventDate = (tEvent.fecha || "").split("T")[0];
+      // CRITICAL: Do NOT push past events to Google Calendar during automated sync
+      if (eventDate && eventDate < todayStr) {
+        continue;
+      }
 
-      if (!isAlreadyInGoogle) {
+      const gcalId = extractGoogleEventId(tEvent.notas);
+      const titleNorm = (tEvent.titulo || "").trim().toLowerCase();
+      const titleDateKey = `${titleNorm}_${eventDate}`;
+
+      // If it already has a Google Calendar ID, it was already pushed/synced before.
+      if (gcalId) {
+        continue;
+      }
+
+      // Check if an event with identical title and date already exists in Google Calendar!
+      const existingInGoogle = googleByTitleDate.get(titleDateKey);
+      if (existingInGoogle?.id) {
+        // Link it to TABE without uploading duplicate to Google!
         try {
-          // Push to Google Calendar
-          const pushResult = await pushEventToGoogleCalendar(tEvent);
-          if (pushResult.gcalId) {
-            pushedCount++;
-            // Update TABE event note with the new gcal_id silently
-            const newNotas = injectGoogleEventId(tEvent.notas, pushResult.gcalId);
-            await params.updateTabeEvent(tEvent.id, { notas: newNotas }, { silent: true, skipRefetch: true });
-            tabeByGcalId.set(pushResult.gcalId, { ...tEvent, notas: newNotas });
-          }
-        } catch (pushErr) {
-          console.warn("Could not push event to Google Calendar:", tEvent.titulo, pushErr);
+          const newNotas = injectGoogleEventId(tEvent.notas, existingInGoogle.id);
+          await params.updateTabeEvent(tEvent.id, { notas: newNotas }, { silent: true, skipRefetch: true });
+          tabeByGcalId.set(existingInGoogle.id, { ...tEvent, notas: newNotas });
+          tabeByTitleDate.set(titleDateKey, { ...tEvent, notas: newNotas });
+        } catch (linkErr) {
+          console.warn("Could not link existing Google event to TABE:", linkErr);
         }
+        continue;
+      }
+
+      // Only push truly new future events that don't exist in Google Calendar
+      try {
+        const pushResult = await pushEventToGoogleCalendar(tEvent);
+        if (pushResult.gcalId) {
+          pushedCount++;
+          // Update TABE event note with the new gcal_id silently
+          const newNotas = injectGoogleEventId(tEvent.notas, pushResult.gcalId);
+          await params.updateTabeEvent(tEvent.id, { notas: newNotas }, { silent: true, skipRefetch: true });
+          tabeByGcalId.set(pushResult.gcalId, { ...tEvent, notas: newNotas });
+          tabeByTitleDate.set(titleDateKey, { ...tEvent, notas: newNotas });
+          googleById.set(pushResult.gcalId, { id: pushResult.gcalId, summary: tEvent.titulo });
+          googleByTitleDate.set(titleDateKey, { id: pushResult.gcalId, summary: tEvent.titulo });
+        }
+      } catch (pushErr) {
+        console.warn("Could not push event to Google Calendar:", tEvent.titulo, pushErr);
       }
     }
 
@@ -809,6 +879,19 @@ export async function performBidirectionalSync(params: {
             eventNotes = `[${gEv._calendarName}] ${eventNotes}`.trim();
           }
 
+          // Check if an existing recurring or single event with same title already exists in TABE
+          const existingTabeMatch = params.tabeEvents.find(
+            e => (e.titulo || "").trim().toLowerCase() === (master?.summary || title).trim().toLowerCase() &&
+                 (e.recurrence_rule || (e.fecha || "").split("T")[0] === datePart)
+          );
+          if (existingTabeMatch) {
+            handledRecurringMasterIds.add(recurringEventId);
+            const newNotas = injectGoogleEventId(existingTabeMatch.notas, recurringEventId);
+            await params.updateTabeEvent(existingTabeMatch.id, { notas: newNotas }, { silent: true, skipRefetch: true });
+            tabeByGcalId.set(recurringEventId, { ...existingTabeMatch, notas: newNotas });
+            continue;
+          }
+
           // Create ONE master recurring event in TABE starting from current date
           // TABE's internal engine will generate virtual instances for every day dynamically into infinity!
           await params.createTabeEvent({
@@ -924,5 +1007,7 @@ export async function performBidirectionalSync(params: {
       pulledCount: 0,
       error: err?.message || "Error durante la sincronización",
     };
+  } finally {
+    _isSyncInProgress = false;
   }
 }
