@@ -92,8 +92,22 @@ function advanceDate(date: Date, rule: RecurrenceRule) {
 }
 
 // Module-level cache for instantaneous navigation between pages (stale-while-revalidate)
-let _cachedEvents: CalendarEvent[] | null = null;
-let _cachedUserId: string | null = null;
+export const isExamType = (tipo: string): boolean => {
+  if (!tipo) return false;
+  const t = tipo.trim().toLowerCase();
+  // Excluir expresamente lo que NO es examen
+  const nonExams = ["clase", "tp", "entrega", "estudio", "otro", "reunión", "reunion", "tarea"];
+  if (nonExams.includes(t)) return false;
+
+  return (
+    tipo.startsWith("P") ||
+    tipo.includes("Global") ||
+    tipo.includes("Final") ||
+    tipo.includes("Recuperatorio") ||
+    t.includes("parcial") ||
+    t.includes("examen")
+  );
+};
 
 export function useCalendarEvents() {
   const { user, isGuest } = useAuth();
@@ -506,8 +520,15 @@ export function useCalendarEvents() {
     return events
       .filter(event =>
         event.fecha >= todayStr &&
-        event.tipo_examen !== "Estudio"
+        isExamType(event.tipo_examen)
       )
+      .sort((a, b) => {
+        const dateDiff = a.fecha.localeCompare(b.fecha);
+        if (dateDiff !== 0) return dateDiff;
+        if (!a.hora) return 1;
+        if (!b.hora) return -1;
+        return a.hora.localeCompare(b.hora);
+      })
       .slice(0, limit);
   };
 

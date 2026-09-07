@@ -36,7 +36,7 @@ export default function Dashboard() {
 
   const upcomingEvents = getUpcomingExams(5);
   const upcomingExams = upcomingEvents.map(event => {
-    const eventDate = new Date(event.fecha);
+    const eventDate = new Date(event.fecha.includes("T") ? event.fecha : event.fecha + "T00:00:00");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffTime = eventDate.getTime() - today.getTime();
