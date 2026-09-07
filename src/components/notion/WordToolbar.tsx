@@ -39,6 +39,8 @@ import {
   Minus as DividerIcon,
   ChevronDown,
   Sparkles,
+  Keyboard,
+  HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -58,6 +60,7 @@ interface WordToolbarProps {
   isZenMode: boolean;
   onToggleZenMode: () => void;
   onToggleFindReplace: () => void;
+  onOpenShortcutsGuide?: () => void;
   onInsertSubpage?: () => void;
 }
 
@@ -88,6 +91,7 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
   isZenMode,
   onToggleZenMode,
   onToggleFindReplace,
+  onOpenShortcutsGuide,
   onInsertSubpage,
 }) => {
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false);
@@ -707,8 +711,26 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
 
           <div className="flex-1" />
 
-          {/* RIGHT SIDE: FIND & REPLACE & ZEN MODE */}
+          {/* RIGHT SIDE: SHORTCUTS GUIDE, FIND & REPLACE & ZEN MODE */}
           <div className="flex items-center gap-1">
+            {onOpenShortcutsGuide && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs font-medium gap-1 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                    onClick={onOpenShortcutsGuide}
+                  >
+                    <Keyboard className="w-3.5 h-3.5 text-primary" />
+                    <span className="hidden sm:inline">Guía & Atajos</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Ver todos los atajos y comandos (Ctrl + /)</TooltipContent>
+              </Tooltip>
+            )}
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

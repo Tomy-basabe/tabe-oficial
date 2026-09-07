@@ -48,6 +48,8 @@ import {
   Calculator,
   BarChart3,
   Sigma,
+  Keyboard,
+  HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -75,6 +77,18 @@ export const normalizeSlashText = (str: string): string => {
 
 const getSuggestionItems = (): CommandItem[] => [
   // ========== 1. BLOQUES BÁSICOS ==========
+  {
+    title: "Guía de Atajos y Comandos",
+    description: "Ver todos los atajos de teclado y comandos de Word y Notion",
+    icon: <Keyboard className="w-4 h-4 text-primary" />,
+    category: "Básico",
+    shortcut: "/ayuda",
+    keywords: ["ayuda", "atajos", "comandos", "shortcuts", "guia", "teclado", "help"],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      window.dispatchEvent(new CustomEvent("notion-open-shortcuts-guide"));
+    },
+  },
   {
     title: "Texto",
     description: "Párrafo de texto normal",

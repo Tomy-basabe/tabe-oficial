@@ -52,6 +52,7 @@ import { MathMenu } from "./MathMenu";
 import { WordToolbar } from "./WordToolbar";
 import { WordStatusBar } from "./WordStatusBar";
 import { FindReplaceBar } from "./FindReplaceBar";
+import { ShortcutsGuideModal } from "./ShortcutsGuideModal";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
@@ -411,6 +412,7 @@ export function AdvancedNotionEditor({
   const [zoom, setZoom] = useState<number>(100);
   const [showFindReplace, setShowFindReplace] = useState<boolean>(false);
   const [isZenMode, setIsZenMode] = useState<boolean>(false);
+  const [showShortcutsGuide, setShowShortcutsGuide] = useState<boolean>(false);
 
   const handlePrint = useCallback(() => {
     window.print();
@@ -436,8 +438,16 @@ export function AdvancedNotionEditor({
       setMathMenuOpen(true);
     };
 
+    const handleOpenGuide = () => {
+      setShowShortcutsGuide(true);
+    };
+
     window.addEventListener('notion-open-math-menu', handleOpenMenu);
-    return () => window.removeEventListener('notion-open-math-menu', handleOpenMenu);
+    window.addEventListener('notion-open-shortcuts-guide', handleOpenGuide);
+    return () => {
+      window.removeEventListener('notion-open-math-menu', handleOpenMenu);
+      window.removeEventListener('notion-open-shortcuts-guide', handleOpenGuide);
+    };
   }, []);
 
   // Listen for sub-page click events from SubPage blocks
@@ -469,6 +479,13 @@ export function AdvancedNotionEditor({
           setMathMenuAnchor(range.getBoundingClientRect());
         }
         setMathMenuOpen(prev => !prev);
+        return;
+      }
+
+      // Open Shortcuts Guide with Ctrl + / or F1
+      if ((modKey && e.key === '/') || e.key === 'F1') {
+        e.preventDefault();
+        setShowShortcutsGuide(prev => !prev);
         return;
       }
 
@@ -823,6 +840,7 @@ export function AdvancedNotionEditor({
             isZenMode={isZenMode}
             onToggleZenMode={() => setIsZenMode(prev => !prev)}
             onToggleFindReplace={() => setShowFindReplace(prev => !prev)}
+            onOpenShortcutsGuide={() => setShowShortcutsGuide(true)}
           />
 
           {showFindReplace && (
@@ -1076,6 +1094,12 @@ export function AdvancedNotionEditor({
           onPrint={handlePrint}
         />
       )}
+
+      {/* Shortcuts and Commands Guide Modal */}
+      <ShortcutsGuideModal
+        open={showShortcutsGuide}
+        onOpenChange={setShowShortcutsGuide}
+      />
     </div>
   );
 }
