@@ -494,46 +494,27 @@ serve(async (req) => {
 
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
-    // Stream from Groq with automatic fallback
-    const candidateModels = [
-      "llama-3.1-8b-instant",
-      "llama3-8b-8192",
-      "mixtral-8x7b-32768"
-    ];
+    // Stream from Groq usando modelo ultrarrápido y universal
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: groqMessages,
+        tools: tools,
+        tool_choice: "auto",
+        temperature: 0.5,
+        max_tokens: 4096,
+        stream: true
+      })
+    });
 
-    let groqRes: Response | null = null;
-    let lastErrorText = "";
-
-    for (const model of candidateModels) {
-      console.log(`[Groq] Intentando llamar modelo: ${model}...`);
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${GROQ_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: groqMessages,
-          tools: tools,
-          tool_choice: "auto",
-          temperature: 0.5,
-          max_tokens: 8192,
-          stream: true
-        })
-      });
-
-      if (res.ok) {
-        groqRes = res;
-        break;
-      } else {
-        lastErrorText = await res.text();
-        console.warn(`[Groq] Modelo ${model} falló con código ${res.status}: ${lastErrorText}. Probando siguiente modelo...`);
-      }
-    }
-
-    if (!groqRes) {
-      throw new Error(`Groq API Error: ${lastErrorText}`);
+    if (!groqRes.ok) {
+      const errText = await groqRes.text();
+      throw new Error(`[TABE-AI-v2] Groq Error: ${groqRes.status} - ${errText}`);
     }
 
     const encoder = new TextEncoder();
