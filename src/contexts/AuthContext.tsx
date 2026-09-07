@@ -260,6 +260,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const connectGoogleCalendar = async () => {
     try {
       const redirectTo = `${window.location.origin}/calendario`;
+      if (user) {
+        const { error } = await supabase.auth.linkIdentity({
+          provider: "google",
+          options: {
+            redirectTo,
+            scopes: "https://www.googleapis.com/auth/calendar",
+            queryParams: {
+              access_type: "offline",
+              prompt: "consent",
+            },
+          },
+        });
+        if (!error) return { error: null };
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

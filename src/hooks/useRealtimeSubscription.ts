@@ -42,6 +42,7 @@ export function useRealtimeSubscription({
   enabled = true,
 }: UseRealtimeSubscriptionOptions) {
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Memoize callbacks to prevent unnecessary re-subscriptions
   const onChangeRef = useRef(onChange);
@@ -59,7 +60,8 @@ export function useRealtimeSubscription({
   useEffect(() => {
     if (!enabled) return;
 
-    const channelName = `realtime-${table}-${filter || "all"}`;
+    // Use a unique suffix per subscription instance to prevent channel cross-cleanup
+    const channelName = `realtime-${table}-${filter || "all"}-${Math.random().toString(36).slice(2, 7)}`;
 
     // Build the channel with proper typing
     const channel = supabase
@@ -79,8 +81,13 @@ export function useRealtimeSubscription({
             old: payload.old as Record<string, unknown>,
           };
 
-          // Call the general onChange handler
-          onChangeRef.current?.(realtimePayload);
+          // Debounce onChange handler by 300ms to eliminate cascading refetch storms
+          if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+          }
+          debounceTimerRef.current = setTimeout(() => {
+            onChangeRef.current?.(realtimePayload);
+          }, 300);
 
           // Call specific handlers based on event type
           switch (payload.eventType) {
@@ -99,12 +106,17 @@ export function useRealtimeSubscription({
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           console.log(`✅ Realtime subscribed to ${table}`);
+        } else if (status === "CHANNEL_ERROR") {
+          console.warn(`⚠️ Realtime channel warning on ${table}`);
         }
       });
 
     channelRef.current = channel;
 
     return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
       if (channelRef.current) {
         console.log(`🔌 Unsubscribing from ${table}`);
         supabase.removeChannel(channelRef.current);

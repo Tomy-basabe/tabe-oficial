@@ -472,8 +472,16 @@ export function useFriends() {
   useEffect(() => {
     if (!user) return;
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchFriendships();
+      }, 300);
+    };
+
     const channel = supabase
-      .channel('friendships-changes')
+      .channel(`friendships-changes-${user.id}-${Math.random().toString(36).slice(2, 7)}`)
       .on(
         'postgres_changes',
         {
@@ -482,7 +490,7 @@ export function useFriends() {
           table: 'friendships',
           filter: `requester_id=eq.${user.id}`
         },
-        () => fetchFriendships()
+        () => debouncedFetch()
       )
       .on(
         'postgres_changes',
@@ -492,11 +500,12 @@ export function useFriends() {
           table: 'friendships',
           filter: `addressee_id=eq.${user.id}`
         },
-        () => fetchFriendships()
+        () => debouncedFetch()
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [user, fetchFriendships]);

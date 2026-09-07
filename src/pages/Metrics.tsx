@@ -107,9 +107,16 @@ export default function Metrics() {
   }, [user, isGuest, dateRange]);
 
   useEffect(() => {
-    if (user || isGuest) {
-      fetchData();
-    }
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
+    fetchData().finally(() => {
+      clearTimeout(timer);
+      setLoading(false);
+    });
+
+    return () => clearTimeout(timer);
   }, [user, isGuest, fetchData]);
 
   // Listen to realtime study sessions updates (e.g. from exit-saves during navigation)

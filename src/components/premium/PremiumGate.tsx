@@ -56,10 +56,6 @@ export function PremiumGate({ children, feature }: PremiumGateProps) {
     }, [user?.id]);
 
     // Everyone passes through now (Ads-only model)
-    if (loading) {
-        return null;
-    }
-
     return <>{children}</>;
 
     // Free users see the paywall with 3 plans

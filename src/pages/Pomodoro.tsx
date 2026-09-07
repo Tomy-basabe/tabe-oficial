@@ -69,9 +69,16 @@ export default function Pomodoro() {
 
   // Still fetch subjects locally as that's UI data, not timer logic
   useEffect(() => {
-    if (user || isGuest) {
-      fetchSubjects();
-    }
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
+    fetchSubjects().finally(() => {
+      clearTimeout(timer);
+      setLoading(false);
+    });
+
+    return () => clearTimeout(timer);
   }, [user, isGuest]);
 
   const fetchSubjects = async () => {
@@ -105,8 +112,7 @@ export default function Pomodoro() {
         year: s.año
       })));
     } catch (error) {
-      console.error("Error fetching subjects:", error);
-      toast.error("Error al cargar materias");
+      console.warn("Could not fetch subjects for Pomodoro:", error);
     } finally {
       setLoading(false);
     }

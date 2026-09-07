@@ -24,10 +24,13 @@ export function useSubscription(): SubscriptionData & { loading: boolean } {
                 .from("profiles")
                 .select("plan, plan_expires_at, plan_activated_at, plan_type")
                 .eq("user_id", user.id)
-                .single();
+                .maybeSingle();
 
-            if (error) throw error;
-            return data;
+            if (error) {
+                console.warn("Could not fetch subscription profile, falling back to free plan:", error);
+                return { plan: "free", plan_expires_at: null, plan_activated_at: null, plan_type: null };
+            }
+            return data || { plan: "free", plan_expires_at: null, plan_activated_at: null, plan_type: null };
         },
         enabled: !!user?.id,
         staleTime: 1000 * 60 * 5, // 5 min cache

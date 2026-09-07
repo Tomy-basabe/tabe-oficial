@@ -378,18 +378,28 @@ export function useRoutines() {
     // ─── Init ─────────────────────────────────────
 
     useEffect(() => {
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
         const load = async () => {
             setLoading(true);
+            timeoutId = setTimeout(() => {
+                setLoading(false);
+            }, 4000);
+
             try {
                 await Promise.all([fetchRoutines(), fetchLogsForWeek(currentWeekStart)]);
             } catch (error) {
                 console.error("Error initializing routines:", error);
             } finally {
+                if (timeoutId) clearTimeout(timeoutId);
                 setLoading(false);
             }
         };
         if (user) load();
         else setLoading(false);
+
+        return () => {
+            if (timeoutId) clearTimeout(timeoutId);
+        };
     }, [user, fetchRoutines, fetchLogsForWeek, currentWeekStart]);
 
     return {

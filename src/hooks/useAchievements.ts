@@ -118,18 +118,25 @@ export function useAchievements() {
   }, [fetchAchievements]);
 
   useEffect(() => {
-    if (user || isGuest) {
-      fetchUserAchievements();
-    }
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
+    fetchUserAchievements().finally(() => {
+      clearTimeout(timer);
+      setLoading(false);
+    });
+
+    return () => clearTimeout(timer);
   }, [user, isGuest, fetchUserAchievements]);
 
   // Suscripción a cambios en user_achievements
   useRealtimeSubscription({
     table: "user_achievements",
     filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: () => {
+    onChange: useCallback(() => {
       fetchUserAchievements();
-    },
+    }, [fetchUserAchievements]),
     enabled: !!user,
   });
 
