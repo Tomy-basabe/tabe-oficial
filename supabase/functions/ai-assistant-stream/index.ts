@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 // Security: Restrict CORS to known origins
 const ALLOWED_ORIGINS = [
   "https://www.tabe.software",
@@ -427,19 +428,8 @@ serve(async (req) => {
         console.log(`[RAG] Tema detectado: ${detectedSubject.nombre}. Buscando apuntes...`);
 
         const [docsRes, decksRes] = await Promise.all([
-          serviceClient
-            .from("notion_documents")
-            .select("titulo, contenido")
-            .eq("user_id", userId)
-            .eq("subject_id", detectedSubject.id)
-            .order("updated_at", { ascending: false })
-            .limit(2),
-          serviceClient
-            .from("flashcard_decks")
-            .select("id, nombre")
-            .eq("user_id", userId)
-            .eq("subject_id", detectedSubject.id)
-            .limit(2)
+          serviceClient.from("notion_documents").select("titulo, contenido").eq("user_id", userId).eq("subject_id", detectedSubject.id).order("updated_at", { ascending: false }).limit(2),
+          serviceClient.from("flashcard_decks").select("id, nombre").eq("user_id", userId).eq("subject_id", detectedSubject.id).limit(2)
         ]);
 
         const notionDocs = docsRes.data;
