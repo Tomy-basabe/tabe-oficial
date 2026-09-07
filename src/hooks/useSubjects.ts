@@ -340,9 +340,10 @@ export function useSubjects() {
     enabled: !!user,
   });
 
-  // Realtime subscription for global subjects
+  // Realtime subscription for user's subjects
   useRealtimeSubscription({
     table: "subjects",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
     onChange: useCallback(() => {
       console.log("📡 Realtime: subjects changed, refetching...");
       debouncedRefetch();
@@ -350,9 +351,10 @@ export function useSubjects() {
     enabled: !!user,
   });
 
-  // Realtime subscription for dependencies
+  // Realtime subscription for user's dependencies
   useRealtimeSubscription({
     table: "subject_dependencies",
+    filter: user ? `user_id=eq.${user.id}` : undefined,
     onChange: useCallback(() => {
       console.log("📡 Realtime: subject_dependencies changed, refetching...");
       debouncedRefetch();

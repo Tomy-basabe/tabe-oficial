@@ -168,53 +168,55 @@ export function useForest() {
     }
   }, [user]);
 
-  const checkAndUpdatePlants = useCallback(async () => {
-    if (!user || !currentPlant || isGuest) return;
+  const isCheckingRef = useRef(false);
 
-    const now = new Date();
-    const lastWateredDate = new Date(currentPlant.last_watered_at);
-    const msSinceWatered = now.getTime() - lastWateredDate.getTime();
-    const daysSinceWatered = msSinceWatered / (1000 * 60 * 60 * 24);
+  const checkAndUpdatePlants = useCallback(async (targetPlant?: Plant | null) => {
+    const plant = targetPlant || currentPlant;
+    if (!user || !plant || isGuest || isCheckingRef.current) return;
+    isCheckingRef.current = true;
 
-    // Grace period: first 2 days after planting
-    const plantedDate = new Date(currentPlant.planted_at);
-    const msSincePlanted = now.getTime() - plantedDate.getTime();
-    const daysSincePlanted = msSincePlanted / (1000 * 60 * 60 * 24);
-    const isInGracePeriod = daysSincePlanted < 2;
+    try {
+      const now = new Date();
+      const lastWateredDate = new Date(plant.last_watered_at);
+      const msSinceWatered = now.getTime() - lastWateredDate.getTime();
+      const daysSinceWatered = msSinceWatered / (1000 * 60 * 60 * 24);
 
-    // Kill plant if: not in grace AND no study in 7+ days (measured from last watered)
-    // BUT only if user hasn't studied today (if they studied, death counter resets)
-    if (!isInGracePeriod && daysSinceWatered >= 7 && currentPlant.is_alive && !studyActivity.hasStudiedToday) {
-      const { error } = await supabase
-        .from("user_plants")
-        .update({
-          is_alive: false,
-          died_at: new Date().toISOString()
-        })
-        .eq("id", currentPlant.id);
+      // Grace period: first 2 days after planting
+      const plantedDate = new Date(plant.planted_at);
+      const msSincePlanted = now.getTime() - plantedDate.getTime();
+      const daysSincePlanted = msSincePlanted / (1000 * 60 * 60 * 24);
+      const isInGracePeriod = daysSincePlanted < 2;
 
-      if (!error) {
-        toast.error("¡Tu planta ha muerto! 😢 No estudiaste durante una semana.");
-        fetchPlants();
+      // Kill plant if: not in grace AND no study in 7+ days (measured from last watered)
+      if (!isInGracePeriod && daysSinceWatered >= 7 && plant.is_alive && !studyActivity.hasStudiedToday) {
+        const diedAt = new Date().toISOString();
+        const { error } = await supabase
+          .from("user_plants")
+          .update({
+            is_alive: false,
+            died_at: diedAt
+          })
+          .eq("id", plant.id);
+
+        if (!error) {
+          toast.error("¡Tu planta ha muerto! 😢 No estudiaste durante una semana.");
+          setCurrentPlant(null);
+          setPlants(prev => prev.map(p => p.id === plant.id ? { ...p, is_alive: false, died_at: diedAt } : p));
+        }
+        return;
       }
-      return;
-    }
 
-    // Plant growth based strictly on study sessions conducted AFTER this plant was planted
-    if (currentPlant.is_alive && !currentPlant.is_completed) {
-      try {
-        // Query sessions recorded on or after this tree was planted
+      // Plant growth based strictly on study sessions conducted AFTER this plant was planted
+      if (plant.is_alive && !plant.is_completed) {
         const { data: plantSessions, error } = await supabase
           .from("study_sessions")
           .select("fecha, duracion_segundos, created_at")
           .eq("user_id", user.id)
-          .gte("created_at", currentPlant.planted_at)
+          .gte("created_at", plant.planted_at)
           .order("created_at", { ascending: true });
 
         if (error) throw error;
 
-        // Group valid study sessions by day to enforce realistic daily growth limits
-        // Sessions under 60s (accidental clicks) are ignored
         const dailyMinutesMap: Record<string, number> = {};
         (plantSessions || []).forEach(session => {
           const sec = session.duracion_segundos || 0;
@@ -223,13 +225,8 @@ export function useForest() {
           dailyMinutesMap[day] = (dailyMinutesMap[day] || 0) + (sec / 60);
         });
 
-        // Balanced Growth Rate:
-        // 5 minutes of study = 1% growth (25 min pomodoro = 5% growth)
-        // Daily cap: maximum 15% growth per day (~75 min of study to cap out)
-        // Full tree takes at least 5-7 days of consistent study
-        // With fertilizer: 2x rate, up to 20% max per day
-        const hasFertilizer = currentPlant.fertilizer_ends_at && new Date(currentPlant.fertilizer_ends_at) > now;
-        const multiplier = hasFertilizer ? (currentPlant.growth_multiplier || 2) : 1;
+        const hasFertilizer = plant.fertilizer_ends_at && new Date(plant.fertilizer_ends_at) > now;
+        const multiplier = hasFertilizer ? (plant.growth_multiplier || 2) : 1;
         const dailyMaxGrowth = hasFertilizer ? 20 : 15;
 
         let totalCalculatedGrowth = 0;
@@ -241,24 +238,25 @@ export function useForest() {
         const newGrowthPercentage = Math.min(100, Math.floor(totalCalculatedGrowth));
 
         // Only update if growth actually increased
-        if (newGrowthPercentage > currentPlant.growth_percentage) {
-          const delta = newGrowthPercentage - currentPlant.growth_percentage;
+        if (newGrowthPercentage > plant.growth_percentage) {
+          const delta = newGrowthPercentage - plant.growth_percentage;
           const isCompleted = newGrowthPercentage >= 100;
+          const nowIso = new Date().toISOString();
 
           const updateData: Record<string, unknown> = {
             growth_percentage: newGrowthPercentage,
-            last_watered_at: new Date().toISOString(),
+            last_watered_at: nowIso,
           };
 
           if (isCompleted) {
             updateData.is_completed = true;
-            updateData.completed_at = new Date().toISOString();
+            updateData.completed_at = nowIso;
           }
 
           const { error: updateError } = await supabase
             .from("user_plants")
             .update(updateData)
-            .eq("id", currentPlant.id);
+            .eq("id", plant.id);
 
           if (!updateError) {
             if (isCompleted) {
@@ -266,27 +264,35 @@ export function useForest() {
             } else if (delta >= 1) {
               toast.success(`🌱 ¡Tu planta creció ${delta}% con tu sesión de estudio!`);
             }
-            fetchPlants();
+            const updatedPlant = { ...plant, ...updateData } as Plant;
+            setCurrentPlant(isCompleted ? null : updatedPlant);
+            setPlants(prev => prev.map(p => p.id === plant.id ? updatedPlant : p));
           }
         } else if (studyActivity.hasStudiedToday) {
-          // If already at calculated growth, but user studied today, update last_watered_at once per day to reset death counter
-          const lastWatered = new Date(currentPlant.last_watered_at);
+          // Update last_watered_at once per day to reset death counter
+          const lastWatered = new Date(plant.last_watered_at);
           const lastWateredDay = new Date(lastWatered.getFullYear(), lastWatered.getMonth(), lastWatered.getDate());
           const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
           if (lastWateredDay.getTime() < todayDate.getTime()) {
+            const nowIso = new Date().toISOString();
             await supabase
               .from("user_plants")
-              .update({ last_watered_at: new Date().toISOString() })
-              .eq("id", currentPlant.id);
-            fetchPlants();
+              .update({ last_watered_at: nowIso })
+              .eq("id", plant.id);
+
+            const updatedPlant = { ...plant, last_watered_at: nowIso } as Plant;
+            setCurrentPlant(updatedPlant);
+            setPlants(prev => prev.map(p => p.id === plant.id ? updatedPlant : p));
           }
         }
-      } catch (err) {
-        console.error("Error calculating plant growth:", err);
       }
+    } catch (err) {
+      console.error("Error calculating plant growth:", err);
+    } finally {
+      isCheckingRef.current = false;
     }
-  }, [user, currentPlant, isGuest, studyActivity, fetchPlants]);
+  }, [user, currentPlant, isGuest, studyActivity]);
 
   const plantNewTree = async (plantType: string = 'oak') => {
     if (!user) return;
@@ -386,17 +392,37 @@ export function useForest() {
     loadData();
   }, [fetchPlants, fetchStudyActivity]);
 
+  // Run growth check strictly ONCE after initial data loads
+  const hasRunInitialCheckRef = useRef(false);
   useEffect(() => {
-    if (!loading) {
-      checkAndUpdatePlants();
+    if (!loading && currentPlant && !hasRunInitialCheckRef.current) {
+      hasRunInitialCheckRef.current = true;
+      checkAndUpdatePlants(currentPlant);
     }
-  }, [checkAndUpdatePlants, loading]);
+  }, [loading, currentPlant, checkAndUpdatePlants]);
+
+  const plantsDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedFetchPlants = useCallback(() => {
+    if (isCheckingRef.current) return;
+    if (plantsDebounceTimer.current) clearTimeout(plantsDebounceTimer.current);
+    plantsDebounceTimer.current = setTimeout(() => {
+      fetchPlants();
+    }, 500);
+  }, [fetchPlants]);
+
+  const studyDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedFetchStudyActivity = useCallback(() => {
+    if (studyDebounceTimer.current) clearTimeout(studyDebounceTimer.current);
+    studyDebounceTimer.current = setTimeout(() => {
+      fetchStudyActivity();
+    }, 500);
+  }, [fetchStudyActivity]);
 
   // Realtime subscription for plants
   useRealtimeSubscription({
     table: "user_plants",
     filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: fetchPlants,
+    onChange: debouncedFetchPlants,
     enabled: !!user,
   });
 
@@ -404,9 +430,7 @@ export function useForest() {
   useRealtimeSubscription({
     table: "study_sessions",
     filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: () => {
-      fetchStudyActivity();
-    },
+    onChange: debouncedFetchStudyActivity,
     enabled: !!user,
   });
 

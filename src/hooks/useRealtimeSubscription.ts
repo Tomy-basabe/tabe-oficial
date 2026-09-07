@@ -59,7 +59,7 @@ export function useRealtimeSubscription({
   useEffect(() => {
     if (!enabled) return;
 
-    const channelName = `realtime-${table}-${filter || "all"}-${Date.now()}`;
+    const channelName = `realtime-${table}-${filter || "all"}`;
 
     // Build the channel with proper typing
     const channel = supabase

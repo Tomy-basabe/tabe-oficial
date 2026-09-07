@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "./useSubjects";
@@ -120,6 +120,9 @@ export function useDashboardStats() {
   const [studySessions, setStudySessions] = useState<StudySession[]>(_cachedStudySessions || []);
   const [loading, setLoading] = useState<boolean>(!_cachedUserStats);
 
+  const hasAutoHealedStreak = useRef(false);
+  const realtimeDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchStats = useCallback(async (showLoading = !_cachedUserStats) => {
     if (!user && !isGuest) {
       setLoading(false);
@@ -214,8 +217,9 @@ export function useDashboardStats() {
         horas_estudio_total: statsData?.horas_estudio_total ?? 0,
       };
 
-      // Auto-heal database record if out of sync
-      if (statsData && (statsData.racha_actual !== currentStreak || (statsData.mejor_racha ?? 0) < bestStreak)) {
+      // Auto-heal database record if out of sync (run at most once per session to avoid realtime feedback loops)
+      if (!hasAutoHealedStreak.current && statsData && (statsData.racha_actual !== currentStreak || (statsData.mejor_racha ?? 0) < bestStreak)) {
+        hasAutoHealedStreak.current = true;
         supabase
           .from("user_stats")
           .update({
@@ -245,24 +249,25 @@ export function useDashboardStats() {
     fetchStats(!_cachedUserStats);
   }, [fetchStats]);
 
-  // Realtime subscriptions
+  const debouncedFetchStats = useCallback(() => {
+    if (realtimeDebounceTimer.current) clearTimeout(realtimeDebounceTimer.current);
+    realtimeDebounceTimer.current = setTimeout(() => {
+      fetchStats(false);
+    }, 500);
+  }, [fetchStats]);
+
+  // Realtime subscriptions with debouncing and user scoping
   useRealtimeSubscription({
     table: "user_stats",
     filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: useCallback(() => {
-      console.log("📡 Realtime: user_stats changed, refetching...");
-      fetchStats();
-    }, [fetchStats]),
+    onChange: debouncedFetchStats,
     enabled: !!user,
   });
 
   useRealtimeSubscription({
     table: "study_sessions",
     filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: useCallback(() => {
-      console.log("📡 Realtime: study_sessions changed, refetching...");
-      fetchStats();
-    }, [fetchStats]),
+    onChange: debouncedFetchStats,
     enabled: !!user,
   });
 

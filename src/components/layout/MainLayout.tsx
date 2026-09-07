@@ -88,29 +88,51 @@ export function MainLayout() {
   const navItems = baseNavItems;
 
   useEffect(() => {
+    if (!user && !isGuest) return;
+
+    if (isGuest) {
+      setUserStats({ xp_total: 4150, nivel: 42 });
+      return;
+    }
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const fetchUserStats = async () => {
-      if (!user && !isGuest) return;
-
-      if (isGuest) {
-        setUserStats({ xp_total: 4150, nivel: 42 });
-        return;
-      }
-
+      if (!user) return;
       const { data } = await supabase
         .from("user_stats")
         .select("xp_total, nivel")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data) setUserStats(data);
+      if (data) {
+        setUserStats(prev => {
+          if (prev && prev.xp_total === data.xp_total && prev.nivel === data.nivel) {
+            return prev;
+          }
+          return data;
+        });
+      }
     };
     fetchUserStats();
 
     const channel = supabase
-      .channel("sidebar-user-stats")
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_stats", filter: `user_id=eq.${user?.id}` }, () => fetchUserStats())
+      .channel(`sidebar-user-stats-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_stats", filter: `user_id=eq.${user.id}` },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            fetchUserStats();
+          }, 500);
+        }
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
   }, [user, isGuest]);
 
   const xpData = (() => {
