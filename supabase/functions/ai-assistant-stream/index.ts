@@ -426,20 +426,24 @@ serve(async (req) => {
       if (detectedSubject) {
         console.log(`[RAG] Tema detectado: ${detectedSubject.nombre}. Buscando apuntes...`);
 
-        const { data: notionDocs } = await serviceClient
-          .from("notion_documents")
-          .select("titulo, contenido")
-          .eq("user_id", userId)
-          .eq("subject_id", detectedSubject.id)
-          .order("updated_at", { ascending: false })
-          .limit(2);
+        const [docsRes, decksRes] = await Promise.all([
+          serviceClient
+            .from("notion_documents")
+            .select("titulo, contenido")
+            .eq("user_id", userId)
+            .eq("subject_id", detectedSubject.id)
+            .order("updated_at", { ascending: false })
+            .limit(2),
+          serviceClient
+            .from("flashcard_decks")
+            .select("id, nombre")
+            .eq("user_id", userId)
+            .eq("subject_id", detectedSubject.id)
+            .limit(2)
+        ]);
 
-        const { data: subjectDecks } = await serviceClient
-          .from("flashcard_decks")
-          .select("id, nombre")
-          .eq("user_id", userId)
-          .eq("subject_id", detectedSubject.id)
-          .limit(2);
+        const notionDocs = docsRes.data;
+        const subjectDecks = decksRes.data;
 
         let notionText = "";
         if (notionDocs && notionDocs.length > 0) {
@@ -500,27 +504,47 @@ serve(async (req) => {
 
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
-    // Stream from Groq
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: groqMessages,
-        tools: tools,
-        tool_choice: "auto",
-        temperature: 0.5,
-        max_tokens: 8192,
-        stream: true
-      })
-    });
+    // Stream from Groq with automatic fallback
+    const preferredModel = Deno.env.get("GROQ_MODEL") || "llama-3.1-8b-instant";
+    const candidateModels = Array.from(new Set([
+      preferredModel,
+      "llama-3.1-8b-instant",
+      "llama-3.3-70b-versatile"
+    ]));
 
-    if (!groqRes.ok) {
-      const err = await groqRes.text();
-      throw new Error(`Groq API Error: ${groqRes.status} - ${err}`);
+    let groqRes: Response | null = null;
+    let lastErrorText = "";
+
+    for (const model of candidateModels) {
+      console.log(`[Groq] Intentando llamar modelo: ${model}...`);
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: groqMessages,
+          tools: tools,
+          tool_choice: "auto",
+          temperature: 0.5,
+          max_tokens: 8192,
+          stream: true
+        })
+      });
+
+      if (res.ok) {
+        groqRes = res;
+        break;
+      } else {
+        lastErrorText = await res.text();
+        console.warn(`[Groq] Modelo ${model} falló con código ${res.status}: ${lastErrorText}. Probando siguiente modelo...`);
+      }
+    }
+
+    if (!groqRes) {
+      throw new Error(`Groq API Error: ${lastErrorText}`);
     }
 
     const encoder = new TextEncoder();

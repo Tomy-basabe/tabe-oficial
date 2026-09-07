@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Security: Restrict CORS to known origins
 const ALLOWED_ORIGINS = ["https://www.tabe.software", "https://tabe.software", "https://tabe-oficial.vercel.app", "http://localhost:8080", "http://localhost:5173"];
-function getgetCorsHeaders(req)(req: Request) {
+function getCorsHeaders(req: Request) {
   const origin = req.headers.get("Origin") || "";
   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return { "Access-Control-Allow-Origin": allowedOrigin, "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "X-Content-Type-Options": "nosniff" };
@@ -122,11 +122,12 @@ serve(async (req) => {
       5. Las consultas y tutorías se guardan como 'create_calendar_event' con tipo 'Estudio'. Explica en el título qué es la consulta.
     `;
 
+    const chosenModel = Deno.env.get("GROQ_MODEL") || "llama-3.1-8b-instant";
     const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: chosenModel,
         max_tokens: 1024,
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }],
         tools: [

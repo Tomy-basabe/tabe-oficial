@@ -40,10 +40,42 @@ const DEFAULT_PERSONA: Omit<AIPersona, "id" | "user_id" | "created_at"> = {
 
 export function useAIPersonas() {
     const { user, isGuest, loading: authLoading } = useAuth();
-    const [personas, setPersonas] = useState<AIPersona[]>([]);
-    const [activePersona, setActivePersona] = useState<AIPersona | null>(null);
+    
+    // Initializer with cache for 0ms initial load
+    const [personas, setPersonas] = useState<AIPersona[]>(() => {
+        try {
+            const cached = localStorage.getItem("tabe-cached-personas");
+            if (cached) return JSON.parse(cached);
+        } catch {}
+        return [{
+            id: "local-default",
+            user_id: "anonymous",
+            ...DEFAULT_PERSONA,
+            created_at: new Date().toISOString(),
+        }];
+    });
+
+    const [activePersona, setActivePersona] = useState<AIPersona | null>(() => {
+        try {
+            const cached = localStorage.getItem("tabe-cached-personas");
+            const storedId = localStorage.getItem("tabe-active-persona");
+            if (cached) {
+                const list = JSON.parse(cached);
+                const found = list.find((p: AIPersona) => p.id === storedId);
+                if (found) return found;
+                if (list[0]) return list[0];
+            }
+        } catch {}
+        return {
+            id: "local-default",
+            user_id: "anonymous",
+            ...DEFAULT_PERSONA,
+            created_at: new Date().toISOString(),
+        };
+    });
+
     const [sessions, setSessions] = useState<AIChatSession[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState<boolean>(false);
 
     // Load personas
     const loadPersonas = useCallback(async () => {
@@ -64,49 +96,57 @@ export function useAIPersonas() {
             return;
         }
 
-        const { data, error } = await (supabase as any)
-            .from("ai_personas")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("is_default", { ascending: false })
-            .order("created_at", { ascending: true });
-
-        if (error) {
-            console.warn("ai_personas table not available, using local fallback:", error.message);
-            setPersonas([localFallback]);
-            setActivePersona(localFallback);
-            setLoading(false);
-            return;
-        }
-
-        let personaList = (data || []) as unknown as AIPersona[];
-
-        // Auto-create default persona if none exist
-        if (personaList.length === 0) {
-            const { data: newPersona, error: createError } = await (supabase as any)
+        try {
+            const { data, error } = await (supabase as any)
                 .from("ai_personas")
-                .insert({
-                    user_id: user.id,
-                    ...DEFAULT_PERSONA,
-                })
-                .select()
-                .single();
+                .select("*")
+                .eq("user_id", user.id)
+                .order("is_default", { ascending: false })
+                .order("created_at", { ascending: true });
 
-            if (createError) {
-                console.warn("Could not create default persona, using local fallback");
-                personaList = [localFallback];
-            } else if (newPersona) {
-                personaList = [newPersona as unknown as AIPersona];
+            if (error) {
+                console.warn("ai_personas table not available, using local fallback:", error.message);
+                setPersonas([localFallback]);
+                setActivePersona(localFallback);
+                setLoading(false);
+                return;
             }
+
+            let personaList = (data || []) as unknown as AIPersona[];
+
+            // Auto-create default persona if none exist
+            if (personaList.length === 0) {
+                const { data: newPersona, error: createError } = await (supabase as any)
+                    .from("ai_personas")
+                    .insert({
+                        user_id: user.id,
+                        ...DEFAULT_PERSONA,
+                    })
+                    .select()
+                    .single();
+
+                if (createError) {
+                    console.warn("Could not create default persona, using local fallback");
+                    personaList = [localFallback];
+                } else if (newPersona) {
+                    personaList = [newPersona as unknown as AIPersona];
+                }
+            }
+
+            setPersonas(personaList);
+            try {
+                localStorage.setItem("tabe-cached-personas", JSON.stringify(personaList));
+            } catch {}
+
+            // Set active persona to the stored one or default
+            const storedId = localStorage.getItem("tabe-active-persona");
+            const found = personaList.find((p) => p.id === storedId);
+            setActivePersona(found || personaList[0] || localFallback);
+        } catch (err) {
+            console.error("Error loading personas:", err);
+        } finally {
+            setLoading(false);
         }
-
-        setPersonas(personaList);
-
-        // Set active persona to the stored one or default
-        const storedId = localStorage.getItem("tabe-active-persona");
-        const found = personaList.find((p) => p.id === storedId);
-        setActivePersona(found || personaList[0] || null);
-        setLoading(false);
     }, [user, authLoading]);
 
     useEffect(() => {
