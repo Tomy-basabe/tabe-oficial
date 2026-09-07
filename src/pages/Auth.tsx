@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/useTheme";
 import { motion, AnimatePresence } from "framer-motion";
+import { loginSchema, signupSchema, resetPasswordSchema, checkRateLimit, resetRateLimit, RATE_LIMITS } from "@/lib/security";
 
 // Translate Supabase Auth errors to Spanish
 function translateAuthError(message: string): string {
@@ -52,6 +53,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
+  const [honeypot, setHoneypot] = useState(""); // Bot protection
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
@@ -136,10 +138,22 @@ export default function Auth() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) { toast.error("Ingresá tu email primero"); return; }
+    // Security: validate input
+    const parsed = resetPasswordSchema.safeParse({ email });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message || "Email inválido");
+      return;
+    }
+    // Security: rate limit
+    const rl = checkRateLimit('reset_password', RATE_LIMITS.resetPassword);
+    if (!rl.allowed) {
+      const mins = Math.ceil((rl.retryAfterMs || 0) / 60000);
+      toast.error(`Demasiados intentos. Esperá ${mins} minuto(s).`);
+      return;
+    }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/restablecer-contrasena` });
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: `${window.location.origin}/restablecer-contrasena` });
       if (error) { toast.error(translateAuthError(error.message)); }
       else { toast.success("📧 Te enviamos un email con el enlace para restablecer tu contraseña.", { duration: 8000 }); setResetMode(false); }
     } finally { setLoading(false); }
@@ -147,18 +161,53 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Security: Bot Protection (Honeypot)
+    if (honeypot) {
+      console.warn("Bot detected in Auth form");
+      // Silently fail for bots, pretend it worked
+      toast.success("Procesando tu solicitud...");
+      setLoading(true);
+      setTimeout(() => setLoading(false), 2000);
+      return;
+    }
+
+    // Security: validate inputs with Zod
+    if (isLogin) {
+      const parsed = loginSchema.safeParse({ email, password });
+      if (!parsed.success) {
+        toast.error(parsed.error.errors[0]?.message || "Datos inválidos");
+        return;
+      }
+    } else {
+      const parsed = signupSchema.safeParse({ email, password, nombre });
+      if (!parsed.success) {
+        toast.error(parsed.error.errors[0]?.message || "Datos inválidos");
+        return;
+      }
+    }
+
+    // Security: rate limit login/signup attempts
+    const rateLimitKey = isLogin ? 'login' : 'signup';
+    const rl = checkRateLimit(rateLimitKey, isLogin ? RATE_LIMITS.login : RATE_LIMITS.signup);
+    if (!rl.allowed) {
+      const mins = Math.ceil((rl.retryAfterMs || 0) / 60000);
+      toast.error(`Demasiados intentos. Esperá ${mins} minuto(s).`);
+      return;
+    }
+
     setLoading(true);
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) { toast.error(translateAuthError(error.message)); }
-        else { toast.success("¡Bienvenido de vuelta!"); navigate("/dashboard"); }
+        else { resetRateLimit('login'); toast.success("¡Bienvenido de vuelta!"); navigate("/dashboard"); }
       } else {
         const { data: invited } = await supabase.rpc("check_invitation_status", { check_email: email.toLowerCase() }).maybeSingle();
         if (invited?.template && invited.template !== 'none') localStorage.setItem('tabe_pending_template', invited.template);
         const { error } = await signUp(email, password, nombre);
         if (error) { toast.error(translateAuthError(error.message)); }
-        else { toast.success("¡Cuenta creada exitosamente!"); navigate("/dashboard"); }
+        else { resetRateLimit('signup'); toast.success("¡Cuenta creada exitosamente!"); navigate("/dashboard"); }
       }
     } finally { setLoading(false); }
   };
@@ -839,6 +888,19 @@ export default function Auth() {
                               </div>
                             </div>
                           )}
+
+                          {/* Security: Bot Protection Honeypot */}
+                          <div className="hidden" aria-hidden="true">
+                            <input
+                              type="text"
+                              name="website_url_honey"
+                              tabIndex={-1}
+                              autoComplete="off"
+                              value={honeypot}
+                              onChange={(e) => setHoneypot(e.target.value)}
+                              placeholder="Leave this empty if you are human"
+                            />
+                          </div>
 
                           <div className="space-y-1.5">
                             <label className={labelClass}>

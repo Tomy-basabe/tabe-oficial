@@ -187,7 +187,7 @@ import { useTheme } from "@/hooks/useTheme";
 
 const App = () => {
   useTheme();
-  console.log("App.tsx initialized v5.1 (Direct Ads Check)");
+  // Security: debug logs removed for production
   return (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>

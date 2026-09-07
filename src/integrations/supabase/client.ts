@@ -5,6 +5,18 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// Security: Verify we're using the anon key, not service_role
+if (typeof SUPABASE_PUBLISHABLE_KEY === 'string' && SUPABASE_PUBLISHABLE_KEY.length > 0) {
+  try {
+    const payload = JSON.parse(atob(SUPABASE_PUBLISHABLE_KEY.split('.')[1]));
+    if (payload.role && payload.role !== 'anon') {
+      console.error('SECURITY ERROR: Frontend must use the anon key, not service_role!');
+    }
+  } catch {
+    // Silently continue — key format check is best-effort
+  }
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
@@ -13,5 +25,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true,
+    flowType: 'pkce', // More secure than implicit flow
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'tabe-web',
+    },
+  },
+  // DB settings for security
+  db: {
+    schema: 'public',
+  },
 });

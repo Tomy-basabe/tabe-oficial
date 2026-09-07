@@ -84,7 +84,7 @@ export function GradeCalculator() {
                             result.includes("Imposible") ? "bg-destructive/10 text-destructive" : "bg-neon-green/10 text-neon-green"
                         )}>
                             {result.includes("Imposible") ? <AlertCircle className="w-5 h-5 shrink-0" /> : <CheckCircle2 className="w-5 h-5 shrink-0" />}
-                            <div dangerouslySetInnerHTML={{ __html: result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                            <div>{result.split(/\*\*(.*?)\*\*/).map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part)}</div>
                         </div>
                     )}
                 </div>

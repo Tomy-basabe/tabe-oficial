@@ -1,10 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Security: Restrict CORS to known origins
+const ALLOWED_ORIGINS = ["https://www.tabe.software", "https://tabe.software", "https://tabe-oficial.vercel.app", "http://localhost:8080", "http://localhost:5173"];
+function getgetCorsHeaders(req)(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return { "Access-Control-Allow-Origin": allowedOrigin, "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "X-Content-Type-Options": "nosniff" };
+}
 
 // Valid event types matching the database constraint
 const VALID_EVENT_TYPES = ['P1', 'P2', 'Global', 'Final', 'Recuperatorio P1', 'Recuperatorio P2', 'Recuperatorio Global', 'Estudio'] as const;
@@ -140,7 +143,7 @@ function validateInputs(messages: unknown[], personality: string): void {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -148,7 +151,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
 
@@ -166,7 +169,7 @@ serve(async (req) => {
 
     if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
 
@@ -470,20 +473,20 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Límite de solicitudes excedido. Intenta de nuevo en unos segundos." }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Créditos de IA agotados. Contacta al administrador." }), {
           status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       return new Response(JSON.stringify({ error: "Error en el servicio de IA" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -505,7 +508,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             event_created: null,
             flashcards_created: null,
           }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
         if (!/^\d{4}-\d{2}-\d{2}$/.test(rawEventData.fecha)) {
@@ -514,7 +517,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             event_created: null,
             flashcards_created: null,
           }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
 
@@ -562,7 +565,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             event_created: null,
             flashcards_created: null,
           }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
 
@@ -583,7 +586,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           event_created: newEvent,
           flashcards_created: null,
         }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -605,7 +608,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           event_created: null,
           flashcards_created: null,
         }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -624,7 +627,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             event_created: null,
             flashcards_created: null,
           }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
         if (!Array.isArray(flashcardData.cards) || flashcardData.cards.length === 0 || flashcardData.cards.length > 50) {
@@ -633,7 +636,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             event_created: null,
             flashcards_created: null,
           }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
 
@@ -694,7 +697,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             event_created: null,
             flashcards_created: null,
           }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
 
@@ -721,7 +724,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             event_created: null,
             flashcards_created: null,
           }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
 
@@ -745,7 +748,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             cards_count: flashcardData.cards.length,
           },
         }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
 
       }
@@ -773,7 +776,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           event_created: null,
           flashcards_created: null,
         }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
     }
@@ -782,7 +785,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
       content: choice?.message?.content || "No pude generar una respuesta.",
       event_created: null
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
 
   } catch (e) {
@@ -791,7 +794,7 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
       error: e instanceof Error ? e.message : "Error desconocido"
     }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

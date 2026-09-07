@@ -28,6 +28,7 @@ import * as pdfjsLib from "pdfjs-dist";
 // @ts-ignore
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
+import { validateFileUpload } from "@/lib/security";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 interface LibraryFolder {
@@ -741,6 +742,14 @@ export default function Library() {
     }
 
     // Normal single-file upload
+    // Security: validate file type, size, and extension before upload
+    const fileCheck = validateFileUpload(file);
+    if (!fileCheck.valid) {
+      toast.error(fileCheck.error || "Archivo no válido");
+      setUploading(false);
+      return;
+    }
+
     if (!canUse("apuntes") || !canUse("storage_mb", file.size)) {
       toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.");
       setUploading(false);
