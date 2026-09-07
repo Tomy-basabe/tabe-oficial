@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { Zap, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ComicAudio } from "@/components/comic/ComicAudio";
@@ -62,6 +63,16 @@ const COMIC_COLORS = [
 const SPARKLE_CHARS = ["✦", "★", "✸", "•", "✖"];
 
 export function ComicEffectsProvider({ children }: { children: React.ReactNode }) {
+  let isApuntes = false;
+  try {
+    const location = useLocation();
+    isApuntes = location.pathname.startsWith("/apuntes");
+  } catch {
+    if (typeof window !== "undefined") {
+      isApuntes = window.location.pathname.startsWith("/apuntes");
+    }
+  }
+
   const [comicMode, setComicMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem("tabe-comic-mode");
@@ -85,19 +96,19 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
   const particleIdRef = useRef<number>(0);
 
   useEffect(() => {
-    ComicAudio.setMuted(!soundEnabled);
+    ComicAudio.setMuted(!soundEnabled || isApuntes);
     localStorage.setItem("tabe-comic-sound", JSON.stringify(soundEnabled));
-  }, [soundEnabled]);
+  }, [soundEnabled, isApuntes]);
 
-  // Sync comic-mode-active class to document.documentElement
+  // Sync comic-mode-active class to document.documentElement (disabled in /apuntes)
   useEffect(() => {
-    if (comicMode) {
+    if (comicMode && !isApuntes) {
       document.documentElement.classList.add("comic-mode-active");
     } else {
       document.documentElement.classList.remove("comic-mode-active");
     }
     localStorage.setItem("tabe-comic-mode", JSON.stringify(comicMode));
-  }, [comicMode]);
+  }, [comicMode, isApuntes]);
 
   const toggleComicMode = useCallback(() => {
     setComicMode((prev) => !prev);
@@ -110,7 +121,8 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
 
   const triggerBurst = useCallback(
     (x: number, y: number, customWord?: string) => {
-      if (!comicMode) return;
+      // Never trigger bursts or sounds in notes (/apuntes)
+      if (!comicMode || isApuntes) return;
 
       const now = Date.now();
       // Throttle bursts to at most 1 every 80ms
@@ -118,7 +130,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
       lastBurstRef.current = now;
 
       // Play comic pop sound
-      if (soundEnabled) {
+      if (soundEnabled && !isApuntes) {
         ComicAudio.playPop();
       }
 
@@ -157,17 +169,18 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
         setParticles((prev) => prev.filter((p) => p.id !== newId));
       }, 900);
     },
-    [comicMode, soundEnabled]
+    [comicMode, soundEnabled, isApuntes]
   );
 
   // Global click listener to trigger burst on clickable items or anywhere in comic mode
   useEffect(() => {
-    if (!comicMode) return;
+    if (!comicMode || isApuntes) return;
 
     const handleClick = (e: MouseEvent) => {
-      // Don't trigger on comic toggle switch itself
+      if (isApuntes) return;
+      // Don't trigger on comic toggle switch or inside notes
       const target = e.target as HTMLElement | null;
-      if (target?.closest("#comic-mode-toggle")) return;
+      if (target?.closest("#comic-mode-toggle, .no-comic, .ProseMirror, .notion-container, [data-no-comic]")) return;
 
       // Trigger burst on buttons, links, cards, or anywhere clicked
       triggerBurst(e.clientX, e.clientY);
@@ -175,7 +188,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
 
     window.addEventListener("click", handleClick, { passive: true });
     return () => window.removeEventListener("click", handleClick);
-  }, [comicMode, triggerBurst]);
+  }, [comicMode, triggerBurst, isApuntes]);
 
   return (
     <ComicContext.Provider
@@ -191,8 +204,8 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
     >
       {children}
 
-      {/* Comic Interactive Overlay */}
-      {comicMode && (
+      {/* Comic Interactive Overlay (Hidden on /apuntes) */}
+      {comicMode && !isApuntes && (
         <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
           {particles.map((particle) => (
             <div

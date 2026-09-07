@@ -475,6 +475,21 @@ export function AdvancedNotionEditor({
       const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
       const modKey = isMac ? e.metaKey : e.ctrlKey;
 
+      // === HIGHLIGHT TOGGLE / UNSET (Ctrl+Q) ===
+      if (modKey && !e.shiftKey && !e.altKey && (e.key.toLowerCase() === 'q' || e.code === 'KeyQ')) {
+        e.preventDefault();
+        const currentBg = editor.getAttributes("textStyle")?.backgroundColor;
+        const isHighlighted = editor.isActive("highlight") || (!!currentBg && currentBg !== "transparent");
+
+        if (isHighlighted) {
+          editor.chain().focus().unsetBackgroundColor().unsetHighlight().run();
+        } else {
+          const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD";
+          editor.chain().focus().setBackgroundColor(lastColor).run();
+        }
+        return;
+      }
+
       if (modKey && e.key.toLowerCase() === 'm') {
         e.preventDefault();
         const selection = window.getSelection();
@@ -686,7 +701,7 @@ export function AdvancedNotionEditor({
             }
             case "q": {
               e.preventDefault();
-              editor.chain().focus().unsetBackgroundColor().run();
+              editor.chain().focus().unsetBackgroundColor().unsetHighlight().run();
               return;
             }
           }

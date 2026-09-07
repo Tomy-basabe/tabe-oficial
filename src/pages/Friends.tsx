@@ -34,7 +34,7 @@ export default function Friends() {
   const [copied, setCopied] = useState(false);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
 
-  if (loading && friends.length === 0 && friendStats.length === 0) {
+  if (loading && friends.length === 0 && friendStats.length === 0 && !myProfile) {
     return <LoadingScreen message="Cargando Amigos..." submessage="Buscando compañeros de estudio..." />;
   }
 

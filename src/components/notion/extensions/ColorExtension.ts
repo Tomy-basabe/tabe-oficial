@@ -190,13 +190,14 @@ export const BackgroundColor = Extension.create({
 
   addKeyboardShortcuts() {
     const handleHighlightToggle = () => {
-      const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD";
       const currentBgColor = this.editor.getAttributes("textStyle")?.backgroundColor;
+      const isHighlighted = this.editor.isActive("highlight") || (!!currentBgColor && currentBgColor !== "transparent");
       
-      if (currentBgColor) {
-         return this.editor.chain().unsetBackgroundColor().run();
+      if (isHighlighted) {
+         return this.editor.chain().focus().unsetBackgroundColor().unsetHighlight().run();
       } else {
-         return this.editor.chain().setBackgroundColor(lastColor).run();
+         const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD";
+         return this.editor.chain().focus().setBackgroundColor(lastColor).run();
       }
     };
 
