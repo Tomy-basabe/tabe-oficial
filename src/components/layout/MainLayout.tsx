@@ -52,7 +52,6 @@ export function MainLayout() {
   const location = useLocation();
   const { user, isGuest, profile } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   // Categorized sidebar state
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(() => {
@@ -86,22 +85,7 @@ export function MainLayout() {
     }
   });
 
-  // Check if user is admin
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      setIsAdmin(!!data);
-    };
-    checkAdmin();
-  }, [user]);
-
-  const navItems = isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
+  const navItems = baseNavItems;
 
   useEffect(() => {
     const fetchUserStats = async () => {
@@ -155,10 +139,6 @@ export function MainLayout() {
   let displayItems: CustomSidebarItem[] = isLegacyOrIncomplete 
     ? DEFAULT_CATEGORIZED_SIDEBAR 
     : [...userConfig];
-
-  if (isAdmin && !displayItems.some((i: any) => i.id === "/admin" || i.path === "/admin" || (i.items?.some((s: any) => s.id === "/admin" || s.path === "/admin")))) {
-    displayItems = [...displayItems, { id: "item-/admin", path: "/admin", label: "Admin", type: "item", iconName: "Shield" }];
-  }
 
   // Auto-expand category if current route is inside it
   useEffect(() => {
