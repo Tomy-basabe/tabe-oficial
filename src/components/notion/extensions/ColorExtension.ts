@@ -142,46 +142,50 @@ export const BackgroundColor = Extension.create({
         },
       unsetBackgroundColor:
         () =>
-        ({ editor, state, dispatch }) => {
-          if (state.selection.empty) {
-            return editor.commands.unsetMark('textStyle');
-          }
+        ({ tr, state, dispatch }) => {
+          const { from, to, empty } = state.selection;
 
           if (dispatch) {
-            const tr = state.tr;
-            const { from, to } = state.selection;
-
-            // 1. Quitar la marca nativa de Highlight en el rango exacto de la selección
+            // 1. Remove highlight mark
             const highlightType = state.schema.marks.highlight;
             if (highlightType) {
               tr.removeMark(from, to, highlightType);
             }
 
-            // 2. Quitar el atributo backgroundColor de textStyle solo en el rango exacto
-            state.doc.nodesBetween(from, to, (node, pos) => {
-              if (node.isText && node.marks) {
-                node.marks.forEach(mark => {
-                  if (mark.type.name === 'textStyle' && mark.attrs.backgroundColor) {
-                    const fromPos = Math.max(from, pos);
-                    const toPos = Math.min(to, pos + node.nodeSize);
-
-                    if (fromPos < toPos) {
-                      const newAttrs = { ...mark.attrs };
-                      delete newAttrs.backgroundColor;
-
-                      // Quitar la marca de fondo solo en el tramo seleccionado
-                      tr.removeMark(fromPos, toPos, mark.type);
-
-                      // Si tenía otros estilos (ej: color de texto), re-aplicarlos sin backgroundColor
-                      if (Object.keys(newAttrs).length > 0) {
-                        tr.addMark(fromPos, toPos, mark.type.create(newAttrs));
+            // 2. Remove backgroundColor attribute from textStyle
+            const textStyle = state.schema.marks.textStyle;
+            if (textStyle) {
+              if (empty) {
+                const stored = state.storedMarks || state.selection.$from.marks();
+                const tsMark = stored.find(m => m.type === textStyle);
+                if (tsMark && tsMark.attrs?.backgroundColor) {
+                  const newAttrs = { ...tsMark.attrs };
+                  delete newAttrs.backgroundColor;
+                  tr.removeStoredMark(textStyle);
+                  if (Object.keys(newAttrs).length > 0) {
+                    tr.addStoredMark(textStyle.create(newAttrs));
+                  }
+                }
+              } else {
+                state.doc.nodesBetween(from, to, (node, pos) => {
+                  if (node.isText && node.marks) {
+                    const tsMark = node.marks.find(m => m.type === textStyle && m.attrs?.backgroundColor);
+                    if (tsMark) {
+                      const fromPos = Math.max(from, pos);
+                      const toPos = Math.min(to, pos + node.nodeSize);
+                      if (fromPos < toPos) {
+                        const newAttrs = { ...tsMark.attrs };
+                        delete newAttrs.backgroundColor;
+                        tr.removeMark(fromPos, toPos, textStyle);
+                        if (Object.keys(newAttrs).length > 0) {
+                          tr.addMark(fromPos, toPos, textStyle.create(newAttrs));
+                        }
                       }
                     }
                   }
                 });
               }
-            });
-            dispatch(tr);
+            }
           }
           return true;
         },
@@ -190,13 +194,35 @@ export const BackgroundColor = Extension.create({
 
   addKeyboardShortcuts() {
     const handleHighlightToggle = () => {
-      const currentBgColor = this.editor.getAttributes("textStyle")?.backgroundColor;
-      const isHighlighted = this.editor.isActive("highlight") || (!!currentBgColor && currentBgColor !== "transparent");
-      
-      if (isHighlighted) {
-         return this.editor.chain().focus().unsetBackgroundColor().unsetHighlight().run();
+      const { state } = this.editor;
+      const { from, to, empty } = state.selection;
+
+      let isHighlighted = false;
+      if (empty) {
+        const marks = state.selection.$from.marks();
+        isHighlighted = marks.some(m => 
+          m.type.name === 'highlight' || 
+          (m.type.name === 'textStyle' && m.attrs?.backgroundColor && m.attrs.backgroundColor !== 'transparent')
+        );
       } else {
-         const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD";
+        state.doc.nodesBetween(from, to, (node) => {
+          if (isHighlighted) return false;
+          if (node.isText && node.marks) {
+            if (node.marks.some(m => 
+              m.type.name === 'highlight' || 
+              (m.type.name === 'textStyle' && m.attrs?.backgroundColor && m.attrs.backgroundColor !== 'transparent')
+            )) {
+              isHighlighted = true;
+              return false;
+            }
+          }
+        });
+      }
+
+      if (isHighlighted) {
+         return this.editor.chain().focus().unsetHighlight().unsetBackgroundColor().run();
+      } else {
+         const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FFE600";
          return this.editor.chain().focus().setBackgroundColor(lastColor).run();
       }
     };

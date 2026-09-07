@@ -478,13 +478,37 @@ export function AdvancedNotionEditor({
       // === HIGHLIGHT TOGGLE / UNSET (Ctrl+Q) ===
       if (modKey && !e.shiftKey && !e.altKey && (e.key.toLowerCase() === 'q' || e.code === 'KeyQ')) {
         e.preventDefault();
-        const currentBg = editor.getAttributes("textStyle")?.backgroundColor;
-        const isHighlighted = editor.isActive("highlight") || (!!currentBg && currentBg !== "transparent");
+        e.stopPropagation();
+
+        const { state } = editor;
+        const { from, to, empty } = state.selection;
+
+        let isHighlighted = false;
+        if (empty) {
+          const marks = state.selection.$from.marks();
+          isHighlighted = marks.some(m => 
+            m.type.name === 'highlight' || 
+            (m.type.name === 'textStyle' && m.attrs?.backgroundColor && m.attrs.backgroundColor !== 'transparent')
+          );
+        } else {
+          state.doc.nodesBetween(from, to, (node) => {
+            if (isHighlighted) return false;
+            if (node.isText && node.marks) {
+              if (node.marks.some(m => 
+                m.type.name === 'highlight' || 
+                (m.type.name === 'textStyle' && m.attrs?.backgroundColor && m.attrs.backgroundColor !== 'transparent')
+              )) {
+                isHighlighted = true;
+                return false;
+              }
+            }
+          });
+        }
 
         if (isHighlighted) {
-          editor.chain().focus().unsetBackgroundColor().unsetHighlight().run();
+          editor.chain().focus().unsetHighlight().unsetBackgroundColor().run();
         } else {
-          const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FAF3DD";
+          const lastColor = localStorage.getItem("tabe_last_highlight_color") || "#FFE600";
           editor.chain().focus().setBackgroundColor(lastColor).run();
         }
         return;
@@ -699,11 +723,6 @@ export function AdvancedNotionEditor({
               setShowFindReplace((prev) => !prev);
               return;
             }
-            case "q": {
-              e.preventDefault();
-              editor.chain().focus().unsetBackgroundColor().unsetHighlight().run();
-              return;
-            }
           }
         }
       }
@@ -821,10 +840,10 @@ export function AdvancedNotionEditor({
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true);
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [editor, mathMenuOpen]);
