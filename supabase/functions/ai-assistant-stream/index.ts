@@ -495,12 +495,11 @@ serve(async (req) => {
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
     // Stream from Groq with automatic fallback
-    const preferredModel = Deno.env.get("GROQ_MODEL") || "llama-3.1-8b-instant";
-    const candidateModels = Array.from(new Set([
-      preferredModel,
+    const candidateModels = [
       "llama-3.1-8b-instant",
-      "llama-3.3-70b-versatile"
-    ]));
+      "llama3-8b-8192",
+      "mixtral-8x7b-32768"
+    ];
 
     let groqRes: Response | null = null;
     let lastErrorText = "";

@@ -75,21 +75,26 @@ export default function AIAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const prevPersonaIdRef = useRef<string | null>(null);
 
   // Load sessions when persona changes
   useEffect(() => {
     if (activePersona) {
       loadSessions(activePersona.id);
       
-      // Solo reiniciar mensajes si NO estamos en medio de un stream y si NO hay mensajes previos de esta sesión/persona 
-      // (asumimos que si estamos recibiendo la misma sesión, el store ya tiene los datos)
-      if (!isStreaming && (!messages.length || messages[0].id === "init")) {
-        setCurrentSessionId(null);
-        currentSessionRef.current = null;
+      // Solo reiniciar mensajes si la persona REALMENTE cambió (el usuario seleccionó otra IA)
+      if (prevPersonaIdRef.current && prevPersonaIdRef.current !== activePersona.id) {
+        if (!isStreaming) {
+          setCurrentSessionId(null);
+          currentSessionRef.current = null;
+          setMessages([getGreeting(activePersona)]);
+        }
+      } else if (!messages.length) {
         setMessages([getGreeting(activePersona)]);
       }
+      prevPersonaIdRef.current = activePersona.id;
     }
-  }, [activePersona?.id, loadSessions]);
+  }, [activePersona?.id]);
 
   // Scroll to bottom
   const scrollToBottom = () => {
@@ -227,7 +232,9 @@ export default function AIAssistant() {
       timestamp: new Date(),
     };
 
-    const newMessages = [...messages, userMessage];
+    // Limpiar saludo inicial para empezar el chat real
+    const existingMessages = messages.filter((m) => m.id !== "init");
+    const newMessages = [...existingMessages, userMessage];
     setMessages(newMessages);
     setInputValue("");
 
