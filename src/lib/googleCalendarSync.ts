@@ -98,55 +98,15 @@ export function isGoogleCalendarConnected(user?: any): boolean {
   if (localStorage.getItem("tabe_gcal_explicitly_disconnected") === "true") {
     return false;
   }
-  const isLinked = localStorage.getItem(GCAL_LINKED_KEY) === "true";
   const token = getStoredGoogleToken();
-  if (isLinked || (!!token && token.trim().length > 10)) return true;
+  if (token && token.trim().length > 10) return true;
 
-  // 1. Check passed user object from useAuth
-  if (user) {
-    const isGoogle =
-      user.app_metadata?.provider === "google" ||
-      user.app_metadata?.providers?.includes("google") ||
-      user.identities?.some((id: any) => id.provider === "google") ||
-      user.user_metadata?.gcal_linked === true;
-
-    if (isGoogle) {
-      localStorage.setItem(GCAL_LINKED_KEY, "true");
-      if (user.email) {
-        localStorage.setItem(GCAL_EMAIL_KEY, user.email);
-      }
-      return true;
-    }
+  // If gcal was marked linked, verify token can be extracted or exists
+  const isLinked = localStorage.getItem(GCAL_LINKED_KEY) === "true";
+  if (isLinked) {
+    const recovered = extractAndStoreTokenFromUrl();
+    if (recovered && recovered.trim().length > 10) return true;
   }
-
-  // 2. Auto-detect if user signed in with Google via Supabase Auth stored session
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const u = parsed?.user;
-          if (u) {
-            const isGoogle =
-              u.app_metadata?.provider === "google" ||
-              u.app_metadata?.providers?.includes("google") ||
-              u.identities?.some((id: any) => id.provider === "google") ||
-              u.user_metadata?.gcal_linked === true;
-
-            if (isGoogle) {
-              localStorage.setItem(GCAL_LINKED_KEY, "true");
-              if (u.email) {
-                localStorage.setItem(GCAL_EMAIL_KEY, u.email);
-              }
-              return true;
-            }
-          }
-        }
-      }
-    }
-  } catch {}
 
   return false;
 }

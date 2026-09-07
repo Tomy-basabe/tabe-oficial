@@ -115,10 +115,8 @@ export default function Calendar() {
             toast.success(`Google Calendar: ${res.pushedCount} enviados, ${res.pulledCount} importados`, { icon: "📅", duration: 5000 });
           }
         } else if (res.error) {
-          if (!res.error.toLowerCase().includes("expir") && !res.error.toLowerCase().includes("token")) {
-            toast.warning(res.error, { duration: 6000 });
-          }
-          setIsGCalConnected(isGoogleCalendarConnected(user));
+          console.warn("Google Calendar auto-sync notice:", res.error);
+          setIsGCalConnected(false);
         }
       }).catch(err => {
         console.warn("Auto-sync error on calendar load:", err);
