@@ -6,6 +6,7 @@ import { Calendar as CalendarIcon, Clock, Filter, AlertCircle, GraduationCap, La
 import { cn } from "@/lib/utils";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { toast } from "sonner";
+import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
 
 interface ExamsListModalProps {
   open: boolean;
@@ -71,8 +72,31 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
         eventDate.setHours(0, 0, 0, 0);
         return eventDate.getTime() >= today.getTime();
       })
+      .map((e) => {
+        let subjectId = e.subject_id;
+        let subjectNombre = e.subject_nombre;
+
+        if (!subjectId && (subjectNombre || e.notas)) {
+          const targetName = (subjectNombre || "").toLowerCase();
+          const found = subjects.find(s => 
+            (targetName && s.nombre.toLowerCase() === targetName) ||
+            (targetName && s.nombre.toLowerCase().includes(targetName)) ||
+            (targetName && targetName.includes(s.nombre.toLowerCase()))
+          );
+          if (found) {
+            subjectId = found.id;
+            subjectNombre = found.nombre;
+          }
+        }
+
+        return {
+          ...e,
+          subject_id: subjectId,
+          subject_nombre: subjectNombre,
+        };
+      })
       .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-  }, [events]);
+  }, [events, subjects]);
 
   // 2. Extract unique years and subjects from upcoming exams for filters
   const { availableYears, availableSubjects } = useMemo(() => {
@@ -273,9 +297,9 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                         {exam.titulo}
                       </h4>
                       
-                      {exam.notas && (
+                      {cleanDisplayNotes(exam.notas) && (
                         <p className="text-sm text-muted-foreground italic line-clamp-2">
-                          {exam.notas.replace(/\[status:\w+\]/g, "").trim()}
+                          {cleanDisplayNotes(exam.notas)}
                         </p>
                       )}
                     </div>

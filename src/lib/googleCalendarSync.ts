@@ -226,6 +226,18 @@ export function stripGoogleEventId(notas?: string | null): string {
 }
 
 /**
+ * Strips all internal system and database tags ([gcal_id:...], [status:...], and leading calendar brackets)
+ * leaving only real human notes for clean display across the UI.
+ */
+export function cleanDisplayNotes(notas?: string | null): string {
+  if (!notas) return "";
+  let clean = stripGoogleEventId(notas);
+  clean = clean.replace(/\[status:\w+\]/g, "");
+  clean = clean.replace(/^\[[^\]]+\]\s*/g, "");
+  return clean.trim();
+}
+
+/**
  * Injects or updates Google Event ID inside notes
  */
 export function injectGoogleEventId(notas: string | null | undefined, gcalId: string): string {
@@ -233,8 +245,6 @@ export function injectGoogleEventId(notas: string | null | undefined, gcalId: st
   return clean ? `${clean} [gcal_id:${gcalId}]` : `[gcal_id:${gcalId}]`;
 }
 
-/**
- * Helper to add hours to HH:mm string
 /**
  * Helper to normalize time string to HH:mm format safely
  */

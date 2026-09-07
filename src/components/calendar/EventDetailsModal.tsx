@@ -22,6 +22,7 @@ import { CalendarEvent, EventType } from "@/hooks/useCalendarEvents";
 import { cn } from "@/lib/utils";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import { toast } from "sonner";
+import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
 
 interface EventDetailsModalProps {
     event: CalendarEvent | null;
@@ -143,7 +144,7 @@ export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetai
                         )}
 
                         {/* Notes */}
-                        {event.notas && (
+                        {cleanDisplayNotes(event.notas) && (
                             <div className="flex items-start gap-4 text-foreground">
                                 <div className="w-12 h-12 rounded-xl bg-[#00F0FF] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center flex-shrink-0">
                                     <FileText className="w-6 h-6 text-black" />
@@ -151,7 +152,7 @@ export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetai
                                 <div className="bg-white p-4 rounded-xl flex-1 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] text-black">
                                     <p className="text-xs font-black uppercase tracking-widest mb-1 opacity-80">Notas</p>
                                     <p className="text-sm font-bold whitespace-pre-wrap leading-relaxed">
-                                        {event.notas}
+                                        {cleanDisplayNotes(event.notas)}
                                     </p>
                                 </div>
                             </div>

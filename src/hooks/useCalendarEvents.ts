@@ -91,11 +91,22 @@ function advanceDate(date: Date, rule: RecurrenceRule) {
   }
 }
 
+// Module-level cache for instantaneous navigation between pages (stale-while-revalidate)
+let _cachedEvents: CalendarEvent[] | null = null;
+let _cachedUserId: string | null = null;
+
 export function useCalendarEvents() {
   const { user, isGuest } = useAuth();
-  const [rawEvents, setRawEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const isInitialLoadDone = useRef(false);
+
+  // Invalidate cache if user changes
+  if (user && user.id !== _cachedUserId) {
+    _cachedEvents = null;
+    _cachedUserId = user.id;
+  }
+
+  const [rawEvents, setRawEvents] = useState<CalendarEvent[]>(_cachedEvents || []);
+  const [loading, setLoading] = useState<boolean>(!_cachedEvents);
+  const isInitialLoadDone = useRef(!!_cachedEvents);
 
   const fetchEvents = useCallback(async (retries = 2) => {
     if (!user && !isGuest) return;
@@ -105,7 +116,7 @@ export function useCalendarEvents() {
       isInitialLoadDone.current = true;
       const today = new Date().toISOString().split("T")[0];
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
-      setRawEvents([
+      const guestList: CalendarEvent[] = [
         {
           id: "guest-event-1",
           titulo: "Parcial de Análisis Matemático",
@@ -140,7 +151,9 @@ export function useCalendarEvents() {
           recurrence_end: null,
           recurrence_parent_id: null,
         }
-      ]);
+      ];
+      _cachedEvents = guestList;
+      setRawEvents(guestList);
       return;
     }
 
@@ -177,17 +190,31 @@ export function useCalendarEvents() {
         }
       }
 
-      const eventsWithSubjects = (eventsData || []).map(event => ({
-        ...event,
-        tipo_examen: event.tipo_examen as EventType,
-        recurrence_rule: (event.recurrence_rule || null) as RecurrenceRule,
-        hora: (event.hora as string | null) || null,
-        hora_fin: (event.hora_fin as string | null) || null,
-        color: event.color as string,
-        subject_nombre: event.subject_id ? subjectsMap[event.subject_id]?.nombre : undefined,
-        subject_codigo: event.subject_id ? subjectsMap[event.subject_id]?.codigo : undefined,
-      }));
+      const eventsWithSubjects = (eventsData || []).map(event => {
+        let subjectNombre = event.subject_id ? subjectsMap[event.subject_id]?.nombre : undefined;
+        let subjectCodigo = event.subject_id ? subjectsMap[event.subject_id]?.codigo : undefined;
 
+        // Fallback: infer subject from [Materia] tag in notas if subject_id is null (e.g. from Google Calendar sync)
+        if (!subjectNombre && event.notas) {
+          const tagMatch = event.notas.match(/^\[([^\]]+)\]/);
+          if (tagMatch && !tagMatch[1].startsWith("gcal_id:") && !tagMatch[1].startsWith("status:")) {
+            subjectNombre = tagMatch[1].trim();
+          }
+        }
+
+        return {
+          ...event,
+          tipo_examen: event.tipo_examen as EventType,
+          recurrence_rule: (event.recurrence_rule || null) as RecurrenceRule,
+          hora: (event.hora as string | null) || null,
+          hora_fin: (event.hora_fin as string | null) || null,
+          color: event.color as string,
+          subject_nombre: subjectNombre,
+          subject_codigo: subjectCodigo,
+        };
+      });
+
+      _cachedEvents = eventsWithSubjects;
       setRawEvents(eventsWithSubjects);
       isInitialLoadDone.current = true;
     } catch (error) {

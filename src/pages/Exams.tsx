@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
 
 const EXAM_TYPES = [
   "P1",
@@ -80,8 +81,32 @@ export default function Exams() {
         eventDate.setHours(0, 0, 0, 0);
         return eventDate.getTime() >= today.getTime();
       })
+      .map((e) => {
+        let subjectId = e.subject_id;
+        let subjectNombre = e.subject_nombre;
+
+        // If subject_id is missing, try to link with a subject from subjects by name or tag
+        if (!subjectId && (subjectNombre || e.notas)) {
+          const targetName = (subjectNombre || "").toLowerCase();
+          const found = subjects.find(s => 
+            (targetName && s.nombre.toLowerCase() === targetName) ||
+            (targetName && s.nombre.toLowerCase().includes(targetName)) ||
+            (targetName && targetName.includes(s.nombre.toLowerCase()))
+          );
+          if (found) {
+            subjectId = found.id;
+            subjectNombre = found.nombre;
+          }
+        }
+
+        return {
+          ...e,
+          subject_id: subjectId,
+          subject_nombre: subjectNombre,
+        };
+      })
       .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-  }, [events]);
+  }, [events, subjects]);
 
   const availableYears = useMemo(() => {
     const years = new Set<string>();
@@ -158,7 +183,7 @@ export default function Exams() {
     }
   };
 
-  if (loading) {
+  if (loading && upcomingExams.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
@@ -296,9 +321,9 @@ export default function Exams() {
                       {exam.titulo}
                     </h4>
                     
-                    {exam.notas && (
+                    {cleanDisplayNotes(exam.notas) && (
                       <p className="text-sm font-bold bg-background/30 p-2 rounded-lg italic line-clamp-2 max-w-2xl border-2 border-foreground/10">
-                        {exam.notas.replace(/\[status:\w+\]/g, "").trim()}
+                        {cleanDisplayNotes(exam.notas)}
                       </p>
                     )}
                   </div>
