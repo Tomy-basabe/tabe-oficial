@@ -36,39 +36,6 @@
     ],
     "headers": [
         {
-            "source": "/(.*)",
-            "headers": [
-                {
-                    "key": "X-Content-Type-Options",
-                    "value": "nosniff"
-                },
-                {
-                    "key": "X-Frame-Options",
-                    "value": "DENY"
-                },
-                {
-                    "key": "X-XSS-Protection",
-                    "value": "1; mode=block"
-                },
-                {
-                    "key": "Referrer-Policy",
-                    "value": "strict-origin-when-cross-origin"
-                },
-                {
-                    "key": "Permissions-Policy",
-                    "value": "camera=(), microphone=(self), geolocation=(), payment=()"
-                },
-                {
-                    "key": "Strict-Transport-Security",
-                    "value": "max-age=63072000; includeSubDomains; preload"
-                },
-                {
-                    "key": "Content-Security-Policy",
-                    "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.vercel-insights.com https://*.vercel-analytics.com https://www.googletagmanager.com https://a.magsrv.com https://d3m0fgn0w58s37.cloudfront.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com https://*; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://*.vercel-analytics.com https://api.groq.com https://*; media-src 'self' blob: https://*.supabase.co; frame-src 'self' https://accounts.google.com https://*.youtube.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://*.supabase.co https://accounts.google.com; upgrade-insecure-requests"
-                }
-            ]
-        },
-        {
             "source": "/sitemap.xml",
             "headers": [
                 { "key": "Content-Type", "value": "application/xml" }
