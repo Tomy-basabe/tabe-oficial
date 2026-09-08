@@ -394,6 +394,11 @@ async function streamFromOpenRouter(opts: {
   const temperature = powerLevel === "alto" ? 0.7 : powerLevel === "bajo" ? 0.4 : 0.6;
   const maxTokens = powerLevel === "alto" ? 4096 : powerLevel === "bajo" ? 1800 : 3000;
 
+  // Only include reasoning param for models that actually support extended thinking.
+  // Sending it with effort="none" (or to non-reasoning models) triggers the
+  // "model output must contain either output text or tool calls" error.
+  const supportsReasoning = reasoningEffort !== "none";
+
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -410,14 +415,15 @@ async function streamFromOpenRouter(opts: {
         stream: true,
         temperature,
         max_tokens: maxTokens,
-        reasoning: { effort: reasoningEffort },
+        ...(supportsReasoning ? { reasoning: { effort: reasoningEffort } } : {}),
       }),
     });
 
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      console.warn(`OpenRouter model ${modelId} error: ${res.status}`);
+      const errBody = await res.text().catch(() => "");
+      console.warn(`OpenRouter model ${modelId} HTTP ${res.status}:`, errBody);
       return false;
     }
 
@@ -448,6 +454,13 @@ async function streamFromOpenRouter(opts: {
 
         try {
           const parsed = JSON.parse(jsonStr);
+
+          // OpenRouter can embed error objects inside the SSE stream
+          if (parsed.error) {
+            console.warn(`OpenRouter stream error for ${modelId}:`, parsed.error);
+            continue;
+          }
+
           const delta = parsed.choices?.[0]?.delta;
           // STRICT: Only pass delta.content to user, NEVER reasoning/internal thought tokens!
           const chunk = delta?.content;

@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, GraduationCap, Calendar, BookOpen, ChevronRight, FileJson, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UniversityLogo } from "@/components/icons/UniversityLogos";
 
 // Dynamic import of all career templates
 const careerTemplates = import.meta.glob('../data/*_template.json', { eager: true });
@@ -73,11 +74,16 @@ export default function CareerDetail() {
 
       <header className="relative py-20 overflow-hidden">
         <div className="container mx-auto px-4 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#ffd21c] text-black rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] mb-6">
-            <GraduationCap className="w-5 h-5" />
-            <span className="text-sm font-black uppercase tracking-widest">Plan de Estudios Oficial</span>
+          <div className="flex flex-col items-center justify-center gap-3 mb-4">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center p-1.5 bg-card border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+              <UniversityLogo universityId={id || ""} className="w-full h-full" />
+            </div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#ffd21c] text-black rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000]">
+              <GraduationCap className="w-4 h-4" />
+              <span className="text-xs font-black uppercase tracking-widest">Plan de Estudios Oficial</span>
+            </div>
           </div>
-          <h1 className="text-4xl md:text-6xl font-display font-black mb-6 tracking-widest uppercase">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-display font-black mb-6 tracking-tight uppercase">
             {name}
           </h1>
           <div className="flex flex-wrap justify-center gap-4 text-foreground">
