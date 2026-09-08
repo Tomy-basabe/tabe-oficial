@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, Paperclip, Loader2, ArrowLeft, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -434,117 +434,91 @@ export default function AIAssistant() {
         />
       )}
 
-      <div className="flex-1 flex flex-col h-full relative">
-        <div className="absolute left-4 top-4 z-50 flex items-center gap-2 md:hidden">
-          <Link
-            to="/dashboard"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-foreground bg-card text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[1px]"
-            title="Volver a TABE"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver</span>
-          </Link>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <div className="flex-1 flex flex-col h-full min-w-0">
+
+        {/* ── HEADER ─────────────────────────────────────── */}
+        <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 border-b-2 border-foreground bg-card flex items-center gap-2 md:gap-3">
+          {/* Sidebar toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={cn("bg-card/90 backdrop-blur-sm border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground rounded-xl", isSidebarOpen && "hidden")}
-            title="Ver conversaciones y personalidades"
+            className="border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted shrink-0 w-8 h-8 md:w-9 md:h-9"
+            title="Historial y personalidades"
           >
             <Menu className="w-4 h-4" />
           </Button>
+
+          {/* Back link — only on md+ */}
+          <Link
+            to="/dashboard"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-foreground bg-background text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all shrink-0 group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            Volver
+          </Link>
+
+          {/* Avatar + name */}
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-black text-white dark:bg-white dark:text-black p-1.5 flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
+            <TabeAIIcon className="w-full h-full text-white dark:text-black" />
+          </div>
+
+          <div className="flex flex-col justify-center min-w-0 flex-1">
+            <h1 className="font-black text-base md:text-xl uppercase text-foreground leading-tight truncate">
+              {activePersona?.name || "TABE IA"}
+            </h1>
+            {activePersona?.description && (
+              <p className="font-bold text-muted-foreground text-[10px] md:text-xs uppercase tracking-wide truncate hidden sm:block">
+                {activePersona.description}
+              </p>
+            )}
+          </div>
+
+          {/* Status badge */}
+          <div className="px-2 py-1 bg-[#BFFF00] !text-black border-2 border-foreground rounded-full font-black uppercase text-[10px] md:text-xs flex items-center gap-1.5 shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
+            <span className="hidden xs:inline">Online</span>
+          </div>
+
+          {/* External link — only on md+ */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.open("/TABEAI", "_blank")}
+            className="border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground shrink-0 hidden md:flex w-8 h-8"
+            title="Abrir en pestaña nueva"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </Button>
         </div>
 
-        {/* Mobile Backdrop */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-30 md:hidden" 
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-
+        {/* ── MESSAGES ───────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto scroll-smooth">
-          <div className="max-w-4xl mx-auto p-4 lg:p-8 space-y-6">
-            <div className="space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Link
-                    to="/dashboard"
-                    className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-foreground bg-card text-foreground font-black text-xs uppercase shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[1px] transition-all shrink-0 group"
-                    title="Volver a la plataforma principal"
-                  >
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-                    <span>Volver a TABE</span>
-                  </Link>
+          <div className="max-w-3xl mx-auto px-3 py-4 md:px-6 md:py-6 space-y-1">
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hidden md:flex border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted shrink-0"
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    title={isSidebarOpen ? "Ocultar panel lateral" : "Mostrar historial y personalidades"}
-                  >
-                    <Menu className="w-5 h-5 text-foreground" />
-                  </Button>
-                  <div className="w-10 h-10 rounded-xl bg-black text-white dark:bg-white dark:text-black p-2 flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
-                    <TabeAIIcon className="w-full h-full text-white dark:text-black" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <h1 className="font-black text-2xl lg:text-3xl uppercase text-foreground leading-tight">
-                      {activePersona?.name || "TABE IA"}
-                    </h1>
-                    {activePersona?.description && (
-                      <p className="font-bold text-muted-foreground text-xs lg:text-sm uppercase tracking-wide">
-                        {activePersona.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 self-end md:self-auto flex-wrap">
-                  <ModelSelector
-                    selectedModel={selectedModel}
-                    onSelectModel={(m) => {
-                      setSelectedModel(m);
-                      toast.success(`Modelo activo: ${m.name}`);
-                    }}
-                    powerLevel={powerLevel}
-                    onSelectPowerLevel={(p) => {
-                      setPowerLevel(p);
-                      toast.success(`Potencia: ${p.toUpperCase()}`);
-                    }}
-                    disabled={isStreaming}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.open("/TABEAI", "_blank")}
-                    className="border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] text-foreground shrink-0 hidden sm:flex"
-                    title="Abrir en pestaña nueva"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
-                  <div className="px-3 py-1.5 bg-[#BFFF00] !text-black border-2 border-foreground rounded-full font-black uppercase text-xs flex items-center gap-2 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-                    <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
-                    Online
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            {/* Quick actions — horizontal scroll on mobile */}
             {messages.length <= 1 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-3 snap-x snap-mandatory scrollbar-none md:grid md:grid-cols-5 md:overflow-visible md:pb-0">
                 {quickActions.map((action) => {
                   const Icon = action.icon;
                   return (
                     <button
                       key={action.id}
                       onClick={() => handleQuickAction(action.prompt)}
-                      className="flex flex-col items-center justify-center gap-3 p-4 bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all text-center group"
+                      className="flex flex-col items-center justify-center gap-2 p-3 bg-card border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] rounded-xl hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_hsl(var(--foreground))] transition-all text-center group shrink-0 w-28 md:w-auto snap-start"
                     >
-                      <div className="p-3 rounded-xl bg-muted border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground group-hover:bg-[#00E5FF] group-hover:!text-black transition-colors">
-                        <Icon className="w-6 h-6" strokeWidth={2.5} />
+                      <div className="p-2 rounded-lg bg-muted border-2 border-foreground text-foreground group-hover:bg-[#00E5FF] group-hover:!text-black transition-colors">
+                        <Icon className="w-4 h-4" strokeWidth={2.5} />
                       </div>
-                      <span className="text-sm font-black uppercase text-foreground">
+                      <span className="text-[11px] font-black uppercase text-foreground leading-tight">
                         {action.label}
                       </span>
                     </button>
@@ -553,70 +527,67 @@ export default function AIAssistant() {
               </div>
             )}
 
-            <div className="space-y-6 pb-24 min-h-[300px]">
+            {/* Messages */}
+            <div className="space-y-4 pb-2 min-h-[200px]">
               {messages.map((message) => (
                 <div
                   key={message.id}
                   className={cn(
-                    "flex gap-4 group",
+                    "flex gap-2 md:gap-3 group",
                     message.role === "user" ? "flex-row-reverse" : "flex-row"
                   )}
                 >
+                  {/* Avatar */}
                   <div
                     className={cn(
-                      "w-10 h-10 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center flex-shrink-0 mt-1",
+                      "w-8 h-8 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5",
                       message.role === "assistant"
-                        ? "bg-black text-white dark:bg-white dark:text-black p-2"
+                        ? "bg-black text-white dark:bg-white dark:text-black p-1.5"
                         : "bg-[#FFD700] text-black"
                     )}
                   >
                     {message.role === "assistant" ? (
                       activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-                        <span className="text-lg font-black">{activePersona.avatar_emoji}</span>
+                        <span className="text-base leading-none">{activePersona.avatar_emoji}</span>
                       ) : (
                         <TabeAIIcon className="w-full h-full text-white dark:text-black" />
                       )
                     ) : (
-                      <User className="w-5 h-5 text-black" strokeWidth={2.5} />
+                      <User className="w-4 h-4 text-black" strokeWidth={2.5} />
                     )}
                   </div>
+
+                  {/* Bubble */}
                   <div
                     className={cn(
-                      "max-w-[85%] lg:max-w-[75%] rounded-xl px-5 py-4 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] overflow-hidden relative",
+                      "max-w-[78%] md:max-w-[75%] rounded-xl px-3 py-2.5 md:px-4 md:py-3 border-2 md:border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] md:shadow-[4px_4px_0_0_hsl(var(--foreground))] overflow-hidden",
                       message.role === "user"
                         ? "bg-[#BFFF00] !text-black"
                         : "bg-card text-foreground"
                     )}
                   >
+                    {/* Model badge */}
                     {message.role === "assistant" && message.id !== "init" && (
-                      <div className="flex items-center gap-1.5 pb-2 mb-2 border-b-2 border-foreground/15 text-[11px] font-black uppercase text-muted-foreground">
-                        <div className="w-5 h-5 rounded-md flex items-center justify-center p-0.5 bg-background border border-foreground/30 shadow-xs shrink-0">
-                          <ModelLogo modelId={message.modelId || selectedModel.id} className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-1 pb-1.5 mb-1.5 border-b border-foreground/15 text-[10px] font-black uppercase text-muted-foreground">
+                        <div className="w-4 h-4 rounded flex items-center justify-center p-0.5 bg-background border border-foreground/30 shrink-0">
+                          <ModelLogo modelId={message.modelId || selectedModel.id} className="w-3 h-3" />
                         </div>
-                        <span className="text-foreground tracking-tight font-black">
-                          {message.modelName || selectedModel.shortName || selectedModel.name}
+                        <span className="text-foreground tracking-tight font-black truncate">
+                          {message.modelName || selectedModel.shortName}
                         </span>
-                        <span className="text-[10px] text-muted-foreground/80 font-bold ml-auto shrink-0">
-                          {new Date(message.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                        <span className="text-[9px] text-muted-foreground/80 font-bold ml-auto shrink-0">
+                          {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
                     )}
 
-                    <div className="text-base font-bold space-y-2 leading-relaxed break-words">
+                    <div className="text-sm md:text-base font-bold leading-relaxed break-words">
                       {renderContent(message.content, message.role)}
                     </div>
 
                     {message.role === "user" && (
-                      <div className="flex items-center gap-2 mt-2 text-[10px] font-black uppercase !text-black/70">
-                        <span>
-                          {new Date(message.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                      <div className="flex items-center gap-1 mt-1 text-[9px] font-black uppercase !text-black/60">
+                        {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     )}
                   </div>
@@ -627,8 +598,9 @@ export default function AIAssistant() {
           </div>
         </div>
 
-        <div className="p-4 lg:p-6 bg-transparent sticky bottom-0 z-20">
-          <div className="max-w-3xl mx-auto relative">
+        {/* ── INPUT BAR ──────────────────────────────────── */}
+        <div className="shrink-0 px-2 py-2 md:px-6 md:py-4 bg-transparent sticky bottom-0 z-20">
+          <div className="max-w-3xl mx-auto">
             <input
               type="file"
               ref={fileInputRef}
@@ -636,14 +608,15 @@ export default function AIAssistant() {
               className="hidden"
               accept=".pdf,.txt,.md"
             />
-            <div className="flex flex-col bg-card p-3 rounded-2xl border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] transition-all focus-within:ring-2 focus-within:ring-primary">
+
+            <div className="flex flex-col bg-card rounded-2xl border-2 md:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] md:shadow-[6px_6px_0_0_hsl(var(--foreground))] focus-within:ring-2 focus-within:ring-primary">
+              {/* Textarea */}
               <textarea
                 value={inputValue}
                 onChange={(e) => {
                   setInputValue(e.target.value);
-                  // Auto-resize
                   e.target.style.height = "auto";
-                  e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -654,82 +627,86 @@ export default function AIAssistant() {
                 placeholder={
                   isUploading
                     ? "Procesando archivo..."
-                    : `Preguntale a ${activePersona?.name || "tu IA"}... (Shift+Enter para nueva línea)`
+                    : `Preguntale a ${activePersona?.name || "tu IA"}...`
                 }
-                className="w-full px-2 py-1 bg-transparent border-none focus:outline-none text-base font-bold placeholder:text-muted-foreground placeholder:font-bold resize-none overflow-y-auto text-foreground"
-                style={{ minHeight: "48px", maxHeight: "200px" }}
+                className="w-full px-3 py-2.5 bg-transparent border-none focus:outline-none text-sm md:text-base font-bold placeholder:text-muted-foreground placeholder:font-bold resize-none overflow-y-auto text-foreground"
+                style={{ minHeight: "44px", maxHeight: "160px" }}
                 rows={1}
                 disabled={isStreaming || isUploading}
               />
 
-              {/* Barra inferior dentro del input: Paperclip + ModelSelector (como en la referencia) + Voz + Enviar */}
-              <div className="flex items-center justify-between pt-2 border-t border-foreground/15 mt-1 gap-2 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
+              {/* Bottom action bar */}
+              <div className="flex items-center justify-between px-2 pb-2 gap-1.5">
+                {/* Left: attach + model selector */}
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-foreground hover:bg-muted border-2 border-foreground/20 hover:border-foreground rounded-xl h-8 w-8 shrink-0"
+                    className="text-foreground hover:bg-muted border border-foreground/20 hover:border-foreground rounded-lg h-7 w-7 shrink-0"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading || isStreaming}
                     title="Adjuntar PDF/Texto"
                   >
                     {isUploading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Paperclip className="w-4 h-4" strokeWidth={2.5} />
+                      <Paperclip className="w-3.5 h-3.5" strokeWidth={2.5} />
                     )}
                   </Button>
 
-                  {/* Seleccionador de Modelos de la A a la Z + Potencia (Bajo, Medio, Alto) */}
-                  <ModelSelector
-                    selectedModel={selectedModel}
-                    onSelectModel={(m) => {
-                      setSelectedModel(m);
-                      toast.success(`Modelo activo: ${m.name}`);
-                    }}
-                    powerLevel={powerLevel}
-                    onSelectPowerLevel={(p) => {
-                      setPowerLevel(p);
-                      toast.success(`Potencia: ${p.toUpperCase()}`);
-                    }}
-                    disabled={isStreaming}
-                  />
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <ModelSelector
+                      selectedModel={selectedModel}
+                      onSelectModel={(m) => {
+                        setSelectedModel(m);
+                        toast.success(`${m.shortName || m.name}`);
+                      }}
+                      powerLevel={powerLevel}
+                      onSelectPowerLevel={(p) => {
+                        setPowerLevel(p);
+                        toast.success(`Potencia: ${p.toUpperCase()}`);
+                      }}
+                      disabled={isStreaming}
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Right: mic + send */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="text-foreground hover:bg-muted border-2 border-foreground/20 hover:border-foreground rounded-xl h-8 w-8"
+                    className="text-foreground hover:bg-muted border border-foreground/20 hover:border-foreground rounded-lg h-7 w-7"
                     onClick={startVoiceInput}
                     title="Dictar por voz"
                     disabled={isStreaming}
                   >
-                    <Mic className="w-4 h-4" strokeWidth={2.5} />
+                    <Mic className="w-3.5 h-3.5" strokeWidth={2.5} />
                   </Button>
 
                   <Button
                     onClick={handleSend}
                     disabled={!inputValue.trim() || isStreaming}
-                    size="sm"
                     className={cn(
-                      "rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-8 px-3 flex items-center gap-1.5",
+                      "rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-8 px-3 flex items-center gap-1 shrink-0",
                       inputValue.trim() && !isStreaming
                         ? "bg-[#00E5FF] !text-black hover:bg-[#00cce6] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                         : "bg-muted text-muted-foreground cursor-not-allowed border-foreground/30"
                     )}
                   >
-                    <span>Enviar</span>
+                    <span className="hidden sm:inline">Enviar</span>
                     <Send className="w-3.5 h-3.5" strokeWidth={3} />
                   </Button>
                 </div>
               </div>
             </div>
-            <p className="text-[10px] text-center font-black uppercase text-muted-foreground mt-4">
-              {activePersona?.name || "T.A.B.E. IA"} puede cometer errores. El modo offline para archivos está activo.
+
+            <p className="text-[9px] text-center font-black uppercase text-muted-foreground mt-1.5 px-2">
+              {activePersona?.name || "T.A.B.E. IA"} puede cometer errores.
             </p>
           </div>
         </div>
+
       </div>
     </div>
   );
