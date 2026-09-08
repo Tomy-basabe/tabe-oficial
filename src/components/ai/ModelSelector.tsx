@@ -7,11 +7,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Check, Sparkles, Cpu } from "lucide-react";
+import { ChevronDown, Check, Cpu } from "lucide-react";
 import {
   AIModelOption,
   AVAILABLE_AI_MODELS,
 } from "@/config/aiModels";
+import { ModelLogo } from "@/components/icons/ModelLogos";
 import { cn } from "@/lib/utils";
 
 interface ModelSelectorProps {
@@ -34,10 +35,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           disabled && "opacity-50 cursor-not-allowed pointer-events-none"
         )}
       >
-        <div
-          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm animate-pulse"
-          style={{ backgroundColor: selectedModel.color }}
-        />
+        <div className="w-5 h-5 rounded-lg flex items-center justify-center p-0.5 bg-secondary/80 border border-foreground/30 shrink-0">
+          <ModelLogo modelId={selectedModel.id} className="w-3.5 h-3.5" />
+        </div>
         <span className="truncate max-w-[120px] sm:max-w-[160px]">
           {selectedModel.name}
         </span>
@@ -56,7 +56,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
       <DropdownMenuContent
         align="end"
-        className="w-72 sm:w-80 p-2 bg-card border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-xl z-50 animate-in fade-in-50 zoom-in-95"
+        className="w-72 sm:w-84 p-2 bg-card border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-xl z-50 animate-in fade-in-50 zoom-in-95"
       >
         <DropdownMenuLabel className="font-black text-xs uppercase px-2 py-1.5 text-muted-foreground flex items-center justify-between">
           <span className="flex items-center gap-1.5">
@@ -77,19 +77,18 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 key={model.id}
                 onClick={() => onSelectModel(model)}
                 className={cn(
-                  "flex flex-col items-start gap-1 p-2.5 rounded-lg border-2 border-transparent transition-all cursor-pointer",
+                  "group flex flex-col items-start gap-1 p-2.5 rounded-lg border-2 border-transparent transition-all cursor-pointer",
                   isSelected
                     ? "bg-muted/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                     : "hover:bg-muted/50 hover:border-foreground/40"
                 )}
               >
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: model.color }}
-                    />
-                    <span className="font-black text-xs text-foreground uppercase">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg flex items-center justify-center p-1 bg-background border border-foreground/30 shadow-xs shrink-0 group-hover:scale-110 transition-transform">
+                      <ModelLogo modelId={model.id} className="w-4 h-4" />
+                    </div>
+                    <span className="font-black text-xs text-foreground uppercase tracking-tight">
                       {model.name}
                     </span>
                   </div>
@@ -111,7 +110,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   </div>
                 </div>
 
-                <p className="text-[11px] font-medium text-muted-foreground leading-snug pl-4 text-left">
+                <p className="text-[11px] font-medium text-muted-foreground leading-snug pl-8 text-left">
                   {model.description}
                 </p>
               </DropdownMenuItem>

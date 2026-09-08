@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, Paperclip, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, Paperclip, Loader2, ArrowLeft, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -398,14 +399,23 @@ export default function AIAssistant() {
       )}
 
       <div className="flex-1 flex flex-col h-full relative">
-        <div className="absolute left-4 top-4 z-50 md:hidden">
+        <div className="absolute left-4 top-4 z-50 flex items-center gap-2 md:hidden">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-foreground bg-card text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[1px]"
+            title="Volver a TABE"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Volver</span>
+          </Link>
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={cn("bg-background/80 backdrop-blur-sm shadow-sm border border-border text-foreground", isSidebarOpen && "hidden")}
+            className={cn("bg-card/90 backdrop-blur-sm border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground rounded-xl", isSidebarOpen && "hidden")}
+            title="Ver conversaciones y personalidades"
           >
-            <Menu />
+            <Menu className="w-4 h-4" />
           </Button>
         </div>
 
@@ -422,11 +432,21 @@ export default function AIAssistant() {
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
+                  <Link
+                    to="/dashboard"
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-foreground bg-card text-foreground font-black text-xs uppercase shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[1px] transition-all shrink-0 group"
+                    title="Volver a la plataforma principal"
+                  >
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                    <span>Volver a TABE</span>
+                  </Link>
+
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="hidden md:flex border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted shrink-0"
+                    className="hidden md:flex border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted shrink-0"
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    title={isSidebarOpen ? "Ocultar panel lateral" : "Mostrar historial y personalidades"}
                   >
                     <Menu className="w-5 h-5 text-foreground" />
                   </Button>
@@ -453,6 +473,15 @@ export default function AIAssistant() {
                     }}
                     disabled={isStreaming}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.open("/TABEAI", "_blank")}
+                    className="border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] text-foreground shrink-0 hidden sm:flex"
+                    title="Abrir en pestaña nueva"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
                   <div className="px-3 py-1.5 bg-[#BFFF00] !text-black border-2 border-foreground rounded-full font-black uppercase text-xs flex items-center gap-2 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
                     <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
                     Online

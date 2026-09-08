@@ -50,6 +50,7 @@ export function MainLayout() {
     return false;
   }); // Desktop state
   const location = useLocation();
+  const isAIPage = location.pathname === "/TABEAI" || location.pathname === "/asistente";
   const { user, isGuest, profile } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
@@ -232,37 +233,40 @@ export function MainLayout() {
       >
         {/* Neo-Brutalism Pattern Background */}
         {/* Mobile Header (El usuario especificó: sin panel vertical, todo en la barra horizontal de abajo) */}
-        <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-16 bg-card/95 backdrop-blur-md border-b-2 border-foreground/30 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.06)] flex items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <TabeLogo size={38} className="shrink-0" />
-            <span className="font-extrabold text-lg tracking-tight text-foreground">TABE</span>
-            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FFE600] text-black border border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-3">
-              COMIC
-            </span>
-          </Link>
+        {!isAIPage && (
+          <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-16 bg-card/95 backdrop-blur-md border-b-2 border-foreground/30 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.06)] flex items-center justify-between px-4">
+            <Link to="/" className="flex items-center gap-2">
+              <TabeLogo size={38} className="shrink-0" />
+              <span className="font-extrabold text-lg tracking-tight text-foreground">TABE</span>
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FFE600] text-black border border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-3">
+                COMIC
+              </span>
+            </Link>
 
-          {/* Quick Level / XP Badge on mobile header */}
-          <Link 
-            to="/metricas"
-            className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-secondary border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-transform"
-          >
-            <div className="w-5 h-5 rounded-lg bg-[#1475e5] text-white flex items-center justify-center font-black text-[10px]">
-              ⚡
-            </div>
-            <div className="flex flex-col items-start leading-none">
-              <span className="text-[10px] font-black text-foreground">NV. {xpData.level}</span>
-              <span className="text-[9px] font-bold text-muted-foreground">{xpData.currentXp} XP</span>
-            </div>
-          </Link>
-        </header>
+            {/* Quick Level / XP Badge on mobile header */}
+            <Link 
+              to="/metricas"
+              className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-secondary border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-transform"
+            >
+              <div className="w-5 h-5 rounded-lg bg-[#1475e5] text-white flex items-center justify-center font-black text-[10px]">
+                ⚡
+              </div>
+              <div className="flex flex-col items-start leading-none">
+                <span className="text-[10px] font-black text-foreground">NV. {xpData.level}</span>
+                <span className="text-[9px] font-bold text-muted-foreground">{xpData.currentXp} XP</span>
+              </div>
+            </Link>
+          </header>
+        )}
 
         {/* Sidebar (Desktop Only: en móvil todo está en la barra horizontal de abajo) */}
-        <aside
-          className={cn(
-            "hidden lg:flex fixed top-0 left-0 h-full border-r-4 border-foreground transition-all duration-300 flex-col bg-card shadow-[4px_0_0_0_hsl(var(--foreground))] z-40",
-            isCollapsed ? "w-20" : "w-64"
-          )}
-        >
+        {!isAIPage && (
+          <aside
+            className={cn(
+              "hidden lg:flex fixed top-0 left-0 h-full border-r-4 border-foreground transition-all duration-300 flex-col bg-card shadow-[4px_0_0_0_hsl(var(--foreground))] z-40",
+              isCollapsed ? "w-20" : "w-64"
+            )}
+          >
           {/* Toggle Button (Desktop Only) */}
           <div className="hidden lg:flex absolute -right-3.5 top-5 z-50">
             <Button
@@ -460,24 +464,25 @@ export function MainLayout() {
           </div>
         </div>
       </aside>
-
-
+      )}
 
       {/* Main Content */}
       <main className={cn(
-        "min-h-screen transition-all duration-300 pt-16 pb-24 lg:pt-0 lg:pb-0 relative z-[1]",
-        isCollapsed ? "lg:ml-20" : "lg:ml-64"
+        "min-h-screen transition-all duration-300 relative z-[1]",
+        isAIPage 
+          ? "w-full p-0 m-0" 
+          : cn("pt-16 pb-24 lg:pt-0 lg:pb-0", isCollapsed ? "lg:ml-20" : "lg:ml-64")
       )}>
         <Outlet />
       </main>
 
       {/* Global Widgets */}
-      <GlobalPomodoroWidget />
-      <AIBubbleWidget />
+      {!isAIPage && <GlobalPomodoroWidget />}
+      {!isAIPage && <AIBubbleWidget />}
       <GuestModeBanner />
       
       {/* Mobile Navigation Bar */}
-      <MobileNavbar />
+      {!isAIPage && <MobileNavbar />}
     </div>
   </ComicEffectsProvider>
   );

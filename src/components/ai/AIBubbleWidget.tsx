@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { X, Send, Loader2, Minimize2 } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { X, Send, Loader2, Minimize2, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAIPersonas } from "@/hooks/useAIPersonas";
 import { useAIChat, DisplayMessage } from "@/contexts/AIChatContext";
@@ -52,6 +52,7 @@ const PAGE_CONTEXT_MAP: Record<string, string> = {
 
 export function AIBubbleWidget() {
     const location = useLocation();
+    const navigate = useNavigate();
     const { user, isGuest } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,8 +61,8 @@ export function AIBubbleWidget() {
     const { messages, setMessages, inputValue: input, setInputValue: setInput, isStreaming, streamMessage, selectedModel } = useAIChat();
     const { activePersona } = useAIPersonas();
 
-    // Hide on /asistente page
-    if (location.pathname === "/asistente") return null;
+    // Hide on /asistente or /TABEAI page
+    if (location.pathname === "/asistente" || location.pathname === "/TABEAI") return null;
     if (!user && !isGuest) return null;
 
     const currentContext = PAGE_CONTEXT_MAP[location.pathname] || "Otra sección";
@@ -139,6 +140,11 @@ export function AIBubbleWidget() {
     };
 
     const handleToggle = () => {
+        // En computadoras: abrir en una página aparte donde solo sea de la IA
+        if (typeof window !== "undefined" && window.innerWidth >= 768) {
+            navigate("/TABEAI");
+            return;
+        }
         setIsOpen(!isOpen);
         if (!isOpen) {
             setTimeout(() => inputRef.current?.focus(), 200);
@@ -192,13 +198,25 @@ export function AIBubbleWidget() {
                                 </span>
                             </div>
                         </div>
-                        <button
-                            onClick={handleToggle}
-                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
-                            title="Minimizar"
-                        >
-                            <Minimize2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => {
+                                    setIsOpen(false);
+                                    navigate("/TABEAI");
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                                title="Abrir página completa de la IA"
+                            >
+                                <Maximize2 className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={handleToggle}
+                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                                title="Minimizar"
+                            >
+                                <Minimize2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Messages */}
