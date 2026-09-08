@@ -9,7 +9,8 @@ import {
   DEFAULT_ICON_MAPPING,
   CustomSidebarItem,
   ALL_AVAILABLE_ITEMS,
-  DEFAULT_CATEGORIZED_SIDEBAR
+  DEFAULT_CATEGORIZED_SIDEBAR,
+  ensureTabeAISecond
 } from "@/lib/sidebar-configs";
 import { 
   ChevronUp, 
@@ -71,19 +72,19 @@ export function SidebarCustomizer() {
     };
 
     if (profile?.sidebar_config && profile.sidebar_config.some((i: any) => i.type === "category") && profile.sidebar_config.length >= 4) {
-      setConfig(sanitizeItems(profile.sidebar_config));
+      setConfig(ensureTabeAISecond(sanitizeItems(profile.sidebar_config)));
     } else {
       try {
         const local = localStorage.getItem("tabe-custom-sidebar-config");
         if (local) {
           const parsed = JSON.parse(local);
           if (parsed && Array.isArray(parsed) && parsed.length >= 4) {
-            setConfig(sanitizeItems(parsed));
+            setConfig(ensureTabeAISecond(sanitizeItems(parsed)));
             return;
           }
         }
       } catch (e) {}
-      setConfig(sanitizeItems(DEFAULT_CATEGORIZED_SIDEBAR));
+      setConfig(ensureTabeAISecond(sanitizeItems(DEFAULT_CATEGORIZED_SIDEBAR)));
     }
   }, [profile]);
 
@@ -104,7 +105,7 @@ export function SidebarCustomizer() {
         return newItem as CustomSidebarItem;
       });
     };
-    setConfig(sanitizeItems(DEFAULT_CATEGORIZED_SIDEBAR));
+    setConfig(ensureTabeAISecond(sanitizeItems(DEFAULT_CATEGORIZED_SIDEBAR)));
     toast.info("Categorías recomendadas cargadas. Haz clic en 'Guardar Cambios' para aplicar.");
   };
 

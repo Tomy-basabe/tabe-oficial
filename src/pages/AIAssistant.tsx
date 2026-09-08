@@ -1,6 +1,6 @@
-﻿import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, Paperclip, Loader2, ArrowLeft, ExternalLink } from "lucide-react";
+import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
 import { ModelSelector } from "@/components/ai/ModelSelector";
 import { ModelLogo } from "@/components/icons/ModelLogos";
 import { cleanAIResponse } from "@/lib/aiClientService";
+import { AVAILABLE_AI_MODELS, AITask } from "@/config/aiModels";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
@@ -72,7 +73,7 @@ export default function AIAssistant() {
     loadMessages,
     saveMessage,
   } = useAIPersonas();
-  const { canUse, incrementUsage } = useUsageLimits();
+  const { canUse, incrementUsage, reserveAITokens } = useUsageLimits();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== "undefined" ? window.innerWidth >= 768 : false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -180,8 +181,13 @@ export default function AIAssistant() {
 
   const handleDeleteSession = async (sessionId: string) => {
     const ok = await deleteSession(sessionId);
-    if (ok && currentSessionRef.current === sessionId) {
-      handleNewChat();
+    if (ok) {
+      toast.success("Chat eliminado del historial");
+      if (currentSessionRef.current === sessionId) {
+        handleNewChat();
+      }
+    } else {
+      toast.error("No se pudo eliminar el chat");
     }
   };
 
@@ -261,8 +267,24 @@ export default function AIAssistant() {
     }
 
     // Save user message to DB
+    const normalizedInput = inputValue.toLowerCase();
+    const task: AITask = normalizedInput.includes("quiz") || normalizedInput.includes("simulacro")
+      ? "quiz"
+      : normalizedInput.includes("flashcard") || normalizedInput.includes("tarjeta")
+        ? "flashcards"
+        : normalizedInput.includes("plan de estudio")
+          ? "plan"
+          : normalizedInput.includes("resum")
+            ? "resumen"
+            : "chat";
+    const hasTokenBudget = await reserveAITokens(selectedModel, powerLevel, task);
+    const requestModel = hasTokenBudget
+      ? selectedModel
+      : AVAILABLE_AI_MODELS.find((model) => model.provider === "local") || selectedModel;
+
+    // Save user message to DB
     await saveMessage(sessionId, "user", inputValue);
-    await incrementUsage("ia_daily");
+    if (requestModel.provider !== "local") await incrementUsage("ia_daily");
 
     // Prepare conversation for the AI
     const conversationHistory = newMessages
@@ -270,8 +292,8 @@ export default function AIAssistant() {
       .map((m) => ({ role: m.role, content: m.content }));
 
     const assistantMsgId = (Date.now() + 1).toString();
-    const currentModelId = selectedModel.id;
-    const currentModelName = selectedModel.shortName || selectedModel.name;
+    const currentModelId = requestModel.id;
+    const currentModelName = requestModel.shortName || requestModel.name;
 
     setMessages((prev) => [
       ...prev,
@@ -335,8 +357,8 @@ export default function AIAssistant() {
         );
       },
       undefined,   // context_page
-      undefined,   // modelOverride
-      undefined,   // powerOverride
+      requestModel,
+      powerLevel,
       handleReset  // onReset
     );
   };
@@ -365,9 +387,46 @@ export default function AIAssistant() {
   const renderContent = (content: string, role: "user" | "assistant") => {
     if (!content)
       return (
-        <div className="flex items-center gap-2 text-muted-foreground/80 italic animate-pulse">
-          <Sparkles className="w-4 h-4 text-neon-cyan" />
-          <span className="text-neon-cyan/80">Pensando...</span>
+        <div className="py-2 px-1 space-y-2.5 min-w-[200px]">
+          {/* Top thinking badge + pulse */}
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr from-[#00E5FF] to-[#BFFF00] border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] animate-pulse">
+              <Brain className="w-3.5 h-3.5 text-black animate-spin [animation-duration:8s]" />
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF2E93] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF2E93] border border-black" />
+              </span>
+            </div>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black uppercase tracking-wider text-foreground">
+                  {activePersona?.name || "IA"} está pensando
+                </span>
+                <Sparkles className="w-3 h-3 text-[#00E5FF] animate-spin [animation-duration:3s]" />
+              </div>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase">
+                Conectando ideas...
+              </span>
+            </div>
+          </div>
+
+          {/* Comic Bouncing Dots Chip */}
+          <div className="flex items-center justify-between gap-3 p-1.5 px-2.5 rounded-xl bg-muted/70 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] max-w-[240px]">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] border border-black animate-bounce [animation-delay:-0.32s]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FFE600] border border-black animate-bounce [animation-delay:-0.16s]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FF2E93] border border-black animate-bounce" />
+            </div>
+            <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-black text-[#BFFF00] border border-[#BFFF00]">
+              GENERANDO
+            </span>
+          </div>
+
+          {/* Laser scanning bar */}
+          <div className="h-1.5 max-w-[240px] bg-background rounded-full border border-foreground overflow-hidden relative shadow-xs p-[1px]">
+            <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-[#00E5FF] via-[#FFE600] to-[#FF2E93] animate-pulse" />
+          </div>
         </div>
       );
 
@@ -392,7 +451,7 @@ export default function AIAssistant() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-9rem)] lg:h-screen bg-background overflow-hidden relative">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden relative">
       <PersonaSidebar
         personas={personas}
         activePersona={activePersona}
@@ -437,7 +496,7 @@ export default function AIAssistant() {
       {/* Mobile Backdrop */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -445,7 +504,7 @@ export default function AIAssistant() {
       <div className="flex-1 flex flex-col h-full min-w-0">
 
         {/* ── HEADER ─────────────────────────────────────── */}
-        <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 border-b-2 border-foreground bg-card flex items-center gap-2 md:gap-3">
+        <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 border-b-2 md:border-b-4 border-foreground bg-card flex items-center gap-2 md:gap-3 z-10">
           {/* Sidebar toggle */}
           <Button
             variant="ghost"
@@ -488,6 +547,20 @@ export default function AIAssistant() {
             <span className="hidden xs:inline">Online</span>
           </div>
 
+          {/* Delete current chat button */}
+          {currentSessionId && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteSession(currentSessionId)}
+              className="border-2 border-foreground bg-card rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] text-red-600 hover:bg-[#FF5C5C] hover:!text-white shrink-0 w-8 h-8 md:w-9 md:h-9 transition-transform active:scale-90"
+              title="Eliminar conversación actual"
+              aria-label="Eliminar conversación actual"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+
           {/* External link — only on md+ */}
           <Button
             variant="ghost"
@@ -528,49 +601,49 @@ export default function AIAssistant() {
             )}
 
             {/* Messages */}
-            <div className="space-y-4 pb-2 min-h-[200px]">
+            <div className="space-y-3 md:space-y-4 pb-6 min-h-[200px]">
               {messages.map((message) => (
                 <div
                   key={message.id}
                   className={cn(
-                    "flex gap-2 md:gap-3 group",
+                    "flex gap-2 md:gap-3 group items-start",
                     message.role === "user" ? "flex-row-reverse" : "flex-row"
                   )}
                 >
                   {/* Avatar */}
                   <div
                     className={cn(
-                      "w-8 h-8 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5",
+                      "w-7 h-7 md:w-8 md:h-8 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center shrink-0 mt-0.5",
                       message.role === "assistant"
-                        ? "bg-black text-white dark:bg-white dark:text-black p-1.5"
+                        ? "bg-black text-white dark:bg-white dark:text-black p-1"
                         : "bg-[#FFD700] text-black"
                     )}
                   >
                     {message.role === "assistant" ? (
                       activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-                        <span className="text-base leading-none">{activePersona.avatar_emoji}</span>
+                        <span className="text-sm leading-none">{activePersona.avatar_emoji}</span>
                       ) : (
                         <TabeAIIcon className="w-full h-full text-white dark:text-black" />
                       )
                     ) : (
-                      <User className="w-4 h-4 text-black" strokeWidth={2.5} />
+                      <User className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
                     )}
                   </div>
 
                   {/* Bubble */}
                   <div
                     className={cn(
-                      "max-w-[78%] md:max-w-[75%] rounded-xl px-3 py-2.5 md:px-4 md:py-3 border-2 md:border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] md:shadow-[4px_4px_0_0_hsl(var(--foreground))] overflow-hidden",
+                      "max-w-[88%] sm:max-w-[80%] md:max-w-[75%] rounded-2xl px-3 py-2 md:px-4 md:py-3 border-2 md:border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] md:shadow-[4px_4px_0_0_hsl(var(--foreground))] overflow-hidden",
                       message.role === "user"
-                        ? "bg-[#BFFF00] !text-black"
-                        : "bg-card text-foreground"
+                        ? "bg-[#BFFF00] !text-black rounded-tr-xs"
+                        : "bg-card text-foreground rounded-tl-xs"
                     )}
                   >
                     {/* Model badge */}
                     {message.role === "assistant" && message.id !== "init" && (
                       <div className="flex items-center gap-1 pb-1.5 mb-1.5 border-b border-foreground/15 text-[10px] font-black uppercase text-muted-foreground">
-                        <div className="w-4 h-4 rounded flex items-center justify-center p-0.5 bg-background border border-foreground/30 shrink-0">
-                          <ModelLogo modelId={message.modelId || selectedModel.id} className="w-3 h-3" />
+                        <div className="w-3.5 h-3.5 rounded flex items-center justify-center p-0.5 bg-background border border-foreground/30 shrink-0">
+                          <ModelLogo modelId={message.modelId || selectedModel.id} className="w-2.5 h-2.5" />
                         </div>
                         <span className="text-foreground tracking-tight font-black truncate">
                           {message.modelName || selectedModel.shortName}
@@ -581,12 +654,12 @@ export default function AIAssistant() {
                       </div>
                     )}
 
-                    <div className="text-sm md:text-base font-bold leading-relaxed break-words">
+                    <div className="text-xs md:text-sm font-bold leading-relaxed break-words">
                       {renderContent(message.content, message.role)}
                     </div>
 
                     {message.role === "user" && (
-                      <div className="flex items-center gap-1 mt-1 text-[9px] font-black uppercase !text-black/60">
+                      <div className="flex items-center justify-end gap-1 mt-1 text-[9px] font-black uppercase !text-black/60">
                         {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     )}
@@ -599,7 +672,7 @@ export default function AIAssistant() {
         </div>
 
         {/* ── INPUT BAR ──────────────────────────────────── */}
-        <div className="shrink-0 px-2 py-2 md:px-6 md:py-4 bg-transparent sticky bottom-0 z-20">
+        <div className="shrink-0 px-2 py-2 md:px-6 md:py-3 bg-background/95 backdrop-blur-md border-t-2 border-foreground/20 md:border-none sticky bottom-0 z-20">
           <div className="max-w-3xl mx-auto">
             <input
               type="file"
@@ -609,14 +682,14 @@ export default function AIAssistant() {
               accept=".pdf,.txt,.md"
             />
 
-            <div className="flex flex-col bg-card rounded-2xl border-2 md:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] md:shadow-[6px_6px_0_0_hsl(var(--foreground))] focus-within:ring-2 focus-within:ring-primary">
+            <div className="flex flex-col bg-card rounded-2xl border-2 md:border-4 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] md:shadow-[5px_5px_0_0_hsl(var(--foreground))] focus-within:ring-2 focus-within:ring-primary">
               {/* Textarea */}
               <textarea
                 value={inputValue}
                 onChange={(e) => {
                   setInputValue(e.target.value);
                   e.target.style.height = "auto";
-                  e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -629,8 +702,8 @@ export default function AIAssistant() {
                     ? "Procesando archivo..."
                     : `Preguntale a ${activePersona?.name || "tu IA"}...`
                 }
-                className="w-full px-3 py-2.5 bg-transparent border-none focus:outline-none text-sm md:text-base font-bold placeholder:text-muted-foreground placeholder:font-bold resize-none overflow-y-auto text-foreground"
-                style={{ minHeight: "44px", maxHeight: "160px" }}
+                className="w-full px-3 py-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-bold placeholder:text-muted-foreground placeholder:font-bold resize-none overflow-y-auto text-foreground"
+                style={{ minHeight: "40px", maxHeight: "140px" }}
                 rows={1}
                 disabled={isStreaming || isUploading}
               />

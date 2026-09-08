@@ -92,7 +92,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     path: "/TABEAI",
     label: "TABE IA",
     type: "item",
-    iconName: "Bot"
+    iconName: "TabeAIIcon"
   },
   {
     id: "cat-academico",
@@ -151,6 +151,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
 
 export const baseNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
+  { icon: TabeAIIcon, label: "TABE IA", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
   { icon: Clock, label: "Consultas", path: "/consultas", tourClass: "tour-sidebar-consultas" },
   { icon: NotionIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-notion" },
@@ -166,7 +167,6 @@ export const baseNavItems: NavItem[] = [
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
   { icon: Gamepad2, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
-  { icon: TabeAIIcon, label: "TABEAI", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];
 
@@ -178,3 +178,51 @@ export const ALL_AVAILABLE_ITEMS = [
   { icon: Gamepad2, label: "Juegos", path: "/juegos" },
   { icon: Compass, label: "Correlatividades", path: "/mapa" }
 ];
+
+/**
+ * Ensures TABE IA is always properly structured, positioned 2nd (after Dashboard),
+ * and eliminates any duplicate entries regardless of whether the config was loaded
+ * from a user's previous cloud profile or local storage.
+ */
+export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarItem[] {
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return [...DEFAULT_CATEGORIZED_SIDEBAR];
+  }
+
+  // Recursive function to remove any TABEAI occurrences from root or categories
+  const removeTabeAI = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
+    return list
+      .filter(item => {
+        const p = item.path || item.id;
+        return p !== "/TABEAI" && item.id !== "item-/TABEAI" && item.label?.toLowerCase() !== "tabe ia" && item.label?.toLowerCase() !== "tabeai";
+      })
+      .map(item => {
+        if (item.items && item.items.length > 0) {
+          return {
+            ...item,
+            items: removeTabeAI(item.items)
+          };
+        }
+        return item;
+      });
+  };
+
+  const cleaned = removeTabeAI(items);
+
+  const tabeAIItem: CustomSidebarItem = {
+    id: "item-/TABEAI",
+    path: "/TABEAI",
+    label: "TABE IA",
+    type: "item",
+    iconName: "TabeAIIcon"
+  };
+
+  const dashIndex = cleaned.findIndex(i => i.path === "/dashboard" || i.id === "item-/dashboard");
+  if (dashIndex !== -1) {
+    cleaned.splice(dashIndex + 1, 0, tabeAIItem);
+  } else {
+    cleaned.splice(1, 0, tabeAIItem);
+  }
+
+  return cleaned;
+}

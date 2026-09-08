@@ -354,7 +354,15 @@ export async function streamAIChat(params: {
 
     try {
       let ok = false;
-      if (candidate.provider === "google") {
+      if (candidate.provider === "local") {
+        ok = await streamFromLocal({
+          messages,
+          onDelta: localDelta,
+          requestedModelId: model.id,
+          requestedProvider: model.provider,
+          powerLevel,
+        });
+      } else if (candidate.provider === "google") {
         ok = await streamFromGoogle({
           modelId: candidate.id,
           systemPrompt,
@@ -425,6 +433,8 @@ async function streamFromOpenRouter(opts: {
   onDelta: (text: string) => void;
 }): Promise<boolean> {
   const { modelId, systemPrompt, messages, powerLevel, onDelta } = opts;
+
+  if (!OPENROUTER_API_KEY) return false;
 
   const controller = new AbortController();
   // 12s timeout for connection initiation
@@ -526,6 +536,107 @@ async function streamFromOpenRouter(opts: {
 }
 
 /**
+ * Guaranteed local fallback. It is intentionally transparent: it is a
+ * recovery mode, not a pretend cloud model, and consumes no provider quota.
+ */
+async function streamFromLocal(opts: {
+  messages: Array<{ role: string; content: string }>;
+  onDelta: (text: string) => void;
+  requestedModelId: string;
+  requestedProvider: AIModelOption["provider"];
+  powerLevel: PowerEffort;
+}): Promise<boolean> {
+  // TABE Base uses the protected Edge Function first. Provider credentials
+  // stay server-side, while the local message below remains the final safety net.
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (session?.access_token && supabaseUrl) {
+      const response = await fetch(`${supabaseUrl}/functions/v1/ai-assistant-stream`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: opts.messages,
+          context_page: "TABEAI",
+          requested_model_id: opts.requestedModelId,
+          requested_provider: opts.requestedProvider,
+          power_level: opts.powerLevel,
+        }),
+      });
+
+      if (response.ok && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let receivedContent = false;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6).trim();
+            if (!payload || payload === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(payload);
+              const chunk = parsed.choices?.[0]?.delta?.content || parsed.content;
+              if (chunk) {
+                receivedContent = true;
+                opts.onDelta(chunk);
+              }
+            } catch {
+              // Ignore non-JSON keepalive lines.
+            }
+          }
+        }
+        if (receivedContent) return true;
+      }
+    }
+  } catch (error) {
+    console.warn("TABE Base Edge Function unavailable; using offline fallback:", error);
+  }
+
+  const lastUserMessage = [...opts.messages].reverse().find((message) => message.role === "user")?.content?.trim();
+  const normalized = (lastUserMessage || "").toLowerCase();
+  const arithmeticMatch = normalized.match(/(?:cu[aá]nto\s+es|resuelve|calcula)\s+([0-9+\-*/().\s]+)[?¿!！。]?$/i);
+  let arithmeticResult: number | null = null;
+  if (arithmeticMatch && /^[0-9+\-*/().\s]+$/.test(arithmeticMatch[1])) {
+    try {
+      // The expression is restricted to numeric arithmetic before evaluation.
+      const value = Function(`"use strict"; return (${arithmeticMatch[1]})`)();
+      if (typeof value === "number" && Number.isFinite(value)) arithmeticResult = value;
+    } catch {
+      arithmeticResult = null;
+    }
+  }
+
+  const content = arithmeticResult !== null
+    ? `El resultado es **${arithmeticResult}**.`
+    : normalized.match(/^(hola|buenas|buen d[ií]a)/)
+    ? "¡Hola! Soy TABE Base, tu asistente académico. Preguntame sobre una materia, pedime un plan de estudio o decime qué tenés que organizar y arrancamos."
+    : normalized.includes("como estas") || normalized.includes("cómo estás")
+      ? "¡Muy bien, gracias! Estoy listo para ayudarte a estudiar, organizar tus materias o preparar un examen. ¿Qué necesitás hacer?"
+    : normalized.includes("plan")
+      ? "Para armar tu plan: elegí la materia, anotá el objetivo del examen, separá el contenido en bloques y trabajá en sesiones de 25 minutos con repasos al final de cada bloque."
+      : normalized.includes("flashcard") || normalized.includes("tarjeta")
+        ? "Las flashcards funcionan mejor con una pregunta concreta adelante y una respuesta breve atrás. Separá las tarjetas difíciles y repasá esas con mayor frecuencia."
+        : normalized.includes("quiz") || normalized.includes("simulacro")
+          ? "Para un buen simulacro, respondé sin mirar apuntes, marcá tus dudas y corregí cada error escribiendo por qué la respuesta correcta es la correcta."
+          : "TABE Base está disponible sin consumir tokens. Puedo ayudarte con organización, técnicas de estudio y orientación académica básica mientras se restablece el modelo avanzado.";
+
+  for (let index = 0; index < content.length; index += 8) {
+    opts.onDelta(content.slice(index, index + 8));
+    await new Promise((resolve) => setTimeout(resolve, 8));
+  }
+  return true;
+}
+
+/**
  * Streaming via Google Gemini SSE (<1.8s)
  */
 async function streamFromGoogle(opts: {
@@ -536,6 +647,8 @@ async function streamFromGoogle(opts: {
   onDelta: (text: string) => void;
 }): Promise<boolean> {
   const { modelId, systemPrompt, messages, powerLevel, onDelta } = opts;
+
+  if (!GEMINI_API_KEY) return false;
 
   // Convert conversation to Gemini contents
   const contents = messages.map((m) => ({

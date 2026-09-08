@@ -40,7 +40,7 @@ export function PersonaSidebar({
 }: PersonaSidebarProps) {
     return (
         <div className={cn(
-            "w-72 max-w-[85vw] h-[calc(100dvh-4rem)] md:h-full border-r-4 border-foreground bg-card text-foreground flex flex-col fixed md:relative top-16 md:top-0 left-0 shrink-0 z-40 transition-all duration-300 shadow-2xl md:shadow-none",
+            "w-72 max-w-[85vw] h-full border-r-4 border-foreground bg-card text-foreground flex flex-col fixed md:relative top-0 left-0 shrink-0 z-50 transition-all duration-300 shadow-2xl md:shadow-none",
             isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
             !isOpen && "hidden md:flex"
         )}>
@@ -112,31 +112,33 @@ export function PersonaSidebar({
                             {activePersona?.id === persona.id && (
                                 <div className="w-2 h-2 rounded-full bg-black flex-shrink-0 border-2 border-black" />
                             )}
-                            <div className="flex bg-card rounded-md shadow-[2px_2px_0_0_hsl(var(--foreground))] border-2 border-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex bg-card rounded-md shadow-[2px_2px_0_0_hsl(var(--foreground))] border-2 border-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="w-6 h-6 hover:bg-[#BFFF00] text-foreground hover:!text-black rounded-none rounded-l-md flex-shrink-0 border-r-2 border-foreground"
+                                    className="w-7 h-7 md:w-6 md:h-6 hover:bg-[#BFFF00] text-foreground hover:!text-black rounded-none rounded-l-md flex-shrink-0 border-r-2 border-foreground"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onEditPersona(persona);
                                     }}
                                     title="Editar IA"
+                                    aria-label="Editar IA"
                                 >
-                                    <Pencil className="w-3 h-3" strokeWidth={3} />
+                                    <Pencil className="w-3.5 h-3.5 md:w-3 md:h-3" strokeWidth={3} />
                                 </Button>
                                 {!persona.is_default && (
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="w-6 h-6 hover:bg-[#FF5C5C] text-foreground hover:!text-black rounded-none rounded-r-md flex-shrink-0"
+                                        className="w-7 h-7 md:w-6 md:h-6 hover:bg-[#FF5C5C] text-foreground hover:!text-black rounded-none rounded-r-md flex-shrink-0"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             onDeletePersona(persona.id);
                                         }}
                                         title="Eliminar IA"
+                                        aria-label="Eliminar IA"
                                     >
-                                        <Trash2 className="w-3 h-3" strokeWidth={3} />
+                                        <Trash2 className="w-3.5 h-3.5 md:w-3 md:h-3" strokeWidth={3} />
                                     </Button>
                                 )}
                             </div>
@@ -166,58 +168,65 @@ export function PersonaSidebar({
                 )}
             </div>
 
-            <ScrollArea className="flex-1 px-4 py-4">
-                <div className="space-y-2">
-                    {sessions.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
-                            <MessageCircle className="w-10 h-10" strokeWidth={1.5} />
-                            <span className="text-sm font-black uppercase">Sin historial</span>
-                        </div>
-                    ) : (
-                        sessions.map((session) => (
-                            <div
-                                key={session.id}
+            <div className="flex-1 px-3 py-3 overflow-y-auto overflow-x-hidden space-y-2">
+                {sessions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                        <MessageCircle className="w-10 h-10" strokeWidth={1.5} />
+                        <span className="text-sm font-black uppercase">Sin historial</span>
+                    </div>
+                ) : (
+                    sessions.map((session) => (
+                        <div
+                            key={session.id}
+                            className={cn(
+                                "flex items-center justify-between gap-2 p-2 rounded-xl text-sm border-2 transition-all w-full select-none",
+                                currentSessionId === session.id
+                                    ? "bg-[#BFFF00] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                                    : "bg-background text-foreground hover:bg-muted border-foreground/40 hover:border-foreground shadow-xs"
+                            )}
+                        >
+                            {/* Clickable area to switch chat */}
+                            <button
+                                type="button"
                                 onClick={() => onSelectSession(session.id)}
-                                className={cn(
-                                    "group flex items-center justify-between p-3 rounded-xl text-sm transition-all cursor-pointer border-2",
-                                    currentSessionId === session.id
-                                        ? "bg-[#BFFF00] !text-black font-black shadow-[2px_2px_0_0_hsl(var(--foreground))] border-foreground"
-                                        : "text-foreground/80 hover:text-foreground font-bold hover:bg-muted border-transparent hover:border-foreground"
-                                )}
+                                className="flex items-center gap-2 flex-1 min-w-0 text-left py-1 cursor-pointer"
+                                title={session.title}
                             >
-                                <div className="flex items-center gap-2 overflow-hidden flex-1">
-                                    <MessageSquare
-                                        className={cn(
-                                            "w-4 h-4 flex-shrink-0",
-                                            currentSessionId === session.id
-                                                ? "!text-black"
-                                                : "text-muted-foreground group-hover:text-foreground"
-                                        )}
-                                        strokeWidth={2.5}
-                                    />
-                                    <span className={cn(
-                                        "truncate text-sm",
-                                        currentSessionId === session.id ? "!text-black" : "text-foreground"
-                                    )}>
-                                        {session.title}
-                                    </span>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="w-8 h-8 opacity-70 group-hover:opacity-100 transition-all text-foreground hover:bg-[#FF5C5C] hover:!text-black shrink-0 border-2 border-transparent hover:border-foreground rounded-lg hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDeleteSession(session.id);
-                                    }}
-                                >
-                                    <Trash2 className="w-4 h-4" strokeWidth={2.5} />
-                                </Button>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </ScrollArea>
+                                <MessageSquare
+                                    className={cn(
+                                        "w-4 h-4 shrink-0",
+                                        currentSessionId === session.id
+                                            ? "text-black"
+                                            : "text-muted-foreground"
+                                    )}
+                                    strokeWidth={2.5}
+                                />
+                                <span className={cn(
+                                    "truncate text-xs md:text-sm block font-black",
+                                    currentSessionId === session.id ? "text-black" : "text-foreground"
+                                )}>
+                                    {session.title}
+                                </span>
+                            </button>
+
+                            {/* Prominent, always-visible delete button */}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    onDeleteSession(session.id);
+                                }}
+                                className="w-7 h-7 shrink-0 rounded-lg border-2 border-black bg-white hover:bg-[#FF5C5C] text-black hover:text-white flex items-center justify-center shadow-[1.5px_1.5px_0_0_#000] transition-transform active:scale-90 cursor-pointer"
+                                title="Eliminar este chat"
+                                aria-label="Eliminar este chat"
+                            >
+                                <Trash2 className="w-3.5 h-3.5 text-red-600 hover:text-white" strokeWidth={2.5} />
+                            </button>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 }

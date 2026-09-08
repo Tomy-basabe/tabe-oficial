@@ -123,7 +123,7 @@ export const SubjectCard = memo(function SubjectCard({
       onClick={status !== "bloqueada" ? onClick : undefined}
       style={cardStyle}
       className={cn(
-        "relative group transition-transform duration-200 mt-6 h-full flex flex-col",
+        "relative group transition-transform duration-200 h-full flex flex-col",
         status !== "bloqueada" ? "cursor-pointer hover:-translate-y-1" : ""
       )}
     >

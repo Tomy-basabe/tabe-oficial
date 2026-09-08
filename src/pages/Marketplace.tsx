@@ -362,7 +362,7 @@ export default function Marketplace() {
         </div>
 
         <TabsContent value="decks">
-          {loading ? (
+          {loading && publicDecks.length === 0 ? (
             <LoadingScreen message="Cargando mazos de la comunidad..." submessage="Explorando tarjetas compartidas por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -373,7 +373,7 @@ export default function Marketplace() {
         </TabsContent>
 
         <TabsContent value="quizzes">
-          {loading ? (
+          {loading && publicQuizzes.length === 0 ? (
             <LoadingScreen message="Cargando cuestionarios de la comunidad..." submessage="Explorando trivias y tests creados por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

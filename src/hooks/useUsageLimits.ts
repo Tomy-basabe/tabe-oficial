@@ -3,6 +3,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { AIModelOption, AITask, getModelDailyTokenLimit, getModelTokenCost } from "@/config/aiModels";
 
 // Limits for free users
 export const FREE_LIMITS = {
@@ -143,6 +144,36 @@ export function useUsageLimits() {
         return true;
     };
 
+    const reserveAITokens = async (
+        model: AIModelOption,
+        powerLevel: "bajo" | "medio" | "alto",
+        task: AITask = "chat"
+    ): Promise<boolean> => {
+        if (model.provider === "local" || isGuest) return true;
+        if (!user?.id) return false;
+
+        const requestedTokens = getModelTokenCost(model, powerLevel, task);
+        const tokenLimit = getModelDailyTokenLimit(model);
+        const { data, error } = await (supabase as any).rpc("consume_ai_token_budget", {
+            p_user_id: user.id,
+            p_model_id: model.id,
+            p_task: task,
+            p_requested_tokens: requestedTokens,
+            p_token_limit: tokenLimit,
+            p_window_hours: model.tokenPolicy?.windowHours || 24,
+        });
+
+        if (error) {
+            console.error("AI token budget unavailable; continuing without reservation:", error);
+            return true;
+        }
+        if (!data?.allowed) {
+            toast.info("Este modelo alcanzó su presupuesto temporal. TABE Base seguirá disponible sin tokens.");
+            return false;
+        }
+        return true;
+    };
+
     const showLimitReached = (feature: FeatureKey) => {
         const names: Record<FeatureKey, string> = {
             apuntes: "archivos en la biblioteca (15 máximo)",
@@ -168,6 +199,7 @@ export function useUsageLimits() {
         getLimit,
         getRemaining,
         incrementUsage,
+        reserveAITokens,
         showLimitReached,
     };
 }

@@ -11,6 +11,7 @@ import { ChevronDown, Check, Zap, Sparkles, Brain } from "lucide-react";
 import {
   AIModelOption,
   AVAILABLE_AI_MODELS,
+  getModelTokenCost,
   PowerEffort,
 } from "@/config/aiModels";
 import { ModelLogo } from "@/components/icons/ModelLogos";
@@ -197,6 +198,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
                 <p className="text-[11px] font-medium text-muted-foreground leading-snug pl-9 text-left">
                   {model.description}
+                </p>
+                <p className="text-[10px] font-bold text-muted-foreground pl-9 text-left">
+                  {model.provider === "local"
+                    ? "Sin tokens · siempre disponible"
+                    : `~${getModelTokenCost(model, powerLevel).toLocaleString("es-AR")} tokens · ventana ${model.tokenPolicy?.windowHours ?? 24} h`}
                 </p>
               </DropdownMenuItem>
             );

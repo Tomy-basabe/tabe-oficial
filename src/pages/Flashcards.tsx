@@ -194,7 +194,10 @@ export default function Flashcards() {
   };
 
   const fetchDecks = async () => {
-    if (!user && !isGuest) return;
+    if (!user && !isGuest) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     if (isGuest) {

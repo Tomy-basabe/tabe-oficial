@@ -44,7 +44,10 @@ export function useFlashcardStats(): FlashcardStatsData {
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     try {

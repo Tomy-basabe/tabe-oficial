@@ -1,48 +1,85 @@
 import { Star, MessageCircle, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 import { ComicBadge } from "@/components/comic/ComicBadge";
 import { useComic } from "@/components/comic/ComicEffectsProvider";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 
-const testimonials = [
-  {
-    name: "Valentina R.",
-    career: "Ingeniería Industrial",
-    quote: "TABE me ordenó la vida académica. El sistema de flashcards con repetición y las metas diarias hicieron que suba mi promedio a 9.2.",
-    badge: "¡APROBÓ CON 10!",
-    badgeColor: "yellow" as const,
-    themeColor: "#ff9415",
-    panelNumber: "VIÑETA #01",
-    avatar: "👩‍🔬",
-  },
-  {
-    name: "Martín L.",
-    career: "Ingeniería en Sistemas",
-    quote: "Lo que más uso es el mapa de correlatividades y los quizzes de práctica con IA. Salvó mi cuatrimestre cuando tenía 4 finales juntos.",
-    badge: "¡4 FINALES SALVADOS!",
-    badgeColor: "cyan" as const,
-    themeColor: "#1475e5",
-    panelNumber: "VIÑETA #02",
-    avatar: "👨‍💻",
-  },
-  {
-    name: "Camila S.",
-    career: "Ciencias Económicas",
-    quote: "El Pomodoro combinado con 'Mi Bosque' me quitó la adicción de revisar el celular cada 5 minutos. Estudiar se siente como un juego.",
-    badge: "¡RACHA DE 45 DÍAS!",
-    badgeColor: "green" as const,
-    themeColor: "#48bd22",
-    panelNumber: "VIÑETA #03",
-    avatar: "📊",
-  },
-];
+type Testimonial = {
+  id: string;
+  name: string;
+  career: string;
+  quote: string;
+  rating: number;
+  panelNumber: string;
+  themeColor: string;
+  badgeColor: "yellow" | "cyan" | "green";
+};
 
 export function TestimonialsSection() {
   const { triggerBurst } = useComic();
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const marqueePausedRef = useRef(false);
 
-  const handlePanelClick = (t: typeof testimonials[0], e: React.MouseEvent) => {
+  useEffect(() => {
+    let mounted = true;
+    const loadReviews = async () => {
+      const { data, error } = await supabase
+        .from("user_reviews")
+        .select("id, name, career, description, rating")
+        .gte("rating", 1)
+        .order("created_at", { ascending: false });
+
+      if (!mounted || error || !data) return;
+      setTestimonials(data.map((review, index) => ({
+        id: review.id,
+        name: review.name,
+        career: review.career,
+        quote: review.description,
+        rating: Math.max(1, Math.min(5, review.rating)),
+        panelNumber: "",
+        themeColor: ["#ff9415", "#1475e5", "#48bd22"][index % 3],
+        badgeColor: (["yellow", "cyan", "green"] as const)[index % 3],
+      })));
+    };
+    loadReviews();
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    const marquee = marqueeRef.current;
+    if (!marquee || testimonials.length === 0) return;
+
+    const group = marquee.querySelector<HTMLElement>(".testimonial-marquee-group");
+    if (!group) return;
+
+    const groupWidth = group.offsetWidth;
+    marquee.scrollLeft = groupWidth;
+
+    const handleScroll = () => {
+      if (marquee.scrollLeft <= groupWidth * 0.5) {
+        marquee.scrollLeft += groupWidth;
+      } else if (marquee.scrollLeft >= groupWidth * 1.5) {
+        marquee.scrollLeft -= groupWidth;
+      }
+    };
+
+    marquee.addEventListener("scroll", handleScroll, { passive: true });
+    const timer = window.setInterval(() => {
+      if (!marqueePausedRef.current) marquee.scrollLeft += 1;
+    }, 24);
+
+    return () => {
+      marquee.removeEventListener("scroll", handleScroll);
+      window.clearInterval(timer);
+    };
+  }, [testimonials]);
+
+  const handlePanelClick = (t: Testimonial, e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, t.badge);
+    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, `${t.rating}/5`);
     ComicAudio.playPop();
   };
 
@@ -64,30 +101,42 @@ export function TestimonialsSection() {
             Tira Cómica: Estudiantes que <span className="text-[#ff9415] underline decoration-wavy decoration-[#FFE600]">Aprobaron</span>
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg font-bold">
-            Historias universitarias reales de estudiantes que dejaron la procrastinación y dominaron sus materias.
+            Opiniones reales de estudiantes que usan TABE para organizarse y estudiar mejor.
           </p>
         </div>
 
         {/* 3 Comic Strip Panels */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {testimonials.map((t, i) => (
+        {testimonials.length > 0 ? (
+        <div
+          ref={marqueeRef}
+          className="testimonial-marquee-shell max-w-6xl mx-auto"
+          aria-label="Opiniones de estudiantes"
+          onMouseEnter={() => { marqueePausedRef.current = true; }}
+          onMouseLeave={() => { marqueePausedRef.current = false; }}
+          onTouchStart={() => { marqueePausedRef.current = true; }}
+          onTouchEnd={() => { marqueePausedRef.current = false; }}
+        >
+          <div className="testimonial-marquee-track">
+          {[0, 1, 2].map((groupIndex) => (
+            <div className="testimonial-marquee-group" key={groupIndex} aria-hidden={groupIndex === 1}>
+            {testimonials.map((t) => (
             <motion.div
-              key={i}
+              key={`${t.id}-${groupIndex}`}
               whileHover={{ y: -8, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={(e) => handlePanelClick(t, e)}
-              className="group bg-card rounded-2xl p-6 border-[3px] border-foreground flex flex-col justify-between cursor-pointer select-none transition-all duration-200"
-              style={{
-                boxShadow: `6px 6px 0 0 ${t.themeColor}`,
-              }}
+              className="testimonial-marquee-card group bg-card rounded-2xl p-6 border-[3px] border-foreground flex flex-col justify-between cursor-pointer select-none transition-all duration-200"
+              style={{ boxShadow: `6px 6px 0 0 ${t.themeColor}` }}
             >
               {/* Panel Top Header Bar */}
               <div className="flex items-center justify-between pb-3 border-b-2 border-foreground mb-4">
-                <span className="font-black text-xs uppercase tracking-widest text-muted-foreground">
-                  {t.panelNumber}
-                </span>
+                <span aria-hidden="true" />
                 <ComicBadge variant={t.badgeColor} rotate="none" size="sm">
-                  {t.badge}
+                  <span className="flex items-center gap-0.5" aria-label={`Calificación ${t.rating} de 5`}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className={`w-3 h-3 ${star <= Math.round(t.rating) ? "fill-current" : "opacity-40"}`} />
+                    ))}
+                  </span>
                 </ComicBadge>
               </div>
 
@@ -121,13 +170,21 @@ export function TestimonialsSection() {
 
                 <div className="flex gap-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className="w-4 h-4 fill-[#FFE600] text-black" />
+                    <Star key={s} className={`w-4 h-4 ${s <= Math.round(t.rating) ? "fill-[#FFE600] text-black" : "text-muted-foreground"}`} />
                   ))}
                 </div>
               </div>
             </motion.div>
+            ))}
+            </div>
           ))}
+          </div>
         </div>
+        ) : (
+          <div className="max-w-2xl mx-auto text-center border-[3px] border-dashed border-foreground/40 rounded-2xl p-8">
+            <p className="font-black uppercase text-muted-foreground">Todavía no hay opiniones publicadas.</p>
+          </div>
+        )}
       </div>
     </section>
   );

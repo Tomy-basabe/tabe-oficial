@@ -109,95 +109,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.provider_token) {
-          setStoredGoogleToken(
-            session.provider_token,
-            session.user?.email,
-            session.provider_refresh_token ?? undefined
-          );
-        } else if (session?.user) {
-          const isGoogle =
-            session.user.app_metadata?.provider === "google" ||
-            session.user.app_metadata?.providers?.includes("google") ||
-            session.user.identities?.some((id: any) => id.provider === "google") ||
-            session.user.user_metadata?.gcal_linked === true;
-          if (isGoogle && localStorage.getItem("tabe_gcal_explicitly_disconnected") !== "true") {
-            localStorage.setItem(GCAL_LINKED_KEY, "true");
-            if (session.user.email) {
-              localStorage.setItem(GCAL_EMAIL_KEY, session.user.email);
-            }
-          }
-        }
-        if (session?.user) {
-          fetchProfile(session.user.id);
-          setIsGuest(false);
-        } else {
-          setIsGuest(true);
-          setProfile(null);
-          applyTheme(null);
-        }
-        setLoading(false);
-      }
-    );
+    let isMounted = true;
+    let currentUserId: string | null = null;
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const handleSessionChange = (session: Session | null) => {
+      if (!isMounted) return;
+      const newUser = session?.user ?? null;
+      const newUserId = newUser?.id ?? null;
+
+      // Only re-apply if user identity actually changed or on initial resolve
       setSession(session);
-      setUser(session?.user ?? null);
+      setUser(newUser);
+
       if (session?.provider_token) {
         setStoredGoogleToken(
           session.provider_token,
           session.user?.email,
           session.provider_refresh_token ?? undefined
         );
-      } else if (session?.user) {
+      } else if (newUser) {
         const isGoogle =
-          session.user.app_metadata?.provider === "google" ||
-          session.user.app_metadata?.providers?.includes("google") ||
-          session.user.identities?.some((id: any) => id.provider === "google") ||
-          session.user.user_metadata?.gcal_linked === true;
+          newUser.app_metadata?.provider === "google" ||
+          newUser.app_metadata?.providers?.includes("google") ||
+          newUser.identities?.some((id: any) => id.provider === "google") ||
+          newUser.user_metadata?.gcal_linked === true;
         if (isGoogle && localStorage.getItem("tabe_gcal_explicitly_disconnected") !== "true") {
           localStorage.setItem(GCAL_LINKED_KEY, "true");
-          if (session.user.email) {
-            localStorage.setItem(GCAL_EMAIL_KEY, session.user.email);
+          if (newUser.email) {
+            localStorage.setItem(GCAL_EMAIL_KEY, newUser.email);
           }
         }
       }
-      if (session?.user) {
-        fetchProfile(session.user.id);
+
+      if (newUser) {
         setIsGuest(false);
+        if (newUserId !== currentUserId) {
+          currentUserId = newUserId;
+          fetchProfile(newUser.id);
+        }
       } else {
-        // AUTO-GUEST MODE: If no session, treat as guest for SEO and indexability
+        currentUserId = null;
         setIsGuest(true);
         const savedTheme = localStorage.getItem("active-theme-color");
         setProfile({ active_theme: savedTheme, active_badge: null, sidebar_config: null });
         applyTheme(savedTheme);
       }
       setLoading(false);
+    };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        handleSessionChange(session);
+      }
+    );
+
+    // Initial check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSessionChange(session);
     }).catch(err => {
       console.error("Auth session error:", err);
-      // Even on error, allow guest mode to keep the app "open"
-      setIsGuest(true);
-      setLoading(false);
+      if (isMounted) {
+        setIsGuest(true);
+        setLoading(false);
+      }
     });
 
-    // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs (common on mobile/slow networks)
+    // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs
     const timeout = setTimeout(() => {
-      setLoading(current => {
-        if (current) {
-          console.warn("Auth initialization timed out, forcing loading to false");
-          return false;
-        }
-        return current;
-      });
-    }, 5000);
+      if (isMounted) {
+        setLoading(false);
+      }
+    }, 3000);
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
       clearTimeout(timeout);
     };

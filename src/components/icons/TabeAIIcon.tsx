@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-interface TabeAIIconProps {
+interface TabeAIIconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
 }
 
@@ -8,13 +8,14 @@ interface TabeAIIconProps {
  * Proprietary TABE Neural AI Logo (custom engineered for TABE)
  * Symmetrical 4-loop quantum vortex with central radiant intelligence spark.
  */
-export function TabeAIIcon({ className = "w-5 h-5" }: TabeAIIconProps) {
+export function TabeAIIcon({ className, ...props }: TabeAIIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="currentColor"
-      className={cn("w-5 h-5 shrink-0 transition-transform duration-300 block m-auto", className)}
+      className={cn("w-4 h-4 shrink-0 transition-transform duration-200", className)}
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       {/* Central Radiant Intelligence Spark */}
       <path d="M12 7.2C12 9.85 9.85 12 7.2 12C9.85 12 12 14.15 12 16.8C12 14.15 14.15 12 16.8 12C14.15 12 12 9.85 12 7.2Z" />

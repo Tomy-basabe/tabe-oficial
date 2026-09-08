@@ -227,7 +227,10 @@ export default function Quizzes() {
     }, [isGuest, user]);
 
     const fetchDecks = useCallback(async () => {
-        if (!user && !isGuest) return;
+        if (!user && !isGuest) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
 
         if (isGuest) {

@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import TabeAIIcon from "@/components/icons/TabeAIIcon";
 
 interface LogoProps {
   className?: string;
@@ -244,6 +245,10 @@ export function ModelLogo({
   size?: number;
 }) {
   const lower = (modelId || "").toLowerCase();
+
+  if (lower === "tabe/local-free" || lower.includes("tabe")) {
+    return <TabeAIIcon className={cn("text-black", className)} />;
+  }
 
   if (lower.includes("claude") || lower.includes("anthropic") || lower.includes("sonnet")) {
     return <ClaudeLogo className={className} size={size} />;

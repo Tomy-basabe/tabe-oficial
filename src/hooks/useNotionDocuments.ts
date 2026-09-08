@@ -40,7 +40,10 @@ export function useNotionDocuments() {
   const contentCacheRef = useRef<Map<string, any>>(new Map());
 
   const fetchDocuments = useCallback(async () => {
-    if (!user && !isGuest) return;
+    if (!user && !isGuest) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 

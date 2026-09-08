@@ -151,7 +151,7 @@ export default function Dashboard() {
               <Link to="/carrera" className="text-sm font-black text-background bg-foreground px-4 py-2 rounded-lg hover:-translate-y-1 transition-transform border-2 border-foreground shadow-[3px_3px_0_0_#ffd21c]">VER TODO</Link>
             </div>
             {recentSubjects.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-6 items-stretch">
                 {recentSubjects.map((subject) => (
                   <SubjectCard
                     key={subject.id}

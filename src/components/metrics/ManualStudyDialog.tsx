@@ -89,7 +89,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
               horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
               xp_total: (currentStats.xp_total || 0) + xpGained,
               credits: (currentStats.credits || 0) + Math.floor(totalSeconds / 60), // 1 Crédito por min
-              nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 1000) + 1 // Subir de nivel automáticamente
+              nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1 // Subir de nivel automáticamente
           }).eq("user_id", user.id);
           
           await supabase.rpc('check_and_unlock_achievements', { p_user_id: user.id });

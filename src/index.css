@@ -6,6 +6,48 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .testimonial-marquee-shell {
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 1rem 0 1.25rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, transparent, black 4%, black 96%, transparent);
+  }
+
+  .testimonial-marquee-shell::-webkit-scrollbar {
+    display: none;
+  }
+
+  .testimonial-marquee-track {
+    display: flex;
+    width: max-content;
+    gap: 0;
+  }
+
+  .testimonial-marquee-group {
+    display: flex;
+    gap: 2rem;
+    padding-right: 2rem;
+    flex: none;
+  }
+
+  .testimonial-marquee-card {
+    width: min(360px, calc(100vw - 4rem));
+  }
+
+  @media (min-width: 768px) {
+    .testimonial-marquee-card {
+      width: calc((min(1152px, 100vw) - 8rem) / 3);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .testimonial-marquee-shell { scroll-behavior: auto; }
+  }
+}
+
 @layer base {
   html {
     scroll-padding-top: 5rem;

@@ -7,7 +7,9 @@ const ALLOWED_ORIGINS = [
   "https://tabe.software",
   "https://tabe-oficial.vercel.app",
   "http://localhost:8080",
+  "http://127.0.0.1:8080",
   "http://localhost:5173",
+  "http://127.0.0.1:5173",
 ];
 
 function getCorsHeaders(req: Request) {
@@ -104,6 +106,9 @@ function trimMessages(msgs: any[], maxMessages: number = 12): any[] {
   return msgs.slice(-maxMessages);
 }
 
+let groqModelsCache: { models: string[]; expiresAt: number } | null = null;
+const GROQ_MODELS_CACHE_TTL = 10 * 60 * 1000;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
@@ -120,7 +125,14 @@ serve(async (req) => {
     if (authError || !user) throw new Error("Invalid token");
 
     const userId = user.id;
-    const { messages, persona_id, context_page } = await req.json();
+    const {
+      messages,
+      persona_id,
+      context_page,
+      requested_model_id,
+      requested_provider,
+      power_level = "medio",
+    } = await req.json();
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     let personaName = "T.A.B.E. IA";
@@ -496,34 +508,40 @@ serve(async (req) => {
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
     // Consultar dinámicamente qué modelos tiene habilitados esta API key en Groq
-    let selectedModel = "llama-3.1-8b-instant";
+    let selectedModel = "llama-3.3-70b-versatile";
+    let availableGroqModels: string[] = groqModelsCache?.models || [];
     try {
-      const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
-        headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
-      });
-      if (modelsRes.ok) {
-        const modelsData = await modelsRes.json();
-        const available: string[] = (modelsData.data || []).map((m: any) => m.id);
-        console.log("[Groq] Modelos disponibles para esta key:", available);
-
-        const preferred = [
-          "llama-3.1-8b-instant",
-          "llama3-8b-8192",
-          "llama-3.3-70b-versatile",
-          "llama-3.2-3b-preview",
-          "llama-3.2-1b-preview",
-          "mixtral-8x7b-32768",
-          "gemma2-9b-it"
-        ];
-        const match = preferred.find((p) => available.includes(p)) || available.find((id) => id.includes("llama")) || available[0];
-        if (match) selectedModel = match;
-        console.log(`[Groq] Modelo seleccionado automáticamente: ${selectedModel}`);
-      } else {
-        const err = await modelsRes.text();
-        console.warn(`[Groq] No se pudo listar modelos (${modelsRes.status}): ${err}`);
+      if (!groqModelsCache || groqModelsCache.expiresAt <= Date.now()) {
+        const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+          headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
+        });
+        if (modelsRes.ok) {
+          const modelsData = await modelsRes.json();
+          availableGroqModels = (modelsData.data || []).map((m: any) => m.id);
+          groqModelsCache = { models: availableGroqModels, expiresAt: Date.now() + GROQ_MODELS_CACHE_TTL };
+        }
       }
+
+      const preferred = [
+        ...(power_level === "bajo" ? ["llama-3.1-8b-instant"] : []),
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "llama3-8b-8192",
+        "llama-3.2-3b-preview",
+        "llama-3.2-1b-preview",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it"
+      ];
+      const match = preferred.find((p) => availableGroqModels.includes(p)) || availableGroqModels.find((id) => id.includes("llama"));
+      if (match) selectedModel = match;
     } catch (e: any) {
-      console.warn("[Groq] Error consultando /models:", e.message);
+      console.warn("[Groq] Error consultando modelos; usando cache/default:", e.message);
+    }
+
+    // Map the UI catalog to the strongest equivalent enabled by Groq when the
+    // selected provider is not configured server-side.
+    if (requested_model_id && requested_provider !== "local" && power_level !== "bajo" && availableGroqModels.includes("llama-3.3-70b-versatile")) {
+      selectedModel = "llama-3.3-70b-versatile";
     }
 
     // Stream from Groq con el modelo activo o OpenRouter de respaldo

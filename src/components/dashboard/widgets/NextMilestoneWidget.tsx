@@ -26,9 +26,9 @@ function NextMilestoneWidgetContent({ userStats, loading }: { userStats?: any; l
   }
 
   const xp = userStats?.xp_total || 0;
-  const currentLevel = Math.max(1, Math.floor(xp / 1000) + 1);
-  const xpForNextLevel = currentLevel * 1000;
-  const xpCurrentLevel = (currentLevel - 1) * 1000;
+  const currentLevel = Math.max(1, Math.floor(xp / 100) + 1);
+  const xpForNextLevel = currentLevel * 100;
+  const xpCurrentLevel = (currentLevel - 1) * 100;
   const xpProgress = xp - xpCurrentLevel;
   const xpRequiredSegment = xpForNextLevel - xpCurrentLevel;
   const percentage = Math.min(Math.round((xpProgress / xpRequiredSegment) * 100), 100);

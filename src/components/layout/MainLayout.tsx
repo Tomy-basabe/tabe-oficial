@@ -27,7 +27,8 @@ import {
   ICON_MAP,
   CustomSidebarItem,
   ALL_AVAILABLE_ITEMS,
-  DEFAULT_CATEGORIZED_SIDEBAR
+  DEFAULT_CATEGORIZED_SIDEBAR,
+  ensureTabeAISecond
 } from "@/lib/sidebar-configs";
 
 import { MobileNavbar } from "@/components/layout/MobileNavbar";
@@ -160,9 +161,10 @@ export function MainLayout() {
   const isLegacyOrIncomplete = !userConfig || !hasCategories(userConfig) || countTotalItems(userConfig) < 10;
 
   const displayItems: CustomSidebarItem[] = useMemo(() => {
-    return isLegacyOrIncomplete 
+    const raw = isLegacyOrIncomplete
       ? DEFAULT_CATEGORIZED_SIDEBAR 
       : [...userConfig];
+    return ensureTabeAISecond(raw);
   }, [isLegacyOrIncomplete, userConfig]);
 
   // Auto-expand category if current route is inside it
@@ -385,11 +387,21 @@ export function MainLayout() {
                       )}
                     />
                     {!isCollapsed && (
-                      <span className={cn("truncate", isInsideCategory ? "font-bold text-xs" : "font-black text-xs uppercase tracking-tight")}>
+                      <span className={cn("truncate flex-1 text-left", isInsideCategory ? "font-bold text-xs" : "font-black text-xs uppercase tracking-tight")}>
                         {item.label}
                       </span>
                     )}
-                    {isActive && !isCollapsed && (
+                    {!isCollapsed && (targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
+                      <span className={cn(
+                        "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
+                        isActive
+                          ? "bg-black text-white border-black"
+                          : "bg-[#00E5FF] text-black border-black shadow-[1px_1px_0_0_#000]"
+                      )}>
+                        AI
+                      </span>
+                    )}
+                    {isActive && !isCollapsed && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
                       <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
                     )}
                   </Link>

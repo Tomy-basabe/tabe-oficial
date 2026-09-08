@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -140,9 +140,12 @@ export function useMarketplace() {
   const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
   const [userInventory, setUserInventory] = useState<InventoryItem[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
 
   const fetchPublicResources = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedOnceRef.current) {
+      setLoading(true);
+    }
 
     try {
       const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
@@ -223,6 +226,7 @@ export function useMarketplace() {
     } catch (error) {
       console.error("Error fetching public resources:", error);
     } finally {
+      hasLoadedOnceRef.current = true;
       setLoading(false);
     }
   }, [categoryFilter, searchTerm, yearFilter, subjectFilter]);

@@ -50,25 +50,31 @@ export default function Metrics() {
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
   const [showManualDialog, setShowManualDialog] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    if (!user && !isGuest) return;
-    setLoading(true);
+  const fetchData = useCallback(async (isInitial = false) => {
+    if (!user && !isGuest) {
+      setLoading(false);
+      return;
+    }
+    if (isInitial && sessions.length === 0) {
+      setLoading(true);
+    }
 
     if (isGuest) {
       const today = new Date();
       const mockSessions: StudySession[] = [];
       const types = ["pomodoro", "flashcard", "estudio", "videocall"];
 
+      // Deterministic demo sessions based on day index
       for (let i = 0; i < 30; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
 
-        const sessionsToday = Math.floor(Math.random() * 3) + 1;
-        for (let j = 0; j < sessionsToday; j++) {
+        const count = ((i * 7 + 3) % 3) + 1;
+        for (let j = 0; j < count; j++) {
           mockSessions.push({
             fecha: toLocalDateStr(d),
-            duracion_segundos: Math.floor(Math.random() * 3600) + 1800,
-            tipo: types[Math.floor(Math.random() * types.length)],
+            duracion_segundos: 1800 + ((i * 13 + j * 17) % 3600),
+            tipo: types[(i + j) % types.length],
             subject_id: j % 2 === 0 ? "mock-sub-1" : "mock-sub-2"
           });
         }
@@ -104,27 +110,31 @@ export default function Metrics() {
     } finally {
       setLoading(false);
     }
-  }, [user, isGuest, dateRange]);
+  }, [user?.id, isGuest, dateRange.from?.getTime(), dateRange.to?.getTime()]);
 
   useEffect(() => {
+    let mounted = true;
     const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
+      if (mounted) setLoading(false);
+    }, 1500);
 
-    fetchData().finally(() => {
+    fetchData(true).finally(() => {
       clearTimeout(timer);
-      setLoading(false);
+      if (mounted) setLoading(false);
     });
 
-    return () => clearTimeout(timer);
-  }, [user, isGuest, fetchData]);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, [fetchData]);
 
   // Listen to realtime study sessions updates (e.g. from exit-saves during navigation)
   useRealtimeSubscription({
     table: "study_sessions",
     filter: user ? `user_id=eq.${user.id}` : undefined,
     onChange: useCallback(() => {
-      fetchData();
+      fetchData(false);
     }, [fetchData]),
     enabled: !!user,
   });
@@ -469,7 +479,7 @@ export default function Metrics() {
                 </div>
               </div>
 
-              {loading ? (
+              {loading && sessions.length === 0 ? (
                 <div className="h-48 flex items-center justify-center">
                   <div className="w-8 h-8 border-4 border-foreground border-t-transparent rounded-full animate-spin" />
                 </div>
@@ -512,7 +522,7 @@ export default function Metrics() {
             <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5">
               <h3 className="font-black uppercase text-lg mb-4 text-foreground">Por Materia</h3>
 
-              {loading ? (
+              {loading && subjects.length === 0 ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="animate-pulse">
