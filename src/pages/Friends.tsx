@@ -121,6 +121,18 @@ export default function Friends() {
     }
   };
 
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredFriends = friends.filter((friendship) => {
+    if (!normalizedSearchQuery) return true;
+
+    const profile = friendship.friend;
+    return Boolean(
+      profile.nombre?.toLowerCase().includes(normalizedSearchQuery) ||
+      profile.username?.toLowerCase().includes(normalizedSearchQuery) ||
+      profile.display_id.toString().includes(normalizedSearchQuery)
+    );
+  });
+
   return (
     <div className="min-h-screen p-4 md:p-6 space-y-6">
       {/* Header */}
@@ -409,16 +421,15 @@ export default function Friends() {
                 Agregar tu primer amigo
               </Button>
             </div>
+          ) : filteredFriends.length === 0 ? (
+            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-12 text-center">
+              <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" strokeWidth={2} />
+              <p className="font-black text-foreground text-xl uppercase">No se encontraron amigos</p>
+              <p className="font-bold text-muted-foreground mt-2">Prueba con otro nombre, username o ID.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {friends
-                .filter(f =>
-                  !searchQuery ||
-                  f.friend.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  f.friend.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  f.friend.display_id.toString().includes(searchQuery)
-                )
-                .map((friendship) => {
+              {filteredFriends.map((friendship) => {
                   const stat = friendStats.find(s => s.user_id === friendship.friend.user_id);
 
                   return (
@@ -470,7 +481,7 @@ export default function Friends() {
                       )}
                     </div>
                   );
-                })}
+              })}
             </div>
           )}
 

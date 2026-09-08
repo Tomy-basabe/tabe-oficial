@@ -30,8 +30,7 @@ import { useComic } from "@/components/comic/ComicEffectsProvider";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { isGoogleCalendarConnected } from "@/lib/googleCalendarSync";
 import { cn } from "@/lib/utils";
-
-const STORAGE_KEY = "pomodoro-settings";
+import { usePomodoro } from "@/contexts/PomodoroContext";
 
 interface PomodoroSettingsType {
   work: number;
@@ -39,34 +38,6 @@ interface PomodoroSettingsType {
   longBreak: number;
   longBreakInterval: number;
 }
-
-const defaultSettings: PomodoroSettingsType = {
-  work: 25,
-  shortBreak: 5,
-  longBreak: 15,
-  longBreakInterval: 4,
-};
-
-const loadSettings = (): PomodoroSettingsType => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return { ...defaultSettings, ...parsed };
-    }
-  } catch {
-    // Fallback to defaults
-  }
-  return defaultSettings;
-};
-
-const saveSettings = (settings: PomodoroSettingsType): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch {
-    // Storage not available
-  }
-};
 
 export default function Settings() {
   const { 
@@ -83,7 +54,7 @@ export default function Settings() {
   } = useAuth();
   const { comicMode, toggleComicMode, soundEnabled, toggleSound, triggerBurst } = useComic();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettingsType>(loadSettings);
+  const { settings: pomodoroSettings, updateSettings } = usePomodoro();
   const { theme, setTheme } = useTheme();
   const [botStatus, setBotStatus] = useState<{ telegram_id: any; whatsapp_number: any; linking_code: string | null } | null>(null);
   const [loadingBot, setLoadingBot] = useState(false);
@@ -159,9 +130,7 @@ export default function Settings() {
       Math.min(limits[key].max, pomodoroSettings[key] + delta)
     );
 
-    const newSettings = { ...pomodoroSettings, [key]: newValue };
-    setPomodoroSettings(newSettings);
-    saveSettings(newSettings);
+    updateSettings({ ...pomodoroSettings, [key]: newValue });
   };
 
   useEffect(() => {
@@ -358,7 +327,7 @@ export default function Settings() {
 
       {/* Virtual Assistant Section */}
       {!isGuest && (
-        <div className="space-y-3">
+        <div id="assistant-bot-section" className="space-y-3">
           <h3 className="font-black uppercase text-lg text-foreground">Asistente Virtual (Bot)</h3>
           <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl overflow-hidden transition-all">
             <button
@@ -624,7 +593,17 @@ export default function Settings() {
               </button>
             )}
           </div>
-          <button className="w-full flex items-center gap-4 p-5 hover:bg-muted/50 transition-colors text-left">
+          <button
+            onClick={() => {
+              if (isGuest) {
+                toast.info("Iniciá sesión para conectar servicios externos.");
+                return;
+              }
+              setExpandedSection("bot");
+              document.getElementById("assistant-bot-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            className="w-full flex items-center gap-4 p-5 hover:bg-muted/50 transition-colors text-left"
+          >
             <div className="w-12 h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-muted flex items-center justify-center">
               <Link className="w-6 h-6 text-foreground" strokeWidth={2.5} />
             </div>

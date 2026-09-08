@@ -273,6 +273,7 @@ export default function Pomodoro() {
               <button
                 onClick={() => setShowSettings(!showSettings)}
                 disabled={isRinging}
+                aria-label="Abrir configuración de Pomodoro"
                 className={cn(
                   "p-4 rounded-xl border-[3px] border-foreground transition-all duration-200",
                   isRinging ? "opacity-30 cursor-not-allowed" : showSettings ? "bg-primary text-primary-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[2px]" : "bg-muted text-foreground hover:bg-muted/80 shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))]"

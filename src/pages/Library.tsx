@@ -369,6 +369,11 @@ export default function Library() {
   };
 
   const fetchFiles = async () => {
+    if (!user && !isGuest) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     if (isGuest) {
@@ -420,7 +425,24 @@ export default function Library() {
   };
 
   const createFolder = async () => {
-    if (!user || !newFolderName.trim()) return;
+    if (!newFolderName.trim()) return;
+
+    if (isGuest) {
+      setFolders((current) => [...current, {
+        id: `mock-folder-${Date.now()}`,
+        nombre: newFolderName.trim(),
+        color: newFolderColor,
+        subject_id: newFolderSubject || selectedSubjectId || null,
+        parent_folder_id: currentFolderId,
+        created_at: new Date().toISOString(),
+      }]);
+      toast.success("¡Carpeta creada en modo demo!");
+      setNewFolderName("");
+      setNewFolderSubject("");
+      setNewFolderYear(null);
+      setShowFolderModal(false);
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -448,6 +470,26 @@ export default function Library() {
   };
 
   const deleteFolder = async (folderId: string) => {
+    if (isGuest) {
+      const childFolderIds = new Set<string>([folderId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        folders.forEach((folder) => {
+          if (folder.parent_folder_id && childFolderIds.has(folder.parent_folder_id) && !childFolderIds.has(folder.id)) {
+            childFolderIds.add(folder.id);
+            changed = true;
+          }
+        });
+      }
+      setFolders((current) => current.filter((folder) => !childFolderIds.has(folder.id)));
+      setFiles((current) => current.filter((file) => !file.folder_id || !childFolderIds.has(file.folder_id)));
+      if (childFolderIds.has(currentFolderId || "")) navigateToFolder(null);
+      setSelectedIds(new Set());
+      toast.success("Carpeta eliminada en modo demo");
+      return;
+    }
+
     try {
       setLoading(true);
       // Recursively find all nested folders and files to delete their storage
@@ -505,7 +547,17 @@ export default function Library() {
   };
 
   const updateFolder = async () => {
-    if (!user || !editingFolder || !editFolderName.trim()) return;
+    if (!editingFolder || !editFolderName.trim()) return;
+
+    if (isGuest) {
+      setFolders((current) => current.map((folder) => folder.id === editingFolder.id
+        ? { ...folder, nombre: editFolderName.trim(), color: editFolderColor, subject_id: editFolderSubject || null }
+        : folder));
+      toast.success("Carpeta actualizada en modo demo");
+      setShowEditFolderModal(false);
+      setEditingFolder(null);
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -631,7 +683,36 @@ export default function Library() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
+
+    if (isGuest) {
+      const fileCheck = validateFileUpload(file);
+      if (!fileCheck.valid) {
+        toast.error(fileCheck.error || "Archivo no válido");
+        return;
+      }
+
+      let tipo: "pdf" | "imagen" | "otro" = "otro";
+      if (file.type === "application/pdf") tipo = "pdf";
+      else if (file.type.startsWith("image/")) tipo = "imagen";
+
+      setFiles((current) => [...current, {
+        id: `mock-file-${Date.now()}`,
+        nombre: file.name,
+        tipo,
+        url: URL.createObjectURL(file),
+        storage_path: null,
+        tamaño_bytes: file.size,
+        subject_id: uploadSubject || selectedSubjectId || null,
+        folder_id: currentFolderId,
+        created_at: new Date().toISOString(),
+      }]);
+      toast.success("¡Archivo agregado en modo demo!");
+      setShowUploadModal(false);
+      setUploadSubject("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     // If it's a ZIP, extract and upload contents
     if (file.name.toLowerCase().endsWith(".zip") || file.type === "application/zip" || file.type === "application/x-zip-compressed") {
@@ -941,7 +1022,27 @@ export default function Library() {
   };
 
   const addLink = async () => {
-    if (!user || !linkUrl.trim() || !linkName.trim()) return;
+    if (!linkUrl.trim() || !linkName.trim()) return;
+
+    if (isGuest) {
+      setFiles((current) => [...current, {
+        id: `mock-link-${Date.now()}`,
+        nombre: linkName.trim(),
+        tipo: "link",
+        url: linkUrl.trim(),
+        storage_path: null,
+        tamaño_bytes: null,
+        subject_id: uploadSubject || selectedSubjectId || null,
+        folder_id: currentFolderId,
+        created_at: new Date().toISOString(),
+      }]);
+      toast.success("¡Link agregado en modo demo!");
+      setShowLinkModal(false);
+      setUploadSubject("");
+      setLinkUrl("");
+      setLinkName("");
+      return;
+    }
 
     try {
       const subjectToUse = uploadSubject || selectedSubjectId;
@@ -972,6 +1073,17 @@ export default function Library() {
   };
 
   const deleteFile = async (file: LibraryFile) => {
+    if (isGuest) {
+      setFiles((current) => current.filter((item) => item.id !== file.id));
+      setSelectedIds((current) => {
+        const next = new Set(current);
+        next.delete(file.id);
+        return next;
+      });
+      toast.success("Archivo eliminado en modo demo");
+      return;
+    }
+
     try {
       if (file.storage_path) {
         await supabase.storage.from('library-files').remove([file.storage_path]);

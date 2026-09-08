@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -68,6 +68,8 @@ export function useFriends() {
     }
   }, [user]);
 
+  const hasLoadedRef = useRef(false);
+
   const fetchFriendships = useCallback(async () => {
     if (!user && !isGuest) {
       setLoading(false);
@@ -75,6 +77,13 @@ export function useFriends() {
     }
 
     if (isGuest) {
+      setMyProfile({
+        user_id: "guest",
+        username: "invitado_pro",
+        display_id: 999,
+        nombre: "Invitado Pro",
+        avatar_url: null
+      });
       setFriends([
         {
           id: "mock-friend-1",
@@ -104,11 +113,14 @@ export function useFriends() {
         }
       ]);
       setSentRequests([]);
+      hasLoadedRef.current = true;
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (!hasLoadedRef.current) {
+      setLoading(true);
+    }
 
     try {
       // Fetch all friendships where user is involved
@@ -213,7 +225,7 @@ export function useFriends() {
     console.error("Error fetching friends:", err);
     setLoading(false);
   }
-}, [user]);
+}, [user, isGuest]);
 
   const fetchFriendStats = useCallback(async () => {
     if ((!user && !isGuest) || friends.length === 0) {
@@ -309,7 +321,7 @@ export function useFriends() {
     });
 
     setFriendStats(friendStatsData);
-  }, [user, friends]);
+  }, [user, friends, myProfile, isGuest]);
 
   const sendFriendRequest = async (identifier: string) => {
     if (!user) return { error: "No autenticado" };
@@ -397,6 +409,18 @@ export function useFriends() {
   };
 
   const respondToRequest = async (friendshipId: string, accept: boolean) => {
+    if (isGuest) {
+      const request = pendingRequests.find((item) => item.id === friendshipId);
+      if (!request) return;
+
+      setPendingRequests((current) => current.filter((item) => item.id !== friendshipId));
+      if (accept) {
+        setFriends((current) => [...current, { ...request, status: "accepted" }]);
+      }
+      toast.success(accept ? "¡Solicitud aceptada!" : "Solicitud rechazada");
+      return;
+    }
+
     const { error } = await supabase
       .from("friendships")
       .update({ status: accept ? 'accepted' : 'rejected' })
@@ -412,6 +436,12 @@ export function useFriends() {
   };
 
   const removeFriend = async (friendshipId: string) => {
+    if (isGuest) {
+      setFriends((current) => current.filter((friendship) => friendship.id !== friendshipId));
+      toast.success("Amigo eliminado");
+      return;
+    }
+
     const { error } = await supabase
       .from("friendships")
       .delete()
@@ -435,6 +465,11 @@ export function useFriends() {
 
     if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
       return { error: "Solo letras, números y guiones bajos" };
+    }
+
+    if (isGuest) {
+      setMyProfile((current) => current ? { ...current, username: newUsername.toLowerCase() } : current);
+      return { error: null };
     }
 
     const { error } = await supabase
@@ -468,6 +503,11 @@ export function useFriends() {
     fetchFriendStats();
   }, [fetchFriendStats]);
 
+  const fetchFriendshipsRef = useRef(fetchFriendships);
+  useEffect(() => {
+    fetchFriendshipsRef.current = fetchFriendships;
+  }, [fetchFriendships]);
+
   // Realtime subscription
   useEffect(() => {
     if (!user) return;
@@ -476,12 +516,12 @@ export function useFriends() {
     const debouncedFetch = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        fetchFriendships();
+        fetchFriendshipsRef.current?.();
       }, 300);
     };
 
     const channel = supabase
-      .channel(`friendships-changes-${user.id}-${Math.random().toString(36).slice(2, 7)}`)
+      .channel(`friendships-changes-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -508,7 +548,7 @@ export function useFriends() {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [user, fetchFriendships]);
+  }, [user?.id]);
 
   return {
     friends,

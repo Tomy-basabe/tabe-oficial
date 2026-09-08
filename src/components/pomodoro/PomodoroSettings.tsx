@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Minus, Plus, X, Volume2, Repeat } from "lucide-react";
+import { Minus, Plus, X, Volume2, Repeat, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -95,6 +95,12 @@ export function PomodoroSettings({
     { key: "longBreakInterval" as const, label: "INTERVALO LARGO", unit: "pomodoros", color: "text-foreground" },
   ];
 
+  const presets = [
+    { label: "Clásico", values: { work: 25, shortBreak: 5, longBreak: 15, longBreakInterval: 4 } },
+    { label: "Enfoque", values: { work: 50, shortBreak: 10, longBreak: 20, longBreakInterval: 4 } },
+    { label: "Rápido", values: { work: 15, shortBreak: 3, longBreak: 10, longBreakInterval: 4 } },
+  ] as const;
+
   return (
     <div className="p-5">
       <div className="flex items-center justify-between mb-6 pb-4 border-b-4 border-foreground">
@@ -107,6 +113,21 @@ export function PomodoroSettings({
         </button>
       </div>
       <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2 pb-4 border-b-2 border-dashed border-foreground/30">
+          <span className="w-full text-[10px] font-black uppercase tracking-wider text-muted-foreground">PREESTABLECIDOS</span>
+          {presets.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              disabled={isRunning}
+              onClick={() => onSettingsChange({ ...settings, ...preset.values })}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-foreground border-2 border-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-[#00f0ff] hover:text-black active:translate-y-[2px] active:shadow-none disabled:opacity-50"
+            >
+              {preset.label === "Clásico" && <RotateCcw className="w-3.5 h-3.5" />}
+              {preset.label}
+            </button>
+          ))}
+        </div>
         {settingsConfig.map(({ key, label, unit, color }) => (
           <div key={key} className="flex items-center justify-between">
             <span className="font-bold text-foreground text-sm uppercase tracking-wider">{label}</span>

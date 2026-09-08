@@ -18,6 +18,7 @@ export interface PomodoroSettings {
 }
 
 const STORAGE_KEY = "pomodoro-settings";
+const CLOUD_SETTINGS_KEY = "pomodoro_settings";
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
     work: 25,
@@ -102,7 +103,23 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             };
             fetchToday();
         }
-    }, [user]);
+    }, [user, isGuest]);
+
+    // Account settings take precedence over browser-local settings so a new
+    // browser restores the same configuration after signing in.
+    useEffect(() => {
+        if (!user || isGuest) return;
+
+        const cloudSettings = user.user_metadata?.[CLOUD_SETTINGS_KEY];
+        if (!cloudSettings || typeof cloudSettings !== "object") return;
+
+        const nextSettings = { ...DEFAULT_SETTINGS, ...cloudSettings } as PomodoroSettings;
+        setPomodoroSettings(nextSettings);
+        if (!isActive) {
+            setTimeLeft(getMinutesForMode(mode, nextSettings) * 60);
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
+    }, [user, isGuest]);
 
     // Listen for localStorage changes from Settings page
     useEffect(() => {
@@ -126,6 +143,14 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
         if (!isActive) {
             setTimeLeft(getMinutesForMode(mode, newSettings) * 60);
+        }
+
+        if (user && !isGuest) {
+            supabase.auth.updateUser({
+                data: { [CLOUD_SETTINGS_KEY]: newSettings },
+            }).then(({ error }) => {
+                if (error) console.error("Error saving Pomodoro settings:", error);
+            });
         }
     };
     // Timer Tick (Background Tab Throttling Safe)
