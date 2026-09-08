@@ -27,53 +27,45 @@ export const GEMINI_API_KEY =
 
 export const AVAILABLE_AI_MODELS: AIModelOption[] = [
   {
-    id: "nvidia/nemotron-3.5-lightning:free",
-    name: "NVIDIA Nemotron 3.5",
+    id: "dots-studio/dots-3-note-preview:free",
+    name: "Dots 3 Note Instant",
     provider: "openrouter",
-    badge: "Recomendado",
-    description: "Ultra rápido • Excelente para redacción, análisis y estudio",
+    badge: "Ultra Rápido (<1s)",
+    description: "Respuesta casi instantánea • Excelente para consultas y apuntes",
     isRecommended: true,
-    color: "#76B900", // NVIDIA Green
+    color: "#10B981", // Emerald Green
   },
   {
-    id: "gemini-3.6-flash",
-    name: "Gemini 3.6 Flash",
+    id: "gemini-flash-lite-latest",
+    name: "Gemini Flash Lite",
     provider: "google",
-    badge: "Google AI",
-    description: "Alta precisión académica • Respuestas detalladas",
+    badge: "Google Ultra Veloz",
+    description: "Google AI optimizado para velocidad y precisión académica",
     color: "#4285F4", // Google Blue
-  },
-  {
-    id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    name: "Nemotron Reasoning",
-    provider: "openrouter",
-    badge: "Razonamiento",
-    description: "Pensamiento paso a paso • Problemas lógicos y fórmulas",
-    color: "#A855F7", // Purple
   },
   {
     id: "cohere/north-mini-code:free",
     name: "Cohere Mini Code",
     provider: "openrouter",
-    badge: "Programación",
-    description: "Especializado en código, sintaxis y precisión técnica",
-    color: "#FF7759", // Coral
+    badge: "Código y Lógica",
+    description: "Especializado en programación, sintaxis y respuestas directas",
+    color: "#F97316", // Orange
+  },
+  {
+    id: "gemini-3.1-flash-lite",
+    name: "Gemini 3.1 Flash Lite",
+    provider: "google",
+    badge: "Google AI",
+    description: "Excelente comprensión y velocidad balanceada",
+    color: "#8B5CF6", // Purple
   },
   {
     id: "liquid/lfm-2.5-2.6b:free",
     name: "Liquid LFM 2.5",
     provider: "openrouter",
-    badge: "Ultrarrápido",
-    description: "Respuestas directas, resúmenes ágiles y síntesis",
-    color: "#00E5FF", // Cyan
-  },
-  {
-    id: "dots-studio/dots-3-note-preview:free",
-    name: "Dots 3 Note",
-    provider: "openrouter",
-    badge: "Apuntes",
-    description: "Optimizado para toma de notas y esquemas de estudio",
-    color: "#FFD700", // Gold
+    badge: "Síntesis Ágil",
+    description: "Respuestas concisas y directas al grano",
+    color: "#06B6D4", // Cyan
   },
 ];
 

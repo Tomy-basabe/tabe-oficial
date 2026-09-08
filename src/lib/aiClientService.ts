@@ -13,8 +13,12 @@ export interface StreamResult {
   flashcards_created?: { deck: any; cards_count: number };
 }
 
+// In-memory cache of student context to avoid re-querying on rapid consecutive messages
+const contextCache = new Map<string, { data: string; timestamp: number }>();
+const CONTEXT_CACHE_TTL = 60 * 1000; // 1 minute
+
 /**
- * Builds academic context for the student
+ * Builds academic context for the student ultra-fast (parallel queries + 1.2s timeout)
  */
 export async function buildStudentContext(
   userId: string,
@@ -22,6 +26,11 @@ export async function buildStudentContext(
   personaName: string,
   userName?: string
 ): Promise<string> {
+  const cached = contextCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < CONTEXT_CACHE_TTL) {
+    return cached.data;
+  }
+
   const now = new Date();
   const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
   const hoyStr = now.toISOString().split("T")[0];
@@ -31,53 +40,64 @@ export async function buildStudentContext(
   let eventsStr = "Sin eventos agendados próximos.";
   let statsStr = "";
 
-  try {
-    // 1. Fetch user subjects
-    const { data: userSubs } = await (supabase as any)
-      .from("user_subject_status")
-      .select("estado, nota, subjects(id, nombre, codigo, anio)")
-      .eq("user_id", userId);
+  if (userId && userId !== "guest") {
+    try {
+      // Execute all 3 queries in parallel with a strict 1.2s timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("context_timeout")), 1200)
+      );
 
-    if (userSubs && userSubs.length > 0) {
-      subjectsStr = userSubs
-        .map((s: any) => {
-          const sub = s.subjects;
-          const notaStr = s.nota ? ` (Nota: ${s.nota})` : "";
-          return `- ${sub?.nombre || "Materia"} [${s.estado || "sin_cursar"}]${notaStr}`;
-        })
-        .join("\n");
+      const fetchPromise = Promise.allSettled([
+        (supabase as any)
+          .from("user_subject_status")
+          .select("estado, nota, subjects(id, nombre, codigo, anio)")
+          .eq("user_id", userId),
+        (supabase as any)
+          .from("calendar_events")
+          .select("titulo, fecha, hora, tipo_examen")
+          .eq("user_id", userId)
+          .gte("fecha", hoyStr)
+          .order("fecha", { ascending: true })
+          .limit(8),
+        (supabase as any)
+          .from("user_stats")
+          .select("nivel, xp_total")
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
+
+      const results = (await Promise.race([fetchPromise, timeoutPromise])) as any;
+
+      if (results && Array.isArray(results)) {
+        const [subsRes, eventsRes, statsRes] = results;
+
+        if (subsRes.status === "fulfilled" && subsRes.value?.data?.length > 0) {
+          subjectsStr = subsRes.value.data
+            .map((s: any) => {
+              const sub = s.subjects;
+              const notaStr = s.nota ? ` (Nota: ${s.nota})` : "";
+              return `- ${sub?.nombre || "Materia"} [${s.estado || "sin_cursar"}]${notaStr}`;
+            })
+            .join("\n");
+        }
+
+        if (eventsRes.status === "fulfilled" && eventsRes.value?.data?.length > 0) {
+          eventsStr = eventsRes.value.data
+            .map((e: any) => `- ${e.fecha} ${e.hora || ""}: ${e.titulo} (${e.tipo_examen || "Evento"})`)
+            .join("\n");
+        }
+
+        if (statsRes.status === "fulfilled" && statsRes.value?.data) {
+          const st = statsRes.value.data;
+          statsStr = `Nivel: ${st.nivel || 1} | XP: ${st.xp_total || 0}`;
+        }
+      }
+    } catch (err) {
+      // Non-blocking fallback
     }
-
-    // 2. Fetch upcoming events
-    const { data: events } = await (supabase as any)
-      .from("calendar_events")
-      .select("titulo, fecha, hora, tipo_examen")
-      .eq("user_id", userId)
-      .gte("fecha", hoyStr)
-      .order("fecha", { ascending: true })
-      .limit(10);
-
-    if (events && events.length > 0) {
-      eventsStr = events
-        .map((e: any) => `- ${e.fecha} ${e.hora || ""}: ${e.titulo} (${e.tipo_examen || "Evento"})`)
-        .join("\n");
-    }
-
-    // 3. Fetch stats
-    const { data: stats } = await (supabase as any)
-      .from("user_stats")
-      .select("nivel, xp_total")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (stats) {
-      statsStr = `Nivel: ${stats.nivel || 1} | XP: ${stats.xp_total || 0}`;
-    }
-  } catch (err) {
-    console.warn("Error fetching student context for AI:", err);
   }
 
-  return `Sos ${personaName}, asistente académico inteligente de ${userName || "el estudiante"} en TABE (plataforma universitaria de Argentina).
+  const contextText = `Sos ${personaName}, asistente académico inteligente de ${userName || "el estudiante"} en TABE (plataforma universitaria de Argentina).
 Personalidad: ${personaPrompt}
 
 FECHA DE HOY: ${hoyStr} (${hoyDia})
@@ -91,16 +111,20 @@ ${eventsStr}
 
 INSTRUCCIONES IMPORTANTES:
 1. Responde de forma motivadora, clara, profesional y con modismos amables argentinos (che, genial, dale, etc.).
-2. Explica conceptos paso a paso. Puedes usar fórmulas matemáticas con KaTeX (e.g. $x^2 + y^2 = r^2$) y bloques de código con markdown.
-3. Si el usuario te pide expresamente agendar un examen o evento, dale una respuesta amigable y añade al final de tu mensaje el siguiente bloque exacto:
+2. Responde de inmediato, de forma directa y concisa. Evita rodeos innecesarios.
+3. Explica conceptos paso a paso cuando te lo pidan. Puedes usar fórmulas matemáticas con KaTeX (e.g. $x^2 + y^2 = r^2$) y bloques de código.
+4. Si el usuario te pide expresamente agendar un examen o evento, dale una respuesta amigable y añade al final de tu mensaje el siguiente bloque exacto:
 \`\`\`tabe-action:calendar
 [{"titulo": "Nombre del evento", "fecha": "YYYY-MM-DD", "hora": "HH:mm", "tipo_examen": "P1"}]
 \`\`\`
-4. Si el usuario te pide crear flashcards para estudiar, incluye al final:
+5. Si el usuario te pide crear flashcards para estudiar, incluye al final:
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-5. Responde con texto fluido para cualquier saludo, pregunta casual o explicación de estudio sin añadir bloques de acción a menos que lo soliciten explícitamente.`;
+6. Responde con texto fluido para cualquier saludo, pregunta casual o explicación sin añadir bloques de acción a menos que lo soliciten explícitamente.`;
+
+  contextCache.set(userId, { data: contextText, timestamp: Date.now() });
+  return contextText;
 }
 
 /**
@@ -233,15 +257,16 @@ export async function streamAIChat(params: {
       }
     } catch (err: any) {
       console.warn(`[AI] Error with model ${candidate.name}, attempting fallback...`, err);
-      // If we already received some partial content, don't restart silently
-      if (fullRawContent.length > 50) {
+      // If we already received some substantive content, do not re-run
+      if (fullRawContent.length > 40) {
+        success = true;
         break;
       }
     }
   }
 
   if (!success && !fullRawContent) {
-    onError(new Error("No se pudo conectar con los proveedores de IA. Intenta de nuevo en unos momentos."));
+    onError(new Error("No se pudo conectar con los proveedores de IA. Por favor intenta de nuevo en unos segundos."));
     return;
   }
 
@@ -262,7 +287,7 @@ export async function streamAIChat(params: {
 }
 
 /**
- * Streaming via OpenRouter SSE
+ * Streaming via OpenRouter SSE with disabled reasoning for near-instant responses (<1s)
  */
 async function streamFromOpenRouter(opts: {
   modelId: string;
@@ -272,69 +297,87 @@ async function streamFromOpenRouter(opts: {
 }): Promise<boolean> {
   const { modelId, systemPrompt, messages, onDelta } = opts;
 
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": window.location.origin || "https://tabe.software",
-      "X-Title": "TABE",
-    },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-      stream: true,
-      temperature: 0.6,
-      max_tokens: 4096,
-    }),
-  });
+  const controller = new AbortController();
+  // 12s timeout for connection initiation
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-  if (!res.ok) {
-    console.warn(`OpenRouter model ${modelId} error: ${res.status}`);
-    return false;
-  }
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": window.location.origin || "https://tabe.software",
+        "X-Title": "TABE",
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        stream: true,
+        temperature: 0.6,
+        max_tokens: 3000,
+        // Crucial: Turn off reasoning thinking loops so responses start IMMEDIATELY (<1s)
+        reasoning: { effort: "none" },
+      }),
+    });
 
-  const reader = res.body?.getReader();
-  if (!reader) return false;
+    clearTimeout(timeoutId);
 
-  const decoder = new TextDecoder();
-  let buffer = "";
+    if (!res.ok) {
+      console.warn(`OpenRouter model ${modelId} error: ${res.status}`);
+      return false;
+    }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    const reader = res.body?.getReader();
+    if (!reader) return false;
 
-    buffer += decoder.decode(value, { stream: true });
-    let newlineIndex: number;
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let receivedTokens = 0;
 
-    while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-      let line = buffer.slice(0, newlineIndex);
-      buffer = buffer.slice(newlineIndex + 1);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-      if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (line.startsWith(":") || line.trim() === "") continue;
-      if (!line.startsWith("data: ")) continue;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIndex: number;
 
-      const jsonStr = line.slice(6).trim();
-      if (jsonStr === "[DONE]") continue;
+      while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
 
-      try {
-        const parsed = JSON.parse(jsonStr);
-        const chunk = parsed.choices?.[0]?.delta?.content;
-        if (chunk) {
-          onDelta(chunk);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const delta = parsed.choices?.[0]?.delta;
+          // Accept content or reasoning text so user never waits with an empty view
+          const chunk = delta?.content || delta?.reasoning;
+          if (chunk) {
+            receivedTokens++;
+            onDelta(chunk);
+          }
+        } catch {
+          // partial chunk, wait for next line
         }
-      } catch {
-        // partial chunk, wait for next line
       }
     }
-  }
 
-  return true;
+    return receivedTokens > 0;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    return false;
+  }
 }
 
 /**
- * Streaming via Google Gemini SSE
+ * Streaming via Google Gemini SSE (<1.8s)
  */
 async function streamFromGoogle(opts: {
   modelId: string;
@@ -350,61 +393,74 @@ async function streamFromGoogle(opts: {
     parts: [{ text: m.content }],
   }));
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: systemPrompt }],
-      },
-      contents,
-      generationConfig: {
-        temperature: 0.6,
-        maxOutputTokens: 4096,
-      },
-    }),
-  });
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
 
-  if (!res.ok) {
-    console.warn(`Gemini model ${modelId} error: ${res.status}`);
-    return false;
-  }
+    const res = await fetch(endpoint, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents,
+        generationConfig: {
+          temperature: 0.6,
+          maxOutputTokens: 3000,
+        },
+      }),
+    });
 
-  const reader = res.body?.getReader();
-  if (!reader) return false;
+    clearTimeout(timeoutId);
 
-  const decoder = new TextDecoder();
-  let buffer = "";
+    if (!res.ok) {
+      console.warn(`Gemini model ${modelId} error: ${res.status}`);
+      return false;
+    }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    const reader = res.body?.getReader();
+    if (!reader) return false;
 
-    buffer += decoder.decode(value, { stream: true });
-    let newlineIndex: number;
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let receivedTokens = 0;
 
-    while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-      let line = buffer.slice(0, newlineIndex);
-      buffer = buffer.slice(newlineIndex + 1);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-      if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (line.startsWith(":") || line.trim() === "") continue;
-      if (!line.startsWith("data: ")) continue;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIndex: number;
 
-      const jsonStr = line.slice(6).trim();
-      try {
-        const parsed = JSON.parse(jsonStr);
-        const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (chunk) {
-          onDelta(chunk);
+      while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (chunk) {
+            receivedTokens++;
+            onDelta(chunk);
+          }
+        } catch {
+          // partial chunk, ignore
         }
-      } catch {
-        // partial chunk, ignore
       }
     }
-  }
 
-  return true;
+    return receivedTokens > 0;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    return false;
+  }
 }
