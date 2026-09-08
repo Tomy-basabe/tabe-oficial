@@ -1,6 +1,11 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from "react";
+import React, { createContext, useContext, useState, useRef } from "react";
 import { useStreamingChat } from "@/hooks/useStreamingChat";
-import { AIModelOption, DEFAULT_AI_MODEL, AVAILABLE_AI_MODELS } from "@/config/aiModels";
+import {
+  AIModelOption,
+  DEFAULT_AI_MODEL,
+  AVAILABLE_AI_MODELS,
+  PowerEffort,
+} from "@/config/aiModels";
 
 export interface DisplayMessage {
   id: string;
@@ -20,6 +25,8 @@ interface AIChatContextProps {
   isStreaming: boolean;
   selectedModel: AIModelOption;
   setSelectedModel: (model: AIModelOption) => void;
+  powerLevel: PowerEffort;
+  setPowerLevel: (level: PowerEffort) => void;
   streamMessage: ReturnType<typeof useStreamingChat>["streamMessage"];
 }
 
@@ -44,6 +51,18 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     return DEFAULT_AI_MODEL;
   });
 
+  const [powerLevel, setPowerLevelState] = useState<PowerEffort>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("tabe_selected_ai_power_level") as PowerEffort;
+        if (saved && ["bajo", "medio", "alto"].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return "medio";
+  });
+
   const setSelectedModel = (model: AIModelOption) => {
     setSelectedModelState(model);
     try {
@@ -51,7 +70,14 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
-  const { isStreaming, streamMessage } = useStreamingChat(selectedModel);
+  const setPowerLevel = (level: PowerEffort) => {
+    setPowerLevelState(level);
+    try {
+      localStorage.setItem("tabe_selected_ai_power_level", level);
+    } catch {}
+  };
+
+  const { isStreaming, streamMessage } = useStreamingChat(selectedModel, powerLevel);
 
   return (
     <AIChatContext.Provider
@@ -66,6 +92,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
         isStreaming,
         selectedModel,
         setSelectedModel,
+        powerLevel,
+        setPowerLevel,
         streamMessage,
       }}
     >

@@ -1,10 +1,13 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { AIModelOption, DEFAULT_AI_MODEL } from "@/config/aiModels";
+import { AIModelOption, DEFAULT_AI_MODEL, PowerEffort } from "@/config/aiModels";
 import { buildStudentContext, streamAIChat, StreamResult } from "@/lib/aiClientService";
 
-export function useStreamingChat(activeModel: AIModelOption = DEFAULT_AI_MODEL) {
+export function useStreamingChat(
+  activeModel: AIModelOption = DEFAULT_AI_MODEL,
+  powerLevel: PowerEffort = "medio"
+) {
   const [isStreaming, setIsStreaming] = useState(false);
   const { user, isGuest } = useAuth();
 
@@ -16,7 +19,8 @@ export function useStreamingChat(activeModel: AIModelOption = DEFAULT_AI_MODEL) 
       onComplete: (result: StreamResult) => void,
       onError: (error: Error) => void,
       context_page?: string,
-      modelOverride?: AIModelOption
+      modelOverride?: AIModelOption,
+      powerOverride?: PowerEffort
     ) => {
       setIsStreaming(true);
 
@@ -40,6 +44,7 @@ export function useStreamingChat(activeModel: AIModelOption = DEFAULT_AI_MODEL) 
 
       try {
         const targetModel = modelOverride || activeModel;
+        const targetPower = powerOverride || powerLevel;
 
         // 1. Resolve Persona info
         let personaName = "T.A.B.E. IA";
@@ -68,14 +73,16 @@ export function useStreamingChat(activeModel: AIModelOption = DEFAULT_AI_MODEL) 
           user?.id || "guest",
           personaPrompt,
           personaName,
-          user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Estudiante"
+          user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Estudiante",
+          targetPower
         );
 
-        // 3. Stream with automatic provider fallback
+        // 3. Stream with automatic provider fallback and power level
         await streamAIChat({
           messages,
           systemPrompt,
           model: targetModel,
+          powerLevel: targetPower,
           userId: user?.id || "guest",
           onDelta,
           onComplete,
@@ -87,7 +94,7 @@ export function useStreamingChat(activeModel: AIModelOption = DEFAULT_AI_MODEL) 
         setIsStreaming(false);
       }
     },
-    [user, isGuest, activeModel]
+    [user, isGuest, activeModel, powerLevel]
   );
 
   return { isStreaming, streamMessage };

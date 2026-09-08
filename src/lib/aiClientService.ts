@@ -5,6 +5,7 @@ import {
   OPENROUTER_API_KEY,
   GEMINI_API_KEY,
   AIModelOption,
+  PowerEffort,
 } from "@/config/aiModels";
 
 export interface StreamResult {
@@ -24,9 +25,11 @@ export async function buildStudentContext(
   userId: string,
   personaPrompt: string,
   personaName: string,
-  userName?: string
+  userName?: string,
+  powerLevel: PowerEffort = "medio"
 ): Promise<string> {
-  const cached = contextCache.get(userId);
+  const cacheKey = `${userId}_${powerLevel}`;
+  const cached = contextCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CONTEXT_CACHE_TTL) {
     return cached.data;
   }
@@ -97,8 +100,15 @@ export async function buildStudentContext(
     }
   }
 
+  const powerDirectives = {
+    bajo: "POTENCIA / RAZONAMIENTO: BAJO. Da respuestas ultrarrápidas, sintéticas y al grano. Evita explicaciones extensas a menos que el usuario lo solicite.",
+    medio: "POTENCIA / RAZONAMIENTO: MEDIO. Explicaciones equilibradas, claras, estructuradas y con ejemplos prácticos.",
+    alto: "POTENCIA / RAZONAMIENTO: ALTO. Razonamiento profundo, desglose analítico riguroso paso a paso y deducción lógica completa.",
+  }[powerLevel];
+
   const contextText = `Sos ${personaName}, asistente académico inteligente de ${userName || "el estudiante"} en TABE (plataforma universitaria de Argentina).
 Personalidad: ${personaPrompt}
+MODALIDAD: ${powerDirectives}
 
 FECHA DE HOY: ${hoyStr} (${hoyDia})
 ${statsStr ? `PERFIL ESTUDIANTE: ${statsStr}` : ""}
@@ -111,19 +121,18 @@ ${eventsStr}
 
 INSTRUCCIONES IMPORTANTES:
 1. Responde de forma motivadora, clara, profesional y con modismos amables argentinos (che, genial, dale, etc.).
-2. Responde de inmediato, de forma directa y concisa. Evita rodeos innecesarios.
-3. Explica conceptos paso a paso cuando te lo pidan. Puedes usar fórmulas matemáticas con KaTeX (e.g. $x^2 + y^2 = r^2$) y bloques de código.
-4. Si el usuario te pide expresamente agendar un examen o evento, dale una respuesta amigable y añade al final de tu mensaje el siguiente bloque exacto:
+2. ${powerLevel === "bajo" ? "Responde de inmediato con máxima brevedad." : "Explica conceptos paso a paso cuando te lo pidan."} Puedes usar fórmulas matemáticas con KaTeX (e.g. $x^2 + y^2 = r^2$) y bloques de código.
+3. Si el usuario te pide expresamente agendar un examen o evento, dale una respuesta amigable y añade al final de tu mensaje el siguiente bloque exacto:
 \`\`\`tabe-action:calendar
 [{"titulo": "Nombre del evento", "fecha": "YYYY-MM-DD", "hora": "HH:mm", "tipo_examen": "P1"}]
 \`\`\`
-5. Si el usuario te pide crear flashcards para estudiar, incluye al final:
+4. Si el usuario te pide crear flashcards para estudiar, incluye al final:
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-6. Responde con texto fluido para cualquier saludo, pregunta casual o explicación sin añadir bloques de acción a menos que lo soliciten explícitamente.`;
+5. Responde con texto fluido para cualquier saludo, pregunta casual o explicación sin añadir bloques de acción a menos que lo soliciten explícitamente.`;
 
-  contextCache.set(userId, { data: contextText, timestamp: Date.now() });
+  contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
 }
 
@@ -208,12 +217,13 @@ export async function streamAIChat(params: {
   messages: Array<{ role: string; content: string }>;
   systemPrompt: string;
   model: AIModelOption;
+  powerLevel?: PowerEffort;
   userId: string;
   onDelta: (text: string) => void;
   onComplete: (result: StreamResult) => void;
   onError: (error: Error) => void;
 }): Promise<void> {
-  const { messages, systemPrompt, model, userId, onDelta, onComplete, onError } = params;
+  const { messages, systemPrompt, model, powerLevel = "medio", userId, onDelta, onComplete, onError } = params;
 
   // Build candidate models queue (chosen model first, then fallbacks)
   const candidateModels: AIModelOption[] = [
@@ -231,6 +241,7 @@ export async function streamAIChat(params: {
           modelId: candidate.id,
           systemPrompt,
           messages,
+          powerLevel,
           onDelta: (chunk) => {
             fullRawContent += chunk;
             onDelta(chunk);
@@ -245,6 +256,7 @@ export async function streamAIChat(params: {
           modelId: candidate.id,
           systemPrompt,
           messages,
+          powerLevel,
           onDelta: (chunk) => {
             fullRawContent += chunk;
             onDelta(chunk);
@@ -287,19 +299,25 @@ export async function streamAIChat(params: {
 }
 
 /**
- * Streaming via OpenRouter SSE with disabled reasoning for near-instant responses (<1s)
+ * Streaming via OpenRouter SSE with dynamic reasoning effort per power level
  */
 async function streamFromOpenRouter(opts: {
   modelId: string;
   systemPrompt: string;
   messages: Array<{ role: string; content: string }>;
+  powerLevel: PowerEffort;
   onDelta: (text: string) => void;
 }): Promise<boolean> {
-  const { modelId, systemPrompt, messages, onDelta } = opts;
+  const { modelId, systemPrompt, messages, powerLevel, onDelta } = opts;
 
   const controller = new AbortController();
   // 12s timeout for connection initiation
   const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+  const reasoningEffort =
+    powerLevel === "alto" ? "high" : powerLevel === "medio" ? "low" : "none";
+  const temperature = powerLevel === "alto" ? 0.7 : powerLevel === "bajo" ? 0.4 : 0.6;
+  const maxTokens = powerLevel === "alto" ? 4096 : powerLevel === "bajo" ? 1800 : 3000;
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -315,10 +333,9 @@ async function streamFromOpenRouter(opts: {
         model: modelId,
         messages: [{ role: "system", content: systemPrompt }, ...messages],
         stream: true,
-        temperature: 0.6,
-        max_tokens: 3000,
-        // Crucial: Turn off reasoning thinking loops so responses start IMMEDIATELY (<1s)
-        reasoning: { effort: "none" },
+        temperature,
+        max_tokens: maxTokens,
+        reasoning: { effort: reasoningEffort },
       }),
     });
 
@@ -383,9 +400,10 @@ async function streamFromGoogle(opts: {
   modelId: string;
   systemPrompt: string;
   messages: Array<{ role: string; content: string }>;
+  powerLevel: PowerEffort;
   onDelta: (text: string) => void;
 }): Promise<boolean> {
-  const { modelId, systemPrompt, messages, onDelta } = opts;
+  const { modelId, systemPrompt, messages, powerLevel, onDelta } = opts;
 
   // Convert conversation to Gemini contents
   const contents = messages.map((m) => ({
@@ -395,6 +413,9 @@ async function streamFromGoogle(opts: {
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+  const temperature = powerLevel === "alto" ? 0.7 : powerLevel === "bajo" ? 0.4 : 0.6;
+  const maxTokens = powerLevel === "alto" ? 4096 : powerLevel === "bajo" ? 1800 : 3000;
 
   try {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
@@ -409,8 +430,9 @@ async function streamFromGoogle(opts: {
         },
         contents,
         generationConfig: {
-          temperature: 0.6,
-          maxOutputTokens: 3000,
+          temperature,
+          maxOutputTokens: maxTokens,
+          ...(powerLevel === "bajo" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
         },
       }),
     });

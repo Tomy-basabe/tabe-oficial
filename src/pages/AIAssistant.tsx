@@ -51,7 +51,8 @@ export default function AIAssistant() {
     currentSessionId, setCurrentSessionId,
     currentSessionRef,
     isStreaming, streamMessage,
-    selectedModel, setSelectedModel
+    selectedModel, setSelectedModel,
+    powerLevel, setPowerLevel
   } = useAIChat();
 
   const {
@@ -471,6 +472,11 @@ export default function AIAssistant() {
                       setSelectedModel(m);
                       toast.success(`Modelo activo: ${m.name}`);
                     }}
+                    powerLevel={powerLevel}
+                    onSelectPowerLevel={(p) => {
+                      setPowerLevel(p);
+                      toast.success(`Potencia: ${p.toUpperCase()}`);
+                    }}
                     disabled={isStreaming}
                   />
                   <Button
@@ -582,22 +588,7 @@ export default function AIAssistant() {
               className="hidden"
               accept=".pdf,.txt,.md"
             />
-            <div className="flex gap-2 items-end bg-card p-3 rounded-xl border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))]">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-foreground mb-1 hover:bg-muted border-2 border-transparent hover:border-foreground rounded-lg"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || isStreaming}
-                title="Adjuntar PDF/Texto"
-              >
-                {isUploading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <Paperclip className="w-6 h-6" strokeWidth={2.5} />
-                )}
-              </Button>
-
+            <div className="flex flex-col bg-card p-3 rounded-2xl border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] transition-all focus-within:ring-2 focus-within:ring-primary">
               <textarea
                 value={inputValue}
                 onChange={(e) => {
@@ -617,36 +608,73 @@ export default function AIAssistant() {
                     ? "Procesando archivo..."
                     : `Preguntale a ${activePersona?.name || "tu IA"}... (Shift+Enter para nueva línea)`
                 }
-                className="flex-1 px-4 py-3 bg-transparent border-none focus:outline-none text-base font-bold placeholder:text-muted-foreground placeholder:font-bold resize-none overflow-y-auto text-foreground"
-                style={{ minHeight: "44px", maxHeight: "200px" }}
+                className="w-full px-2 py-1 bg-transparent border-none focus:outline-none text-base font-bold placeholder:text-muted-foreground placeholder:font-bold resize-none overflow-y-auto text-foreground"
+                style={{ minHeight: "48px", maxHeight: "200px" }}
                 rows={1}
                 disabled={isStreaming || isUploading}
               />
 
-              <div className="flex gap-2 pb-1 pr-1">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-foreground mb-1 hover:bg-muted border-2 border-transparent hover:border-foreground rounded-lg"
-                  onClick={startVoiceInput}
-                  title="Dictar por voz"
-                  disabled={isStreaming}
-                >
-                  <Mic className="w-6 h-6" strokeWidth={2.5} />
-                </Button>
-                <Button
-                  onClick={handleSend}
-                  disabled={!inputValue.trim() || isStreaming}
-                  size="icon"
-                  className={cn(
-                    "rounded-xl transition-all duration-300 border-4 border-foreground mb-1 h-12 w-12",
-                    inputValue.trim() && !isStreaming
-                      ? "bg-[#00E5FF] !text-black hover:bg-[#00cce6] hover:translate-y-[2px] shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                      : "bg-muted text-muted-foreground cursor-not-allowed shadow-[2px_2px_0_0_hsl(var(--foreground)/0.2)]"
-                  )}
-                >
-                  <Send className="w-6 h-6" strokeWidth={3} />
-                </Button>
+              {/* Barra inferior dentro del input: Paperclip + ModelSelector (como en la referencia) + Voz + Enviar */}
+              <div className="flex items-center justify-between pt-2 border-t border-foreground/15 mt-1 gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-foreground hover:bg-muted border-2 border-foreground/20 hover:border-foreground rounded-xl h-8 w-8 shrink-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading || isStreaming}
+                    title="Adjuntar PDF/Texto"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Paperclip className="w-4 h-4" strokeWidth={2.5} />
+                    )}
+                  </Button>
+
+                  {/* Seleccionador de Modelos de la A a la Z + Potencia (Bajo, Medio, Alto) */}
+                  <ModelSelector
+                    selectedModel={selectedModel}
+                    onSelectModel={(m) => {
+                      setSelectedModel(m);
+                      toast.success(`Modelo activo: ${m.name}`);
+                    }}
+                    powerLevel={powerLevel}
+                    onSelectPowerLevel={(p) => {
+                      setPowerLevel(p);
+                      toast.success(`Potencia: ${p.toUpperCase()}`);
+                    }}
+                    disabled={isStreaming}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-foreground hover:bg-muted border-2 border-foreground/20 hover:border-foreground rounded-xl h-8 w-8"
+                    onClick={startVoiceInput}
+                    title="Dictar por voz"
+                    disabled={isStreaming}
+                  >
+                    <Mic className="w-4 h-4" strokeWidth={2.5} />
+                  </Button>
+
+                  <Button
+                    onClick={handleSend}
+                    disabled={!inputValue.trim() || isStreaming}
+                    size="sm"
+                    className={cn(
+                      "rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-8 px-3 flex items-center gap-1.5",
+                      inputValue.trim() && !isStreaming
+                        ? "bg-[#00E5FF] !text-black hover:bg-[#00cce6] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                        : "bg-muted text-muted-foreground cursor-not-allowed border-foreground/30"
+                    )}
+                  >
+                    <span>Enviar</span>
+                    <Send className="w-3.5 h-3.5" strokeWidth={3} />
+                  </Button>
+                </div>
               </div>
             </div>
             <p className="text-[10px] text-center font-black uppercase text-muted-foreground mt-4">
