@@ -287,9 +287,20 @@ export default function AIAssistant() {
 
     let fullContent = "";
 
+    // onReset: called when the primary model fails and a fallback takes over.
+    // Clears the partial error text so the fallback response starts cleanly.
+    const handleReset = () => {
+      fullContent = "";
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId ? { ...m, content: "" } : m
+        )
+      );
+    };
+
     streamMessage(
       conversationHistory,
-      activePersona.id, // pass persona ID instead of personality string
+      activePersona.id,
       (delta) => {
         fullContent += delta;
         const cleaned = cleanAIResponse(fullContent);
@@ -322,7 +333,11 @@ export default function AIAssistant() {
             m.id === assistantMsgId ? { ...m, content: `Error: ${error.message}` } : m
           )
         );
-      }
+      },
+      undefined,   // context_page
+      undefined,   // modelOverride
+      undefined,   // powerOverride
+      handleReset  // onReset
     );
   };
 

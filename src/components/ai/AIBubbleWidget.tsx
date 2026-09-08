@@ -126,7 +126,17 @@ export function AIBubbleWidget() {
                     )
                 );
             },
-            currentContext
+            currentContext,
+            undefined,
+            undefined,
+            // onReset: limpia el mensaje si el modelo falla y entra el fallback
+            () => {
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m.id === assistantId ? { ...m, content: "" } : m
+                    )
+                );
+            }
         );
 
         setTimeout(scrollToBottom, 100);

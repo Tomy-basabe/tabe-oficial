@@ -20,7 +20,8 @@ export function useStreamingChat(
       onError: (error: Error) => void,
       context_page?: string,
       modelOverride?: AIModelOption,
-      powerOverride?: PowerEffort
+      powerOverride?: PowerEffort,
+      onReset?: () => void
     ) => {
       setIsStreaming(true);
 
@@ -85,6 +86,7 @@ export function useStreamingChat(
           powerLevel: targetPower,
           userId: user?.id || "guest",
           onDelta,
+          onReset,
           onComplete,
           onError,
         });

@@ -41,6 +41,25 @@ export function cleanAIResponse(text: string): string {
 }
 
 /**
+ * Detects if a content chunk is actually an API error message leaked as content.
+ * OpenRouter/Gemini sometimes stream error text as normal delta.content.
+ */
+function isApiErrorChunk(text: string): boolean {
+  const errorPatterns = [
+    /UNAVAILABLE/i,
+    /No capacity available/i,
+    /\(code 5\d\d\)/i,
+    /Service Unavailable/i,
+    /rate limit/i,
+    /overloaded/i,
+    /model_not_available/i,
+  ];
+  const trimmed = text.trim();
+  // Only flag as error if the FIRST chunk looks like an error (avoids false positives mid-response)
+  return trimmed.length < 300 && errorPatterns.some((p) => p.test(trimmed));
+}
+
+/**
  * Filter for streaming responses to block internal chain-of-thought tokens from leaking into UI
  */
 export class StreamingContentFilter {
@@ -296,10 +315,11 @@ export async function streamAIChat(params: {
   powerLevel?: PowerEffort;
   userId: string;
   onDelta: (text: string) => void;
+  onReset?: () => void;          // Called when switching to a fallback model (clears UI)
   onComplete: (result: StreamResult) => void;
   onError: (error: Error) => void;
 }): Promise<void> {
-  const { messages, systemPrompt, model, powerLevel = "medio", userId, onDelta, onComplete, onError } = params;
+  const { messages, systemPrompt, model, powerLevel = "medio", userId, onDelta, onReset, onComplete, onError } = params;
 
   // Build candidate models queue (chosen model first, then fallbacks)
   const candidateModels: AIModelOption[] = [
@@ -307,69 +327,90 @@ export async function streamAIChat(params: {
     ...AVAILABLE_AI_MODELS.filter((m) => m.id !== model.id),
   ];
 
-  const contentFilter = new StreamingContentFilter(onDelta);
   let success = false;
+  let finalContent = "";
 
-  for (const candidate of candidateModels) {
-    try {
-      if (candidate.provider === "google") {
-        const ok = await streamFromGoogle({
-          modelId: candidate.id,
-          systemPrompt,
-          messages,
-          powerLevel,
-          onDelta: (chunk) => {
-            contentFilter.processChunk(chunk);
-          },
-        });
-        if (ok) {
-          success = true;
-          break;
-        }
-      } else {
-        const ok = await streamFromOpenRouter({
-          modelId: candidate.id,
-          systemPrompt,
-          messages,
-          powerLevel,
-          onDelta: (chunk) => {
-            contentFilter.processChunk(chunk);
-          },
-        });
-        if (ok) {
-          success = true;
-          break;
+  for (let i = 0; i < candidateModels.length; i++) {
+    const candidate = candidateModels[i];
+
+    // Buffer this candidate's output locally — only flush to real onDelta on success
+    let localBuffer = "";
+    let isErrorResponse = false;
+    let firstChunk = true;
+
+    const localDelta = (chunk: string) => {
+      // Check if the very first chunk looks like an API error (leaked as content)
+      if (firstChunk) {
+        firstChunk = false;
+        if (isApiErrorChunk(chunk)) {
+          isErrorResponse = true;
+          console.warn(`[AI] Model ${candidate.name} returned error content:`, chunk.trim());
+          return;
         }
       }
-    } catch (err: any) {
-      console.warn(`[AI] Error with model ${candidate.name}, attempting fallback...`, err);
-      if (contentFilter.getFinalContent().length > 40) {
+      if (isErrorResponse) return; // discard rest of error stream
+      localBuffer += chunk;
+    };
+
+    try {
+      let ok = false;
+      if (candidate.provider === "google") {
+        ok = await streamFromGoogle({
+          modelId: candidate.id,
+          systemPrompt,
+          messages,
+          powerLevel,
+          onDelta: localDelta,
+        });
+      } else {
+        ok = await streamFromOpenRouter({
+          modelId: candidate.id,
+          systemPrompt,
+          messages,
+          powerLevel,
+          onDelta: localDelta,
+        });
+      }
+
+      // Success: this candidate produced real content
+      if (ok && !isErrorResponse && localBuffer.trim().length > 0) {
+        const cleaned = cleanAIResponse(localBuffer);
+        // If we had a previous (failed) model streaming, reset the UI first
+        if (i > 0 && onReset) onReset();
+        // Emit the full buffered content at once so UI shows it cleanly
+        onDelta(cleaned);
+        finalContent = cleaned;
         success = true;
         break;
       }
+    } catch (err: any) {
+      console.warn(`[AI] Error with model ${candidate.name}, trying fallback...`, err);
+    }
+
+    // This candidate failed — if it already emitted some content, reset the UI
+    if (localBuffer.trim().length > 0 && onReset) {
+      onReset();
     }
   }
 
-  const finalCleaned = contentFilter.getFinalContent();
-
-  if (!success && !finalCleaned) {
-    onError(new Error("No se pudo conectar con los proveedores de IA. Por favor intenta de nuevo en unos segundos."));
+  if (!success && !finalContent) {
+    onError(new Error("No se pudo conectar con ningún proveedor de IA. Por favor intentá de nuevo en unos segundos."));
     return;
   }
 
   // Parse any action block and execute it
   try {
     const { event_created, flashcards_created, cleanedContent } = await executeActionBlock(
-      finalCleaned,
+      finalContent,
       userId
     );
     onComplete({
-      content: cleanedContent || finalCleaned,
+      content: cleanedContent || finalContent,
       event_created,
       flashcards_created,
     });
   } catch {
-    onComplete({ content: finalCleaned });
+    onComplete({ content: finalContent });
   }
 }
 
@@ -531,7 +572,8 @@ async function streamFromGoogle(opts: {
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      console.warn(`Gemini model ${modelId} error: ${res.status}`);
+      const errBody = await res.text().catch(() => "");
+      console.warn(`Gemini model ${modelId} HTTP ${res.status}:`, errBody);
       return false;
     }
 
@@ -560,6 +602,13 @@ async function streamFromGoogle(opts: {
         const jsonStr = line.slice(6).trim();
         try {
           const parsed = JSON.parse(jsonStr);
+
+          // Gemini can embed error objects inside the SSE stream (e.g. 503 capacity)
+          if (parsed.error) {
+            console.warn(`Gemini stream error for ${modelId}:`, parsed.error);
+            return false; // Trigger fallback immediately
+          }
+
           const parts = parsed.candidates?.[0]?.content?.parts || [];
           for (const part of parts) {
             if ((part as any).thought) {
