@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
@@ -138,14 +138,21 @@ export function useFlashcardStats(): FlashcardStatsData {
     }
   }, [user, fetchStats]);
 
-  // Realtime subscriptions
+  // Realtime subscriptions con debounce para evitar loops
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedFetchStats = useCallback(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      fetchStats();
+    }, 400);
+  }, [fetchStats]);
+
   useRealtimeSubscription({
     table: "flashcard_decks",
     filter: user ? `user_id=eq.${user.id}` : undefined,
     onChange: useCallback(() => {
-      console.log("📡 Realtime: flashcard_decks changed, refetching...");
-      fetchStats();
-    }, [fetchStats]),
+      debouncedFetchStats();
+    }, [debouncedFetchStats]),
     enabled: !!user,
   });
 
@@ -153,9 +160,8 @@ export function useFlashcardStats(): FlashcardStatsData {
     table: "flashcards",
     filter: user ? `user_id=eq.${user.id}` : undefined,
     onChange: useCallback(() => {
-      console.log("📡 Realtime: flashcards changed, refetching...");
-      fetchStats();
-    }, [fetchStats]),
+      debouncedFetchStats();
+    }, [debouncedFetchStats]),
     enabled: !!user,
   });
 

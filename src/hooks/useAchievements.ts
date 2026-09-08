@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
@@ -130,12 +130,16 @@ export function useAchievements() {
     return () => clearTimeout(timer);
   }, [user, isGuest, fetchUserAchievements]);
 
-  // Suscripción a cambios en user_achievements
+  // Suscripción a cambios en user_achievements con debounce
+  const achievementsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useRealtimeSubscription({
     table: "user_achievements",
     filter: user ? `user_id=eq.${user.id}` : undefined,
     onChange: useCallback(() => {
-      fetchUserAchievements();
+      if (achievementsDebounceRef.current) clearTimeout(achievementsDebounceRef.current);
+      achievementsDebounceRef.current = setTimeout(() => {
+        fetchUserAchievements();
+      }, 400);
     }, [fetchUserAchievements]),
     enabled: !!user,
   });

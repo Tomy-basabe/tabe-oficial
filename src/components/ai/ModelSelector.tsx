@@ -64,8 +64,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           disabled && "opacity-50 cursor-not-allowed pointer-events-none"
         )}
       >
-        <div className="w-4 h-4 rounded-md flex items-center justify-center p-0.5 bg-secondary/80 border border-foreground/30 shrink-0">
-          <ModelLogo modelId={selectedModel.id} className="w-3.5 h-3.5" />
+        <div className="w-5 h-5 rounded-lg flex items-center justify-center p-0.5 bg-background border border-foreground/30 shadow-xs shrink-0">
+          <ModelLogo modelId={selectedModel.id} className="w-4 h-4" />
         </div>
         
         <span className="font-bold text-xs truncate max-w-[100px] sm:max-w-[140px]">
@@ -153,14 +153,26 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 )}
               >
                 <div className="flex items-center justify-between w-full gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-6 h-6 rounded-lg flex items-center justify-center p-1 bg-background border border-foreground/30 shadow-xs shrink-0 group-hover:scale-110 transition-transform">
-                      <ModelLogo modelId={model.id} className="w-4 h-4" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center p-1 bg-background border-2 border-foreground/20 shadow-xs shrink-0 group-hover:scale-110 group-hover:border-foreground transition-all">
+                      <ModelLogo modelId={model.id} className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="font-black text-xs text-foreground uppercase tracking-tight truncate">
-                        {model.name}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-black text-xs text-foreground uppercase tracking-tight truncate">
+                          {model.name}
+                        </span>
+                        <span
+                          className="text-[9px] font-black uppercase px-1 py-0.2 rounded border shrink-0 hidden sm:inline-block"
+                          style={{
+                            backgroundColor: `${model.color}15`,
+                            color: model.color,
+                            borderColor: `${model.color}35`,
+                          }}
+                        >
+                          {model.badge}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -174,7 +186,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         borderColor: `${model.color}40`,
                       }}
                     >
-                      Razonamiento: {model.reasoningLevel}
+                      {model.reasoningLevel}
                     </span>
 
                     {isSelected && (
@@ -183,7 +195,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   </div>
                 </div>
 
-                <p className="text-[11px] font-medium text-muted-foreground leading-snug pl-8 text-left">
+                <p className="text-[11px] font-medium text-muted-foreground leading-snug pl-9 text-left">
                   {model.description}
                 </p>
               </DropdownMenuItem>

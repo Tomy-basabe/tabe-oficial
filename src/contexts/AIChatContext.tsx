@@ -12,6 +12,8 @@ export interface DisplayMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  modelId?: string;
+  modelName?: string;
 }
 
 interface AIChatContextProps {

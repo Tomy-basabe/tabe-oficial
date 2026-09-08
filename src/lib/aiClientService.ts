@@ -19,6 +19,80 @@ const contextCache = new Map<string, { data: string; timestamp: number }>();
 const CONTEXT_CACHE_TTL = 60 * 1000; // 1 minute
 
 /**
+ * Strips chain-of-thought blocks (<think>...</think>, <thought>...</thought>,
+ * or leaked reasoning preambles like "The user asks: ... That's it.")
+ */
+export function cleanAIResponse(text: string): string {
+  if (!text) return "";
+
+  // 1. Remove complete <think>...</think> and <thought>...</thought> blocks
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, "");
+
+  // 2. Remove unclosed <think> or <thought> if still streaming/in progress
+  cleaned = cleaned.replace(/<think>[\s\S]*$/gi, "");
+  cleaned = cleaned.replace(/<thought>[\s\S]*$/gi, "");
+
+  // 3. Remove leaked English reasoning preambles
+  const preambleRegex = /^\s*(?:The user (?:asks|wants|requested|is asking)[\s\S]*?(?:That's it\.?|Here is the response:?|Let's produce something like:[\s\S]*?That's it\.?))\s*/i;
+  cleaned = cleaned.replace(preambleRegex, "");
+
+  return cleaned.trimStart();
+}
+
+/**
+ * Filter for streaming responses to block internal chain-of-thought tokens from leaking into UI
+ */
+export class StreamingContentFilter {
+  private inThinkTag = false;
+  private rawAccumulated = "";
+  private emittedLength = 0;
+
+  constructor(private onCleanDelta: (chunk: string) => void) {}
+
+  public processChunk(chunk: string) {
+    this.rawAccumulated += chunk;
+
+    // Check if we are inside a <think> tag
+    if (!this.inThinkTag) {
+      const thinkStartIndex = this.rawAccumulated.indexOf("<think>");
+      if (thinkStartIndex !== -1) {
+        const thinkEndIndex = this.rawAccumulated.indexOf("</think>");
+        if (thinkEndIndex !== -1) {
+          this.inThinkTag = false;
+        } else {
+          this.inThinkTag = true;
+          return;
+        }
+      }
+    } else {
+      const thinkEndIndex = this.rawAccumulated.indexOf("</think>");
+      if (thinkEndIndex !== -1) {
+        this.inThinkTag = false;
+        const cleanSoFar = cleanAIResponse(this.rawAccumulated);
+        const newDelta = cleanSoFar.slice(this.emittedLength);
+        if (newDelta) {
+          this.emittedLength = cleanSoFar.length;
+          this.onCleanDelta(newDelta);
+        }
+      }
+      return;
+    }
+
+    const cleanSoFar = cleanAIResponse(this.rawAccumulated);
+    const newDelta = cleanSoFar.slice(this.emittedLength);
+    if (newDelta) {
+      this.emittedLength = cleanSoFar.length;
+      this.onCleanDelta(newDelta);
+    }
+  }
+
+  public getFinalContent(): string {
+    return cleanAIResponse(this.rawAccumulated).trim();
+  }
+}
+
+/**
  * Builds academic context for the student ultra-fast (parallel queries + 1.2s timeout)
  */
 export async function buildStudentContext(
@@ -119,18 +193,20 @@ ${subjectsStr}
 PRÓXIMOS EVENTOS Y EXÁMENES EN AGENDA:
 ${eventsStr}
 
-INSTRUCCIONES IMPORTANTES:
-1. Responde de forma motivadora, clara, profesional y con modismos amables argentinos (che, genial, dale, etc.).
-2. ${powerLevel === "bajo" ? "Responde de inmediato con máxima brevedad." : "Explica conceptos paso a paso cuando te lo pidan."} Puedes usar fórmulas matemáticas con KaTeX (e.g. $x^2 + y^2 = r^2$) y bloques de código.
-3. Si el usuario te pide expresamente agendar un examen o evento, dale una respuesta amigable y añade al final de tu mensaje el siguiente bloque exacto:
+DIRECTIVAS CRÍTICAS DE RESPUESTA:
+1. Da DIRECTAMENTE la respuesta final al estudiante sin preámbulos internos, reflexiones en voz alta ni notas de planificación.
+2. NUNCA expongas tu proceso de razonamiento ni análisis en inglés sobre lo que pide el usuario (NUNCA escribas "The user asks...", "We must follow style guidelines...", "Let's produce..."). Comienza de inmediato con tu respuesta al usuario en español rioplatense.
+3. Responde de forma motivadora, cercana, profesional y con modismos amables argentinos (che, genial, dale, etc.).
+4. ${powerLevel === "bajo" ? "Responde de inmediato con máxima brevedad." : "Explica conceptos paso a paso cuando te lo pidan."} Puedes usar fórmulas matemáticas con KaTeX (e.g. $x^2 + y^2 = r^2$) y bloques de código.
+5. Si el usuario te pide expresamente agendar un examen o evento, dale una respuesta amigable y añade al final de tu mensaje el siguiente bloque exacto:
 \`\`\`tabe-action:calendar
 [{"titulo": "Nombre del evento", "fecha": "YYYY-MM-DD", "hora": "HH:mm", "tipo_examen": "P1"}]
 \`\`\`
-4. Si el usuario te pide crear flashcards para estudiar, incluye al final:
+6. Si el usuario te pide crear flashcards para estudiar, incluye al final:
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-5. Responde con texto fluido para cualquier saludo, pregunta casual o explicación sin añadir bloques de acción a menos que lo soliciten explícitamente.`;
+7. Responde con texto fluido para cualquier saludo, pregunta casual o explicación sin añadir bloques de acción a menos que lo soliciten explícitamente.`;
 
   contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
@@ -231,7 +307,7 @@ export async function streamAIChat(params: {
     ...AVAILABLE_AI_MODELS.filter((m) => m.id !== model.id),
   ];
 
-  let fullRawContent = "";
+  const contentFilter = new StreamingContentFilter(onDelta);
   let success = false;
 
   for (const candidate of candidateModels) {
@@ -243,8 +319,7 @@ export async function streamAIChat(params: {
           messages,
           powerLevel,
           onDelta: (chunk) => {
-            fullRawContent += chunk;
-            onDelta(chunk);
+            contentFilter.processChunk(chunk);
           },
         });
         if (ok) {
@@ -258,8 +333,7 @@ export async function streamAIChat(params: {
           messages,
           powerLevel,
           onDelta: (chunk) => {
-            fullRawContent += chunk;
-            onDelta(chunk);
+            contentFilter.processChunk(chunk);
           },
         });
         if (ok) {
@@ -269,15 +343,16 @@ export async function streamAIChat(params: {
       }
     } catch (err: any) {
       console.warn(`[AI] Error with model ${candidate.name}, attempting fallback...`, err);
-      // If we already received some substantive content, do not re-run
-      if (fullRawContent.length > 40) {
+      if (contentFilter.getFinalContent().length > 40) {
         success = true;
         break;
       }
     }
   }
 
-  if (!success && !fullRawContent) {
+  const finalCleaned = contentFilter.getFinalContent();
+
+  if (!success && !finalCleaned) {
     onError(new Error("No se pudo conectar con los proveedores de IA. Por favor intenta de nuevo en unos segundos."));
     return;
   }
@@ -285,16 +360,16 @@ export async function streamAIChat(params: {
   // Parse any action block and execute it
   try {
     const { event_created, flashcards_created, cleanedContent } = await executeActionBlock(
-      fullRawContent,
+      finalCleaned,
       userId
     );
     onComplete({
-      content: cleanedContent || fullRawContent,
+      content: cleanedContent || finalCleaned,
       event_created,
       flashcards_created,
     });
   } catch {
-    onComplete({ content: fullRawContent });
+    onComplete({ content: finalCleaned });
   }
 }
 
@@ -374,11 +449,14 @@ async function streamFromOpenRouter(opts: {
         try {
           const parsed = JSON.parse(jsonStr);
           const delta = parsed.choices?.[0]?.delta;
-          // Accept content or reasoning text so user never waits with an empty view
-          const chunk = delta?.content || delta?.reasoning;
+          // STRICT: Only pass delta.content to user, NEVER reasoning/internal thought tokens!
+          const chunk = delta?.content;
           if (chunk) {
             receivedTokens++;
             onDelta(chunk);
+          } else if (delta?.reasoning) {
+            // Keep connection alive without leaking internal chain-of-thought
+            receivedTokens++;
           }
         } catch {
           // partial chunk, wait for next line
@@ -469,10 +547,18 @@ async function streamFromGoogle(opts: {
         const jsonStr = line.slice(6).trim();
         try {
           const parsed = JSON.parse(jsonStr);
-          const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (chunk) {
-            receivedTokens++;
-            onDelta(chunk);
+          const parts = parsed.candidates?.[0]?.content?.parts || [];
+          for (const part of parts) {
+            if ((part as any).thought) {
+              // Ignore internal thought reasoning
+              receivedTokens++;
+              continue;
+            }
+            const chunk = part.text;
+            if (chunk) {
+              receivedTokens++;
+              onDelta(chunk);
+            }
           }
         } catch {
           // partial chunk, ignore

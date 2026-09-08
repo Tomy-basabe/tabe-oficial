@@ -13,6 +13,8 @@ import { PersonaSidebar } from "@/components/ai/PersonaSidebar";
 import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
 import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
 import { ModelSelector } from "@/components/ai/ModelSelector";
+import { ModelLogo } from "@/components/icons/ModelLogos";
+import { cleanAIResponse } from "@/lib/aiClientService";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
@@ -268,9 +270,19 @@ export default function AIAssistant() {
       .map((m) => ({ role: m.role, content: m.content }));
 
     const assistantMsgId = (Date.now() + 1).toString();
+    const currentModelId = selectedModel.id;
+    const currentModelName = selectedModel.shortName || selectedModel.name;
+
     setMessages((prev) => [
       ...prev,
-      { id: assistantMsgId, role: "assistant", content: "", timestamp: new Date() },
+      {
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date(),
+        modelId: currentModelId,
+        modelName: currentModelName,
+      },
     ]);
 
     let fullContent = "";
@@ -280,9 +292,10 @@ export default function AIAssistant() {
       activePersona.id, // pass persona ID instead of personality string
       (delta) => {
         fullContent += delta;
+        const cleaned = cleanAIResponse(fullContent);
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === assistantMsgId ? { ...m, content: fullContent } : m
+            m.id === assistantMsgId ? { ...m, content: cleaned } : m
           )
         );
       },
@@ -290,9 +303,16 @@ export default function AIAssistant() {
         if (result.event_created) toast.success("Evento agregado");
         if (result.flashcards_created) toast.success("Flashcards creadas");
 
+        const finalSaved = cleanAIResponse(result.content || fullContent);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId ? { ...m, content: finalSaved } : m
+          )
+        );
+
         // Save assistant response to DB
-        if (sessionId && fullContent) {
-          await saveMessage(sessionId, "assistant", fullContent);
+        if (sessionId && finalSaved) {
+          await saveMessage(sessionId, "assistant", finalSaved);
         }
       },
       (error) => {
@@ -553,24 +573,37 @@ export default function AIAssistant() {
                         : "bg-card text-foreground"
                     )}
                   >
+                    {message.role === "assistant" && message.id !== "init" && (
+                      <div className="flex items-center gap-1.5 pb-2 mb-2 border-b-2 border-foreground/15 text-[11px] font-black uppercase text-muted-foreground">
+                        <div className="w-5 h-5 rounded-md flex items-center justify-center p-0.5 bg-background border border-foreground/30 shadow-xs shrink-0">
+                          <ModelLogo modelId={message.modelId || selectedModel.id} className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-foreground tracking-tight font-black">
+                          {message.modelName || selectedModel.shortName || selectedModel.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/80 font-bold ml-auto shrink-0">
+                          {new Date(message.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="text-base font-bold space-y-2 leading-relaxed break-words">
                       {renderContent(message.content, message.role)}
                     </div>
-                    <div
-                      className={cn(
-                        "flex items-center gap-2 mt-2 text-[10px] font-black uppercase",
-                        message.role === "user"
-                          ? "!text-black/70"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      <span>
-                        {new Date(message.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
+
+                    {message.role === "user" && (
+                      <div className="flex items-center gap-2 mt-2 text-[10px] font-black uppercase !text-black/70">
+                        <span>
+                          {new Date(message.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
