@@ -46,15 +46,15 @@ export function TipTapPDFExporter({
 
         switch (node.type) {
           case "paragraph":
-            result += `<p style="line-height: 1.7; margin-bottom: 12px; font-size: 15px; color: #1f2937; ${alignStyle}">${renderInlineContent(node.content)}</p>`;
+            result += `<p style="line-height: 1.7; margin-bottom: 12px; font-size: 15px; color: #0f172a !important; ${alignStyle}">${renderInlineContent(node.content)}</p>`;
             break;
 
           case "heading": {
             const level = node.attrs?.level || 2;
             const headerSizes: Record<number, string> = {
-              1: "font-size: 26px; font-weight: 700; margin: 28px 0 14px; color: #0f172a; line-height: 1.3;",
-              2: "font-size: 21px; font-weight: 600; margin: 24px 0 12px; color: #0f172a; line-height: 1.3;",
-              3: "font-size: 17px; font-weight: 600; margin: 20px 0 10px; color: #0f172a; line-height: 1.3;",
+              1: "font-size: 26px; font-weight: 700; margin: 28px 0 14px; color: #0f172a !important; line-height: 1.3;",
+              2: "font-size: 21px; font-weight: 600; margin: 24px 0 12px; color: #0f172a !important; line-height: 1.3;",
+              3: "font-size: 17px; font-weight: 600; margin: 20px 0 10px; color: #0f172a !important; line-height: 1.3;",
             };
             result += `<h${level} style="${headerSizes[level] || ""} ${alignStyle}">${renderInlineContent(node.content)}</h${level}>`;
             break;
@@ -63,7 +63,7 @@ export function TipTapPDFExporter({
           case "bulletList":
             result += `<ul style="list-style-type: disc; padding-left: 24px; margin-bottom: 14px;">`;
             (node.content || []).forEach((item) => {
-              result += `<li style="margin-bottom: 6px; line-height: 1.6; color: #1f2937;">${processContent(item.content || [])}</li>`;
+              result += `<li style="margin-bottom: 6px; line-height: 1.6; color: #0f172a !important;">${processContent(item.content || [])}</li>`;
             });
             result += `</ul>`;
             break;
@@ -71,7 +71,7 @@ export function TipTapPDFExporter({
           case "orderedList":
             result += `<ol style="list-style-type: decimal; padding-left: 24px; margin-bottom: 14px;">`;
             (node.content || []).forEach((item) => {
-              result += `<li style="margin-bottom: 6px; line-height: 1.6; color: #1f2937;">${processContent(item.content || [])}</li>`;
+              result += `<li style="margin-bottom: 6px; line-height: 1.6; color: #0f172a !important;">${processContent(item.content || [])}</li>`;
             });
             result += `</ol>`;
             break;
@@ -81,9 +81,9 @@ export function TipTapPDFExporter({
             (node.content || []).forEach((item) => {
               const checked = item.attrs?.checked;
               const checkbox = checked ? "☑" : "☐";
-              const textStyle = checked ? "text-decoration: line-through; color: #94a3b8;" : "color: #1f2937;";
+              const textStyle = checked ? "text-decoration: line-through; color: #94a3b8 !important;" : "color: #0f172a !important;";
               result += `<div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px;">
-                <span style="font-size: 16px; line-height: 1.5; color: #3b82f6;">${checkbox}</span>
+                <span style="font-size: 16px; line-height: 1.5; color: #3b82f6 !important;">${checkbox}</span>
                 <div style="${textStyle} flex: 1;">${processContent(item.content || [])}</div>
               </div>`;
             });
@@ -91,13 +91,13 @@ export function TipTapPDFExporter({
             break;
 
           case "blockquote":
-            result += `<blockquote style="border-left: 4px solid #3b82f6; padding: 8px 16px; margin: 16px 0; font-style: italic; background: #f8fafc; color: #475569; border-radius: 0 6px 6px 0;">`;
+            result += `<blockquote style="border-left: 4px solid #3b82f6; padding: 8px 16px; margin: 16px 0; font-style: italic; background: #f8fafc; color: #334155 !important; border-radius: 0 6px 6px 0;">`;
             result += processContent(node.content || []);
             result += `</blockquote>`;
             break;
 
           case "codeBlock":
-            result += `<pre style="background: #0f172a; color: #f1f5f9; padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-family: 'Fira Code', Consolas, Monaco, monospace; font-size: 13px; line-height: 1.5; margin: 16px 0;"><code>${node.content?.[0]?.text || ""}</code></pre>`;
+            result += `<pre style="background: #0f172a !important; color: #f1f5f9 !important; padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-family: 'Fira Code', Consolas, Monaco, monospace; font-size: 13px; line-height: 1.5; margin: 16px 0;"><code style="color: #f1f5f9 !important; background: transparent !important;">${node.content?.[0]?.text || ""}</code></pre>`;
             break;
 
           case "horizontalRule":
@@ -114,9 +114,9 @@ export function TipTapPDFExporter({
               tip: { bg: "#faf5ff", border: "#a855f7", icon: "💡", text: "#581c87" },
             };
             const colors = calloutColors[calloutType] || calloutColors.info;
-            result += `<div style="display: flex; gap: 12px; background: ${colors.bg}; border-left: 4px solid ${colors.border}; border-radius: 8px; padding: 14px 16px; margin: 14px 0; color: ${colors.text};">
+            result += `<div style="display: flex; gap: 12px; background: ${colors.bg}; border-left: 4px solid ${colors.border}; border-radius: 8px; padding: 14px 16px; margin: 14px 0; color: ${colors.text} !important;">
               <span style="font-size: 18px; flex-shrink: 0;">${colors.icon}</span>
-              <div style="flex: 1;">${processContent(node.content || [])}</div>
+              <div style="flex: 1; color: ${colors.text} !important;">${processContent(node.content || [])}</div>
             </div>`;
             break;
           }
@@ -128,8 +128,8 @@ export function TipTapPDFExporter({
               (row.content || []).forEach((cell) => {
                 const isHeader = cell.type === "tableHeader";
                 const cellStyle = isHeader
-                  ? "background: #f1f5f9; font-weight: 600; padding: 8px 12px; border: 1px solid #cbd5e1; color: #0f172a;"
-                  : "padding: 8px 12px; border: 1px solid #cbd5e1; color: #1f2937;";
+                  ? "background: #f1f5f9; font-weight: 600; padding: 8px 12px; border: 1px solid #cbd5e1; color: #0f172a !important;"
+                  : "padding: 8px 12px; border: 1px solid #cbd5e1; color: #0f172a !important;";
                 result += `<td style="${cellStyle}">${processContent(cell.content || [])}</td>`;
               });
               result += `</tr>`;
@@ -140,7 +140,7 @@ export function TipTapPDFExporter({
           case "image":
             result += `<figure style="margin: 18px 0; text-align: center;">
               <img src="${node.attrs?.src || ""}" alt="${node.attrs?.alt || ""}" style="max-width: 100%; height: auto; border-radius: 8px;" crossorigin="anonymous" />
-              ${node.attrs?.alt ? `<figcaption style="color: #64748b; font-size: 13px; margin-top: 6px;">${node.attrs.alt}</figcaption>` : ""}
+              ${node.attrs?.alt ? `<figcaption style="color: #64748b !important; font-size: 13px; margin-top: 6px;">${node.attrs.alt}</figcaption>` : ""}
             </figure>`;
             break;
 
@@ -149,19 +149,19 @@ export function TipTapPDFExporter({
             result += `<details open style="margin: 12px 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff;">`;
             (node.content || []).forEach((child) => {
               if (child.type === "detailsSummary") {
-                result += `<summary style="padding: 10px 14px; background: #f8fafc; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 8px; list-style: none; border-bottom: 1px solid #e2e8f0;">
-                  <span style="font-size: 10px; color: #64748b;">▼</span>
-                  <span>${renderInlineContent(child.content)}</span>
+                result += `<summary style="padding: 10px 14px; background: #f8fafc; font-weight: 600; color: #0f172a !important; display: flex; align-items: center; gap: 8px; list-style: none; border-bottom: 1px solid #e2e8f0;">
+                  <span style="font-size: 10px; color: #3b82f6 !important;">▼</span>
+                  <span style="color: #0f172a !important;">${renderInlineContent(child.content)}</span>
                 </summary>`;
               } else if (child.type === "detailsContent") {
-                result += `<div style="padding: 14px 18px; background: #ffffff;">${processContent(child.content || [])}</div>`;
+                result += `<div style="padding: 14px 18px; background: #ffffff; color: #0f172a !important;">${processContent(child.content || [])}</div>`;
               }
             });
             result += `</details>`;
             break;
 
           case "math":
-            result += `<div style="margin: 12px 0; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-family: monospace; text-align: center; color: #0f172a;">${node.attrs?.formula || ""}</div>`;
+            result += `<div style="margin: 12px 0; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-family: monospace; text-align: center; color: #0f172a !important;">${node.attrs?.formula || ""}</div>`;
             break;
 
           default:
@@ -205,20 +205,20 @@ export function TipTapPDFExporter({
                   text = `<sup>${text}</sup>`;
                   break;
                 case "code":
-                  text = `<code style="background: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">${text}</code>`;
+                  text = `<code style="background: #f1f5f9; color: #0f172a !important; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">${text}</code>`;
                   break;
                 case "highlight": {
                   const hlColor = mark.attrs?.color || "#fef08a";
-                  text = `<mark style="background-color: ${hlColor}; color: inherit; padding: 1px 4px; border-radius: 3px; font-weight: 500;">${text}</mark>`;
+                  text = `<mark style="background-color: ${hlColor}; color: #0f172a !important; padding: 1px 4px; border-radius: 3px; font-weight: 500;">${text}</mark>`;
                   break;
                 }
                 case "textStyle": {
                   let inlineStyles = "";
                   if (mark.attrs?.color) {
-                    inlineStyles += `color: ${mark.attrs.color}; `;
+                    inlineStyles += `color: ${mark.attrs.color} !important; `;
                   }
                   if (mark.attrs?.backgroundColor && mark.attrs.backgroundColor !== "transparent") {
-                    inlineStyles += `background-color: ${mark.attrs.backgroundColor}; padding: 1px 4px; border-radius: 3px; `;
+                    inlineStyles += `background-color: ${mark.attrs.backgroundColor}; color: #0f172a !important; padding: 1px 4px; border-radius: 3px; `;
                   }
                   if (mark.attrs?.fontSize) {
                     inlineStyles += `font-size: ${mark.attrs.fontSize}; `;
@@ -229,7 +229,7 @@ export function TipTapPDFExporter({
                   break;
                 }
                 case "link":
-                  text = `<a href="${mark.attrs?.href || ""}" style="color: #2563eb; text-decoration: underline;">${text}</a>`;
+                  text = `<a href="${mark.attrs?.href || ""}" style="color: #2563eb !important; text-decoration: underline;">${text}</a>`;
                   break;
               }
             });
@@ -257,32 +257,63 @@ export function TipTapPDFExporter({
 
     const exportWrapper = document.createElement("div");
     exportWrapper.id = "tabe-pdf-export-content";
+    exportWrapper.className = "light"; // Forzar tema claro
     exportWrapper.style.width = "794px"; // Ancho A4
     exportWrapper.style.maxWidth = "794px";
     exportWrapper.style.padding = "40px 48px";
     exportWrapper.style.margin = "0 auto";
     exportWrapper.style.background = "#ffffff";
-    exportWrapper.style.color = "#1f2937";
+    exportWrapper.style.color = "#0f172a";
     exportWrapper.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
     exportWrapper.style.lineHeight = "1.65";
     exportWrapper.style.boxSizing = "border-box";
 
-    // Estilos CSS inyectados para el PDF
+    // Estilos CSS inyectados para el PDF que fuerzan modo claro y texto oscuro
     const styleEl = document.createElement("style");
     styleEl.textContent = `
+      #tabe-pdf-export-content {
+        --background: 0 0% 100% !important;
+        --foreground: 222.2 84% 4.9% !important;
+        --card: 0 0% 100% !important;
+        --card-foreground: 222.2 84% 4.9% !important;
+        --popover: 0 0% 100% !important;
+        --popover-foreground: 222.2 84% 4.9% !important;
+        --primary: 221.2 83.2% 53.3% !important;
+        --primary-foreground: 210 40% 98% !important;
+        --secondary: 210 40% 96.1% !important;
+        --secondary-foreground: 222.2 47.4% 11.2% !important;
+        --muted: 210 40% 96.1% !important;
+        --muted-foreground: 215.4 16.3% 46.9% !important;
+        --accent: 210 40% 96.1% !important;
+        --accent-foreground: 222.2 47.4% 11.2% !important;
+        --border: 214.3 31.8% 91.4% !important;
+        --notion-text: #0f172a !important;
+        --notion-text-secondary: #334155 !important;
+        --notion-text-tertiary: #64748b !important;
+        --notion-main-bg: #ffffff !important;
+        color: #0f172a !important;
+        background-color: #ffffff !important;
+      }
       #tabe-pdf-export-content * {
         box-sizing: border-box;
+      }
+      #tabe-pdf-export-content p,
+      #tabe-pdf-export-content li,
+      #tabe-pdf-export-content summary,
+      #tabe-pdf-export-content td,
+      #tabe-pdf-export-content th,
+      #tabe-pdf-export-content label {
+        color: #0f172a !important;
       }
       #tabe-pdf-export-content p {
         margin: 0 0 12px 0;
         line-height: 1.7;
-        color: #1f2937;
         font-size: 15px;
       }
       #tabe-pdf-export-content h1 {
         font-size: 26px;
         font-weight: 700;
-        color: #0f172a;
+        color: #0f172a !important;
         margin: 28px 0 14px 0;
         line-height: 1.3;
         page-break-after: avoid;
@@ -290,7 +321,7 @@ export function TipTapPDFExporter({
       #tabe-pdf-export-content h2 {
         font-size: 21px;
         font-weight: 600;
-        color: #0f172a;
+        color: #0f172a !important;
         margin: 24px 0 12px 0;
         line-height: 1.3;
         page-break-after: avoid;
@@ -298,7 +329,7 @@ export function TipTapPDFExporter({
       #tabe-pdf-export-content h3 {
         font-size: 17px;
         font-weight: 600;
-        color: #0f172a;
+        color: #0f172a !important;
         margin: 20px 0 10px 0;
         line-height: 1.3;
         page-break-after: avoid;
@@ -316,17 +347,16 @@ export function TipTapPDFExporter({
       #tabe-pdf-export-content li {
         margin-bottom: 6px;
         line-height: 1.6;
-        color: #1f2937;
       }
       #tabe-pdf-export-content blockquote {
-        border-left: 4px solid #3b82f6;
-        padding: 8px 16px;
-        margin: 16px 0;
-        background: #f8fafc;
-        color: #475569;
-        font-style: italic;
-        border-radius: 0 6px 6px 0;
-        page-break-inside: avoid;
+        border-left: 4px solid #3b82f6 !important;
+        padding: 8px 16px !important;
+        margin: 16px 0 !important;
+        background: #f8fafc !important;
+        color: #334155 !important;
+        font-style: italic !important;
+        border-radius: 0 6px 6px 0 !important;
+        page-break-inside: avoid !important;
       }
       #tabe-pdf-export-content mark {
         border-radius: 3px;
@@ -334,6 +364,7 @@ export function TipTapPDFExporter({
         box-decoration-break: clone;
         -webkit-box-decoration-break: clone;
         font-weight: 500;
+        color: #0f172a !important;
       }
       #tabe-pdf-export-content pre {
         background: #0f172a !important;
@@ -351,13 +382,13 @@ export function TipTapPDFExporter({
         font-family: 'Fira Code', Consolas, Monaco, monospace;
         font-size: 0.9em;
         background: #f1f5f9;
-        color: #0f172a;
+        color: #0f172a !important;
         padding: 2px 5px;
         border-radius: 4px;
       }
       #tabe-pdf-export-content pre code {
         background: transparent !important;
-        color: inherit !important;
+        color: #f1f5f9 !important;
         padding: 0 !important;
       }
       #tabe-pdf-export-content table {
@@ -368,16 +399,16 @@ export function TipTapPDFExporter({
       }
       #tabe-pdf-export-content th,
       #tabe-pdf-export-content td {
-        border: 1px solid #cbd5e1;
-        padding: 8px 12px;
-        text-align: left;
-        font-size: 14px;
-        color: #1f2937;
+        border: 1px solid #cbd5e1 !important;
+        padding: 8px 12px !important;
+        text-align: left !important;
+        font-size: 14px !important;
+        color: #0f172a !important;
       }
       #tabe-pdf-export-content th {
-        background: #f1f5f9;
-        font-weight: 600;
-        color: #0f172a;
+        background: #f1f5f9 !important;
+        font-weight: 600 !important;
+        color: #0f172a !important;
       }
       #tabe-pdf-export-content img {
         max-width: 100%;
@@ -405,7 +436,7 @@ export function TipTapPDFExporter({
         border: 1px solid #e2e8f0 !important;
         border-radius: 8px !important;
         background: #ffffff !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         page-break-inside: avoid !important;
       }
       #tabe-pdf-export-content details summary,
@@ -431,15 +462,17 @@ export function TipTapPDFExporter({
         content: "▼" !important;
         display: inline-block !important;
         font-size: 10px !important;
-        color: #64748b !important;
+        color: #3b82f6 !important;
         transform: none !important;
       }
       #tabe-pdf-export-content details .notion-details-content,
       #tabe-pdf-export-content details > div {
         display: block !important;
         visibility: visible !important;
+        opacity: 1 !important;
         padding: 14px 18px !important;
         background: #ffffff !important;
+        color: #0f172a !important;
       }
 
       /* === CALLOUTS === */
@@ -484,8 +517,8 @@ export function TipTapPDFExporter({
       }
 
       /* === FORMULAS KATEX === */
-      #tabe-pdf-export-content .katex {
-        font-size: 1.05em !important;
+      #tabe-pdf-export-content .katex,
+      #tabe-pdf-export-content .katex * {
         color: #0f172a !important;
       }
     `;
@@ -551,9 +584,10 @@ export function TipTapPDFExporter({
     if (liveEditor) {
       // Clonar el DOM del editor con máxima fidelidad
       const cloned = liveEditor.cloneNode(true) as HTMLElement;
-      cloned.classList.remove("dark:prose-invert");
+      cloned.classList.remove("dark:prose-invert", "dark", "prose-invert");
+      cloned.classList.add("light");
       cloned.style.outline = "none";
-      cloned.style.color = "#1f2937";
+      cloned.style.color = "#0f172a";
       cloned.style.background = "#ffffff";
 
       // 1. FORZAR TODOS LOS DESPLEGABLES ABIERTOS
@@ -565,10 +599,36 @@ export function TipTapPDFExporter({
         if (content) {
           content.style.display = "block";
           content.style.visibility = "visible";
+          content.style.opacity = "1";
         }
       });
 
-      // 2. Preservar estado de checkboxes en listas de tareas
+      // 2. Corregir cualquier color blanco o transparente que provenga de dark mode
+      const allDescendants = cloned.querySelectorAll<HTMLElement>("*");
+      allDescendants.forEach((el) => {
+        el.classList.remove("dark:prose-invert", "dark", "prose-invert");
+        const inlineColor = el.style.color?.toLowerCase().trim();
+        if (
+          inlineColor === "#fff" ||
+          inlineColor === "#ffffff" ||
+          inlineColor === "white" ||
+          inlineColor === "rgb(255, 255, 255)" ||
+          inlineColor === "rgba(255, 255, 255, 1)" ||
+          inlineColor === "hsl(0, 0%, 100%)" ||
+          inlineColor === "hsl(0 0% 100%)"
+        ) {
+          el.style.color = "#0f172a";
+        }
+
+        // Si es un mark o tiene fondo de resaltado, asegurar texto oscuro
+        if (el.tagName === "MARK" || el.style.backgroundColor) {
+          if (!el.style.color || el.style.color === "#ffffff" || el.style.color === "white") {
+            el.style.color = "#0f172a";
+          }
+        }
+      });
+
+      // 3. Preservar estado de checkboxes en listas de tareas
       const liveBoxes = liveEditor.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
       const cloneBoxes = cloned.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
       liveBoxes.forEach((lb, i) => {
@@ -579,13 +639,13 @@ export function TipTapPDFExporter({
         }
       });
 
-      // 3. Remover elementos de edición, drag handles y menús
+      // 4. Remover elementos de edición, drag handles y menús
       cloned.querySelectorAll(".drag-handle, .notion-drag-handle, [data-drag-handle], .notion-bubble-menu, .table-resizer, .image-resizer").forEach((el) => el.remove());
 
-      // 4. Limpiar placeholders interactivos
+      // 5. Limpiar placeholders interactivos
       cloned.querySelectorAll("[data-placeholder]").forEach((el) => el.removeAttribute("data-placeholder"));
 
-      // 5. Soporte CORS para imágenes
+      // 6. Soporte CORS para imágenes
       cloned.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
         img.crossOrigin = "anonymous";
       });
@@ -604,6 +664,7 @@ export function TipTapPDFExporter({
   const uploadFile = async (blob: Blob, fileName: string, upsert: boolean) => {
     try {
       const storagePath = `${userId}/${fileName}.pdf`;
+      const finalBlob = blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" });
 
       if (upsert) {
         const { error: removeError } = await supabase.storage
@@ -615,7 +676,7 @@ export function TipTapPDFExporter({
 
       const { error: uploadError } = await supabase.storage
         .from("library-files")
-        .upload(storagePath, blob, {
+        .upload(storagePath, finalBlob, {
           contentType: "application/pdf",
           upsert: true,
           cacheControl: "0",
@@ -641,7 +702,7 @@ export function TipTapPDFExporter({
             tipo: "pdf",
             url: signedUrlData.signedUrl,
             storage_path: storagePath,
-            tamaño_bytes: blob.size,
+            tamaño_bytes: finalBlob.size,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "storage_path" }
@@ -649,7 +710,7 @@ export function TipTapPDFExporter({
 
       if (dbError) throw dbError;
 
-      toast.success(upsert ? "Archivo actualizado exitosamente" : "Copia guardada exitosamente");
+      toast.success(upsert ? "Archivo actualizado exitosamente" : "Copia guardada en biblioteca exitosamente");
       onExported?.();
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -686,36 +747,36 @@ export function TipTapPDFExporter({
       const html2pdfModule = await import("html2pdf.js");
       const html2pdf = html2pdfModule.default;
 
-      // Crear contenedor de captura temporal
+      // Crear contenedor de captura temporal en el DOM
       const container = document.createElement("div");
+      container.id = "tabe-pdf-staging-container";
       container.style.position = "fixed";
       container.style.top = "0";
       container.style.left = "0";
       container.style.width = "100%";
       container.style.height = "100%";
       container.style.zIndex = "99999";
-      container.style.background = "rgba(15, 23, 42, 0.75)";
-      container.style.backdropFilter = "blur(4px)";
+      container.style.background = "#e2e8f0"; // Fondo neutro claro
       container.style.overflow = "auto";
-      container.style.display = "flex";
-      container.style.flexDirection = "column";
-      container.style.alignItems = "center";
-      container.style.justifyContent = "flex-start";
-      container.style.padding = "40px 0";
+      container.style.display = "block";
+      container.style.padding = "24px 0";
+      container.scrollTop = 0;
 
       // Overlay visual de progreso
       const loadingOverlay = document.createElement("div");
       loadingOverlay.innerHTML = `
-        <div style="margin-bottom: 24px; padding: 12px 24px; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 12px;">
-          <div style="width: 20px; height: 20px; border: 3px solid #3b82f6; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-          <span style="font-size: 15px; font-weight: 600; color: #1e293b;">Preparando tu apunte en PDF...</span>
+        <div style="margin: 0 auto 20px auto; width: fit-content; padding: 12px 28px; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px;">
+          <div style="width: 20px; height: 20px; border: 3px solid #3b82f6; border-top-color: transparent; border-radius: 50%; animation: tabe-spin 1s linear infinite;"></div>
+          <span style="font-size: 15px; font-weight: 600; color: #0f172a;">Preparando y guardando tu apunte en PDF...</span>
         </div>
         <style>
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          @keyframes tabe-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         </style>
       `;
 
       const contentNode = buildExportElement(content);
+      contentNode.style.boxShadow = "0 10px 30px rgba(0, 0, 0, 0.1)";
+      contentNode.style.borderRadius = "8px";
 
       container.appendChild(loadingOverlay);
       container.appendChild(contentNode);
@@ -730,13 +791,13 @@ export function TipTapPDFExporter({
             return new Promise((resolve) => {
               img.onload = () => resolve(true);
               img.onerror = () => resolve(true);
-              setTimeout(resolve, 2000);
+              setTimeout(resolve, 2500);
             });
           })
         );
       }
 
-      // Pequeña pausa para asegurar el cálculo completo de layout y fuentes
+      // Pausa para asegurar el renderizado completo de fuentes y layout
       await new Promise((resolve) => setTimeout(resolve, 800));
 
       const cleanTitle = (documentTitle || "apunte").replace(/[^a-zA-Z0-9\s-_]/g, "").trim() || "apunte";
@@ -751,6 +812,8 @@ export function TipTapPDFExporter({
           useCORS: true,
           logging: false,
           backgroundColor: "#ffffff",
+          scrollX: 0,
+          scrollY: 0,
         },
         jsPDF: {
           unit: "mm" as const,
@@ -763,9 +826,15 @@ export function TipTapPDFExporter({
         },
       };
 
+      // Inicializar el worker de html2pdf
+      const worker = html2pdf().set(opt).from(contentNode);
+
       if (saveToLibrary && subjectId) {
-        const worker = html2pdf().set(opt).from(contentNode);
-        const pdfBlob = await worker.output("blob", "blob");
+        // Para obtener el Blob de forma infalible, ejecutamos la cadena hasta el objeto jsPDF
+        const pdf = await worker.toPdf().get("pdf");
+        const pdfBlob: Blob = pdf.output("blob");
+
+        console.log("PDF generado para biblioteca:", pdfBlob.size, "bytes");
 
         // Comprobar si el archivo ya existe en la biblioteca
         const { data: existingFiles } = await supabase.storage
@@ -785,7 +854,7 @@ export function TipTapPDFExporter({
           await uploadFile(pdfBlob, fileName, false);
         }
       } else {
-        await html2pdf().set(opt).from(contentNode).save();
+        await worker.save();
         toast.success("PDF descargado tal cual tu apunte");
         setExporting(false);
       }
@@ -798,7 +867,7 @@ export function TipTapPDFExporter({
       toast.error("Error al exportar el PDF: " + ((error as any)?.message || "Desconocido"));
       setExporting(false);
 
-      const container = document.getElementById("tabe-pdf-export-content")?.parentElement;
+      const container = document.getElementById("tabe-pdf-staging-container");
       if (container && container.parentNode) {
         container.parentNode.removeChild(container);
       }
