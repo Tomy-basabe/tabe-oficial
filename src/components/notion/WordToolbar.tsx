@@ -65,22 +65,24 @@ interface WordToolbarProps {
 }
 
 const STRONG_HIGHLIGHT_COLORS = [
-  { name: 'Amarillo Neón', color: '#facc15' },
+  { name: 'Amarillo Neón',   color: '#facc15' },
   { name: 'Verde Eléctrico', color: '#22c55e' },
-  { name: 'Celeste Flúor', color: '#06b6d4' },
-  { name: 'Rosa Neón', color: '#ec4899' },
-  { name: 'Naranja Vivo', color: '#f97316' },
-  { name: 'Rojo Intenso', color: '#ef4444' },
-  { name: 'Violeta Neón', color: '#a855f7' },
+  { name: 'Azul Eléctrico',  color: '#3b82f6' },
+  { name: 'Celeste Flúor',   color: '#06b6d4' },
+  { name: 'Rosa Neón',       color: '#ec4899' },
+  { name: 'Naranja Vivo',    color: '#f97316' },
+  { name: 'Rojo Intenso',    color: '#ef4444' },
+  { name: 'Violeta Neón',    color: '#a855f7' },
 ];
 
 const PASTEL_HIGHLIGHT_COLORS = [
   { name: 'Amarillo apunte', color: 'rgba(254, 240, 138, 0.75)' },
-  { name: 'Verde menta', color: 'rgba(187, 247, 208, 0.75)' },
-  { name: 'Celeste pastel', color: 'rgba(186, 230, 253, 0.75)' },
-  { name: 'Lavanda suave', color: 'rgba(233, 213, 255, 0.75)' },
-  { name: 'Rosa coral', color: 'rgba(254, 205, 211, 0.75)' },
-  { name: 'Naranja suave', color: 'rgba(254, 215, 170, 0.75)' },
+  { name: 'Verde menta',     color: 'rgba(187, 247, 208, 0.75)' },
+  { name: 'Azul pastel',     color: 'rgba(191, 219, 254, 0.75)' },
+  { name: 'Celeste pastel',  color: 'rgba(186, 230, 253, 0.75)' },
+  { name: 'Lavanda suave',   color: 'rgba(233, 213, 255, 0.75)' },
+  { name: 'Rosa coral',      color: 'rgba(254, 205, 211, 0.75)' },
+  { name: 'Naranja suave',   color: 'rgba(254, 215, 170, 0.75)' },
 ];
 
 const TEXT_COLORS = [
@@ -487,6 +489,7 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                       type="button"
                       onClick={() => {
                         editor.chain().focus().setBackgroundColor(h.color).run();
+                        try { localStorage.setItem('tabe_last_highlight_color', h.color); } catch (_) {}
                       }}
                       className="h-6 w-6 rounded border border-border/80 hover:scale-115 transition-transform shadow-xs"
                       style={{ backgroundColor: h.color }}
@@ -506,6 +509,7 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                       type="button"
                       onClick={() => {
                         editor.chain().focus().setBackgroundColor(h.color).run();
+                        try { localStorage.setItem('tabe_last_highlight_color', h.color); } catch (_) {}
                       }}
                       className="h-6 w-6 rounded border border-border/60 hover:scale-115 transition-transform"
                       style={{ backgroundColor: h.color }}

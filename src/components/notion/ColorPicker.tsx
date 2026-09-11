@@ -191,20 +191,33 @@ export function ColorPicker({ editor, type = "toolbar" }: ColorPickerProps) {
   );
 }
 
+// Colores fuertes / flúor compartidos con WordToolbar
+const STRONG_HIGHLIGHT_COLORS = [
+  { name: "Amarillo Neón",    color: "#facc15" },
+  { name: "Verde Eléctrico",  color: "#22c55e" },
+  { name: "Azul Eléctrico",   color: "#3b82f6" },
+  { name: "Celeste Flúor",    color: "#06b6d4" },
+  { name: "Rosa Neón",        color: "#ec4899" },
+  { name: "Naranja Vivo",     color: "#f97316" },
+  { name: "Rojo Intenso",     color: "#ef4444" },
+  { name: "Violeta Neón",     color: "#a855f7" },
+];
+
+const PASTEL_HIGHLIGHT_COLORS = [
+  { name: "Amarillo apunte",  color: "rgba(254, 240, 138, 0.75)" },
+  { name: "Verde menta",      color: "rgba(187, 247, 208, 0.75)" },
+  { name: "Azul pastel",      color: "rgba(191, 219, 254, 0.75)" },
+  { name: "Celeste pastel",   color: "rgba(186, 230, 253, 0.75)" },
+  { name: "Lavanda suave",    color: "rgba(233, 213, 255, 0.75)" },
+  { name: "Rosa coral",       color: "rgba(254, 205, 211, 0.75)" },
+  { name: "Naranja suave",    color: "rgba(254, 215, 170, 0.75)" },
+];
+
 export function HighlightColorPicker({ editor, type = "toolbar" }: ColorPickerProps) {
   const [open, setOpen] = useState(false);
 
   const currentBgColor =
     editor?.getAttributes("textStyle")?.backgroundColor || null;
-
-  // Detect dark mode
-  const isDarkMode =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark");
-
-  const backgroundColors = isDarkMode
-    ? NOTION_BACKGROUND_COLORS_DARK
-    : NOTION_BACKGROUND_COLORS;
 
   const setBackgroundColor = useCallback(
     (color: string | null) => {
@@ -246,22 +259,61 @@ export function HighlightColorPicker({ editor, type = "toolbar" }: ColorPickerPr
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-3" align="start">
-        <div className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Colores de Fondo
+        {/* Colores Fuertes / Flúor */}
+        <div className="mb-1.5 text-[11px] font-bold text-foreground flex items-center justify-between">
+          <span>Colores Fuertes / Flúor</span>
+          <span className="text-[10px] text-muted-foreground font-normal">Alta visibilidad</span>
         </div>
-        <div className="grid grid-cols-5 gap-1.5">
-          {backgroundColors.map((item) => (
-            <ColorButton
-              key={item.class}
-              color={item.color}
-              name={item.name}
-              isActive={currentBgColor === item.color}
-              onClick={() => {
-                setBackgroundColor(item.color);
-                setOpen(false);
-              }}
+        <div className="grid grid-cols-8 gap-1 pb-2">
+          {STRONG_HIGHLIGHT_COLORS.map((item) => (
+            <button
+              key={item.color}
+              type="button"
+              onClick={() => { setBackgroundColor(item.color); setOpen(false); }}
+              className={cn(
+                "h-6 w-6 rounded border hover:scale-110 transition-transform shadow-sm",
+                currentBgColor === item.color
+                  ? "ring-2 ring-primary ring-offset-1 border-transparent"
+                  : "border-border/80"
+              )}
+              style={{ backgroundColor: item.color }}
+              title={item.name}
             />
           ))}
+        </div>
+
+        {/* Colores Suaves de Estudio */}
+        <div className="mb-1.5 text-[11px] font-bold text-muted-foreground">
+          Colores Suaves de Estudio
+        </div>
+        <div className="grid grid-cols-7 gap-1 pb-2">
+          {PASTEL_HIGHLIGHT_COLORS.map((item) => (
+            <button
+              key={item.color}
+              type="button"
+              onClick={() => { setBackgroundColor(item.color); setOpen(false); }}
+              className={cn(
+                "h-6 w-6 rounded border hover:scale-110 transition-transform",
+                currentBgColor === item.color
+                  ? "ring-2 ring-primary ring-offset-1 border-transparent"
+                  : "border-border/60"
+              )}
+              style={{ backgroundColor: item.color }}
+              title={item.name}
+            />
+          ))}
+        </div>
+
+        {/* Quitar resaltado */}
+        <div className="border-t border-border pt-2">
+          <button
+            type="button"
+            onClick={() => { setBackgroundColor(null); setOpen(false); }}
+            className="w-full text-xs text-destructive hover:bg-destructive/10 rounded px-2 py-1.5 flex items-center justify-between font-medium transition-colors"
+          >
+            <span>Quitar resaltado</span>
+            <kbd className="text-[10px] font-mono opacity-80">Ctrl+Q</kbd>
+          </button>
         </div>
       </PopoverContent>
     </Popover>
