@@ -1283,6 +1283,7 @@ export default function Notion() {
                   <TipTapPDFExporter
                     documentTitle={localTitle || activeDocument.titulo}
                     documentEmoji={activeDocument.emoji}
+                    coverUrl={activeDocument.cover_url}
                     getContent={() => editorContentRef.current ?? editorContent}
                     subjectId={activeDocument.subject_id}
                     userId={user.id}
