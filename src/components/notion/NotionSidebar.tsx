@@ -6,6 +6,7 @@ import {
 import { NotionDocument } from "@/hooks/useNotionDocuments";
 import { cn } from "@/lib/utils";
 import { TabeIconRenderer } from "./TabeIcons";
+import { resolveDocSubject } from "@/lib/notionSubjectHelper";
 
 interface Subject {
     id: string;
@@ -118,16 +119,81 @@ export function NotionSidebar({
         return { map, unlinked, friends };
     }, [filteredDocs, currentUserId]);
 
+    const [openFriendYears, setOpenFriendYears] = useState<Set<string>>(new Set());
+    const [openFriendSubjects, setOpenFriendSubjects] = useState<Set<string>>(new Set());
+
+    const toggleFriendYear = (key: string) => {
+        setOpenFriendYears(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    };
+
+    const toggleFriendSubject = (key: string) => {
+        setOpenFriendSubjects(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    };
+
     const friendsByOwner = useMemo(() => {
-        const grouped = new Map<string, { owner: NotionDocument['owner'], docs: NotionDocument[] }>();
+        interface SubjectDocsGroup {
+            subjectKey: string;
+            subjectName: string;
+            subjectCode: string;
+            isLinked: boolean;
+            docs: NotionDocument[];
+        }
+
+        const grouped = new Map<string, {
+            owner: NotionDocument['owner'];
+            years: Map<number, SubjectDocsGroup[]>;
+            unlinked: NotionDocument[];
+            totalDocs: number;
+        }>();
+
         docsBySubject.friends.forEach(doc => {
             const ownerId = doc.user_id;
-            const existing = grouped.get(ownerId) || { owner: doc.owner, docs: [] };
-            existing.docs.push(doc);
-            grouped.set(ownerId, existing);
+            let entry = grouped.get(ownerId);
+            if (!entry) {
+                entry = { owner: doc.owner, years: new Map(), unlinked: [], totalDocs: 0 };
+                grouped.set(ownerId, entry);
+            }
+            entry.totalDocs++;
+
+            const resolved = resolveDocSubject(doc, subjects);
+            if (resolved) {
+                const yearNum = resolved.año || 1;
+                let yearSubs = entry.years.get(yearNum);
+                if (!yearSubs) {
+                    yearSubs = [];
+                    entry.years.set(yearNum, yearSubs);
+                }
+
+                const subKey = resolved.codigo || resolved.nombre;
+                let subGroup = yearSubs.find(s => s.subjectKey === subKey);
+                if (!subGroup) {
+                    subGroup = {
+                        subjectKey: subKey,
+                        subjectName: resolved.nombre,
+                        subjectCode: resolved.codigo,
+                        isLinked: resolved.isLinkedToMyPlan,
+                        docs: []
+                    };
+                    yearSubs.push(subGroup);
+                }
+                subGroup.docs.push(doc);
+            } else {
+                entry.unlinked.push(doc);
+            }
         });
+
         return grouped;
-    }, [docsBySubject.friends]);
+    }, [docsBySubject.friends, subjects]);
 
     // Group subjects by year
     const subjectsByYear = useMemo(() => {
@@ -436,7 +502,7 @@ export function NotionSidebar({
                                 </div>
                             )}
 
-                            {/* Friend notes */}
+                            {/* Friend notes estructurados por Año y Materia */}
                             {friendsByOwner.size > 0 && (
                                 <div className="mt-8">
                                     <div className="flex items-center px-1 mb-4">
@@ -447,9 +513,10 @@ export function NotionSidebar({
                                     </div>
 
                                     <div className="space-y-6">
-                                        {Array.from(friendsByOwner.entries()).map(([ownerId, { owner, docs }]) => (
-                                            <div key={ownerId} className="relative">
-                                                <div className="flex items-center px-1 mb-2">
+                                        {Array.from(friendsByOwner.entries()).map(([ownerId, { owner, years, unlinked, totalDocs }]) => (
+                                            <div key={ownerId} className="relative bg-white/[0.02] border border-border/30 rounded-xl p-2.5">
+                                                {/* Header del amigo */}
+                                                <div className="flex items-center px-1 mb-3">
                                                     {owner?.avatar_url ? (
                                                         <img src={owner.avatar_url} className="w-5 h-5 rounded-full mr-2 border border-border/50" alt={owner.nombre || ""} />
                                                     ) : (
@@ -457,12 +524,86 @@ export function NotionSidebar({
                                                             {(owner?.nombre || "A").charAt(0)}
                                                         </div>
                                                     )}
-                                                    <span className="text-xs font-bold text-muted-foreground/70 truncate">
+                                                    <span className="text-xs font-bold text-foreground truncate flex-1">
                                                         {owner?.nombre || owner?.username || "Amigo"}
                                                     </span>
+                                                    <span className="text-[10px] font-bold bg-background border border-border/50 text-muted-foreground px-1.5 py-0.5 rounded-full">
+                                                        {totalDocs}
+                                                    </span>
                                                 </div>
-                                                <div className="space-y-0.5">
-                                                    {docs.map(d => renderDocItem(d))}
+
+                                                {/* Años del amigo */}
+                                                <div className="space-y-3">
+                                                    {Array.from(years.entries())
+                                                        .sort(([a], [b]) => a - b)
+                                                        .map(([yearNum, subGroups]) => {
+                                                            const yearKey = `${ownerId}-y${yearNum}`;
+                                                            const isYearOpen = !openFriendYears.has(yearKey); // Abierto por defecto
+                                                            const yearDocsCount = subGroups.reduce((sum, g) => sum + g.docs.length, 0);
+
+                                                            return (
+                                                                <div key={yearKey} className="space-y-1.5">
+                                                                    {/* Botón de Año del amigo */}
+                                                                    <button
+                                                                        onClick={() => toggleFriendYear(yearKey)}
+                                                                        className="w-full flex items-center gap-2 px-2 py-1 text-[11px] font-bold text-muted-foreground/80 hover:text-foreground hover:bg-white/5 rounded-md transition-colors"
+                                                                    >
+                                                                        <ChevronRight className={cn("w-3 h-3 transition-transform duration-200", isYearOpen && "rotate-90 text-primary")} />
+                                                                        <span>Año {yearNum}</span>
+                                                                        <span className="text-[9px] text-muted-foreground ml-auto">({yearDocsCount})</span>
+                                                                    </button>
+
+                                                                    {isYearOpen && (
+                                                                        <div className="pl-3 space-y-1 border-l border-border/40 ml-2">
+                                                                            {subGroups.map((group) => {
+                                                                                const subKey = `${ownerId}-y${yearNum}-${group.subjectKey}`;
+                                                                                const isSubOpen = openFriendSubjects.has(subKey);
+
+                                                                                return (
+                                                                                    <div key={subKey} className="space-y-1">
+                                                                                        {/* Materia del amigo */}
+                                                                                        <button
+                                                                                            onClick={() => toggleFriendSubject(subKey)}
+                                                                                            className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                                                                                        >
+                                                                                            <GraduationCap className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                                                                                            <span className="truncate tracking-tight flex-1 text-left">
+                                                                                                {group.subjectCode || group.subjectName}
+                                                                                            </span>
+                                                                                            {group.isLinked && (
+                                                                                                <span className="text-[8px] font-bold px-1 rounded bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30 shrink-0" title="Materia de tu plan de estudio">
+                                                                                                    Plan
+                                                                                                </span>
+                                                                                            )}
+                                                                                            <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                                                                                                {group.docs.length}
+                                                                                            </span>
+                                                                                        </button>
+
+                                                                                        {/* Lista de apuntes de esta materia */}
+                                                                                        {isSubOpen && (
+                                                                                            <div className="pl-2 space-y-0.5 border-l border-primary/20 ml-2">
+                                                                                                {group.docs.map(d => renderDocItem(d))}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+
+                                                    {/* Apuntes sin materia vinculada */}
+                                                    {unlinked.length > 0 && (
+                                                        <div className="space-y-1 pt-1 border-t border-border/20">
+                                                            <span className="text-[10px] font-bold text-muted-foreground/60 px-2 uppercase">Otros apuntes</span>
+                                                            <div className="space-y-0.5">
+                                                                {unlinked.map(d => renderDocItem(d))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

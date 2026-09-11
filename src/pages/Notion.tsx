@@ -31,6 +31,7 @@ import "@/components/notion/notion-editor.css";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { toLocalDateStr } from "@/lib/utils";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import { resolveDocSubject, normalizeSubjectName } from "@/lib/notionSubjectHelper";
 
 interface Subject {
   id: string;
@@ -110,7 +111,7 @@ const extractFullText = (content: any): string => {
 // Memoized Gallery Card component for performance
 const GalleryCard = ({ 
   doc, 
-  subject, 
+  userSubjects = [], 
   onClick, 
   onRename, 
   onChangeSubject,
@@ -119,7 +120,7 @@ const GalleryCard = ({
   currentUserId 
 }: { 
   doc: NotionDocument; 
-  subject?: Subject; 
+  userSubjects?: Subject[]; 
   onClick: (doc: NotionDocument) => void;
   onRename: (doc: NotionDocument) => void; 
   onChangeSubject: (doc: NotionDocument) => void;
@@ -133,6 +134,12 @@ const GalleryCard = ({
   const textSnippet = useMemo(() => extractTextSnippet(doc.contenido), [doc.contenido]);
 
   const isOwner = !currentUserId || doc.user_id === currentUserId;
+
+  // Resolver materia y año del documento (propio o de amigos)
+  const resolvedSubject = useMemo(
+    () => resolveDocSubject(doc, userSubjects),
+    [doc, userSubjects]
+  );
   
   return (
     <div 
@@ -224,16 +231,21 @@ const GalleryCard = ({
            </h3>
         </div>
         
-        {/* Badges */}
-        <div className="flex mt-auto pt-2 gap-2 flex-wrap">
-          {subject ? (
+        {/* Badges de Materia y Año */}
+        <div className="flex mt-auto pt-2 gap-2 flex-wrap items-center">
+          {resolvedSubject ? (
             <>
-              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-[#00E5FF] text-black border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
-                {subject.codigo || subject.nombre}
+              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-[#00E5FF] text-black border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider" title={resolvedSubject.nombre}>
+                {resolvedSubject.codigo || resolvedSubject.nombre}
               </span>
               <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-muted text-foreground border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
-                Año {subject.año}
+                Año {resolvedSubject.año}
               </span>
+              {resolvedSubject.isLinkedToMyPlan && !isOwner && (
+                <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black bg-[#FFD700] text-black border-2 border-foreground uppercase tracking-tight" title="Esta materia coincide con tu plan de estudio importado">
+                  Plan común
+                </span>
+              )}
             </>
           ) : (
             <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-muted text-foreground border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
@@ -355,9 +367,14 @@ export default function Notion() {
   const [sortBy, setSortBy] = useState<"updated" | "alpha_asc" | "alpha_desc">("updated");
 
   const uniqueYears = useMemo(() => {
-    const years = new Set(subjects.map(s => s.año).filter(y => y != null));
+    const years = new Set<number>();
+    subjects.forEach(s => { if (s.año != null) years.add(s.año); });
+    documents.forEach(d => {
+      const eff = resolveDocSubject(d, subjects);
+      if (eff?.año != null) years.add(eff.año);
+    });
     return Array.from(years).sort((a, b) => a - b);
-  }, [subjects]);
+  }, [subjects, documents]);
 
   // Fetch subjects
   useEffect(() => {
@@ -1133,14 +1150,24 @@ export default function Notion() {
     // Filter by year
     if (filterYear !== "all") {
       result = result.filter(doc => {
-        const docSubject = subjects.find(s => s.id === doc.subject_id);
-        return docSubject && docSubject.año != null && docSubject.año.toString() === filterYear;
+        const eff = resolveDocSubject(doc, subjects);
+        return eff && eff.año != null && eff.año.toString() === filterYear;
       });
     }
 
     // Filter by subject
     if (filterSubject !== "all") {
-      result = result.filter(doc => doc.subject_id === filterSubject);
+      const selectedSubject = subjects.find(s => s.id === filterSubject);
+      result = result.filter(doc => {
+        if (doc.subject_id === filterSubject) return true;
+        const eff = resolveDocSubject(doc, subjects);
+        if (eff?.id === filterSubject) return true;
+        if (selectedSubject && eff) {
+          return normalizeSubjectName(eff.nombre) === normalizeSubjectName(selectedSubject.nombre) ||
+                 (eff.codigo && selectedSubject.codigo && eff.codigo.toLowerCase() === selectedSubject.codigo.toLowerCase());
+        }
+        return false;
+      });
     }
 
     // Filter by owner
@@ -1172,6 +1199,39 @@ export default function Notion() {
 
     return result;
   }, [documents, filterSubject, filterYear, searchQuery, sortBy, filterOwner, user, subjects]);
+
+  const filterSubjectOptions = useMemo(() => {
+    const list: { id: string; name: string; año: number }[] = [];
+    const seen = new Set<string>();
+
+    // Materias del usuario
+    subjects.forEach((s) => {
+      const label = s.codigo || s.nombre;
+      list.push({ id: s.id, name: label, año: s.año });
+      seen.add(normalizeSubjectName(s.nombre));
+      if (s.codigo) seen.add(s.codigo.toLowerCase().trim());
+    });
+
+    // Materias de documentos de amigos
+    documents.forEach((d) => {
+      const eff = resolveDocSubject(d, subjects);
+      if (eff) {
+        const norm = normalizeSubjectName(eff.nombre);
+        const codeKey = eff.codigo ? eff.codigo.toLowerCase().trim() : "";
+        if (!seen.has(norm) && (!codeKey || !seen.has(codeKey))) {
+          seen.add(norm);
+          if (codeKey) seen.add(codeKey);
+          list.push({
+            id: d.subject_id || eff.id || eff.nombre,
+            name: `${eff.codigo || eff.nombre} (Amigos)`,
+            año: eff.año,
+          });
+        }
+      }
+    });
+
+    return list.sort((a, b) => a.año - b.año || a.name.localeCompare(b.name));
+  }, [subjects, documents]);
 
   // Loading
   if (loading && documents.length === 0) {
@@ -1565,10 +1625,10 @@ export default function Notion() {
                       </SelectTrigger>
                       <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
                         <SelectItem value="all" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Todas las materias</SelectItem>
-                        {subjects
+                        {filterSubjectOptions
                           .filter(sub => filterYear === "all" || sub.año.toString() === filterYear)
                           .map(sub => (
-                          <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">{sub.codigo || sub.nombre}</SelectItem>
+                          <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">{sub.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1605,7 +1665,7 @@ export default function Notion() {
                       <MemoizedGalleryCard 
                         key={doc.id}
                         doc={doc}
-                        subject={subjects.find(s => s.id === doc.subject_id)}
+                        userSubjects={subjects}
                         onClick={openDocument}
                         onRename={(d) => {
                           setDocToRename(d);

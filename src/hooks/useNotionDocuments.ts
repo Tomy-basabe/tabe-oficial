@@ -18,9 +18,11 @@ export interface NotionDocument {
   created_at: string;
   updated_at: string;
   subject?: {
+    id?: string;
     nombre: string;
     codigo: string;
     year: number;
+    año?: number;
   };
   owner?: {
     nombre: string | null;
@@ -108,7 +110,7 @@ export function useNotionDocuments() {
 
         if (subjectsData) {
           (subjectsData as any[]).forEach(s => {
-            subjectsMapRef.current[s.id] = { nombre: s.nombre, codigo: s.codigo, year: s.año };
+            subjectsMapRef.current[s.id] = { id: s.id, nombre: s.nombre, codigo: s.codigo, year: s.año, año: s.año };
             cachedSubjectIdsRef.current.add(s.id);
           });
         }
