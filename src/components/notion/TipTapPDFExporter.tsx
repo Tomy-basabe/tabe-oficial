@@ -114,9 +114,43 @@ function renderEmojiToDataUrl(emoji: string): string | null {
 }
 
 /**
- * Carga una imagen real y la convierte a DataURL para incrustarla en jsPDF.
+ * Comprime y redimensiona una imagen para que el PDF no sea excesivamente pesado.
+ * Reduce fotos gigantes a un tamaño óptimo para A4 (máx 1000px) y formato JPEG 80%.
  */
-async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width: number; height: number; format: "PNG" | "JPEG" } | null> {
+function compressImageToDataUrl(
+  img: HTMLImageElement,
+  maxDim: number = 1000,
+  quality: number = 0.80
+): { dataUrl: string; width: number; height: number; format: "JPEG" } {
+  let w = img.naturalWidth || 800;
+  let h = img.naturalHeight || 600;
+
+  if (w > maxDim || h > maxDim) {
+    if (w > h) {
+      h = Math.round((h * maxDim) / w);
+      w = maxDim;
+    } else {
+      w = Math.round((w * maxDim) / h);
+      h = maxDim;
+    }
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+
+  const dataUrl = canvas.toDataURL("image/jpeg", quality);
+  return { dataUrl, width: w, height: h, format: "JPEG" };
+}
+
+/**
+ * Carga una imagen real y la comprime para incrustarla liviana en jsPDF.
+ */
+async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width: number; height: number; format: "JPEG" } | null> {
   if (!src) return null;
 
   // 1. Data URL
@@ -124,13 +158,7 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const isPng = src.startsWith("data:image/png");
-        resolve({
-          dataUrl: src,
-          width: img.naturalWidth || 800,
-          height: img.naturalHeight || 600,
-          format: isPng ? "PNG" : "JPEG",
-        });
+        resolve(compressImageToDataUrl(img));
       };
       img.onerror = () => resolve(null);
       img.src = src;
@@ -142,8 +170,6 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
     const res = await fetch(src, { mode: "cors" });
     if (res.ok) {
       const blob = await res.blob();
-      const mime = blob.type.toLowerCase();
-      const format = mime.includes("png") ? "PNG" : "JPEG";
       const dataUrl = await new Promise<string>((resBlob, rejBlob) => {
         const reader = new FileReader();
         reader.onloadend = () => resBlob(reader.result as string);
@@ -153,13 +179,8 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
 
       return new Promise((resolve) => {
         const img = new Image();
-        img.onload = () => resolve({
-          dataUrl,
-          width: img.naturalWidth || 800,
-          height: img.naturalHeight || 600,
-          format,
-        });
-        img.onerror = () => resolve({ dataUrl, width: 800, height: 600, format });
+        img.onload = () => resolve(compressImageToDataUrl(img));
+        img.onerror = () => resolve(null);
         img.src = dataUrl;
       });
     }
@@ -173,25 +194,11 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
     img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth || 800;
-        canvas.height = img.naturalHeight || 600;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          const dataUrl = canvas.toDataURL("image/png");
-          resolve({
-            dataUrl,
-            width: canvas.width,
-            height: canvas.height,
-            format: "PNG",
-          });
-          return;
-        }
+        resolve(compressImageToDataUrl(img));
       } catch (e) {
-        console.warn("Canvas tainted:", e);
+        console.warn("Image compression failed:", e);
+        resolve(null);
       }
-      resolve(null);
     };
     img.onerror = () => resolve(null);
     img.src = src;
@@ -205,17 +212,18 @@ interface RenderedCodeChunk {
 }
 
 /**
- * Renderiza bloques de código usando HTML Canvas de alta resolución.
+ * Renderiza bloques de código usando HTML Canvas optimizado en formato JPEG.
  * Esto garantiza que:
  * 1. Todos los caracteres Unicode (box drawing ┌─┐│└┘, flechas ↑↓→, etc.) se vean perfectos.
  * 2. La fuente sea exactamente monoespaciada con alineación horizontal precisa.
  * 3. Se mantenga el fondo oscuro idéntico al editor de la app.
+ * 4. El tamaño del archivo sea mínimo (utiliza JPEG 82% en lugar de PNG raw).
  */
 function renderCodeBlockToImages(code: string, language: string = "text"): RenderedCodeChunk[] {
   const lines = code.split(/\r?\n/);
   if (lines.length === 0) return [];
 
-  const maxLinesPerChunk = 32;
+  const maxLinesPerChunk = 34;
   const chunks: RenderedCodeChunk[] = [];
   const totalChunks = Math.ceil(lines.length / maxLinesPerChunk);
 
@@ -225,14 +233,13 @@ function renderCodeBlockToImages(code: string, language: string = "text"): Rende
     const chunkLines = lines.slice(start, end);
     const isFirst = c === 0;
 
-    const scale = 2; // Retina 2x para nitidez
-    const fontSize = 12 * scale;
-    const lineHeight = 18 * scale;
+    const scale = 1.3; // Nitidez equilibrada con peso ultra liviano
+    const fontSize = 11.5 * scale;
+    const lineHeight = 17 * scale;
     const padX = 14 * scale;
-    const headerH = isFirst ? 26 * scale : 10 * scale;
-    const padBottom = 12 * scale;
+    const headerH = isFirst ? 24 * scale : 8 * scale;
+    const padBottom = 10 * scale;
 
-    // Medir ancho requerido para las líneas
     const tempCanvas = document.createElement("canvas");
     const tempCtx = tempCanvas.getContext("2d")!;
     tempCtx.font = `${fontSize}px "Consolas", "Cascadia Code", "Courier New", monospace`;
@@ -243,7 +250,7 @@ function renderCodeBlockToImages(code: string, language: string = "text"): Rende
       if (w > maxLineW) maxLineW = w;
     }
 
-    const canvasW = Math.max(900, Math.min(2400, maxLineW + padX * 2));
+    const canvasW = Math.max(700, Math.min(1100, maxLineW + padX * 2));
     const canvasH = headerH + chunkLines.length * lineHeight + padBottom;
 
     const canvas = document.createElement("canvas");
@@ -253,33 +260,21 @@ function renderCodeBlockToImages(code: string, language: string = "text"): Rende
 
     // Fondo oscuro (#18181b - igual al tema dark de Tabe)
     ctx.fillStyle = "#18181b";
-    const r = 6 * scale;
-    if (ctx.roundRect) {
-      ctx.beginPath();
-      ctx.roundRect(0, 0, canvasW, canvasH, r);
-      ctx.fill();
-    } else {
-      ctx.fillRect(0, 0, canvasW, canvasH);
-    }
-
-    // Borde muy sutil
-    ctx.strokeStyle = "#27272a";
-    ctx.lineWidth = 1 * scale;
-    ctx.stroke();
+    ctx.fillRect(0, 0, canvasW, canvasH);
 
     // Cabecera en el primer fragmento
     if (isFirst) {
       ctx.fillStyle = "#71717a";
       ctx.font = `600 ${10 * scale}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
       const label = language || "text";
-      ctx.fillText(label, padX, 16 * scale);
+      ctx.fillText(label, padX, 15 * scale);
 
       // Línea divisoria suave
       ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
       ctx.lineWidth = 1 * scale;
       ctx.beginPath();
-      ctx.moveTo(padX, headerH - 4 * scale);
-      ctx.lineTo(canvasW - padX, headerH - 4 * scale);
+      ctx.moveTo(padX, headerH - 3 * scale);
+      ctx.lineTo(canvasW - padX, headerH - 3 * scale);
       ctx.stroke();
     }
 
@@ -294,7 +289,8 @@ function renderCodeBlockToImages(code: string, language: string = "text"): Rende
       ctx.fillText(lineText, padX, y);
     }
 
-    const dataUrl = canvas.toDataURL("image/png");
+    // Exportar como JPEG con calidad 82% (pesa 95% menos que PNG)
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
     const widthMm = CONTENT_W;
     const heightMm = (canvasH / canvasW) * widthMm;
 
@@ -314,7 +310,12 @@ class PDFRenderer {
   private pageNum: number;
 
   constructor() {
-    this.doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    this.doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+      compress: true, // Compresión interna zlib
+    });
     this.y = MARGIN_T;
     this.pageNum = 1;
   }
@@ -1121,7 +1122,26 @@ export function TipTapPDFExporter({
       onExported?.();
     } catch (error) {
       console.error("Error uploading file:", error);
-      toast.error("Error al guardar en biblioteca: " + (error as any)?.message);
+      const errMsg = (error as any)?.message || "Desconocido";
+
+      // Si excede el tamaño del bucket de Supabase, descargar automáticamente a la PC
+      if (errMsg.toLowerCase().includes("exceeded") || errMsg.toLowerCase().includes("size") || errMsg.includes("413")) {
+        toast.warning("El archivo es demasiado grande para la nube de la biblioteca. Se ha descargado automáticamente a tu equipo.");
+        try {
+          const url = URL.createObjectURL(finalBlob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${fileName}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (downloadErr) {
+          console.error("Fallback download error:", downloadErr);
+        }
+      } else {
+        toast.error("Error al guardar en biblioteca: " + errMsg);
+      }
     } finally {
       setExporting(false);
       setShowOverwriteDialog(false);
