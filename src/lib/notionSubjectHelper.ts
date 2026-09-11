@@ -85,9 +85,17 @@ export function resolveDocSubject(
     // Buscar coincidencia en el plan del usuario por nombre normalizado
     const normSubName = normalizeSubjectName(subName);
     if (normSubName) {
-      const matchByName = userSubjects.find(
-        (s) => normalizeSubjectName(s.nombre) === normSubName
-      );
+      const matchByName = userSubjects.find((s) => {
+        const normUser = normalizeSubjectName(s.nombre);
+        if (normUser === normSubName) return true;
+        // Ignorar sufijo '1' si una viene como 'algebra 1' y la otra 'algebra'
+        if (normUser.replace(/1$/, "") === normSubName.replace(/1$/, "")) return true;
+        // Coincidencia de prefijo si tienen longitud suficiente
+        if (normUser.length >= 6 && normSubName.length >= 6) {
+          if (normUser.startsWith(normSubName) || normSubName.startsWith(normUser)) return true;
+        }
+        return false;
+      });
       if (matchByName) {
         return {
           id: matchByName.id,

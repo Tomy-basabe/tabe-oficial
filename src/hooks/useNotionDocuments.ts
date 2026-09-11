@@ -90,7 +90,8 @@ export function useNotionDocuments() {
       .from("notion_documents")
       .select(`
         id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
-        owner:profiles(nombre, avatar_url, username)
+        owner:profiles(nombre, avatar_url, username),
+        subject:subjects(id, nombre, codigo, año)
       `)
       .order("updated_at", { ascending: false });
 
@@ -98,8 +99,22 @@ export function useNotionDocuments() {
       console.error("Error fetching documents:", error.message, error.details, error.hint);
       toast.error("Error al cargar documentos");
     } else if (data) {
-      // Fetch only NEW subjects that aren't cached yet
-      const allSubjectIds = [...new Set(data.filter(d => d.subject_id).map(d => d.subject_id))] as string[];
+      // Also cache any subjects received from the join
+      data.forEach((d: any) => {
+        if (d.subject && d.subject_id) {
+          subjectsMapRef.current[d.subject_id] = {
+            id: d.subject.id,
+            nombre: d.subject.nombre,
+            codigo: d.subject.codigo,
+            year: d.subject.año,
+            año: d.subject.año,
+          };
+          cachedSubjectIdsRef.current.add(d.subject_id);
+        }
+      });
+
+      // Fetch any missing subjects that weren't joined
+      const allSubjectIds = [...new Set(data.filter((d: any) => d.subject_id && !d.subject).map((d: any) => d.subject_id))] as string[];
       const newSubjectIds = allSubjectIds.filter(id => !cachedSubjectIdsRef.current.has(id));
 
       if (newSubjectIds.length > 0) {
@@ -118,12 +133,24 @@ export function useNotionDocuments() {
 
       const subjectsMap = subjectsMapRef.current;
 
-      const mapped = data.map((d) => ({
-        ...d,
-        subject: d.subject_id ? subjectsMap[d.subject_id] : undefined,
-        // Preserve cached content across refetches
-        contenido: contentCacheRef.current.get(d.id) || undefined,
-      })) as NotionDocument[];
+      const mapped = data.map((d: any) => {
+        const sub = d.subject
+          ? {
+              id: d.subject.id,
+              nombre: d.subject.nombre,
+              codigo: d.subject.codigo,
+              year: d.subject.año,
+              año: d.subject.año,
+            }
+          : (d.subject_id ? subjectsMap[d.subject_id] : undefined);
+
+        return {
+          ...d,
+          subject: sub,
+          // Preserve cached content across refetches
+          contenido: contentCacheRef.current.get(d.id) || undefined,
+        };
+      }) as NotionDocument[];
 
       setDocuments(mapped);
     }
