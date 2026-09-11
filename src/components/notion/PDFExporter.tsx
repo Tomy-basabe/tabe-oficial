@@ -162,7 +162,12 @@ export function PDFExporter({
       container.style.left = "-9999px";
       document.body.appendChild(container);
 
-      const fileName = `${documentTitle || "apunte"}-${Date.now()}`;
+      const cleanTitle = (documentTitle || "apunte")
+        .replace(/[\n\r\t\/\\]/g, " ")
+        .replace(/[^a-zA-Z0-9 \-_áéíóúñÁÉÍÓÚÑüÜ]/g, "")
+        .replace(/\s+/g, " ")
+        .trim() || "apunte";
+      const fileName = `${cleanTitle}-${Date.now()}`;
 
       const opt = {
         margin: [10, 10, 10, 10] as [number, number, number, number],

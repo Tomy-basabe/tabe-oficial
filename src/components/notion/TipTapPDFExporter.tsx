@@ -1180,7 +1180,11 @@ export function TipTapPDFExporter({
 
       const doc = renderer.finalize();
 
-      const cleanTitle = (documentTitle || "apunte").replace(/[^a-zA-Z0-9\s\-_áéíóúñÁÉÍÓÚÑ]/g, "").trim() || "apunte";
+      const cleanTitle = (documentTitle || "apunte")
+        .replace(/[\n\r\t\/\\]/g, " ")
+        .replace(/[^a-zA-Z0-9 \-_áéíóúñÁÉÍÓÚÑüÜ]/g, "")
+        .replace(/\s+/g, " ")
+        .trim() || "apunte";
       const fileName = cleanTitle;
 
       if (saveToLibrary && subjectId) {

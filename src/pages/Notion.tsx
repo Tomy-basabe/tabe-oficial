@@ -1004,7 +1004,7 @@ export default function Notion() {
       const templateContent = selectedTemplate.content;
       const title =
         newDocCustomTitle.trim() ||
-        (selectedTemplate.name === "En blanco" ? "Sin título" : selectedTemplate.name);
+        selectedTemplate.name;
 
       const newDoc = await createDocument(targetSubjectId, title);
       if (newDoc) {
@@ -1886,7 +1886,7 @@ export default function Notion() {
                 type="text"
                 value={newDocCustomTitle}
                 onChange={(e) => setNewDocCustomTitle(e.target.value)}
-                placeholder={selectedTemplate.id === "blank" ? "Ej: Resumen Unidad 1, Clase del Lunes..." : selectedTemplate.name}
+                placeholder={`Ej: ${selectedTemplate.name} - Unidad 1`}
                 className="w-full px-4 py-2.5 bg-background text-foreground rounded-xl border-[3px] border-foreground font-bold text-sm shadow-[3px_3px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-x-[1px] focus:translate-y-[1px] transition-all placeholder:text-muted-foreground placeholder:font-medium"
               />
             </div>
@@ -1953,7 +1953,7 @@ export default function Notion() {
                 className="flex-1 px-6 py-3.5 rounded-xl border-[3px] border-foreground font-black uppercase tracking-wider bg-[#00E5FF] text-black shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] flex items-center justify-center gap-2 text-xs sm:text-sm"
               >
                 <Sparkles className="w-4 h-4" />
-                {selectedTemplate.id === "blank" ? "Crear Página en Blanco" : `Crear con "${selectedTemplate.name}"`}
+                {`Crear con "${selectedTemplate.name}"`}
               </button>
             </div>
           </div>
