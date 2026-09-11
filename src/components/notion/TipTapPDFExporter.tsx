@@ -3,6 +3,7 @@ import { Download, Loader2, Library } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { JSONContent } from "@tiptap/core";
+import jsPDF from "jspdf";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,753 @@ interface TipTapPDFExporterProps {
   subjectId: string | null;
   userId: string;
   onExported?: () => void;
+}
+
+/* ─── Constantes de layout para A4 ─── */
+const PAGE_W = 210; // mm
+const PAGE_H = 297;
+const MARGIN_L = 18;
+const MARGIN_R = 18;
+const MARGIN_T = 20;
+const MARGIN_B = 20;
+const CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R;
+
+/* ─── Colores ─── */
+const C = {
+  text: "#0f172a",
+  muted: "#64748b",
+  border: "#e2e8f0",
+  link: "#2563eb",
+  codeBg: "#0f172a",
+  codeText: "#f1f5f9",
+  blockquoteBorder: "#3b82f6",
+  blockquoteBg: "#f8fafc",
+  taskCheck: "#3b82f6",
+  taskMuted: "#94a3b8",
+  tableBorderColor: "#cbd5e1",
+  tableHeaderBg: "#f1f5f9",
+};
+
+/* ─── Helpers para colores hex → RGB ─── */
+function hexToRgb(hex: string): [number, number, number] {
+  hex = hex.replace("#", "");
+  if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  const n = parseInt(hex, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function cssColorToHex(color: string): string {
+  if (!color) return "#0f172a";
+  if (color.startsWith("#")) return color;
+  if (color.startsWith("rgb")) {
+    const m = color.match(/\d+/g);
+    if (m && m.length >= 3) {
+      const r = parseInt(m[0]).toString(16).padStart(2, "0");
+      const g = parseInt(m[1]).toString(16).padStart(2, "0");
+      const b = parseInt(m[2]).toString(16).padStart(2, "0");
+      return `#${r}${g}${b}`;
+    }
+  }
+  // Named colors fallback
+  const namedColors: Record<string, string> = {
+    red: "#ef4444", blue: "#3b82f6", green: "#22c55e", yellow: "#eab308",
+    purple: "#a855f7", orange: "#f97316", pink: "#ec4899", white: "#ffffff",
+    black: "#000000", gray: "#6b7280", grey: "#6b7280",
+  };
+  return namedColors[color.toLowerCase()] || "#0f172a";
+}
+
+/**
+ * Motor de renderizado PDF directo con jsPDF.
+ * No usa html2canvas — dibuja cada elemento programáticamente.
+ */
+class PDFRenderer {
+  private doc: jsPDF;
+  private y: number;
+  private pageNum: number;
+
+  constructor() {
+    this.doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    this.y = MARGIN_T;
+    this.pageNum = 1;
+  }
+
+  /* ── Gestión de página ── */
+  private ensureSpace(needed: number) {
+    if (this.y + needed > PAGE_H - MARGIN_B) {
+      this.doc.addPage();
+      this.pageNum++;
+      this.y = MARGIN_T;
+    }
+  }
+
+  private addFooter() {
+    // Pie de página con número
+    const totalPages = this.doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      this.doc.setPage(i);
+      this.doc.setFontSize(8);
+      this.doc.setTextColor(...hexToRgb(C.muted));
+      this.doc.text(`TABE Apuntes — Página ${i} de ${totalPages}`, PAGE_W / 2, PAGE_H - 10, { align: "center" });
+    }
+  }
+
+  /* ── Texto con wrapping ── */
+  private writeText(
+    text: string,
+    x: number,
+    maxWidth: number,
+    opts: {
+      fontSize?: number;
+      fontStyle?: string;
+      color?: string;
+      lineHeight?: number;
+      indent?: number;
+    } = {}
+  ): number {
+    const {
+      fontSize = 10,
+      fontStyle = "normal",
+      color = C.text,
+      lineHeight = 1.5,
+      indent = 0,
+    } = opts;
+
+    this.doc.setFontSize(fontSize);
+    this.doc.setFont("helvetica", fontStyle);
+    this.doc.setTextColor(...hexToRgb(cssColorToHex(color)));
+
+    const lines = this.doc.splitTextToSize(text, maxWidth - indent);
+    const lineH = (fontSize * lineHeight) / 2.835; // pt → mm approx
+
+    for (const line of lines) {
+      this.ensureSpace(lineH);
+      this.doc.text(line, x + indent, this.y);
+      this.y += lineH;
+    }
+
+    return lines.length * lineH;
+  }
+
+  /* ── Procesar inline marks y extraer texto plano con segmentos ── */
+  private getInlineSegments(content: JSONContent[] | undefined): Array<{
+    text: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    strike?: boolean;
+    code?: boolean;
+    color?: string;
+    bgColor?: string;
+    link?: string;
+    highlight?: string;
+  }> {
+    if (!content) return [];
+    const segments: Array<{
+      text: string;
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      strike?: boolean;
+      code?: boolean;
+      color?: string;
+      bgColor?: string;
+      link?: string;
+      highlight?: string;
+    }> = [];
+
+    for (const node of content) {
+      if (node.type !== "text" || !node.text) continue;
+
+      const seg: (typeof segments)[0] = { text: node.text };
+
+      for (const mark of node.marks || []) {
+        switch (mark.type) {
+          case "bold": seg.bold = true; break;
+          case "italic": seg.italic = true; break;
+          case "underline": seg.underline = true; break;
+          case "strike": seg.strike = true; break;
+          case "code": seg.code = true; break;
+          case "link": seg.link = mark.attrs?.href; break;
+          case "highlight": seg.highlight = mark.attrs?.color || "#fef08a"; break;
+          case "textStyle":
+            if (mark.attrs?.color) seg.color = mark.attrs.color;
+            if (mark.attrs?.backgroundColor && mark.attrs.backgroundColor !== "transparent")
+              seg.bgColor = mark.attrs.backgroundColor;
+            break;
+        }
+      }
+
+      segments.push(seg);
+    }
+    return segments;
+  }
+
+  /**
+   * Renderiza contenido inline con formato (bold, italic, colores, highlights).
+   * Usa un approach de segmentos para manejar cambios de estilo mid-line.
+   */
+  private writeRichInline(
+    content: JSONContent[] | undefined,
+    x: number,
+    maxWidth: number,
+    baseFontSize: number = 10,
+    baseColor: string = C.text,
+    lineHeightMult: number = 1.5,
+  ): number {
+    const segments = this.getInlineSegments(content);
+    if (segments.length === 0) return 0;
+
+    // Para texto simple (sin marcas especiales), usar writeText directamente
+    const plainText = segments.map(s => s.text).join("");
+    const hasSpecialMarks = segments.some(s => s.bold || s.italic || s.color || s.highlight || s.bgColor || s.link || s.code);
+
+    if (!hasSpecialMarks) {
+      return this.writeText(plainText, x, maxWidth, {
+        fontSize: baseFontSize,
+        color: baseColor,
+        lineHeight: lineHeightMult,
+      });
+    }
+
+    // Renderizado segmento por segmento en una sola línea lógica
+    const lineH = (baseFontSize * lineHeightMult) / 2.835;
+    let curX = x;
+    const availW = maxWidth;
+
+    for (const seg of segments) {
+      const fontStyle = seg.bold && seg.italic ? "bolditalic" : seg.bold ? "bold" : seg.italic ? "italic" : "normal";
+      const color = seg.color || (seg.link ? C.link : baseColor);
+
+      this.doc.setFontSize(seg.code ? baseFontSize * 0.9 : baseFontSize);
+      this.doc.setFont(seg.code ? "courier" : "helvetica", fontStyle);
+      this.doc.setTextColor(...hexToRgb(cssColorToHex(color)));
+
+      const words = seg.text.split(/(\s+)/);
+      for (const word of words) {
+        if (!word) continue;
+        const wordW = this.doc.getTextWidth(word);
+
+        if (curX + wordW > x + availW && curX > x) {
+          // Salto de línea
+          curX = x;
+          this.y += lineH;
+          this.ensureSpace(lineH);
+        }
+
+        // Dibujar highlight/background detrás del texto
+        if (seg.highlight || seg.bgColor) {
+          const bgHex = cssColorToHex(seg.highlight || seg.bgColor || "#fef08a");
+          this.doc.setFillColor(...hexToRgb(bgHex));
+          this.doc.roundedRect(curX - 0.3, this.y - lineH * 0.7, wordW + 0.6, lineH * 0.9, 0.5, 0.5, "F");
+          // Restaurar color de texto
+          this.doc.setTextColor(...hexToRgb(cssColorToHex(color)));
+        }
+
+        this.doc.text(word, curX, this.y);
+
+        // Subrayado
+        if (seg.underline || seg.link) {
+          this.doc.setDrawColor(...hexToRgb(cssColorToHex(color)));
+          this.doc.setLineWidth(0.15);
+          this.doc.line(curX, this.y + 0.5, curX + wordW, this.y + 0.5);
+        }
+
+        // Tachado
+        if (seg.strike) {
+          this.doc.setDrawColor(...hexToRgb(cssColorToHex(C.muted)));
+          this.doc.setLineWidth(0.15);
+          this.doc.line(curX, this.y - lineH * 0.25, curX + wordW, this.y - lineH * 0.25);
+        }
+
+        curX += wordW;
+      }
+    }
+
+    this.y += lineH;
+    return lineH;
+  }
+
+  /* ── Bloque: Encabezado del documento ── */
+  renderHeader(title: string, emoji: string) {
+    if (emoji) {
+      this.doc.setFontSize(28);
+      this.doc.text(emoji, MARGIN_L, this.y + 5);
+      this.y += 12;
+    }
+
+    this.writeText(title || "Sin título", MARGIN_L, CONTENT_W, {
+      fontSize: 22,
+      fontStyle: "bold",
+      color: C.text,
+      lineHeight: 1.3,
+    });
+
+    this.y += 2;
+
+    // Fecha
+    const dateStr = `Exportado el ${new Date().toLocaleDateString("es-AR", {
+      day: "numeric", month: "long", year: "numeric",
+    })} • TABE Apuntes`;
+    this.writeText(dateStr, MARGIN_L, CONTENT_W, {
+      fontSize: 8,
+      color: C.muted,
+    });
+
+    // Línea separadora
+    this.y += 3;
+    this.doc.setDrawColor(...hexToRgb(C.border));
+    this.doc.setLineWidth(0.3);
+    this.doc.line(MARGIN_L, this.y, PAGE_W - MARGIN_R, this.y);
+    this.y += 8;
+  }
+
+  /* ── Procesar nodos del JSON ── */
+  processNodes(nodes: JSONContent[]) {
+    for (const node of nodes) {
+      this.processNode(node);
+    }
+  }
+
+  private processNode(node: JSONContent) {
+    switch (node.type) {
+      case "paragraph":
+        this.renderParagraph(node);
+        break;
+      case "heading":
+        this.renderHeading(node);
+        break;
+      case "bulletList":
+        this.renderBulletList(node);
+        break;
+      case "orderedList":
+        this.renderOrderedList(node);
+        break;
+      case "taskList":
+        this.renderTaskList(node);
+        break;
+      case "blockquote":
+        this.renderBlockquote(node);
+        break;
+      case "codeBlock":
+        this.renderCodeBlock(node);
+        break;
+      case "horizontalRule":
+        this.renderHR();
+        break;
+      case "callout":
+        this.renderCallout(node);
+        break;
+      case "table":
+        this.renderTable(node);
+        break;
+      case "details":
+        this.renderDetails(node);
+        break;
+      case "math":
+        this.renderMath(node);
+        break;
+      case "image":
+        // Las imágenes son complejas de manejar con jsPDF puro (necesitan fetch + decode).
+        // Dejamos un placeholder estilizado.
+        this.renderImagePlaceholder(node);
+        break;
+      default:
+        if (node.content) this.processNodes(node.content);
+        break;
+    }
+  }
+
+  /* ── Párrafo ── */
+  private renderParagraph(node: JSONContent) {
+    const segments = this.getInlineSegments(node.content);
+    if (segments.length === 0) {
+      this.y += 3; // Párrafo vacío = espaciado
+      return;
+    }
+    this.writeRichInline(node.content, MARGIN_L, CONTENT_W, 10, C.text, 1.6);
+    this.y += 2;
+  }
+
+  /* ── Encabezados ── */
+  private renderHeading(node: JSONContent) {
+    const level = node.attrs?.level || 2;
+    const sizes: Record<number, number> = { 1: 18, 2: 15, 3: 13 };
+    const gaps: Record<number, number> = { 1: 8, 2: 6, 3: 5 };
+    const fontSize = sizes[level] || 12;
+
+    this.y += gaps[level] || 4;
+    this.ensureSpace(fontSize / 2.835 * 1.3 + 4);
+
+    this.writeRichInline(node.content, MARGIN_L, CONTENT_W, fontSize, C.text, 1.3);
+    this.y += 3;
+  }
+
+  /* ── Lista con viñetas ── */
+  private renderBulletList(node: JSONContent, depth: number = 0) {
+    const indent = depth * 6;
+    for (const item of node.content || []) {
+      const bulletChars = ["•", "◦", "▪"];
+      const bullet = bulletChars[Math.min(depth, bulletChars.length - 1)];
+      this.ensureSpace(6);
+      this.doc.setFontSize(10);
+      this.doc.setTextColor(...hexToRgb(C.text));
+      this.doc.text(bullet, MARGIN_L + indent + 2, this.y);
+
+      // Procesar contenido del item
+      for (const child of item.content || []) {
+        if (child.type === "paragraph") {
+          this.writeRichInline(child.content, MARGIN_L + indent + 6, CONTENT_W - indent - 6, 10, C.text, 1.5);
+        } else if (child.type === "bulletList") {
+          this.renderBulletList(child, depth + 1);
+        } else if (child.type === "orderedList") {
+          this.renderOrderedList(child, depth + 1);
+        } else {
+          this.processNode(child);
+        }
+      }
+      this.y += 1;
+    }
+    this.y += 2;
+  }
+
+  /* ── Lista numerada ── */
+  private renderOrderedList(node: JSONContent, depth: number = 0) {
+    const indent = depth * 6;
+    let idx = 1;
+    for (const item of node.content || []) {
+      this.ensureSpace(6);
+      this.doc.setFontSize(10);
+      this.doc.setTextColor(...hexToRgb(C.text));
+      this.doc.text(`${idx}.`, MARGIN_L + indent + 1, this.y);
+
+      for (const child of item.content || []) {
+        if (child.type === "paragraph") {
+          this.writeRichInline(child.content, MARGIN_L + indent + 7, CONTENT_W - indent - 7, 10, C.text, 1.5);
+        } else if (child.type === "bulletList") {
+          this.renderBulletList(child, depth + 1);
+        } else if (child.type === "orderedList") {
+          this.renderOrderedList(child, depth + 1);
+        } else {
+          this.processNode(child);
+        }
+      }
+      idx++;
+      this.y += 1;
+    }
+    this.y += 2;
+  }
+
+  /* ── Lista de tareas ── */
+  private renderTaskList(node: JSONContent) {
+    for (const item of node.content || []) {
+      const checked = item.attrs?.checked === true;
+      this.ensureSpace(6);
+
+      // Checkbox
+      this.doc.setFontSize(10);
+      const checkSymbol = checked ? "☑" : "☐";
+      this.doc.setTextColor(...hexToRgb(C.taskCheck));
+      this.doc.text(checkSymbol, MARGIN_L + 1, this.y);
+
+      const textColor = checked ? C.taskMuted : C.text;
+      for (const child of item.content || []) {
+        if (child.type === "paragraph") {
+          this.writeRichInline(child.content, MARGIN_L + 7, CONTENT_W - 7, 10, textColor, 1.5);
+          // Tachado visual si está completado
+          if (checked) {
+            const plainText = this.getInlineSegments(child.content).map(s => s.text).join("");
+            this.doc.setFontSize(10);
+            const tw = Math.min(this.doc.getTextWidth(plainText), CONTENT_W - 7);
+            this.doc.setDrawColor(...hexToRgb(C.taskMuted));
+            this.doc.setLineWidth(0.2);
+            this.doc.line(MARGIN_L + 7, this.y - 3.5 * 0.6, MARGIN_L + 7 + tw, this.y - 3.5 * 0.6);
+          }
+        } else {
+          this.processNode(child);
+        }
+      }
+      this.y += 1.5;
+    }
+    this.y += 2;
+  }
+
+  /* ── Cita ── */
+  private renderBlockquote(node: JSONContent) {
+    this.ensureSpace(12);
+    const startY = this.y;
+
+    // Fondo
+    const plainText = this.flattenText(node);
+    this.doc.setFontSize(10);
+    const lines = this.doc.splitTextToSize(plainText, CONTENT_W - 10);
+    const blockH = Math.max(lines.length * 4.5 + 4, 10);
+
+    this.doc.setFillColor(...hexToRgb(C.blockquoteBg));
+    this.doc.roundedRect(MARGIN_L + 3, this.y - 2, CONTENT_W - 3, blockH, 1, 1, "F");
+
+    // Borde izquierdo azul
+    this.doc.setFillColor(...hexToRgb(C.blockquoteBorder));
+    this.doc.rect(MARGIN_L + 3, this.y - 2, 1.2, blockH, "F");
+
+    // Texto
+    for (const child of node.content || []) {
+      if (child.type === "paragraph") {
+        this.writeRichInline(child.content, MARGIN_L + 8, CONTENT_W - 12, 10, "#334155", 1.5);
+      } else {
+        this.processNode(child);
+      }
+    }
+
+    this.y = Math.max(this.y, startY + blockH) + 3;
+  }
+
+  /* ── Bloque de código ── */
+  private renderCodeBlock(node: JSONContent) {
+    const code = node.content?.[0]?.text || "";
+    this.doc.setFontSize(8.5);
+    this.doc.setFont("courier", "normal");
+    const lines = this.doc.splitTextToSize(code, CONTENT_W - 10);
+    const blockH = lines.length * 3.5 + 8;
+
+    this.ensureSpace(Math.min(blockH, PAGE_H - MARGIN_T - MARGIN_B));
+
+    // Fondo oscuro
+    this.doc.setFillColor(...hexToRgb(C.codeBg));
+    this.doc.roundedRect(MARGIN_L, this.y - 2, CONTENT_W, Math.min(blockH, PAGE_H - MARGIN_T - MARGIN_B - 4), 2, 2, "F");
+
+    // Texto claro
+    this.doc.setTextColor(...hexToRgb(C.codeText));
+    this.doc.setFontSize(8.5);
+    this.doc.setFont("courier", "normal");
+
+    const lineH = 3.5;
+    this.y += 3;
+    for (const line of lines) {
+      this.ensureSpace(lineH);
+      this.doc.text(line, MARGIN_L + 5, this.y);
+      this.y += lineH;
+    }
+    this.y += 5;
+    this.doc.setFont("helvetica", "normal");
+  }
+
+  /* ── Línea horizontal ── */
+  private renderHR() {
+    this.y += 4;
+    this.ensureSpace(4);
+    this.doc.setDrawColor(...hexToRgb(C.border));
+    this.doc.setLineWidth(0.3);
+    this.doc.line(MARGIN_L, this.y, PAGE_W - MARGIN_R, this.y);
+    this.y += 6;
+  }
+
+  /* ── Callout ── */
+  private renderCallout(node: JSONContent) {
+    const calloutType = node.attrs?.type || "info";
+    const palette: Record<string, { bg: string; border: string; icon: string; text: string }> = {
+      info:    { bg: "#eff6ff", border: "#3b82f6", icon: "ℹ", text: "#1e3a8a" },
+      success: { bg: "#f0fdf4", border: "#22c55e", icon: "✓", text: "#14532d" },
+      warning: { bg: "#fefce8", border: "#eab308", icon: "⚠", text: "#713f12" },
+      danger:  { bg: "#fef2f2", border: "#ef4444", icon: "✕", text: "#7f1d1d" },
+      tip:     { bg: "#faf5ff", border: "#a855f7", icon: "💡", text: "#581c87" },
+    };
+    const colors = palette[calloutType] || palette.info;
+
+    const plainText = this.flattenText(node);
+    this.doc.setFontSize(10);
+    const lines = this.doc.splitTextToSize(plainText, CONTENT_W - 14);
+    const blockH = Math.max(lines.length * 4.5 + 6, 12);
+
+    this.ensureSpace(blockH + 4);
+
+    // Fondo
+    this.doc.setFillColor(...hexToRgb(colors.bg));
+    this.doc.roundedRect(MARGIN_L, this.y - 2, CONTENT_W, blockH, 2, 2, "F");
+
+    // Borde izquierdo
+    this.doc.setFillColor(...hexToRgb(colors.border));
+    this.doc.rect(MARGIN_L, this.y - 2, 1.2, blockH, "F");
+
+    // Icono
+    this.doc.setFontSize(12);
+    this.doc.setTextColor(...hexToRgb(colors.border));
+    this.doc.text(colors.icon, MARGIN_L + 4, this.y + 2);
+
+    // Contenido
+    this.y += 1;
+    for (const child of node.content || []) {
+      if (child.type === "paragraph") {
+        this.writeRichInline(child.content, MARGIN_L + 10, CONTENT_W - 14, 10, colors.text, 1.5);
+      } else {
+        this.processNode(child);
+      }
+    }
+
+    this.y += 4;
+  }
+
+  /* ── Tabla ── */
+  private renderTable(node: JSONContent) {
+    const rows = node.content || [];
+    if (rows.length === 0) return;
+
+    // Calcular número de columnas
+    const numCols = rows[0]?.content?.length || 1;
+    const colW = CONTENT_W / numCols;
+    const cellPad = 2;
+    const cellFontSize = 9;
+
+    this.y += 2;
+
+    for (let ri = 0; ri < rows.length; ri++) {
+      const row = rows[ri];
+      const cells = row.content || [];
+      const isHeader = cells.some((c) => c.type === "tableHeader") || ri === 0;
+
+      // Calcular la altura máxima de la fila
+      let maxCellH = 6;
+      const cellTexts: string[][] = [];
+      for (const cell of cells) {
+        const text = this.flattenText(cell);
+        this.doc.setFontSize(cellFontSize);
+        const wrapped = this.doc.splitTextToSize(text, colW - cellPad * 2);
+        cellTexts.push(wrapped);
+        const h = wrapped.length * (cellFontSize * 1.4 / 2.835) + cellPad * 2;
+        maxCellH = Math.max(maxCellH, h);
+      }
+
+      this.ensureSpace(maxCellH + 2);
+
+      // Dibujar celdas
+      for (let ci = 0; ci < cells.length; ci++) {
+        const cx = MARGIN_L + ci * colW;
+
+        // Fondo de header
+        if (isHeader) {
+          this.doc.setFillColor(...hexToRgb(C.tableHeaderBg));
+          this.doc.rect(cx, this.y - 1, colW, maxCellH, "F");
+        }
+
+        // Borde
+        this.doc.setDrawColor(...hexToRgb(C.tableBorderColor));
+        this.doc.setLineWidth(0.2);
+        this.doc.rect(cx, this.y - 1, colW, maxCellH, "S");
+
+        // Texto
+        this.doc.setFontSize(cellFontSize);
+        this.doc.setFont("helvetica", isHeader ? "bold" : "normal");
+        this.doc.setTextColor(...hexToRgb(C.text));
+
+        const lines = cellTexts[ci] || [];
+        const lineH = cellFontSize * 1.4 / 2.835;
+        for (let li = 0; li < lines.length; li++) {
+          this.doc.text(lines[li], cx + cellPad, this.y + cellPad + lineH * (li + 0.7));
+        }
+      }
+
+      this.y += maxCellH;
+    }
+
+    this.y += 4;
+  }
+
+  /* ── Details / Toggles (siempre abiertos) ── */
+  private renderDetails(node: JSONContent) {
+    this.ensureSpace(12);
+    const startY = this.y;
+
+    for (const child of node.content || []) {
+      if (child.type === "detailsSummary") {
+        // Fondo del summary
+        const summaryText = this.flattenText(child);
+        this.doc.setFontSize(10);
+        const lines = this.doc.splitTextToSize(summaryText, CONTENT_W - 12);
+        const summaryH = lines.length * 4.2 + 4;
+
+        this.doc.setFillColor(...hexToRgb("#f8fafc"));
+        this.doc.roundedRect(MARGIN_L, this.y - 2, CONTENT_W, summaryH, 1.5, 1.5, "F");
+
+        // Triángulo ▼
+        this.doc.setFontSize(8);
+        this.doc.setTextColor(...hexToRgb(C.taskCheck));
+        this.doc.text("▼", MARGIN_L + 3, this.y + 1);
+
+        // Texto del summary
+        this.writeRichInline(child.content, MARGIN_L + 8, CONTENT_W - 12, 10, C.text, 1.4);
+        this.y += 2;
+
+        // Borde inferior del summary
+        this.doc.setDrawColor(...hexToRgb(C.border));
+        this.doc.setLineWidth(0.2);
+        this.doc.line(MARGIN_L, this.y - 1, PAGE_W - MARGIN_R, this.y - 1);
+      } else if (child.type === "detailsContent") {
+        // Contenido del toggle
+        this.y += 1;
+        for (const innerChild of child.content || []) {
+          this.processNode(innerChild);
+        }
+      }
+    }
+
+    // Borde del toggle completo
+    const endY = this.y;
+    this.doc.setDrawColor(...hexToRgb(C.border));
+    this.doc.setLineWidth(0.2);
+    this.doc.roundedRect(MARGIN_L, startY - 2, CONTENT_W, endY - startY + 2, 1.5, 1.5, "S");
+    this.y += 4;
+  }
+
+  /* ── Fórmula matemática ── */
+  private renderMath(node: JSONContent) {
+    const formula = node.attrs?.formula || "";
+    this.ensureSpace(12);
+
+    this.doc.setFillColor(...hexToRgb("#f8fafc"));
+    const lines = this.doc.splitTextToSize(formula, CONTENT_W - 8);
+    const blockH = lines.length * 4 + 6;
+    this.doc.roundedRect(MARGIN_L, this.y - 2, CONTENT_W, blockH, 1, 1, "F");
+    this.doc.setDrawColor(...hexToRgb(C.border));
+    this.doc.roundedRect(MARGIN_L, this.y - 2, CONTENT_W, blockH, 1, 1, "S");
+
+    this.doc.setFont("courier", "normal");
+    this.writeText(formula, MARGIN_L + 4, CONTENT_W - 8, {
+      fontSize: 10,
+      color: C.text,
+    });
+    this.doc.setFont("helvetica", "normal");
+    this.y += 4;
+  }
+
+  /* ── Placeholder de imagen ── */
+  private renderImagePlaceholder(node: JSONContent) {
+    const alt = node.attrs?.alt || "Imagen";
+    this.ensureSpace(20);
+
+    this.doc.setFillColor(...hexToRgb("#f1f5f9"));
+    this.doc.roundedRect(MARGIN_L + 20, this.y, CONTENT_W - 40, 16, 2, 2, "F");
+    this.doc.setDrawColor(...hexToRgb(C.border));
+    this.doc.roundedRect(MARGIN_L + 20, this.y, CONTENT_W - 40, 16, 2, 2, "S");
+
+    this.doc.setFontSize(9);
+    this.doc.setTextColor(...hexToRgb(C.muted));
+    this.doc.text(`🖼  ${alt}`, MARGIN_L + CONTENT_W / 2, this.y + 9, { align: "center" });
+
+    this.y += 20;
+  }
+
+  /* ── Utilidades ── */
+  private flattenText(node: JSONContent): string {
+    if (node.type === "text") return node.text || "";
+    if (!node.content) return "";
+    return node.content.map((c) => this.flattenText(c)).join("");
+  }
+
+  /* ── Exportar ── */
+  finalize(): jsPDF {
+    this.addFooter();
+    return this.doc;
+  }
 }
 
 export function TipTapPDFExporter({
@@ -30,239 +778,6 @@ export function TipTapPDFExporter({
   const [saveToLibrary, setSaveToLibrary] = useState(true);
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
   const [pendingFile, setPendingFile] = useState<{ blob: Blob; fileName: string } | null>(null);
-
-  /**
-   * Genera el HTML completo, limpio y autónomo para el PDF
-   * preservando estilos, colores, tablas, listas y abriendo forzosamente todos los desplegables.
-   */
-  const convertToHtml = (data: JSONContent): string => {
-    if (!data || !data.content) return "";
-
-    const processContent = (content: JSONContent[]): string => {
-      let result = "";
-
-      content.forEach((node) => {
-        const alignStyle = node.attrs?.textAlign ? `text-align: ${node.attrs.textAlign};` : "";
-
-        switch (node.type) {
-          case "paragraph":
-            result += `<p style="line-height: 1.7; margin: 0 0 12px 0; font-size: 15px; color: #0f172a; ${alignStyle}">${renderInlineContent(node.content)}</p>`;
-            break;
-
-          case "heading": {
-            const level = node.attrs?.level || 2;
-            const headerSizes: Record<number, string> = {
-              1: "font-size: 26px; font-weight: 700; margin: 26px 0 12px; color: #0f172a; line-height: 1.3;",
-              2: "font-size: 21px; font-weight: 600; margin: 22px 0 10px; color: #0f172a; line-height: 1.3;",
-              3: "font-size: 17px; font-weight: 600; margin: 18px 0 8px; color: #0f172a; line-height: 1.3;",
-            };
-            result += `<h${level} style="${headerSizes[level] || ""} ${alignStyle}">${renderInlineContent(node.content)}</h${level}>`;
-            break;
-          }
-
-          case "bulletList":
-            result += `<ul style="list-style-type: disc; padding-left: 24px; margin: 0 0 14px 0;">`;
-            (node.content || []).forEach((item) => {
-              result += `<li style="margin-bottom: 6px; line-height: 1.6; color: #0f172a;">${processContent(item.content || [])}</li>`;
-            });
-            result += `</ul>`;
-            break;
-
-          case "orderedList":
-            result += `<ol style="list-style-type: decimal; padding-left: 24px; margin: 0 0 14px 0;">`;
-            (node.content || []).forEach((item) => {
-              result += `<li style="margin-bottom: 6px; line-height: 1.6; color: #0f172a;">${processContent(item.content || [])}</li>`;
-            });
-            result += `</ol>`;
-            break;
-
-          case "taskList":
-            result += `<div style="margin: 0 0 14px 0;">`;
-            (node.content || []).forEach((item) => {
-              const checked = item.attrs?.checked;
-              const checkbox = checked ? "☑" : "☐";
-              const textStyle = checked ? "text-decoration: line-through; color: #94a3b8;" : "color: #0f172a;";
-              result += `<div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px;">
-                <span style="font-size: 16px; line-height: 1.5; color: #3b82f6; font-weight: bold;">${checkbox}</span>
-                <div style="${textStyle} flex: 1;">${processContent(item.content || [])}</div>
-              </div>`;
-            });
-            result += `</div>`;
-            break;
-
-          case "blockquote":
-            result += `<blockquote style="border-left: 4px solid #3b82f6; padding: 10px 16px; margin: 16px 0; font-style: italic; background: #f8fafc; color: #334155; border-radius: 0 6px 6px 0;">`;
-            result += processContent(node.content || []);
-            result += `</blockquote>`;
-            break;
-
-          case "codeBlock":
-            result += `<pre style="background: #0f172a; color: #f1f5f9; padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-family: 'Fira Code', Consolas, Monaco, monospace; font-size: 13px; line-height: 1.5; margin: 16px 0;"><code style="color: #f1f5f9; background: transparent;">${node.content?.[0]?.text || ""}</code></pre>`;
-            break;
-
-          case "horizontalRule":
-            result += `<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />`;
-            break;
-
-          case "callout": {
-            const calloutType = node.attrs?.type || "info";
-            const calloutColors: Record<string, { bg: string; border: string; icon: string; text: string }> = {
-              info: { bg: "#eff6ff", border: "#3b82f6", icon: "ℹ️", text: "#1e3a8a" },
-              success: { bg: "#f0fdf4", border: "#22c55e", icon: "✅", text: "#14532d" },
-              warning: { bg: "#fefce8", border: "#eab308", icon: "⚠️", text: "#713f12" },
-              danger: { bg: "#fef2f2", border: "#ef4444", icon: "🚫", text: "#7f1d1d" },
-              tip: { bg: "#faf5ff", border: "#a855f7", icon: "💡", text: "#581c87" },
-            };
-            const colors = calloutColors[calloutType] || calloutColors.info;
-            result += `<div style="display: flex; gap: 12px; background: ${colors.bg}; border-left: 4px solid ${colors.border}; border-radius: 8px; padding: 14px 16px; margin: 14px 0; color: ${colors.text};">
-              <span style="font-size: 18px; flex-shrink: 0; line-height: 1;">${colors.icon}</span>
-              <div style="flex: 1; color: ${colors.text};">${processContent(node.content || [])}</div>
-            </div>`;
-            break;
-          }
-
-          case "table":
-            result += `<table style="width: 100%; border-collapse: collapse; margin: 16px 0;">`;
-            (node.content || []).forEach((row) => {
-              result += `<tr>`;
-              (row.content || []).forEach((cell) => {
-                const isHeader = cell.type === "tableHeader";
-                const cellStyle = isHeader
-                  ? "background: #f1f5f9; font-weight: 600; padding: 8px 12px; border: 1px solid #cbd5e1; color: #0f172a;"
-                  : "padding: 8px 12px; border: 1px solid #cbd5e1; color: #0f172a;";
-                result += `<td style="${cellStyle}">${processContent(cell.content || [])}</td>`;
-              });
-              result += `</tr>`;
-            });
-            result += `</table>`;
-            break;
-
-          case "image":
-            result += `<figure style="margin: 18px 0; text-align: center;">
-              <img src="${node.attrs?.src || ""}" alt="${node.attrs?.alt || ""}" style="max-width: 100%; height: auto; border-radius: 8px;" crossorigin="anonymous" />
-              ${node.attrs?.alt ? `<figcaption style="color: #64748b; font-size: 13px; margin-top: 6px;">${node.attrs.alt}</figcaption>` : ""}
-            </figure>`;
-            break;
-
-          // DESPLEGABLES / TOGGLES: SIEMPRE ABIERTOS EN EL PDF CON INDICADOR
-          case "details":
-            result += `<details open style="display: block; margin: 14px 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff;">`;
-            (node.content || []).forEach((child) => {
-              if (child.type === "detailsSummary") {
-                result += `<summary style="padding: 10px 14px; background: #f8fafc; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 8px; list-style: none; border-bottom: 1px solid #e2e8f0;">
-                  <span style="font-size: 11px; color: #3b82f6;">▼</span>
-                  <span style="color: #0f172a;">${renderInlineContent(child.content)}</span>
-                </summary>`;
-              } else if (child.type === "detailsContent") {
-                result += `<div style="display: block; padding: 14px 18px; background: #ffffff; color: #0f172a;">${processContent(child.content || [])}</div>`;
-              }
-            });
-            result += `</details>`;
-            break;
-
-          case "math":
-            result += `<div style="margin: 14px 0; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-family: monospace; text-align: center; color: #0f172a; font-size: 15px;">${node.attrs?.formula || ""}</div>`;
-            break;
-
-          default:
-            if (node.content) {
-              result += processContent(node.content);
-            }
-            break;
-        }
-      });
-
-      return result;
-    };
-
-    const renderInlineContent = (content: JSONContent[] | undefined): string => {
-      if (!content) return "";
-
-      return content
-        .map((node) => {
-          if (node.type === "text") {
-            let text = node.text || "";
-            const marks = node.marks || [];
-
-            marks.forEach((mark) => {
-              switch (mark.type) {
-                case "bold":
-                  text = `<strong>${text}</strong>`;
-                  break;
-                case "italic":
-                  text = `<em>${text}</em>`;
-                  break;
-                case "underline":
-                  text = `<u>${text}</u>`;
-                  break;
-                case "strike":
-                  text = `<s>${text}</s>`;
-                  break;
-                case "subscript":
-                  text = `<sub>${text}</sub>`;
-                  break;
-                case "superscript":
-                  text = `<sup>${text}</sup>`;
-                  break;
-                case "code":
-                  text = `<code style="background: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">${text}</code>`;
-                  break;
-                case "highlight": {
-                  const hlColor = mark.attrs?.color || "#fef08a";
-                  text = `<mark style="background-color: ${hlColor}; color: #0f172a; padding: 1px 4px; border-radius: 3px; font-weight: 500;">${text}</mark>`;
-                  break;
-                }
-                case "textStyle": {
-                  let inlineStyles = "";
-                  if (mark.attrs?.color) {
-                    inlineStyles += `color: ${mark.attrs.color}; `;
-                  }
-                  if (mark.attrs?.backgroundColor && mark.attrs.backgroundColor !== "transparent") {
-                    inlineStyles += `background-color: ${mark.attrs.backgroundColor}; color: #0f172a; padding: 1px 4px; border-radius: 3px; `;
-                  }
-                  if (mark.attrs?.fontSize) {
-                    inlineStyles += `font-size: ${mark.attrs.fontSize}; `;
-                  }
-                  if (inlineStyles) {
-                    text = `<span style="${inlineStyles}">${text}</span>`;
-                  }
-                  break;
-                }
-                case "link":
-                  text = `<a href="${mark.attrs?.href || ""}" style="color: #2563eb; text-decoration: underline;">${text}</a>`;
-                  break;
-              }
-            });
-
-            return text;
-          }
-          return "";
-        })
-        .join("");
-    };
-
-    const bodyHtml = processContent(data.content);
-
-    return `
-      <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; width: 800px; max-width: 800px; margin: 0 auto; padding: 40px 48px; color: #0f172a; background: #ffffff; box-sizing: border-box;">
-        ${coverUrl ? `
-          <div style="width: 100%; height: 180px; overflow: hidden; border-radius: 8px; margin-bottom: 24px;">
-            <img src="${coverUrl}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" />
-          </div>
-        ` : ""}
-
-        <div style="margin-bottom: 32px; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
-          ${documentEmoji ? `<div style="font-size: 44px; line-height: 1; margin-bottom: 8px;">${documentEmoji}</div>` : ""}
-          <h1 style="font-size: 30px; font-weight: 800; color: #0f172a; margin: 0 0 8px 0; line-height: 1.25; letter-spacing: -0.02em;">${documentTitle || "Sin título"}</h1>
-          <p style="color: #64748b; font-size: 13px; margin: 0;">Exportado el ${new Date().toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })} • TABE Apuntes</p>
-        </div>
-
-        <div>
-          ${bodyHtml}
-        </div>
-      </div>
-    `;
-  };
 
   const uploadFile = async (blob: Blob, fileName: string, upsert: boolean) => {
     try {
@@ -346,96 +861,23 @@ export function TipTapPDFExporter({
     setExporting(true);
 
     try {
-      // Dynamic import de html2pdf.js
-      const html2pdfModule = await import("html2pdf.js");
-      const html2pdf = html2pdfModule.default;
+      // Generar PDF programáticamente con jsPDF (sin html2canvas)
+      const renderer = new PDFRenderer();
 
-      // Generar el HTML completo y autónomo
-      const htmlContent = convertToHtml(content);
+      // Header del documento
+      renderer.renderHeader(documentTitle, documentEmoji);
 
-      // Crear contenedor temporal fuera de pantalla
-      const container = document.createElement("div");
-      container.style.position = "fixed";
-      container.style.top = "0";
-      container.style.left = "0";
-      container.style.width = "100%";
-      container.style.height = "100%";
-      container.style.zIndex = "99999";
-      container.style.background = "rgba(15, 23, 42, 0.75)";
-      container.style.backdropFilter = "blur(4px)";
-      container.style.overflow = "auto";
-      container.style.padding = "40px 0";
+      // Contenido
+      renderer.processNodes(content.content);
 
-      // Overlay visual de progreso
-      const loadingOverlay = document.createElement("div");
-      loadingOverlay.innerHTML = `
-        <div style="margin: 0 auto 24px auto; width: fit-content; padding: 14px 28px; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 12px;">
-          <div style="width: 22px; height: 22px; border: 3px solid #3b82f6; border-top-color: transparent; border-radius: 50%; animation: tabe-pdf-spin 1s linear infinite;"></div>
-          <span style="font-size: 15px; font-weight: 600; color: #0f172a;">Generando tu apunte en PDF...</span>
-        </div>
-        <style>
-          @keyframes tabe-pdf-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
-      `;
+      const doc = renderer.finalize();
 
-      // Contenedor blanco donde se monta el documento
-      const contentDiv = document.createElement("div");
-      contentDiv.innerHTML = htmlContent;
-      contentDiv.style.width = "800px";
-      contentDiv.style.margin = "0 auto";
-      contentDiv.style.background = "#ffffff";
-      contentDiv.style.color = "#0f172a";
-      contentDiv.style.boxShadow = "0 20px 40px rgba(0,0,0,0.15)";
-      contentDiv.style.borderRadius = "8px";
-      contentDiv.id = "tabe-pdf-content-export";
-
-      container.appendChild(loadingOverlay);
-      container.appendChild(contentDiv);
-      document.body.appendChild(container);
-
-      // Esperar a que las imágenes se carguen si existen
-      const imgs = Array.from(contentDiv.querySelectorAll("img"));
-      if (imgs.length > 0) {
-        await Promise.all(
-          imgs.map((img) => {
-            if (img.complete) return Promise.resolve();
-            return new Promise((resolve) => {
-              img.onload = () => resolve(true);
-              img.onerror = () => resolve(true);
-              setTimeout(resolve, 2000);
-            });
-          })
-        );
-      }
-
-      // Pausa para renderizado completo
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const cleanTitle = (documentTitle || "apunte").replace(/[^a-zA-Z0-9\s-_]/g, "").trim() || "apunte";
+      const cleanTitle = (documentTitle || "apunte").replace(/[^a-zA-Z0-9\s\-_áéíóúñÁÉÍÓÚÑ]/g, "").trim() || "apunte";
       const fileName = cleanTitle;
 
-      // Opciones limpias y estándar sin plugins destructivos como avoid-all
-      const opt = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `${fileName}.pdf`,
-        image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: "#ffffff",
-        },
-        jsPDF: {
-          unit: "mm" as const,
-          format: "a4" as const,
-          orientation: "portrait" as const,
-        },
-      };
-
-      const worker = html2pdf().set(opt).from(contentDiv);
-
       if (saveToLibrary && subjectId) {
-        const pdfBlob: Blob = await worker.outputPdf("blob");
+        // Obtener blob directamente de jsPDF — 100% confiable
+        const pdfBlob = doc.output("blob");
 
         console.log("PDF generado para biblioteca:", pdfBlob?.size, "bytes");
 
@@ -457,23 +899,14 @@ export function TipTapPDFExporter({
           await uploadFile(pdfBlob, fileName, false);
         }
       } else {
-        await worker.save();
-        toast.success("PDF descargado tal cual tu apunte");
+        doc.save(`${fileName}.pdf`);
+        toast.success("PDF descargado exitosamente");
         setExporting(false);
-      }
-
-      if (container.parentNode) {
-        container.parentNode.removeChild(container);
       }
     } catch (error) {
       console.error("Error exporting PDF:", error);
       toast.error("Error al exportar el PDF: " + ((error as any)?.message || "Desconocido"));
       setExporting(false);
-
-      const container = document.getElementById("tabe-pdf-content-export")?.parentElement;
-      if (container && container.parentNode) {
-        container.parentNode.removeChild(container);
-      }
     }
   };
 

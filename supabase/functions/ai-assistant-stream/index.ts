@@ -150,7 +150,7 @@ serve(async (req) => {
       }
     }
 
-    const [sR, ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR] = await Promise.all([
+    const [sR, ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR, routinesR, docsR, filesR, quizzesR, friendshipsR, achievementsR] = await Promise.all([
       serviceClient.from("subjects").select("id, nombre, codigo, año"),
       serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
       serviceClient.from("calendar_events").select("*").eq("user_id", userId).gte("fecha", new Date().toISOString().split("T")[0]).order("fecha", { ascending: true }).limit(15),
@@ -161,6 +161,12 @@ serve(async (req) => {
       serviceClient.from("study_sessions").select("subject_id, duracion_segundos, fecha, tipo").eq("user_id", userId),
       serviceClient.from("professors").select("*").eq("user_id", userId),
       serviceClient.from("professor_office_hours").select("*").eq("user_id", userId),
+      serviceClient.from("routines").select("id, name, description, category, start_time, end_time, days_of_week, start_date, end_date, is_active, subject_id").eq("user_id", userId).eq("is_active", true).limit(30),
+      serviceClient.from("notion_documents").select("id, titulo, subject_id, parent_id, is_favorite, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(30),
+      serviceClient.from("library_files").select("id, nombre, tipo, subject_id, folder_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
+      serviceClient.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30),
+      serviceClient.from("friendships").select("requester_id, addressee_id, status, created_at").or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).limit(50),
+      serviceClient.from("user_achievements").select("achievement_id, unlocked_at, achievements(nombre, descripcion, xp_reward)").eq("user_id", userId).limit(100),
     ]);
 
     const subjects = sR.data || [];
@@ -173,6 +179,12 @@ serve(async (req) => {
     const allSessions = allSessionsR.data || [];
     const professorsData = profR.data || [];
     const officeHoursData = hoursR.data || [];
+    const routines = routinesR.data || [];
+    const documents = docsR.data || [];
+    const files = filesR.data || [];
+    const quizzes = quizzesR.data || [];
+    const friendships = friendshipsR.data || [];
+    const achievements = achievementsR.data || [];
 
     const nameById: Record<string, string> = {};
     for (const s of subjects) nameById[s.id] = s.nombre;
@@ -267,6 +279,15 @@ serve(async (req) => {
       }).join("\n")
       : "Sin profesores cargados.";
 
+    const recursosStr = [
+      `Rutinas activas: ${routines.length > 0 ? routines.map((r: any) => `${r.name} (${r.days_of_week?.join?.(", ") || "sin días"} ${r.start_time || ""}-${r.end_time || ""})`).join("; ") : "ninguna"}`,
+      `Apuntes: ${documents.length > 0 ? documents.map((d: any) => `${d.titulo} [ID:${d.id}]`).join("; ") : "ninguno"}`,
+      `Archivos de biblioteca: ${files.length > 0 ? files.map((f: any) => `${f.nombre} (${f.tipo}) [ID:${f.id}]`).join("; ") : "ninguno"}`,
+      `Cuestionarios: ${quizzes.length > 0 ? quizzes.map((q: any) => `${q.nombre} (${q.total_questions || 0} preguntas) [ID:${q.id}]`).join("; ") : "ninguno"}`,
+      `Amistades: ${friendships.length} registros (${friendships.filter((f: any) => f.status === "accepted").length} aceptadas)`,
+      `Logros desbloqueados: ${achievements.length > 0 ? achievements.map((a: any) => a.achievements?.nombre || a.achievement_id).join("; ") : "ninguno"}`,
+    ].join("\n");
+
     const contextLine = context_page ? "\nSECCION ACTUAL: " + context_page : "";
 
     const metricasSection = metricasStr
@@ -304,6 +325,7 @@ serve(async (req) => {
       metricasSection +
       "=== AGENDA ===\n" + eventosStr + "\n\n" +
       "=== PROFESORES Y CONSULTAS ===\n" + profesoresStr + "\n\n" +
+      "=== RECURSOS DEL ESTUDIANTE ===\n" + recursosStr + "\n\n" +
       "=== SESIONES ===\n" + sesionesStr + "\n" +
       chatMemory + "\n\n" +
       "=== INSTRUCCIONES CRITICAS ===\n" +
@@ -319,6 +341,7 @@ serve(async (req) => {
       "   - 'eliminame el evento...' -> delete_calendar_event\n" +
       "   - 'añadí al profesor...', 'borrá al profesor...', 'cambiá el rol del profe...' -> manage_professors\n" +
       "   - 'agendame la consulta...', 'el profe atiende tal día...', 'eliminá el horario del martes...' -> manage_consultations\n" +
+      "   - 'creame una rutina...', 'pausá/eliminá mi rutina...' -> manage_routines\n" +
       "   NUNCA uses herramientas para:\n" +
       "   - Saludos: 'hola', 'como estas', 'buenas' -> RESPONDE CON TEXTO\n" +
       "   - Preguntas sobre vos: 'como eres', 'quien sos', 'presentate', 'dime de ti' -> RESPONDE CON TEXTO describiendo tu personalidad\n" +
@@ -416,11 +439,35 @@ serve(async (req) => {
             required: ["action", "professor_id"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "manage_routines",
+          description: "Crea, actualiza, pausa o elimina una rutina del usuario solo cuando lo pida explícitamente.",
+          parameters: {
+            type: "object",
+            properties: {
+              action: { type: "string", enum: ["create", "update", "pause", "delete"] },
+              id: { type: "string", description: "ID de la rutina para update/pause/delete" },
+              name: { type: "string" },
+              description: { type: "string" },
+              category: { type: "string" },
+              start_time: { type: "string", description: "HH:mm" },
+              end_time: { type: "string", description: "HH:mm" },
+              days_of_week: { type: "array", items: { type: "integer" }, description: "0 domingo a 6 sábado" },
+              start_date: { type: "string", description: "YYYY-MM-DD" },
+              end_date: { type: "string", description: "YYYY-MM-DD" },
+              subject_id: { type: "string", description: "Nombre o ID de materia" }
+            },
+            required: ["action"]
+          }
+        }
       }
     ];
 
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || (typeof atob !== "undefined" ? atob("c2stb3ItdjEtNTk4NTk2MmE5YWQ5MzA2MDJkZmYzNzlhZDMzMTNiNWZkZWM5MzEyNTZhMGQ5YWU1NGNlMjI1NzVkYjdhMGYwNQ==") : "");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
 
     // LIMIT messages to last 10 to prevent 413 errors while keeping enough context
     const trimmedMessages = trimMessages(messages, 10);
@@ -665,6 +712,19 @@ serve(async (req) => {
               }
               toolResult = `\nAgendé ${agendados.length} evento(s).`;
             }
+            else if (toolCallName === "delete_calendar_event") {
+              const { error } = await serviceClient.from("calendar_events").delete().eq("id", args.id).eq("user_id", userId);
+              toolResult = error ? `\nNo pude eliminar el evento: ${error.message}` : "\nEvento eliminado.";
+            }
+            else if (toolCallName === "update_calendar_event") {
+              const updates: Record<string, unknown> = {};
+              for (const key of ["titulo", "fecha", "hora", "tipo_examen", "notas"] ) {
+                if (args[key] !== undefined) updates[key] = args[key];
+              }
+              if (updates.tipo_examen) updates.tipo_examen = mapET(String(updates.tipo_examen));
+              const { error } = await serviceClient.from("calendar_events").update(updates).eq("id", args.id).eq("user_id", userId);
+              toolResult = error ? `\nNo pude actualizar el evento: ${error.message}` : "\nEvento actualizado.";
+            }
             else if (toolCallName === "create_flashcards") {
               const sid = resolveId(args.subject_id || args.deck_name);
               const cardsToCreate = args.cards || [];
@@ -713,6 +773,16 @@ serve(async (req) => {
                 toolResult = `\nCuestionario "${quizDeck.nombre}" creado con ${questionsToCreate.length} preguntas.`;
               }
             }
+            else if (toolCallName === "create_notion_document") {
+              const sid = resolveId(args.subject_id);
+              const { data, error } = await serviceClient.from("notion_documents").insert({
+                user_id: userId,
+                titulo: args.titulo || "Apunte sin título",
+                subject_id: sid,
+                contenido: args.contenido ? { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: args.contenido }] }] } : { type: "doc", content: [{ type: "paragraph" }] },
+              }).select("id, titulo").single();
+              toolResult = error ? `\nNo pude crear el apunte: ${error.message}` : `\nApunte "${data?.titulo || args.titulo}" creado.`;
+            }
             else if (toolCallName === "manage_professors") {
               const sid = resolveId(args.subject_id);
               if (args.action === "create" && sid) {
@@ -759,6 +829,48 @@ serve(async (req) => {
                 }
               } else {
                 toolResult = `\nNo pude encontrar al profesor "${args.professor_id}".`;
+              }
+            }
+            else if (toolCallName === "manage_routines") {
+              const routineId = args.id || null;
+              if (args.action === "create") {
+                const sid = resolveId(args.subject_id);
+                const { data, error } = await serviceClient.from("routines").insert({
+                  user_id: userId,
+                  name: args.name || "Rutina de estudio",
+                  description: args.description || null,
+                  category: args.category || "estudio",
+                  start_time: args.start_time || "09:00",
+                  end_time: args.end_time || "10:00",
+                  days_of_week: Array.isArray(args.days_of_week) ? args.days_of_week : [1, 2, 3, 4, 5],
+                  start_date: args.start_date || new Date().toISOString().split("T")[0],
+                  end_date: args.end_date || null,
+                  subject_id: sid,
+                  is_active: true,
+                }).select("id, name").single();
+                toolResult = error ? `\nNo pude crear la rutina: ${error.message}` : `\nRutina "${data?.name || args.name}" creada.`;
+              } else if (routineId) {
+                const routineQuery = serviceClient.from("routines").update({
+                  ...(args.name !== undefined ? { name: args.name } : {}),
+                  ...(args.description !== undefined ? { description: args.description } : {}),
+                  ...(args.category !== undefined ? { category: args.category } : {}),
+                  ...(args.start_time !== undefined ? { start_time: args.start_time } : {}),
+                  ...(args.end_time !== undefined ? { end_time: args.end_time } : {}),
+                  ...(Array.isArray(args.days_of_week) ? { days_of_week: args.days_of_week } : {}),
+                  ...(args.start_date !== undefined ? { start_date: args.start_date } : {}),
+                  ...(args.end_date !== undefined ? { end_date: args.end_date } : {}),
+                  ...(args.action === "pause" ? { is_active: false } : {}),
+                }).eq("id", routineId).eq("user_id", userId);
+                const { error } = await routineQuery;
+                if (error) toolResult = `\nNo pude actualizar la rutina: ${error.message}`;
+                else if (args.action === "delete") {
+                  const { error: deleteError } = await serviceClient.from("routines").delete().eq("id", routineId).eq("user_id", userId);
+                  toolResult = deleteError ? `\nNo pude eliminar la rutina: ${deleteError.message}` : "\nRutina eliminada.";
+                } else {
+                  toolResult = args.action === "pause" ? "\nRutina pausada." : "\nRutina actualizada.";
+                }
+              } else {
+                toolResult = "\nNecesito el ID de la rutina para modificarla.";
               }
             }
 
