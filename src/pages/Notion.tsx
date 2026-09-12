@@ -5,7 +5,7 @@ import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
-  Sparkles, Volume2, Square, X, BookOpen, Check
+  Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -19,9 +19,11 @@ import { EmojiPicker } from "@/components/notion/EmojiPicker";
 import { TabeIconRenderer } from "@/components/notion/TabeIcons";
 import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
+import { ImportFriendNoteModal } from "@/components/notion/ImportFriendNoteModal";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { KeyboardShortcutsModal } from "@/components/notion/KeyboardShortcutsModal";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
+import { useFriends } from "@/hooks/useFriends";
 import { useAchievements } from "@/hooks/useAchievements";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { JSONContent } from "@tiptap/core";
@@ -117,7 +119,8 @@ const GalleryCard = ({
   onChangeSubject,
   onDelete,
   onHover,
-  currentUserId 
+  currentUserId,
+  onImportFriendDoc
 }: { 
   doc: NotionDocument; 
   userSubjects?: Subject[]; 
@@ -127,6 +130,7 @@ const GalleryCard = ({
   onDelete: (doc: NotionDocument) => void;
   onHover?: (doc: NotionDocument) => void;
   currentUserId?: string;
+  onImportFriendDoc?: (doc: NotionDocument) => void;
 }) => {
   const hasCover = !!doc.cover_url;
   
@@ -196,6 +200,23 @@ const GalleryCard = ({
           </div>
         )}
 
+        {/* Quick Import Button for Friend's Document */}
+        {!isOwner && onImportFriendDoc && (
+          <div className="absolute top-2 right-2 z-10 opacity-90 group-hover:opacity-100 transition-opacity">
+            <button
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] font-black text-xs uppercase transition-all"
+              onClick={(e) => {
+                e.stopPropagation();
+                onImportFriendDoc(doc);
+              }}
+              title="Importar una copia a tus apuntes"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              Importar
+            </button>
+          </div>
+        )}
+
       {hasCover ? (
         <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
         ) : (
@@ -256,17 +277,32 @@ const GalleryCard = ({
 
         {/* Owner indicator for friend docs */}
         {!isOwner && doc.owner && (
-          <div className="mt-3 flex items-center gap-2 px-2 py-1 bg-muted border-2 border-foreground w-fit">
-             {doc.owner.avatar_url ? (
-               <img src={doc.owner.avatar_url} className="w-5 h-5 rounded-full border border-black" alt="" />
-             ) : (
-               <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">
-                  {(doc.owner.nombre || doc.owner.username || "A").charAt(0)}
-               </div>
-             )}
-             <span className="text-[11px] text-black font-black uppercase truncate">
-                De: {doc.owner.nombre || doc.owner.username || "Amigo"}
-             </span>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 px-2 py-1 bg-muted border-2 border-foreground min-w-0">
+               {doc.owner.avatar_url ? (
+                 <img src={doc.owner.avatar_url} className="w-5 h-5 rounded-full border border-black shrink-0" alt="" />
+               ) : (
+                 <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {(doc.owner.nombre || doc.owner.username || "A").charAt(0)}
+                 </div>
+               )}
+               <span className="text-[11px] text-foreground font-black uppercase truncate">
+                  De: {doc.owner.nombre || doc.owner.username || "Amigo"}
+               </span>
+            </div>
+            {onImportFriendDoc && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onImportFriendDoc(doc);
+                }}
+                className="px-2 py-1 bg-[#BFFF00] text-black border-2 border-foreground font-black text-[10px] uppercase shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all shrink-0 flex items-center gap-1"
+                title="Importar a mis apuntes"
+              >
+                <Copy className="w-3 h-3" />
+                Copiar
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -325,6 +361,29 @@ export default function Notion() {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiGenType, setAiGenType] = useState<'flashcards' | 'quiz'>('flashcards');
   const [aiGenCount, setAiGenCount] = useState(15);
+
+  // Friends & Import from Friends state
+  const { friends } = useFriends();
+  const [showImportFriendModal, setShowImportFriendModal] = useState(false);
+  const [preselectedFriendNote, setPreselectedFriendNote] = useState<{
+    id: string;
+    titulo: string;
+    emoji: string;
+    subject_id: string | null;
+    user_id: string;
+    ownerName?: string;
+    cover_url?: string | null;
+    subject?: { nombre: string; codigo: string; año: number };
+  } | null>(null);
+
+  const friendsList = useMemo(() => {
+    return friends.map(f => ({
+      user_id: f.friend.user_id,
+      nombre: f.friend.nombre,
+      username: f.friend.username,
+      avatar_url: f.friend.avatar_url,
+    }));
+  }, [friends]);
 
   // Editor state
   const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
@@ -1123,6 +1182,91 @@ export default function Notion() {
     },
     [subjects, createDocument, updateDocument, refetch, openDocument, checkAndUnlockAchievements, isPremium, canUse, incrementUsage]
   );
+
+  const handleImportFriendNote = useCallback(
+    async (
+      content: any,
+      title: string,
+      subjectId: string,
+      emoji: string,
+      coverUrl?: string | null,
+      sourceDocId?: string
+    ) => {
+      // Check monthly document limit for free users
+      if (!isPremium && !canUse('apuntes')) {
+        return;
+      }
+
+      const clonedTitle = title || "Sin título";
+      const clonedEmoji = emoji || "📝";
+      const clonedContent = content ? JSON.parse(JSON.stringify(content)) : { type: "doc", content: [{ type: "paragraph" }] };
+
+      const newDoc = await createDocument(subjectId, clonedTitle);
+      if (newDoc) {
+        await updateDocument(newDoc.id, {
+          contenido: clonedContent,
+          emoji: clonedEmoji,
+          cover_url: coverUrl || null,
+        });
+
+        // If the friend's document has child pages (subpages), clone them as well!
+        if (sourceDocId && user) {
+          try {
+            const { data: childDocs } = await supabase
+              .from("notion_documents")
+              .select("id, titulo, contenido, emoji, cover_url")
+              .eq("parent_id", sourceDocId);
+
+            if (childDocs && childDocs.length > 0) {
+              const idMapping: Record<string, string> = {};
+
+              for (const child of childDocs) {
+                const newChild = await createDocument(subjectId, child.titulo || "Sin título", newDoc.id);
+                if (newChild) {
+                  idMapping[child.id] = newChild.id;
+                  await updateDocument(newChild.id, {
+                    contenido: child.contenido ? JSON.parse(JSON.stringify(child.contenido)) : undefined,
+                    emoji: child.emoji || "📝",
+                    cover_url: child.cover_url || null,
+                  });
+                }
+              }
+
+              // Update any subpage block pageId references inside clonedContent
+              let contentString = JSON.stringify(clonedContent);
+              let hasReplacements = false;
+              for (const [oldId, freshId] of Object.entries(idMapping)) {
+                if (contentString.includes(oldId)) {
+                  contentString = contentString.split(oldId).join(freshId);
+                  hasReplacements = true;
+                }
+              }
+              if (hasReplacements) {
+                const updatedContent = JSON.parse(contentString);
+                await updateDocument(newDoc.id, { contenido: updatedContent });
+              }
+            }
+          } catch (childErr) {
+            console.warn("Could not clone child subpages:", childErr);
+          }
+        }
+
+        await refetch();
+        const fullDoc = {
+          ...newDoc,
+          contenido: clonedContent,
+          titulo: clonedTitle,
+          emoji: clonedEmoji,
+          cover_url: coverUrl || null,
+        };
+        openDocument(fullDoc);
+        checkAndUnlockAchievements();
+        await incrementUsage('apuntes');
+        toast.success("¡Apunte importado con éxito a tu cuenta!");
+      }
+    },
+    [createDocument, updateDocument, refetch, openDocument, checkAndUnlockAchievements, isPremium, canUse, incrementUsage, user]
+  );
   // Save indicator text -- This is no longer used for text but logic depends on lastSaved
   const lastSavedText = useMemo(() => {
     if (lastSaved) {
@@ -1359,6 +1503,30 @@ export default function Notion() {
                   <FileUp className="w-4 h-4" />
                 </button>
 
+                {/* Import friend doc to my account */}
+                {activeDocument.user_id !== user?.id && (
+                  <button
+                    className="notion-topbar-btn text-black bg-[#BFFF00] hover:bg-[#a6e600] font-black flex items-center gap-1.5 px-3 py-1 rounded shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                    onClick={() => {
+                      setPreselectedFriendNote({
+                        id: activeDocument.id,
+                        titulo: activeDocument.titulo,
+                        emoji: activeDocument.emoji,
+                        subject_id: activeDocument.subject_id,
+                        user_id: activeDocument.user_id,
+                        ownerName: activeDocument.owner?.nombre || activeDocument.owner?.username || "tu amigo",
+                        cover_url: activeDocument.cover_url,
+                        subject: activeDocument.subject
+                      });
+                      setShowImportFriendModal(true);
+                    }}
+                    title="Importar una copia a mis apuntes"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span className="text-xs hidden sm:inline uppercase">Importar Copia</span>
+                  </button>
+                )}
+
                 {/* Keyboard shortcuts */}
                 <button
                   className="notion-topbar-btn"
@@ -1494,7 +1662,7 @@ export default function Notion() {
 
                       {/* Author indicator in editor */}
                       {activeDocument.user_id !== user?.id && activeDocument.owner && (
-                        <div className="notion-author-badge flex items-center gap-2 px-14 mb-4 animate-in fade-in slide-in-from-left-2 duration-500">
+                        <div className="notion-author-badge flex flex-wrap items-center justify-between gap-3 px-8 md:px-14 mb-4 animate-in fade-in slide-in-from-left-2 duration-500">
                           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
                             {activeDocument.owner.avatar_url ? (
                               <img src={activeDocument.owner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
@@ -1508,6 +1676,26 @@ export default function Notion() {
                             </span>
                             <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary/20 ml-1">Solo lectura</span>
                           </div>
+
+                          <button
+                            onClick={() => {
+                              setPreselectedFriendNote({
+                                id: activeDocument.id,
+                                titulo: activeDocument.titulo,
+                                emoji: activeDocument.emoji,
+                                subject_id: activeDocument.subject_id,
+                                user_id: activeDocument.user_id,
+                                ownerName: activeDocument.owner?.nombre || activeDocument.owner?.username || "tu amigo",
+                                cover_url: activeDocument.cover_url,
+                                subject: activeDocument.subject
+                              });
+                              setShowImportFriendModal(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-1.5 bg-[#BFFF00] text-black font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] transition-all rounded-lg"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            Importar copia a mis apuntes
+                          </button>
                         </div>
                       )}
                     </>
@@ -1568,6 +1756,18 @@ export default function Notion() {
                         className="pl-10 pr-4 py-2 font-bold bg-background text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] focus:translate-x-[2px] focus:translate-y-[2px] transition-all outline-none w-full sm:w-56 rounded-none placeholder:text-muted-foreground"
                       />
                     </div>
+
+                    <button
+                      onClick={() => {
+                        setPreselectedFriendNote(null);
+                        setShowImportFriendModal(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2 bg-[#BFFF00] text-black font-black uppercase border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all rounded-none"
+                      title="Importar apuntes compartidos por tus amigos"
+                    >
+                      <Users className="w-5 h-5" />
+                      Importar de Amigos
+                    </button>
 
                     <button
                       onClick={() => setShowNewDocModal(true)}
@@ -1683,6 +1883,19 @@ export default function Notion() {
                         }}
                         onHover={(d) => prefetchDocumentContent(d.id)}
                         currentUserId={user?.id}
+                        onImportFriendDoc={(d) => {
+                          setPreselectedFriendNote({
+                            id: d.id,
+                            titulo: d.titulo,
+                            emoji: d.emoji,
+                            subject_id: d.subject_id,
+                            user_id: d.user_id,
+                            ownerName: d.owner?.nombre || d.owner?.username || "tu amigo",
+                            cover_url: d.cover_url,
+                            subject: d.subject
+                          });
+                          setShowImportFriendModal(true);
+                        }}
                       />
                     ))}
                   </div>
@@ -2178,6 +2391,19 @@ export default function Notion() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Note from Friend Modal */}
+      <ImportFriendNoteModal
+        open={showImportFriendModal}
+        onOpenChange={(open) => {
+          setShowImportFriendModal(open);
+          if (!open) setPreselectedFriendNote(null);
+        }}
+        friends={friendsList}
+        mySubjects={subjects}
+        onImport={handleImportFriendNote}
+        preselectedNote={preselectedFriendNote}
+      />
     </div>
   );
 }
