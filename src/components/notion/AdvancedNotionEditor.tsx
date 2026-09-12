@@ -67,6 +67,7 @@ interface AdvancedNotionEditorProps {
   placeholder?: string;
   documentId?: string;
   readOnly?: boolean;
+  onEditorReady?: (editor: any) => void;
 }
 
 // Bubble menu button
@@ -95,6 +96,7 @@ export function AdvancedNotionEditor({
   placeholder = "Escribe '/' para ver comandos...",
   documentId,
   readOnly = false,
+  onEditorReady,
 }: AdvancedNotionEditorProps) {
   const lastLoadedDocumentIdRef = useRef<string | undefined>(documentId);
 
@@ -453,6 +455,13 @@ export function AdvancedNotionEditor({
       window.removeEventListener('notion-open-shortcuts-guide', handleOpenGuide);
     };
   }, []);
+
+  // Expose editor instance when ready
+  useEffect(() => {
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
 
   // Listen for sub-page click events from SubPage blocks
   useEffect(() => {

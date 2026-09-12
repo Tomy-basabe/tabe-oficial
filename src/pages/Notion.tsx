@@ -31,8 +31,8 @@ import { tipTapTemplates, TipTapTemplate } from "@/lib/tipTapTemplates";
 import { ensureTipTapFormat } from "@/lib/contentMigration";
 import "@/components/notion/notion-editor.css";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
-import { toLocalDateStr } from "@/lib/utils";
-import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import { useAudioBook } from "@/hooks/useAudioBook";
+import { AudioBookPlayer } from "@/components/notion/AudioBookPlayer";
 import { resolveDocSubject, normalizeSubjectName } from "@/lib/notionSubjectHelper";
 
 interface Subject {
@@ -100,6 +100,9 @@ const extractFullText = (content: any): string => {
         for (const child of node.content) {
           extractNodes(child);
         }
+      }
+      if (['paragraph', 'heading', 'taskItem', 'listItem', 'blockquote', 'callout'].includes(node?.type)) {
+        text += '\n';
       }
     };
 
@@ -331,7 +334,12 @@ export default function Notion() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [activeDocument, setActiveDocument] = useState<NotionDocument | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { speak, stop, isSpeaking } = useTextToSpeech();
+  
+  // Audio Book state & instance
+  const audioBook = useAudioBook();
+  const [showAudioBookPlayer, setShowAudioBookPlayer] = useState(false);
+  const [tiptapEditorInstance, setTiptapEditorInstance] = useState<any>(null);
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState<NotionDocument | null>(null);
 
@@ -384,6 +392,68 @@ export default function Notion() {
       avatar_url: f.friend.avatar_url,
     }));
   }, [friends]);
+
+  // Check if user has active text selected in editor
+  const hasTextSelection = useMemo(() => {
+    if (!tiptapEditorInstance) return false;
+    try {
+      const { from, to } = tiptapEditorInstance.state.selection;
+      return from !== to;
+    } catch {
+      return false;
+    }
+  }, [tiptapEditorInstance]);
+
+  // Read from beginning of document
+  const handlePlayAudioFromBeginning = useCallback(() => {
+    if (!activeDocument) return;
+    const content = editorContentRef.current || editorContent || activeDocument.contenido;
+    const fullText = extractFullText(content);
+    if (!fullText || fullText.trim().length === 0) {
+      toast.error("El apunte no tiene texto para leer");
+      return;
+    }
+    setShowAudioBookPlayer(true);
+    audioBook.play(fullText, 0);
+  }, [activeDocument, editorContent, audioBook]);
+
+  // Read from cursor position or highlighted text
+  const handlePlayAudioFromCursor = useCallback(() => {
+    if (!activeDocument) return;
+
+    if (tiptapEditorInstance) {
+      try {
+        const { from, to } = tiptapEditorInstance.state.selection;
+        if (from !== to) {
+          const selectedText = tiptapEditorInstance.state.doc.textBetween(from, to, ' ');
+          if (selectedText && selectedText.trim().length > 0) {
+            setShowAudioBookPlayer(true);
+            audioBook.play(selectedText, 0);
+            toast.success("Leyendo texto seleccionado");
+            return;
+          }
+        }
+
+        if (from > 0) {
+          const textFromCursor = tiptapEditorInstance.state.doc.textBetween(
+            from,
+            tiptapEditorInstance.state.doc.content.size,
+            '\n'
+          );
+          if (textFromCursor && textFromCursor.trim().length > 5) {
+            setShowAudioBookPlayer(true);
+            audioBook.play(textFromCursor, 0);
+            toast.success("Leyendo desde el cursor");
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Could not extract selection from editor:", err);
+      }
+    }
+
+    handlePlayAudioFromBeginning();
+  }, [activeDocument, tiptapEditorInstance, audioBook, handlePlayAudioFromBeginning]);
 
   // Editor state
   const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
@@ -941,6 +1011,10 @@ export default function Notion() {
     setSessionSeconds(0);
     lastActivityRef.current = Date.now();
 
+    // Stop previous audiobook playback on doc switch
+    audioBook.stop();
+    setShowAudioBookPlayer(false);
+
     setLocalTitle(doc.titulo);
     setActiveDocument(doc);
     setLastSaved(null);
@@ -1028,6 +1102,8 @@ export default function Notion() {
             if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
             saveDocument(true);
           }
+          audioBook.stop();
+          setShowAudioBookPlayer(false);
           handleSaveOnExit();
           setActiveDocument(null);
           setEditorContent(null);
@@ -1453,24 +1529,47 @@ export default function Notion() {
                   />
                 </button>
 
-                {/* Audio Reading */}
+                {/* Audio Book */}
                 <button
                   className={cn(
-                    "notion-topbar-btn transition-all duration-300",
-                    isSpeaking ? "text-neon-cyan animate-pulse bg-neon-cyan/10 ring-1 ring-neon-cyan/30 shadow-[0_0_10px_rgba(34,211,238,0.2)]" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    "notion-topbar-btn transition-all duration-300 relative",
+                    audioBook.isPlaying
+                      ? "text-black bg-[#BFFF00] ring-2 ring-black font-black animate-pulse shadow-[2px_2px_0_0_#000]"
+                      : audioBook.isPaused
+                      ? "text-black bg-[#FFD700] ring-2 ring-black font-black"
+                      : showAudioBookPlayer
+                      ? "text-primary bg-primary/20 ring-1 ring-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                   onClick={() => {
-                    if (isSpeaking) {
-                      stop();
+                    if (!showAudioBookPlayer) {
+                      setShowAudioBookPlayer(true);
+                      if (!audioBook.isPlaying && !audioBook.isPaused) {
+                        handlePlayAudioFromCursor();
+                      }
                     } else {
-                      const contentToRead = editorContentRef.current || editorContent || activeDocument.contenido;
-                      const plainText = extractFullText(contentToRead);
-                      speak(plainText);
+                      if (audioBook.isPlaying) {
+                        audioBook.pause();
+                      } else if (audioBook.isPaused) {
+                        audioBook.resume();
+                      } else {
+                        handlePlayAudioFromCursor();
+                      }
                     }
                   }}
-                  title={isSpeaking ? "Detener lectura" : "Leer en voz alta"}
+                  title={
+                    audioBook.isPlaying
+                      ? "Pausar audio libro (recordará tu posición)"
+                      : audioBook.isPaused
+                      ? "Reanudar audio libro"
+                      : "Escuchar audio libro"
+                  }
                 >
-                  {isSpeaking ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
+                  {audioBook.isPlaying ? (
+                    <Pause className="w-4 h-4 fill-current" />
+                  ) : (
+                    <Volume2 className="w-4 h-4" />
+                  )}
                 </button>
 
                 {/* AI Generation */}
@@ -1704,6 +1803,7 @@ export default function Notion() {
                   onUpdate={handleContentUpdate}
                   documentId={activeDocument?.id}
                   readOnly={activeDocument?.user_id !== user?.id}
+                  onEditorReady={setTiptapEditorInstance}
                   onActivity={() => lastActivityRef.current = Date.now()}
                   onSubPageClick={async (pageId, pageTitle) => {
                       if (pageId) {
@@ -1734,6 +1834,21 @@ export default function Notion() {
                       }
                   }}
                 />
+
+                {/* Floating Audio Book Player */}
+                {showAudioBookPlayer && activeDocument && (
+                  <AudioBookPlayer
+                    audioBook={audioBook}
+                    documentTitle={localTitle || activeDocument.titulo}
+                    onPlayFromBeginning={handlePlayAudioFromBeginning}
+                    onPlayFromCursor={handlePlayAudioFromCursor}
+                    onClose={() => {
+                      audioBook.stop();
+                      setShowAudioBookPlayer(false);
+                    }}
+                    hasCursorSelection={hasTextSelection}
+                  />
+                )}
               </Suspense>
             )
           ) : (
