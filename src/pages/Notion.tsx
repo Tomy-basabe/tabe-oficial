@@ -393,7 +393,29 @@ export default function Notion() {
     }));
   }, [friends]);
 
-  // Check if user has active text selected in editor
+  // Editor state
+  const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
+  const [localTitle, setLocalTitle] = useState("");
+  const editorContentRef = useRef<JSONContent | null>(null);
+  const localTitleRef = useRef("");
+  const lastSavedContentRef = useRef<string>("");
+  const autoSaveTimerRef = useRef<number | null>(null);
+  const forceSaveTimerRef = useRef<number | null>(null);
+  const activeDocumentRef = useRef<NotionDocument | null>(null);
+  const [saveInProgress, setSaveInProgress] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saveInProgressRef = useRef(false);
+
+  // Sync state to refs to avoid stale closures in callbacks
+  useEffect(() => {
+    activeDocumentRef.current = activeDocument;
+  }, [activeDocument]);
+
+  useEffect(() => {
+    localTitleRef.current = localTitle;
+  }, [localTitle]);
+
+  // Audio Book handlers (placed AFTER editorContent and editorContentRef)
   const hasTextSelection = useMemo(() => {
     if (!tiptapEditorInstance) return false;
     try {
@@ -454,33 +476,6 @@ export default function Notion() {
 
     handlePlayAudioFromBeginning();
   }, [activeDocument, tiptapEditorInstance, audioBook, handlePlayAudioFromBeginning]);
-
-  // Editor state
-  const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
-  const [localTitle, setLocalTitle] = useState("");
-  const editorContentRef = useRef<JSONContent | null>(null);
-  const localTitleRef = useRef("");
-  const lastSavedContentRef = useRef<string>("");
-  const autoSaveTimerRef = useRef<number | null>(null);
-  const forceSaveTimerRef = useRef<number | null>(null);
-  const activeDocumentRef = useRef<NotionDocument | null>(null);
-  const [saveInProgress, setSaveInProgress] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const saveInProgressRef = useRef(false);
-
-  // Sync state to refs to avoid stale closures in callbacks
-  useEffect(() => {
-    activeDocumentRef.current = activeDocument;
-  }, [activeDocument]);
-
-  useEffect(() => {
-    localTitleRef.current = localTitle;
-  }, [localTitle]);
-
-  // Sync activeDocument to ref to avoid state closure traps in intervals/events
-  useEffect(() => {
-    activeDocumentRef.current = activeDocument;
-  }, [activeDocument]);
 
   // Time tracking state
   const totalSecondsRef = useRef(0);
