@@ -7,7 +7,7 @@ import {
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
   Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
