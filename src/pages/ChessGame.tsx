@@ -13,7 +13,8 @@ import { CHESS_THEMES, getThemeById, getSavedTheme, saveTheme } from "@/componen
 import type { ChessTheme } from "@/components/games/ChessThemes";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useMatchmaking } from "@/hooks/useMatchmaking";
+import { useMatchmaking, getMatchSession } from "@/hooks/useMatchmaking";
+import { recordGameMatch } from "@/lib/gameStorage";
 
 // ======================================
 // ELO SYSTEM (Local Storage)
@@ -191,22 +192,72 @@ export default function ChessGame() {
       .then(({ data }) => { if (data) setDecks(data as unknown as QuizDeck[]); });
   }, [user]);
 
+  const hasSavedMatchRef = useRef(false);
+
   // Setup Online Match when found
   useEffect(() => {
     if (playMode === "online" && mmStatus === "found" && matchId && phase === "menu") {
       // Determine color
-      supabase.from("game_matches" as any).select("player1_id").eq("id", matchId).single()
-        .then(({ data }) => {
-          if (data) {
-            const isWhite = (data as any).player1_id === user?.id;
+      const session = getMatchSession(matchId);
+      let isWhite = session ? session.player1_id === user?.id : true;
+      if (!session) {
+        supabase
+          .from("game_matches" as any)
+          .select("player1_id")
+          .eq("id", matchId)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) {
+              isWhite = (data as any).player1_id === user?.id;
+              setMyColor(isWhite ? "w" : "b");
+              initMatchChannel(matchId, isWhite ? "w" : "b");
+              startNewMatch();
+            }
+          })
+          .catch(() => {
             setMyColor(isWhite ? "w" : "b");
             initMatchChannel(matchId, isWhite ? "w" : "b");
             startNewMatch();
-          }
-        });
+          });
+        return;
+      }
+      setMyColor(isWhite ? "w" : "b");
+      initMatchChannel(matchId, isWhite ? "w" : "b");
+      startNewMatch();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mmStatus, matchId, phase, playMode, user]);
+
+  // Record chess match result when gameOver is set
+  useEffect(() => {
+    if (gameOver && !hasSavedMatchRef.current) {
+      hasSavedMatchRef.current = true;
+      const isWhite = myColor === "w";
+      const isWin = isWhite
+        ? gameOver === "checkmate_w" || gameOver === "timeout_b" || gameOver === "resign_b"
+        : gameOver === "checkmate_b" || gameOver === "timeout_w" || gameOver === "resign_w";
+      const isDraw =
+        gameOver === "draw" ||
+        gameOver === "stalemate" ||
+        gameOver === "repetition" ||
+        gameOver === "material";
+      const xpEarned = isWin ? 150 : isDraw ? 60 : 30;
+
+      recordGameMatch({
+        gameType: "ajedrez",
+        winner: isWin ? "player" : isDraw ? "draw" : "opponent",
+        player1Score: isWin ? 1 : 0,
+        player2Score: !isWin && !isDraw ? 1 : 0,
+        isBotMatch: playMode === "bot",
+        xpReward: xpEarned,
+        matchId,
+        userId: user?.id,
+      });
+    }
+    if (!gameOver) {
+      hasSavedMatchRef.current = false;
+    }
+  }, [gameOver, myColor, playMode, matchId, user]);
 
   const initMatchChannel = (mId: string, color: Color) => {
     if (realtimeChannel.current) { supabase.removeChannel(realtimeChannel.current); }

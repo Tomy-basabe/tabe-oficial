@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -395,6 +396,39 @@ export default function KartRaceGame() {
       setTimeout(() => setGamePhase("result"), 1200);
     }
   }, [karts, gamePhase]);
+
+  const hasSavedMatchRef = useRef(false);
+
+  useEffect(() => {
+    if (gamePhase === "result" && !hasSavedMatchRef.current) {
+      hasSavedMatchRef.current = true;
+      const myK = karts.find((k) => k.isMe);
+      const sortedK = [...karts].sort((a, b) => {
+        if (a.finishOrder && b.finishOrder) return a.finishOrder - b.finishOrder;
+        if (a.finishOrder) return -1;
+        if (b.finishOrder) return 1;
+        return b.position - a.position;
+      });
+      const pos = myK?.finishOrder || sortedK.findIndex((k) => k.isMe) + 1;
+      let xp = 20;
+      if (pos === 1) xp = 150;
+      else if (pos === 2) xp = 80;
+      else if (pos === 3) xp = 40;
+
+      recordGameMatch({
+        gameType: "karts",
+        winner: pos === 1 ? "player" : "opponent",
+        player1Score: 100,
+        player2Score: pos,
+        isBotMatch: !isOnline,
+        xpReward: xp,
+        userId: user?.id,
+      });
+    }
+    if (gamePhase !== "result") {
+      hasSavedMatchRef.current = false;
+    }
+  }, [gamePhase, karts, isOnline, user]);
 
   // ============================================================
   // ANSWER HANDLING

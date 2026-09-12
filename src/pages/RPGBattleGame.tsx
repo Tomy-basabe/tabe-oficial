@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { useGames } from "@/hooks/useGames";
-import { useMatchmaking } from "@/hooks/useMatchmaking";
+import { useMatchmaking, getMatchSession } from "@/hooks/useMatchmaking";
+import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { cn } from "@/lib/utils";
@@ -122,12 +122,35 @@ export default function RPGBattleGame() {
   const [isOnline, setIsOnline] = useState(false);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const channelRef = useRef<any>(null);
+  const hasSavedMatchRef = useRef(false);
 
   useEffect(() => {
     if (!user) return;
     supabase.from("quiz_decks").select("id, nombre, total_questions").eq("user_id", user.id).gt("total_questions", 0)
       .then(({ data }) => { if (data) setDecks(data as unknown as QuizDeck[]); });
   }, [user]);
+
+  // Record game result when finished
+  useEffect(() => {
+    if (gamePhase === "result" && winner && !hasSavedMatchRef.current) {
+      hasSavedMatchRef.current = true;
+      const isWinner = winner === "player";
+      const xp = isWinner ? 130 : 30;
+      recordGameMatch({
+        gameType: "batalla",
+        winner: isWinner ? "player" : "opponent",
+        player1Score: isWinner ? 1 : 0,
+        player2Score: isWinner ? 0 : 1,
+        isBotMatch: !isOnline,
+        xpReward: xp,
+        matchId,
+        userId: user?.id,
+      });
+    }
+    if (gamePhase !== "result") {
+      hasSavedMatchRef.current = false;
+    }
+  }, [gamePhase, winner, isOnline, matchId, user]);
 
   // Handle matchmaking status changes
   useEffect(() => {
@@ -143,8 +166,18 @@ export default function RPGBattleGame() {
 
   const setupOnlineMatch = async () => {
     if (!matchId || !user) return;
-    const { data } = await supabase.from("game_matches" as any).select("player1_id").eq("id", matchId).single();
-    const amPlayer1 = data && (data as any).player1_id === user.id;
+    const session = getMatchSession(matchId);
+    let amPlayer1 = session ? session.player1_id === user.id : true;
+    if (!session) {
+      try {
+        const { data } = await supabase.from("game_matches" as any).select("player1_id").eq("id", matchId).maybeSingle();
+        if (data && (data as any).player1_id) {
+          amPlayer1 = (data as any).player1_id === user.id;
+        }
+      } catch {
+        // Fallback
+      }
+    }
 
     const channel = supabase.channel(`rpg_match_${matchId}`, {
       config: { broadcast: { self: false } }

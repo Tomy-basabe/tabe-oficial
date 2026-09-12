@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGames } from "@/hooks/useGames";
-import { useMatchmaking } from "@/hooks/useMatchmaking";
+import { useMatchmaking, getMatchSession } from "@/hooks/useMatchmaking";
+import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { toast } from "sonner";
@@ -112,17 +113,44 @@ export default function PenaltyGame() {
     } as QuizQuestion;
   }, [selectedDeck, questionsUsed]);
 
+  const hasSavedMatchRef = useRef(false);
+
+  // Record game result when finished
+  useEffect(() => {
+    if (gamePhase === 'result' && !hasSavedMatchRef.current) {
+      hasSavedMatchRef.current = true;
+      const isWinner = myScore > opScore;
+      const isDraw = myScore === opScore;
+      const xpEarned = isWinner ? 100 : isDraw ? 50 : 25;
+      recordGameMatch({
+        gameType: "penales",
+        winner: isWinner ? "player" : isDraw ? "draw" : "opponent",
+        player1Score: myScore,
+        player2Score: opScore,
+        isBotMatch: status === 'bot',
+        xpReward: xpEarned,
+        matchId,
+        userId: user?.id,
+      });
+    }
+    if (gamePhase !== 'result') {
+      hasSavedMatchRef.current = false;
+    }
+  }, [gamePhase, myScore, opScore, status, matchId, user]);
+
   // Handle matchmaking status changes
   useEffect(() => {
     if (status === 'found' || status === 'bot') {
+      const session = getMatchSession(matchId);
+      const amPlayer1 = session ? session.player1_id === user?.id : true;
       setGamePhase('playing');
       setRound(1);
       setMyScore(0);
       setOpScore(0);
-      setIsMyTurnToShoot(true);
+      setIsMyTurnToShoot(status === 'found' ? amPlayer1 : true);
       setTurnPhase('choose_direction');
     }
-  }, [status]);
+  }, [status, matchId, user]);
 
   // Start searching
   const handleStartSearch = () => {

@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { saveMatchSession, getMatchSession } from "@/lib/gameStorage";
 
-// Jaro-Winkler similarity for fuzzy matching of subject names
+export { saveMatchSession, getMatchSession };
+
+// Jaro-Winkler similarity for fuzzy matching of deck/subject names
 function jaroWinkler(s1: string, s2: string): number {
-  const a = s1.toLowerCase().replace(/[^a-záéíóúñü0-9]/g, '');
-  const b = s2.toLowerCase().replace(/[^a-záéíóúñü0-9]/g, '');
-  
+  const a = s1.toLowerCase().replace(/[^a-záéíóúñü0-9]/g, "");
+  const b = s2.toLowerCase().replace(/[^a-záéíóúñü0-9]/g, "");
+
   if (a === b) return 1;
   if (!a.length || !b.length) return 0;
 
@@ -37,9 +40,9 @@ function jaroWinkler(s1: string, s2: string): number {
     k++;
   }
 
-  const jaro = (matches / a.length + matches / b.length + (matches - transpositions / 2) / matches) / 3;
-  
-  // Winkler modification
+  const jaro =
+    (matches / a.length + matches / b.length + (matches - transpositions / 2) / matches) / 3;
+
   let prefix = 0;
   for (let i = 0; i < Math.min(4, Math.min(a.length, b.length)); i++) {
     if (a[i] === b[i]) prefix++;
@@ -49,212 +52,310 @@ function jaroWinkler(s1: string, s2: string): number {
   return jaro + prefix * 0.1 * (1 - jaro);
 }
 
-interface QueueEntry {
-  id: string;
-  user_id: string;
-  deck_id: string;
+interface PresenceUser {
+  userId: string;
+  userName: string;
   carrera: string | null;
-  deck_name: string | null;
-  joined_at: string;
+  deckId: string;
+  deckName: string | null;
+  joinedAt: number;
 }
 
-type MatchmakingStatus = 'idle' | 'searching' | 'found' | 'bot' | 'error';
+export type MatchmakingStatus = "idle" | "searching" | "found" | "bot" | "error";
 
-export function useMatchmaking() {
+export function useMatchmaking(initialGameType?: string) {
   const { user } = useAuth();
-  const [status, setStatus] = useState<MatchmakingStatus>('idle');
+  const [status, setStatus] = useState<MatchmakingStatus>("idle");
   const [matchId, setMatchId] = useState<string | null>(null);
   const [opponentName, setOpponentName] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
+  const hasFoundMatchRef = useRef<boolean>(false);
+
+  // Auto-detect game type from URL if not specified
+  const detectGameType = useCallback((): string => {
+    if (initialGameType) return initialGameType;
+    if (typeof window === "undefined") return "general";
+    const path = window.location.pathname.toLowerCase();
+    if (path.includes("penales")) return "penales";
+    if (path.includes("tateti")) return "tateti";
+    if (path.includes("bomba")) return "bomba";
+    if (path.includes("batalla")) return "batalla";
+    if (path.includes("ajedrez")) return "ajedrez";
+    if (path.includes("karts")) return "karts";
+    return "general";
+  }, [initialGameType]);
 
   const cleanup = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (pollRef.current) clearInterval(pollRef.current);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+      try {
+        channelRef.current.untrack();
+        supabase.removeChannel(channelRef.current);
+      } catch {
+        // Ignore
+      }
       channelRef.current = null;
     }
   }, []);
 
   const leaveQueue = useCallback(async () => {
-    if (!user) return;
     cleanup();
-    await supabase.from("matchmaking_queue" as any).delete().eq("user_id", user.id);
-    setStatus('idle');
+    hasFoundMatchRef.current = false;
+    setStatus("idle");
     setTimeLeft(0);
     setMatchId(null);
     setOpponentName(null);
-  }, [user, cleanup]);
 
-  const createBotMatch = useCallback(async (deckId: string): Promise<string | null> => {
-    if (!user) return null;
-
-    const { data, error } = await supabase
-      .from("game_matches" as any)
-      .insert({
-        player1_id: user.id,
-        player1_deck_id: deckId,
-        is_bot_match: true,
-        status: 'in_progress',
-        current_turn_user_id: user.id,
-        turn_phase: 'shoot',
-        started_at: new Date().toISOString()
-      } as any)
-      .select("id")
-      .maybeSingle();
-
-    if (error || !data) {
-      console.warn("No se pudo crear el partido en la base de datos (quizás faltan las tablas), usando fallback local para poder probar contra el bot.");
-      return `bot-match-fallback-${Date.now()}`;
+    // Also attempt to delete from table if it exists (legacy support)
+    if (user) {
+      try {
+        await supabase.from("matchmaking_queue" as any).delete().eq("user_id", user.id);
+      } catch {
+        // Ignore
+      }
     }
-    
-    return (data as any).id;
-  }, [user]);
+  }, [cleanup, user]);
 
-  const joinQueue = useCallback(async (deckId: string, deckName: string, carrera: string | null) => {
-    if (!user) return;
+  const createBotMatch = useCallback(
+    async (deckId: string, gameType: string): Promise<string> => {
+      const generatedId = `bot_${gameType}_${Date.now()}`;
+      const currentUid = user?.id || "guest";
+      const myName =
+        user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        user?.email?.split("@")[0] ||
+        "Tú";
 
-    setStatus('searching');
-    setTimeLeft(0);
+      saveMatchSession(generatedId, {
+        matchId: generatedId,
+        gameType,
+        player1_id: currentUid,
+        player1_name: myName,
+        player2_id: "bot",
+        player2_name: "🤖 Bot TABE",
+        is_bot: true,
+        createdAt: Date.now(),
+      });
 
-    // Insert into queue
-    await supabase.from("matchmaking_queue" as any).upsert({
-      user_id: user.id,
-      deck_id: deckId,
-      carrera,
-      deck_name: deckName,
-      joined_at: new Date().toISOString()
-    } as any, { onConflict: "user_id" });
-
-    // Start 13-second countdown before falling back to bot match
-    let remaining = 13;
-    setTimeLeft(remaining);
-    timerRef.current = setInterval(() => {
-      remaining--;
-      setTimeLeft(remaining > 0 ? remaining : 0);
-      if (remaining <= 0) {
-        cleanup();
-        // No rival found, create bot match
-        supabase.from("matchmaking_queue" as any).delete().eq("user_id", user.id).then(() => {
-          createBotMatch(deckId).then(id => {
-            if (id) {
-              setMatchId(id);
-              setOpponentName("🤖 Bot TABE");
-              setStatus('bot');
-            } else {
-              setStatus('error');
-            }
-          });
-        });
-      }
-    }, 1000);
-
-    // Poll queue for potential matches every 2 seconds
-    pollRef.current = setInterval(async () => {
-      const { data: queue } = await supabase
-        .from("matchmaking_queue" as any)
-        .select("*")
-        .neq("user_id", user.id);
-
-      if (!queue || (queue as any[]).length === 0) return;
-
-      const entries = queue as unknown as QueueEntry[];
-      
-      // Find best match: same carrera first, then similar deck name
-      let bestMatch: QueueEntry | null = null;
-      let bestScore = 0;
-
-      for (const entry of entries) {
-        let score = 0;
-        // Same carrera = big bonus
-        if (carrera && entry.carrera && entry.carrera.toLowerCase() === carrera.toLowerCase()) {
-          score += 50;
-        }
-        // Similar deck name = bonus
-        if (deckName && entry.deck_name) {
-          const similarity = jaroWinkler(deckName, entry.deck_name);
-          score += similarity * 30;
-        }
-        // Anyone waiting is at least 10 points
-        score += 10;
-
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = entry;
-        }
-      }
-
-      if (bestMatch) {
-        // Found a match! Create the game
-        cleanup();
-        
-        const { data: match, error: matchError } = await supabase
+      // Optionally attempt DB insert for bot match
+      if (user) {
+        supabase
           .from("game_matches" as any)
           .insert({
+            id: generatedId.length === 36 ? generatedId : undefined,
             player1_id: user.id,
             player1_deck_id: deckId,
-            player2_id: bestMatch.user_id,
-            player2_deck_id: bestMatch.deck_id,
-            is_bot_match: false,
-            status: 'in_progress',
+            is_bot_match: true,
+            status: "in_progress",
             current_turn_user_id: user.id,
-            turn_phase: 'shoot',
-            started_at: new Date().toISOString()
+            turn_phase: "shoot",
+            started_at: new Date().toISOString(),
           } as any)
-          .select("id")
-          .single();
+          .catch(() => {});
+      }
 
-        // Remove both from queue
-        await supabase.from("matchmaking_queue" as any).delete().eq("user_id", user.id);
-        await supabase.from("matchmaking_queue" as any).delete().eq("user_id", bestMatch.user_id);
+      return generatedId;
+    },
+    [user]
+  );
 
-        if (!matchError && match) {
-          setMatchId((match as any).id);
-          
-          // Get opponent name
-          const { data: profile } = await supabase
-            .rpc('get_friend_profiles', { friend_user_ids: [bestMatch.user_id] });
-          
-          if (profile && (profile as any[]).length > 0) {
-            setOpponentName((profile as any[])[0].nombre || (profile as any[])[0].username || `Jugador #${(profile as any[])[0].display_id}`);
-          } else {
-            setOpponentName("Rival");
+  const joinQueue = useCallback(
+    async (deckId: string, deckName: string, carrera: string | null, customGameType?: string) => {
+      const currentUid = user?.id || `guest_${Math.random().toString(36).substring(2, 9)}`;
+      const gameType = customGameType || detectGameType();
+
+      cleanup();
+      hasFoundMatchRef.current = false;
+      setStatus("searching");
+
+      // Fetch user display name
+      let myDisplayName =
+        user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        user?.email?.split("@")[0] ||
+        "Estudiante";
+
+      if (user) {
+        try {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("nombre, username")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (prof) {
+            myDisplayName = (prof as any).nombre || (prof as any).username || myDisplayName;
           }
-          setStatus('found');
+        } catch {
+          // Ignore
         }
       }
-    }, 2000);
 
-    // Realtime: listen for matches where we are player2 (someone else created the match for us)
-    channelRef.current = supabase
-      .channel(`matchmaking-${user.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'game_matches',
-        filter: `player2_id=eq.${user.id}`
-      }, (payload) => {
-        cleanup();
-        supabase.from("matchmaking_queue" as any).delete().eq("user_id", user.id);
-        setMatchId(payload.new.id);
-        setStatus('found');
-      })
-      .subscribe();
+      // Realtime channel for instant presence & peer-to-peer matchmaking
+      const channelName = `tabe_matchmaking_${gameType}`;
+      const channel = supabase.channel(channelName, {
+        config: { presence: { key: currentUid } },
+      });
 
-  }, [user, cleanup, createBotMatch]);
+      const checkForOpponent = (presenceState: Record<string, any[]>) => {
+        if (hasFoundMatchRef.current) return;
+
+        const candidateUsers: PresenceUser[] = [];
+        Object.entries(presenceState).forEach(([key, presences]) => {
+          if (key === currentUid) return;
+          if (Array.isArray(presences) && presences.length > 0) {
+            const p = presences[0] as PresenceUser;
+            if (p && p.userId && p.userId !== currentUid) {
+              candidateUsers.push(p);
+            }
+          }
+        });
+
+        if (candidateUsers.length === 0) return;
+
+        // Choose best match: same carrera > similar deck name > oldest waiting
+        let bestRival: PresenceUser | null = null;
+        let bestScore = -1;
+
+        for (const rival of candidateUsers) {
+          let score = 10;
+          if (carrera && rival.carrera && rival.carrera.toLowerCase() === carrera.toLowerCase()) {
+            score += 50;
+          }
+          if (deckName && rival.deckName) {
+            score += jaroWinkler(deckName, rival.deckName) * 30;
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            bestRival = rival;
+          }
+        }
+
+        if (!bestRival) return;
+
+        // Deterministic leader: user with smaller UID initiates the match
+        const isInitiator = currentUid.localeCompare(bestRival.userId) < 0;
+
+        if (isInitiator) {
+          hasFoundMatchRef.current = true;
+          const sharedMatchId = `match_${gameType}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+          const matchDetails = {
+            matchId: sharedMatchId,
+            gameType,
+            player1_id: currentUid,
+            player1_name: myDisplayName,
+            player2_id: bestRival.userId,
+            player2_name: bestRival.userName,
+            is_bot: false,
+            createdAt: Date.now(),
+          };
+
+          saveMatchSession(sharedMatchId, matchDetails);
+
+          // Broadcast invitation to the rival
+          channel.send({
+            type: "broadcast",
+            event: "match_invitation",
+            payload: {
+              targetUserId: bestRival.userId,
+              initiatorUserId: currentUid,
+              matchDetails,
+            },
+          });
+
+          // Transition to found
+          cleanup();
+          setMatchId(sharedMatchId);
+          setOpponentName(bestRival.userName);
+          setStatus("found");
+        }
+      };
+
+      // Listen for incoming match invitations from another initiator
+      channel.on("broadcast", { event: "match_invitation" }, ({ payload }) => {
+        if (hasFoundMatchRef.current) return;
+        if (payload && payload.targetUserId === currentUid && payload.matchDetails) {
+          hasFoundMatchRef.current = true;
+          const details = payload.matchDetails;
+          saveMatchSession(details.matchId, details);
+
+          cleanup();
+          setMatchId(details.matchId);
+          setOpponentName(details.player1_name || "Rival");
+          setStatus("found");
+        }
+      });
+
+      // Listen for presence changes
+      channel.on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        checkForOpponent(state);
+      });
+
+      // Join channel & track presence
+      channel.subscribe(async (subStatus) => {
+        if (subStatus === "SUBSCRIBED") {
+          await channel.track({
+            userId: currentUid,
+            userName: myDisplayName,
+            carrera,
+            deckId,
+            deckName,
+            joinedAt: Date.now(),
+          });
+          // Also check right away
+          const state = channel.presenceState();
+          checkForOpponent(state);
+        }
+      });
+
+      channelRef.current = channel;
+
+      // 12-second countdown before falling back to BOT
+      let remaining = 12;
+      setTimeLeft(remaining);
+
+      timerRef.current = setInterval(() => {
+        remaining--;
+        setTimeLeft(remaining > 0 ? remaining : 0);
+
+        // Periodically evaluate presence
+        if (channelRef.current && !hasFoundMatchRef.current) {
+          try {
+            checkForOpponent(channelRef.current.presenceState());
+          } catch {
+            // Ignore
+          }
+        }
+
+        if (remaining <= 0) {
+          cleanup();
+          if (!hasFoundMatchRef.current) {
+            hasFoundMatchRef.current = true;
+            createBotMatch(deckId, gameType).then((id) => {
+              setMatchId(id);
+              setOpponentName("🤖 Bot TABE");
+              setStatus("bot");
+            });
+          }
+        }
+      }, 1000);
+    },
+    [user, detectGameType, cleanup, createBotMatch]
+  );
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanup();
-      if (user) {
-        supabase.from("matchmaking_queue" as any).delete().eq("user_id", user.id);
-      }
     };
-  }, [cleanup, user]);
+  }, [cleanup]);
 
   return {
     status,
@@ -264,6 +365,6 @@ export function useMatchmaking() {
     joinQueue,
     leaveQueue,
     setStatus,
-    setMatchId
+    setMatchId,
   };
 }

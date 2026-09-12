@@ -259,23 +259,38 @@ export default function Games() {
             ) : (
               <div className="divide-y-4 divide-foreground">
                 {matchHistory.map(match => {
-                  const isWinner = match.winner_id === user?.id;
-                  const isP1 = match.player1_id === user?.id;
+                  const currentUid = user?.id || "guest";
+                  const isWinner = match.winner_id === currentUid;
+                  const isDraw = !match.winner_id || match.winner_id === "draw";
+                  const isP1 = match.player1_id === currentUid;
                   const myScore = isP1 ? match.player1_score : match.player2_score;
                   const theirScore = isP1 ? match.player2_score : match.player1_score;
+
+                  const gameNames: Record<string, string> = {
+                    penales: "Penales",
+                    tateti: "Ta-Te-Ti",
+                    bomba: "La Bomba",
+                    batalla: "Batalla RPG",
+                    ajedrez: "Ajedrez",
+                    karts: "Karts",
+                  };
+                  const gameTitle = gameNames[match.game_type] || match.game_type;
 
                   return (
                     <div key={match.id} className="flex items-center justify-between p-4 sm:p-6 bg-card hover:bg-muted/40 transition-colors">
                       <div className="flex items-center gap-4">
                         <div className={cn(
                           "w-12 h-12 rounded-xl border-4 border-foreground flex items-center justify-center text-xl shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                          isWinner ? "bg-[#BFFF00]" : "bg-[#FF5C5C]"
+                          isWinner ? "bg-[#BFFF00]" : isDraw ? "bg-[#00E5FF]" : "bg-[#FF5C5C]"
                         )}>
-                          {isWinner ? "🏆" : "😔"}
+                          {isWinner ? "🏆" : isDraw ? "🤝" : "😔"}
                         </div>
                         <div>
                           <p className="font-black uppercase text-foreground flex items-center gap-2">
-                            {isWinner ? "Victoria" : "Derrota"}
+                            {isWinner ? "Victoria" : isDraw ? "Empate" : "Derrota"}
+                            <span className="text-foreground text-xs px-2 py-0.5 border-2 border-foreground/40 rounded-md bg-muted/60 font-bold">
+                              {gameTitle}
+                            </span>
                             {match.is_bot_match && (
                               <span className="text-foreground text-xs px-2 py-0.5 border-2 border-foreground/30 rounded-md bg-muted">vs Bot</span>
                             )}
