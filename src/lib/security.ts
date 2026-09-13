@@ -346,3 +346,123 @@ export function detectUnexpectedFields<T extends Record<string, unknown>>(
 ): string[] {
   return Object.keys(obj).filter(key => !allowedFields.includes(key));
 }
+
+// ============================================================
+// 20. CLIENT PROTECTION & ANTI-INSPECTION
+// ============================================================
+
+/**
+ * Sistema de Protección Global y Seguridad de T.A.B.E.
+ * Protege contra:
+ * 1. Clic derecho (Menú contextual para inspeccionar elementos o ver estilos)
+ * 2. Atajos de inspección de DevTools (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, etc.)
+ * 3. Descarga directa del código fuente (Ctrl+S)
+ * 4. Extracción de scripts y consola de desarrollo en producción
+ */
+export function initSecurityProtection() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  // 1. Deshabilitar menú contextual (clic derecho) en todo el documento
+  document.addEventListener(
+    "contextmenu",
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    },
+    { capture: true }
+  );
+
+  // 2. Bloquear atajos de teclado asociados a DevTools y Ver Código Fuente
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      const isShift = e.shiftKey;
+      const key = e.key ? e.key.toUpperCase() : "";
+      const keyCode = e.keyCode || e.which;
+
+      // F12
+      if (key === "F12" || keyCode === 123) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Ctrl + Shift + I (Inspeccionar)
+      // Ctrl + Shift + J (Consola)
+      // Ctrl + Shift + C (Inspeccionar elemento)
+      if (
+        isCtrlOrCmd &&
+        isShift &&
+        (key === "I" || key === "J" || key === "C" || keyCode === 73 || keyCode === 74 || keyCode === 67)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Ctrl + U (Ver código fuente)
+      if (isCtrlOrCmd && (key === "U" || keyCode === 85)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Ctrl + S (Prevenir descarga directa del HTML)
+      if (isCtrlOrCmd && (key === "S" || keyCode === 83)) {
+        e.preventDefault();
+      }
+    },
+    { capture: true }
+  );
+
+  // 3. Protección de consola y advertencia de seguridad en producción
+  if (import.meta.env.PROD) {
+    const showWarning = () => {
+      try {
+        console.clear();
+        console.log(
+          "%c¡ALTO! %cÁrea Protegida",
+          "color: #ef4444; font-size: 28px; font-weight: 900; -webkit-text-stroke: 1px black;",
+          "color: #f59e0b; font-size: 18px; font-weight: bold;"
+        );
+        console.log(
+          "%cEl código fuente, estilos CSS y arquitectura de T.A.B.E. están protegidos bajo propiedad intelectual y medidas de seguridad.",
+          "font-size: 13px; color: #94a3b8; font-weight: 500;"
+        );
+        console.log(
+          "%cSi alguien te pidió copiar o pegar código aquí, es un intento de vulneración.",
+          "font-size: 13px; color: #ef4444; font-weight: bold;"
+        );
+      } catch (_) {}
+    };
+
+    // Mostrar advertencia inicial
+    showWarning();
+
+    // Silenciar logs informativos en producción para evitar filtración de estados internos
+    const noop = () => {};
+    console.log = noop;
+    console.debug = noop;
+    console.info = noop;
+    console.dir = noop;
+
+    // Detector periódico de DevTools
+    let devToolsOpen = false;
+    const threshold = 160;
+    setInterval(() => {
+      const widthDiff = window.outerWidth - window.innerWidth > threshold;
+      const heightDiff = window.outerHeight - window.innerHeight > threshold;
+      if (widthDiff || heightDiff) {
+        if (!devToolsOpen) {
+          devToolsOpen = true;
+          showWarning();
+        }
+      } else {
+        devToolsOpen = false;
+      }
+    }, 1500);
+  }
+}
+

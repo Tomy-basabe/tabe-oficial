@@ -18,6 +18,21 @@
       } catch (e) {}
     })();
   </script>
+  <!-- Protección temprana contra inspección y clic derecho -->
+  <script>
+    (function () {
+      document.addEventListener("contextmenu", function (e) { e.preventDefault(); }, true);
+      document.addEventListener("keydown", function (e) {
+        var isCtrlOrCmd = e.ctrlKey || e.metaKey;
+        var key = e.key ? e.key.toUpperCase() : "";
+        var code = e.keyCode || e.which;
+        if (code === 123 || key === "F12") { e.preventDefault(); }
+        if (isCtrlOrCmd && e.shiftKey && (key === "I" || key === "J" || key === "C" || code === 73 || code === 74 || code === 67)) { e.preventDefault(); }
+        if (isCtrlOrCmd && (key === "U" || code === 85)) { e.preventDefault(); }
+        if (isCtrlOrCmd && (key === "S" || code === 83)) { e.preventDefault(); }
+      }, true);
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>T.A.B.E. - Tu Asistente de Bolsillo Estudiantil</title>
   <meta name="description"
