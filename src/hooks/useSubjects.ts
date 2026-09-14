@@ -42,6 +42,24 @@ export interface Subject {
   numero_materia: number;
 }
 
+export interface ExtraPartial {
+  id: string; // e.g. "P3", "P4"
+  nota: number | null;
+  rec: number | null;
+}
+
+export interface ExtraGlobal {
+  id: string; // e.g. "G2", "G3"
+  nota: number | null;
+  rec: number | null;
+}
+
+export interface ExtraFinal {
+  id: string; // e.g. "Final 1", "Final 2"
+  nota: number | null;
+  fecha?: string;
+}
+
 export interface PartialGrades {
   nota_parcial_1?: number | null;
   nota_rec_parcial_1?: number | null;
@@ -50,7 +68,25 @@ export interface PartialGrades {
   nota_global?: number | null;
   nota_rec_global?: number | null;
   nota_final_examen?: number | null;
-  extra_partials?: { id: string; nota: number | null; rec: number | null }[];
+  extra_partials?: ExtraPartial[];
+  extra_globals?: ExtraGlobal[];
+  extra_finals?: ExtraFinal[];
+}
+
+export function parseStoredExtraGrades(raw: any): {
+  partials: ExtraPartial[];
+  globals: ExtraGlobal[];
+  finals: ExtraFinal[];
+} {
+  if (!raw) return { partials: [], globals: [], finals: [] };
+  if (Array.isArray(raw)) {
+    return { partials: raw, globals: [], finals: [] };
+  }
+  return {
+    partials: Array.isArray(raw.partials) ? raw.partials : (Array.isArray(raw.extra_partials) ? raw.extra_partials : []),
+    globals: Array.isArray(raw.globals) ? raw.globals : (Array.isArray(raw.extra_globals) ? raw.extra_globals : []),
+    finals: Array.isArray(raw.finals) ? raw.finals : (Array.isArray(raw.extra_finals) ? raw.extra_finals : []),
+  };
 }
 
 export interface UserSubjectStatus {
@@ -425,11 +461,18 @@ export function useSubjects() {
       const userStatus = userStatusMap.get(subject.id);
       const status = getSubjectStatus(subject.id);
       const subjectDeps = dependenciesBySubject.get(subject.id) || [];
+      const parsedExtras = parseStoredExtraGrades(userStatus?.extra_partials);
+
+      const allFinals = [
+        userStatus?.nota_final_examen,
+        ...parsedExtras.finals.map((f: any) => f.nota)
+      ].filter((n): n is number => n !== null && n !== undefined && !isNaN(n) && n > 0);
+      const bestFinal = allFinals.length > 0 ? Math.max(...allFinals) : userStatus?.nota_final_examen ?? null;
 
       return {
         ...subject,
         status,
-        nota: userStatus?.nota ?? userStatus?.nota_final_examen ?? userStatus?.nota_global ?? null,
+        nota: userStatus?.nota ?? bestFinal ?? userStatus?.nota_global ?? null,
         fecha_aprobacion: userStatus?.fecha_aprobacion ?? null,
         requisitos_faltantes: status === "bloqueada" ? getMissingRequirements(subject.id) : [],
         dependencies: subjectDeps,
@@ -441,8 +484,10 @@ export function useSubjects() {
           nota_rec_parcial_2: userStatus?.nota_rec_parcial_2 ?? null,
           nota_global: userStatus?.nota_global ?? null,
           nota_rec_global: userStatus?.nota_rec_global ?? null,
-          nota_final_examen: userStatus?.nota_final_examen ?? null,
-          extra_partials: (userStatus?.extra_partials as any) ?? [],
+          nota_final_examen: bestFinal,
+          extra_partials: parsedExtras.partials,
+          extra_globals: parsedExtras.globals,
+          extra_finals: parsedExtras.finals,
         },
       };
     });
@@ -762,31 +807,43 @@ export function useSubjects() {
 
   const updatePartialGrades = async (subjectId: string, grades: PartialGrades) => {
     if (!user) {
-    if (!user) {
       if (isGuest) {
         toast.error("No puedes editar notas en modo invitado");
         return;
       }
       return;
     }
-    }
 
     try {
       const existingStatus = userStatuses.find(s => s.subject_id === subjectId);
 
+      const allFinalGrades = [
+        grades.nota_final_examen,
+        ...(grades.extra_finals || []).map(f => f.nota)
+      ].filter((n): n is number => n !== null && n !== undefined && !isNaN(n) && n > 0);
+      const bestFinal = allFinalGrades.length > 0 ? Math.max(...allFinalGrades) : grades.nota_final_examen ?? null;
+
+      const extrasPayload = {
+        partials: grades.extra_partials || [],
+        globals: grades.extra_globals || [],
+        finals: grades.extra_finals || [],
+      };
+
+      const gradeData = {
+        nota_parcial_1: grades.nota_parcial_1 ?? null,
+        nota_rec_parcial_1: grades.nota_rec_parcial_1 ?? null,
+        nota_parcial_2: grades.nota_parcial_2 ?? null,
+        nota_rec_parcial_2: grades.nota_rec_parcial_2 ?? null,
+        nota_global: grades.nota_global ?? null,
+        nota_rec_global: grades.nota_rec_global ?? null,
+        nota_final_examen: bestFinal,
+        extra_partials: extrasPayload,
+      };
+
       if (existingStatus) {
         const { error } = await supabase
           .from("user_subject_status")
-          .update({
-            nota_parcial_1: grades.nota_parcial_1,
-            nota_rec_parcial_1: grades.nota_rec_parcial_1,
-            nota_parcial_2: grades.nota_parcial_2,
-            nota_rec_parcial_2: grades.nota_rec_parcial_2,
-            nota_global: grades.nota_global,
-            nota_rec_global: grades.nota_rec_global,
-            nota_final_examen: grades.nota_final_examen,
-            extra_partials: grades.extra_partials || [],
-          })
+          .update(gradeData)
           .eq("id", existingStatus.id);
 
         if (error) throw error;
@@ -798,14 +855,7 @@ export function useSubjects() {
             user_id: user.id,
             subject_id: subjectId,
             estado: "cursable",
-            nota_parcial_1: grades.nota_parcial_1,
-            nota_rec_parcial_1: grades.nota_rec_parcial_1,
-            nota_parcial_2: grades.nota_parcial_2,
-            nota_rec_parcial_2: grades.nota_rec_parcial_2,
-            nota_global: grades.nota_global,
-            nota_rec_global: grades.nota_rec_global,
-            nota_final_examen: grades.nota_final_examen,
-            extra_partials: grades.extra_partials || [],
+            ...gradeData
           });
 
         if (error) throw error;

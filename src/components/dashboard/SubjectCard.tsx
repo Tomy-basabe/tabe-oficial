@@ -120,12 +120,9 @@ export const SubjectCard = memo(function SubjectCard({
 
   return (
     <div
-      onClick={status !== "bloqueada" ? onClick : undefined}
+      onClick={onClick}
       style={cardStyle}
-      className={cn(
-        "relative group transition-transform duration-200 h-full flex flex-col",
-        status !== "bloqueada" ? "cursor-pointer hover:-translate-y-1" : ""
-      )}
+      className="relative group transition-transform duration-200 h-full flex flex-col cursor-pointer hover:-translate-y-1"
     >
       {/* Folder Tab */}
       <div 
@@ -142,16 +139,11 @@ export const SubjectCard = memo(function SubjectCard({
           "relative z-10 w-full rounded-xl rounded-tl-none border-[3px] border-foreground text-left transition-shadow duration-200 flex-1 flex flex-col overflow-hidden",
           "bg-[var(--card-bg-light)] dark:bg-[var(--card-bg-dark)]",
           "text-[var(--card-text-light)] dark:text-[var(--card-text-dark)]",
-          status !== "bloqueada" ? "hover:bg-[var(--card-bg-hover-light)] dark:hover:bg-[var(--card-bg-hover-dark)] hover:shadow-[4px_4px_0_0_var(--card-shadow)]" : "opacity-80 cursor-not-allowed hover:border-red-500 hover:border-opacity-100",
+          "hover:bg-[var(--card-bg-hover-light)] dark:hover:bg-[var(--card-bg-hover-dark)] hover:shadow-[4px_4px_0_0_var(--card-shadow)]",
+          status === "bloqueada" && "opacity-90",
           compact ? "p-3" : "p-4"
         )}
       >
-        {/* Locked Hover Overlay */}
-        {status === "bloqueada" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <X className="w-16 h-16 text-red-500 scale-50 group-hover:scale-100 transition-transform duration-500 ease-out drop-shadow-[2px_2px_0_#000]" strokeWidth={3} />
-          </div>
-        )}
 
         <div className="flex items-start justify-between mb-1 relative z-10">
           <span 
