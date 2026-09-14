@@ -653,11 +653,8 @@ export async function fetchUserCalendarList(token: string): Promise<Array<{ id: 
       },
     });
 
-    if (res.status === 401) {
-      console.warn("Google Calendar token expired or insufficient permissions even after refresh.");
-      return [];
-    }
-
+    // If calendarList endpoint is not accessible or returns 401/403 (e.g. token only has calendar.events scope),
+    // always fall back to the primary calendar rather than failing or returning empty list.
     if (!res.ok) {
       return [{ id: "primary", summary: "Principal", primary: true }];
     }
@@ -693,7 +690,6 @@ export async function fetchEventsFromGoogleCalendar(options?: {
   if (!token) {
     token = await refreshGoogleToken();
   }
-  if (!token) return { items: [], error: "No conectado" };
 
   // Filter events from the start of today (local time) onwards
   const today = new Date();
@@ -705,17 +701,40 @@ export async function fetchEventsFromGoogleCalendar(options?: {
   oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
   const timeMax = options?.timeMax || oneYearAhead.toISOString();
 
-  try {
-    const calendars = await fetchUserCalendarList(token);
-    if (calendars.length === 0) {
-      return {
-        items: [],
-        error: "Los permisos de Google Calendar necesitan actualizarse para leer tus materias. Haz clic en Conectar.",
-      };
+  const feedUrl = getStoredGoogleFeedUrl();
+
+  // If no live token available, attempt seamless read from permanent iCal feed if configured
+  if (!token) {
+    if (feedUrl) {
+      try {
+        const icsText = await fetchGoogleCalendarIcs(feedUrl);
+        const parsed = parseGoogleCalendarIcs(icsText);
+        const items = parsed.map(p => ({
+          id: p.uid,
+          summary: p.title,
+          description: p.description,
+          location: p.location,
+          start: p.time ? { dateTime: `${p.date}T${p.time}:00` } : { date: p.date },
+          end: p.endTime ? { dateTime: `${p.date}T${p.endTime}:00` } : undefined,
+          status: "confirmed",
+        }));
+        return { items };
+      } catch (icsErr) {
+        console.warn("Error leyendo calendario de Google vía iCal feed:", icsErr);
+      }
     }
+    return { items: [], error: "Google Calendar no conectado" };
+  }
+
+  try {
+    const rawCalendars = await fetchUserCalendarList(token);
+    const calendars = rawCalendars && rawCalendars.length > 0
+      ? rawCalendars
+      : [{ id: "primary", summary: "Principal", primary: true }];
 
     const allItems: any[] = [];
     const seenIds = new Set<string>();
+    let primary401 = false;
 
     for (const cal of calendars) {
       const calId = encodeURIComponent(cal.id);
@@ -742,11 +761,41 @@ export async function fetchEventsFromGoogleCalendar(options?: {
             }
           }
         } else if (res.status === 401) {
-          return { items: [], error: "Sesión de Google expirada y no se pudo renovar. Vuelve a conectar." };
+          if (cal.id === "primary" || cal.primary) {
+            primary401 = true;
+          }
         }
       } catch (calErr) {
         console.warn(`Error fetching events for calendar ${cal.summary}:`, calErr);
       }
+    }
+
+    if (allItems.length > 0) {
+      return { items: allItems };
+    }
+
+    // If primary returned 401, check if we can fall back to permanent iCal feed
+    if (primary401) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(GCAL_NEEDS_REAUTH_KEY, "true");
+      }
+      if (feedUrl) {
+        try {
+          const icsText = await fetchGoogleCalendarIcs(feedUrl);
+          const parsed = parseGoogleCalendarIcs(icsText);
+          const items = parsed.map(p => ({
+            id: p.uid,
+            summary: p.title,
+            description: p.description,
+            location: p.location,
+            start: p.time ? { dateTime: `${p.date}T${p.time}:00` } : { date: p.date },
+            end: p.endTime ? { dateTime: `${p.date}T${p.endTime}:00` } : undefined,
+            status: "confirmed",
+          }));
+          return { items };
+        } catch {}
+      }
+      return { items: [], error: "La sesión de Google Calendar ha expirado. Vuelve a iniciar sesión con Google o usa el enlace permanente iCal (sin caducidad)." };
     }
 
     return { items: allItems };
@@ -784,8 +833,27 @@ export async function performBidirectionalSync(params: {
     if (!token) {
       token = await refreshGoogleToken();
     }
-    if (!token) {
-      return { success: false, pushedCount: 0, pulledCount: 0, error: "Conecta tu cuenta de Google primero" };
+    const feedUrl = getStoredGoogleFeedUrl();
+
+    if (!token && !feedUrl) {
+      return { success: false, pushedCount: 0, pulledCount: 0, error: "Conecta tu Google Calendar primero" };
+    }
+
+    // If using permanent iCal feed (no OAuth token available)
+    if (!token && feedUrl) {
+      const icsText = await fetchGoogleCalendarIcs(feedUrl);
+      const parsed = parseGoogleCalendarIcs(icsText);
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const res = await syncGoogleIcsToTabe(user.id, parsed);
+        if (params.refetchEvents) await params.refetchEvents();
+        return {
+          success: true,
+          pushedCount: 0,
+          pulledCount: res.added + res.updated,
+        };
+      }
     }
 
     // 1. Fetch events from Google Calendar (from today onwards)
@@ -1475,6 +1543,20 @@ export async function syncGoogleOAuthDirect(
 ): Promise<{ success: boolean; added: number; updated: number; message?: string }> {
   const { items: googleEvents, error: fetchErr } = await fetchEventsFromGoogleCalendar();
   if (fetchErr || !googleEvents) {
+    const feedUrl = getStoredGoogleFeedUrl();
+    if (feedUrl) {
+      try {
+        const icsText = await fetchGoogleCalendarIcs(feedUrl);
+        const events = parseGoogleCalendarIcs(icsText);
+        const res = await syncGoogleIcsToTabe(userId, events);
+        return {
+          success: true,
+          added: res.added,
+          updated: res.updated,
+          message: `Google Calendar sincronizado: ${res.added} nuevos, ${res.updated} actualizados`,
+        };
+      } catch {}
+    }
     return { success: false, added: 0, updated: 0, message: fetchErr || "Error al leer Google Calendar" };
   }
 

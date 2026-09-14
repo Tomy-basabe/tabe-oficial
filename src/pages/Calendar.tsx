@@ -147,7 +147,17 @@ export default function Calendar() {
           : "✅ Todo sincronizado, no hay cambios nuevos";
         toast.success(msg, { duration: 4000 });
       } else if (gRes?.message) {
-        toast.error(gRes.message, { duration: 5000 });
+        if (gRes.message.includes("expirad") || gRes.message.includes("no conectado")) {
+          toast.warning(gRes.message, {
+            action: {
+              label: "Ver Opciones",
+              onClick: () => setShowSyncModal(true),
+            },
+            duration: 6000,
+          });
+        } else {
+          toast.error(gRes.message, { duration: 5000 });
+        }
       } else {
         toast.success("✅ Calendario sincronizado");
       }
