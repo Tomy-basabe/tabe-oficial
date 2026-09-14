@@ -17,57 +17,79 @@ export default function ResetPassword() {
   const hasHandledRef = useRef(false);
 
   useEffect(() => {
-    // Handle the PKCE code exchange if ?code= exists in the URL
     const url = new URL(window.location.href);
     const code = url.searchParams.get("code");
+    const hasCode = !!code;
 
-    if (code) {
-      // Supabase PKCE flow: exchange the code for a session
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) {
-          console.error("Code exchange error:", error);
-          toast.error("El enlace es inválido o expiró. Solicitá uno nuevo.");
-          navigate("/registro");
-        } else {
-          // Session is now available, the onAuthStateChange listener below will handle it
-          setSessionReady(true);
-          setInitializing(false);
-          // Clean the URL to remove the code param
-          window.history.replaceState({}, "", window.location.pathname);
-        }
-      });
-    }
+    // Mark session as ready (used by all success paths)
+    const markReady = () => {
+      if (hasHandledRef.current) return;
+      hasHandledRef.current = true;
+      setSessionReady(true);
+      setInitializing(false);
+      // Clean the URL to remove auth params
+      if (window.location.search || window.location.hash) {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    };
 
-    // Listen for auth state changes - this handles both PKCE and hash-based flows
+    // 1. Listen for auth state changes FIRST (before any exchange attempt)
+    //    This catches events from both auto-detect and manual exchange.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (hasHandledRef.current) return;
 
         if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
-          hasHandledRef.current = true;
-          setSessionReady(true);
-          setInitializing(false);
+          markReady();
         }
       }
     );
 
-    // Also check if there's an existing valid session (user might already be authenticated via the link)
+    // 2. If there's a ?code= param, attempt manual PKCE exchange.
+    //    Note: Supabase client may auto-detect and exchange the code before us.
+    //    If so, our manual call will fail with "code already used" — that's OK
+    //    as long as the session was established by auto-detect.
+    if (hasCode) {
+      supabase.auth.exchangeCodeForSession(code!).then(({ error }) => {
+        if (error) {
+          // Don't redirect immediately — the code may have already been exchanged
+          // by Supabase's auto-detect. Check if we already have a valid session.
+          console.warn("Code exchange returned error (may be already exchanged):", error.message);
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session && !hasHandledRef.current) {
+              // Session exists despite exchange error — auto-detect handled it
+              markReady();
+            } else if (!hasHandledRef.current) {
+              // No session and exchange failed — genuinely invalid/expired code
+              hasHandledRef.current = true;
+              setInitializing(false);
+              toast.error("El enlace es inválido o expiró. Solicitá uno nuevo.");
+              navigate("/registro");
+            }
+          });
+        } else {
+          // Manual exchange succeeded
+          markReady();
+        }
+      });
+    }
+
+    // 3. Also check for an existing valid session (user may arrive already authenticated)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session && !hasHandledRef.current) {
-        hasHandledRef.current = true;
-        setSessionReady(true);
-        setInitializing(false);
+        markReady();
       }
     });
 
-    // Safety timeout: if after 8 seconds we still don't have a session, redirect
+    // 4. Safety timeout: if after 10 seconds we still don't have a session, redirect
     const timeout = setTimeout(() => {
       if (!hasHandledRef.current) {
+        hasHandledRef.current = true;
         setInitializing(false);
         toast.error("No se pudo verificar el enlace. Solicitá uno nuevo desde la pantalla de inicio de sesión.");
         navigate("/registro");
       }
-    }, 8000);
+    }, 10000);
 
     return () => {
       subscription.unsubscribe();
