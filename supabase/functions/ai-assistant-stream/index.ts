@@ -132,6 +132,7 @@ serve(async (req) => {
       requested_model_id,
       requested_provider,
       power_level = "medio",
+      system_prompt: clientSystemPrompt,
     } = await req.json();
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -151,20 +152,20 @@ serve(async (req) => {
     }
 
     const [sR, ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR, routinesR, docsR, filesR, quizzesR, friendshipsR, achievementsR] = await Promise.all([
-      serviceClient.from("subjects").select("id, nombre, codigo, año"),
+      serviceClient.from("subjects").select("id, nombre, codigo, año").order("año", { ascending: true }),
       serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
-      serviceClient.from("calendar_events").select("*").eq("user_id", userId).gte("fecha", new Date().toISOString().split("T")[0]).order("fecha", { ascending: true }).limit(15),
+      serviceClient.from("calendar_events").select("*").eq("user_id", userId).order("fecha", { ascending: true }).limit(100),
       serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
-      serviceClient.from("study_sessions").select("*").eq("user_id", userId).order("fecha", { ascending: false }).limit(5),
-      serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(10),
-      serviceClient.from("profiles").select("nombre, username, email").eq("user_id", userId).maybeSingle(),
+      serviceClient.from("study_sessions").select("*").eq("user_id", userId).order("fecha", { ascending: false }).limit(20),
+      serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(100),
+      serviceClient.from("profiles").select("nombre, username, email, carrera, facultad, plan, plan_type").eq("user_id", userId).maybeSingle(),
       serviceClient.from("study_sessions").select("subject_id, duracion_segundos, fecha, tipo").eq("user_id", userId),
       serviceClient.from("professors").select("*").eq("user_id", userId),
       serviceClient.from("professor_office_hours").select("*").eq("user_id", userId),
-      serviceClient.from("routines").select("id, name, description, category, start_time, end_time, days_of_week, start_date, end_date, is_active, subject_id").eq("user_id", userId).eq("is_active", true).limit(30),
-      serviceClient.from("notion_documents").select("id, titulo, subject_id, parent_id, is_favorite, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(30),
-      serviceClient.from("library_files").select("id, nombre, tipo, subject_id, folder_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
-      serviceClient.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30),
+      serviceClient.from("routines").select("id, name, description, category, start_time, end_time, days_of_week, start_date, end_date, is_active, subject_id").eq("user_id", userId).eq("is_active", true).limit(50),
+      serviceClient.from("notion_documents").select("id, titulo, subject_id, parent_id, is_favorite, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(100),
+      serviceClient.from("library_files").select("id, nombre, tipo, subject_id, folder_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
+      serviceClient.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
       serviceClient.from("friendships").select("requester_id, addressee_id, status, created_at").or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).limit(50),
       serviceClient.from("user_achievements").select("achievement_id, unlocked_at, achievements(nombre, descripcion, xp_reward)").eq("user_id", userId).limit(100),
     ]);
@@ -312,6 +313,7 @@ serve(async (req) => {
     const sysPrompt = "Sos " + personaName + ", asistente academico de " + userName + ".\n" +
       "Personalidad: " + personalityPrompt + "\n" +
       "HOY: " + hoyStr + " (" + hoyDia + ")" + contextLine + "\n" +
+      "CARRERA: " + (profile?.carrera || "No especificada") + " | FACULTAD: " + (profile?.facultad || "No especificada") + " | PLAN: " + (profile?.plan || "No especificado") + "\n" +
       "CALENDARIO PROXIMOS DIAS:\n" + proximosDias.join("\n") + "\n\n" +
       "=== RESUMEN ===\n" +
       "Promedio: " + promedio + " | Progreso: " + aprobadas.length + "/" + subjects.length + " (" + progreso + "%)\n" +
@@ -544,13 +546,15 @@ serve(async (req) => {
       }
     }
 
-    const finalSysPrompt = sysPrompt + ragContext + "\n\n10. ⚠️ REGLA DE CREACION MASIVA: Si el usuario te manda una lista de mas de 15 tarjetas o preguntas, empeza tu respuesta DIRECTAMENTE con la herramienta, sin saludos ni introducciones. Esto evita errores de parsing.";
+    const combinedSysPrompt = clientSystemPrompt
+      ? `${clientSystemPrompt}\n\n=== CONTEXTO ADICIONAL Y RAG EN SERVIDOR ===\n${ragContext}\n\n10. ⚠️ REGLA DE CREACION MASIVA: Si el usuario te manda una lista de mas de 15 tarjetas o preguntas, empeza tu respuesta DIRECTAMENTE con la herramienta, sin saludos ni introducciones. Esto evita errores de parsing.`
+      : `${sysPrompt}${ragContext}\n\n10. ⚠️ REGLA DE CREACION MASIVA: Si el usuario te manda una lista de mas de 15 tarjetas o preguntas, empeza tu respuesta DIRECTAMENTE con la herramienta, sin saludos ni introducciones. Esto evita errores de parsing.`;
 
-    // Safety: truncate system prompt if too large (max ~4000 chars)
-    const maxSysLength = 4000;
-    const truncatedSysPrompt = finalSysPrompt.length > maxSysLength
-      ? finalSysPrompt.slice(0, maxSysLength) + "\n[System prompt truncado]"
-      : finalSysPrompt;
+    // High capacity limit: Llama 3.3 70B supports 128k context (~500k chars). 45k chars allows full 100% academic history without truncation.
+    const maxSysLength = 45000;
+    const truncatedSysPrompt = combinedSysPrompt.length > maxSysLength
+      ? combinedSysPrompt.slice(0, maxSysLength) + "\n[System prompt truncado]"
+      : combinedSysPrompt;
 
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 

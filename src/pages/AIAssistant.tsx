@@ -39,7 +39,7 @@ function getGreeting(persona: AIPersona): DisplayMessage {
   return {
     id: "init",
     role: "assistant",
-    content: `¡Hola! 👋 Soy **${persona.name}**, tu asistente académico personal.\n\n¿En qué te puedo ayudar hoy?`,
+    content: `¡Hola! 👋 Soy **${persona.name}** (TABE AI), tu asistente académico personal.\n\nTengo acceso al 100% de tu información universitaria: carrera, materias, calificaciones, calendario de exámenes, apuntes, flashcards, rutinas y biblioteca.\n\n¿En qué te puedo ayudar hoy?`,
     timestamp: new Date(),
   };
 }

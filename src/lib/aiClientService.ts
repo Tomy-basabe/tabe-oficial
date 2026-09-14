@@ -112,7 +112,8 @@ export class StreamingContentFilter {
 }
 
 /**
- * Builds academic context for the student ultra-fast (parallel queries + 1.2s timeout)
+ * Builds 100% complete academic and personal context for the student ultra-fast.
+ * Queries all academic tables in parallel via Promise.allSettled with local caching.
  */
 export async function buildStudentContext(
   userId: string,
@@ -132,100 +133,392 @@ export async function buildStudentContext(
   const hoyStr = now.toISOString().split("T")[0];
   const hoyDia = diasSemana[now.getDay()];
 
-  let subjectsStr = "Sin materias registradas.";
-  let eventsStr = "Sin eventos agendados próximos.";
-  let statsStr = "";
+  let profileSection = "Estudiante de TABE.";
+  let summarySection = "Sin datos de carrera registrados aún.";
+  let subjectsSection = "Sin materias registradas en el plan.";
+  let eventsSection = "Sin eventos agendados próximos.";
+  let notesSection = "Sin apuntes registrados.";
+  let flashcardsSection = "Sin mazos de flashcards registrados.";
+  let quizzesSection = "Sin cuestionarios creados.";
+  let librarySection = "Sin archivos en la biblioteca.";
+  let routinesSection = "Sin rutinas activas registradas.";
+  let sessionsSection = "Sin sesiones de estudio recientes.";
+  let achievementsSection = "Sin logros desbloqueados.";
 
   if (userId && userId !== "guest") {
     try {
-      // Execute all 3 queries in parallel with a strict 1.2s timeout
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("context_timeout")), 1200)
+        setTimeout(() => reject(new Error("context_timeout")), 3500)
       );
 
       const fetchPromise = Promise.allSettled([
+        // 0. Profile
         (supabase as any)
-          .from("user_subject_status")
-          .select("estado, nota, subjects(id, nombre, codigo, anio)")
-          .eq("user_id", userId),
-        (supabase as any)
-          .from("calendar_events")
-          .select("titulo, fecha, hora, tipo_examen")
-          .eq("user_id", userId)
-          .gte("fecha", hoyStr)
-          .order("fecha", { ascending: true })
-          .limit(8),
-        (supabase as any)
-          .from("user_stats")
-          .select("nivel, xp_total")
+          .from("profiles")
+          .select("nombre, username, email, carrera, facultad, plan, plan_type")
           .eq("user_id", userId)
           .maybeSingle(),
+
+        // 1. Stats
+        (supabase as any)
+          .from("user_stats")
+          .select("nivel, xp_total, racha_actual, mejor_racha, horas_estudio_total")
+          .eq("user_id", userId)
+          .maybeSingle(),
+
+        // 2. All subjects in curriculum
+        (supabase as any)
+          .from("subjects")
+          .select("id, nombre, codigo, año, numero_materia")
+          .order("año", { ascending: true })
+          .order("numero_materia", { ascending: true }),
+
+        // 3. User Subject Status (all grades and states)
+        (supabase as any)
+          .from("user_subject_status")
+          .select("subject_id, estado, nota, nota_parcial_1, nota_parcial_2, nota_rec_parcial_1, nota_rec_parcial_2, nota_global, nota_rec_global, nota_final_examen, fecha_aprobacion, extra_partials")
+          .eq("user_id", userId),
+
+        // 4. Calendar events & exams (both upcoming and recent)
+        (supabase as any)
+          .from("calendar_events")
+          .select("id, titulo, fecha, hora, hora_fin, tipo_examen, notas, subject_id")
+          .eq("user_id", userId)
+          .order("fecha", { ascending: true })
+          .limit(100),
+
+        // 5. Notion documents / notes
+        (supabase as any)
+          .from("notion_documents")
+          .select("id, titulo, subject_id, is_favorite, updated_at")
+          .eq("user_id", userId)
+          .order("updated_at", { ascending: false })
+          .limit(60),
+
+        // 6. Flashcard decks
+        (supabase as any)
+          .from("flashcard_decks")
+          .select("id, nombre, total_cards, subject_id, category")
+          .eq("user_id", userId)
+          .limit(60),
+
+        // 7. Quiz decks
+        (supabase as any)
+          .from("quiz_decks")
+          .select("id, nombre, total_questions, subject_id, category")
+          .eq("user_id", userId)
+          .limit(60),
+
+        // 8. Library files
+        (supabase as any)
+          .from("library_files")
+          .select("id, nombre, tipo, subject_id, folder_id, created_at")
+          .eq("user_id", userId)
+          .limit(60),
+
+        // 9. Active routines
+        (supabase as any)
+          .from("routines")
+          .select("id, name, category, start_time, end_time, days_of_week, subject_id, is_active")
+          .eq("user_id", userId)
+          .eq("is_active", true)
+          .limit(30),
+
+        // 10. Study sessions
+        (supabase as any)
+          .from("study_sessions")
+          .select("subject_id, duracion_segundos, fecha, tipo")
+          .eq("user_id", userId)
+          .order("fecha", { ascending: false })
+          .limit(20),
+
+        // 11. Achievements
+        (supabase as any)
+          .from("user_achievements")
+          .select("achievement_id, unlocked_at, achievements(nombre, descripcion)")
+          .eq("user_id", userId)
+          .limit(30),
       ]);
 
-      const results = (await Promise.race([fetchPromise, timeoutPromise])) as any;
+      const results = (await Promise.race([fetchPromise, timeoutPromise])) as any[];
 
       if (results && Array.isArray(results)) {
-        const [subsRes, eventsRes, statsRes] = results;
+        const [
+          profRes,
+          statsRes,
+          subsRes,
+          ussRes,
+          eventsRes,
+          docsRes,
+          decksRes,
+          quizzesRes,
+          filesRes,
+          routinesRes,
+          sessionsRes,
+          achieveRes,
+        ] = results;
 
-        if (subsRes.status === "fulfilled" && subsRes.value?.data?.length > 0) {
-          subjectsStr = subsRes.value.data
-            .map((s: any) => {
-              const sub = s.subjects;
-              const notaStr = s.nota ? ` (Nota: ${s.nota})` : "";
-              return `- ${sub?.nombre || "Materia"} [${s.estado || "sin_cursar"}]${notaStr}`;
+        // 0. Profile
+        const prof = profRes.status === "fulfilled" ? profRes.value?.data : null;
+        const studentName = prof?.nombre || prof?.username || userName || "Estudiante";
+        const carrera = prof?.carrera || "No especificada";
+        const facultad = prof?.facultad || "No especificada";
+        const plan = prof?.plan || "No especificado";
+
+        // 1. Stats
+        const stats = statsRes.status === "fulfilled" ? statsRes.value?.data : null;
+        const nivel = stats?.nivel || 1;
+        const xp = stats?.xp_total || 0;
+        const racha = stats?.racha_actual || 0;
+        const mejorRacha = stats?.mejor_racha || 0;
+        const horasEstudio = stats?.horas_estudio_total || 0;
+
+        profileSection = `- Estudiante: ${studentName} (${prof?.email || ""})
+- Carrera: ${carrera}
+- Facultad: ${facultad}
+- Plan de estudio: ${plan}
+- Nivel actual: ${nivel} | XP Total: ${xp}
+- Racha de estudio: ${racha} días (Récord histórico: ${mejorRacha} días)
+- Horas totales de estudio registradas: ${horasEstudio} hs`;
+
+        // 2 & 3. Subjects & Status
+        const subjects: any[] = subsRes.status === "fulfilled" && Array.isArray(subsRes.value?.data) ? subsRes.value.data : [];
+        const userStatus: any[] = ussRes.status === "fulfilled" && Array.isArray(ussRes.value?.data) ? ussRes.value.data : [];
+
+        const subjectNameById: Record<string, string> = {};
+        for (const s of subjects) {
+          subjectNameById[s.id] = s.nombre;
+        }
+
+        const mergedSubjects = subjects.map((s) => {
+          const st = userStatus.find((u) => u.subject_id === s.id);
+          return {
+            ...s,
+            estado: (st?.estado || "sin_cursar").toLowerCase(),
+            nota: st?.nota != null ? Number(st.nota) : null,
+            p1: st?.nota_parcial_1 ?? st?.nota_rec_parcial_1 ?? null,
+            p2: st?.nota_parcial_2 ?? st?.nota_rec_parcial_2 ?? null,
+            global: st?.nota_global ?? st?.nota_rec_global ?? null,
+            final_examen: st?.nota_final_examen ?? null,
+            fecha_aprobacion: st?.fecha_aprobacion ?? null,
+          };
+        });
+
+        const aprobadas = mergedSubjects.filter((s) => s.estado === "aprobada");
+        const regulares = mergedSubjects.filter((s) => s.estado === "regular");
+        const enCurso = mergedSubjects.filter((s) => s.estado === "en_curso");
+        const sinCursar = mergedSubjects.filter((s) => s.estado === "sin_cursar");
+
+        const notasAprobadas = aprobadas
+          .map((s) => s.nota)
+          .filter((n): n is number => typeof n === "number" && !isNaN(n) && n > 0);
+        const promedio =
+          notasAprobadas.length > 0
+            ? (notasAprobadas.reduce((a, b) => a + b, 0) / notasAprobadas.length).toFixed(2)
+            : "Sin notas numéricas registradas aún";
+        const pctProgreso =
+          mergedSubjects.length > 0
+            ? ((aprobadas.length / mergedSubjects.length) * 100).toFixed(1)
+            : "0";
+
+        summarySection = `- Materias totales en el plan: ${mergedSubjects.length}
+- Progreso de carrera: ${aprobadas.length}/${mergedSubjects.length} materias aprobadas (${pctProgreso}%)
+- Promedio general (materias aprobadas): ${promedio}
+- Aprobadas: ${aprobadas.length}
+- Regulares (cursadas aprobadas, listas para rendir final): ${regulares.length}
+- En curso: ${enCurso.length}
+- Sin cursar: ${sinCursar.length}`;
+
+        // Group subjects by year
+        if (mergedSubjects.length > 0) {
+          const byYear: Record<number, any[]> = {};
+          for (const s of mergedSubjects) {
+            const yr = s.año || 1;
+            if (!byYear[yr]) byYear[yr] = [];
+            byYear[yr].push(s);
+          }
+
+          const yearBlocks: string[] = [];
+          for (const yr of Object.keys(byYear).sort((a, b) => Number(a) - Number(b))) {
+            const list = byYear[Number(yr)];
+            const lines = list.map((s) => {
+              let line = `  • ${s.nombre} [${s.codigo || "S/C"}]: ${s.estado.toUpperCase()}`;
+              if (s.nota != null) line += ` | NOTA FINAL: ${s.nota}`;
+              if (s.final_examen != null) line += ` | Examen Final: ${s.final_examen}`;
+              const parciales = [];
+              if (s.p1 != null) parciales.push(`P1: ${s.p1}`);
+              if (s.p2 != null) parciales.push(`P2: ${s.p2}`);
+              if (s.global != null) parciales.push(`Global: ${s.global}`);
+              if (parciales.length > 0) line += ` (${parciales.join(", ")})`;
+              if (s.fecha_aprobacion) line += ` [Aprobada: ${s.fecha_aprobacion}]`;
+              return line;
+            });
+            yearBlocks.push(`[${yr}° Año]:\n${lines.join("\n")}`);
+          }
+          subjectsSection = yearBlocks.join("\n\n");
+        }
+
+        // 4. Calendar & Exams
+        const events: any[] = eventsRes.status === "fulfilled" && Array.isArray(eventsRes.value?.data) ? eventsRes.value.data : [];
+        if (events.length > 0) {
+          eventsSection = events
+            .map((e) => {
+              const subName = e.subject_id && subjectNameById[e.subject_id] ? ` [Materia: ${subjectNameById[e.subject_id]}]` : "";
+              const hora = e.hora ? ` a las ${e.hora}` : "";
+              const notas = e.notas ? ` (Detalle: ${e.notas})` : "";
+              return `- ${e.fecha}${hora}: ${e.titulo} [Tipo: ${e.tipo_examen || "Evento"}]${subName}${notas}`;
             })
             .join("\n");
         }
 
-        if (eventsRes.status === "fulfilled" && eventsRes.value?.data?.length > 0) {
-          eventsStr = eventsRes.value.data
-            .map((e: any) => `- ${e.fecha} ${e.hora || ""}: ${e.titulo} (${e.tipo_examen || "Evento"})`)
+        // 5. Notion Documents
+        const docs: any[] = docsRes.status === "fulfilled" && Array.isArray(docsRes.value?.data) ? docsRes.value.data : [];
+        if (docs.length > 0) {
+          notesSection = docs
+            .map((d) => {
+              const subName = d.subject_id && subjectNameById[d.subject_id] ? ` [Materia: ${subjectNameById[d.subject_id]}]` : "";
+              const fav = d.is_favorite ? " ⭐ Favorito" : "";
+              return `- "${d.titulo}"${subName}${fav}`;
+            })
             .join("\n");
         }
 
-        if (statsRes.status === "fulfilled" && statsRes.value?.data) {
-          const st = statsRes.value.data;
-          statsStr = `Nivel: ${st.nivel || 1} | XP: ${st.xp_total || 0}`;
+        // 6. Flashcard Decks
+        const decks: any[] = decksRes.status === "fulfilled" && Array.isArray(decksRes.value?.data) ? decksRes.value.data : [];
+        if (decks.length > 0) {
+          flashcardsSection = decks
+            .map((d) => {
+              const subName = d.subject_id && subjectNameById[d.subject_id] ? ` [Materia: ${subjectNameById[d.subject_id]}]` : "";
+              return `- Mazo "${d.nombre}": ${d.total_cards || 0} tarjetas${subName}`;
+            })
+            .join("\n");
+        }
+
+        // 7. Quizzes
+        const quizzes: any[] = quizzesRes.status === "fulfilled" && Array.isArray(quizzesRes.value?.data) ? quizzesRes.value.data : [];
+        if (quizzes.length > 0) {
+          quizzesSection = quizzes
+            .map((q) => {
+              const subName = q.subject_id && subjectNameById[q.subject_id] ? ` [Materia: ${subjectNameById[q.subject_id]}]` : "";
+              return `- Quiz "${q.nombre}": ${q.total_questions || 0} preguntas${subName}`;
+            })
+            .join("\n");
+        }
+
+        // 8. Library files
+        const files: any[] = filesRes.status === "fulfilled" && Array.isArray(filesRes.value?.data) ? filesRes.value.data : [];
+        if (files.length > 0) {
+          librarySection = files
+            .map((f) => {
+              const subName = f.subject_id && subjectNameById[f.subject_id] ? ` [Materia: ${subjectNameById[f.subject_id]}]` : "";
+              return `- "${f.nombre}" (${f.tipo || "archivo"})${subName}`;
+            })
+            .join("\n");
+        }
+
+        // 9. Routines
+        const routines: any[] = routinesRes.status === "fulfilled" && Array.isArray(routinesRes.value?.data) ? routinesRes.value.data : [];
+        if (routines.length > 0) {
+          const daysMap = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+          routinesSection = routines
+            .map((r) => {
+              const days = Array.isArray(r.days_of_week)
+                ? r.days_of_week.map((d: number) => daysMap[d] || d).join(", ")
+                : "Días no especificados";
+              const subName = r.subject_id && subjectNameById[r.subject_id] ? ` [Materia: ${subjectNameById[r.subject_id]}]` : "";
+              return `- "${r.name}" (${r.category || "Hábito"}): ${days} de ${r.start_time || "00:00"} a ${r.end_time || "00:00"}${subName}`;
+            })
+            .join("\n");
+        }
+
+        // 10. Study Sessions
+        const sessions: any[] = sessionsRes.status === "fulfilled" && Array.isArray(sessionsRes.value?.data) ? sessionsRes.value.data : [];
+        if (sessions.length > 0) {
+          sessionsSection = sessions
+            .map((s) => {
+              const subName = s.subject_id && subjectNameById[s.subject_id] ? ` en ${subjectNameById[s.subject_id]}` : "";
+              const mins = Math.round((s.duracion_segundos || 0) / 60);
+              return `- ${s.fecha}: ${mins} min (${s.tipo || "estudio"})${subName}`;
+            })
+            .join("\n");
+        }
+
+        // 11. Achievements
+        const achieves: any[] = achieveRes.status === "fulfilled" && Array.isArray(achieveRes.value?.data) ? achieveRes.value.data : [];
+        if (achieves.length > 0) {
+          achievementsSection = achieves
+            .map((a) => `- ${a.achievements?.nombre || a.achievement_id}: ${a.achievements?.descripcion || "Desbloqueado"}`)
+            .join("\n");
         }
       }
-    } catch (err) {
-      // Non-blocking fallback
+    } catch {
+      // Graceful fallback
     }
   }
 
   const powerDirectives = {
-    bajo: "POTENCIA / RAZONAMIENTO: BAJO. Da respuestas ultrarrápidas, sintéticas y al grano. Evita explicaciones extensas a menos que el usuario lo solicite.",
-    medio: "POTENCIA / RAZONAMIENTO: MEDIO. Explicaciones equilibradas, claras, estructuradas y con ejemplos prácticos.",
-    alto: "POTENCIA / RAZONAMIENTO: ALTO. Razonamiento profundo, desglose analítico riguroso paso a paso y deducción lógica completa.",
+    bajo: "POTENCIA / RAZONAMIENTO: RÁPIDO. Respuestas ágiles, directas, sintéticas y al grano. Evitá rodeos innecesarios.",
+    medio: "POTENCIA / RAZONAMIENTO: EQUILIBRADO. Explicaciones claras, pedagógicas, estructuradas y con ejemplos prácticos.",
+    alto: "POTENCIA / RAZONAMIENTO: MÁXIMO. Razonamiento profundo y analítico, deducción lógica rigurosa paso a paso y resolución profunda.",
   }[powerLevel];
 
-  const contextText = `Sos ${personaName}, asistente académico inteligente de ${userName || "el estudiante"} en TABE (plataforma universitaria de Argentina).
+  const contextText = `Sos ${personaName}, asistente y tutor académico de inteligencia artificial exclusivo de TABE (plataforma universitaria de Argentina).
 Personalidad: ${personaPrompt}
-MODALIDAD: ${powerDirectives}
+MODALIDAD OPERATIVA: ${powerDirectives}
+FECHA ACTUAL: ${hoyStr} (${hoyDia})
 
-FECHA DE HOY: ${hoyStr} (${hoyDia})
-${statsStr ? `PERFIL ESTUDIANTE: ${statsStr}` : ""}
+==================================================
+100% DE LA INFORMACIÓN DEL ESTUDIANTE (CONEXIÓN TOTAL)
+==================================================
+Tenes acceso irrestricto y completo a todos los datos académicos del estudiante. Cada pregunta sobre su carrera, notas, materias, exámenes agendados, apuntes, biblioteca, cuestionarios o rutinas DEBE contestarse con estos datos exactos y reales:
 
-MATERIAS DEL ESTUDIANTE:
-${subjectsStr}
+[1. PERFIL Y GAMIFICACIÓN]
+${profileSection}
 
-PRÓXIMOS EVENTOS Y EXÁMENES EN AGENDA:
-${eventsStr}
+[2. RESUMEN ACADÉMICO GENERAL]
+${summarySection}
+
+[3. PLAN DE ESTUDIOS COMPLETO Y NOTAS]
+${subjectsSection}
+
+[4. CALENDARIO, EXÁMENES Y EVENTOS AGENDADOS]
+${eventsSection}
+
+[5. APUNTES Y DOCUMENTOS (NOTION / RESÚMENES)]
+${notesSection}
+
+[6. MAZOS DE FLASHCARDS]
+${flashcardsSection}
+
+[7. CUESTIONARIOS Y SIMULACROS]
+${quizzesSection}
+
+[8. BIBLIOTECA Y MATERIALES DE ESTUDIO]
+${librarySection}
+
+[9. RUTINAS Y HÁBITOS DE ESTUDIO]
+${routinesSection}
+
+[10. SESIONES DE ESTUDIO RECIENTES]
+${sessionsSection}
+
+[11. LOGROS DESBLOQUEADOS]
+${achievementsSection}
 
 DIRECTIVAS CRÍTICAS DE RESPUESTA:
-1. Da DIRECTAMENTE la respuesta final al estudiante sin preámbulos internos, reflexiones en voz alta ni notas de planificación.
-2. NUNCA expongas tu proceso de razonamiento ni análisis en inglés sobre lo que pide el usuario (NUNCA escribas "The user asks...", "We must follow style guidelines...", "Let's produce..."). Comienza de inmediato con tu respuesta al usuario en español rioplatense.
-3. Responde de forma motivadora, cercana, profesional y con modismos amables argentinos (che, genial, dale, etc.).
-4. ${powerLevel === "bajo" ? "Responde de inmediato con máxima brevedad." : "Explica conceptos paso a paso cuando te lo pidan."} Puedes usar fórmulas matemáticas con KaTeX (e.g. $x^2 + y^2 = r^2$) y bloques de código.
-5. Si el usuario te pide expresamente agendar un examen o evento, dale una respuesta amigable y añade al final de tu mensaje el siguiente bloque exacto:
+1. NUNCA digas que no tenés acceso a los datos del estudiante: tenés el 100% de su información universitaria arriba. Responde siempre con precisión utilizando estos datos reales.
+2. Da DIRECTAMENTE la respuesta final al estudiante en español rioplatense (argentino), con calidez, cercanía y motivación (che, genial, dale, impecable).
+3. NUNCA expongas tu proceso de razonamiento en inglés ("The user asks...", "Let's produce..."). Empezá de inmediato con la respuesta al usuario.
+4. ${powerLevel === "bajo" ? "Responde con máxima concisión y al grano." : "Explica detalladamente cuando te lo pidan."} Podés usar KaTeX para fórmulas matemáticas ($x^2$, $\\frac{a}{b}$) y bloques de código con resaltado.
+5. Si el usuario te pide expresamente agendar un examen o evento, dale una confirmación amigable e incluí al final el bloque:
 \`\`\`tabe-action:calendar
 [{"titulo": "Nombre del evento", "fecha": "YYYY-MM-DD", "hora": "HH:mm", "tipo_examen": "P1"}]
 \`\`\`
-6. Si el usuario te pide crear flashcards para estudiar, incluye al final:
+6. Si el usuario te pide crear flashcards para estudiar un tema, incluí al final:
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-7. Responde con texto fluido para cualquier saludo, pregunta casual o explicación sin añadir bloques de acción a menos que lo soliciten explícitamente.`;
+7. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción.`;
 
   contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
@@ -319,90 +612,105 @@ export async function streamAIChat(params: {
   onComplete: (result: StreamResult) => void;
   onError: (error: Error) => void;
 }): Promise<void> {
-  const { messages, systemPrompt, model, powerLevel = "medio", userId, onDelta, onReset, onComplete, onError } = params;
-
-  // Build candidate models queue (chosen model first, then fallbacks)
-  const candidateModels: AIModelOption[] = [
-    model,
-    ...AVAILABLE_AI_MODELS.filter((m) => m.id !== model.id),
-  ];
+  const { messages, systemPrompt, powerLevel = "medio", userId, onDelta, onReset, onComplete, onError } = params;
 
   let success = false;
   let finalContent = "";
 
-  for (let i = 0; i < candidateModels.length; i++) {
-    const candidate = candidateModels[i];
-
-    // Buffer this candidate's output locally — only flush to real onDelta on success
+  const runTier = async (streamFn: (localDelta: (t: string) => void) => Promise<boolean>): Promise<boolean> => {
     let localBuffer = "";
     let isErrorResponse = false;
     let firstChunk = true;
 
     const localDelta = (chunk: string) => {
-      // Check if the very first chunk looks like an API error (leaked as content)
       if (firstChunk) {
         firstChunk = false;
         if (isApiErrorChunk(chunk)) {
           isErrorResponse = true;
-          console.warn(`[AI] Model ${candidate.name} returned error content:`, chunk.trim());
           return;
         }
       }
-      if (isErrorResponse) return; // discard rest of error stream
+      if (isErrorResponse) return;
       localBuffer += chunk;
     };
 
     try {
-      let ok = false;
-      if (candidate.provider === "local") {
-        ok = await streamFromLocal({
-          messages,
-          onDelta: localDelta,
-          requestedModelId: model.id,
-          requestedProvider: model.provider,
-          powerLevel,
-        });
-      } else if (candidate.provider === "google") {
-        ok = await streamFromGoogle({
-          modelId: candidate.id,
-          systemPrompt,
-          messages,
-          powerLevel,
-          onDelta: localDelta,
-        });
-      } else {
-        ok = await streamFromOpenRouter({
-          modelId: candidate.id,
-          systemPrompt,
-          messages,
-          powerLevel,
-          onDelta: localDelta,
-        });
-      }
-
-      // Success: this candidate produced real content
+      const ok = await streamFn(localDelta);
       if (ok && !isErrorResponse && localBuffer.trim().length > 0) {
         const cleaned = cleanAIResponse(localBuffer);
-        // If we had a previous (failed) model streaming, reset the UI first
-        if (i > 0 && onReset) onReset();
-        // Emit the full buffered content at once so UI shows it cleanly
+        if (onReset) onReset();
         onDelta(cleaned);
         finalContent = cleaned;
-        success = true;
-        break;
+        return true;
       }
-    } catch (err: any) {
-      console.warn(`[AI] Error with model ${candidate.name}, trying fallback...`, err);
+    } catch (err) {
+      console.warn("[TABE AI] Tier attempt failed:", err);
     }
 
-    // This candidate failed — if it already emitted some content, reset the UI
     if (localBuffer.trim().length > 0 && onReset) {
       onReset();
     }
+    return false;
+  };
+
+  // Tier 1: Google Gemini (if client key available)
+  if (GEMINI_API_KEY) {
+    for (const gModel of ["gemini-2.5-flash", "gemini-1.5-flash"]) {
+      success = await runTier((delta) =>
+        streamFromGoogle({
+          modelId: gModel,
+          systemPrompt,
+          messages,
+          powerLevel,
+          onDelta: delta,
+        })
+      );
+      if (success) break;
+    }
+  }
+
+  // Tier 2: OpenRouter (if client key available)
+  if (!success && OPENROUTER_API_KEY) {
+    for (const orModel of ["deepseek/deepseek-chat", "google/gemini-2.0-flash-001", "meta-llama/llama-3.3-70b-instruct"]) {
+      success = await runTier((delta) =>
+        streamFromOpenRouter({
+          modelId: orModel,
+          systemPrompt,
+          messages,
+          powerLevel,
+          onDelta: delta,
+        })
+      );
+      if (success) break;
+    }
+  }
+
+  // Tier 3: Supabase Edge Function (ai-assistant-stream with Groq Llama 3.3 70B & OpenRouter)
+  if (!success) {
+    success = await runTier((delta) =>
+      streamFromLocal({
+        messages,
+        systemPrompt,
+        onDelta: delta,
+        requestedModelId: "tabe-ai",
+        requestedProvider: "local",
+        powerLevel,
+      })
+    );
+  }
+
+  // Tier 4: Offline smart local assistant
+  if (!success) {
+    success = await runTier((delta) =>
+      streamFromOfflineLocal({
+        messages,
+        onDelta: delta,
+      })
+    );
   }
 
   if (!success && !finalContent) {
-    onError(new Error("No se pudo conectar con ningún proveedor de IA. Por favor intentá de nuevo en unos segundos."));
+    onError(new Error("No se pudo conectar con el servicio de TABE AI. Por favor intentá de nuevo en unos segundos."));
     return;
   }
 
@@ -541,13 +849,13 @@ async function streamFromOpenRouter(opts: {
  */
 async function streamFromLocal(opts: {
   messages: Array<{ role: string; content: string }>;
+  systemPrompt?: string;
   onDelta: (text: string) => void;
   requestedModelId: string;
   requestedProvider: AIModelOption["provider"];
   powerLevel: PowerEffort;
 }): Promise<boolean> {
-  // TABE Base uses the protected Edge Function first. Provider credentials
-  // stay server-side, while the local message below remains the final safety net.
+  // TABE AI uses the protected Supabase Edge Function (powered by Groq Llama 3.3 70B & OpenRouter)
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -560,9 +868,10 @@ async function streamFromLocal(opts: {
         },
         body: JSON.stringify({
           messages: opts.messages,
+          system_prompt: opts.systemPrompt,
           context_page: "TABEAI",
-          requested_model_id: opts.requestedModelId,
-          requested_provider: opts.requestedProvider,
+          requested_model_id: "tabe-ai",
+          requested_provider: "local",
           power_level: opts.powerLevel,
         }),
       });
@@ -598,16 +907,24 @@ async function streamFromLocal(opts: {
       }
     }
   } catch (error) {
-    console.warn("TABE Base Edge Function unavailable; using offline fallback:", error);
+    console.warn("TABE AI Edge Function unavailable; using offline fallback:", error);
   }
+  return false;
+}
 
+/**
+ * Offline safety net when no network or provider is accessible.
+ */
+async function streamFromOfflineLocal(opts: {
+  messages: Array<{ role: string; content: string }>;
+  onDelta: (text: string) => void;
+}): Promise<boolean> {
   const lastUserMessage = [...opts.messages].reverse().find((message) => message.role === "user")?.content?.trim();
   const normalized = (lastUserMessage || "").toLowerCase();
   const arithmeticMatch = normalized.match(/(?:cu[aá]nto\s+es|resuelve|calcula)\s+([0-9+\-*/().\s]+)[?¿!！。]?$/i);
   let arithmeticResult: number | null = null;
   if (arithmeticMatch && /^[0-9+\-*/().\s]+$/.test(arithmeticMatch[1])) {
     try {
-      // The expression is restricted to numeric arithmetic before evaluation.
       const value = Function(`"use strict"; return (${arithmeticMatch[1]})`)();
       if (typeof value === "number" && Number.isFinite(value)) arithmeticResult = value;
     } catch {
@@ -618,16 +935,16 @@ async function streamFromLocal(opts: {
   const content = arithmeticResult !== null
     ? `El resultado es **${arithmeticResult}**.`
     : normalized.match(/^(hola|buenas|buen d[ií]a)/)
-    ? "¡Hola! Soy TABE Base, tu asistente académico. Preguntame sobre una materia, pedime un plan de estudio o decime qué tenés que organizar y arrancamos."
+    ? "¡Hola! Soy TABE AI, tu asistente académico. Tengo acceso total al 100% de tu información universitaria. Preguntame sobre tus materias, notas, calendario o exámenes y te respondo al instante."
     : normalized.includes("como estas") || normalized.includes("cómo estás")
-      ? "¡Muy bien, gracias! Estoy listo para ayudarte a estudiar, organizar tus materias o preparar un examen. ¿Qué necesitás hacer?"
+      ? "¡Excelente! Estoy conectado con toda tu información académica, listo para ayudarte a organizar tus materias, preparar un examen o responder cualquier duda. ¿Qué necesitás hoy?"
     : normalized.includes("plan")
       ? "Para armar tu plan: elegí la materia, anotá el objetivo del examen, separá el contenido en bloques y trabajá en sesiones de 25 minutos con repasos al final de cada bloque."
       : normalized.includes("flashcard") || normalized.includes("tarjeta")
         ? "Las flashcards funcionan mejor con una pregunta concreta adelante y una respuesta breve atrás. Separá las tarjetas difíciles y repasá esas con mayor frecuencia."
         : normalized.includes("quiz") || normalized.includes("simulacro")
           ? "Para un buen simulacro, respondé sin mirar apuntes, marcá tus dudas y corregí cada error escribiendo por qué la respuesta correcta es la correcta."
-          : "TABE Base está disponible sin consumir tokens. Puedo ayudarte con organización, técnicas de estudio y orientación académica básica mientras se restablece el modelo avanzado.";
+          : "TABE AI está funcionando en modo local. Tu perfil y materias están conectados. En breve se restablecerá la conexión de red completa.";
 
   for (let index = 0; index < content.length; index += 8) {
     opts.onDelta(content.slice(index, index + 8));

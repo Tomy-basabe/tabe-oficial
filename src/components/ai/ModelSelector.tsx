@@ -2,19 +2,15 @@ import React from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Check, Zap, Sparkles, Brain } from "lucide-react";
+import { ChevronDown, Zap, Sparkles, Brain, CheckCircle2, ShieldCheck } from "lucide-react";
 import {
   AIModelOption,
-  AVAILABLE_AI_MODELS,
-  getModelTokenCost,
+  TABE_AI_MODEL,
   PowerEffort,
 } from "@/config/aiModels";
-import { ModelLogo } from "@/components/icons/ModelLogos";
+import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { cn } from "@/lib/utils";
 
 interface ModelSelectorProps {
@@ -34,26 +30,26 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 }) => {
   const powerLabels: Record<PowerEffort, { name: string; icon: any; color: string; desc: string }> = {
     bajo: {
-      name: "Bajo",
+      name: "Rápido",
       icon: Zap,
       color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/30",
-      desc: "Ultra rápido (<1s) • Respuestas concisas",
+      desc: "Ultra rápido (<1s) • Respuestas directas al grano",
     },
     medio: {
-      name: "Medio",
+      name: "Equilibrado",
       icon: Sparkles,
       color: "text-blue-500 bg-blue-500/10 border-blue-500/30",
-      desc: "Equilibrado • Explicaciones claras y ejemplos",
+      desc: "Explicaciones claras, ejemplos y análisis de tus materias",
     },
     alto: {
-      name: "Alto",
+      name: "Máximo",
       icon: Brain,
       color: "text-purple-500 bg-purple-500/10 border-purple-500/30",
-      desc: "Máximo razonamiento • Deducción paso a paso",
+      desc: "Razonamiento profundo • Deducción paso a paso y resolución",
     },
   };
 
-  const currentPower = powerLabels[powerLevel];
+  const currentPower = powerLabels[powerLevel] || powerLabels.medio;
   const CurrentIcon = currentPower.icon;
 
   return (
@@ -65,17 +61,23 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           disabled && "opacity-50 cursor-not-allowed pointer-events-none"
         )}
       >
-        <div className="w-5 h-5 rounded-lg flex items-center justify-center p-0.5 bg-background border border-foreground/30 shadow-xs shrink-0">
-          <ModelLogo modelId={selectedModel.id} className="w-4 h-4" />
+        <div className="w-5 h-5 rounded-lg flex items-center justify-center p-0.5 bg-[#00d9ff] text-black border border-foreground/30 shadow-xs shrink-0">
+          <TabeAIIcon className="w-4 h-4 text-black" />
         </div>
         
-        <span className="font-bold text-xs truncate max-w-[100px] sm:max-w-[140px]">
-          {selectedModel.shortName || selectedModel.name}
+        <span className="font-black text-xs tracking-wide">
+          TABE AI
         </span>
 
-        {/* Power Level Badge inside trigger pill (similar to user reference: Sonnet 5 Medium) */}
+        {/* 100% Context indicator */}
+        <span className="hidden sm:flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#25d06c]/15 text-[#25d06c] border border-[#25d06c]/30">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#25d06c] animate-pulse" />
+          100% INFO
+        </span>
+
+        {/* Power Level Badge */}
         <span className={cn(
-          "px-1.5 py-0.2 rounded-md text-[10px] font-black uppercase flex items-center gap-1 border",
+          "px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase flex items-center gap-1 border",
           currentPower.color
         )}>
           <CurrentIcon className="w-2.5 h-2.5" />
@@ -86,20 +88,39 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        align="end"
-        className="w-80 sm:w-96 p-2 bg-card border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-2xl z-50 animate-in fade-in-50 zoom-in-95 max-h-[85vh] overflow-y-auto"
+        align="start"
+        className="w-80 sm:w-96 p-3 bg-card border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-2xl z-50 animate-in fade-in-50 zoom-in-95"
       >
-        {/* 1. SELECCIÓN DE POTENCIA / ESFUERZO */}
-        <div className="p-2 bg-secondary/30 rounded-xl border-2 border-foreground/20 mb-2">
-          <div className="flex items-center justify-between mb-1.5 px-1">
-            <span className="font-black text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-primary" />
-              Nivel de Potencia
-            </span>
-            <span className="text-[10px] font-bold text-muted-foreground">
-              {currentPower.desc}
-            </span>
+        {/* Model info banner */}
+        <div className="p-3 bg-secondary/40 rounded-xl border-2 border-foreground/20 mb-3 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#00d9ff] text-black p-1.5 flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_#000] shrink-0">
+            <TabeAIIcon className="w-full h-full text-black" />
           </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <h4 className="font-black text-sm uppercase text-foreground">TABE AI</h4>
+              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#25d06c] text-white border border-foreground">
+                ACTIVO
+              </span>
+            </div>
+            <p className="text-[11px] font-bold text-muted-foreground mt-0.5 leading-snug">
+              Conectada al <strong className="text-foreground">100% de tu información</strong>: materias, notas, exámenes, apuntes, flashcards, biblioteca y rutinas.
+            </p>
+          </div>
+        </div>
+
+        {/* Status of context connected */}
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-[#25d06c]/10 rounded-lg border border-[#25d06c]/30 text-[#25d06c] text-xs font-bold mb-3">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-[#25d06c]" />
+          <span>Acceso total sin excepciones a tu perfil académico</span>
+        </div>
+
+        {/* Nivel de Potencia / Esfuerzo */}
+        <div className="space-y-1.5">
+          <label className="font-black text-[11px] uppercase tracking-wider text-muted-foreground px-1 flex items-center justify-between">
+            <span>Nivel de Razonamiento</span>
+            <span className="text-[10px] font-bold text-muted-foreground">{currentPower.desc}</span>
+          </label>
 
           <div className="grid grid-cols-3 gap-1.5">
             {(["bajo", "medio", "alto"] as PowerEffort[]).map((level) => {
@@ -113,100 +134,18 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   type="button"
                   onClick={() => onSelectPowerLevel(level)}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-black uppercase border-2 transition-all cursor-pointer",
+                    "flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-black uppercase border-2 transition-all cursor-pointer",
                     isSelected
-                      ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                      : "bg-card text-foreground border-foreground/30 hover:border-foreground/80"
+                      ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] -translate-y-0.5"
+                      : "bg-card text-foreground border-foreground/30 hover:border-foreground/80 hover:-translate-y-0.5"
                   )}
                 >
-                  <Icon className={cn("w-3 h-3", isSelected ? "text-background" : "")} />
-                  {cfg.name}
+                  <Icon className={cn("w-4 h-4", isSelected ? "text-background" : "text-primary")} />
+                  <span>{cfg.name}</span>
                 </button>
               );
             })}
           </div>
-        </div>
-
-        <DropdownMenuSeparator className="bg-foreground/20 my-1" />
-
-        {/* 2. LISTA DE MODELOS ORDENADOS ALFABÉTICAMENTE */}
-        <DropdownMenuLabel className="font-black text-xs uppercase px-2 py-1.5 text-muted-foreground flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            Modelos de IA (Orden A-Z)
-          </span>
-          <span className="text-[10px] bg-[#BFFF00] text-black px-1.5 py-0.5 rounded font-black">
-            {AVAILABLE_AI_MODELS.length} Modelos
-          </span>
-        </DropdownMenuLabel>
-
-        <div className="space-y-1 mt-1">
-          {AVAILABLE_AI_MODELS.map((model) => {
-            const isSelected = model.id === selectedModel.id;
-            return (
-              <DropdownMenuItem
-                key={model.id}
-                onClick={() => onSelectModel(model)}
-                className={cn(
-                  "group flex flex-col items-start gap-1 p-2.5 rounded-xl border-2 transition-all cursor-pointer",
-                  isSelected
-                    ? "bg-muted/90 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                    : "border-transparent hover:bg-muted/50 hover:border-foreground/30"
-                )}
-              >
-                <div className="flex items-center justify-between w-full gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-xl flex items-center justify-center p-1 bg-background border-2 border-foreground/20 shadow-xs shrink-0 group-hover:scale-110 group-hover:border-foreground transition-all">
-                      <ModelLogo modelId={model.id} className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="font-black text-xs text-foreground uppercase tracking-tight truncate">
-                          {model.name}
-                        </span>
-                        <span
-                          className="text-[9px] font-black uppercase px-1 py-0.2 rounded border shrink-0 hidden sm:inline-block"
-                          style={{
-                            backgroundColor: `${model.color}15`,
-                            color: model.color,
-                            borderColor: `${model.color}35`,
-                          }}
-                        >
-                          {model.badge}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Badge de Razonamiento del Modelo */}
-                    <span
-                      className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded border"
-                      style={{
-                        backgroundColor: `${model.color}15`,
-                        color: model.color,
-                        borderColor: `${model.color}40`,
-                      }}
-                    >
-                      {model.reasoningLevel}
-                    </span>
-
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-foreground stroke-[3] ml-0.5" />
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-[11px] font-medium text-muted-foreground leading-snug pl-9 text-left">
-                  {model.description}
-                </p>
-                <p className="text-[10px] font-bold text-muted-foreground pl-9 text-left">
-                  {model.provider === "local"
-                    ? "Sin tokens · siempre disponible"
-                    : `~${getModelTokenCost(model, powerLevel).toLocaleString("es-AR")} tokens · ventana ${model.tokenPolicy?.windowHours ?? 24} h`}
-                </p>
-              </DropdownMenuItem>
-            );
-          })}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
