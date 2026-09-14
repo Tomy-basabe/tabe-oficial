@@ -35,6 +35,7 @@ import { MobileNavbar } from "@/components/layout/MobileNavbar";
 import { ComicEffectsProvider } from "@/components/comic/ComicEffectsProvider";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { preloadRoute } from "@/lib/routePreload";
+import { performGlobalCalendarSync } from "@/lib/globalCalendarSync";
 
 interface UserStats {
   xp_total: number;
@@ -88,6 +89,28 @@ export function MainLayout() {
   });
 
   const navItems = baseNavItems;
+  
+  // Auto-sync academic calendars (Google Calendar & Moodle Campus) when entering the app or returning to tab
+  useEffect(() => {
+    if (!user || isGuest) return;
+
+    // Run background sync shortly after entry so initial rendering is ultra-fast
+    const timer = setTimeout(() => {
+      performGlobalCalendarSync(user);
+    }, 1500);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        performGlobalCalendarSync(user);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [user, isGuest]);
 
   useEffect(() => {
     if (!user && !isGuest) return;

@@ -4,7 +4,7 @@
  */
 
 import { toast } from "sonner";
-import { CalendarEvent, CreateEventData, EventType } from "@/hooks/useCalendarEvents";
+import { CalendarEvent, CreateEventData, EventType, getColorForType } from "@/hooks/useCalendarEvents";
 import { toLocalDateStr } from "@/lib/utils";
 
 export const GCAL_TOKEN_KEY = "tabe_google_calendar_token";
@@ -15,6 +15,7 @@ export const GCAL_REFRESH_TOKEN_KEY = "tabe_google_calendar_refresh_token";
 export const GCAL_LINKED_KEY = "tabe_google_calendar_linked";
 export const GCAL_EXPIRES_AT_KEY = "tabe_google_calendar_expires_at";
 export const GCAL_NEEDS_REAUTH_KEY = "tabe_google_calendar_needs_reauth";
+export const GCAL_FEED_URL_KEY = "tabe_google_calendar_feed_url";
 
 const GCAL_API_BASE = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
@@ -91,21 +92,78 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Checks if Google Calendar is connected (account is linked, user logged with Google, or has token)
+ * Gets the stored Google Calendar secret iCal feed URL (permanent, no token expiration)
+ */
+export function getStoredGoogleFeedUrl(userMetadata?: any): string | null {
+  if (typeof window === "undefined") return null;
+  const local = localStorage.getItem(GCAL_FEED_URL_KEY);
+  if (local && local.trim().length > 10) return local.trim();
+  if (userMetadata?.gcal_feed_url && typeof userMetadata.gcal_feed_url === "string") {
+    try {
+      localStorage.setItem(GCAL_FEED_URL_KEY, userMetadata.gcal_feed_url);
+    } catch {}
+    return userMetadata.gcal_feed_url.trim();
+  }
+  return null;
+}
+
+/**
+ * Saves Google Calendar secret iCal feed URL to localStorage and Supabase Auth metadata
+ */
+export async function setStoredGoogleFeedUrl(url: string | null): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (!url) {
+    localStorage.removeItem(GCAL_FEED_URL_KEY);
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase.auth.updateUser({
+        data: {
+          gcal_feed_url: null,
+          gcal_last_sync: null,
+        },
+      });
+    } catch {}
+  } else {
+    const clean = url.trim();
+    localStorage.setItem(GCAL_FEED_URL_KEY, clean);
+    localStorage.setItem(GCAL_LINKED_KEY, "true");
+    localStorage.removeItem("tabe_gcal_explicitly_disconnected");
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase.auth.updateUser({
+        data: {
+          gcal_feed_url: clean,
+          gcal_linked: true,
+          gcal_last_sync: new Date().toISOString(),
+        },
+      });
+    } catch {}
+  }
+}
+
+/**
+ * Checks if Google Calendar is connected (via permanent iCal feed, OAuth token, or linked metadata)
  */
 export function isGoogleCalendarConnected(user?: any): boolean {
   if (typeof window === "undefined") return false;
   if (localStorage.getItem("tabe_gcal_explicitly_disconnected") === "true") {
     return false;
   }
+
+  // 1. Permanent iCal Feed (Top reliability, zero token expiration)
+  const feedUrl = getStoredGoogleFeedUrl(user?.user_metadata);
+  if (feedUrl && feedUrl.trim().length > 10) return true;
+
+  // 2. Direct OAuth token
   const token = getStoredGoogleToken();
   if (token && token.trim().length > 10) return true;
 
-  // If gcal was marked linked, verify token can be extracted or exists
-  const isLinked = localStorage.getItem(GCAL_LINKED_KEY) === "true";
+  // 3. Linked flag in localStorage or user_metadata
+  const isLinked = localStorage.getItem(GCAL_LINKED_KEY) === "true" || user?.user_metadata?.gcal_linked;
   if (isLinked) {
     const recovered = extractAndStoreTokenFromUrl();
     if (recovered && recovered.trim().length > 10) return true;
+    if (user?.user_metadata?.gcal_feed_url) return true;
   }
 
   return false;
@@ -191,6 +249,7 @@ export function disconnectGoogleCalendar() {
   localStorage.removeItem(GCAL_LINKED_KEY);
   localStorage.removeItem(GCAL_EXPIRES_AT_KEY);
   localStorage.removeItem(GCAL_NEEDS_REAUTH_KEY);
+  localStorage.removeItem(GCAL_FEED_URL_KEY);
   localStorage.setItem("tabe_gcal_explicitly_disconnected", "true");
 
   try {
@@ -198,6 +257,8 @@ export function disconnectGoogleCalendar() {
       supabase.auth.updateUser({
         data: {
           gcal_linked: false,
+          gcal_feed_url: null,
+          gcal_last_sync: null,
         },
       }).catch(() => {});
     });
@@ -1073,4 +1134,496 @@ export async function performBidirectionalSync(params: {
   } finally {
     _isSyncInProgress = false;
   }
+}
+
+// ============================================================================
+// PERMANENT GOOGLE CALENDAR iCAL SYNC (Como Moodle - Sin Vencimiento Jamás)
+// ============================================================================
+
+export interface ParsedGoogleIcsEvent {
+  uid: string;
+  title: string;
+  description?: string;
+  location?: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:mm
+  endDate?: string;
+  endTime?: string;
+  isAllDay: boolean;
+  recurrenceRule?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
+  recurrenceEnd?: string | null;
+  tipoExamen: EventType;
+}
+
+function unescapeIcsString(text: string): string {
+  return text
+    .replace(/\\n/gi, "\n")
+    .replace(/\\,/g, ",")
+    .replace(/\\;/g, ";")
+    .replace(/\\\\/g, "\\")
+    .trim();
+}
+
+function parseGoogleIcsDateTime(line: string): { date: string; time?: string; isAllDay: boolean } {
+  const colonIndex = line.indexOf(":");
+  if (colonIndex === -1) return { date: "", isAllDay: true };
+
+  const value = line.substring(colonIndex + 1).trim();
+
+  // All-day date format: YYYYMMDD
+  if (/^\d{8}$/.test(value)) {
+    const y = value.substring(0, 4);
+    const m = value.substring(4, 6);
+    const d = value.substring(6, 8);
+    return { date: `${y}-${m}-${d}`, isAllDay: true };
+  }
+
+  // DateTime format with UTC 'Z': YYYYMMDDTHHMMSSZ -> convert to local time
+  if (value.includes("T") && value.endsWith("Z")) {
+    const clean = value.replace("Z", "");
+    const parts = clean.split("T");
+    const dPart = parts[0];
+    const tPart = parts[1];
+    if (dPart.length === 8 && tPart.length >= 4) {
+      const y = parseInt(dPart.substring(0, 4), 10);
+      const m = parseInt(dPart.substring(4, 6), 10) - 1;
+      const d = parseInt(dPart.substring(6, 8), 10);
+      const hh = parseInt(tPart.substring(0, 2), 10);
+      const mm = parseInt(tPart.substring(2, 4), 10);
+      const ss = tPart.length >= 6 ? parseInt(tPart.substring(4, 6), 10) : 0;
+
+      const utcDate = new Date(Date.UTC(y, m, d, hh, mm, ss));
+      if (!isNaN(utcDate.getTime())) {
+        const localY = utcDate.getFullYear();
+        const localM = String(utcDate.getMonth() + 1).padStart(2, "0");
+        const localD = String(utcDate.getDate()).padStart(2, "0");
+        const localH = String(utcDate.getHours()).padStart(2, "0");
+        const localMin = String(utcDate.getMinutes()).padStart(2, "0");
+        return {
+          date: `${localY}-${localM}-${localD}`,
+          time: `${localH}:${localMin}`,
+          isAllDay: false,
+        };
+      }
+    }
+  }
+
+  // Local / Floating DateTime: YYYYMMDDTHHMMSS
+  if (value.includes("T")) {
+    const parts = value.split("T");
+    const dPart = parts[0];
+    const tPart = parts[1];
+    if (dPart.length === 8 && tPart.length >= 4) {
+      const y = dPart.substring(0, 4);
+      const m = dPart.substring(4, 6);
+      const d = dPart.substring(6, 8);
+      const hh = tPart.substring(0, 2);
+      const mm = tPart.substring(2, 4);
+      return {
+        date: `${y}-${m}-${d}`,
+        time: `${hh}:${mm}`,
+        isAllDay: false,
+      };
+    }
+  }
+
+  return { date: "", isAllDay: true };
+}
+
+function deduceGoogleEventType(title: string): EventType {
+  const lower = title.toLowerCase();
+  if (lower.includes("parcial 1") || lower.includes("1er parcial") || lower.includes("primer parcial") || lower.includes("p1")) return "P1";
+  if (lower.includes("parcial 2") || lower.includes("2do parcial") || lower.includes("segundo parcial") || lower.includes("p2")) return "P2";
+  if (lower.includes("final")) return "Final";
+  if (lower.includes("recuperatorio") || lower.includes("recu")) return "Recuperatorio P1";
+  if (lower.includes("entrega") || lower.includes("tp") || lower.includes("laboratorio")) return "Entrega";
+  if (lower.includes("clase") || lower.includes("teorica") || lower.includes("teórica") || lower.includes("practica") || lower.includes("práctica") || lower.includes("virtual")) return "Clase";
+  if (lower.includes("estudio") || lower.includes("repaso")) return "Estudio";
+  return "Otro";
+}
+
+/**
+ * Fetches Google Calendar secret iCal content via secure proxy
+ */
+export async function fetchGoogleCalendarIcs(feedUrl: string): Promise<string> {
+  const cleanUrl = feedUrl.trim().replace(/^webcal:\/\//i, "https://");
+  const proxyEndpoint = `/api/moodle-calendar?url=${encodeURIComponent(cleanUrl)}`;
+
+  const response = await fetch(proxyEndpoint);
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(errText || "No se pudo conectar con los servidores de Google Calendar.");
+  }
+
+  const icsText = await response.text();
+  if (!icsText.includes("BEGIN:VCALENDAR")) {
+    throw new Error("El enlace proporcionado no es un calendario iCal válido de Google.");
+  }
+
+  return icsText;
+}
+
+/**
+ * Parses Google Calendar iCal text into structured events
+ */
+export function parseGoogleCalendarIcs(icsContent: string): ParsedGoogleIcsEvent[] {
+  const events: ParsedGoogleIcsEvent[] = [];
+  const lines = icsContent.split(/\r?\n/);
+  const unfolded: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    while (i + 1 < lines.length && (lines[i + 1].startsWith(" ") || lines[i + 1].startsWith("\t"))) {
+      i++;
+      line += lines[i].substring(1);
+    }
+    unfolded.push(line);
+  }
+
+  let currentEvent: any = null;
+
+  for (let i = 0; i < unfolded.length; i++) {
+    const line = unfolded[i];
+
+    if (line.startsWith("BEGIN:VEVENT")) {
+      currentEvent = {};
+      continue;
+    }
+
+    if (line.startsWith("END:VEVENT") && currentEvent) {
+      if (currentEvent.status !== "CANCELLED" && currentEvent.title && currentEvent.date) {
+        let recurrenceRule: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null = null;
+        let recurrenceEnd: string | null = null;
+
+        if (currentEvent.rrule) {
+          if (currentEvent.rrule.includes("FREQ=DAILY")) recurrenceRule = "DAILY";
+          else if (currentEvent.rrule.includes("FREQ=WEEKLY")) recurrenceRule = "WEEKLY";
+          else if (currentEvent.rrule.includes("FREQ=MONTHLY")) recurrenceRule = "MONTHLY";
+          else if (currentEvent.rrule.includes("FREQ=YEARLY")) recurrenceRule = "YEARLY";
+
+          const untilMatch = currentEvent.rrule.match(/UNTIL=([0-9]{4})([0-9]{2})([0-9]{2})/);
+          if (untilMatch) {
+            recurrenceEnd = `${untilMatch[1]}-${untilMatch[2]}-${untilMatch[3]}`;
+          }
+        }
+
+        const tipo = deduceGoogleEventType(currentEvent.title);
+
+        events.push({
+          uid: currentEvent.uid || `gcal_ics_${Date.now()}_${Math.random()}`,
+          title: currentEvent.title,
+          description: currentEvent.description,
+          location: currentEvent.location,
+          date: currentEvent.date,
+          time: currentEvent.time,
+          endDate: currentEvent.endDate,
+          endTime: currentEvent.endTime,
+          isAllDay: currentEvent.isAllDay,
+          recurrenceRule,
+          recurrenceEnd,
+          tipoExamen: tipo,
+        });
+      }
+      currentEvent = null;
+      continue;
+    }
+
+    if (!currentEvent) continue;
+
+    if (line.startsWith("UID:")) {
+      currentEvent.uid = line.substring(4).trim();
+    } else if (line.startsWith("STATUS:")) {
+      currentEvent.status = line.substring(7).trim().toUpperCase();
+    } else if (line.startsWith("SUMMARY:") || line.startsWith("SUMMARY;")) {
+      const val = line.substring(line.indexOf(":") + 1);
+      currentEvent.title = unescapeIcsString(val);
+    } else if (line.startsWith("DESCRIPTION:") || line.startsWith("DESCRIPTION;")) {
+      const val = line.substring(line.indexOf(":") + 1);
+      currentEvent.description = unescapeIcsString(val);
+    } else if (line.startsWith("LOCATION:") || line.startsWith("LOCATION;")) {
+      const val = line.substring(line.indexOf(":") + 1);
+      currentEvent.location = unescapeIcsString(val);
+    } else if (line.startsWith("RRULE:") || line.startsWith("RRULE;")) {
+      currentEvent.rrule = line.substring(line.indexOf(":") + 1).trim();
+    } else if (line.startsWith("DTSTART")) {
+      const parsed = parseGoogleIcsDateTime(line);
+      currentEvent.date = parsed.date;
+      currentEvent.time = parsed.time;
+      currentEvent.isAllDay = parsed.isAllDay;
+    } else if (line.startsWith("DTEND")) {
+      const parsed = parseGoogleIcsDateTime(line);
+      currentEvent.endDate = parsed.date;
+      currentEvent.endTime = parsed.time;
+    }
+  }
+
+  return events;
+}
+
+/**
+ * Synchronizes parsed Google Calendar iCal events directly into Supabase DB
+ */
+export async function syncGoogleIcsToTabe(
+  userId: string,
+  events: ParsedGoogleIcsEvent[]
+): Promise<{ added: number; updated: number }> {
+  let added = 0;
+  let updated = 0;
+
+  if (!events || events.length === 0) {
+    return { added: 0, updated: 0 };
+  }
+
+  const { supabase } = await import("@/integrations/supabase/client");
+
+  // Fetch existing events for user
+  const { data: existingEvents, error: fetchErr } = await supabase
+    .from("calendar_events")
+    .select("id, titulo, fecha, hora, hora_fin, notas, ubicacion, tipo_examen, is_all_day, recurrence_rule, recurrence_end")
+    .eq("user_id", userId);
+
+  if (fetchErr) {
+    console.error("Error fetching existing calendar events for Google iCal sync:", fetchErr);
+    return { added: 0, updated: 0 };
+  }
+
+  const gcalIdMap = new Map<string, any>();
+  const titleDateMap = new Map<string, any>();
+
+  (existingEvents || []).forEach((ev) => {
+    const gId = extractGoogleEventId(ev.notas);
+    if (gId) {
+      gcalIdMap.set(gId, ev);
+    }
+    const cleanTitle = (ev.titulo || "").trim().toLowerCase();
+    titleDateMap.set(`${cleanTitle}_${ev.fecha}`, ev);
+  });
+
+  const toInsert: any[] = [];
+
+  for (const gEv of events) {
+    const existing = gcalIdMap.get(gEv.uid) || titleDateMap.get(`${gEv.title.trim().toLowerCase()}_${gEv.date}`);
+    const notesWithId = injectGoogleEventId(gEv.description, gEv.uid);
+
+    if (existing) {
+      const changed =
+        existing.fecha !== gEv.date ||
+        existing.hora !== (gEv.time || null) ||
+        existing.hora_fin !== (gEv.endTime || null) ||
+        existing.titulo !== gEv.title ||
+        existing.ubicacion !== (gEv.location || null) ||
+        extractGoogleEventId(existing.notas) !== gEv.uid;
+
+      if (changed) {
+        const { error: updErr } = await supabase
+          .from("calendar_events")
+          .update({
+            titulo: gEv.title,
+            fecha: gEv.date,
+            hora: gEv.time || null,
+            hora_fin: gEv.endTime || null,
+            ubicacion: gEv.location || null,
+            notas: notesWithId,
+            is_all_day: gEv.isAllDay,
+            recurrence_rule: gEv.recurrenceRule || existing.recurrence_rule,
+            recurrence_end: gEv.recurrenceEnd || existing.recurrence_end,
+          })
+          .eq("id", existing.id);
+
+        if (!updErr) {
+          updated++;
+        }
+      }
+    } else {
+      toInsert.push({
+        user_id: userId,
+        titulo: gEv.title,
+        fecha: gEv.date,
+        hora: gEv.time || null,
+        hora_fin: gEv.endTime || null,
+        ubicacion: gEv.location || null,
+        notas: notesWithId,
+        tipo_examen: gEv.tipoExamen,
+        is_all_day: gEv.isAllDay,
+        recurrence_rule: gEv.recurrenceRule || null,
+        recurrence_end: gEv.recurrenceEnd || null,
+        color: getColorForType(gEv.tipoExamen),
+      });
+    }
+  }
+
+  if (toInsert.length > 0) {
+    const { error: insErr } = await supabase.from("calendar_events").insert(toInsert);
+    if (!insErr) {
+      added = toInsert.length;
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem(GCAL_LAST_SYNC_KEY, new Date().toISOString());
+  }
+
+  return { added, updated };
+}
+
+/**
+ * Direct OAuth background sync against Supabase
+ */
+export async function syncGoogleOAuthDirect(
+  userId: string,
+  token: string
+): Promise<{ success: boolean; added: number; updated: number; message?: string }> {
+  const { items: googleEvents, error: fetchErr } = await fetchEventsFromGoogleCalendar();
+  if (fetchErr || !googleEvents) {
+    return { success: false, added: 0, updated: 0, message: fetchErr || "Error al leer Google Calendar" };
+  }
+
+  const { supabase } = await import("@/integrations/supabase/client");
+
+  const { data: existingEvents } = await supabase
+    .from("calendar_events")
+    .select("id, titulo, fecha, hora, hora_fin, notas, ubicacion, tipo_examen, is_all_day")
+    .eq("user_id", userId);
+
+  const gcalIdMap = new Map<string, any>();
+  const titleDateMap = new Map<string, any>();
+
+  (existingEvents || []).forEach((ev) => {
+    const gId = extractGoogleEventId(ev.notas);
+    if (gId) gcalIdMap.set(gId, ev);
+    titleDateMap.set(`${(ev.titulo || "").trim().toLowerCase()}_${ev.fecha}`, ev);
+  });
+
+  let added = 0;
+  let updated = 0;
+  const toInsert: any[] = [];
+
+  for (const gEv of googleEvents) {
+    if (gEv.status === "cancelled") continue;
+    const gcalId = gEv.id;
+    const startDateTime = gEv.start?.dateTime || gEv.start?.date;
+    if (!startDateTime) continue;
+
+    const isAllDay = !gEv.start?.dateTime;
+    const datePart = String(startDateTime).split("T")[0];
+    if (!datePart) continue;
+
+    let hora: string | null = null;
+    let hora_fin: string | null = null;
+
+    if (!isAllDay && gEv.start?.dateTime) {
+      try {
+        const dStart = new Date(gEv.start.dateTime);
+        if (!isNaN(dStart.getTime())) {
+          hora = `${String(dStart.getHours()).padStart(2, "0")}:${String(dStart.getMinutes()).padStart(2, "0")}`;
+        }
+      } catch {}
+    }
+
+    if (!isAllDay && gEv.end?.dateTime) {
+      try {
+        const dEnd = new Date(gEv.end.dateTime);
+        if (!isNaN(dEnd.getTime())) {
+          hora_fin = `${String(dEnd.getHours()).padStart(2, "0")}:${String(dEnd.getMinutes()).padStart(2, "0")}`;
+        }
+      } catch {}
+    }
+
+    const title = gEv.summary || "Evento de Google Calendar";
+    const existing = gcalIdMap.get(gcalId) || titleDateMap.get(`${title.trim().toLowerCase()}_${datePart}`);
+    const notesWithId = injectGoogleEventId(gEv.description, gcalId);
+
+    if (existing) {
+      const changed =
+        existing.fecha !== datePart ||
+        existing.hora !== hora ||
+        existing.hora_fin !== hora_fin ||
+        existing.titulo !== title ||
+        existing.ubicacion !== (gEv.location || null);
+
+      if (changed) {
+        await supabase
+          .from("calendar_events")
+          .update({
+            titulo: title,
+            fecha: datePart,
+            hora,
+            hora_fin,
+            ubicacion: gEv.location || null,
+            notas: notesWithId,
+            is_all_day: isAllDay,
+          })
+          .eq("id", existing.id);
+        updated++;
+      }
+    } else {
+      const tipo = deduceGoogleEventType(title);
+      toInsert.push({
+        user_id: userId,
+        titulo: title,
+        fecha: datePart,
+        hora,
+        hora_fin,
+        ubicacion: gEv.location || null,
+        notas: notesWithId,
+        tipo_examen: tipo,
+        is_all_day: isAllDay,
+        color: getColorForType(tipo),
+      });
+    }
+  }
+
+  if (toInsert.length > 0) {
+    const { error: insErr } = await supabase.from("calendar_events").insert(toInsert);
+    if (!insErr) added = toInsert.length;
+  }
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem(GCAL_LAST_SYNC_KEY, new Date().toISOString());
+  }
+
+  return { success: true, added, updated };
+}
+
+/**
+ * Universal background auto-sync function for Google Calendar.
+ * Supports permanent iCal feed (top priority, zero expiration) and OAuth 2-way sync.
+ */
+export async function performGoogleAutoSync(
+  userId: string,
+  userMetadata?: any
+): Promise<{ success: boolean; added: number; updated: number; message?: string }> {
+  // 1. Check Permanent iCal Feed first (Best reliability, no token expiration)
+  const feedUrl = getStoredGoogleFeedUrl(userMetadata);
+  if (feedUrl) {
+    try {
+      const icsText = await fetchGoogleCalendarIcs(feedUrl);
+      const events = parseGoogleCalendarIcs(icsText);
+      const res = await syncGoogleIcsToTabe(userId, events);
+      return {
+        success: true,
+        added: res.added,
+        updated: res.updated,
+        message: `Google Calendar sincronizado: ${res.added} nuevos, ${res.updated} actualizados`,
+      };
+    } catch (err: any) {
+      console.warn("Google iCal feed sync error:", err);
+    }
+  }
+
+  // 2. Check direct OAuth token
+  let token = getStoredGoogleToken();
+  if (!token) {
+    token = await refreshGoogleToken();
+  }
+  if (token) {
+    try {
+      return await syncGoogleOAuthDirect(userId, token);
+    } catch (err: any) {
+      console.warn("Google OAuth sync error:", err);
+      return { success: false, added: 0, updated: 0, message: err?.message };
+    }
+  }
+
+  return { success: false, added: 0, updated: 0, message: "Google Calendar no conectado" };
 }

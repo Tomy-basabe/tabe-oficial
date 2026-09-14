@@ -22,6 +22,7 @@ import {
   GraduationCap
 } from "lucide-react";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
+import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
 import { getStoredMoodleSession, MoodleSession } from "@/lib/moodleService";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
@@ -31,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useComic } from "@/components/comic/ComicEffectsProvider";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { isGoogleCalendarConnected } from "@/lib/googleCalendarSync";
+import { isGoogleCalendarConnected, getStoredGoogleFeedUrl } from "@/lib/googleCalendarSync";
 import { cn } from "@/lib/utils";
 import { usePomodoro } from "@/contexts/PomodoroContext";
 
@@ -64,11 +65,14 @@ export default function Settings() {
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [unlinkingGoogle, setUnlinkingGoogle] = useState(false);
   const [showMoodleModal, setShowMoodleModal] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [hasGoogleFeed, setHasGoogleFeed] = useState<boolean>(() => !!getStoredGoogleFeedUrl());
   const [moodleSession, setMoodleSession] = useState<MoodleSession | null>(() => getStoredMoodleSession());
 
   useEffect(() => {
     setMoodleSession(getStoredMoodleSession());
-  }, []);
+    setHasGoogleFeed(!!getStoredGoogleFeedUrl(user?.user_metadata));
+  }, [user]);
 
   const userName = user?.user_metadata?.nombre || user?.email?.split("@")[0] || "Usuario";
   const userInitials = userName.slice(0, 2).toUpperCase();
@@ -245,6 +249,10 @@ export default function Settings() {
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
                         Vinculado
                       </span>
+                    ) : hasGoogleFeed ? (
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
+                        iCal Activo
+                      </span>
                     ) : (
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground border-2 border-foreground">
                         No Vinculado
@@ -252,7 +260,9 @@ export default function Settings() {
                     )}
                   </div>
                   <p className="font-bold text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    {isGoogleLinked
+                    {hasGoogleFeed
+                      ? "Sincronización permanente de Google Calendar activa (sin vencimiento)."
+                      : isGoogleLinked
                       ? (googleIdentity?.identity_data?.email || userEmail || "Cuenta de Google asociada")
                       : "Asocia tu cuenta de Google para iniciar sesión con un clic y sincronizar tu calendario."}
                   </p>
@@ -260,6 +270,14 @@ export default function Settings() {
               </div>
 
               <div className="shrink-0 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleModal(true)}
+                  className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00F0FF] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Calendar className="w-4 h-4" />
+                  {hasGoogleFeed || isGoogleLinked ? "Gestionar Calendar" : "Sincronizar Calendar"}
+                </button>
                 {isGoogleLinked ? (
                   <>
                     <button
@@ -275,7 +293,7 @@ export default function Settings() {
                       className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00FF9D] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <Zap className="w-4 h-4 fill-current" />
-                      Reconectar Calendar
+                      Reconectar OAuth
                     </button>
                     <button
                       type="button"
@@ -883,6 +901,16 @@ export default function Settings() {
         onSyncComplete={() => {
           setMoodleSession(getStoredMoodleSession());
         }}
+      />
+
+      {/* Modal Conexión Google Calendar */}
+      <GoogleCalendarSyncModal
+        open={showGoogleModal}
+        onClose={() => {
+          setShowGoogleModal(false);
+          setHasGoogleFeed(!!getStoredGoogleFeedUrl(user?.user_metadata));
+        }}
+        onOpenImport={() => {}}
       />
     </div>
   );

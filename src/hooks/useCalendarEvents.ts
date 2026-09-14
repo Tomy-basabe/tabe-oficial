@@ -548,7 +548,7 @@ export function useCalendarEvents() {
   };
 }
 
-function getColorForType(type: string): string {
+export function getColorForType(type: string): string {
   const colors: Record<string, string> = {
     P1: "#00d9ff",
     P2: "#a855f7",

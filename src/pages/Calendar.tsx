@@ -18,6 +18,7 @@ import {
   extractAndStoreTokenFromUrl,
   stripGoogleEventId,
 } from "@/lib/googleCalendarSync";
+import { performGlobalCalendarSync } from "@/lib/globalCalendarSync";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -109,20 +110,19 @@ export default function Calendar() {
     }
     setIsSyncing(true);
     try {
-      const result = await performBidirectionalSync({
-        tabeEvents: events,
-        createTabeEvent: createEvent,
-        updateTabeEvent: updateEvent,
-        refetchEvents: refetch,
-      });
-      if (result.success) {
-        const msg = result.pushedCount > 0 || result.pulledCount > 0
-          ? `✅ ${result.pushedCount} enviados a Google, ${result.pulledCount} traídos a TABE`
+      const res = await performGlobalCalendarSync(user, { force: true, silent: true });
+      await refetch();
+      setIsGCalConnected(isGoogleCalendarConnected(user));
+      const gRes = res.google;
+      if (gRes?.success) {
+        const msg = (gRes.added > 0 || gRes.updated > 0)
+          ? `✅ Google Calendar sincronizado: ${gRes.added} nuevos, ${gRes.updated} actualizados`
           : "✅ Todo sincronizado, no hay cambios nuevos";
-        toast.success(msg, { duration: 5000 });
+        toast.success(msg, { duration: 4000 });
+      } else if (gRes?.message) {
+        toast.error(gRes.message, { duration: 5000 });
       } else {
-        toast.error(result.error || "Error al sincronizar", { duration: 6000 });
-        setIsGCalConnected(isGoogleCalendarConnected(user));
+        toast.success("✅ Calendario sincronizado");
       }
     } catch (err: any) {
       toast.error(err?.message || "Error inesperado al sincronizar");
@@ -131,6 +131,16 @@ export default function Calendar() {
     }
   };
 
+  // Listen to background sync updates from MainLayout
+  useEffect(() => {
+    const handleSync = () => {
+      refetch();
+      setIsGCalConnected(isGoogleCalendarConnected(user));
+    };
+    window.addEventListener("tabe_calendar_synced", handleSync);
+    return () => window.removeEventListener("tabe_calendar_synced", handleSync);
+  }, [refetch, user]);
+
   useEffect(() => {
     extractAndStoreTokenFromUrl();
     const conn = isGoogleCalendarConnected(user);
@@ -138,20 +148,8 @@ export default function Calendar() {
 
     if (!loading && user && conn && isAutoSyncEnabled() && !hasAttemptedInitialSync.current) {
       hasAttemptedInitialSync.current = true;
-      performBidirectionalSync({
-        tabeEvents: events,
-        createTabeEvent: createEvent,
-        updateTabeEvent: updateEvent,
-        refetchEvents: refetch,
-      }).then(res => {
-        if (res.success) {
-          if (res.pushedCount > 0 || res.pulledCount > 0) {
-            toast.success(`Google Calendar: ${res.pushedCount} enviados, ${res.pulledCount} importados`, { icon: "📅", duration: 5000 });
-          }
-        } else if (res.error) {
-          console.warn("Google Calendar auto-sync notice:", res.error);
-          setIsGCalConnected(false);
-        }
+      performGlobalCalendarSync(user, { silent: false }).then(() => {
+        refetch();
       }).catch(err => {
         console.warn("Auto-sync error on calendar load:", err);
       });
@@ -480,14 +478,7 @@ export default function Calendar() {
             </div>
           </div>
           <button
-            onClick={async () => {
-              try {
-                toast.info("Iniciando conexión con Google Calendar...");
-                await connectGoogleCalendar();
-              } catch (e: any) {
-                toast.error(e?.message || "Error al conectar Google");
-              }
-            }}
+            onClick={() => setShowSyncModal(true)}
             className="w-full md:w-auto px-5 py-2.5 bg-[#00FF9D] text-black font-black text-xs uppercase tracking-wider rounded-lg border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 flex items-center justify-center gap-2 cursor-pointer"
           >
             <Zap className="w-4 h-4 fill-current" />

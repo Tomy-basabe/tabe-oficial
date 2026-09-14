@@ -37,6 +37,9 @@ import {
     getLastSyncTime,
     performBidirectionalSync,
     GCAL_EMAIL_KEY,
+    getStoredGoogleFeedUrl,
+    setStoredGoogleFeedUrl,
+    performGoogleAutoSync,
 } from "@/lib/googleCalendarSync";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -64,10 +67,16 @@ export function GoogleCalendarSyncModal({
     const { feedToken, feedUrl, loading: feedLoading, generateToken, regenerateToken, disableFeed } =
         useCalendarFeed();
 
-    // Default to "permanent" tab so user immediately sees the no-expiration solution
-    const [activeTab, setActiveTab] = useState<"permanent" | "live" | "import">("permanent");
+    // Default to "ical" tab so user immediately sees the universal no-expiration solution (like Moodle)
+    const [activeTab, setActiveTab] = useState<"ical" | "live" | "permanent" | "import">("ical");
     const [copied, setCopied] = useState(false);
     const [generating, setGenerating] = useState(false);
+
+    // iCal Feed States (Permanent Google Sync)
+    const [icalFeedUrl, setIcalFeedUrl] = useState("");
+    const [icalConnected, setIcalConnected] = useState(false);
+    const [isSavingIcal, setIsSavingIcal] = useState(false);
+    const [isIcalSyncing, setIsIcalSyncing] = useState(false);
 
     // Live Sync States
     const [connected, setConnected] = useState(false);
@@ -81,6 +90,10 @@ export function GoogleCalendarSyncModal({
 
     useEffect(() => {
         if (open) {
+            const savedIcal = getStoredGoogleFeedUrl(user?.user_metadata);
+            setIcalFeedUrl(savedIcal || "");
+            setIcalConnected(!!savedIcal);
+
             const isConn = isGoogleCalendarConnected(user);
             const reauth = isGoogleTokenNeedsReauth();
             setConnected(isConn);
@@ -94,7 +107,7 @@ export function GoogleCalendarSyncModal({
                 generateToken();
             }
         }
-    }, [open, feedLoading, feedToken, generateToken]);
+    }, [open, feedLoading, feedToken, generateToken, user]);
 
     const handleConnectGoogle = async () => {
         try {
@@ -110,11 +123,72 @@ export function GoogleCalendarSyncModal({
         }
     };
 
+    const handleConnectIcal = async () => {
+        if (!icalFeedUrl || !icalFeedUrl.trim()) {
+            toast.error("Por favor pega la Dirección secreta en formato iCal");
+            return;
+        }
+        const clean = icalFeedUrl.trim().replace(/^webcal:\/\//i, "https://");
+        setIsSavingIcal(true);
+        toast.info("Conectando con tu Google Calendar...");
+        try {
+            await setStoredGoogleFeedUrl(clean);
+            setIcalConnected(true);
+            setConnected(true);
+            if (user) {
+                const res = await performGoogleAutoSync(user.id, user.user_metadata);
+                if (res.success) {
+                    toast.success(`¡Google Calendar sincronizado! ${res.added} nuevos, ${res.updated} actualizados`, { icon: "📅" });
+                    setLastSync(new Date().toISOString());
+                    if (refetch) await refetch();
+                } else {
+                    toast.warning(`Enlace guardado: ${res.message || "Se sincronizará en segundo plano"}`);
+                }
+            }
+        } catch (e: any) {
+            toast.error(e?.message || "No se pudo verificar el enlace de Google Calendar");
+        } finally {
+            setIsSavingIcal(false);
+        }
+    };
+
+    const handleDisconnectIcal = async () => {
+        if (confirm("¿Desconectar la sincronización de Google Calendar? Tus eventos en TABE se mantendrán.")) {
+            await setStoredGoogleFeedUrl(null);
+            setIcalFeedUrl("");
+            setIcalConnected(false);
+            setConnected(isGoogleCalendarConnected(user));
+            toast.success("Google Calendar desconectado");
+        }
+    };
+
+    const handleSyncIcalNow = async () => {
+        if (!user) return;
+        setIsIcalSyncing(true);
+        toast.info("Actualizando eventos desde Google Calendar...");
+        try {
+            const res = await performGoogleAutoSync(user.id, user.user_metadata);
+            if (res.success) {
+                toast.success(`Google Calendar: ${res.added} nuevos, ${res.updated} actualizados`, { icon: "📅" });
+                setLastSync(new Date().toISOString());
+                if (refetch) await refetch();
+            } else {
+                toast.error(res.message || "Error al sincronizar con Google Calendar");
+            }
+        } catch (err: any) {
+            toast.error(err?.message || "Error inesperado al sincronizar");
+        } finally {
+            setIsIcalSyncing(false);
+        }
+    };
+
     const handleDisconnect = () => {
         if (confirm("¿Desconectar Google Calendar? Los eventos existentes en TABE no se borrarán.")) {
             disconnectGoogleCalendar();
             setConnected(false);
             setNeedsReauth(false);
+            setIcalConnected(false);
+            setIcalFeedUrl("");
             setSyncResult(null);
             toast.success("Google Calendar desconectado");
         }
@@ -240,18 +314,18 @@ export function GoogleCalendarSyncModal({
                 </DialogHeader>
 
                 {/* Comic Style Tabs */}
-                <div className="flex gap-2 p-1 border-b-[3px] border-foreground/15 pb-3">
+                <div className="flex gap-1.5 p-1 border-b-[3px] border-foreground/15 pb-3 overflow-x-auto">
                     <button
-                        onClick={() => setActiveTab("permanent")}
+                        onClick={() => setActiveTab("ical")}
                         className={cn(
-                            "flex-1 py-2 px-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground relative",
-                            activeTab === "permanent"
+                            "flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground shrink-0 relative",
+                            activeTab === "ical"
                                 ? "bg-[#00FF9D] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
                                 : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                         )}
                     >
                         <InfinityIcon className="w-4 h-4" />
-                        <span>Sin Caducidad</span>
+                        <span>iCal Secreto</span>
                         <span className="hidden sm:inline-block bg-black text-[#00FF9D] text-[9px] px-1 py-0.2 rounded font-black tracking-normal uppercase">
                             ⭐ Top
                         </span>
@@ -259,28 +333,154 @@ export function GoogleCalendarSyncModal({
                     <button
                         onClick={() => setActiveTab("live")}
                         className={cn(
-                            "flex-1 py-2 px-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground",
+                            "flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground shrink-0",
                             activeTab === "live"
                                 ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
                                 : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                         )}
                     >
                         <Zap className="w-4 h-4 fill-current" />
-                        2 Vías (En Vivo)
+                        <span>2 Vías (OAuth)</span>
                     </button>
                     <button
-                        onClick={() => setActiveTab("import")}
+                        onClick={() => setActiveTab("permanent")}
                         className={cn(
-                            "flex-1 py-2 px-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground",
-                            activeTab === "import"
+                            "flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground shrink-0",
+                            activeTab === "permanent"
                                 ? "bg-[#FFE66D] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
                                 : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                         )}
                     >
+                        <CalendarIcon className="w-4 h-4" />
+                        <span>Exportar Feed</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("import")}
+                        className={cn(
+                            "flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground shrink-0",
+                            activeTab === "import"
+                                ? "bg-white text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
+                                : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                        )}
+                    >
                         <Upload className="w-4 h-4" />
-                        Importar .ICS
+                        <span>Importar</span>
                     </button>
                 </div>
+
+                {/* TAB 0: PERMANENT iCAL FEED (LIKE MOODLE - NO EXPIRATION) */}
+                {activeTab === "ical" && (
+                    <div className="space-y-4 py-2 overflow-y-auto pr-1">
+                        {/* Banner */}
+                        <div className="p-4 bg-gradient-to-r from-[#00FF9D]/20 via-[#00F0FF]/15 to-[#FFE66D]/20 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl space-y-2">
+                            <div className="flex items-center gap-2 font-black uppercase tracking-wider text-sm text-foreground">
+                                <Sparkles className="w-5 h-5 text-[#00FF9D] shrink-0 fill-current" />
+                                Sincronización Permanente con Google (Igual que Moodle)
+                            </div>
+                            <p className="text-xs font-bold leading-relaxed text-foreground/90">
+                                Usa la <strong>Dirección secreta en formato iCal</strong> de tu Google Calendar. 
+                                <strong> No se vence nunca</strong>, no requiere volver a loguearte cada 1 hora y se sincroniza automáticamente cada vez que entras a TABE.
+                            </p>
+                        </div>
+
+                        {/* 4-Step Instructions */}
+                        <div className="p-4 bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <p className="font-black text-xs sm:text-sm uppercase tracking-wider text-foreground flex items-center gap-2">
+                                    <span>Pasos para obtener tu enlace en Google:</span>
+                                </p>
+                                <a
+                                    href="https://calendar.google.com/calendar/u/0/r/settings"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00F0FF] text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-all w-fit"
+                                >
+                                    <span>1. Abrir Google Calendar</span>
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                            </div>
+
+                            <ol className="text-xs font-bold space-y-2 text-foreground/90 list-decimal list-inside pl-1 leading-relaxed">
+                                <li>En el menú de la izquierda, en <strong>"Configuración de mis calendarios"</strong>, haz clic en tu calendario (por ej. tu nombre o "Principal").</li>
+                                <li>Desplázate hacia abajo hasta la sección <strong>"Integrar el calendario"</strong>.</li>
+                                <li>Busca la casilla llamada <strong>"Dirección secreta en formato iCal"</strong> y copia la URL completa.</li>
+                                <li>Pégala aquí abajo y presiona <strong>"Conectar y Sincronizar"</strong>.</li>
+                            </ol>
+                        </div>
+
+                        {/* Input & Action Section */}
+                        <div className="p-4 bg-muted/40 border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl space-y-3">
+                            <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center justify-between">
+                                <span>Dirección secreta en formato iCal de Google:</span>
+                                {icalConnected && (
+                                    <span className="text-[10px] bg-[#00FF9D] text-black font-black px-2 py-0.5 rounded border border-black uppercase tracking-wider">
+                                        Conectado ✓
+                                    </span>
+                                )}
+                            </label>
+
+                            <input
+                                type="url"
+                                value={icalFeedUrl}
+                                onChange={(e) => setIcalFeedUrl(e.target.value)}
+                                placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
+                                className="w-full px-3.5 py-2.5 bg-background text-foreground border-2 border-foreground rounded-lg text-xs font-mono font-bold focus:outline-none focus:shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+                            />
+
+                            {lastSync && (
+                                <p className="text-[11px] font-bold text-muted-foreground">
+                                    🕒 Última sincronización: <strong>{formatLastSync(lastSync)}</strong>
+                                </p>
+                            )}
+
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                <button
+                                    onClick={handleConnectIcal}
+                                    disabled={isSavingIcal || isIcalSyncing || !icalFeedUrl.trim()}
+                                    className="flex-1 py-3 px-4 rounded-xl font-black uppercase tracking-wider text-xs sm:text-sm bg-[#00FF9D] text-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                                >
+                                    {isSavingIcal || isIcalSyncing ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <span>Sincronizando...</span>
+                                        </>
+                                    ) : icalConnected ? (
+                                        <>
+                                            <RefreshCw className="w-4 h-4" />
+                                            <span>Guardar y Sincronizar Ahora</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Zap className="w-4 h-4 fill-current" />
+                                            <span>Conectar y Sincronizar</span>
+                                        </>
+                                    )}
+                                </button>
+
+                                {icalConnected && (
+                                    <>
+                                        <button
+                                            onClick={handleSyncIcalNow}
+                                            disabled={isIcalSyncing || isSavingIcal}
+                                            className="py-3 px-4 rounded-xl font-black uppercase tracking-wider text-xs bg-[#00F0FF] text-black border-[3px] border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                        >
+                                            {isIcalSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                            <span>Actualizar</span>
+                                        </button>
+                                        <button
+                                            onClick={handleDisconnectIcal}
+                                            disabled={isSavingIcal || isIcalSyncing}
+                                            className="py-3 px-4 rounded-xl font-black uppercase tracking-wider text-xs bg-white text-black border-[3px] border-foreground shadow-[3px_3px_0_0_#000] hover:bg-red-50 hover:text-red-600 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                        >
+                                            <Unlink className="w-4 h-4" />
+                                            <span>Desconectar</span>
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* TAB 1: PERMANENT CALENDAR (NO EXPIRATION / SIN CADUCIDAD) */}
                 {activeTab === "permanent" && (
