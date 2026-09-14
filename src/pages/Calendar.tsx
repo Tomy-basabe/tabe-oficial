@@ -8,6 +8,7 @@ import { AddEventModal } from "@/components/calendar/AddEventModal";
 import { ImportICSModal } from "@/components/calendar/ImportICSModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
+import { isMoodleConnected, performMoodleAutoSync } from "@/lib/moodleService";
 import { ExamsListModal } from "@/components/calendar/ExamsListModal";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import {
@@ -65,9 +66,40 @@ export default function Calendar() {
   const [monthTransition, setMonthTransition] = useState<"enter" | "exit" | null>(null);
   const [isGCalConnected, setIsGCalConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isMoodleSyncing, setIsMoodleSyncing] = useState(false);
 
   // Auto-sync existing events bidirectionally with Google Calendar on load
   const hasAttemptedInitialSync = useRef(false);
+  const hasAttemptedMoodleSync = useRef(false);
+
+  const handleMoodleButtonClick = async () => {
+    if (isMoodleSyncing) return;
+    if (!isMoodleConnected(user?.user_metadata)) {
+      setShowMoodleModal(true);
+      return;
+    }
+    setIsMoodleSyncing(true);
+    try {
+      const res = await performMoodleAutoSync(user!.id, user?.user_metadata);
+      if (res.success) {
+        if (res.added > 0 || res.updated > 0) {
+          toast.success(
+            `Campus Virtual: ${res.added > 0 ? `${res.added} nuevas ` : ""}${res.updated > 0 ? `${res.updated} actualizadas` : ""}`,
+            { icon: "🎓", duration: 5000 }
+          );
+          refetch();
+        } else {
+          toast.info("Campus Virtual al día: no hay fechas ni tareas modificadas.", { icon: "🎓" });
+        }
+      } else {
+        toast.error(res.message || "Error al sincronizar con Moodle");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Error al sincronizar");
+    } finally {
+      setIsMoodleSyncing(false);
+    }
+  };
 
   const handleManualSync = async () => {
     if (isSyncing) return;
@@ -122,6 +154,22 @@ export default function Calendar() {
         }
       }).catch(err => {
         console.warn("Auto-sync error on calendar load:", err);
+      });
+    }
+
+    // Auto-sync de Moodle al cargar el calendario
+    if (!loading && user && isMoodleConnected(user.user_metadata) && !hasAttemptedMoodleSync.current) {
+      hasAttemptedMoodleSync.current = true;
+      performMoodleAutoSync(user.id, user.user_metadata).then((res) => {
+        if (res.success && (res.added > 0 || res.updated > 0)) {
+          toast.success(
+            `Campus Virtual: ${res.added > 0 ? `${res.added} nuevas ` : ""}${res.updated > 0 ? `${res.updated} actualizadas` : ""}`,
+            { icon: "🎓", duration: 5000 }
+          );
+          refetch();
+        }
+      }).catch((err) => {
+        console.warn("Error en auto-sync de Moodle:", err);
       });
     }
   }, [loading, user]);
@@ -365,13 +413,36 @@ export default function Calendar() {
           )}
           {/* Moodle Campus Sync Button */}
           <button
-            onClick={() => setShowMoodleModal(true)}
-            title="Sincronizar entregas y tareas de Campus Virtual Moodle"
-            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FF7900] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+            onClick={handleMoodleButtonClick}
+            disabled={isMoodleSyncing}
+            title={
+              isMoodleConnected(user?.user_metadata)
+                ? "Sincronizar tareas y entregas de Moodle ahora"
+                : "Conectar Campus Virtual Moodle"
+            }
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FF7900] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer disabled:opacity-70"
           >
-            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
-            <span>Moodle</span>
+            {isMoodleSyncing ? (
+              <>
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-black" />
+                <span>Actualizando...</span>
+              </>
+            ) : (
+              <>
+                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+                <span>Moodle</span>
+              </>
+            )}
           </button>
+          {isMoodleConnected(user?.user_metadata) && (
+            <button
+              onClick={() => setShowMoodleModal(true)}
+              title="Configurar cuenta de Moodle"
+              className="p-2 text-black border-2 border-black rounded-lg font-black bg-white shadow-[2px_2px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setShowImportModal(true)}
             className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FFE66D] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
