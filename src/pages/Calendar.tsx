@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AddEventModal } from "@/components/calendar/AddEventModal";
 import { ImportICSModal } from "@/components/calendar/ImportICSModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
+import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { ExamsListModal } from "@/components/calendar/ExamsListModal";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import {
@@ -59,6 +60,7 @@ export default function Calendar() {
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showMoodleModal, setShowMoodleModal] = useState(false);
   const [showExamsModal, setShowExamsModal] = useState(false);
   const [monthTransition, setMonthTransition] = useState<"enter" | "exit" | null>(null);
   const [isGCalConnected, setIsGCalConnected] = useState(false);
@@ -361,6 +363,15 @@ export default function Calendar() {
               <Zap className="w-4 h-4" />
             </button>
           )}
+          {/* Moodle Campus Sync Button */}
+          <button
+            onClick={() => setShowMoodleModal(true)}
+            title="Sincronizar entregas y tareas de Campus Virtual Moodle"
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FF7900] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+          >
+            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+            <span>Moodle</span>
+          </button>
           <button
             onClick={() => setShowImportModal(true)}
             className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FFE66D] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
@@ -650,6 +661,15 @@ export default function Calendar() {
         onClose={() => setShowExamsModal(false)}
         events={events}
         subjects={rawSubjects}
+      />
+
+      {/* Moodle Sync Modal */}
+      <MoodleConnectModal
+        open={showMoodleModal}
+        onClose={() => setShowMoodleModal(false)}
+        onSyncComplete={() => {
+          refetch();
+        }}
       />
     </div>
   );
