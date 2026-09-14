@@ -10,6 +10,7 @@ import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyn
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { isMoodleConnected, performMoodleAutoSync } from "@/lib/moodleService";
 import { ExamsListModal } from "@/components/calendar/ExamsListModal";
+import { PurgeEventsModal } from "@/components/calendar/PurgeEventsModal";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import {
   isGoogleCalendarConnected,
@@ -69,6 +70,7 @@ export default function Calendar() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isMoodleSyncing, setIsMoodleSyncing] = useState(false);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
+  const [showPurgeModal, setShowPurgeModal] = useState(false);
 
   // Auto-sync existing events bidirectionally with Google Calendar on load
   const hasAttemptedInitialSync = useRef(false);
@@ -208,6 +210,33 @@ export default function Calendar() {
       });
     }
   }, [loading, user]);
+
+  // Comando secreto admin: Ctrl + Shift + Ñ para purgar eventos masivos por nombre (ej. "gisela fabrega")
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      const isShift = e.shiftKey;
+      const key = (e.key || "").toLowerCase();
+      // Spanish 'ñ', 'Ñ', or physical 'Semicolon' (where Ñ is on ISO Spanish keyboards)
+      const isEnie = key === "ñ" || e.key === "Ñ" || e.code === "Semicolon";
+
+      if (isCtrlOrMeta && isShift && isEnie) {
+        e.preventDefault();
+        setShowPurgeModal((prev) => !prev);
+      }
+    };
+
+    // Auto-open if redirected with ?openPurge=true or #purge
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("openPurge") === "true" || window.location.hash === "#purge") {
+        setShowPurgeModal(true);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -782,6 +811,16 @@ export default function Calendar() {
         onClose={() => setShowMoodleModal(false)}
         onSyncComplete={() => {
           refetch();
+        }}
+      />
+
+      {/* Secret Admin Purge Modal (Ctrl + Shift + Ñ) */}
+      <PurgeEventsModal
+        open={showPurgeModal}
+        onClose={() => setShowPurgeModal(false)}
+        events={events}
+        onPurged={async () => {
+          await refetch();
         }}
       />
     </div>

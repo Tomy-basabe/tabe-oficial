@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { TabeLogo } from "@/components/ui/TabeLogo";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Menu, 
   X, 
@@ -52,9 +52,30 @@ export function MainLayout() {
     return false;
   }); // Desktop state
   const location = useLocation();
+  const navigate = useNavigate();
   const isAIPage = location.pathname === "/TABEAI" || location.pathname === "/asistente";
   const { user, isGuest, profile } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
+
+  // Global admin shortcut: Ctrl + Shift + Ñ
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      const isShift = e.shiftKey;
+      const key = (e.key || "").toLowerCase();
+      const isEnie = key === "ñ" || e.key === "Ñ" || e.code === "Semicolon";
+
+      if (isCtrlOrMeta && isShift && isEnie) {
+        e.preventDefault();
+        if (location.pathname !== "/calendario") {
+          navigate("/calendario?openPurge=true");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [location.pathname, navigate]);
 
   // Categorized sidebar state
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(() => {

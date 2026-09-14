@@ -1872,3 +1872,74 @@ export async function cleanupDuplicateEvents(
     remainingEventsCount: allEvents.length - finalIdsList.length,
   };
 }
+
+/**
+ * Purga de forma masiva todos los eventos que coincidan con un patrón de texto (por ej. "gisela fabrega")
+ * para el usuario actual en Supabase y opcionalmente en Google Calendar.
+ */
+export async function purgeEventsByTitle(
+  userId: string,
+  targetPattern: string,
+  deleteFromGoogle: boolean = true
+): Promise<{ deletedCount: number; googleDeletedCount: number }> {
+  if (!userId || !targetPattern.trim()) {
+    return { deletedCount: 0, googleDeletedCount: 0 };
+  }
+
+  const { supabase } = await import("@/integrations/supabase/client");
+  const norm = (s: string) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const target = norm(targetPattern);
+
+  const { data: allEvents, error } = await supabase
+    .from("calendar_events")
+    .select("id, titulo, notas, fecha, hora")
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new Error(error.message || "Error consultando los eventos para purgar");
+  }
+
+  const matching = (allEvents || []).filter((e) => norm(e.titulo).includes(target));
+  const idsToDelete = matching.map((e) => e.id);
+  let googleDeletedCount = 0;
+
+  if (deleteFromGoogle) {
+    const gcalIds: string[] = [];
+    for (const ev of matching) {
+      const gId = extractGoogleEventId(ev.notas);
+      if (gId && !gcalIds.includes(gId)) {
+        gcalIds.push(gId);
+      }
+    }
+
+    for (const gId of gcalIds) {
+      try {
+        const ok = await deleteEventFromGoogleCalendar(gId);
+        if (ok) googleDeletedCount++;
+      } catch (err) {
+        console.warn("Error borrando evento en Google Calendar durante purga:", gId, err);
+      }
+    }
+  }
+
+  if (idsToDelete.length > 0) {
+    for (let i = 0; i < idsToDelete.length; i += 100) {
+      const chunk = idsToDelete.slice(i, i + 100);
+      const { error: delErr } = await supabase
+        .from("calendar_events")
+        .delete()
+        .in("id", chunk)
+        .eq("user_id", userId);
+
+      if (delErr) {
+        throw new Error("Error borrando eventos de Supabase: " + delErr.message);
+      }
+    }
+  }
+
+  return {
+    deletedCount: idsToDelete.length,
+    googleDeletedCount,
+  };
+}
+
