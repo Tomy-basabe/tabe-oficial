@@ -653,8 +653,20 @@ export async function streamAIChat(params: {
     return false;
   };
 
-  // Tier 1: Google Gemini (if client key available)
-  if (GEMINI_API_KEY) {
+  // Tier 1: Supabase Edge Function (ai-assistant-stream with Groq Llama/Qwen & Gemini)
+  success = await runTier((delta) =>
+    streamFromLocal({
+      messages,
+      systemPrompt,
+      onDelta: delta,
+      requestedModelId: "tabe-ai",
+      requestedProvider: "local",
+      powerLevel,
+    })
+  );
+
+  // Tier 2: Google Gemini (if client key available)
+  if (!success && GEMINI_API_KEY) {
     for (const gModel of ["gemini-2.5-flash", "gemini-1.5-flash"]) {
       success = await runTier((delta) =>
         streamFromGoogle({
@@ -669,7 +681,7 @@ export async function streamAIChat(params: {
     }
   }
 
-  // Tier 2: OpenRouter (if client key available)
+  // Tier 3: OpenRouter (if client key available)
   if (!success && OPENROUTER_API_KEY) {
     for (const orModel of ["deepseek/deepseek-chat", "google/gemini-2.0-flash-001", "meta-llama/llama-3.3-70b-instruct"]) {
       success = await runTier((delta) =>
@@ -683,20 +695,6 @@ export async function streamAIChat(params: {
       );
       if (success) break;
     }
-  }
-
-  // Tier 3: Supabase Edge Function (ai-assistant-stream with Groq Llama 3.3 70B & OpenRouter)
-  if (!success) {
-    success = await runTier((delta) =>
-      streamFromLocal({
-        messages,
-        systemPrompt,
-        onDelta: delta,
-        requestedModelId: "tabe-ai",
-        requestedProvider: "local",
-        powerLevel,
-      })
-    );
   }
 
   // Tier 4: Offline smart local assistant
@@ -855,15 +853,30 @@ async function streamFromLocal(opts: {
   requestedProvider: AIModelOption["provider"];
   powerLevel: PowerEffort;
 }): Promise<boolean> {
-  // TABE AI uses the protected Supabase Edge Function (powered by Groq Llama 3.3 70B & OpenRouter)
+  // TABE AI uses the protected Supabase Edge Function (powered by Groq / Gemini)
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (session?.access_token && supabaseUrl) {
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    // Check if session token exists and refresh if expired or close to expiry
+    let authToken = session?.access_token;
+    if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 30000) {
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed.session?.access_token) authToken = refreshed.session.access_token;
+      } catch (_) {}
+    }
+
+    // Use user access token if available, otherwise anon key for guest mode
+    const token = authToken || anonKey;
+
+    if (token && supabaseUrl) {
       const response = await fetch(`${supabaseUrl}/functions/v1/ai-assistant-stream`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
+          apikey: anonKey,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -885,9 +898,11 @@ async function streamFromLocal(opts: {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-          for (const line of lines) {
+          let newlineIndex: number;
+          while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+            let line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+            if (line.endsWith("\r")) line = line.slice(0, -1);
             if (!line.startsWith("data: ")) continue;
             const payload = line.slice(6).trim();
             if (!payload || payload === "[DONE]") continue;
@@ -899,11 +914,14 @@ async function streamFromLocal(opts: {
                 opts.onDelta(chunk);
               }
             } catch {
-              // Ignore non-JSON keepalive lines.
+              // Ignore non-JSON keepalive lines or partial chunks.
             }
           }
         }
         if (receivedContent) return true;
+      } else {
+        const errText = await response.text().catch(() => "");
+        console.warn(`TABE AI Edge Function error HTTP ${response.status}:`, errText);
       }
     }
   } catch (error) {

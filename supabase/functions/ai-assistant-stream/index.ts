@@ -121,10 +121,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
-    if (authError || !user) throw new Error("Invalid token");
+    const { data: { user } } = await authClient.auth.getUser().catch(() => ({ data: { user: null } }));
+    const userId = user?.id || null;
 
-    const userId = user.id;
     const {
       messages,
       persona_id,
@@ -138,54 +137,74 @@ serve(async (req) => {
 
     let personaName = "T.A.B.E. IA";
     let personalityPrompt = "Sos un asistente academico motivador y cercano. Usas lenguaje informal argentino.";
-    if (persona_id) {
-      const { data: p } = await serviceClient.from("ai_personas").select("name, personality_prompt").eq("id", persona_id).eq("user_id", userId).maybeSingle();
-      if (p) { personaName = p.name; if (p.personality_prompt) personalityPrompt = p.personality_prompt; }
-    }
 
-    let chatMemory = "";
-    if (persona_id) {
-      const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(4);
-      if (rm && rm.length > 0) {
-        chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: { role: string; content: string }) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 100)).join("\n");
-      }
-    }
-
-    const [sR, ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR, routinesR, docsR, filesR, quizzesR, friendshipsR, achievementsR] = await Promise.all([
-      serviceClient.from("subjects").select("id, nombre, codigo, año").order("año", { ascending: true }),
-      serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
-      serviceClient.from("calendar_events").select("*").eq("user_id", userId).order("fecha", { ascending: true }).limit(100),
-      serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
-      serviceClient.from("study_sessions").select("*").eq("user_id", userId).order("fecha", { ascending: false }).limit(20),
-      serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(100),
-      serviceClient.from("profiles").select("nombre, username, email, carrera, facultad, plan, plan_type").eq("user_id", userId).maybeSingle(),
-      serviceClient.from("study_sessions").select("subject_id, duracion_segundos, fecha, tipo").eq("user_id", userId),
-      serviceClient.from("professors").select("*").eq("user_id", userId),
-      serviceClient.from("professor_office_hours").select("*").eq("user_id", userId),
-      serviceClient.from("routines").select("id, name, description, category, start_time, end_time, days_of_week, start_date, end_date, is_active, subject_id").eq("user_id", userId).eq("is_active", true).limit(50),
-      serviceClient.from("notion_documents").select("id, titulo, subject_id, parent_id, is_favorite, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(100),
-      serviceClient.from("library_files").select("id, nombre, tipo, subject_id, folder_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
-      serviceClient.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
-      serviceClient.from("friendships").select("requester_id, addressee_id, status, created_at").or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).limit(50),
-      serviceClient.from("user_achievements").select("achievement_id, unlocked_at, achievements(nombre, descripcion, xp_reward)").eq("user_id", userId).limit(100),
-    ]);
-
+    const sR = await serviceClient.from("subjects").select("id, nombre, codigo, año").order("año", { ascending: true });
     const subjects = sR.data || [];
-    const uss = ussR.data || [];
-    const events = evR.data || [];
-    const stats = stR.data;
-    const sessions = ssR.data || [];
-    const decks = fdR.data || [];
-    const profile = prR.data;
-    const allSessions = allSessionsR.data || [];
-    const professorsData = profR.data || [];
-    const officeHoursData = hoursR.data || [];
-    const routines = routinesR.data || [];
-    const documents = docsR.data || [];
-    const files = filesR.data || [];
-    const quizzes = quizzesR.data || [];
-    const friendships = friendshipsR.data || [];
-    const achievements = achievementsR.data || [];
+
+    let uss: any[] = [];
+    let events: any[] = [];
+    let stats: any = null;
+    let sessions: any[] = [];
+    let decks: any[] = [];
+    let profile: any = null;
+    let allSessions: any[] = [];
+    let professorsData: any[] = [];
+    let officeHoursData: any[] = [];
+    let routines: any[] = [];
+    let documents: any[] = [];
+    let files: any[] = [];
+    let quizzes: any[] = [];
+    let friendships: any[] = [];
+    let achievements: any[] = [];
+    let chatMemory = "";
+
+    if (userId) {
+      if (persona_id) {
+        const { data: p } = await serviceClient.from("ai_personas").select("name, personality_prompt").eq("id", persona_id).eq("user_id", userId).maybeSingle();
+        if (p) { personaName = p.name; if (p.personality_prompt) personalityPrompt = p.personality_prompt; }
+
+        const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(4);
+        if (rm && rm.length > 0) {
+          chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: { role: string; content: string }) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 100)).join("\n");
+        }
+      }
+
+      const [ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR, routinesR, docsR, filesR, quizzesR, friendshipsR, achievementsR] = await Promise.all([
+        serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
+        serviceClient.from("calendar_events").select("*").eq("user_id", userId).order("fecha", { ascending: true }).limit(100),
+        serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
+        serviceClient.from("study_sessions").select("*").eq("user_id", userId).order("fecha", { ascending: false }).limit(20),
+        serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(100),
+        serviceClient.from("profiles").select("nombre, username, email, carrera, facultad, plan, plan_type").eq("user_id", userId).maybeSingle(),
+        serviceClient.from("study_sessions").select("subject_id, duracion_segundos, fecha, tipo").eq("user_id", userId),
+        serviceClient.from("professors").select("*").eq("user_id", userId),
+        serviceClient.from("professor_office_hours").select("*").eq("user_id", userId),
+        serviceClient.from("routines").select("id, name, description, category, start_time, end_time, days_of_week, start_date, end_date, is_active, subject_id").eq("user_id", userId).eq("is_active", true).limit(50),
+        serviceClient.from("notion_documents").select("id, titulo, subject_id, parent_id, is_favorite, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(100),
+        serviceClient.from("library_files").select("id, nombre, tipo, subject_id, folder_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
+        serviceClient.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
+        serviceClient.from("friendships").select("requester_id, addressee_id, status, created_at").or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).limit(50),
+        serviceClient.from("user_achievements").select("achievement_id, unlocked_at, achievements(nombre, descripcion, xp_reward)").eq("user_id", userId).limit(100),
+      ]);
+
+      uss = ussR.data || [];
+      events = evR.data || [];
+      stats = stR.data;
+      sessions = ssR.data || [];
+      decks = fdR.data || [];
+      profile = prR.data;
+      allSessions = allSessionsR.data || [];
+      professorsData = profR.data || [];
+      officeHoursData = hoursR.data || [];
+      routines = routinesR.data || [];
+      documents = docsR.data || [];
+      files = filesR.data || [];
+      quizzes = quizzesR.data || [];
+      friendships = friendshipsR.data || [];
+      achievements = achievementsR.data || [];
+    }
+
+
 
     const nameById: Record<string, string> = {};
     for (const s of subjects) nameById[s.id] = s.nombre;
@@ -559,7 +578,7 @@ serve(async (req) => {
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
     // Consultar dinámicamente qué modelos tiene habilitados esta API key en Groq
-    let selectedModel = "llama-3.3-70b-versatile";
+    let selectedModel = "qwen/qwen3.8-27b";
     let availableGroqModels: string[] = groqModelsCache?.models || [];
     try {
       if (!groqModelsCache || groqModelsCache.expiresAt <= Date.now()) {
@@ -573,69 +592,141 @@ serve(async (req) => {
         }
       }
 
+      // Filter out non-chat models (prompt-guard, whisper, safeguard, etc.)
+      const nonChatKeywords = ["prompt-guard", "whisper", "safeguard", "orpheus", "guard", "embed"];
+      const chatModels = availableGroqModels.filter((id: string) => 
+        !nonChatKeywords.some((kw) => id.toLowerCase().includes(kw))
+      );
+
       const preferred = [
-        ...(power_level === "bajo" ? ["llama-3.1-8b-instant"] : []),
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-120b",
+        "groq/compound",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.6-27b",
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
-        "llama3-8b-8192",
-        "llama-3.2-3b-preview",
-        "llama-3.2-1b-preview",
-        "mixtral-8x7b-32768",
-        "gemma2-9b-it"
+        "llama3-70b-8192",
+        "llama3-8b-8192"
       ];
-      const match = preferred.find((p) => availableGroqModels.includes(p)) || availableGroqModels.find((id) => id.includes("llama"));
-      if (match) selectedModel = match;
+      const match = preferred.find((p) => chatModels.includes(p)) || chatModels[0] || "qwen/qwen3.8-27b";
+      selectedModel = match;
     } catch (e: any) {
-      console.warn("[Groq] Error consultando modelos; usando cache/default:", e.message);
+      console.warn("[Groq] Error consultando modelos; usando default qwen3.8-27b:", e.message);
+      selectedModel = "qwen/qwen3.8-27b";
     }
 
-    // Map the UI catalog to the strongest equivalent enabled by Groq when the
-    // selected provider is not configured server-side.
-    if (requested_model_id && requested_provider !== "local" && power_level !== "bajo" && availableGroqModels.includes("llama-3.3-70b-versatile")) {
-      selectedModel = "llama-3.3-70b-versatile";
+    // Stream from Groq con el modelo activo o Gemini/OpenRouter de respaldo
+    let streamRes: Response | null = null;
+    let lastError = "";
+
+    if (GROQ_API_KEY) {
+      try {
+        streamRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: selectedModel,
+            messages: groqMessages,
+            tools: tools,
+            tool_choice: "auto",
+            temperature: 0.5,
+            max_tokens: 4096,
+            stream: true
+          })
+        });
+
+        // Si falla por tools o validación, reintentar sin tools antes de abandonar Groq
+        if (!streamRes.ok) {
+          const groqErr1 = await streamRes.text();
+          console.warn(`[Groq] Falló con tools (${streamRes.status}):`, groqErr1);
+          lastError = `[Groq tools ${streamRes.status}] ${groqErr1}`;
+
+          streamRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${GROQ_API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: selectedModel,
+              messages: groqMessages,
+              temperature: 0.5,
+              max_tokens: 4096,
+              stream: true
+            })
+          });
+
+          if (!streamRes.ok) {
+            const groqErr2 = await streamRes.text();
+            console.warn(`[Groq] Falló sin tools (${streamRes.status}):`, groqErr2);
+            lastError = `[Groq ${streamRes.status}] ${groqErr2}`;
+          }
+        }
+      } catch (err: any) {
+        lastError = `[Groq fetch error] ${err.message}`;
+        console.warn("[Groq] Error de conexión:", err.message);
+      }
+    } else {
+      lastError = "[Groq] GROQ_API_KEY no está configurada";
     }
 
-    // Stream from Groq con el modelo activo o OpenRouter de respaldo
-    let streamRes = GROQ_API_KEY ? await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: groqMessages,
-        tools: tools,
-        tool_choice: "auto",
-        temperature: 0.5,
-        max_tokens: 4096,
-        stream: true
-      })
-    }) : null;
+    // Fallback 1: Google Gemini (si Groq no responde)
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if ((!streamRes || !streamRes.ok) && GEMINI_API_KEY) {
+      console.warn("[AI] Usando Google Gemini como respaldo...");
+      for (const geminiModel of ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.5-flash"]) {
+        try {
+          streamRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${GEMINI_API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: geminiModel,
+              messages: groqMessages,
+              temperature: 0.5,
+              max_tokens: 4096,
+              stream: true
+            })
+          });
+          if (streamRes.ok) break;
+        } catch (geminiErr: any) {
+          lastError += ` | [Gemini error] ${geminiErr.message}`;
+        }
+      }
+    }
+
+    // Fallback 2: OpenRouter
+    if ((!streamRes || !streamRes.ok) && OPENROUTER_API_KEY) {
+      console.warn(`[AI] Usando OpenRouter de respaldo...`);
+      try {
+        streamRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://tabe.software",
+            "X-Title": "TABE"
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.0-flash-001",
+            messages: groqMessages,
+            temperature: 0.5,
+            max_tokens: 4096,
+            stream: true
+          })
+        });
+      } catch (_) {}
+    }
 
     if (!streamRes || !streamRes.ok) {
-      console.warn(`[Groq] No disponible o error. Usando OpenRouter de respaldo...`);
-      streamRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://tabe.software",
-          "X-Title": "TABE"
-        },
-        body: JSON.stringify({
-          model: "nvidia/nemotron-3.5-lightning:free",
-          messages: groqMessages,
-          temperature: 0.5,
-          max_tokens: 4096,
-          stream: true
-        })
-      });
-    }
-
-    if (!streamRes.ok) {
-      const errText = await streamRes.text();
-      throw new Error(`[TABE-AI-v2] Error en proveedor de IA: ${streamRes.status} - ${errText}`);
+      const errText = streamRes ? await streamRes.text() : (lastError || "No AI provider available");
+      throw new Error(`[TABE-AI-v2] Error en proveedor de IA: ${streamRes?.status || 500} - ${errText} (Detalles: ${lastError})`);
     }
 
     const encoder = new TextEncoder();
@@ -643,7 +734,7 @@ serve(async (req) => {
 
     const body = new ReadableStream({
       async start(ctrl) {
-        const reader = streamRes.body?.getReader();
+        const reader = streamRes?.body?.getReader();
         if (!reader) {
           ctrl.close();
           return;
@@ -653,34 +744,44 @@ serve(async (req) => {
         let toolCallId = "";
         let toolCallName = "";
         let toolCallArgs = "";
+        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value);
-          const lines = chunk.split("\n");
+          buffer += decoder.decode(value, { stream: true });
+          let newlineIndex: number;
 
-          for (const line of lines) {
-            if (line.startsWith("data: ") && line !== "data: [DONE]") {
-              try {
-                const data = JSON.parse(line.slice(6));
-                const delta = data.choices[0].delta;
+          while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+            let line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
 
-                if (delta.content) {
-                  fullContent += delta.content;
-                  ctrl.enqueue(encoder.encode("data: " + JSON.stringify(data) + "\n\n"));
-                }
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (line.startsWith(":") || line.trim() === "") continue;
+            if (!line.startsWith("data: ")) continue;
 
-                if (delta.tool_calls && delta.tool_calls[0]) {
-                  const tc = delta.tool_calls[0];
-                  if (tc.id) toolCallId = tc.id;
-                  if (tc.function?.name) toolCallName = tc.function.name;
-                  if (tc.function?.arguments) toolCallArgs += tc.function.arguments;
-                }
-              } catch (e) {
-                // Ignore parse errors from partial chunks
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") continue;
+
+            try {
+              const data = JSON.parse(jsonStr);
+              const delta = data.choices?.[0]?.delta;
+              if (!delta) continue;
+
+              if (delta.content) {
+                fullContent += delta.content;
+                ctrl.enqueue(encoder.encode("data: " + JSON.stringify(data) + "\n\n"));
               }
+
+              if (delta.tool_calls && delta.tool_calls[0]) {
+                const tc = delta.tool_calls[0];
+                if (tc.id) toolCallId = tc.id;
+                if (tc.function?.name) toolCallName = tc.function.name;
+                if (tc.function?.arguments) toolCallArgs += tc.function.arguments;
+              }
+            } catch {
+              // Partial JSON or keepalive
             }
           }
         }
