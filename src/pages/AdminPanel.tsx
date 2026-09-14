@@ -1,7 +1,9 @@
 // Final Admin Panel enhancements: Search & Counter
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { isSuperAdmin } from "@/lib/adminAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,31 +74,16 @@ const AdminPanel = () => {
   }, [user]);
 
   const checkAdminStatus = async () => {
-    if (!user) {
+    if (!user || !isSuperAdmin(user)) {
+      setIsAdmin(false);
       setLoading(false);
       return;
     }
 
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (error) throw error;
-      setIsAdmin(!!data);
-
-      if (data) {
-        fetchReviews();
-        fetchRegisteredUsers();
-      }
-    } catch (error) {
-      console.error("Error checking admin status:", error);
-    } finally {
-      setLoading(false);
-    }
+    setIsAdmin(true);
+    fetchReviews();
+    fetchRegisteredUsers();
+    setLoading(false);
   };
 
 
@@ -379,15 +366,7 @@ const AdminPanel = () => {
   }
 
   if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-4">
-        <Shield className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Acceso Restringido</h2>
-        <p className="text-muted-foreground">
-          No tienes permisos para acceder a esta página.
-        </p>
-      </div>
-    );
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (

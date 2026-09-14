@@ -50,12 +50,15 @@ interface Subject {
 
 type StudyState = "browsing" | "studying" | "completed";
 
+let flashcardDecksCache: Deck[] | null = null;
+let flashcardSubjectsCache: Subject[] | null = null;
+
 export default function Flashcards() {
   const { user, isGuest } = useAuth();
   const { checkAndUnlockAchievements } = useAchievements();
   const { canUse, incrementUsage, getRemaining, isPremium } = useUsageLimits();
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [decks, setDecks] = useState<Deck[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>(() => flashcardSubjectsCache || []);
+  const [decks, setDecks] = useState<Deck[]>(() => flashcardDecksCache || []);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const { publishResource } = useMarketplace();
@@ -77,7 +80,7 @@ export default function Flashcards() {
   const [newDeckName, setNewDeckName] = useState("");
   const [newCardQuestion, setNewCardQuestion] = useState("");
   const [newCardAnswer, setNewCardAnswer] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !flashcardDecksCache);
 
   // Edit Deck State
   const [showEditDeckModal, setShowEditDeckModal] = useState(false);
@@ -118,108 +121,119 @@ export default function Flashcards() {
   useEffect(() => { selectedDeckRef.current = selectedDeck; }, [selectedDeck]);
   useEffect(() => { studyStateRef.current = studyState; }, [studyState]);
 
-  useEffect(() => {
-    if (user || isGuest) {
-      fetchSubjects();
-      fetchDecks();
-    }
-  }, [user, isGuest]);
-
-  // Study timer
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (studyState === "studying") {
-      interval = setInterval(() => {
-        setStudyTime(prev => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [studyState]);
-
-  // Save study session on tab switch / page close / navigate away
-  useEffect(() => {
-    const handleExitSave = () => {
-      if (studyStateRef.current === "studying" && studyTimeRef.current > 0 && user && selectedDeckRef.current) {
-        const deck = selectedDeckRef.current;
-        supabase.from("study_sessions").insert({
-          user_id: user.id,
-          subject_id: deck.subject_id,
-          duracion_segundos: studyTimeRef.current,
-          tipo: "flashcard",
-          completada: false,
-          fecha: toLocalDateStr(),
-        });
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        handleExitSave();
-      }
-    };
-
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleExitSave);
-    return () => {
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleExitSave);
-    };
-  }, [user]);
-
   const fetchSubjects = async () => {
-    let query = supabase
-      .from("subjects")
-      .select("*")
-      .order("año", { ascending: true });
-
-    if (user) {
-      query = query.eq("user_id", user.id);
-    }
-
-    let { data, error } = await query;
-    if (user && (!data || data.length === 0)) {
-      const fallback = await supabase
+    try {
+      if (isGuest) {
+        const guestSubs: Subject[] = [{ id: "mock", nombre: "Uso de Tablero", codigo: "TAB1", año: 1 }];
+        flashcardSubjectsCache = guestSubs;
+        setSubjects(guestSubs);
+        return guestSubs;
+      }
+      let query = supabase
         .from("subjects")
         .select("*")
-        .is("user_id", null)
         .order("año", { ascending: true });
-      if (fallback.data && fallback.data.length > 0) {
-        data = fallback.data;
-      }
-    }
 
-    if (!error && data) {
-      setSubjects(data);
+      if (user) {
+        query = query.eq("user_id", user.id);
+      }
+
+      let { data, error } = await query;
+      if (user && (!data || data.length === 0)) {
+        const fallback = await supabase
+          .from("subjects")
+          .select("*")
+          .is("user_id", null)
+          .order("año", { ascending: true });
+        if (fallback.data && fallback.data.length > 0) {
+          data = fallback.data;
+        }
+      }
+
+      if (!error && data) {
+        flashcardSubjectsCache = data;
+        setSubjects(data);
+        return data;
+      }
+    } catch (e) {
+      console.error("Error fetching flashcard subjects:", e);
     }
+    return flashcardSubjectsCache || [];
   };
 
-  const fetchDecks = async () => {
+  const fetchDecks = async (showLoading = false) => {
     if (!user && !isGuest) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (showLoading && (!flashcardDecksCache || flashcardDecksCache.length === 0)) {
+      setLoading(true);
+    }
 
-    if (isGuest) {
-      setDecks([
-        { id: "mock-deck-1", nombre: "Uso de Flashcards", subject_id: "mock", total_cards: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } },
-      ]);
+    try {
+      if (isGuest) {
+        const guestDecks: Deck[] = [
+          { id: "mock-deck-1", nombre: "Uso de Flashcards", subject_id: "mock", total_cards: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } },
+        ];
+        flashcardDecksCache = guestDecks;
+        setDecks(guestDecks);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("flashcard_decks")
+        .select("*, subjects(nombre, codigo, año)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        const mapped = data.map((d: any) => ({ ...d, subject: d.subjects }));
+        flashcardDecksCache = mapped;
+        setDecks(mapped);
+      } else {
+        // Fallback in case PostgREST schema cache relationship failed
+        const { data: rawData } = await supabase
+          .from("flashcard_decks")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        if (rawData) {
+          const subs = flashcardSubjectsCache || subjects;
+          const mapped = rawData.map((d: any) => {
+            const s = subs.find(sub => sub.id === d.subject_id);
+            return { ...d, subject: s ? { nombre: s.nombre, codigo: s.codigo, año: s.año } : undefined };
+          });
+          flashcardDecksCache = mapped;
+          setDecks(mapped);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching decks:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadInitialData = async () => {
+    if (!user && !isGuest) {
       setLoading(false);
       return;
     }
 
-    const { data, error } = await supabase
-      .from("flashcard_decks")
-      .select("*, subjects(nombre, codigo, año)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      const mapped = data.map((d: any) => ({ ...d, subject: d.subjects }));
-      setDecks(mapped);
+    if (!flashcardDecksCache || flashcardDecksCache.length === 0) {
+      setLoading(true);
     }
-    setLoading(false);
+
+    try {
+      await Promise.allSettled([fetchSubjects(), fetchDecks(false)]);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    loadInitialData();
+  }, [user, isGuest]);
 
   const fetchCards = async (deckId: string) => {
     if (isGuest) {

@@ -54,12 +54,15 @@ interface Subject {
     año: number;
 }
 
+let quizzesDecksCache: QuizDeck[] | null = null;
+let quizzesSubjectsCache: Subject[] | null = null;
+
 export default function Quizzes() {
     const { user, isGuest } = useAuth();
     const { canUse, incrementUsage, isPremium } = useUsageLimits();
-    const [decks, setDecks] = useState<QuizDeck[]>([]);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [decks, setDecks] = useState<QuizDeck[]>(() => quizzesDecksCache || []);
+    const [subjects, setSubjects] = useState<Subject[]>(() => quizzesSubjectsCache || []);
+    const [loading, setLoading] = useState(() => !quizzesDecksCache);
 
     // Create deck state
     const [newDeckName, setNewDeckName] = useState("");
@@ -207,57 +210,100 @@ export default function Quizzes() {
     const [selectedYear, setSelectedYear] = useState<number | null>(null);
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
-    const fetchSubjects = useCallback(async () => {
-        if (isGuest) {
-            setSubjects([{ id: "mock", nombre: "Materias Mock", codigo: "MOCK", año: 1 }]);
-            return;
-        }
-        let query = supabase.from("subjects").select("id, nombre, codigo, año").order("año");
-        if (user) {
-            query = query.eq("user_id", user.id);
-        }
-        let { data } = await query;
-        if (user && (!data || data.length === 0)) {
-            const fallback = await supabase.from("subjects").select("id, nombre, codigo, año").is("user_id", null).order("año");
-            if (fallback.data && fallback.data.length > 0) {
-                data = fallback.data;
-            }
-        }
-        setSubjects((data as unknown as Subject[]) || []);
-    }, [isGuest, user]);
-
-    const fetchDecks = useCallback(async () => {
+    const loadInitialData = useCallback(async () => {
         if (!user && !isGuest) {
             setLoading(false);
             return;
         }
-        setLoading(true);
 
         if (isGuest) {
-            setDecks([
+            const guestSubjects: Subject[] = [{ id: "mock", nombre: "Materias Mock", codigo: "MOCK", año: 1 }];
+            const guestDecks: QuizDeck[] = [
                 { id: "mock-1", nombre: "Cuestionario de Prueba", subject_id: "mock", total_questions: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } }
-            ]);
+            ];
+            quizzesSubjectsCache = guestSubjects;
+            quizzesDecksCache = guestDecks;
+            setSubjects(guestSubjects);
+            setDecks(guestDecks);
             setLoading(false);
             return;
         }
 
-        const { data } = await supabase
-            .from("quiz_decks")
-            .select("id, nombre, subject_id, total_questions")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false });
+        // Only show spinner if we don't have any cached decks yet
+        if (!quizzesDecksCache || quizzesDecksCache.length === 0) {
+            setLoading(true);
+        }
 
-        // Enrich with subject info
-        const enriched = (data || []).map((d: any) => {
-            const sub = subjects.find(s => s.id === d.subject_id);
-            return { ...d, subject: sub || undefined };
-        });
-        setDecks(enriched);
-        setLoading(false);
-    }, [user, subjects]);
+        try {
+            const [subjectsRes, decksRes] = await Promise.allSettled([
+                (async () => {
+                    let query = supabase.from("subjects").select("id, nombre, codigo, año").order("año");
+                    if (user) {
+                        query = query.eq("user_id", user.id);
+                    }
+                    let { data } = await query;
+                    if (user && (!data || data.length === 0)) {
+                        const fallback = await supabase.from("subjects").select("id, nombre, codigo, año").is("user_id", null).order("año");
+                        if (fallback.data && fallback.data.length > 0) {
+                            data = fallback.data;
+                        }
+                    }
+                    return (data as unknown as Subject[]) || [];
+                })(),
+                supabase
+                    .from("quiz_decks")
+                    .select("id, nombre, subject_id, total_questions")
+                    .eq("user_id", user.id)
+                    .order("created_at", { ascending: false })
+            ]);
 
-    useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
-    useEffect(() => { if (subjects.length > 0) fetchDecks(); }, [subjects, fetchDecks]);
+            const loadedSubjects = subjectsRes.status === "fulfilled" ? subjectsRes.value : (quizzesSubjectsCache || []);
+            const rawDecks = decksRes.status === "fulfilled" && decksRes.value.data ? decksRes.value.data : [];
+
+            const enrichedDecks: QuizDeck[] = rawDecks.map((d: any) => {
+                const sub = loadedSubjects.find(s => s.id === d.subject_id);
+                return { ...d, subject: sub || undefined };
+            });
+
+            quizzesSubjectsCache = loadedSubjects;
+            quizzesDecksCache = enrichedDecks;
+
+            setSubjects(loadedSubjects);
+            setDecks(enrichedDecks);
+        } catch (err) {
+            console.error("Error loading quizzes data:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [user, isGuest]);
+
+    const fetchDecks = useCallback(async () => {
+        if (!user && !isGuest) return;
+        try {
+            if (isGuest) return;
+            const { data } = await supabase
+                .from("quiz_decks")
+                .select("id, nombre, subject_id, total_questions")
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false });
+
+            setDecks(prev => {
+                const subs = quizzesSubjectsCache || subjects;
+                const enriched = (data || []).map((d: any) => {
+                    const sub = subs.find(s => s.id === d.subject_id);
+                    return { ...d, subject: sub || undefined };
+                });
+                quizzesDecksCache = enriched;
+                return enriched;
+            });
+        } catch (e) {
+            console.error("Error fetching decks:", e);
+        }
+    }, [user, isGuest, subjects]);
+
+    useEffect(() => {
+        loadInitialData();
+    }, [loadInitialData]);
 
     const fetchQuestions = async (deckId: string) => {
         setLoadingQuestions(true);

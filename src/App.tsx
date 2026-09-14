@@ -25,6 +25,7 @@ import Careers from "@/pages/Careers";
 import CareerDetail from "@/pages/CareerDetail";
 import StudyGuides from "@/pages/StudyGuides";
 import ResetPassword from "@/pages/ResetPassword";
+import { isSuperAdmin } from "@/lib/adminAuth";
 
 // Lazy loaded (heavy pages with large dependencies)
 const Notion = lazy(() => import("@/pages/Notion"));
@@ -104,6 +105,20 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen fullScreen message="Verificando acceso..." submessage="Validando permisos de administrador..." />;
+  }
+
+  if (!user || !isSuperAdmin(user)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 const LazyFallback = () => (
   <LoadingScreen message="Cargando módulo..." submessage="Preparando vista..." />
 );
@@ -160,7 +175,7 @@ const AppRoutes = () => (
       <Route path="/examenes" element={<Exams />} />
       <Route path="/amigos" element={<Friends />} />
       <Route path="/configuracion" element={<Settings />} />
-      <Route path="/admin" element={<AdminPanel />} />
+      <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       <Route path="/bosque" element={<Forest />} />
       <Route path="/rutinas" element={<Routines />} />
       <Route path="/discord" element={<Discord />} />

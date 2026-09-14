@@ -30,6 +30,7 @@ import {
   DEFAULT_CATEGORIZED_SIDEBAR,
   ensureTabeAISecond
 } from "@/lib/sidebar-configs";
+import { isSuperAdmin } from "@/lib/adminAuth";
 
 import { MobileNavbar } from "@/components/layout/MobileNavbar";
 import { ComicEffectsProvider } from "@/components/comic/ComicEffectsProvider";
@@ -351,6 +352,7 @@ export function MainLayout() {
             {(() => {
               const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                 const targetPath = item.path || (item.type === "item" ? item.id : null);
+                if (targetPath === "/admin" && !isSuperAdmin(user)) return null;
                 const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
                 
                 if (!baseItem && item.type === "item") return null;

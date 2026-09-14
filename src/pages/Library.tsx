@@ -86,14 +86,18 @@ const folderColors = [
 
 const years = [1, 2, 3, 4, 5, 6];
 
+let libraryFoldersCache: LibraryFolder[] | null = null;
+let libraryFilesCache: LibraryFile[] | null = null;
+let librarySubjectsCache: Subject[] | null = null;
+
 export default function Library() {
   const { user, isGuest } = useAuth();
   const { speak, stop, isSpeaking } = useTextToSpeech();
   const [isExtractingText, setIsExtractingText] = useState(false);
   const { canUse, incrementUsage, getUsage, getLimit } = useUsageLimits();
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [folders, setFolders] = useState<LibraryFolder[]>([]);
-  const [files, setFiles] = useState<LibraryFile[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>(() => librarySubjectsCache || []);
+  const [folders, setFolders] = useState<LibraryFolder[]>(() => libraryFoldersCache || []);
+  const [files, setFiles] = useState<LibraryFile[]>(() => libraryFilesCache || []);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<LibraryFolder[]>([]);
 
@@ -123,7 +127,7 @@ export default function Library() {
   const [generating, setGenerating] = useState<'flashcards' | 'summary' | 'quiz' | null>(null);
   const [showGenOptions, setShowGenOptions] = useState<'flashcards' | 'quiz' | null>(null);
   const [genCount, setGenCount] = useState(10);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !libraryFilesCache);
   const { publishResource } = useMarketplace();
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishingResource, setPublishingResource] = useState<{ id: string; type: "file" | "folder"; nombre: string } | null>(null);
@@ -144,47 +148,77 @@ export default function Library() {
   const [editFolderSubject, setEditFolderSubject] = useState<string>("");
   const [editFolderYear, setEditFolderYear] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (user || isGuest) {
-      fetchSubjects();
-      fetchFolders();
-      fetchFiles();
+  const fetchSubjects = async () => {
+    try {
+      if (isGuest) {
+        const guestSubs: Subject[] = [{ id: "mock", nombre: "Uso de Tablero", codigo: "TAB1", año: 1 }];
+        librarySubjectsCache = guestSubs;
+        setSubjects(guestSubs);
+        return guestSubs;
+      }
+      let query = supabase
+        .from("subjects")
+        .select("*")
+        .order("año", { ascending: true })
+        .order("nombre", { ascending: true });
+
+      if (user) {
+        query = query.eq("user_id", user.id);
+      }
+
+      let { data, error } = await query;
+      if (user && (!data || data.length === 0)) {
+        const fallback = await supabase
+          .from("subjects")
+          .select("*")
+          .is("user_id", null)
+          .order("año", { ascending: true })
+          .order("nombre", { ascending: true });
+        if (fallback.data && fallback.data.length > 0) {
+          data = fallback.data;
+        }
+      }
+
+      if (!error && data) {
+        librarySubjectsCache = data;
+        setSubjects(data);
+        return data;
+      }
+    } catch (e) {
+      console.error("Error fetching library subjects:", e);
     }
+    return librarySubjectsCache || [];
+  };
+
+  const loadInitialData = async () => {
+    if (!user && !isGuest) {
+      setLoading(false);
+      return;
+    }
+
+    if (!libraryFilesCache || libraryFilesCache.length === 0) {
+      setLoading(true);
+    }
+
+    try {
+      await Promise.allSettled([
+        fetchSubjects(),
+        fetchFolders(),
+        fetchFiles(false)
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadInitialData();
   }, [user, isGuest]);
 
   // Reset subject filter when year changes
   useEffect(() => {
     setSelectedSubjectId(null);
   }, [selectedYear]);
-
-  const fetchSubjects = async () => {
-    let query = supabase
-      .from("subjects")
-      .select("*")
-      .order("año", { ascending: true })
-      .order("nombre", { ascending: true });
-
-    if (user) {
-      query = query.eq("user_id", user.id);
-    }
-
-    let { data, error } = await query;
-    if (user && (!data || data.length === 0)) {
-      const fallback = await supabase
-        .from("subjects")
-        .select("*")
-        .is("user_id", null)
-        .order("año", { ascending: true })
-        .order("nombre", { ascending: true });
-      if (fallback.data && fallback.data.length > 0) {
-        data = fallback.data;
-      }
-    }
-
-    if (!error && data) {
-      setSubjects(data);
-    }
-  };
 
   // ─── Context-aware defaults for uploads ─────────────────────────────
   const getContextSubjectId = (): string | null => {
@@ -350,60 +384,121 @@ export default function Library() {
   }, [currentFolderId, selectedYear, selectedSubjectId]);
 
   const fetchFolders = async () => {
-    if (isGuest) {
-      setFolders([
-        { id: "mock-folder-1", nombre: "Tutorial Tabe", color: "#00d9ff", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() },
-        { id: "mock-folder-2", nombre: "Importante", color: "#a855f7", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() }
-      ]);
-      return;
-    }
+    try {
+      if (isGuest) {
+        const guestFolders: LibraryFolder[] = [
+          { id: "mock-folder-1", nombre: "Tutorial Tabe", color: "#00d9ff", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() },
+          { id: "mock-folder-2", nombre: "Importante", color: "#a855f7", subject_id: null, parent_folder_id: null, created_at: new Date().toISOString() }
+        ];
+        libraryFoldersCache = guestFolders;
+        setFolders(guestFolders);
+        return guestFolders;
+      }
 
-    const { data, error } = await supabase
-      .from("library_folders")
-      .select("*, subjects(nombre, codigo, año)")
-      .order("nombre", { ascending: true });
+      if (!user) return [];
 
-    if (!error && data) {
-      setFolders(data.map((f: any) => ({ ...f, subject: f.subjects })) as LibraryFolder[]);
+      const { data, error } = await supabase
+        .from("library_folders")
+        .select("*, subjects(nombre, codigo, año)")
+        .eq("user_id", user.id)
+        .order("nombre", { ascending: true });
+
+      if (!error && data) {
+        const mapped = data.map((f: any) => ({ ...f, subject: f.subjects })) as LibraryFolder[];
+        libraryFoldersCache = mapped;
+        setFolders(mapped);
+        return mapped;
+      } else {
+        // Fallback without relation join if PostgREST cache has quirks
+        const { data: rawFolders } = await supabase
+          .from("library_folders")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("nombre", { ascending: true });
+        if (rawFolders) {
+          const subs = librarySubjectsCache || subjects;
+          const mapped = rawFolders.map((f: any) => {
+            const s = subs.find(sub => sub.id === f.subject_id);
+            return { ...f, subject: s ? { nombre: s.nombre, codigo: s.codigo, año: s.año } : undefined };
+          }) as LibraryFolder[];
+          libraryFoldersCache = mapped;
+          setFolders(mapped);
+          return mapped;
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching library folders:", e);
     }
+    return libraryFoldersCache || [];
   };
 
-  const fetchFiles = async () => {
+  const fetchFiles = async (showLoading = false) => {
     if (!user && !isGuest) {
       setLoading(false);
-      return;
+      return [];
     }
 
-    setLoading(true);
+    if (showLoading && (!libraryFilesCache || libraryFilesCache.length === 0)) {
+      setLoading(true);
+    }
 
-    if (isGuest) {
-      setFiles([
-        {
-          id: "mock-file-1",
-          nombre: "Guía Rápida de Tabe.pdf",
-          tipo: "pdf",
-          url: "data:application/pdf;base64,JVBERi0xLjcKCjEgMCBvYmogICUKPDwvVHlwZS9DYXRhbG9nL1BhZ2VzIDIgMCBSPj4KZW5kb2JqCgoyIDAgb2JqCjw8L1R5cGUvUGFnZXMvS2lkc1szIDAgUl0vQ291bnQgMT4+CmVuZG9iagoKMyAwIG9iago8PC9UeXBlL1BhZ2UvTWVkaWFCb3hbMCAwIDU5NSA4NDJdL1BhcmVudCAyIDAgUi9SZXNvdXJjZXM8PC9Gb250PDwvRjEgNCAwIFI+Pj4+L0NvbnRlbnRzIDUgMCBSPj4KZW5kb2JqCgo0IDAgb2JqCjw8L1R5cGUvRm9udC9TdWJ0eXBlL1R5cGUxL0Jhc2VGb250L0hlbHZldGljYT4+CmVuZG9iagoKNSAwIG9iago8PC9MZW5ndGggNDQ+PgpzdHJlYW0KQlQKL0YxIDI0IFRmCjEwMCA3MDAgVGQKKEVzdGUgZXMgdW4gUERGIGRlIHBydWViYS4pIFRqCkVUCmVuZHN0cmVhbQplbmRvYmoKCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxMCAwMDAwMCBuIAowMDAwMDAwMDUzIDAwMDAwIG4gCjAwMDAwMDAxMDIgMDAwMDAgbiAKMDAwMDAwMDIwNCAwMDAwMCBuIAowMDAwMDAwMjkxIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA2L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKMzgzCiUlRU9GCg==",
-          storage_path: null,
-          tamaño_bytes: 1048576 * 1.5, // 1.5 MB
-          subject_id: null,
-          folder_id: "mock-folder-1", // Tutorial Tabe
-          created_at: new Date().toISOString(),
+    try {
+      if (isGuest) {
+        const guestFiles: LibraryFile[] = [
+          {
+            id: "mock-file-1",
+            nombre: "Guía Rápida de Tabe.pdf",
+            tipo: "pdf",
+            url: "data:application/pdf;base64,JVBERi0xLjcKCjEgMCBvYmogICUKPDwvVHlwZS9DYXRhbG9nL1BhZ2VzIDIgMCBSPj4KZW5kb2JqCgoyIDAgb2JqCjw8L1R5cGUvUGFnZXMvS2lkc1szIDAgUl0vQ291bnQgMT4+CmVuZG9iagoKMyAwIG9iago8PC9UeXBlL1BhZ2UvTWVkaWFCb3hbMCAwIDU5NSA4NDJdL1BhcmVudCAyIDAgUi9SZXNvdXJjZXM8PC9Gb250PDwvRjEgNCAwIFI+Pj4+L0NvbnRlbnRzIDUgMCBSPj4KZW5kb2JqCgo0IDAgb2JqCjw8L1R5cGUvRm9udC9TdWJ0eXBlL1R5cGUxL0Jhc2VGb250L0hlbHZldGljYT4+CmVuZG9iagoKNSAwIG9iago8PC9MZW5ndGggNDQ+PgpzdHJlYW0KQlQKL0YxIDI0IFRmCjEwMCA3MDAgVGQKKEVzdGUgZXMgdW4gUERGIGRlIHBydWViYS4pIFRqCkVUCmVuZHN0cmVhbQplbmRvYmoKCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxMCAwMDAwMCBuIAowMDAwMDAwMDUzIDAwMDAwIG4gCjAwMDAwMDAxMDIgMDAwMDAgbiAKMDAwMDAwMDIwNCAwMDAwMCBuIAowMDAwMDAwMjkxIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA2L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKMzgzCiUlRU9GCg==",
+            storage_path: null,
+            tamaño_bytes: 1048576 * 1.5, // 1.5 MB
+            subject_id: null,
+            folder_id: "mock-folder-1", // Tutorial Tabe
+            created_at: new Date().toISOString(),
+          }
+        ];
+        libraryFilesCache = guestFiles;
+        setFiles(guestFiles);
+        return guestFiles;
+      }
+
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from("library_files")
+        .select("*, subjects(nombre, codigo, año)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        const mapped = data.map((d: any) => ({ ...d, subject: d.subjects })) as LibraryFile[];
+        libraryFilesCache = mapped;
+        setFiles(mapped);
+        return mapped;
+      } else {
+        // Fallback without relation join
+        const { data: rawFiles } = await supabase
+          .from("library_files")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        if (rawFiles) {
+          const subs = librarySubjectsCache || subjects;
+          const mapped = rawFiles.map((d: any) => {
+            const s = subs.find(sub => sub.id === d.subject_id);
+            return { ...d, subject: s ? { nombre: s.nombre, codigo: s.codigo, año: s.año } : undefined };
+          }) as LibraryFile[];
+          libraryFilesCache = mapped;
+          setFiles(mapped);
+          return mapped;
         }
-      ]);
+      }
+    } catch (e) {
+      console.error("Error fetching library files:", e);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data, error } = await supabase
-      .from("library_files")
-      .select("*, subjects(nombre, codigo, año)")
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      const mapped = data.map((d: any) => ({ ...d, subject: d.subjects }));
-      setFiles(mapped as LibraryFile[]);
-    }
-    setLoading(false);
+    return libraryFilesCache || [];
   };
 
   const navigateToFolder = (folderId: string | null) => {
