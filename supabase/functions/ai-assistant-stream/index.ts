@@ -138,8 +138,33 @@ serve(async (req) => {
     let personaName = "T.A.B.E. IA";
     let personalityPrompt = "Sos un asistente academico motivador y cercano. Usas lenguaje informal argentino.";
 
-    const sR = await serviceClient.from("subjects").select("id, nombre, codigo, año").order("año", { ascending: true });
-    const subjects = sR.data || [];
+    let subjects: any[] = [];
+    if (userId) {
+      const userSubR = await serviceClient
+        .from("subjects")
+        .select("id, nombre, codigo, año, numero_materia")
+        .eq("user_id", userId)
+        .order("año", { ascending: true })
+        .order("numero_materia", { ascending: true });
+
+      if (userSubR.data && userSubR.data.length > 0) {
+        subjects = userSubR.data;
+      } else {
+        const globalSubR = await serviceClient
+          .from("subjects")
+          .select("id, nombre, codigo, año, numero_materia")
+          .is("user_id", null)
+          .order("año", { ascending: true })
+          .order("numero_materia", { ascending: true });
+        subjects = globalSubR.data || [];
+      }
+    } else {
+      const defaultSubR = await serviceClient
+        .from("subjects")
+        .select("id, nombre, codigo, año, numero_materia")
+        .limit(60);
+      subjects = defaultSubR.data || [];
+    }
 
     let uss: any[] = [];
     let events: any[] = [];
@@ -206,15 +231,44 @@ serve(async (req) => {
 
 
 
+    // Ensure any subjects present in uss are included even if not in initial query
+    const knownSubjectIds = new Set(subjects.map((s: any) => s.id));
+    const missingSubjectIds = uss
+      .map((u: any) => u.subject_id)
+      .filter((id: string) => id && !knownSubjectIds.has(id));
+
+    if (missingSubjectIds.length > 0) {
+      const { data: missingSubs } = await serviceClient
+        .from("subjects")
+        .select("id, nombre, codigo, año, numero_materia")
+        .in("id", missingSubjectIds);
+      if (missingSubs && missingSubs.length > 0) {
+        subjects = [...subjects, ...missingSubs];
+      }
+    }
+
     const nameById: Record<string, string> = {};
     for (const s of subjects) nameById[s.id] = s.nombre;
 
+    const getEffectiveGrade = (st: any): number | null => {
+      if (!st) return null;
+      const candidates = [st.nota, st.nota_final_examen, st.nota_global, st.nota_rec_global];
+      for (const val of candidates) {
+        if (val !== null && val !== undefined && val !== "") {
+          const num = typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+      return null;
+    };
+
     const swStatus = subjects.map((s: any) => {
       const st = uss.find((u: any) => u.subject_id === s.id);
+      const grade = getEffectiveGrade(st);
       return {
         ...s,
-        estado: st?.estado || "sin_cursar",
-        nota: st?.nota || null,
+        estado: (st?.estado || "sin_cursar").toLowerCase().trim(),
+        nota: grade,
         fecha_aprobacion: st?.fecha_aprobacion || null,
         p1: st?.nota_parcial_1 || st?.nota_rec_parcial_1 || null,
         p2: st?.nota_parcial_2 || st?.nota_rec_parcial_2 || null,
@@ -227,8 +281,18 @@ serve(async (req) => {
     const regulares = swStatus.filter((s: any) => s.estado === "regular");
     const enCurso = swStatus.filter((s: any) => s.estado === "en_curso");
     const sinCursar = swStatus.filter((s: any) => s.estado === "sin_cursar");
-    const notas = aprobadas.map((s: any) => parseFloat(s.nota)).filter((n: number) => !isNaN(n) && n > 0);
-    const promedio = notas.length > 0 ? (notas.reduce((a: number, b: number) => a + b, 0) / notas.length).toFixed(2) : "N/A";
+
+    const notasAprobadasDetalle: { nombre: string; nota: number }[] = [];
+    for (const s of aprobadas) {
+      if (s.nota !== null && !isNaN(s.nota) && s.nota > 0) {
+        notasAprobadasDetalle.push({ nombre: s.nombre, nota: s.nota });
+      }
+    }
+
+    const promedioNum = notasAprobadasDetalle.length > 0
+      ? (notasAprobadasDetalle.reduce((a: number, b: number) => a + b.nota, 0) / notasAprobadasDetalle.length)
+      : null;
+    const promedio = promedioNum !== null ? promedioNum.toFixed(2) : "N/A";
     const progreso = subjects.length > 0 ? ((aprobadas.length / subjects.length) * 100).toFixed(1) : "0";
     const studyMin = sessions.reduce((a: number, s: any) => a + (s.duracion_segundos || 0), 0) / 60;
     const userName = profile?.nombre || profile?.username || "Estudiante";
@@ -334,8 +398,10 @@ serve(async (req) => {
       "HOY: " + hoyStr + " (" + hoyDia + ")" + contextLine + "\n" +
       "CARRERA: " + (profile?.carrera || "No especificada") + " | FACULTAD: " + (profile?.facultad || "No especificada") + " | PLAN: " + (profile?.plan || "No especificado") + "\n" +
       "CALENDARIO PROXIMOS DIAS:\n" + proximosDias.join("\n") + "\n\n" +
-      "=== RESUMEN ===\n" +
-      "Promedio: " + promedio + " | Progreso: " + aprobadas.length + "/" + subjects.length + " (" + progreso + "%)\n" +
+      "=== RESUMEN ACADEMICO ===\n" +
+      "Promedio General: " + promedio + " (" + notasAprobadasDetalle.length + " materias con nota computadas)\n" +
+      "Detalle de materias aprobadas y notas: " + (notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n: any) => n.nombre + ": " + n.nota.toFixed(2)).join(", ") : "Ninguna nota registrada") + "\n" +
+      "Progreso: " + aprobadas.length + "/" + subjects.length + " (" + progreso + "%)\n" +
       "Aprobadas: " + aprobadas.length + (aprobadas.length > 0 ? " (" + aprobadas.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
       "Regulares: " + regulares.length + (regulares.length > 0 ? " (" + regulares.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
       "En curso: " + enCurso.length + (enCurso.length > 0 ? " (" + enCurso.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
@@ -367,7 +433,7 @@ serve(async (req) => {
       "   - Saludos: 'hola', 'como estas', 'buenas' -> RESPONDE CON TEXTO\n" +
       "   - Preguntas sobre vos: 'como eres', 'quien sos', 'presentate', 'dime de ti' -> RESPONDE CON TEXTO describiendo tu personalidad\n" +
       "   - Preguntas academicas: 'explicame...', 'que es...', 'como funciona...' -> RESPONDE CON TEXTO\n" +
-      "   - Consultas sobre datos: 'como voy', 'cuantas aprobe', 'mi promedio' -> RESPONDE CON TEXTO usando los datos de arriba\n" +
+      "   - Consultas sobre datos o rendimiento ('como voy', 'cuantas aprobe', 'mi promedio', 'mis notas'): RESPONDE CON TEXTO usando los datos de arriba. Si te preguntan 'cual es mi promedio', 'como es mi promedio', dale directamente su promedio general exacto (" + promedio + ") y si te pide el detalle, mencionales las materias aprobadas con sus notas.\n" +
       "   - Charla casual, motivacion, o cualquier conversacion -> RESPONDE CON TEXTO\n" +
       "   EN CASO DE DUDA: SIEMPRE RESPONDE CON TEXTO PLANO, NO USES HERRAMIENTAS.\n" +
       "4. PODES inventar ejercicios y simulacros de examenes si te lo piden.\n" +

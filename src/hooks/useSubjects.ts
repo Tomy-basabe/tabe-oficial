@@ -429,7 +429,7 @@ export function useSubjects() {
       return {
         ...subject,
         status,
-        nota: userStatus?.nota ?? null,
+        nota: userStatus?.nota ?? userStatus?.nota_final_examen ?? userStatus?.nota_global ?? null,
         fecha_aprobacion: userStatus?.fecha_aprobacion ?? null,
         requisitos_faltantes: status === "bloqueada" ? getMissingRequirements(subject.id) : [],
         dependencies: subjectDeps,

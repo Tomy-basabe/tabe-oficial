@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen } from "lucide-react";
+import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award } from "lucide-react";
 import { SubjectCard } from "@/components/dashboard/SubjectCard";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
@@ -81,14 +81,43 @@ export default function CareerPlan() {
     }));
   }, [years, filteredSubjects]);
 
+  // Helper to extract numeric grade from subject (nota, final_examen, global)
+  const getSubjectGrade = useCallback((s: SubjectWithStatus): number | null => {
+    if (s.nota !== null && s.nota !== undefined && !isNaN(Number(s.nota)) && Number(s.nota) > 0) {
+      return Number(s.nota);
+    }
+    const finalExamen = s.partialGrades?.nota_final_examen;
+    if (finalExamen !== null && finalExamen !== undefined && !isNaN(Number(finalExamen)) && Number(finalExamen) > 0) {
+      return Number(finalExamen);
+    }
+    const globalNota = s.partialGrades?.nota_global;
+    if (globalNota !== null && globalNota !== undefined && !isNaN(Number(globalNota)) && Number(globalNota) > 0) {
+      return Number(globalNota);
+    }
+    return null;
+  }, []);
+
   // Memoize stats
-  const stats = useMemo(() => ({
-    total: subjects.length,
-    aprobadas: subjects.filter((s) => s.status === "aprobada").length,
-    regulares: subjects.filter((s) => s.status === "regular").length,
-    cursables: subjects.filter((s) => s.status === "cursable").length,
-    bloqueadas: subjects.filter((s) => s.status === "bloqueada").length,
-  }), [subjects]);
+  const stats = useMemo(() => {
+    const aprobadasList = subjects.filter((s) => s.status === "aprobada");
+    const gradesList = aprobadasList
+      .map(getSubjectGrade)
+      .filter((g): g is number => g !== null);
+
+    const promedioVal = gradesList.length > 0
+      ? (gradesList.reduce((acc, curr) => acc + curr, 0) / gradesList.length).toFixed(2)
+      : null;
+
+    return {
+      total: subjects.length,
+      aprobadas: aprobadasList.length,
+      regulares: subjects.filter((s) => s.status === "regular").length,
+      cursables: subjects.filter((s) => s.status === "cursable").length,
+      bloqueadas: subjects.filter((s) => s.status === "bloqueada").length,
+      promedio: promedioVal,
+      gradesCount: gradesList.length,
+    };
+  }, [subjects, getSubjectGrade]);
 
   const handleSubjectClick = useCallback((subject: SubjectWithStatus) => {
     setSelectedSubject(subject);
@@ -209,6 +238,13 @@ export default function CareerPlan() {
               </Button>
             </>
           )}
+          {/* Promedio Header Badge */}
+          <div className="bg-[#ffd21c] text-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 sm:gap-2">
+            <Award className="w-4 h-4" />
+            <span className="text-xs sm:text-sm font-black">
+              Promedio: {stats.promedio ? stats.promedio : "—"}
+            </span>
+          </div>
           <div className="bg-[#ffd21c] text-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 sm:gap-2">
             <GraduationCap className="w-4 h-4" />
             <span className="text-xs sm:text-sm font-black">{stats.aprobadas}/{stats.total}</span>
@@ -218,7 +254,15 @@ export default function CareerPlan() {
 
       {/* Stats Bar */}
       <div className="neo-bento-card p-4 bg-muted/30 dark:bg-background">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+          <div className="text-center bg-[#ffd21c]/10 border-2 border-[#ffd21c]/50 rounded-xl py-2 px-1 shadow-[2px_2px_0_0_#000]">
+            <p className="text-3xl font-black text-[#ffd21c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
+              {stats.promedio ? stats.promedio : "—"}
+            </p>
+            <p className="text-[10px] font-black uppercase text-foreground/80 tracking-widest mt-1">
+              Promedio {stats.gradesCount > 0 ? `(${stats.gradesCount})` : ""}
+            </p>
+          </div>
           <div className="text-center">
             <p className="text-3xl font-black text-[#ffd21c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.aprobadas}</p>
             <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Aprobadas</p>
@@ -231,7 +275,7 @@ export default function CareerPlan() {
             <p className="text-3xl font-black text-[#25d06c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.cursables}</p>
             <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Cursables</p>
           </div>
-          <div className="text-center">
+          <div className="text-center col-span-2 sm:col-span-1">
             <p className="text-3xl font-black text-muted-foreground drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.bloqueadas}</p>
             <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Bloqueadas</p>
           </div>
@@ -334,7 +378,7 @@ export default function CareerPlan() {
                     nombre={subject.nombre}
                     codigo={subject.codigo}
                     status={subject.status}
-                    nota={subject.nota}
+                    nota={getSubjectGrade(subject)}
                     año={subject.año}
                     numero_materia={subject.numero_materia}
                     requisitos_faltantes={subject.requisitos_faltantes}

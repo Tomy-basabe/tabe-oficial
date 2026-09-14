@@ -148,7 +148,7 @@ export async function buildStudentContext(
   if (userId && userId !== "guest") {
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("context_timeout")), 3500)
+        setTimeout(() => reject(new Error("context_timeout")), 7500)
       );
 
       const fetchPromise = Promise.allSettled([
@@ -166,10 +166,11 @@ export async function buildStudentContext(
           .eq("user_id", userId)
           .maybeSingle(),
 
-        // 2. All subjects in curriculum
+        // 2. All subjects in curriculum (user specific or global template)
         (supabase as any)
           .from("subjects")
-          .select("id, nombre, codigo, año, numero_materia")
+          .select("id, nombre, codigo, año, numero_materia, user_id")
+          .or(`user_id.eq.${userId},user_id.is.null`)
           .order("año", { ascending: true })
           .order("numero_materia", { ascending: true }),
 
@@ -282,20 +283,40 @@ export async function buildStudentContext(
 - Horas totales de estudio registradas: ${horasEstudio} hs`;
 
         // 2 & 3. Subjects & Status
-        const subjects: any[] = subsRes.status === "fulfilled" && Array.isArray(subsRes.value?.data) ? subsRes.value.data : [];
+        let subjects: any[] = subsRes.status === "fulfilled" && Array.isArray(subsRes.value?.data) ? subsRes.value.data : [];
         const userStatus: any[] = ussRes.status === "fulfilled" && Array.isArray(ussRes.value?.data) ? ussRes.value.data : [];
+
+        // If user has specific subjects, filter out global template duplicates
+        const hasUserSpecific = subjects.some((s) => s.user_id === userId);
+        if (hasUserSpecific) {
+          subjects = subjects.filter((s) => s.user_id === userId);
+        }
 
         const subjectNameById: Record<string, string> = {};
         for (const s of subjects) {
           subjectNameById[s.id] = s.nombre;
         }
 
+        // Helper to extract effective grade from any field
+        const getEffectiveGrade = (st: any): number | null => {
+          if (!st) return null;
+          const candidates = [st.nota, st.nota_final_examen, st.nota_global, st.nota_rec_global];
+          for (const val of candidates) {
+            if (val !== null && val !== undefined && val !== "") {
+              const num = typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
+              if (!isNaN(num) && num > 0) return num;
+            }
+          }
+          return null;
+        };
+
         const mergedSubjects = subjects.map((s) => {
           const st = userStatus.find((u) => u.subject_id === s.id);
+          const effectiveGrade = getEffectiveGrade(st);
           return {
             ...s,
-            estado: (st?.estado || "sin_cursar").toLowerCase(),
-            nota: st?.nota != null ? Number(st.nota) : null,
+            estado: (st?.estado || "sin_cursar").toLowerCase().trim(),
+            nota: effectiveGrade,
             p1: st?.nota_parcial_1 ?? st?.nota_rec_parcial_1 ?? null,
             p2: st?.nota_parcial_2 ?? st?.nota_rec_parcial_2 ?? null,
             global: st?.nota_global ?? st?.nota_rec_global ?? null,
@@ -309,13 +330,15 @@ export async function buildStudentContext(
         const enCurso = mergedSubjects.filter((s) => s.estado === "en_curso");
         const sinCursar = mergedSubjects.filter((s) => s.estado === "sin_cursar");
 
-        const notasAprobadas = aprobadas
-          .map((s) => s.nota)
-          .filter((n): n is number => typeof n === "number" && !isNaN(n) && n > 0);
-        const promedio =
-          notasAprobadas.length > 0
-            ? (notasAprobadas.reduce((a, b) => a + b, 0) / notasAprobadas.length).toFixed(2)
-            : "Sin notas numéricas registradas aún";
+        const notasAprobadasDetalle = aprobadas
+          .filter((s) => s.nota !== null && !isNaN(s.nota) && s.nota > 0)
+          .map((s) => ({ nombre: s.nombre, nota: s.nota as number }));
+
+        const promedioNum =
+          notasAprobadasDetalle.length > 0
+            ? notasAprobadasDetalle.reduce((a, b) => a + b.nota, 0) / notasAprobadasDetalle.length
+            : null;
+        const promedio = promedioNum !== null ? promedioNum.toFixed(2) : "Sin notas numéricas registradas aún";
         const pctProgreso =
           mergedSubjects.length > 0
             ? ((aprobadas.length / mergedSubjects.length) * 100).toFixed(1)
@@ -323,7 +346,8 @@ export async function buildStudentContext(
 
         summarySection = `- Materias totales en el plan: ${mergedSubjects.length}
 - Progreso de carrera: ${aprobadas.length}/${mergedSubjects.length} materias aprobadas (${pctProgreso}%)
-- Promedio general (materias aprobadas): ${promedio}
+- Promedio general (materias aprobadas): ${promedio} (${notasAprobadasDetalle.length} materias computadas)
+- Detalle de notas aprobadas: ${notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n) => `${n.nombre}: ${n.nota.toFixed(2)}`).join(", ") : "Ninguna nota registrada"}
 - Aprobadas: ${aprobadas.length}
 - Regulares (cursadas aprobadas, listas para rendir final): ${regulares.length}
 - En curso: ${enCurso.length}
@@ -518,7 +542,8 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA:
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-7. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción.`;
+7. PROMEDIO Y CALIFICACIONES: Si el estudiante te consulta sobre su promedio ('cuál es mi promedio', 'cómo voy con mi promedio', 'mis notas'), indicale de forma clara y directa su promedio general exacto (formato con dos decimales como 7.85) según los datos del [2. RESUMEN ACADÉMICO GENERAL] y detallale las materias aprobadas con sus notas. Si no tiene materias con nota numérica registrada aún, explicaselo con calidez.
+8. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción.`;
 
   contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
