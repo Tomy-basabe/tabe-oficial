@@ -10,6 +10,7 @@ import {
   deleteEventFromGoogleCalendar,
   extractGoogleEventId,
   injectGoogleEventId,
+  cleanupDuplicateEvents,
 } from "@/lib/googleCalendarSync";
 export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Clase" | "Otro" | string;
 export type RecurrenceRule = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
@@ -535,6 +536,19 @@ export function useCalendarEvents() {
       .slice(0, limit);
   };
 
+  const cleanupDuplicates = async () => {
+    if (!user) return { tabeDuplicatesRemoved: 0, googleDuplicatesRemoved: 0, remainingEventsCount: 0 };
+    try {
+      const result = await cleanupDuplicateEvents(user.id);
+      await fetchEvents();
+      return result;
+    } catch (err: any) {
+      console.error("Error al limpiar duplicados:", err);
+      toast.error(err?.message || "Error al limpiar duplicados");
+      throw err;
+    }
+  };
+
   return {
     events,
     loading,
@@ -542,11 +556,12 @@ export function useCalendarEvents() {
     updateEvent,
     deleteEvent,
     duplicateEvent,
+    cleanupDuplicates,
     getEventsForDate,
     getUpcomingExams,
     refetch: fetchEvents,
   };
-}
+};
 
 export function getColorForType(type: string): string {
   const colors: Record<string, string> = {

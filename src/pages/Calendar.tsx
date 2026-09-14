@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap, CheckCircle2, Zap, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap, CheckCircle2, Zap, RefreshCw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
 import { useSubjects } from "@/hooks/useSubjects";
@@ -52,7 +52,7 @@ const months = [
 ];
 
 export default function Calendar() {
-  const { events, loading, createEvent, updateEvent, deleteEvent, duplicateEvent, getEventsForDate, refetch } = useCalendarEvents();
+  const { events, loading, createEvent, updateEvent, deleteEvent, duplicateEvent, getEventsForDate, refetch, cleanupDuplicates } = useCalendarEvents();
   const { rawSubjects } = useSubjects();
   const { user, connectGoogleCalendar } = useAuth();
 
@@ -68,10 +68,37 @@ export default function Calendar() {
   const [isGCalConnected, setIsGCalConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isMoodleSyncing, setIsMoodleSyncing] = useState(false);
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
 
   // Auto-sync existing events bidirectionally with Google Calendar on load
   const hasAttemptedInitialSync = useRef(false);
   const hasAttemptedMoodleSync = useRef(false);
+
+  const handleCleanupDuplicates = async () => {
+    if (isCleaningDuplicates) return;
+    if (!confirm("¿Deseas buscar y eliminar todos los eventos duplicados en TABE y en Google Calendar? Conservaremos la copia más completa.")) {
+      return;
+    }
+    setIsCleaningDuplicates(true);
+    toast.info("Escaneando y limpiando eventos duplicados...", { icon: "🧹" });
+    try {
+      const res = await cleanupDuplicates();
+      if (res.tabeDuplicatesRemoved === 0 && res.googleDuplicatesRemoved === 0) {
+        toast.info("¡Tu calendario ya está limpio! No se encontraron eventos duplicados.");
+      } else {
+        toast.success(
+          `Limpieza completada: ${res.tabeDuplicatesRemoved} eliminados en TABE${
+            res.googleDuplicatesRemoved > 0 ? ` y ${res.googleDuplicatesRemoved} en Google Calendar` : ""
+          }.`,
+          { icon: "✨", duration: 6000 }
+        );
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Error al limpiar duplicados");
+    } finally {
+      setIsCleaningDuplicates(false);
+    }
+  };
 
   const handleMoodleButtonClick = async () => {
     if (isMoodleSyncing) return;
@@ -442,6 +469,19 @@ export default function Calendar() {
             </button>
           )}
           <button
+            onClick={handleCleanupDuplicates}
+            disabled={isCleaningDuplicates}
+            title="Buscar y eliminar eventos duplicados en TABE y Google Calendar"
+            className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm bg-white text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:bg-red-50 hover:text-red-600 hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            {isCleaningDuplicates ? (
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-black" />
+            ) : (
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+            )}
+            <span className="hidden md:inline">Limpiar Duplicados</span>
+          </button>
+          <button
             onClick={() => setShowImportModal(true)}
             className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FFE66D] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 sm:gap-2"
           >
@@ -715,6 +755,7 @@ export default function Calendar() {
         createEvent={createEvent}
         updateEvent={updateEvent}
         refetch={refetch}
+        onCleanupDuplicates={handleCleanupDuplicates}
       />
 
       {/* Exams Modal */}

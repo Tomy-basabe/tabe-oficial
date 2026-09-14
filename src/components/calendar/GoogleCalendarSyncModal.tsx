@@ -40,6 +40,7 @@ import {
     getStoredGoogleFeedUrl,
     setStoredGoogleFeedUrl,
     performGoogleAutoSync,
+    cleanupDuplicateEvents,
 } from "@/lib/googleCalendarSync";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -52,6 +53,7 @@ interface GoogleCalendarSyncModalProps {
     createEvent?: (event: CreateEventData) => Promise<any>;
     updateEvent?: (id: string, event: Partial<CreateEventData>) => Promise<any>;
     refetch?: () => Promise<void>;
+    onCleanupDuplicates?: () => Promise<any>;
 }
 
 export function GoogleCalendarSyncModal({
@@ -62,6 +64,7 @@ export function GoogleCalendarSyncModal({
     createEvent,
     updateEvent,
     refetch,
+    onCleanupDuplicates,
 }: GoogleCalendarSyncModalProps) {
     const { user, connectGoogleCalendar } = useAuth();
     const { feedToken, feedUrl, loading: feedLoading, generateToken, regenerateToken, disableFeed } =
@@ -87,6 +90,38 @@ export function GoogleCalendarSyncModal({
     const [isConnecting, setIsConnecting] = useState(false);
     const [syncResult, setSyncResult] = useState<{ pushed: number; pulled: number } | null>(null);
     const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
+    const [isCleaning, setIsCleaning] = useState(false);
+
+    const handleRunCleanup = async () => {
+        if (isCleaning) return;
+        if (!confirm("¿Deseas buscar y eliminar todos los eventos duplicados en TABE y en Google Calendar? Conservaremos la copia más completa.")) {
+            return;
+        }
+        setIsCleaning(true);
+        toast.info("Escaneando y limpiando eventos duplicados...", { icon: "🧹" });
+        try {
+            if (onCleanupDuplicates) {
+                await onCleanupDuplicates();
+            } else if (user?.id) {
+                const res = await cleanupDuplicateEvents(user.id);
+                if (res.tabeDuplicatesRemoved === 0 && res.googleDuplicatesRemoved === 0) {
+                    toast.info("¡Tu calendario ya está limpio! No se encontraron eventos duplicados.");
+                } else {
+                    toast.success(
+                        `Limpieza completada: ${res.tabeDuplicatesRemoved} eliminados en TABE${
+                            res.googleDuplicatesRemoved > 0 ? ` y ${res.googleDuplicatesRemoved} en Google Calendar` : ""
+                        }.`,
+                        { icon: "✨", duration: 6000 }
+                    );
+                }
+                if (refetch) await refetch();
+            }
+        } catch (err: any) {
+            toast.error(err?.message || "Error al limpiar duplicados");
+        } finally {
+            setIsCleaning(false);
+        }
+    };
 
     useEffect(() => {
         if (open) {
@@ -813,6 +848,32 @@ export function GoogleCalendarSyncModal({
                         </div>
                     </div>
                 )}
+
+                {/* Herramienta de Limpieza de Duplicados */}
+                <div className="pt-3 mt-2 border-t-2 border-foreground/15 flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/20 p-2.5 rounded-lg">
+                    <div className="text-left w-full sm:w-auto">
+                        <p className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                            ¿Eventos duplicados en tu calendario?
+                        </p>
+                        <p className="text-[11px] font-bold text-muted-foreground">
+                            Elimina eventos repetidos conservando la copia original más completa.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleRunCleanup}
+                        disabled={isCleaning}
+                        className="w-full sm:w-auto px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider bg-white text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-red-50 hover:text-red-600 active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                        {isCleaning ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                        )}
+                        <span>{isCleaning ? "Limpiando..." : "Limpiar Duplicados"}</span>
+                    </button>
+                </div>
             </DialogContent>
         </Dialog>
     );

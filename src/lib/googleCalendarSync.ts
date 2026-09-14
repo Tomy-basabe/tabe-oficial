@@ -1627,3 +1627,166 @@ export async function performGoogleAutoSync(
 
   return { success: false, added: 0, updated: 0, message: "Google Calendar no conectado" };
 }
+
+// ============================================================================
+// HERRAMIENTA INTELIGENTE DE LIMPIEZA DE DUPLICADOS (TABE & GOOGLE CALENDAR)
+// ============================================================================
+
+export interface DuplicateCleanupResult {
+  tabeDuplicatesRemoved: number;
+  googleDuplicatesRemoved: number;
+  remainingEventsCount: number;
+}
+
+/**
+ * Identifica y elimina eventos duplicados en TABE y en Google Calendar (si está conectado vía OAuth).
+ * Conserva el evento más completo (con materia, notas o detalles) y elimina las copias redundantes.
+ */
+export async function cleanupDuplicateEvents(
+  userId: string
+): Promise<DuplicateCleanupResult> {
+  const { supabase } = await import("@/integrations/supabase/client");
+
+  // 1. Obtener todos los eventos del usuario de Supabase
+  const { data: allEvents, error } = await supabase
+    .from("calendar_events")
+    .select("id, titulo, fecha, hora, hora_fin, notas, subject_id, ubicacion, created_at")
+    .eq("user_id", userId);
+
+  if (error || !allEvents) {
+    throw new Error(error?.message || "No se pudieron consultar los eventos en la base de datos");
+  }
+
+  const norm = (s: string) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  // 2. Agrupar por clave única normalizada (título + fecha + hora) y por gcal_id
+  const groups = new Map<string, any[]>();
+  const gcalGroup = new Map<string, any[]>();
+
+  for (const ev of allEvents) {
+    const title = norm(ev.titulo);
+    const date = (ev.fecha || "").split("T")[0];
+    const hour = ev.hora ? ev.hora.substring(0, 5) : "allday";
+    const key = `${title}___${date}___${hour}`;
+
+    const list = groups.get(key) || [];
+    list.push(ev);
+    groups.set(key, list);
+
+    const gId = extractGoogleEventId(ev.notas);
+    if (gId) {
+      const gList = gcalGroup.get(gId) || [];
+      gList.push(ev);
+      gcalGroup.set(gId, gList);
+    }
+  }
+
+  const idsToDeleteFromTabe = new Set<string>();
+  const gcalIdsToDelete: string[] = [];
+
+  // Duplicados por clave de contenido (título + fecha + hora)
+  for (const [_, evList] of groups.entries()) {
+    if (evList.length > 1) {
+      // Ordenar para conservar el mejor (con subject_id y notas más completas)
+      evList.sort((a, b) => {
+        const scoreA = (a.subject_id ? 10 : 0) + (a.notas?.length || 0);
+        const scoreB = (b.subject_id ? 10 : 0) + (b.notas?.length || 0);
+        return scoreB - scoreA;
+      });
+
+      // Conservar evList[0], marcar el resto para eliminar
+      for (let i = 1; i < evList.length; i++) {
+        const dup = evList[i];
+        idsToDeleteFromTabe.add(dup.id);
+        const gId = extractGoogleEventId(dup.notas);
+        if (gId && !gcalIdsToDelete.includes(gId)) {
+          gcalIdsToDelete.push(gId);
+        }
+      }
+    }
+  }
+
+  // Duplicados por id idéntico de Google Calendar
+  for (const [_, gList] of gcalGroup.entries()) {
+    if (gList.length > 1) {
+      for (let i = 1; i < gList.length; i++) {
+        idsToDeleteFromTabe.add(gList[i].id);
+      }
+    }
+  }
+
+  let googleDuplicatesRemoved = 0;
+
+  // 3. Si el usuario está conectado con Google Calendar OAuth, borrar los duplicados en Google Calendar
+  let token = getStoredGoogleToken();
+  if (!token) {
+    token = await refreshGoogleToken();
+  }
+
+  if (token) {
+    // A. Eliminar en Google los eventos asociados a los duplicados de TABE
+    for (const gId of gcalIdsToDelete) {
+      try {
+        const ok = await deleteEventFromGoogleCalendar(gId);
+        if (ok) googleDuplicatesRemoved++;
+      } catch (e) {
+        console.warn("No se pudo eliminar evento en Google Calendar:", gId, e);
+      }
+    }
+
+    // B. Explorar Google Calendar para detectar y eliminar duplicados directos en la API de Google
+    try {
+      const { items: googleEvents } = await fetchEventsFromGoogleCalendar();
+      if (googleEvents && googleEvents.length > 0) {
+        const gGroups = new Map<string, any[]>();
+        for (const gEv of googleEvents) {
+          if (gEv.status === "cancelled" || !gEv.id) continue;
+          const start = gEv.start?.dateTime || gEv.start?.date || "";
+          const gKey = `${norm(gEv.summary || "")}___${start}`;
+          const gList = gGroups.get(gKey) || [];
+          gList.push(gEv);
+          gGroups.set(gKey, gList);
+        }
+
+        for (const [_, gList] of gGroups.entries()) {
+          if (gList.length > 1) {
+            // Mantener uno, borrar los repetidos en Google Calendar
+            for (let i = 1; i < gList.length; i++) {
+              const dupG = gList[i];
+              if (!gcalIdsToDelete.includes(dupG.id)) {
+                try {
+                  const ok = await deleteEventFromGoogleCalendar(dupG.id);
+                  if (ok) googleDuplicatesRemoved++;
+                } catch (e) {
+                  console.warn("No se pudo eliminar duplicado en Google:", dupG.id, e);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (gErr) {
+      console.warn("Error buscando duplicados en Google Calendar:", gErr);
+    }
+  }
+
+  // 4. Eliminar duplicados de Supabase
+  const finalIdsList = Array.from(idsToDeleteFromTabe);
+  if (finalIdsList.length > 0) {
+    const { error: delErr } = await supabase
+      .from("calendar_events")
+      .delete()
+      .in("id", finalIdsList)
+      .eq("user_id", userId);
+
+    if (delErr) {
+      throw new Error("Error al eliminar los duplicados en TABE: " + delErr.message);
+    }
+  }
+
+  return {
+    tabeDuplicatesRemoved: finalIdsList.length,
+    googleDuplicatesRemoved,
+    remainingEventsCount: allEvents.length - finalIdsList.length,
+  };
+}
