@@ -14,6 +14,34 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    {
+      name: "moodle-calendar-proxy",
+      configureServer(server) {
+        server.middlewares.use("/api/moodle-calendar", async (req, res) => {
+          const urlParam = new URL(req.url || "", `http://${req.headers.host}`).searchParams.get("url");
+          if (!urlParam) {
+            res.statusCode = 400;
+            res.end("Falta el parámetro 'url'");
+            return;
+          }
+          try {
+            const cleanUrl = urlParam.trim().replace(/^webcal:\/\//i, "https://");
+            const fetchRes = await fetch(cleanUrl, {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (compatible; TABE/1.0)",
+              },
+            });
+            const text = await fetchRes.text();
+            res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+            res.setHeader("Access-Control-Allow-Origin", "*");
+            res.end(text);
+          } catch (e: any) {
+            res.statusCode = 500;
+            res.end(e?.message || "Error al descargar calendario");
+          }
+        });
+      },
+    },
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
