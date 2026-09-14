@@ -373,12 +373,13 @@ export function initSecurityProtection() {
     { capture: true }
   );
 
-  // 2. Bloquear atajos de teclado asociados a DevTools y Ver Código Fuente
+  // 2. Bloquear atajos de teclado asociados a DevTools y Ver Código Fuente (Windows, Linux y macOS)
   document.addEventListener(
     "keydown",
     (e) => {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
       const isShift = e.shiftKey;
+      const isAlt = e.altKey;
       const key = e.key ? e.key.toUpperCase() : "";
       const keyCode = e.keyCode || e.which;
 
@@ -389,27 +390,38 @@ export function initSecurityProtection() {
         return false;
       }
 
-      // Ctrl + Shift + I (Inspeccionar)
-      // Ctrl + Shift + J (Consola)
-      // Ctrl + Shift + C (Inspeccionar elemento)
+      // Windows/Linux/Mac: Ctrl/Cmd + Shift + I/J/C/K/E/S (DevTools, Consola, Inspector, Network, Debugger)
       if (
         isCtrlOrCmd &&
         isShift &&
-        (key === "I" || key === "J" || key === "C" || keyCode === 73 || keyCode === 74 || keyCode === 67)
+        (key === "I" || key === "J" || key === "C" || key === "K" || key === "E" || key === "S" ||
+         keyCode === 73 || keyCode === 74 || keyCode === 67 || keyCode === 75 || keyCode === 69 || keyCode === 83)
       ) {
         e.preventDefault();
         e.stopPropagation();
         return false;
       }
 
-      // Ctrl + U (Ver código fuente)
+      // macOS: Cmd + Alt + I / Cmd + Alt + J / Cmd + Alt + C / Cmd + Alt + U
+      if (
+        isCtrlOrCmd &&
+        isAlt &&
+        (key === "I" || key === "J" || key === "C" || key === "U" ||
+         keyCode === 73 || keyCode === 74 || keyCode === 67 || keyCode === 85)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Ctrl/Cmd + U (Ver código fuente)
       if (isCtrlOrCmd && (key === "U" || keyCode === 85)) {
         e.preventDefault();
         e.stopPropagation();
         return false;
       }
 
-      // Ctrl + S (Prevenir descarga directa del HTML)
+      // Ctrl/Cmd + S (Prevenir descarga directa del HTML)
       if (isCtrlOrCmd && (key === "S" || keyCode === 83)) {
         e.preventDefault();
       }
@@ -422,47 +434,68 @@ export function initSecurityProtection() {
     const showWarning = () => {
       try {
         console.clear();
-        console.log(
+        originalLog(
           "%c¡ALTO! %cÁrea Protegida",
           "color: #ef4444; font-size: 28px; font-weight: 900; -webkit-text-stroke: 1px black;",
           "color: #f59e0b; font-size: 18px; font-weight: bold;"
         );
-        console.log(
+        originalLog(
           "%cEl código fuente, estilos CSS y arquitectura de T.A.B.E. están protegidos bajo propiedad intelectual y medidas de seguridad.",
           "font-size: 13px; color: #94a3b8; font-weight: 500;"
         );
-        console.log(
-          "%cSi alguien te pidió copiar o pegar código aquí, es un intento de vulneración.",
+        originalLog(
+          "%cSi alguien te pidió copiar o pegar comandos aquí, es un intento de vulneración de seguridad.",
           "font-size: 13px; color: #ef4444; font-weight: bold;"
         );
       } catch (_) {}
     };
 
-    // Mostrar advertencia inicial
-    showWarning();
+    const originalLog = console.log.bind(console);
 
-    // Silenciar logs informativos en producción para evitar filtración de estados internos
+    // Silenciar métodos de consola para prevenir filtración y ejecución de scripts
     const noop = () => {};
     console.log = noop;
     console.debug = noop;
     console.info = noop;
+    console.warn = noop;
+    console.error = noop;
     console.dir = noop;
+    console.table = noop;
+    console.trace = noop;
 
-    // Detector periódico de DevTools
+    // Mostrar advertencia inicial
+    showWarning();
+
+    // Detector periódico de DevTools (docked o detached)
     let devToolsOpen = false;
     const threshold = 160;
-    setInterval(() => {
+
+    const checkDevTools = () => {
+      // Detección por tamaño (DevTools acopladas)
       const widthDiff = window.outerWidth - window.innerWidth > threshold;
       const heightDiff = window.outerHeight - window.innerHeight > threshold;
-      if (widthDiff || heightDiff) {
+
+      // Detección por timing de debugger (DevTools abiertas en ventana separada)
+      const t0 = performance.now();
+      // eslint-disable-next-line no-eval
+      Function("debugger")();
+      const t1 = performance.now();
+      const debuggerTripped = t1 - t0 > 100;
+
+      if (widthDiff || heightDiff || debuggerTripped) {
         if (!devToolsOpen) {
           devToolsOpen = true;
           showWarning();
         }
+        try {
+          console.clear();
+        } catch (_) {}
       } else {
         devToolsOpen = false;
       }
-    }, 1500);
+    };
+
+    setInterval(checkDevTools, 1500);
   }
 }
 

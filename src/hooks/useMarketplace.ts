@@ -168,7 +168,7 @@ export function useMarketplace() {
       const subjectIds = [...new Set(allResources.map(r => r.subject_id).filter(Boolean))];
 
       const [profilesResult, statsResult, subjectsResult] = await Promise.all([
-        userIds.length > 0 ? supabase.from("profiles").select("user_id, username, display_id, nombre, facultad, carrera").in("user_id", userIds) : Promise.resolve({ data: [], error: null }),
+        userIds.length > 0 ? supabase.from("public_profiles" as any).select("user_id, username, display_id, nombre, facultad, carrera").in("user_id", userIds) : Promise.resolve({ data: [], error: null }),
         userIds.length > 0 ? supabase.from("user_stats").select("user_id, nivel").in("user_id", userIds) : Promise.resolve({ data: [], error: null }),
         subjectIds.length > 0 ? supabase.from("subjects").select("id, nombre, año").in("id", subjectIds) : Promise.resolve({ data: [], error: null })
       ]);

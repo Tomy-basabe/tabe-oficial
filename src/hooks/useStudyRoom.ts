@@ -103,7 +103,7 @@ export function useStudyRoom() {
     if (rooms && rooms.length > 0) {
       const hostIds = [...new Set(rooms.map(r => r.host_id))];
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("public_profiles" as any)
         .select("user_id, nombre, username, avatar_url")
         .in("user_id", hostIds);
 
@@ -159,7 +159,7 @@ export function useStudyRoom() {
         // Fetch profiles for participants
         const userIds = data.map(p => p.user_id);
         const { data: profiles } = await supabase
-          .from("profiles")
+          .from("public_profiles" as any)
           .select("user_id, nombre, username, avatar_url")
           .in("user_id", userIds);
 

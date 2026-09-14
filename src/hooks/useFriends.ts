@@ -158,16 +158,16 @@ export function useFriends() {
           if (!profileError && profileData && (profileData as Profile[]).length > 0) {
             profiles = profileData as Profile[];
           } else {
-            // Fallback direct query on profiles
+            // Fallback direct query on public_profiles
             const { data: directProfiles } = await supabase
-              .from("profiles")
+              .from("public_profiles" as any)
               .select("user_id, username, display_id, nombre, avatar_url")
               .in("user_id", idList);
             profiles = (directProfiles as Profile[]) || [];
           }
         } catch (err) {
           const { data: directProfiles } = await supabase
-            .from("profiles")
+            .from("public_profiles" as any)
             .select("user_id, username, display_id, nombre, avatar_url")
             .in("user_id", idList);
           profiles = (directProfiles as Profile[]) || [];
@@ -354,7 +354,7 @@ export function useFriends() {
       const isNum = /^\d+$/.test(normalizedIdentifier);
       if (isNum) {
         const { data: byNum } = await supabase
-          .from("profiles")
+          .from("public_profiles" as any)
           .select("user_id, username, display_id")
           .eq("display_id", parseInt(normalizedIdentifier, 10))
           .maybeSingle();
@@ -362,7 +362,7 @@ export function useFriends() {
       }
       if (!targetUser) {
         const { data: byUsername } = await supabase
-          .from("profiles")
+          .from("public_profiles" as any)
           .select("user_id, username, display_id")
           .ilike("username", normalizedIdentifier)
           .maybeSingle();
