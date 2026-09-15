@@ -76,11 +76,16 @@ serve(async (req) => {
 
     if (!platform || !senderId || !text) return new Response("OK");
 
-    const { data: botUser } = await supabase
-      .from('user_bots')
-      .select('user_id')
-      .eq(platform === 'telegram' ? 'telegram_id' : 'whatsapp_number', senderId)
-      .maybeSingle();
+    let userQuery = supabase.from('user_bots').select('user_id');
+    if (platform === 'telegram') {
+      userQuery = userQuery.eq('telegram_id', senderId);
+    } else {
+      const altSender = senderId.startsWith('549') 
+        ? senderId.replace(/^549/, '54') 
+        : (senderId.startsWith('54') ? senderId.replace(/^54/, '549') : senderId);
+      userQuery = userQuery.or(`whatsapp_number.eq.${senderId},whatsapp_number.eq.${altSender}`);
+    }
+    const { data: botUser } = await userQuery.maybeSingle();
 
     if (!botUser) {
       const linkingCodeMatch = text.trim().match(/^\d{6}$/);
