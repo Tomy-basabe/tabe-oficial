@@ -112,38 +112,50 @@ serve(async (req) => {
     const subjects = subjectsRes.data || [];
     const statusMap = new Map((subjectStatusRes.data || []).map(s => [s.subject_id, s]));
     
+    // Calcular métricas académicas (promedio, materias aprobadas, regulares, etc.)
+    const statusList = subjectStatusRes.data || [];
+    const notasValidas = statusList
+      .filter((s: any) => typeof s.nota === 'number' && s.nota > 0)
+      .map((s: any) => s.nota);
+    const promedio = notasValidas.length > 0
+      ? (notasValidas.reduce((a: number, b: number) => a + b, 0) / notasValidas.length).toFixed(2)
+      : "Sin notas cargadas";
+    const aprobadas = statusList.filter((s: any) => s.estado === 'aprobada').length;
+    const regulares = statusList.filter((s: any) => s.estado === 'regular').length;
+    
     const enrichedSubjects = subjects
       .filter(s => statusMap.has(s.id))
       .map(s => {
         const st = statusMap.get(s.id);
-        return `${s.nombre} - Estado: ${st?.estado || 'sin_cursar'} - Nota: ${st?.nota || '-'}`;
+        return `${s.nombre} - Estado: ${st?.estado || 'sin_cursar'} - Nota: ${st?.nota !== null && st?.nota !== undefined ? st.nota : '-'}`;
       });
 
     const events = (eventsRes.data || []).map(e => `${e.fecha} [ID: ${e.id}]: ${e.titulo} (${e.tipo_examen})`);
     const userName = profilesRes.data?.nombre || "Estudiante";
     const stats = statsRes.data || { nivel: 1, xp_total: 0, racha_actual: 0, horas_estudio_total: 0 };
 
-    const systemPrompt = `Sos TABE AI (@tabeai_bot), el gestor total de la vida académica de ${userName}.
-      Tenés acceso completo a su base de datos y podés gestionar todo a través de herramientas.
+    const systemPrompt = `Sos TABE AI (@tabeai_bot), el asistente inteligente de la vida universitaria de ${userName}.
+      Tenés acceso completo a sus datos académicos.
       
-      -- CONTEXTO --
-      Métricas: Nivel ${stats.nivel}, XP: ${stats.xp_total}, Racha: ${stats.racha_actual} días, Horas de estudio totales: ${stats.horas_estudio_total}.
+      -- DATOS ACADÉMICOS DE ${userName.toUpperCase()} --
+      Promedio actual: ${promedio} (sobre ${notasValidas.length} materias con nota)
+      Materias aprobadas: ${aprobadas}
+      Materias regulares: ${regulares}
+      Métricas de Gamificación: Nivel ${stats.nivel}, XP: ${stats.xp_total}, Racha: ${stats.racha_actual} días, Horas de estudio: ${stats.horas_estudio_total}h.
       
-      Próximos eventos (exámenes/estudio/consultas):
-      ${events.length ? events.join("\\n") : "Ninguno."}
+      Próximos exámenes y eventos:
+      ${events.length ? events.join("\\n") : "Ninguno agendado próximamente."}
       
-      Estado de las materias:
-      ${enrichedSubjects.join("\\n")}
+      Materias y estados:
+      ${enrichedSubjects.length ? enrichedSubjects.join("\\n") : "Sin materias cargadas."}
       
       -- INSTRUCCIONES --
-      1. Entendé el lenguaje natural (ej. "Aprobé Sistemas con 9", "Agendame una consulta para mañana", "Estudié 2 horas").
-      2. LLAMÁ DIRECTAMENTE A LAS HERRAMIENTAS (tools) para ejecutar lo que pida el usuario. NO SIMULES, EJECUTÁ utilizando function calls.
-      3. Sé cálido, amigable, conciso y felicitá o alentá cuando sea oportuno. Usa Emojis.
-      4. Si el usuario te pide agendar, modificar o referirse a una materia, pasa el NOMBRE de la materia como 'subject_id' si no tienes su ID.
-      5. Las consultas y tutorías se guardan como 'create_calendar_event' con tipo 'Estudio'. Explica en el título qué es la consulta.
+      1. Si te pregunta sobre su promedio, notas, materias o exámenes, respondé directamente con los datos de arriba.
+      2. Si te pide agendar fechas, eliminar eventos, registrar estudio o cambiar estados de materias, EJECUTÁ LAS HERRAMIENTAS (tools).
+      3. Sé cálido, claro, conciso y usá emojis.
     `;
 
-    let chosenModel = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+    let chosenModel = "llama-3.3-70b-versatile";
     try {
       const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
         headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
@@ -151,20 +163,22 @@ serve(async (req) => {
       if (modelsRes.ok) {
         const modelsData = await modelsRes.json();
         const available = (modelsData.data || []).map((m: any) => m.id);
+        const nonChat = ["specdec", "guard", "whisper", "orpheus", "embed", "safeguard"];
+        const chatModels = available.filter((id: string) => !nonChat.some(kw => id.toLowerCase().includes(kw)));
         const preferred = [
           "llama-3.3-70b-versatile",
           "llama-3.1-70b-versatile",
-          "llama-3.3-70b-specdec",
           "llama3-70b-8192",
           "llama3-8b-8192",
+          "qwen/qwen3.8-27b",
           "mixtral-8x7b-32768"
         ];
-        const match = preferred.find((p) => available.includes(p));
+        const match = preferred.find((p) => chatModels.includes(p));
         if (match) chosenModel = match;
-        else if (available.length > 0) chosenModel = available[0];
+        else if (chatModels.length > 0) chosenModel = chatModels[0];
       }
     } catch (_) {
-      // fallback to llama-3.3-70b-versatile
+      // fallback
     }
 
     const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
