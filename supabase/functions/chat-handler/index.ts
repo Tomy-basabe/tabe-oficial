@@ -358,7 +358,7 @@ async function sendMessage(platform: 'telegram' | 'whatsapp', to: string, text: 
       return;
     }
 
-    const res = await fetch(`https://graph.facebook.com/v17.0/${WHATSAPP_PHONE_ID}/messages`, {
+    const res = await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
