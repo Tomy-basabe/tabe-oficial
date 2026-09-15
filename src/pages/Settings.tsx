@@ -19,7 +19,9 @@ import {
   CheckCircle2,
   Loader2,
   Unlink,
-  GraduationCap
+  GraduationCap,
+  Copy,
+  ExternalLink
 } from "lucide-react";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
@@ -182,6 +184,21 @@ export default function Settings() {
       toast.success("Código generado. Vence en 10 minutos.");
     }
     setLoadingBot(false);
+  };
+
+  const handleUnlinkBot = async (platform: 'telegram' | 'whatsapp') => {
+    if (!user) return;
+    const update = platform === 'telegram' ? { telegram_id: null } : { whatsapp_number: null };
+    const { error } = await (supabase as any)
+      .from("user_bots")
+      .update(update)
+      .eq("user_id", user.id);
+    if (!error) {
+      setBotStatus((prev: any) => prev ? { ...prev, ...update } : null);
+      toast.success(`${platform === 'telegram' ? 'Telegram' : 'WhatsApp'} desvinculado`);
+    } else {
+      toast.error("Error al desvincular");
+    }
   };
 
   return (
@@ -460,66 +477,110 @@ export default function Settings() {
             {expandedSection === "bot" && (
               <div className="p-5 pt-0 border-t-4 border-foreground space-y-4 animate-in fade-in slide-in-from-top-2 bg-muted/20">
                 <div className="pt-4 space-y-4">
+                  {/* Telegram */}
                   <div className="flex items-center justify-between p-4 bg-card border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))]">
                     <div className="flex items-center gap-3">
                       <Send className="w-5 h-5 text-foreground" strokeWidth={2.5} />
                       <span className="font-black uppercase text-sm text-foreground">Telegram Bot</span>
                     </div>
-                    {botStatus?.telegram_id ? (
-                      <span className="text-xs px-3 py-1 font-black uppercase rounded bg-[#BFFF00] text-black border-2 border-foreground">Vinculado</span>
-                    ) : (
-                      <span className="text-xs px-3 py-1 font-black uppercase rounded bg-muted text-muted-foreground border-2 border-foreground">No vinculado</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {botStatus?.telegram_id ? (
+                        <>
+                          <span className="text-xs px-3 py-1 font-black uppercase rounded bg-[#BFFF00] text-black border-2 border-foreground">Vinculado</span>
+                          <button
+                            onClick={() => handleUnlinkBot('telegram')}
+                            className="text-xs px-2 py-1 font-bold text-red-500 hover:underline cursor-pointer"
+                          >
+                            Desvincular
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs px-3 py-1 font-black uppercase rounded bg-muted text-muted-foreground border-2 border-foreground">No vinculado</span>
+                      )}
+                    </div>
                   </div>
                   
+                  {/* WhatsApp */}
                   <div className="flex items-center justify-between p-4 bg-card border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))]">
                     <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 text-foreground fill-current">
+                      <div className="w-5 h-5 text-[#25D366] fill-current">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                       </div>
                       <span className="font-black uppercase text-sm text-foreground">WhatsApp Bot</span>
                     </div>
-                    {botStatus?.whatsapp_number ? (
-                      <span className="text-xs px-3 py-1 font-black uppercase rounded bg-[#BFFF00] text-black border-2 border-foreground">Vinculado</span>
-                    ) : (
-                      <span className="text-xs px-3 py-1 font-black uppercase rounded bg-muted text-muted-foreground border-2 border-foreground">No vinculado</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {botStatus?.whatsapp_number ? (
+                        <>
+                          <span className="text-xs px-3 py-1 font-black uppercase rounded bg-[#BFFF00] text-black border-2 border-foreground">Vinculado</span>
+                          <button
+                            onClick={() => handleUnlinkBot('whatsapp')}
+                            className="text-xs px-2 py-1 font-bold text-red-500 hover:underline cursor-pointer"
+                          >
+                            Desvincular
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs px-3 py-1 font-black uppercase rounded bg-muted text-muted-foreground border-2 border-foreground">No vinculado</span>
+                      )}
+                    </div>
                   </div>
 
-                  {!botStatus?.telegram_id && !botStatus?.whatsapp_number && (
-                    <div className="bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4 text-center">
-                      {botStatus?.linking_code ? (
-                        <div className="space-y-4">
-                          <p className="text-sm font-black uppercase tracking-wider text-foreground">Tu código de vinculación</p>
-                          <div className="text-4xl font-black bg-muted py-3 rounded-lg border-2 border-foreground tracking-[0.2em] inline-block px-8 animate-pulse text-foreground">
-                            {botStatus.linking_code}
-                          </div>
-                          <p className="text-sm font-bold text-muted-foreground max-w-[250px] mx-auto">
-                            Envía este código al bot de Telegram o WhatsApp para vincular tu cuenta.
-                          </p>
+                  {/* Panel de Vinculación y Código */}
+                  <div className="bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4 text-center">
+                    {botStatus?.linking_code ? (
+                      <div className="space-y-4">
+                        <p className="text-sm font-black uppercase tracking-wider text-foreground">Tu código de vinculación</p>
+                        <div className="text-4xl font-black bg-muted py-3 rounded-lg border-2 border-foreground tracking-[0.2em] inline-block px-8 animate-pulse text-foreground select-all">
+                          {botStatus.linking_code}
+                        </div>
+                        <p className="text-xs font-bold text-muted-foreground max-w-[340px] mx-auto">
+                          Enviá este código al bot de WhatsApp o Telegram para vincular tu cuenta con TABE.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-2 justify-center items-center pt-2">
+                          <a
+                            href={`https://wa.me/15551639526?text=${botStatus.linking_code}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#25D366] text-black font-black uppercase text-xs border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2"
+                          >
+                            <span>Enviar por WhatsApp</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(botStatus.linking_code || "");
+                              toast.success("Código copiado al portapapeles");
+                            }}
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-muted text-foreground font-black uppercase text-xs border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/80 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copiar Código</span>
+                          </button>
+                        </div>
+                        <div>
                           <button 
                             onClick={generateLinkingCode}
                             disabled={loadingBot}
-                            className="font-black uppercase text-sm text-foreground hover:underline mt-2"
+                            className="font-black uppercase text-xs text-muted-foreground hover:text-foreground hover:underline mt-1 cursor-pointer"
                           >
-                            Generar uno nuevo
+                            Generar nuevo código
                           </button>
                         </div>
-                      ) : (
-                        <button
-                          onClick={generateLinkingCode}
-                          disabled={loadingBot}
-                          className="w-full py-4 px-4 rounded-xl bg-[#00E5FF] border-4 border-foreground text-black font-black uppercase text-sm shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] hover:translate-y-[2px] hover:shadow-[0_0_0_0_#000] transition-all flex items-center justify-center gap-2"
-                        >
-                          {loadingBot ? "Generando..." : "Generar Código de Vínculo"}
-                        </button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={generateLinkingCode}
+                        disabled={loadingBot}
+                        className="w-full py-4 px-4 rounded-xl bg-[#00E5FF] border-4 border-foreground text-black font-black uppercase text-sm shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] hover:translate-y-[2px] hover:shadow-[0_0_0_0_#000] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        {loadingBot ? "Generando..." : "Generar Código de Vínculo"}
+                      </button>
+                    )}
+                  </div>
 
                   <div className="p-4 rounded-xl bg-[#FFD700] text-black border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
                     <p className="text-sm font-bold text-black">
-                      <span className="font-black uppercase">Instrucciones:</span> Buscá @tabeai_bot en Telegram o el número oficial en WhatsApp y enviale el código de 6 dígitos que generaste arriba.
+                      <span className="font-black uppercase">Instrucciones:</span> Hacé clic en "Generar Código de Vínculo" y mandáselo al bot de WhatsApp o a @tabeai_bot en Telegram.
                     </p>
                   </div>
                 </div>
