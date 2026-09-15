@@ -143,7 +143,30 @@ serve(async (req) => {
       5. Las consultas y tutorías se guardan como 'create_calendar_event' con tipo 'Estudio'. Explica en el título qué es la consulta.
     `;
 
-    const chosenModel = Deno.env.get("GROQ_MODEL") || "llama-3.1-8b-instant";
+    let chosenModel = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+    try {
+      const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
+      });
+      if (modelsRes.ok) {
+        const modelsData = await modelsRes.json();
+        const available = (modelsData.data || []).map((m: any) => m.id);
+        const preferred = [
+          "llama-3.3-70b-versatile",
+          "llama-3.1-70b-versatile",
+          "llama-3.3-70b-specdec",
+          "llama3-70b-8192",
+          "llama3-8b-8192",
+          "mixtral-8x7b-32768"
+        ];
+        const match = preferred.find((p) => available.includes(p));
+        if (match) chosenModel = match;
+        else if (available.length > 0) chosenModel = available[0];
+      }
+    } catch (_) {
+      // fallback to llama-3.3-70b-versatile
+    }
+
     const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
