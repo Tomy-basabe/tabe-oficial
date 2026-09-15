@@ -358,20 +358,26 @@ async function sendMessage(platform: 'telegram' | 'whatsapp', to: string, text: 
       return;
     }
 
-    const res = await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: to,
-        type: "text",
-        text: { body: cleanText }
-      })
-    });
+    const sendReq = async (recipient: string) => {
+      return await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: recipient,
+          type: "text",
+          text: { body: cleanText }
+        })
+      });
+    };
 
+    let res = await sendReq(to);
+    if (!res.ok && to.startsWith("549")) {
+      res = await sendReq(to.replace(/^549/, "54"));
+    }
     if (!res.ok) {
       console.error("WhatsApp message failed. Reason:", await res.text());
     }
