@@ -344,11 +344,11 @@ Cuando el usuario quiera agendar algo, usá la herramienta "create_calendar_even
 - Si menciona una materia, usá su ID de la lista
 
 INSTRUCCIONES PARA GENERAR FLASHCARDS:
-- Cuando termines de explicar un tema, SIEMPRE preguntá: "¿Querés que te genere flashcards sobre este tema para repasar?"
-- Si el usuario acepta, usá la herramienta "create_flashcards"
-- Generá entre 5 y 15 flashcards dependiendo de la complejidad del tema
+- Cuando termines de explicar un tema, preguntá si quiere generar flashcards para repasar, o generalas inmediatamente si el usuario lo pide.
+- Si el usuario acepta o lo solicita, usá la herramienta "create_flashcards"
+- NO HAY LÍMITE: Generá tantas flashcards como solicite el estudiante (incluso decenas o cientos).
 - Las preguntas deben ser claras y concisas
-- Las respuestas deben ser completas pero no excesivamente largas
+- Las respuestas deben ser completas pero precisas
 - Incluí variedad: definiciones, ejemplos, comparaciones, aplicaciones
 - Si el usuario menciona una materia, asociá el mazo a esa materia
 
@@ -630,9 +630,9 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
             headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
-        if (!Array.isArray(flashcardData.cards) || flashcardData.cards.length === 0 || flashcardData.cards.length > 50) {
+        if (!Array.isArray(flashcardData.cards) || flashcardData.cards.length === 0 || flashcardData.cards.length > 2000) {
           return new Response(JSON.stringify({
-            content: "Error: cantidad de tarjetas inválida",
+            content: "Error: cantidad de tarjetas inválida (debe ser entre 1 y 2000)",
             event_created: null,
             flashcards_created: null,
           }), {
@@ -711,9 +711,16 @@ Respondé siempre en español argentino. Adaptá tu tono según tu personalidad 
           veces_incorrecta: 0,
         }));
 
-        const { error: cardsError } = await supabase
-          .from("flashcards")
-          .insert(flashcardsToInsert);
+        let cardsError = null;
+        const batchSize = 50;
+        for (let i = 0; i < flashcardsToInsert.length; i += batchSize) {
+          const chunk = flashcardsToInsert.slice(i, i + batchSize);
+          const { error: insErr } = await supabase.from("flashcards").insert(chunk);
+          if (insErr) {
+            cardsError = insErr;
+            break;
+          }
+        }
 
         if (cardsError) {
           console.error("Error creating flashcards:", cardsError);

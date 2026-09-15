@@ -421,8 +421,10 @@ serve(async (req) => {
       "3. ⚠️ REGLA MAS IMPORTANTE - CUANDO USAR HERRAMIENTAS:\n" +
       "   SOLO usa herramientas (function calling) cuando el usuario EXPLICITAMENTE pida una ACCION CONCRETA como:\n" +
       "   - 'agendame...', 'creame un evento...', 'anotame el parcial...' -> create_calendar_events\n" +
-      "   - 'creame flashcards de...', 'haceme un mazo de...' -> create_flashcards\n" +
-      "   - 'creame un cuestionario...', 'haceme preguntas de...' -> create_quiz\n" +
+      "   - 'creame flashcards de...', 'haceme un mazo de...' -> create_flashcards o manage_flashcards\n" +
+      "   - 'agregale cartas a...', 'modificame la flashcard...', 'borrá la carta...' -> manage_flashcards\n" +
+      "   - 'creame un cuestionario...', 'haceme preguntas de...' -> create_quiz o manage_quizzes\n" +
+      "   - 'agregale preguntas a...', 'modificá la pregunta...', 'borrá el cuestionario...' -> manage_quizzes\n" +
       "   - 'marcame X como aprobada...', 'cambiame el estado de...' -> update_subject_status\n" +
       "   - 'creame un documento/apunte sobre...' -> create_notion_document\n" +
       "   - 'eliminame el evento...' -> delete_calendar_event\n" +
@@ -441,7 +443,10 @@ serve(async (req) => {
       "6. Responde en Español Argentino.\n" +
       "7. Solo analiza metricas de materias EN CURSO, no aprobadas/regulares.\n" +
       "8. Para multiples eventos usa create_calendar_events con array completo.\n" +
-      "9. Para flashcards/cuestionarios masivos, crea TODAS las que te manden sin limite.\n" +
+      "9. GESTION ILIMITADA DE FLASHCARDS Y CUESTIONARIOS:\n" +
+      "   - NO EXISTE NINGÚN LÍMITE: Si el estudiante te pide crear o modificar flashcards o cuestionarios (incluso 50, 100 o 500 cartas), ACEPTÁ SIEMPRE y crealas.\n" +
+      "   - Generá todas las preguntas/respuestas posibles en el llamado de la herramienta. Si pide una cantidad masiva como 500 cartas, creá el primer lote grande con el mazo y explícale con entusiasmo que ya se guardaron y que podés continuar agregando más lotes en segundo plano al mismo mazo con 'manage_flashcards (add_cards)'.\n" +
+      "   - Para modificar cartas existentes o agregar a un mazo existente, usá 'manage_flashcards'. Para modificar preguntas o agregar a un cuestionario existente, usá 'manage_quizzes'.\n" +
       "10. GESTION DE PROFESORES: Si el usuario menciona un nombre y una materia, buscá siempre el ID de la materia y usá manage_professors.\n" +
       "11. GESTION DE CONSULTAS: Un profesor puede tener múltiples horarios. Usá manege_consultations para añadir, actualizar o eliminar horarios específicos (lunes, martes, etc.).";
 
@@ -484,10 +489,78 @@ serve(async (req) => {
       { type: "function", function: { name: "delete_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE eliminar un evento.", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } } },
       { type: "function", function: { name: "update_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE modificar un evento.", parameters: { type: "object", properties: { id: { type: "string" }, titulo: { type: "string" }, fecha: { type: "string" }, hora: { type: "string" }, tipo_examen: { type: "string" }, notas: { type: "string" } }, required: ["id"] } } },
       { type: "function", function: { name: "create_flashcards", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear flashcards.", parameters: { type: "object", properties: { deck_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, cards: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, respuesta: { type: "string" } }, required: ["pregunta", "respuesta"] } } }, required: ["deck_name", "cards"] } } },
+      {
+        type: "function",
+        function: {
+          name: "manage_flashcards",
+          description: "Gestiona mazos y tarjetas flashcards: crear mazo nuevo, agregar cartas a un mazo existente, modificar una carta existente o eliminar cartas/mazos.",
+          parameters: {
+            type: "object",
+            properties: {
+              action: { type: "string", enum: ["create_deck", "add_cards", "update_card", "delete_card", "delete_deck"], description: "Acción a realizar" },
+              deck_id: { type: "string", description: "ID o nombre del mazo (para add_cards o delete_deck)" },
+              deck_name: { type: "string", description: "Nombre del mazo para create_deck o add_cards" },
+              subject_id: { type: "string", description: "Nombre o ID de la materia" },
+              card_id: { type: "string", description: "ID de la carta para update_card o delete_card" },
+              pregunta: { type: "string", description: "Nueva pregunta para update_card" },
+              respuesta: { type: "string", description: "Nueva respuesta para update_card" },
+              cards: {
+                type: "array",
+                description: "Array de cartas a agregar o crear",
+                items: {
+                  type: "object",
+                  properties: {
+                    pregunta: { type: "string" },
+                    respuesta: { type: "string" }
+                  },
+                  required: ["pregunta", "respuesta"]
+                }
+              }
+            },
+            required: ["action"]
+          }
+        }
+      },
       { type: "function", function: { name: "update_subject_status", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE cambiar estado de una materia.", parameters: { type: "object", properties: { subject_id: { type: "string", description: "Nombre materia" }, estado: { type: "string", enum: ["sin_cursar", "en_curso", "regular", "aprobada", "libre"] }, nota: { type: "number" } }, required: ["subject_id", "estado"] } } },
       { type: "function", function: { name: "create_notion_document", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un documento o apunte con palabras como 'creame un doc', 'haceme un apunte'. NUNCA usar para responder preguntas, saludos, ni conversacion.", parameters: { type: "object", properties: { titulo: { type: "string" }, contenido: { type: "string" }, subject_id: { type: "string" } }, required: ["titulo"] } } },
       { type: "function", function: { name: "search_library", description: "Busca archivos en la biblioteca.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
       { type: "function", function: { name: "create_quiz", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un cuestionario.", parameters: { type: "object", properties: { quiz_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, questions: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, opciones: { type: "array", items: { type: "string" }, description: "5 opciones" }, correcta: { type: "integer", description: "Indice 0-4" }, explicacion: { type: "string" } }, required: ["pregunta", "opciones", "correcta"] } } }, required: ["quiz_name", "questions"] } } },
+      {
+        type: "function",
+        function: {
+          name: "manage_quizzes",
+          description: "Gestiona cuestionarios y preguntas: crear cuestionario, agregar preguntas a uno existente, modificar preguntas o eliminar preguntas/cuestionarios.",
+          parameters: {
+            type: "object",
+            properties: {
+              action: { type: "string", enum: ["create_quiz", "add_questions", "update_question", "delete_question", "delete_quiz"], description: "Acción a realizar" },
+              quiz_id: { type: "string", description: "ID o nombre del cuestionario (para add_questions o delete_quiz)" },
+              quiz_name: { type: "string", description: "Nombre del cuestionario para create_quiz o add_questions" },
+              subject_id: { type: "string", description: "Nombre o ID de la materia" },
+              question_id: { type: "string", description: "ID de la pregunta para update_question o delete_question" },
+              pregunta: { type: "string", description: "Texto de la pregunta para update_question" },
+              explicacion: { type: "string", description: "Explicación de la respuesta para update_question" },
+              opciones: { type: "array", items: { type: "string" }, description: "Opciones actualizadas para update_question" },
+              correcta: { type: "integer", description: "Índice de la respuesta correcta para update_question (0 a N)" },
+              questions: {
+                type: "array",
+                description: "Array de preguntas a añadir o crear",
+                items: {
+                  type: "object",
+                  properties: {
+                    pregunta: { type: "string" },
+                    opciones: { type: "array", items: { type: "string" }, description: "4-5 opciones" },
+                    correcta: { type: "integer", description: "Indice 0-4" },
+                    explicacion: { type: "string" }
+                  },
+                  required: ["pregunta", "opciones", "correcta"]
+                }
+              }
+            },
+            required: ["action"]
+          }
+        }
+      },
       {
         type: "function",
         function: {
@@ -896,22 +969,77 @@ serve(async (req) => {
               const { error } = await serviceClient.from("calendar_events").update(updates).eq("id", args.id).eq("user_id", userId);
               toolResult = error ? `\nNo pude actualizar el evento: ${error.message}` : "\nEvento actualizado.";
             }
-            else if (toolCallName === "create_flashcards") {
+            else if (toolCallName === "create_flashcards" || toolCallName === "manage_flashcards") {
               const sid = resolveId(args.subject_id || args.deck_name);
-              const cardsToCreate = args.cards || [];
-              const { data: deck } = await serviceClient.from("flashcard_decks").insert({
-                user_id: userId, nombre: args.deck_name, total_cards: cardsToCreate.length, subject_id: sid
-              }).select().single();
-              if (deck && cardsToCreate.length > 0) {
-                const batchSize = 50;
-                let inserted = 0;
-                for (let i = 0; i < cardsToCreate.length; i += batchSize) {
-                  const { error: batchError } = await serviceClient.from("flashcards").insert(
-                    cardsToCreate.slice(i, i + batchSize).map((c: any) => ({ deck_id: deck.id, user_id: userId, pregunta: c.pregunta, respuesta: c.respuesta }))
-                  );
-                  if (!batchError) inserted += Math.min(batchSize, cardsToCreate.length - i);
+              const action = args.action || (toolCallName === "create_flashcards" ? "create_deck" : "add_cards");
+
+              if (action === "create_deck" || action === "add_cards" || toolCallName === "create_flashcards") {
+                const targetDeckName = args.deck_name || args.deck_id || "Nuevo Mazo";
+                let deck: any = null;
+                if (args.deck_id) {
+                  const { data: dById } = await serviceClient.from("flashcard_decks").select("*").eq("user_id", userId).eq("id", args.deck_id).maybeSingle();
+                  deck = dById;
                 }
-                toolResult = `\nMazo "${deck.nombre}" creado con ${inserted} cartas.`;
+                if (!deck && targetDeckName) {
+                  const { data: dByName } = await serviceClient.from("flashcard_decks").select("*").eq("user_id", userId).ilike("nombre", targetDeckName).maybeSingle();
+                  deck = dByName;
+                }
+                if (!deck) {
+                  const { data: newDeck } = await serviceClient.from("flashcard_decks").insert({
+                    user_id: userId, nombre: targetDeckName, total_cards: 0, subject_id: sid
+                  }).select().single();
+                  deck = newDeck;
+                }
+
+                if (deck) {
+                  const cardsToCreate = args.cards || [];
+                  let inserted = 0;
+                  if (cardsToCreate.length > 0) {
+                    const batchSize = 50;
+                    for (let i = 0; i < cardsToCreate.length; i += batchSize) {
+                      const { error: batchError } = await serviceClient.from("flashcards").insert(
+                        cardsToCreate.slice(i, i + batchSize).map((c: any) => ({ deck_id: deck.id, user_id: userId, pregunta: c.pregunta, respuesta: c.respuesta }))
+                      );
+                      if (!batchError) inserted += Math.min(batchSize, cardsToCreate.length - i);
+                    }
+                  }
+                  const { count: realCount } = await serviceClient.from("flashcards").select("id", { count: "exact", head: true }).eq("deck_id", deck.id);
+                  const finalTotal = realCount ?? ((deck.total_cards || 0) + inserted);
+                  await serviceClient.from("flashcard_decks").update({ total_cards: finalTotal }).eq("id", deck.id);
+                  toolResult = `\nMazo "${deck.nombre}" actualizado con éxito: se guardaron ${inserted} cartas (total acumulado en el mazo: ${finalTotal}).`;
+                } else {
+                  toolResult = `\nNo se pudo crear o encontrar el mazo de flashcards.`;
+                }
+              }
+              else if (action === "update_card" && args.card_id) {
+                const updates: any = {};
+                if (args.pregunta) updates.pregunta = args.pregunta;
+                if (args.respuesta) updates.respuesta = args.respuesta;
+                const { error: upErr } = await serviceClient.from("flashcards").update(updates).eq("id", args.card_id).eq("user_id", userId);
+                toolResult = upErr ? `\nError al actualizar carta: ${upErr.message}` : `\nCarta actualizada correctamente.`;
+              }
+              else if (action === "delete_card" && args.card_id) {
+                const { data: cardData } = await serviceClient.from("flashcards").select("deck_id").eq("id", args.card_id).eq("user_id", userId).maybeSingle();
+                const { error: delErr } = await serviceClient.from("flashcards").delete().eq("id", args.card_id).eq("user_id", userId);
+                if (!delErr && cardData?.deck_id) {
+                  const { count: realCount } = await serviceClient.from("flashcards").select("id", { count: "exact", head: true }).eq("deck_id", cardData.deck_id);
+                  await serviceClient.from("flashcard_decks").update({ total_cards: realCount || 0 }).eq("id", cardData.deck_id);
+                }
+                toolResult = delErr ? `\nError al eliminar carta: ${delErr.message}` : `\nCarta eliminada correctamente.`;
+              }
+              else if (action === "delete_deck" && (args.deck_id || args.deck_name)) {
+                let targetId = args.deck_id;
+                if (!targetId && args.deck_name) {
+                  const { data: d } = await serviceClient.from("flashcard_decks").select("id").eq("user_id", userId).ilike("nombre", args.deck_name).maybeSingle();
+                  targetId = d?.id;
+                }
+                if (targetId) {
+                  await serviceClient.from("flashcards").delete().eq("deck_id", targetId).eq("user_id", userId);
+                  const { error: dErr } = await serviceClient.from("flashcard_decks").delete().eq("id", targetId).eq("user_id", userId);
+                  toolResult = dErr ? `\nError al eliminar mazo: ${dErr.message}` : `\nMazo de flashcards eliminado correctamente.`;
+                } else {
+                  toolResult = `\nNo se encontró el mazo para eliminar.`;
+                }
               }
             }
             else if (toolCallName === "update_subject_status") {
@@ -923,25 +1051,95 @@ serve(async (req) => {
                 toolResult = `\nEstatus de ${args.subject_id} actualizado.`;
               }
             }
-            else if (toolCallName === "create_quiz") {
+            else if (toolCallName === "create_quiz" || toolCallName === "manage_quizzes") {
               const sid = resolveId(args.subject_id || args.quiz_name);
-              const questionsToCreate = args.questions || [];
-              const { data: quizDeck } = await serviceClient.from("quiz_decks").insert({
-                user_id: userId, nombre: args.quiz_name, total_questions: questionsToCreate.length, subject_id: sid
-              }).select().single();
-              if (quizDeck && questionsToCreate.length > 0) {
-                for (const q of questionsToCreate) {
-                  const { data: question } = await serviceClient.from("quiz_questions").insert({
-                    deck_id: quizDeck.id, user_id: userId, pregunta: q.pregunta, explicacion: q.explicacion || null
-                  }).select().single();
-                  if (question && q.opciones) {
-                    const opts = q.opciones.map((o: string, i: number) => ({
-                      question_id: question.id, texto: o, es_correcta: i === (q.correcta || 0)
-                    }));
-                    await serviceClient.from("quiz_options").insert(opts);
-                  }
+              const action = args.action || (toolCallName === "create_quiz" ? "create_quiz" : "add_questions");
+
+              if (action === "create_quiz" || action === "add_questions" || toolCallName === "create_quiz") {
+                const targetQuizName = args.quiz_name || args.quiz_id || "Nuevo Cuestionario";
+                let quizDeck: any = null;
+                if (args.quiz_id) {
+                  const { data: qById } = await serviceClient.from("quiz_decks").select("*").eq("user_id", userId).eq("id", args.quiz_id).maybeSingle();
+                  quizDeck = qById;
                 }
-                toolResult = `\nCuestionario "${quizDeck.nombre}" creado con ${questionsToCreate.length} preguntas.`;
+                if (!quizDeck && targetQuizName) {
+                  const { data: qByName } = await serviceClient.from("quiz_decks").select("*").eq("user_id", userId).ilike("nombre", targetQuizName).maybeSingle();
+                  quizDeck = qByName;
+                }
+                if (!quizDeck) {
+                  const { data: newQuiz } = await serviceClient.from("quiz_decks").insert({
+                    user_id: userId, nombre: targetQuizName, total_questions: 0, subject_id: sid
+                  }).select().single();
+                  quizDeck = newQuiz;
+                }
+
+                if (quizDeck) {
+                  const questionsToCreate = args.questions || [];
+                  let inserted = 0;
+                  for (const q of questionsToCreate) {
+                    const { data: question } = await serviceClient.from("quiz_questions").insert({
+                      deck_id: quizDeck.id, user_id: userId, pregunta: q.pregunta, explicacion: q.explicacion || null
+                    }).select().single();
+                    if (question) {
+                      inserted++;
+                      if (q.opciones && Array.isArray(q.opciones)) {
+                        const opts = q.opciones.map((o: string, i: number) => ({
+                          question_id: question.id, texto: o, es_correcta: i === (q.correcta || 0)
+                        }));
+                        await serviceClient.from("quiz_options").insert(opts);
+                      }
+                    }
+                  }
+                  const { count: realQCount } = await serviceClient.from("quiz_questions").select("id", { count: "exact", head: true }).eq("deck_id", quizDeck.id);
+                  const finalTotal = realQCount ?? ((quizDeck.total_questions || 0) + inserted);
+                  await serviceClient.from("quiz_decks").update({ total_questions: finalTotal }).eq("id", quizDeck.id);
+                  toolResult = `\nCuestionario "${quizDeck.nombre}" guardado: se agregaron ${inserted} preguntas (total en cuestionario: ${finalTotal}).`;
+                } else {
+                  toolResult = `\nNo se pudo crear o encontrar el cuestionario.`;
+                }
+              }
+              else if (action === "update_question" && args.question_id) {
+                const updates: any = {};
+                if (args.pregunta) updates.pregunta = args.pregunta;
+                if (args.explicacion) updates.explicacion = args.explicacion;
+                const { error: qUpErr } = await serviceClient.from("quiz_questions").update(updates).eq("id", args.question_id).eq("user_id", userId);
+                if (args.opciones && Array.isArray(args.opciones)) {
+                  await serviceClient.from("quiz_options").delete().eq("question_id", args.question_id);
+                  const opts = args.opciones.map((o: string, i: number) => ({
+                    question_id: args.question_id, texto: o, es_correcta: i === (args.correcta || 0)
+                  }));
+                  await serviceClient.from("quiz_options").insert(opts);
+                }
+                toolResult = qUpErr ? `\nError al actualizar pregunta: ${qUpErr.message}` : `\nPregunta actualizada correctamente.`;
+              }
+              else if (action === "delete_question" && args.question_id) {
+                const { data: qData } = await serviceClient.from("quiz_questions").select("deck_id").eq("id", args.question_id).eq("user_id", userId).maybeSingle();
+                await serviceClient.from("quiz_options").delete().eq("question_id", args.question_id);
+                const { error: delQErr } = await serviceClient.from("quiz_questions").delete().eq("id", args.question_id).eq("user_id", userId);
+                if (!delQErr && qData?.deck_id) {
+                  const { count: realQCount } = await serviceClient.from("quiz_questions").select("id", { count: "exact", head: true }).eq("deck_id", qData.deck_id);
+                  await serviceClient.from("quiz_decks").update({ total_questions: realQCount || 0 }).eq("id", qData.deck_id);
+                }
+                toolResult = delQErr ? `\nError al eliminar pregunta: ${delQErr.message}` : `\nPregunta eliminada correctamente.`;
+              }
+              else if (action === "delete_quiz" && (args.quiz_id || args.quiz_name)) {
+                let targetQuizId = args.quiz_id;
+                if (!targetQuizId && args.quiz_name) {
+                  const { data: qd } = await serviceClient.from("quiz_decks").select("id").eq("user_id", userId).ilike("nombre", args.quiz_name).maybeSingle();
+                  targetQuizId = qd?.id;
+                }
+                if (targetQuizId) {
+                  const { data: qList } = await serviceClient.from("quiz_questions").select("id").eq("deck_id", targetQuizId);
+                  if (qList && qList.length > 0) {
+                    const qIds = qList.map((q: any) => q.id);
+                    await serviceClient.from("quiz_options").delete().in("question_id", qIds);
+                    await serviceClient.from("quiz_questions").delete().eq("deck_id", targetQuizId);
+                  }
+                  const { error: qdErr } = await serviceClient.from("quiz_decks").delete().eq("id", targetQuizId).eq("user_id", userId);
+                  toolResult = qdErr ? `\nError al eliminar cuestionario: ${qdErr.message}` : `\nCuestionario eliminado correctamente.`;
+                } else {
+                  toolResult = `\nNo se encontró el cuestionario para eliminar.`;
+                }
               }
             }
             else if (toolCallName === "create_notion_document") {
