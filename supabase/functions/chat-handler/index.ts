@@ -30,6 +30,27 @@ function getColorForType(tipo: ValidEventType): string {
 }
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: getCorsHeaders(req) });
+  }
+
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const mode = url.searchParams.get("hub.mode");
+    const token = url.searchParams.get("hub.verify_token");
+    const challenge = url.searchParams.get("hub.challenge");
+
+    const VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") || "TABE_SECRET_TOKEN";
+
+    if (mode && token) {
+      if (mode === "subscribe" && token === VERIFY_TOKEN) {
+        return new Response(challenge, { status: 200 });
+      }
+      return new Response("Forbidden", { status: 403 });
+    }
+    return new Response("OK", { status: 200 });
+  }
+
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -307,9 +328,10 @@ serve(async (req) => {
 });
 
 async function sendMessage(platform: 'telegram' | 'whatsapp', to: string, text: string) {
+  const cleanText = text.replace(/\\\\n/g, "\\n");
+
   if (platform === 'telegram') {
     const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "8673034996:AAGWgOMtgwulbfMs-GtZ-r564KRM-YyMB-k";
-    const cleanText = text.replace(/\\\\n/g, "\\n");
     
     // Attempt 1: With Markdown parsing
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -326,6 +348,32 @@ async function sendMessage(platform: 'telegram' | 'whatsapp', to: string, text: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id: to, text: cleanText })
       });
+    }
+  } else if (platform === 'whatsapp') {
+    const WHATSAPP_ACCESS_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+    const WHATSAPP_PHONE_ID = Deno.env.get("WHATSAPP_PHONE_ID");
+
+    if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_ID) {
+      console.error("Missing WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_ID");
+      return;
+    }
+
+    const res = await fetch(`https://graph.facebook.com/v17.0/${WHATSAPP_PHONE_ID}/messages`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: to,
+        type: "text",
+        text: { body: cleanText }
+      })
+    });
+
+    if (!res.ok) {
+      console.error("WhatsApp message failed. Reason:", await res.text());
     }
   }
 }
