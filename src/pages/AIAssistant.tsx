@@ -14,7 +14,7 @@ import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
 import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
 import { ModelSelector } from "@/components/ai/ModelSelector";
 import { ModelLogo } from "@/components/icons/ModelLogos";
-import { cleanAIResponse } from "@/lib/aiClientService";
+import { cleanAIResponse, transcribeAudio } from "@/lib/aiClientService";
 import { AVAILABLE_AI_MODELS, AITask } from "@/config/aiModels";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -78,6 +78,14 @@ export default function AIAssistant() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== "undefined" ? window.innerWidth >= 768 : false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [editingPersona, setEditingPersona] = useState<AIPersona | null>(null);
+
+  // Multimodal Image & Voice
+  const [attachedImage, setAttachedImage] = useState<{ preview: string; base64: string; mimeType: string; name: string } | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<any>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -208,13 +216,127 @@ export default function AIAssistant() {
     toast.success(`${count} conversación(es) eliminadas`);
   };
 
+  // ---- Multimodal Handlers (Images & Audio) ----
+  const processImageFile = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("La imagen no debe superar los 15MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      const cleanBase64 = result.includes(",") ? result.split(",")[1] : result;
+      setAttachedImage({
+        preview: result,
+        base64: cleanBase64,
+        mimeType: file.type || "image/jpeg",
+        name: file.name || "imagen.jpg",
+      });
+      toast.success("Imagen adjuntada 📸");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          processImageFile(file);
+          break;
+        }
+      }
+    }
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || "audio/ogg" });
+        if (audioBlob.size > 500) {
+          toast.info("Transcribiendo audio con IA... 🎧");
+          try {
+            const text = await transcribeAudio(audioBlob);
+            if (text) {
+              setInputValue((prev) => prev + (prev ? " " : "") + text);
+              toast.success("Audio transcripto 🎙️");
+            }
+          } catch (e: any) {
+            toast.error(e.message || "Error al transcribir");
+          }
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+      toast.info("Grabando audio... Haz clic en el micrófono para terminar 🎙️");
+    } catch (err) {
+      console.warn("MediaRecorder no disponible o permiso denegado, usando fallback WebSpeech:", err);
+      startVoiceInputFallback();
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    }
+  };
+
+  const startVoiceInputFallback = () => {
+    try {
+      // @ts-ignore
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) { toast.error("Tu navegador no soporta entrada de voz"); return; }
+      const recognition = new SpeechRecognition();
+      recognition.lang = "es-AR";
+      recognition.interimResults = false;
+      toast.info("Escuchando... 🎙️");
+      recognition.onresult = (e: any) => {
+        const t = e.results[0][0].transcript;
+        if (t) { setInputValue((prev) => prev + (prev ? " " : "") + t); toast.success("Escuchado"); }
+      };
+      recognition.start();
+    } catch {
+      toast.error("Error al iniciar voz");
+    }
+  };
+
   // ---- File upload ----
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       setIsUploading(true);
-      if (file.type === "application/pdf") {
+      if (file.type.startsWith("image/")) {
+        processImageFile(file);
+      } else if (file.type.startsWith("audio/") || file.name.match(/\.(mp3|wav|m4a|ogg)$/i)) {
+        toast.info("Transcribiendo audio con IA... 🎧");
+        const text = await transcribeAudio(file);
+        if (text) {
+          setInputValue((prev) => `${prev ? prev + "\n\n" : ""}🎙️ [Audio transcripto]: ${text}`);
+          toast.success("Audio transcripto con éxito 🎧");
+        }
+      } else if (file.type === "application/pdf") {
         const { extractTextFromPdf } = await import("@/lib/pdf-utils");
         const text = await extractTextFromPdf(file);
         setInputValue((prev) => `${prev ? prev + "\n\n" : ""}📄 **Contenido de ${file.name}:**\n${text}`);
@@ -224,10 +346,10 @@ export default function AIAssistant() {
         setInputValue((prev) => `${prev ? prev + "\n\n" : ""}📄 **Contenido de ${file.name}:**\n${text}`);
         toast.success("Archivo procesado");
       } else {
-        toast.error("Formato no soportado. Usa PDF o TXT.");
+        toast.error("Formato no soportado. Usa imagen, audio, PDF o TXT.");
       }
-    } catch {
-      toast.error("Error al leer el archivo.");
+    } catch (err: any) {
+      toast.error(err.message || "Error al leer el archivo.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -236,13 +358,22 @@ export default function AIAssistant() {
 
   // ---- Send message ----
   const handleSend = async () => {
-    // Sin límites (Ads-only model)
+    if (!inputValue.trim() && !attachedImage) return;
+
+    const imageToSend = attachedImage
+      ? { data: attachedImage.base64, mime_type: attachedImage.mimeType }
+      : undefined;
+    const previewToSend = attachedImage?.preview;
+
     const userMessage: DisplayMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: inputValue,
+      content: inputValue || (attachedImage ? "Analiza esta imagen adjunta:" : ""),
       timestamp: new Date(),
+      imageUrl: previewToSend,
     };
+
+    setAttachedImage(null);
 
     // Limpiar saludo inicial para empezar el chat real
     const existingMessages = messages.filter((m) => m.id !== "init");
@@ -253,7 +384,7 @@ export default function AIAssistant() {
     // Create or reuse session
     let sessionId = currentSessionRef.current;
     if (!sessionId) {
-      const title = inputValue.slice(0, 40) + (inputValue.length > 40 ? "..." : "");
+      const title = (inputValue || "Consulta con imagen").slice(0, 40);
       const session = await createSession(activePersona.id, title);
       if (!session) {
         toast.error("Error al crear la sesión");
@@ -262,8 +393,6 @@ export default function AIAssistant() {
       sessionId = session.id;
       currentSessionRef.current = sessionId;
       setCurrentSessionId(sessionId);
-
-      // Save any initial messages that are real (skip the greeting)
     }
 
     // Save user message to DB
@@ -282,8 +411,7 @@ export default function AIAssistant() {
       ? selectedModel
       : AVAILABLE_AI_MODELS.find((model) => model.provider === "local") || selectedModel;
 
-    // Save user message to DB
-    await saveMessage(sessionId, "user", inputValue);
+    await saveMessage(sessionId, "user", userMessage.content);
     if (requestModel.provider !== "local") await incrementUsage("ia_daily");
 
     // Prepare conversation for the AI
@@ -309,8 +437,6 @@ export default function AIAssistant() {
 
     let fullContent = "";
 
-    // onReset: called when the primary model fails and a fallback takes over.
-    // Clears the partial error text so the fallback response starts cleanly.
     const handleReset = () => {
       fullContent = "";
       setMessages((prev) =>
@@ -359,7 +485,8 @@ export default function AIAssistant() {
       undefined,   // context_page
       requestModel,
       powerLevel,
-      handleReset  // onReset
+      handleReset, // onReset
+      imageToSend  // image
     );
   };
 
@@ -654,6 +781,16 @@ export default function AIAssistant() {
                       </div>
                     )}
 
+                    {message.imageUrl && (
+                      <div className="mb-2">
+                        <img
+                          src={message.imageUrl}
+                          alt="Imagen adjunta"
+                          className="max-h-60 max-w-full rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] object-contain bg-black/10"
+                        />
+                      </div>
+                    )}
+
                     <div className="text-xs md:text-sm font-bold leading-relaxed break-words">
                       {renderContent(message.content, message.role)}
                     </div>
@@ -679,13 +816,62 @@ export default function AIAssistant() {
               ref={fileInputRef}
               onChange={handleFileUpload}
               className="hidden"
-              accept=".pdf,.txt,.md"
+              accept=".pdf,.txt,.md,image/*,audio/*"
             />
 
-            <div className="flex flex-col bg-card rounded-2xl border-2 md:border-4 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] md:shadow-[5px_5px_0_0_hsl(var(--foreground))] focus-within:ring-2 focus-within:ring-primary">
+            <div className="flex flex-col bg-card rounded-2xl border-2 md:border-4 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] md:shadow-[5px_5px_0_0_hsl(var(--foreground))] focus-within:ring-2 focus-within:ring-primary overflow-hidden">
+              {/* Attached Image Preview */}
+              {attachedImage && (
+                <div className="p-2 border-b-2 border-foreground/20 bg-muted/50 flex items-center justify-between gap-2 animate-in fade-in slide-in-from-bottom-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img
+                      src={attachedImage.preview}
+                      alt="Vista previa"
+                      className="w-12 h-12 rounded-lg object-cover border-2 border-foreground shadow-[1px_1px_0_0_#000]"
+                    />
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-black uppercase text-foreground block truncate">
+                        {attachedImage.name}
+                      </span>
+                      <span className="text-[9px] font-bold text-muted-foreground block">
+                        Se analizará con Gemini Vision al enviar
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedImage(null)}
+                    className="p-1 rounded-lg border-2 border-foreground bg-card hover:bg-destructive hover:text-white transition-colors"
+                    title="Quitar imagen"
+                  >
+                    <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
+                </div>
+              )}
+
+              {/* Recording Indicator */}
+              {isRecording && (
+                <div className="p-2 border-b-2 border-foreground/20 bg-destructive/15 flex items-center justify-between gap-2 animate-pulse">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-ping" />
+                    <span className="text-xs font-black uppercase text-destructive tracking-wide">
+                      Grabando audio ({Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, "0")})...
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={stopVoiceRecording}
+                    className="px-2.5 py-1 rounded-lg border-2 border-foreground bg-destructive text-white text-[10px] font-black uppercase shadow-[1px_1px_0_0_#000] hover:scale-95 transition-transform"
+                  >
+                    Detener y Transcribir ⏹️
+                  </button>
+                </div>
+              )}
+
               {/* Textarea */}
               <textarea
                 value={inputValue}
+                onPaste={handlePaste}
                 onChange={(e) => {
                   setInputValue(e.target.value);
                   e.target.style.height = "auto";
@@ -700,7 +886,11 @@ export default function AIAssistant() {
                 placeholder={
                   isUploading
                     ? "Procesando archivo..."
-                    : `Preguntale a ${activePersona?.name || "tu IA"}...`
+                    : attachedImage
+                      ? "Escribe tu pregunta sobre la foto (o pulsa Enviar para analizarla)..."
+                      : isRecording
+                        ? "Grabando tu voz..."
+                        : `Pregúntale a ${activePersona?.name || "tu IA"}... (pega o adjunta fotos/audio)`
                 }
                 className="w-full px-3 py-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-bold placeholder:text-muted-foreground placeholder:font-bold resize-none overflow-y-auto text-foreground"
                 style={{ minHeight: "40px", maxHeight: "140px" }}
@@ -718,7 +908,7 @@ export default function AIAssistant() {
                     className="text-foreground hover:bg-muted border border-foreground/20 hover:border-foreground rounded-lg h-7 w-7 shrink-0"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading || isStreaming}
-                    title="Adjuntar PDF/Texto"
+                    title="Adjuntar Imagen, Audio, PDF o Texto"
                   >
                     {isUploading ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -749,9 +939,12 @@ export default function AIAssistant() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="text-foreground hover:bg-muted border border-foreground/20 hover:border-foreground rounded-lg h-7 w-7"
-                    onClick={startVoiceInput}
-                    title="Dictar por voz"
+                    className={cn(
+                      "text-foreground hover:bg-muted border border-foreground/20 hover:border-foreground rounded-lg h-7 w-7 transition-all",
+                      isRecording && "bg-destructive text-white border-destructive animate-pulse"
+                    )}
+                    onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                    title={isRecording ? "Detener grabación" : "Grabar audio / voz con IA"}
                     disabled={isStreaming}
                   >
                     <Mic className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -759,10 +952,10 @@ export default function AIAssistant() {
 
                   <Button
                     onClick={handleSend}
-                    disabled={!inputValue.trim() || isStreaming}
+                    disabled={(!inputValue.trim() && !attachedImage) || isStreaming}
                     className={cn(
                       "rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-8 px-3 flex items-center gap-1 shrink-0",
-                      inputValue.trim() && !isStreaming
+                      (inputValue.trim() || attachedImage) && !isStreaming
                         ? "bg-[#00E5FF] !text-black hover:bg-[#00cce6] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                         : "bg-muted text-muted-foreground cursor-not-allowed border-foreground/30"
                     )}

@@ -21,7 +21,8 @@ export function useStreamingChat(
       context_page?: string,
       modelOverride?: AIModelOption,
       powerOverride?: PowerEffort,
-      onReset?: () => void
+      onReset?: () => void,
+      image?: { data: string; mime_type: string }
     ) => {
       setIsStreaming(true);
 
@@ -85,6 +86,7 @@ export function useStreamingChat(
           model: targetModel,
           powerLevel: targetPower,
           userId: user?.id || "guest",
+          image,
           onDelta,
           onReset,
           onComplete,

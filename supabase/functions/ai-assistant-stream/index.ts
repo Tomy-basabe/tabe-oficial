@@ -124,6 +124,69 @@ serve(async (req) => {
     const { data: { user } } = await authClient.auth.getUser().catch(() => ({ data: { user: null } }));
     const userId = user?.id || null;
 
+    const reqBody = await req.json();
+
+    // ── ACCIÓN TRANSCRIPCIÓN DE AUDIO (Groq Whisper) ──
+    if (reqBody.action === "transcribe") {
+      const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+      if (!GROQ_API_KEY) {
+        return new Response(JSON.stringify({ error: "GROQ_API_KEY no configurada" }), {
+          status: 500,
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+        });
+      }
+      const audioBase64 = reqBody.audio_base64;
+      const mimeType = reqBody.mime_type || "audio/ogg";
+      if (!audioBase64) {
+        return new Response(JSON.stringify({ error: "Falta audio_base64" }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+        });
+      }
+
+      try {
+        const cleanBase64 = audioBase64.includes(",") ? audioBase64.split(",")[1] : audioBase64;
+        const binaryStr = atob(cleanBase64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+
+        const formData = new FormData();
+        const ext = mimeType.includes("mp4") || mimeType.includes("m4a") ? "audio.m4a" : (mimeType.includes("mp3") ? "audio.mp3" : "audio.ogg");
+        formData.append("file", new Blob([bytes], { type: mimeType }), ext);
+        formData.append("model", "whisper-large-v3-turbo");
+        formData.append("language", "es");
+        formData.append("response_format", "json");
+
+        const whisperRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${GROQ_API_KEY}` },
+          body: formData
+        });
+
+        if (whisperRes.ok) {
+          const data = await whisperRes.json();
+          return new Response(JSON.stringify({ text: data.text || "" }), {
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+          });
+        } else {
+          const err = await whisperRes.text();
+          console.warn("[Whisper error]:", err);
+          return new Response(JSON.stringify({ error: err }), {
+            status: 500,
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+          });
+        }
+      } catch (transcribeErr: any) {
+        console.error("[Transcribe exception]:", transcribeErr);
+        return new Response(JSON.stringify({ error: transcribeErr.message }), {
+          status: 500,
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+        });
+      }
+    }
+
     const {
       messages,
       persona_id,
@@ -132,7 +195,8 @@ serve(async (req) => {
       requested_provider,
       power_level = "medio",
       system_prompt: clientSystemPrompt,
-    } = await req.json();
+      image, // { data: string, mime_type: string }
+    } = reqBody;
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     let personaName = "T.A.B.E. IA";
@@ -716,6 +780,51 @@ serve(async (req) => {
 
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
+    // Inyectar imagen al último mensaje del usuario si existe
+    const hasImage = Boolean(image && image.data);
+    if (hasImage) {
+      const cleanBase64 = image.data.includes(",") ? image.data.split(",")[1] : image.data;
+      const dataUrl = `data:${image.mime_type || "image/jpeg"};base64,${cleanBase64}`;
+      const lastUserIdx = groqMessages.map((m: any) => m.role).lastIndexOf("user");
+      if (lastUserIdx !== -1) {
+        const textContent = typeof groqMessages[lastUserIdx].content === "string" ? groqMessages[lastUserIdx].content : "";
+        groqMessages[lastUserIdx].content = [
+          { type: "text", text: textContent || "Analiza esta imagen y ayúdame con todo su contenido académico:" },
+          { type: "image_url", image_url: { url: dataUrl } }
+        ];
+      }
+    }
+
+    let streamRes: Response | null = null;
+    let lastError = "";
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
+    // ── Si el mensaje tiene imagen, usar Google Gemini Vision directamente ──
+    if (hasImage && GEMINI_API_KEY) {
+      console.log("[AI] Mensaje con imagen detectado. Transmitiendo con Gemini Vision...");
+      for (const geminiModel of ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.5-flash"]) {
+        try {
+          streamRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${GEMINI_API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: geminiModel,
+              messages: groqMessages,
+              temperature: 0.4,
+              max_tokens: 4096,
+              stream: true
+            })
+          });
+          if (streamRes.ok) break;
+        } catch (geminiErr: any) {
+          lastError += ` | [Gemini Vision error] ${geminiErr.message}`;
+        }
+      }
+    }
+
     // Consultar dinámicamente qué modelos tiene habilitados esta API key en Groq
     let selectedModel = "qwen/qwen3.8-27b";
     let availableGroqModels: string[] = groqModelsCache?.models || [];
@@ -755,11 +864,7 @@ serve(async (req) => {
       selectedModel = "qwen/qwen3.8-27b";
     }
 
-    // Stream from Groq con el modelo activo o Gemini/OpenRouter de respaldo
-    let streamRes: Response | null = null;
-    let lastError = "";
-
-    if (GROQ_API_KEY) {
+    if (!streamRes && GROQ_API_KEY) {
       try {
         streamRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",

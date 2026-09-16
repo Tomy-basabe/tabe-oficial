@@ -14,6 +14,7 @@ export interface DisplayMessage {
   timestamp: Date;
   modelId?: string;
   modelName?: string;
+  imageUrl?: string;
 }
 
 interface AIChatContextProps {

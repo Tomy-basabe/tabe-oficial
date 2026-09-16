@@ -632,12 +632,13 @@ export async function streamAIChat(params: {
   model: AIModelOption;
   powerLevel?: PowerEffort;
   userId: string;
+  image?: { data: string; mime_type: string };
   onDelta: (text: string) => void;
   onReset?: () => void;          // Called when switching to a fallback model (clears UI)
   onComplete: (result: StreamResult) => void;
   onError: (error: Error) => void;
 }): Promise<void> {
-  const { messages, systemPrompt, powerLevel = "medio", userId, onDelta, onReset, onComplete, onError } = params;
+  const { messages, systemPrompt, powerLevel = "medio", userId, image, onDelta, onReset, onComplete, onError } = params;
 
   let success = false;
   let finalContent = "";
@@ -687,6 +688,7 @@ export async function streamAIChat(params: {
       requestedModelId: "tabe-ai",
       requestedProvider: "local",
       powerLevel,
+      image,
     })
   );
 
@@ -877,6 +879,7 @@ async function streamFromLocal(opts: {
   requestedModelId: string;
   requestedProvider: AIModelOption["provider"];
   powerLevel: PowerEffort;
+  image?: { data: string; mime_type: string };
 }): Promise<boolean> {
   // TABE AI uses the protected Supabase Edge Function (powered by Groq / Gemini)
   try {
@@ -911,6 +914,7 @@ async function streamFromLocal(opts: {
           requested_model_id: "tabe-ai",
           requested_provider: "local",
           power_level: opts.powerLevel,
+          image: opts.image,
         }),
       });
 
@@ -1107,3 +1111,48 @@ async function streamFromGoogle(opts: {
     return false;
   }
 }
+
+/**
+ * Transcribe audio using Groq Whisper via Supabase Edge Function
+ */
+export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  const reader = new FileReader();
+  const base64Promise = new Promise<string>((resolve, reject) => {
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+  });
+  reader.readAsDataURL(audioBlob);
+  const audioBase64 = await base64Promise;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ndmjrcinfugswtlknebl.supabase.co";
+  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/ai-assistant-stream`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token || anonKey}`,
+      apikey: anonKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      action: "transcribe",
+      audio_base64: audioBase64,
+      mime_type: audioBlob.type || "audio/ogg",
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`Error en transcripción: ${errText || response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.text || "";
+}
+

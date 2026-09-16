@@ -29,6 +29,16 @@ function getColorForType(tipo: ValidEventType): string {
   return colors[tipo] || "#00d9ff";
 }
 
+// Convert Uint8Array to base64 in Deno safely
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 // Model configurations with safe max_tokens per model
 interface ModelConfig {
   id: string;
@@ -44,8 +54,92 @@ const PREFERRED_MODELS: ModelConfig[] = [
   { id: "mixtral-8x7b-32768", maxTokens: 800 },
 ];
 
-// Models to never use (deprecated, non-chat, rate-limited below useful thresholds)
 const BLACKLISTED_KEYWORDS = ["specdec", "guard", "whisper", "orpheus", "embed", "safeguard", "qwen"];
+
+// ─── AUDIO TRANSCRIPTION (Groq Whisper) ──────────────────────────
+async function transcribeAudioWithWhisper(audioBytes: Uint8Array, mimeType: string, groqKey: string): Promise<string | null> {
+  if (!groqKey || audioBytes.byteLength === 0) return null;
+  try {
+    const formData = new FormData();
+    const blob = new Blob([audioBytes], { type: mimeType || "audio/ogg" });
+    const filename = mimeType.includes("mp4") || mimeType.includes("m4a") ? "audio.m4a" : (mimeType.includes("mp3") ? "audio.mp3" : "audio.ogg");
+    formData.append("file", blob, filename);
+    formData.append("model", "whisper-large-v3-turbo");
+    formData.append("language", "es");
+    formData.append("response_format", "json");
+
+    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${groqKey}` },
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return data.text?.trim() || null;
+    }
+    console.warn("[Whisper Error]:", await res.text());
+  } catch (err) {
+    console.error("[Whisper Exception]:", err);
+  }
+  return null;
+}
+
+// ─── VISION IMAGE ANALYSIS (Google Gemini) ────────────────────────
+async function analyzeImageWithGemini(
+  geminiKey: string,
+  imageBytes: Uint8Array,
+  mimeType: string,
+  caption: string,
+  systemPrompt: string
+): Promise<string | null> {
+  if (!geminiKey || imageBytes.byteLength === 0) return null;
+  const base64Data = uint8ArrayToBase64(imageBytes);
+  const models = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-2.0-flash"];
+
+  for (const model of models) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: caption || "Analiza esta imagen con detalle pedagógico y explícame todo su contenido académico:" },
+                {
+                  inline_data: {
+                    mime_type: mimeType || "image/jpeg",
+                    data: base64Data
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 1024
+          }
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text.trim();
+      } else {
+        console.warn(`[Gemini Vision Error ${model}]:`, await res.text());
+      }
+    } catch (e) {
+      console.warn(`[Gemini Vision Exception ${model}]:`, e);
+    }
+  }
+  return null;
+}
 
 async function callGroqAI(apiKey: string, systemPrompt: string, userText: string, tools: any[]): Promise<any> {
   // Step 1: Discover available models
@@ -60,9 +154,7 @@ async function callGroqAI(apiKey: string, systemPrompt: string, userText: string
         .map((m: any) => m.id)
         .filter((id: string) => !BLACKLISTED_KEYWORDS.some(kw => id.toLowerCase().includes(kw)));
     }
-  } catch (_) {
-    // If we can't list models, we'll try our preferred list anyway
-  }
+  } catch (_) {}
 
   // Step 2: Build ordered list of models to try
   const modelsToTry: ModelConfig[] = [];
@@ -71,15 +163,13 @@ async function callGroqAI(apiKey: string, systemPrompt: string, userText: string
       modelsToTry.push(pref);
     }
   }
-  // Add any remaining available models we haven't listed as fallbacks
   if (availableModels.length > 0) {
     for (const modelId of availableModels) {
       if (!modelsToTry.some(m => m.id === modelId)) {
-        modelsToTry.push({ id: modelId, maxTokens: 512 }); // conservative default
+        modelsToTry.push({ id: modelId, maxTokens: 512 });
       }
     }
   }
-  // Last resort if nothing was found
   if (modelsToTry.length === 0) {
     modelsToTry.push({ id: "llama3-8b-8192", maxTokens: 512 });
   }
@@ -111,14 +201,8 @@ async function callGroqAI(apiKey: string, systemPrompt: string, userText: string
       lastError = errorBody;
       console.warn(`Model ${model.id} failed (${aiRes.status}): ${errorBody.substring(0, 200)}`);
 
-      // If rate limited, try next model immediately
-      if (aiRes.status === 429 || aiRes.status === 400) {
-        continue;
-      }
-      // For auth errors (401/403), no point trying other models with same key
-      if (aiRes.status === 401 || aiRes.status === 403) {
-        break;
-      }
+      if (aiRes.status === 429 || aiRes.status === 400) continue;
+      if (aiRes.status === 401 || aiRes.status === 403) break;
     } catch (fetchErr) {
       lastError = String(fetchErr);
       console.warn(`Network error with model ${model.id}:`, lastError);
@@ -154,27 +238,150 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
+    const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
+    const WHATSAPP_ACCESS_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "";
+    const WHATSAPP_PHONE_ID = Deno.env.get("WHATSAPP_PHONE_ID") || "";
 
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body = await req.json();
     let platform: 'telegram' | 'whatsapp' | null = null;
     let senderId: string | null = null;
     let text: string | null = null;
+    let imageBytes: Uint8Array | null = null;
+    let imageMimeType: string = "image/jpeg";
+    let isVoiceNote: boolean = false;
 
+    // ───────────────── TELEGRAM PARSING ─────────────────
     if (body.message && body.message.chat) {
       platform = 'telegram';
       senderId = body.message.chat.id.toString();
-      text = body.message.text;
-    } else if (body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
+      text = body.message.text || body.message.caption || null;
+
+      // 1. Audio / Voice in Telegram
+      const voiceObj = body.message.voice || body.message.audio;
+      if (voiceObj && TELEGRAM_BOT_TOKEN) {
+        isVoiceNote = true;
+        try {
+          const fileInfoRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${voiceObj.file_id}`);
+          if (fileInfoRes.ok) {
+            const fileInfo = await fileInfoRes.json();
+            const filePath = fileInfo.result?.file_path;
+            if (filePath) {
+              const fileDownloadRes = await fetch(`https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`);
+              if (fileDownloadRes.ok) {
+                const audioBuffer = await fileDownloadRes.arrayBuffer();
+                const transcribed = await transcribeAudioWithWhisper(new Uint8Array(audioBuffer), voiceObj.mime_type || "audio/ogg", GROQ_API_KEY);
+                if (transcribed) {
+                  text = transcribed;
+                }
+              }
+            }
+          }
+        } catch (audioErr) {
+          console.error("Telegram audio download/transcribe error:", audioErr);
+        }
+      }
+
+      // 2. Photo in Telegram
+      if (body.message.photo && Array.isArray(body.message.photo) && body.message.photo.length > 0 && TELEGRAM_BOT_TOKEN) {
+        try {
+          const largestPhoto = body.message.photo[body.message.photo.length - 1];
+          const fileInfoRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${largestPhoto.file_id}`);
+          if (fileInfoRes.ok) {
+            const fileInfo = await fileInfoRes.json();
+            const filePath = fileInfo.result?.file_path;
+            if (filePath) {
+              const fileDownloadRes = await fetch(`https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`);
+              if (fileDownloadRes.ok) {
+                imageBytes = new Uint8Array(await fileDownloadRes.arrayBuffer());
+                imageMimeType = "image/jpeg";
+              }
+            }
+          }
+        } catch (photoErr) {
+          console.error("Telegram photo download error:", photoErr);
+        }
+      }
+    }
+
+    // ───────────────── WHATSAPP PARSING ─────────────────
+    else if (body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
       platform = 'whatsapp';
       const msg = body.entry[0].changes[0].value.messages[0];
       senderId = msg.from;
-      text = msg.text?.body;
+      text = msg.text?.body || msg.image?.caption || null;
+
+      // 1. Audio / Voice in WhatsApp
+      if ((msg.type === "audio" || msg.type === "voice") && WHATSAPP_ACCESS_TOKEN) {
+        isVoiceNote = true;
+        const mediaId = msg.audio?.id || msg.voice?.id;
+        const mime = msg.audio?.mime_type || msg.voice?.mime_type || "audio/ogg";
+        if (mediaId) {
+          try {
+            const mediaMetaRes = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
+              headers: { "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}` }
+            });
+            if (mediaMetaRes.ok) {
+              const mediaMeta = await mediaMetaRes.json();
+              if (mediaMeta.url) {
+                const mediaRes = await fetch(mediaMeta.url, {
+                  headers: { "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`, "User-Agent": "curl/8.0" }
+                });
+                if (mediaRes.ok) {
+                  const audioBuffer = await mediaRes.arrayBuffer();
+                  const transcribed = await transcribeAudioWithWhisper(new Uint8Array(audioBuffer), mime, GROQ_API_KEY);
+                  if (transcribed) {
+                    text = transcribed;
+                  }
+                }
+              }
+            }
+          } catch (waAudioErr) {
+            console.error("WhatsApp audio download/transcribe error:", waAudioErr);
+          }
+        }
+      }
+
+      // 2. Image in WhatsApp
+      if (msg.type === "image" && WHATSAPP_ACCESS_TOKEN) {
+        const mediaId = msg.image?.id;
+        imageMimeType = msg.image?.mime_type || "image/jpeg";
+        if (mediaId) {
+          try {
+            const mediaMetaRes = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
+              headers: { "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}` }
+            });
+            if (mediaMetaRes.ok) {
+              const mediaMeta = await mediaMetaRes.json();
+              if (mediaMeta.url) {
+                const mediaRes = await fetch(mediaMeta.url, {
+                  headers: { "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`, "User-Agent": "curl/8.0" }
+                });
+                if (mediaRes.ok) {
+                  imageBytes = new Uint8Array(await mediaRes.arrayBuffer());
+                }
+              }
+            }
+          } catch (waImgErr) {
+            console.error("WhatsApp image download error:", waImgErr);
+          }
+        }
+      }
     }
 
-    if (!platform || !senderId || !text) return new Response("OK");
+    if (!platform || !senderId) return new Response("OK");
+
+    // If audio was sent but could not be transcribed
+    if (isVoiceNote && !text && !imageBytes) {
+      await sendMessage(platform, senderId, "🎧 Recibí tu nota de voz, pero no pude transcribirla claramente. ¿Podrías intentar enviarla de nuevo o escribirla? ¡Gracias!");
+      return new Response("OK");
+    }
+
+    // Default text fallback if empty
+    if (!text && !imageBytes) return new Response("OK");
 
     let userQuery = supabase.from('user_bots').select('user_id');
     if (platform === 'telegram') {
@@ -188,19 +395,19 @@ serve(async (req) => {
     const { data: botUser } = await userQuery.maybeSingle();
 
     if (!botUser) {
-      const linkingCodeMatch = text.trim().match(/^\d{6}$/);
+      const linkingCodeMatch = text?.trim().match(/^\d{6}$/);
       if (linkingCodeMatch) {
         const { data: linkRequest } = await supabase.from('user_bots').select('user_id').eq('linking_code', linkingCodeMatch[0]).gt('linking_expires_at', new Date().toISOString()).maybeSingle();
-        if (!linkRequest) return sendMessage(platform, senderId, "❌ Código inválido.").then(() => new Response("OK"));
+        if (!linkRequest) return sendMessage(platform, senderId, "❌ Código inválido o expirado.").then(() => new Response("OK"));
         
         const updateData: any = { linking_code: null, linking_expires_at: null };
         if (platform === 'telegram') updateData.telegram_id = senderId;
         else updateData.whatsapp_number = senderId;
         
         await supabase.from('user_bots').update(updateData).eq('user_id', linkRequest.user_id);
-        return sendMessage(platform, senderId, "✅ Vinculado exitosamente! Ya podés pedirme que gestione tus eventos, notas o consultas.").then(() => new Response("OK"));
+        return sendMessage(platform, senderId, "✅ ¡Vinculado exitosamente! Ahora podés hablarme, enviarme fotos de tus apuntes/ejercicios, notas de voz o pedirme que gestione tus materias y exámenes.").then(() => new Response("OK"));
       }
-      return sendMessage(platform, senderId, "👋 ¡Hola! Soy el nuevo Tabe AI. Entrá a tu cuenta de T.A.B.E. > Configuración > Asistente Virtual y pasame el código de 6 dígitos que ahí te aparece.").then(() => new Response("OK"));
+      return sendMessage(platform, senderId, "👋 ¡Hola! Soy TABE AI. Entrá a tu cuenta de T.A.B.E. en el navegador > Configuración > Asistente Virtual y pasame el código de 6 dígitos que ahí te aparece.").then(() => new Response("OK"));
     }
 
     const userId = botUser.user_id;
@@ -217,7 +424,7 @@ serve(async (req) => {
     const subjects = subjectsRes.data || [];
     const statusMap = new Map((subjectStatusRes.data || []).map(s => [s.subject_id, s]));
     
-    // Calcular métricas académicas (promedio, materias aprobadas, regulares, etc.)
+    // Academic Metrics
     const statusList = subjectStatusRes.data || [];
     const notasValidas = statusList
       .filter((s: any) => typeof s.nota === 'number' && s.nota > 0)
@@ -240,7 +447,7 @@ serve(async (req) => {
     const stats = statsRes.data || { nivel: 1, xp_total: 0, racha_actual: 0, horas_estudio_total: 0 };
 
     const systemPrompt = `Sos TABE AI (@tabeai_bot), el asistente inteligente de la vida universitaria de ${userName}.
-      Tenés acceso completo a sus datos académicos.
+      Tenés acceso completo al 100% de sus datos académicos.
       
       -- DATOS ACADÉMICOS DE ${userName.toUpperCase()} --
       Promedio actual: ${promedio} (sobre ${notasValidas.length} materias con nota)
@@ -257,10 +464,24 @@ serve(async (req) => {
       -- INSTRUCCIONES --
       1. Si te pregunta sobre su promedio, notas, materias o exámenes, respondé directamente con los datos de arriba.
       2. Si te pide agendar fechas, eliminar eventos, registrar estudio o cambiar estados de materias, EJECUTÁ LAS HERRAMIENTAS (tools).
-      3. Sé cálido, claro, conciso y usá emojis. Respondé en español argentino.
-      4. Respuestas cortas: máximo 3-4 oraciones para preguntas simples.
+      3. Si te manda fotos de exámenes, ejercicios, apuntes o gráficos, explicaselos paso a paso con máxima claridad pedagógica.
+      4. Sé cálido, claro, conciso y usá emojis. Respondé en español argentino.
     `;
 
+    // ───────────────── MULTIMODAL: VISION HANDLER ─────────────────
+    if (imageBytes && imageBytes.byteLength > 0) {
+      const userPrompt = text || "Analiza esta imagen y ayúdame con todo su contenido académico:";
+      const visionResult = await analyzeImageWithGemini(GEMINI_API_KEY, imageBytes, imageMimeType, userPrompt, systemPrompt);
+      if (visionResult) {
+        await sendMessage(platform, senderId, visionResult);
+        return new Response("OK");
+      } else {
+        await sendMessage(platform, senderId, "📸 Pude ver tu imagen, pero tuve un inconveniente analizando los detalles. ¿Podrías enviarla con mejor iluminación o preguntarme algo específico?");
+        return new Response("OK");
+      }
+    }
+
+    // ───────────────── TEXT / TRANSCRIBED AUDIO LLM ─────────────────
     const tools = [
       {
         type: "function",
@@ -330,8 +551,7 @@ serve(async (req) => {
       }
     ];
 
-    // Call Groq with automatic retry across models
-    const result = await callGroqAI(GROQ_API_KEY, systemPrompt, text, tools);
+    const result = await callGroqAI(GROQ_API_KEY, systemPrompt, text || "Hola", tools);
 
     if (!result.success) {
       console.error("All AI models failed. Last error:", result.error);
@@ -419,14 +639,12 @@ serve(async (req) => {
         }
       }
       
-      // Enviar la respuesta procesada
       if (actionResponseMsg !== "") {
          await sendMessage(platform, senderId, actionResponseMsg);
          return new Response("OK");
       }
     }
 
-    // SI LA IA NO LLAMÓ A NINUNA HERRAMIENTA, RETORNAMOS LO QUE DIJO
     await sendMessage(platform, senderId, choice?.message?.content || "¿En qué te puedo ayudar con tus materias y agenda? 🎓");
     return new Response("OK");
   } catch (err) {
@@ -436,22 +654,19 @@ serve(async (req) => {
 });
 
 async function sendMessage(platform: 'telegram' | 'whatsapp', to: string, text: string) {
-  // Clean up any literal \\n sequences into actual newlines
   const cleanText = text.replace(/\\\\n/g, "\n").replace(/\\n/g, "\n");
 
   if (platform === 'telegram') {
     const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
-    
-    // Attempt 1: With Markdown parsing
+    if (!TELEGRAM_BOT_TOKEN) return;
+
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: to, text: cleanText, parse_mode: "Markdown" })
     });
     
-    // Si falla por culpa del parse_mode (ej. caracteres reservados no cerrados), intentar como texto puro
     if (!res.ok) {
-      console.warn("Markdown failed, sending plain text. Reason:", await res.text());
       await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
