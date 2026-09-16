@@ -91,6 +91,142 @@ async function transcribeAudioWithWhisper(audioBytes: Uint8Array, mimeType: stri
   return null;
 }
 
+// ─── CLASS AUDIO SUMMARY ENGINE (Groq + Gemini + OpenRouter) ────────
+async function summarizeClassAudio(
+  groqKey: string,
+  geminiKey: string,
+  openrouterKey: string,
+  transcription: string,
+  subjects: Array<{ id: string; nombre: string }>,
+  userName: string
+): Promise<{ summary: string; detectedSubjectId: string | null; detectedTitle: string } | null> {
+  const subjectsList = subjects.map(s => s.nombre).join(", ") || "General";
+  
+  const systemInstruction = `Sos TABE AI, el sintetizador y tutor académico universitario de ${userName}.
+El estudiante te envió el audio o la grabación de una clase/explicación universitaria.
+Tu tarea es generar un RESUMEN ESTRUCTURADO UNIVERSITARIO de altísimo valor pedagógico.
+
+Materias cursadas por el estudiante: [${subjectsList}].
+
+Tu respuesta DEBE seguir estrictamente esta estructura con emojis y negritas:
+
+🎙️ *RESUMEN ESTRUCTURADO DE CLASE*
+📚 *Materia/Tema:* [Identificá con precisión la materia de la lista o el tema principal]
+────────────────────────────
+
+📌 *PUNTOS CLAVE DE LA CLASE:*
+• [Idea central 1 explicada claramente]
+• [Idea central 2...]
+• [Idea central 3...]
+• [Idea central 4...]
+
+🧠 *CONCEPTOS Y DEFINICIONES PRINCIPALES:*
+• *[Concepto 1]:* Definición clara, fórmulas si corresponden y cómo aplicarlo.
+• *[Concepto 2]:* ...
+• *[Concepto 3]:* ...
+
+📅 *FECHAS, ENTREGAS O EXÁMENES MENCIONADOS:*
+• [Si se mencionaron fechas de parcial, entregas, TP, recuperatorios o clases de consulta, listalas destacadas con emoji ⚠️. Si no hubo fechas mencionadas, indicá: "No se detectaron fechas específicas en la grabación."]
+
+📝 *CONCLUSIÓN Y RECOMENDACIÓN DE ESTUDIO:*
+• [Breve recomendación didáctica de qué profundizar para el examen o siguiente clase]
+
+Directivas:
+- Sé riguroso, claro y pedagógico.
+- Usá español rioplatense (argentino) cálido y profesional.
+- No omitas detalles técnicos, nombres de autores, algoritmos ni fórmulas importantes.`;
+
+  let summaryText: string | null = null;
+
+  // Estrategia 1: Groq llama-3.3-70b-versatile
+  if (groqKey) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${groqKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: systemInstruction },
+            { role: "user", content: `Transcripción del audio de la clase:\n\n${transcription}` }
+          ],
+          max_tokens: 2048,
+          temperature: 0.2
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        summaryText = data.choices?.[0]?.message?.content?.trim() || null;
+      }
+    } catch (e) {
+      console.warn("[summarizeClassAudio Groq failed]:", e);
+    }
+  }
+
+  // Estrategia 2: Fallback Google Gemini
+  if (!summaryText && geminiKey) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: `${systemInstruction}\n\nTranscripción de la clase:\n${transcription}` }]
+            }
+          ]
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        summaryText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+      }
+    } catch (e) {
+      console.warn("[summarizeClassAudio Gemini failed]:", e);
+    }
+  }
+
+  // Estrategia 3: Fallback OpenRouter
+  if (!summaryText && openrouterKey) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${openrouterKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-001",
+          messages: [
+            { role: "system", content: systemInstruction },
+            { role: "user", content: `Transcripción del audio de la clase:\n\n${transcription}` }
+          ],
+          max_tokens: 2048
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        summaryText = data.choices?.[0]?.message?.content?.trim() || null;
+      }
+    } catch (e) {
+      console.warn("[summarizeClassAudio OpenRouter failed]:", e);
+    }
+  }
+
+  if (!summaryText) return null;
+
+  // Deducir materia o título
+  let detectedSubjectId: string | null = null;
+  let detectedTitle = "Clase Grabada";
+  for (const s of subjects) {
+    if (summaryText.toLowerCase().includes(s.nombre.toLowerCase()) || transcription.toLowerCase().includes(s.nombre.toLowerCase())) {
+      detectedSubjectId = s.id;
+      detectedTitle = `Clase de ${s.nombre}`;
+      break;
+    }
+  }
+
+  return { summary: summaryText, detectedSubjectId, detectedTitle };
+}
+
 // ─── MULTIMODAL VISION ENGINE (Groq Vision + Gemini + OpenRouter) ────────
 async function analyzeImageMultimodal(
   groqKey: string,
@@ -423,8 +559,8 @@ serve(async (req) => {
       senderId = body.message.chat.id.toString();
       text = body.message.text || body.message.caption || null;
 
-      // 1. Audio / Voice in Telegram
-      const voiceObj = body.message.voice || body.message.audio;
+      // 1. Audio / Voice in Telegram (voice, audio note or forwarded audio document)
+      const voiceObj = body.message.voice || body.message.audio || (body.message.document && (body.message.document.mime_type?.startsWith("audio/") || body.message.document.file_name?.match(/\.(mp3|wav|m4a|ogg|aac|opus)$/i)) ? body.message.document : null);
       if (voiceObj && TELEGRAM_BOT_TOKEN) {
         isVoiceNote = true;
         try {
@@ -477,11 +613,12 @@ serve(async (req) => {
       senderId = msg.from;
       text = msg.text?.body || msg.image?.caption || null;
 
-      // 1. Audio / Voice in WhatsApp
-      if ((msg.type === "audio" || msg.type === "voice") && WHATSAPP_ACCESS_TOKEN) {
+      // 1. Audio / Voice in WhatsApp (voice, audio note or forwarded audio document)
+      const isAudioDoc = msg.type === "document" && (msg.document?.mime_type?.startsWith("audio/") || msg.document?.filename?.match(/\.(mp3|wav|m4a|ogg|aac|opus)$/i));
+      if ((msg.type === "audio" || msg.type === "voice" || isAudioDoc) && WHATSAPP_ACCESS_TOKEN) {
         isVoiceNote = true;
-        const mediaId = msg.audio?.id || msg.voice?.id;
-        const mime = msg.audio?.mime_type || msg.voice?.mime_type || "audio/ogg";
+        const mediaId = msg.audio?.id || msg.voice?.id || msg.document?.id;
+        const mime = msg.audio?.mime_type || msg.voice?.mime_type || msg.document?.mime_type || "audio/ogg";
         if (mediaId) {
           try {
             const mediaMetaRes = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
@@ -642,6 +779,9 @@ serve(async (req) => {
       5. Si el usuario pide que lo evalúes, le tomes prueba, quiz, simulacro, flashcards, examen de práctica o similar, SIEMPRE usá la herramienta "generate_quiz". Generá entre 5 y 8 preguntas de opción múltiple (a,b,c,d) de dificultad progresiva sobre la materia indicada.
       6. Si el usuario responde con letras separadas por coma (ej: "b, a, c, d, a" o "b,a,c,d,a" o "babca") Y existe un quiz reciente en su historial, usá la herramienta "evaluate_quiz_response" con el ID del quiz más reciente y las letras del usuario.
       7. Al generar preguntas, asegurate de que sean relevantes para el nivel universitario argentino y cubran temas variados de la materia.
+
+      -- RESÚMENES DE CLASES Y AUDIOS --
+      8. Si el usuario te pide resumir una clase, transcripción de audio o apuntes de cursada, estructurá tu respuesta didácticamente con: Puntos Clave, Conceptos y Definiciones, Fechas/Entregas Mencionadas y Recomendaciones de Estudio.
     `;
 
 
@@ -668,6 +808,55 @@ serve(async (req) => {
           senderId,
           "📸 Recibí tu imagen, pero en este momento los servicios de análisis visual están con alta demanda o la imagen no pudo ser procesada. ¿Podrías enviarla nuevamente o consultarme lo que necesitas por texto o audio?"
         );
+        return new Response("OK");
+      }
+    }
+
+    // ───────────── AUDIO SUMMARY: CLASES & AUDIOS LARGOS ─────────────
+    const isClassAudio = isVoiceNote && text && (
+      text.length >= 140 || 
+      /(resum(en|ir|eme|i)|clase|apunte|explicacion|teorica|practica|tema|unidad|profesor|profe)/i.test(text)
+    );
+
+    if (isClassAudio && text) {
+      console.log(`[Audio Summary] Procesando audio de clase (${text.length} caracteres) para usuario ${userId}`);
+      const audioResult = await summarizeClassAudio(
+        GROQ_API_KEY,
+        GEMINI_API_KEY,
+        OPENROUTER_API_KEY,
+        text,
+        subjects,
+        userName
+      );
+
+      if (audioResult) {
+        // Guardar automáticamente como Apunte en notion_documents
+        try {
+          const docTitle = `🎙️ ${audioResult.detectedTitle} (${new Date().toLocaleDateString('es-AR')})`;
+          await supabase.from("notion_documents").insert({
+            user_id: userId,
+            subject_id: audioResult.detectedSubjectId,
+            titulo: docTitle,
+            emoji: "🎙️",
+            contenido: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: audioResult.summary }]
+                }
+              ]
+            }
+          });
+        } catch (notionErr) {
+          console.warn("[Notion save warning]:", notionErr);
+        }
+
+        let replyMsg = `${audioResult.summary}\n\n`;
+        replyMsg += `────────────────────────────\n`;
+        replyMsg += `💾 _Este resumen se guardó automáticamente en tus Apuntes de TABE (sección Notion)._ 📚`;
+
+        await sendMessage(platform, senderId, replyMsg);
         return new Response("OK");
       }
     }

@@ -272,7 +272,11 @@ export default function AIAssistant() {
           try {
             const text = await transcribeAudio(audioBlob);
             if (text) {
-              setInputValue((prev) => prev + (prev ? " " : "") + text);
+              const isLongAudio = text.length > 100;
+              const promptSuffix = isLongAudio 
+                ? "\n\n👉 *Por favor generame un resumen estructurado con puntos clave, conceptos y fechas mencionadas.*" 
+                : "";
+              setInputValue((prev) => prev + (prev ? " " : "") + text + promptSuffix);
               toast.success("Audio transcripto 🎙️");
             }
           } catch (e: any) {
@@ -329,11 +333,15 @@ export default function AIAssistant() {
       setIsUploading(true);
       if (file.type.startsWith("image/")) {
         processImageFile(file);
-      } else if (file.type.startsWith("audio/") || file.name.match(/\.(mp3|wav|m4a|ogg)$/i)) {
+      } else if (file.type.startsWith("audio/") || file.name.match(/\.(mp3|wav|m4a|ogg|aac|opus)$/i)) {
         toast.info("Transcribiendo audio con IA... 🎧");
         const text = await transcribeAudio(file);
         if (text) {
-          setInputValue((prev) => `${prev ? prev + "\n\n" : ""}🎙️ [Audio transcripto]: ${text}`);
+          const isLongAudio = text.length > 100;
+          const promptSuffix = isLongAudio 
+            ? "\n\n👉 *Por favor generame un resumen estructurado de esta clase con puntos clave, conceptos y fechas mencionadas.*"
+            : "";
+          setInputValue((prev) => `${prev ? prev + "\n\n" : ""}🎙️ **[Grabación/Audio de clase]:**\n${text}${promptSuffix}`);
           toast.success("Audio transcripto con éxito 🎧");
         }
       } else if (file.type === "application/pdf") {

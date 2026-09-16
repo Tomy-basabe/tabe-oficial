@@ -548,7 +548,8 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA:
 {"quiz_name": "Nombre del Quiz", "subject_name": "Materia (opcional)", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
 \`\`\`
 8. PROMEDIO Y CALIFICACIONES: Si el estudiante te consulta sobre su promedio ('cuál es mi promedio', 'cómo voy con mi promedio', 'mis notas'), indicale de forma clara y directa su promedio general exacto (formato con dos decimales como 7.85) según los datos del [2. RESUMEN ACADÉMICO GENERAL] y detallale las materias aprobadas con sus notas. Si no tiene materias con nota numérica registrada aún, explicaselo con calidez.
-9. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción.`;
+9. RESÚMENES DE CLASES Y AUDIOS: Si el estudiante te comparte un audio, grabación o transcripción de clase para resumir, genera un resumen estructurado didáctico con: Puntos Clave, Conceptos y Definiciones Importantes, y Fechas/Entregas/Exámenes Mencionados (destacados con ⚠️).
+10. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción.`;
 
   contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
