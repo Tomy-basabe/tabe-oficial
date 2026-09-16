@@ -60,10 +60,10 @@ export async function performGlobalCalendarSync(
               if (typeof window !== "undefined") {
                 window.dispatchEvent(new CustomEvent("tabe_calendar_synced", { detail: { source: "google", ...res } }));
               }
-              if (!options?.silent) {
+              if (options?.silent === false) {
                 toast.success(
                   `Google Calendar: ${res.added > 0 ? `${res.added} nuevos ` : ""}${res.updated > 0 ? `${res.updated} actualizados` : ""}`,
-                  { icon: "📅", duration: 5000 }
+                  { icon: "📅", duration: 4000 }
                 );
               }
             }
@@ -84,10 +84,10 @@ export async function performGlobalCalendarSync(
               if (typeof window !== "undefined") {
                 window.dispatchEvent(new CustomEvent("tabe_calendar_synced", { detail: { source: "moodle", ...res } }));
               }
-              if (!options?.silent) {
+              if (options?.silent === false) {
                 toast.success(
                   `Campus Virtual: ${res.added > 0 ? `${res.added} nuevas ` : ""}${res.updated > 0 ? `${res.updated} actualizadas` : ""}`,
-                  { icon: "🎓", duration: 5000 }
+                  { icon: "🎓", duration: 4000 }
                 );
               }
             }

@@ -113,17 +113,17 @@ export function MainLayout() {
 
   const navItems = baseNavItems;
   
-  // Auto-sync academic calendars (Google Calendar & Moodle Campus) with 10-minute cooldown
+  // Auto-sync academic calendars (Google Calendar & Moodle Campus) in background silently
   useEffect(() => {
     if (!user || isGuest) return;
 
     let lastSyncTime = 0;
-    const SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+    const SYNC_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
 
     // Run background sync shortly after entry so initial rendering is ultra-fast
     const timer = setTimeout(() => {
       lastSyncTime = Date.now();
-      performGlobalCalendarSync(user);
+      performGlobalCalendarSync(user, { silent: true });
     }, 2500);
 
     const handleVisibility = () => {
@@ -131,15 +131,26 @@ export function MainLayout() {
         const now = Date.now();
         if (now - lastSyncTime > SYNC_COOLDOWN_MS) {
           lastSyncTime = now;
-          performGlobalCalendarSync(user);
+          performGlobalCalendarSync(user, { silent: true });
         }
       }
     };
 
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (now - lastSyncTime > SYNC_COOLDOWN_MS) {
+        lastSyncTime = now;
+        performGlobalCalendarSync(user, { silent: true });
+      }
+    }, 3 * 60 * 1000);
+
     document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
     return () => {
       clearTimeout(timer);
+      clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
     };
   }, [user, isGuest]);
 

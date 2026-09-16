@@ -326,9 +326,6 @@ export function useCalendarEvents() {
           });
           if (res.gcalId) {
             eventData.notas = injectGoogleEventId(eventData.notas, res.gcalId);
-            if (!options?.silent) {
-              toast.success("Evento agregado a Google Calendar", { icon: "📅" });
-            }
           } else if (res.error && !options?.silent) {
             console.warn("Google Calendar sync warning:", res.error);
             if (!res.error.toLowerCase().includes("expir") && !res.error.toLowerCase().includes("token")) {
@@ -456,9 +453,6 @@ export function useCalendarEvents() {
             const res = await pushEventToGoogleCalendar(updatedForGoogle);
             if (res.gcalId) {
               data.notas = injectGoogleEventId(data.notas !== undefined ? data.notas : target.notas, res.gcalId);
-              if (!options?.silent) {
-                toast.success("Actualizado en Google Calendar", { icon: "📅" });
-              }
             } else if (res.error && !options?.silent) {
               console.warn("Google Calendar sync warning:", res.error);
               if (!res.error.toLowerCase().includes("expir") && !res.error.toLowerCase().includes("token")) {
