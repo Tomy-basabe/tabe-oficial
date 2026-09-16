@@ -52,12 +52,12 @@ interface ModelConfig {
 }
 
 const PREFERRED_MODELS: ModelConfig[] = [
-  { id: "llama-3.3-70b-versatile", maxTokens: 800 },
-  { id: "llama-3.1-70b-versatile", maxTokens: 800 },
-  { id: "llama3-70b-8192", maxTokens: 800 },
-  { id: "llama3-8b-8192", maxTokens: 800 },
-  { id: "gemma2-9b-it", maxTokens: 800 },
-  { id: "mixtral-8x7b-32768", maxTokens: 800 },
+  { id: "llama-3.3-70b-versatile", maxTokens: 2048 },
+  { id: "llama-3.1-70b-versatile", maxTokens: 2048 },
+  { id: "llama3-70b-8192", maxTokens: 2048 },
+  { id: "llama3-8b-8192", maxTokens: 1500 },
+  { id: "gemma2-9b-it", maxTokens: 1500 },
+  { id: "mixtral-8x7b-32768", maxTokens: 2048 },
 ];
 
 const BLACKLISTED_KEYWORDS = ["specdec", "guard", "whisper", "orpheus", "embed", "safeguard", "qwen"];
@@ -576,12 +576,13 @@ serve(async (req) => {
     const userId = botUser.user_id;
 
     // Fetch Full Academic Context
-    const [subjectsRes, subjectStatusRes, eventsRes, profilesRes, statsRes] = await Promise.all([
+    const [subjectsRes, subjectStatusRes, eventsRes, profilesRes, statsRes, quizDecksRes] = await Promise.all([
       supabase.from("subjects").select("id, nombre, año"),
       supabase.from("user_subject_status").select("subject_id, estado, nota").eq("user_id", userId),
       supabase.from("calendar_events").select("id, titulo, fecha, tipo_examen").eq("user_id", userId).gte("fecha", new Date().toISOString().split("T")[0]).order('fecha').limit(20),
       supabase.from("profiles").select("nombre").eq("id", userId).single(),
-      supabase.from("user_stats").select("*").eq("user_id", userId).maybeSingle()
+      supabase.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(5)
     ]);
 
     const subjects = subjectsRes.data || [];
@@ -608,6 +609,10 @@ serve(async (req) => {
     const events = (eventsRes.data || []).map(e => `${e.fecha} [ID: ${e.id}]: ${e.titulo} (${e.tipo_examen})`);
     const userName = profilesRes.data?.nombre || "Estudiante";
     const stats = statsRes.data || { nivel: 1, xp_total: 0, racha_actual: 0, horas_estudio_total: 0 };
+    const recentQuizzes = (quizDecksRes.data || []).map(q => {
+      const subj = subjects.find(s => s.id === q.subject_id);
+      return `[ID: ${q.id}] "${q.nombre}" (${subj?.nombre || 'General'}) - ${q.total_questions || '?'} preguntas`;
+    });
 
     const systemPrompt = `Sos TABE AI (@tabeai_bot), el asistente inteligente de la vida universitaria de ${userName}.
       Tenés acceso completo al 100% de sus datos académicos.
@@ -623,13 +628,22 @@ serve(async (req) => {
       
       Materias y estados:
       ${enrichedSubjects.length ? enrichedSubjects.join("\\n") : "Sin materias cargadas."}
+
+      Quizzes recientes del estudiante:
+      ${recentQuizzes.length ? recentQuizzes.join("\\n") : "Ningún quiz creado aún."}
       
       -- INSTRUCCIONES --
       1. Si te pregunta sobre su promedio, notas, materias o exámenes, respondé directamente con los datos de arriba.
       2. Si te pide agendar fechas, eliminar eventos, registrar estudio o cambiar estados de materias, EJECUTÁ LAS HERRAMIENTAS (tools).
       3. Si te manda fotos de exámenes, ejercicios, apuntes o gráficos, explicaselos paso a paso con máxima claridad pedagógica.
       4. Sé cálido, claro, conciso y usá emojis. Respondé en español argentino.
+      
+      -- MODO TUTOR / EVALUADOR --
+      5. Si el usuario pide que lo evalúes, le tomes prueba, quiz, simulacro, flashcards, examen de práctica o similar, SIEMPRE usá la herramienta "generate_quiz". Generá entre 5 y 8 preguntas de opción múltiple (a,b,c,d) de dificultad progresiva sobre la materia indicada.
+      6. Si el usuario responde con letras separadas por coma (ej: "b, a, c, d, a" o "b,a,c,d,a" o "babca") Y existe un quiz reciente en su historial, usá la herramienta "evaluate_quiz_response" con el ID del quiz más reciente y las letras del usuario.
+      7. Al generar preguntas, asegurate de que sean relevantes para el nivel universitario argentino y cubran temas variados de la materia.
     `;
+
 
     // ───────────────── MULTIMODAL: VISION HANDLER ─────────────────
     if (imageBytes && imageBytes.byteLength > 0) {
@@ -725,6 +739,52 @@ serve(async (req) => {
             additionalProperties: false
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "generate_quiz",
+          description: "Genera un quiz/cuestionario de opción múltiple sobre una materia o tema. Úsalo cuando el usuario pida que lo evalúes, le tomes prueba, quiz, simulacro, examen de práctica, flashcards de evaluación o similar. Generá entre 5 y 8 preguntas de dificultad progresiva.",
+          parameters: {
+            type: "object",
+            properties: {
+              materia: { type: "string", description: "Nombre de la materia (debe coincidir con las materias del estudiante)" },
+              titulo: { type: "string", description: "Título descriptivo del quiz, ej: 'Quiz de Álgebra Lineal - Matrices'" },
+              preguntas: {
+                type: "array",
+                description: "Array de 5-8 preguntas de opción múltiple",
+                items: {
+                  type: "object",
+                  properties: {
+                    pregunta: { type: "string", description: "Texto de la pregunta" },
+                    opciones: { type: "array", items: { type: "string" }, description: "Exactamente 4 opciones de respuesta" },
+                    respuesta_correcta: { type: "number", description: "Índice de la opción correcta (0=a, 1=b, 2=c, 3=d)" },
+                    explicacion: { type: "string", description: "Explicación pedagógica de por qué esa es la respuesta correcta" }
+                  },
+                  required: ["pregunta", "opciones", "respuesta_correcta", "explicacion"]
+                }
+              }
+            },
+            required: ["materia", "titulo", "preguntas"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "evaluate_quiz_response",
+          description: "Evalúa las respuestas del usuario a un quiz existente. Úsalo cuando el usuario envíe letras de respuesta como 'b, a, c, d, a' o 'bacda' para un quiz que le generaste recientemente.",
+          parameters: {
+            type: "object",
+            properties: {
+              quiz_deck_id: { type: "string", description: "UUID del quiz a evaluar (sacalo del contexto de Quizzes recientes)" },
+              respuestas: { type: "array", items: { type: "string" }, description: "Array de letras de respuesta del usuario, ej: ['b','a','c','d','a']" }
+            },
+            required: ["quiz_deck_id", "respuestas"],
+            additionalProperties: false
+          }
+        }
       }
     ];
 
@@ -810,6 +870,167 @@ serve(async (req) => {
               actionResponseMsg += `🎓 *Materia actualizada:* Ahora estás en estado '${args.estado}'${args.nota ? ` con nota ${args.nota}` : ''}. ¡Felicitaciones! 🎉\n`;
             } else {
                actionResponseMsg += `❌ Error al actualizar materia.\n`;
+            }
+            break;
+          }
+          case "generate_quiz": {
+            try {
+              const resolvedSubjId = resolveSubjectId(args.materia);
+              const numQuestions = Array.isArray(args.preguntas) ? args.preguntas.length : 0;
+              const quizTitle = args.titulo || `Quiz de ${args.materia}`;
+
+              const { data: deck, error: deckErr } = await supabase.from("quiz_decks").insert({
+                user_id: userId,
+                nombre: quizTitle,
+                subject_id: resolvedSubjId,
+                total_questions: numQuestions
+              }).select("id").single();
+
+              if (deckErr || !deck) {
+                console.error("[generate_quiz deck error]:", deckErr);
+                actionResponseMsg += `❌ Ocurrió un error al guardar el quiz en el sistema.\n`;
+                break;
+              }
+
+              const letras = ["a", "b", "c", "d"];
+              let quizFormatted = `🧠 *${quizTitle.toUpperCase()}*\n`;
+              quizFormatted += `📚 Materia: ${args.materia}\n`;
+              quizFormatted += `🎯 Cantidad: ${numQuestions} preguntas\n`;
+              quizFormatted += `────────────────────────────\n\n`;
+
+              for (let i = 0; i < numQuestions; i++) {
+                const p = args.preguntas[i];
+                const { data: qData, error: qErr } = await supabase.from("quiz_questions").insert({
+                  deck_id: deck.id,
+                  pregunta: p.pregunta,
+                  explicacion: p.explicacion,
+                  user_id: userId
+                }).select("id").single();
+
+                if (qErr || !qData) {
+                  console.error("[generate_quiz question error]:", qErr);
+                  continue;
+                }
+
+                if (Array.isArray(p.opciones)) {
+                  const optionsToInsert = p.opciones.map((optText: string, idx: number) => ({
+                    question_id: qData.id,
+                    texto: optText,
+                    es_correcta: idx === p.respuesta_correcta
+                  }));
+                  await supabase.from("quiz_options").insert(optionsToInsert);
+                }
+
+                quizFormatted += `*${i + 1}.* ${p.pregunta}\n`;
+                if (Array.isArray(p.opciones)) {
+                  p.opciones.forEach((optText: string, idx: number) => {
+                    quizFormatted += `   ${letras[idx] || idx + 1}) ${optText}\n`;
+                  });
+                }
+                quizFormatted += `\n`;
+              }
+
+              quizFormatted += `────────────────────────────\n`;
+              quizFormatted += `📩 *Para responder:* enviame solo las letras en orden (ejemplo: \`${letras.slice(0, Math.min(numQuestions, 4)).join(", ")}\`).\n`;
+              quizFormatted += `💾 _Guardado en TABE: ID \`${deck.id}\`_`;
+
+              actionResponseMsg += quizFormatted;
+            } catch (qEx) {
+              console.error("[generate_quiz exception]:", qEx);
+              actionResponseMsg += `❌ Hubo un inconveniente al armar el quiz. Por favor, reintenta en un momento.\n`;
+            }
+            break;
+          }
+          case "evaluate_quiz_response": {
+            try {
+              let targetDeckId = args.quiz_deck_id;
+              if (!targetDeckId && quizDecksRes?.data && quizDecksRes.data.length > 0) {
+                targetDeckId = quizDecksRes.data[0].id;
+              }
+
+              if (!targetDeckId) {
+                actionResponseMsg += `⚠️ No encontré ningún quiz activo para corregir. Pídeme: "Tomame un quiz de [materia]" para comenzar. 🎓\n`;
+                break;
+              }
+
+              const { data: deckData } = await supabase
+                .from("quiz_decks")
+                .select("nombre, subject_id")
+                .eq("id", targetDeckId)
+                .single();
+
+              const { data: questions, error: fetchErr } = await supabase
+                .from("quiz_questions")
+                .select("id, pregunta, explicacion, created_at, quiz_options(id, texto, es_correcta)")
+                .eq("deck_id", targetDeckId)
+                .order("created_at", { ascending: true });
+
+              if (fetchErr || !questions || questions.length === 0) {
+                actionResponseMsg += `⚠️ No pude cargar las preguntas del quiz con ID \`${targetDeckId}\`.\n`;
+                break;
+              }
+
+              const userAnswers: string[] = (Array.isArray(args.respuestas) ? args.respuestas : [])
+                .map((r: any) => String(r).trim().toLowerCase().replace(/[^a-d]/g, ""))
+                .filter(Boolean);
+
+              const letrasMap: Record<string, number> = { a: 0, b: 1, c: 2, d: 3 };
+              let correctCount = 0;
+              const totalQ = questions.length;
+
+              let evalText = `📊 *CORRECCIÓN DE QUIZ: ${deckData?.nombre || 'EVALUACIÓN'}*\n`;
+              evalText += `────────────────────────────\n\n`;
+
+              for (let i = 0; i < totalQ; i++) {
+                const q = questions[i];
+                const options = (q.quiz_options || []) as Array<{ id: string; texto: string; es_correcta: boolean }>;
+                const correctIdx = options.findIndex(o => o.es_correcta);
+                const userLetter = userAnswers[i] || "-";
+                const userIdx = letrasMap[userLetter] !== undefined ? letrasMap[userLetter] : -1;
+
+                const isCorrect = userIdx !== -1 && userIdx === correctIdx;
+                if (isCorrect) correctCount++;
+
+                const statusEmoji = isCorrect ? "✅" : "❌";
+                const correctLetter = ["a", "b", "c", "d"][correctIdx] || "?";
+                const correctOptionText = correctIdx !== -1 && options[correctIdx] ? options[correctIdx].texto : "";
+
+                evalText += `${statusEmoji} *Pregunta ${i + 1}:* ${q.pregunta}\n`;
+                evalText += `   Tu respuesta: *${userLetter.toUpperCase()}* ${isCorrect ? '(¡Correcta!)' : `(Incorrecta)`}\n`;
+                if (!isCorrect && correctIdx !== -1) {
+                  evalText += `   👉 Correcta: *${correctLetter.toUpperCase()}*) ${correctOptionText}\n`;
+                }
+                if (q.explicacion) {
+                  evalText += `   💡 _Explicación:_ ${q.explicacion}\n`;
+                }
+                evalText += `\n`;
+              }
+
+              const porcentaje = Math.round((correctCount / totalQ) * 100);
+              let calificacion = "";
+              if (porcentaje >= 90) calificacion = "🏆 ¡Sobresaliente! Dominás el tema al 100%.";
+              else if (porcentaje >= 70) calificacion = "👏 ¡Muy buen trabajo! Aprobado con solvencia.";
+              else if (porcentaje >= 40) calificacion = "📖 Bien encaminado, pero repasemos los temas donde hubo dudas.";
+              else calificacion = "💪 A no desanimar: repasa la teoría y volvemos a intentarlo.";
+
+              evalText += `────────────────────────────\n`;
+              evalText += `🎯 *Resultado Final:* ${correctCount}/${totalQ} correctas (${porcentaje}%)\n`;
+              evalText += `${calificacion}\n\n`;
+              evalText += `✨ _Tu sesión de práctica fue computada en tus estadísticas de estudio._ 🚀`;
+
+              // Registrar sesión de estudio en study_sessions
+              await supabase.from("study_sessions").insert({
+                user_id: userId,
+                duracion_segundos: Math.max(120, totalQ * 45),
+                fecha: new Date().toISOString().split("T")[0],
+                tipo: 'quiz',
+                subject_id: deckData?.subject_id || null
+              });
+
+              actionResponseMsg += evalText;
+            } catch (evalEx) {
+              console.error("[evaluate_quiz_response exception]:", evalEx);
+              actionResponseMsg += `❌ Hubo un error procesando la evaluación. Intentá nuevamente.\n`;
             }
             break;
           }

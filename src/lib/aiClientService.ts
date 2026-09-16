@@ -12,6 +12,7 @@ export interface StreamResult {
   content: string;
   event_created?: any;
   flashcards_created?: { deck: any; cards_count: number };
+  quiz_created?: { deck: any; questions_count: number };
 }
 
 // In-memory cache of student context to avoid re-querying on rapid consecutive messages
@@ -542,23 +543,28 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA:
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-7. PROMEDIO Y CALIFICACIONES: Si el estudiante te consulta sobre su promedio ('cuál es mi promedio', 'cómo voy con mi promedio', 'mis notas'), indicale de forma clara y directa su promedio general exacto (formato con dos decimales como 7.85) según los datos del [2. RESUMEN ACADÉMICO GENERAL] y detallale las materias aprobadas con sus notas. Si no tiene materias con nota numérica registrada aún, explicaselo con calidez.
-8. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción.`;
+7. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o examen de práctica, formula entre 3 y 5 preguntas de opción múltiple pedagógicas (a, b, c, d) para que las responda en el chat y guardá el mazo en su cuenta incluyendo al final:
+\`\`\`tabe-action:quiz
+{"quiz_name": "Nombre del Quiz", "subject_name": "Materia (opcional)", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
+\`\`\`
+8. PROMEDIO Y CALIFICACIONES: Si el estudiante te consulta sobre su promedio ('cuál es mi promedio', 'cómo voy con mi promedio', 'mis notas'), indicale de forma clara y directa su promedio general exacto (formato con dos decimales como 7.85) según los datos del [2. RESUMEN ACADÉMICO GENERAL] y detallale las materias aprobadas con sus notas. Si no tiene materias con nota numérica registrada aún, explicaselo con calidez.
+9. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción.`;
 
   contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
 }
 
 /**
- * Executes TABE embedded actions (calendar, flashcards) directly in Supabase
+ * Executes TABE embedded actions (calendar, flashcards, quizzes) directly in Supabase
  */
 async function executeActionBlock(
   content: string,
   userId: string
-): Promise<{ event_created?: any; flashcards_created?: any; cleanedContent: string }> {
+): Promise<{ event_created?: any; flashcards_created?: any; quiz_created?: any; cleanedContent: string }> {
   let cleanedContent = content;
   let event_created = null;
   let flashcards_created = null;
+  let quiz_created = null;
 
   // 1. Calendar action
   const calRegex = /```tabe-action:calendar\s*([\s\S]*?)\s*```/;
@@ -620,7 +626,68 @@ async function executeActionBlock(
     cleanedContent = cleanedContent.replace(fcRegex, "").trim();
   }
 
-  return { event_created, flashcards_created, cleanedContent };
+  // 3. Quiz action
+  const quizRegex = /```tabe-action:quiz\s*([\s\S]*?)\s*```/;
+  const quizMatch = content.match(quizRegex);
+  if (quizMatch && quizMatch[1]) {
+    try {
+      const data = JSON.parse(quizMatch[1].trim());
+      if (data.quiz_name && Array.isArray(data.questions) && data.questions.length > 0) {
+        let subjectId = null;
+        if (data.subject_name) {
+          const { data: subData } = await (supabase as any)
+            .from("subjects")
+            .select("id")
+            .ilike("nombre", `%${data.subject_name.trim()}%`)
+            .limit(1)
+            .maybeSingle();
+          if (subData) subjectId = subData.id;
+        }
+
+        const { data: deck } = await (supabase as any)
+          .from("quiz_decks")
+          .insert({
+            user_id: userId,
+            nombre: data.quiz_name,
+            subject_id: subjectId,
+            total_questions: data.questions.length,
+          })
+          .select()
+          .single();
+
+        if (deck) {
+          for (const q of data.questions) {
+            const { data: qData } = await (supabase as any)
+              .from("quiz_questions")
+              .insert({
+                deck_id: deck.id,
+                user_id: userId,
+                pregunta: q.pregunta,
+                explicacion: q.explicacion || null,
+              })
+              .select()
+              .single();
+
+            if (qData && Array.isArray(q.opciones)) {
+              await (supabase as any).from("quiz_options").insert(
+                q.opciones.map((opt: string, idx: number) => ({
+                  question_id: qData.id,
+                  texto: opt,
+                  es_correcta: idx === q.respuesta_correcta,
+                }))
+              );
+            }
+          }
+          quiz_created = { deck, questions_count: data.questions.length };
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to parse quiz action:", e);
+    }
+    cleanedContent = cleanedContent.replace(quizRegex, "").trim();
+  }
+
+  return { event_created, flashcards_created, quiz_created, cleanedContent };
 }
 
 /**
@@ -741,7 +808,7 @@ export async function streamAIChat(params: {
 
   // Parse any action block and execute it
   try {
-    const { event_created, flashcards_created, cleanedContent } = await executeActionBlock(
+    const { event_created, flashcards_created, quiz_created, cleanedContent } = await executeActionBlock(
       finalContent,
       userId
     );
@@ -749,6 +816,7 @@ export async function streamAIChat(params: {
       content: cleanedContent || finalContent,
       event_created,
       flashcards_created,
+      quiz_created,
     });
   } catch {
     onComplete({ content: finalContent });
