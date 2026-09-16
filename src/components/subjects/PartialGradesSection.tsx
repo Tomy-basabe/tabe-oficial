@@ -1,8 +1,7 @@
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Trash2, Award, Calendar, BookOpen, GraduationCap, Check, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, Award, Calendar, BookOpen, GraduationCap, Check, X, Loader2 } from "lucide-react";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { toast } from "sonner";
 import { PartialGrades, ExtraPartial, ExtraGlobal, ExtraFinal } from "@/hooks/useSubjects";
 
 interface PartialGradesSectionProps {
@@ -15,12 +14,13 @@ interface GradeInputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   disabled?: boolean;
   numericValue: number | null;
   placeholder?: string;
 }
 
-function GradeInput({ label, value, onChange, disabled, numericValue, placeholder = "--" }: GradeInputProps) {
+function GradeInput({ label, value, onChange, onBlur, disabled, numericValue, placeholder = "--" }: GradeInputProps) {
   // Support both 1-10 scale (passing >= 4) and 0-100 scale (passing >= 60)
   const isPassing = numericValue !== null && (numericValue > 10 ? numericValue >= 60 : numericValue >= 4);
   const isFailing = numericValue !== null && (numericValue > 10 ? numericValue < 60 : numericValue < 4);
@@ -41,6 +41,7 @@ function GradeInput({ label, value, onChange, disabled, numericValue, placeholde
           step="any"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           disabled={disabled}
           placeholder={placeholder}
           className={cn(
@@ -77,7 +78,6 @@ function parseGradeInput(val: string): number | null {
 
 export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGradesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
 
   // Inputs state
   const [inputs, setInputs] = useState({
@@ -182,6 +182,65 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
       fecha: f.fecha,
     }));
   }, [extraFinals]);
+
+  // ── Auto-save engine ──────────────────────────────────
+  const isMountedRef = useRef(false);
+  const isSavingRef = useRef(false);
+  const saveTimeoutRef = useRef<any>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  const performSave = useCallback(
+    async (
+      vals: typeof numericValues,
+      partials: typeof parsedExtraPartials,
+      globals: typeof parsedExtraGlobals,
+      finals: typeof parsedExtraFinals
+    ) => {
+      if (disabled || isSavingRef.current) return;
+      isSavingRef.current = true;
+      setSaveStatus("saving");
+      try {
+        await onUpdate({
+          ...vals,
+          extra_partials: partials,
+          extra_globals: globals,
+          extra_finals: finals,
+        });
+        setSaveStatus("saved");
+      } catch (err) {
+        console.error("Auto-save error:", err);
+        setSaveStatus("idle");
+      } finally {
+        isSavingRef.current = false;
+      }
+    },
+    [disabled, onUpdate]
+  );
+
+  // Debounced auto-save on any change
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    setSaveStatus("saving");
+
+    saveTimeoutRef.current = setTimeout(() => {
+      performSave(numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals);
+    }, 600);
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals, performSave]);
+
+  // Immediate save on blur
+  const triggerImmediateSave = useCallback(() => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    performSave(numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals);
+  }, [numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals, performSave]);
 
   // Input change helpers
   const updateInput = useCallback((key: keyof typeof inputs, value: string) => {
@@ -294,61 +353,6 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     return list.reduce((a, b) => a + b, 0) / list.length;
   }, [numericValues, parsedExtraPartials]);
 
-  const handleSave = async () => {
-    if (disabled || isSaving) return;
-    setIsSaving(true);
-    ComicAudio.playPowerUp();
-    try {
-      await onUpdate({
-        ...numericValues,
-        extra_partials: parsedExtraPartials,
-        extra_globals: parsedExtraGlobals,
-        extra_finals: parsedExtraFinals,
-      });
-      toast.success("¡Notas y exámenes guardados con éxito!");
-    } catch (error) {
-      console.error(error);
-      toast.error("Error al guardar las notas");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleReset = () => {
-    if (disabled) return;
-    ComicAudio.playPop();
-    setInputs({
-      nota_parcial_1: grades.nota_parcial_1?.toString() ?? "",
-      nota_rec_parcial_1: grades.nota_rec_parcial_1?.toString() ?? "",
-      nota_parcial_2: grades.nota_parcial_2?.toString() ?? "",
-      nota_rec_parcial_2: grades.nota_rec_parcial_2?.toString() ?? "",
-      nota_global: grades.nota_global?.toString() ?? "",
-      nota_rec_global: grades.nota_rec_global?.toString() ?? "",
-      nota_final_examen: grades.nota_final_examen?.toString() ?? "",
-    });
-    setExtraPartials(
-      (grades.extra_partials || []).map((p) => ({
-        id: p.id,
-        nota: p.nota?.toString() ?? "",
-        rec: p.rec?.toString() ?? "",
-      }))
-    );
-    setExtraGlobals(
-      (grades.extra_globals || []).map((g) => ({
-        id: g.id,
-        nota: g.nota?.toString() ?? "",
-        rec: g.rec?.toString() ?? "",
-      }))
-    );
-    setExtraFinals(
-      (grades.extra_finals || []).map((f) => ({
-        id: f.id,
-        nota: f.nota?.toString() ?? "",
-        fecha: f.fecha ?? "",
-      }))
-    );
-  };
-
   return (
     <div className="border-3 border-black rounded-2xl overflow-hidden shadow-[4px_4px_0_0_#000] bg-card">
       <button
@@ -399,13 +403,16 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
             </div>
           )}
 
-          {/* ================= SECCIÓN 1: PARCIALES & RECUPERATORIOS ================= */}
+          {/* PARCIALES SECTION */}
           <div className="space-y-2">
-            <div className="flex items-center gap-1.5 pb-1 border-b border-black/20">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] border border-black" />
-              <h5 className="font-black text-xs uppercase tracking-wider text-foreground">
-                Parciales & Recuperatorios
-              </h5>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-[#00E5FF]" />
+                Parciales y Recuperatorios
+              </span>
+              <span className="text-[10px] font-bold text-muted-foreground">
+                Nota mín. de aprobación: 4 o 60
+              </span>
             </div>
 
             {/* Parcial 1 */}
@@ -415,6 +422,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                 value={inputs.nota_parcial_1}
                 numericValue={numericValues.nota_parcial_1}
                 onChange={(v) => updateInput("nota_parcial_1", v)}
+                onBlur={triggerImmediateSave}
                 disabled={disabled}
               />
               <GradeInput
@@ -422,6 +430,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                 value={inputs.nota_rec_parcial_1}
                 numericValue={numericValues.nota_rec_parcial_1}
                 onChange={(v) => updateInput("nota_rec_parcial_1", v)}
+                onBlur={triggerImmediateSave}
                 disabled={disabled}
               />
             </div>
@@ -433,6 +442,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                 value={inputs.nota_parcial_2}
                 numericValue={numericValues.nota_parcial_2}
                 onChange={(v) => updateInput("nota_parcial_2", v)}
+                onBlur={triggerImmediateSave}
                 disabled={disabled}
               />
               <GradeInput
@@ -440,6 +450,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                 value={inputs.nota_rec_parcial_2}
                 numericValue={numericValues.nota_rec_parcial_2}
                 onChange={(v) => updateInput("nota_rec_parcial_2", v)}
+                onBlur={triggerImmediateSave}
                 disabled={disabled}
               />
             </div>
@@ -463,6 +474,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                     value={p.nota}
                     numericValue={parsedExtraPartials[idx]?.nota ?? null}
                     onChange={(v) => updateExtraInput(idx, "nota", v)}
+                    onBlur={triggerImmediateSave}
                     disabled={disabled}
                   />
                   <GradeInput
@@ -470,6 +482,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                     value={p.rec}
                     numericValue={parsedExtraPartials[idx]?.rec ?? null}
                     onChange={(v) => updateExtraInput(idx, "rec", v)}
+                    onBlur={triggerImmediateSave}
                     disabled={disabled}
                   />
                 </div>
@@ -483,33 +496,34 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
               disabled={disabled}
             >
               <Plus className="w-3.5 h-3.5 mr-1 stroke-[3]" />
-              Agregar Otro Parcial (P{extraPartials.length + 3})
+              Agregar Parcial Extra (P{3 + extraPartials.length})
             </button>
           </div>
 
-          {/* ================= SECCIÓN 2: EXÁMENES GLOBALES ================= */}
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center gap-1.5 pb-1 border-b border-black/20">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FFE600] border border-black" />
-              <h5 className="font-black text-xs uppercase tracking-wider text-foreground">
-                Exámenes Globales & Recuperatorios
-              </h5>
+          {/* GLOBALES SECTION */}
+          <div className="space-y-2 pt-2 border-t-2 border-dashed border-black/20">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                <GraduationCap className="w-3.5 h-3.5 text-[#FFE600]" />
+                Exámenes Globales / Integradores
+              </span>
             </div>
 
-            {/* Global 1 */}
             <div className="grid grid-cols-2 gap-2">
               <GradeInput
                 label="Global 1"
                 value={inputs.nota_global}
                 numericValue={numericValues.nota_global}
                 onChange={(v) => updateInput("nota_global", v)}
+                onBlur={triggerImmediateSave}
                 disabled={disabled}
               />
               <GradeInput
-                label="Recup. Global 1"
+                label="Recup. Global"
                 value={inputs.nota_rec_global}
                 numericValue={numericValues.nota_rec_global}
                 onChange={(v) => updateInput("nota_rec_global", v)}
+                onBlur={triggerImmediateSave}
                 disabled={disabled}
               />
             </div>
@@ -522,7 +536,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                     type="button"
                     onClick={() => removeGlobal(idx)}
                     className="absolute -right-1 -top-1 p-1 bg-[#FF2E93] text-white rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:scale-110 transition-transform z-10"
-                    title="Eliminar global"
+                    title="Eliminar examen global"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -533,6 +547,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                     value={g.nota}
                     numericValue={parsedExtraGlobals[idx]?.nota ?? null}
                     onChange={(v) => updateExtraGlobalInput(idx, "nota", v)}
+                    onBlur={triggerImmediateSave}
                     disabled={disabled}
                   />
                   <GradeInput
@@ -540,6 +555,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                     value={g.rec}
                     numericValue={parsedExtraGlobals[idx]?.rec ?? null}
                     onChange={(v) => updateExtraGlobalInput(idx, "rec", v)}
+                    onBlur={triggerImmediateSave}
                     disabled={disabled}
                   />
                 </div>
@@ -553,40 +569,43 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
               disabled={disabled}
             >
               <Plus className="w-3.5 h-3.5 mr-1 stroke-[3]" />
-              Agregar Otro Global (G{extraGlobals.length + 2})
+              Agregar Instancia Global (Global {2 + extraGlobals.length})
             </button>
           </div>
 
-          {/* ================= SECCIÓN 3: EXÁMENES FINALES ================= */}
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center gap-1.5 pb-1 border-b border-black/20">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#48BD22] border border-black" />
-              <h5 className="font-black text-xs uppercase tracking-wider text-foreground">
-                Exámenes Finales & Llamados
-              </h5>
+          {/* FINALES SECTION */}
+          <div className="space-y-2 pt-2 border-t-2 border-dashed border-black/20">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[#48BD22]" />
+                Llamados a Examen Final
+              </span>
             </div>
 
-            {/* Final 1 (Principal) */}
             <div>
               <GradeInput
-                label="Examen Final (Llamado 1)"
+                label="Final (Llamado 1)"
                 value={inputs.nota_final_examen}
                 numericValue={numericValues.nota_final_examen}
                 onChange={(v) => updateInput("nota_final_examen", v)}
+                onBlur={triggerImmediateSave}
                 disabled={disabled}
+                placeholder="Nota final"
               />
             </div>
 
             {/* Extra Finals */}
             {extraFinals.map((f, idx) => (
-              <div key={idx} className="relative pt-1 flex items-center gap-2">
+              <div key={idx} className="flex items-center gap-2">
                 <div className="flex-1">
                   <GradeInput
-                    label={`Final ${f.id}`}
+                    label={f.id}
                     value={f.nota}
                     numericValue={parsedExtraFinals[idx]?.nota ?? null}
                     onChange={(v) => updateExtraFinalInput(idx, "nota", v)}
+                    onBlur={triggerImmediateSave}
                     disabled={disabled}
+                    placeholder="Nota final"
                   />
                 </div>
                 {!disabled && (
@@ -613,28 +632,34 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
             </button>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-3 border-t-2 border-black/20">
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={disabled || isSaving}
-              className="flex-1 py-2.5 rounded-xl font-black uppercase tracking-wider transition-all text-xs border-2 border-black bg-card text-foreground shadow-[2px_2px_0_0_#000] hover:bg-secondary active:translate-y-[1px]"
-            >
-              Descartar
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={disabled || isSaving}
-              className={cn(
-                "flex-1 py-2.5 rounded-xl font-black uppercase tracking-wider transition-all text-xs border-2 border-black",
-                disabled || isSaving
-                  ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed border-muted"
-                  : "bg-[#25d06c] text-black shadow-[3px_3px_0_0_#000] hover:bg-[#25d06c]/90 active:translate-y-[1px]"
+          {/* Auto-save Status Indicator */}
+          <div className="flex items-center justify-between pt-3 border-t-2 border-black/20 px-1">
+            <div className="flex items-center gap-2">
+              {saveStatus === "saving" ? (
+                <span className="flex items-center gap-1.5 text-xs font-black uppercase text-foreground/80 animate-pulse">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00E5FF]" />
+                  Guardando cambios...
+                </span>
+              ) : saveStatus === "saved" ? (
+                <span className="flex items-center gap-1.5 text-xs font-black uppercase text-[#48BD22]">
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  Guardado automático
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase">
+                  <Check className="w-3.5 h-3.5 text-[#48BD22]" />
+                  Autoguardado activado
+                </span>
               )}
+            </div>
+
+            <button
+              type="button"
+              onClick={triggerImmediateSave}
+              disabled={disabled || isSavingRef.current}
+              className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg border-2 border-black bg-secondary hover:bg-[#25d06c] hover:text-black transition-colors shadow-[1px_1px_0_0_#000]"
             >
-              {isSaving ? "Guardando..." : "Guardar Notas"}
+              {saveStatus === "saving" ? "Guardando..." : "Guardado"}
             </button>
           </div>
         </div>
