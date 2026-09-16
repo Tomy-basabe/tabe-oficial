@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
@@ -30,6 +30,77 @@ webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
+// Reusable helper to send Web Push to all active devices of a user
+async function sendPushToUser(
+  supabase: any,
+  userId: string,
+  payloadData: {
+    title?: string;
+    body?: string;
+    url?: string;
+    tag?: string;
+  }
+) {
+  const { data: subs, error: subsErr } = await supabase
+    .from("push_subscriptions")
+    .select("*")
+    .eq("user_id", userId);
+
+  if (subsErr) throw subsErr;
+  if (!subs || subs.length === 0) {
+    return {
+      success: false,
+      sent: 0,
+      total_devices: 0,
+      message: "No se encontraron dispositivos registrados con Web Push para este usuario."
+    };
+  }
+
+  const payload = JSON.stringify({
+    title: payloadData.title || "T.A.B.E. 🎓",
+    body: payloadData.body || "¡Las notificaciones en segundo plano están funcionando con la app cerrada!",
+    icon: "/pwa-192x192.png",
+    badge: "/pwa-192x192.png",
+    tag: payloadData.tag || ("tabe-" + Date.now()),
+    url: payloadData.url || "/dashboard",
+    timestamp: Date.now()
+  });
+
+  let sentCount = 0;
+  let expiredCount = 0;
+
+  for (const sub of subs) {
+    const pushSubscription = {
+      endpoint: sub.endpoint,
+      keys: {
+        p256dh: sub.p256dh,
+        auth: sub.auth
+      }
+    };
+
+    try {
+      await webpush.sendNotification(pushSubscription, payload);
+      sentCount++;
+    } catch (err: any) {
+      console.warn("Failed to send webpush to endpoint:", sub.endpoint, err?.statusCode || err?.message);
+      if (err?.statusCode === 404 || err?.statusCode === 410) {
+        await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+        expiredCount++;
+      }
+    }
+  }
+
+  return {
+    success: sentCount > 0,
+    sent: sentCount,
+    expired_cleaned: expiredCount,
+    total_devices: subs.length,
+    message: sentCount > 0
+      ? `Notificación enviada con éxito a ${sentCount} dispositivo(s).`
+      : "No se pudo entregar la notificación a los dispositivos registrados."
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
@@ -42,7 +113,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "send_to_user";
 
-    // ───────────────── 1. SEND TEST OR DIRECT PUSH TO USER ─────────────────
+    // ───────────────── 1. SEND IMMEDIATE PUSH TO USER ─────────────────
     if (action === "send_to_user" || action === "test_push") {
       const userId = body.user_id;
       if (!userId) {
@@ -52,64 +123,65 @@ serve(async (req) => {
         });
       }
 
-      const { data: subs, error: subsErr } = await supabase
-        .from("push_subscriptions")
-        .select("*")
-        .eq("user_id", userId);
+      const result = await sendPushToUser(supabase, userId, {
+        title: body.title,
+        body: body.body,
+        url: body.url,
+        tag: body.tag
+      });
 
-      if (subsErr) throw subsErr;
-      if (!subs || subs.length === 0) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          message: "No se encontraron suscripciones Web Push activas para este usuario. Asegúrate de habilitar notificaciones en el dispositivo." 
-        }), {
-          status: 200,
+      return new Response(JSON.stringify(result), {
+        headers: { ...cors, "Content-Type": "application/json" }
+      });
+    }
+
+    // ───────────────── 2. SCHEDULE DELAYED PUSH (E.G. 3 MINUTES AFTER ACTIVATION) ─────────────────
+    if (action === "schedule_delayed_greeting" || action === "schedule_delayed_push") {
+      const userId = body.user_id;
+      const delaySeconds = Math.max(5, Math.min(300, Number(body.delay_seconds) || 180)); // 3 minutos por defecto (180 seg)
+      const title = body.title || "¡Hola de parte de TABE! 👋";
+      const pushBody = body.body || "¡Funciona perfecto! Esta notificación te llegó 3 minutos después con la app cerrada. Ya estás al día con tus parciales y tareas.";
+      const url = body.url || "/configuracion";
+
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "Missing user_id" }), {
+          status: 400,
           headers: { ...cors, "Content-Type": "application/json" }
         });
       }
 
-      const payload = JSON.stringify({
-        title: body.title || "T.A.B.E. 🎓",
-        body: body.body || "¡Las notificaciones en segundo plano están funcionando con la app cerrada!",
-        icon: "/pwa-192x192.png",
-        badge: "/pwa-192x192.png",
-        tag: body.tag || ("tabe-" + Date.now()),
-        url: body.url || "/dashboard",
-        timestamp: Date.now()
-      });
+      console.log(`[Scheduled Push] Initiating delayed push for user ${userId} in ${delaySeconds} seconds`);
 
-      let sentCount = 0;
-      let expiredCount = 0;
-
-      for (const sub of subs) {
-        const pushSubscription = {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth
-          }
-        };
-
+      const delayedTask = async () => {
         try {
-          await webpush.sendNotification(pushSubscription, payload);
-          sentCount++;
-        } catch (err: any) {
-          console.warn("Failed to send webpush to endpoint:", sub.endpoint, err?.statusCode || err?.message);
-          if (err?.statusCode === 404 || err?.statusCode === 410) {
-            await supabase.from("push_subscriptions").delete().eq("id", sub.id);
-            expiredCount++;
-          }
+          console.log(`[Scheduled Push] Waiting ${delaySeconds}s for user ${userId}...`);
+          await new Promise((r) => setTimeout(r, delaySeconds * 1000));
+          console.log(`[Scheduled Push] Sending push now to user ${userId}`);
+          const res = await sendPushToUser(supabase, userId, {
+            title,
+            body: pushBody,
+            url,
+            tag: "delayed-greeting-" + Date.now()
+          });
+          console.log(`[Scheduled Push] Sent result for ${userId}:`, res);
+        } catch (err) {
+          console.error(`[Scheduled Push] Error sending delayed push to ${userId}:`, err);
         }
+      };
+
+      // @ts-ignore
+      if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(delayedTask());
+      } else {
+        delayedTask();
       }
 
       return new Response(JSON.stringify({
-        success: sentCount > 0,
-        sent: sentCount,
-        expired_cleaned: expiredCount,
-        total_devices: subs.length,
-        message: sentCount > 0 
-          ? `Notificación Web Push enviada con éxito a ${sentCount} dispositivo(s).`
-          : "No se pudo entregar la notificación a los dispositivos registrados."
+        success: true,
+        delay_seconds: delaySeconds,
+        scheduled_at: new Date(Date.now() + delaySeconds * 1000).toISOString(),
+        message: `Notificación programada para dentro de ${Math.round(delaySeconds / 60)} minutos. ¡Ya podés cerrar la app o bloquear la pantalla para probar!`
       }), {
         headers: { ...cors, "Content-Type": "application/json" }
       });

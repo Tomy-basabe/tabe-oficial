@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { VAPID_PUBLIC_KEY } from "@/config/vapid";
 
 // Helper to convert base64url to Uint8Array for PushManager
@@ -175,7 +175,7 @@ export function syncAlarmsToIndexedDB(params: SyncAlarmsParams): Promise<void> {
       // Store upcoming exams
       params.exams.forEach((ex) => {
         store.put({
-          id: exam_,
+          id: `exam_${ex.id}`,
           type: "exam",
           title: ex.title,
           examType: ex.examType,
@@ -221,6 +221,45 @@ export async function sendTestWebPush(userId: string): Promise<{ success: boolea
     return {
       success: false,
       message: error?.message || "Error al enviar notificación Web Push",
+    };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. SCHEDULE DELAYED GREETING (E.G. 3 MINUTES AFTER PERMISSION)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function scheduleDelayedGreetingPush(
+  userId: string,
+  delaySeconds: number = 180,
+  title?: string,
+  body?: string
+): Promise<{ success: boolean; message: string; delay_seconds?: number }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("send-web-push", {
+      body: {
+        action: "schedule_delayed_greeting",
+        user_id: userId,
+        delay_seconds: delaySeconds,
+        title: title || "¡Hola de parte de TABE! 👋",
+        body: body || "¡Funciona perfecto! Esta notificación te llegó 3 minutos después con la app cerrada. Ya estás al día para no perderte parciales ni entregas.",
+        url: "/configuracion",
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      success: data?.success ?? false,
+      message: data?.message || "Notificación de prueba programada con éxito.",
+      delay_seconds: data?.delay_seconds ?? delaySeconds,
+    };
+  } catch (error: any) {
+    console.error("Error scheduling delayed greeting Web Push:", error);
+    return {
+      success: false,
+      message: error?.message || "Error al programar la notificación en el servidor",
     };
   }
 }

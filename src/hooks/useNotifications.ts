@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { 
   subscribeUserToPush, 
   sendTestWebPush, 
+  scheduleDelayedGreetingPush,
   syncAlarmsToIndexedDB, 
   getPushSubscriptionStatus,
   PushSubscriptionStatus 
@@ -77,6 +78,17 @@ export function useNotifications() {
           setPushStatus(newStatus);
           if (sub) {
             toast.success("¡Conectado al servicio Web Push! Llegarán con la app cerrada 📲");
+            // Auto schedule test greeting 3 minutes later so user can test closed app
+            scheduleDelayedGreetingPush(
+              user.id,
+              180,
+              "¡Hola de parte de TABE! 👋",
+              "¡Funciona perfecto! Esta notificación te llegó 3 minutos después con la app cerrada. Ya estás al día con tus parciales y tareas."
+            ).then((delayedRes) => {
+              if (delayedRes.success) {
+                toast.info("⏱️ Saludo programado para dentro de 3 minutos. ¡Cerrá la app o bloqueá la pantalla para probar!");
+              }
+            });
           }
         }
 
@@ -191,6 +203,45 @@ export function useNotifications() {
     } else {
       toast.error(result.message || "No se pudo enviar la notificación Web Push");
       return false;
+    }
+  }, [user, permission, requestPermission]);
+
+  // Schedule a test greeting 3 minutes from now (for testing closed app)
+  const scheduleThreeMinuteGreeting = useCallback(async (customDelaySeconds: number = 180) => {
+    if (!user) {
+      toast.error("Debes iniciar sesión para programar el saludo de prueba");
+      return false;
+    }
+
+    if (permission !== "granted") {
+      const ok = await requestPermission();
+      if (!ok) return false;
+    }
+
+    try {
+      setIsSubscribingPush(true);
+      await subscribeUserToPush(user.id);
+      const res = await scheduleDelayedGreetingPush(
+        user.id,
+        customDelaySeconds,
+        "¡Hola de parte de TABE! 👋",
+        "¡Funciona perfecto! Esta notificación te llegó 3 minutos después con la app cerrada. Ya estás al día con tus parciales y tareas."
+      );
+
+      if (res.success) {
+        toast.success(res.message || "¡Saludo programado! Cerrá la app o bloqueá la pantalla ahora para probar 📲");
+        const status = await getPushSubscriptionStatus();
+        setPushStatus(status);
+        return true;
+      } else {
+        toast.error(res.message || "No se pudo programar la notificación");
+        return false;
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Error al programar la notificación");
+      return false;
+    } finally {
+      setIsSubscribingPush(false);
     }
   }, [user, permission, requestPermission]);
 
@@ -335,6 +386,7 @@ export function useNotifications() {
     sendNotification,
     testNotification,
     testServerPush,
+    scheduleThreeMinuteGreeting,
     updateSettings,
     checkUpcomingExams,
   };
