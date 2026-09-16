@@ -46,6 +46,7 @@ export default function Metrics() {
   const { user, isGuest } = useAuth();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; nombre: string; año?: number }[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"general" | "carrera" | "flashcards" | "rutinas" | "sueno">("general");
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
   const [showManualDialog, setShowManualDialog] = useState(false);
