@@ -91,12 +91,15 @@ export default function Metrics() {
     }
 
     try {
+      const fromStr = toLocalDateStr(dateRange.from);
+      const toStr = toLocalDateStr(dateRange.to);
+
       const { data: sessionData } = await supabase
         .from("study_sessions")
         .select("fecha, duracion_segundos, tipo, subject_id")
         .eq("user_id", user.id)
-        .gte("fecha", toLocalDateStr(dateRange.from))
-        .lte("fecha", toLocalDateStr(dateRange.to))
+        .gte("fecha", fromStr)
+        .lte("fecha", `${toStr}T23:59:59.999Z`)
         .order("fecha", { ascending: true });
 
       const { data: subjectData } = await supabase
@@ -104,7 +107,13 @@ export default function Metrics() {
         .select("id, nombre, año")
         .eq("user_id", user.id);
 
-      setSessions(sessionData || []);
+      // Normalizar fecha para garantizar coincidencia con YYYY-MM-DD independientemente de si vino con timestamp
+      const normalizedSessions = (sessionData || []).map((s) => ({
+        ...s,
+        fecha: s.fecha ? s.fecha.split("T")[0] : s.fecha,
+      }));
+
+      setSessions(normalizedSessions);
       setSubjects((subjectData || []) as any);
     } catch (error) {
       console.error("Error fetching metrics:", error);
@@ -209,7 +218,7 @@ export default function Metrics() {
       const weeks: { [key: string]: { hours: number; pomodoros: number; flashcards: number; startDate: Date } } = {};
 
       sessions.forEach(session => {
-        const sessionDate = new Date(session.fecha);
+        const sessionDate = new Date(session.fecha.includes("T") ? session.fecha : `${session.fecha}T12:00:00`);
         const weekStart = new Date(sessionDate);
         weekStart.setDate(sessionDate.getDate() - sessionDate.getDay());
         const weekKey = format(weekStart, 'yyyy-MM-dd');
@@ -237,7 +246,7 @@ export default function Metrics() {
       const months: { [key: string]: { hours: number; pomodoros: number; flashcards: number; date: Date } } = {};
 
       sessions.forEach(session => {
-        const sessionDate = new Date(session.fecha);
+        const sessionDate = new Date(session.fecha.includes("T") ? session.fecha : `${session.fecha}T12:00:00`);
         const monthKey = format(sessionDate, 'yyyy-MM');
 
         if (!months[monthKey]) {
@@ -593,34 +602,54 @@ export default function Metrics() {
             <h3 className="font-black uppercase text-xl mb-4 text-foreground">Tipos de Sesión</h3>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {(() => {
-                const types = {
+                const knownTypes: Record<string, { label: string; icon: any; color: string }> = {
                   pomodoro: { label: "Pomodoro", icon: Timer, color: "#FFD700" },
                   flashcard: { label: "Flashcards", icon: Layers, color: "#00E5FF" },
-                  cuestionario: { label: "Cuestionarios", icon: BookOpen, color: "#FF5C5C" },
-                  apuntes: { label: "Apuntes", icon: BookOpen, color: "#BFFF00" },
+                  cuestionario: { label: "Cuestionarios & Quizzes", icon: BookOpen, color: "#FF5C5C" },
+                  apuntes: { label: "Apuntes & Notion", icon: BookOpen, color: "#BFFF00" },
                   biblioteca: { label: "Biblioteca", icon: Library, color: "#3B82F6" },
                   videocall: { label: "Videollamadas", icon: Video, color: "#C688EB" },
-                  manual: { label: "Manual", icon: Clock, color: "#00E5FF" },
+                  manual: { label: "Tiempo Manual", icon: Clock, color: "#00E5FF" },
+                  estudio: { label: "Estudio Libre & Focus", icon: BookOpen, color: "#FF9B71" },
+                };
+
+                // Normalización de tipos equivalentes
+                const canonicalType = (t: string) => {
+                  const normalized = (t || "").toLowerCase().trim();
+                  if (normalized === "quiz") return "cuestionario";
+                  if (normalized === "focus") return "estudio";
+                  return normalized || "estudio";
                 };
 
                 const typeCounts: Record<string, { count: number; seconds: number }> = {};
                 sessions.forEach(s => {
-                  if (!typeCounts[s.tipo]) {
-                    typeCounts[s.tipo] = { count: 0, seconds: 0 };
+                  const key = canonicalType(s.tipo);
+                  if (!typeCounts[key]) {
+                    typeCounts[key] = { count: 0, seconds: 0 };
                   }
-                  typeCounts[s.tipo].count++;
-                  typeCounts[s.tipo].seconds += s.duracion_segundos;
+                  typeCounts[key].count++;
+                  typeCounts[key].seconds += s.duracion_segundos;
                 });
 
-                return Object.entries(types).map(([key, { label, icon: Icon, color }]) => {
+                // Renderizar los tipos conocidos que tengan actividad + los predeterminados
+                const renderedKeys = Array.from(new Set([...Object.keys(knownTypes), ...Object.keys(typeCounts)]));
+
+                return renderedKeys.map((key) => {
+                  const meta = knownTypes[key] || {
+                    label: key.charAt(0).toUpperCase() + key.slice(1),
+                    icon: Clock,
+                    color: "#00E5FF",
+                  };
                   const data = typeCounts[key] || { count: 0, seconds: 0 };
+                  const Icon = meta.icon;
+
                   return (
                     <div key={key} className="p-4 rounded-xl bg-card border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all group">
-                      <div className="w-10 h-10 border-2 border-foreground rounded-lg flex items-center justify-center mb-3 rotate-3 group-hover:rotate-0 transition-transform" style={{ backgroundColor: color }}>
+                      <div className="w-10 h-10 border-2 border-foreground rounded-lg flex items-center justify-center mb-3 rotate-3 group-hover:rotate-0 transition-transform" style={{ backgroundColor: meta.color }}>
                         <Icon className="w-5 h-5 text-black" strokeWidth={2.5} />
                       </div>
                       <p className="text-2xl font-black text-foreground">{data.count}</p>
-                      <p className="text-xs font-bold text-muted-foreground uppercase">{label}</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase truncate">{meta.label}</p>
                       <p className="text-xs font-bold text-foreground mt-1 bg-muted border-2 border-foreground px-2 py-0.5 rounded-full inline-block">
                         {formatHours(data.seconds / 3600)} total
                       </p>
