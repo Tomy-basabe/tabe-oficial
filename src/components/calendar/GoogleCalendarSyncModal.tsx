@@ -70,8 +70,8 @@ export function GoogleCalendarSyncModal({
     const { feedToken, feedUrl, loading: feedLoading, generateToken, regenerateToken, disableFeed } =
         useCalendarFeed();
 
-    // Default to "ical" tab so user immediately sees the universal no-expiration solution (like Moodle)
-    const [activeTab, setActiveTab] = useState<"ical" | "live" | "permanent" | "import">("ical");
+    // Default to "live" tab for real-time 2-way sync via official Google Calendar API
+    const [activeTab, setActiveTab] = useState<"live" | "ical" | "permanent" | "import">("live");
     const [copied, setCopied] = useState(false);
     const [generating, setGenerating] = useState(false);
 
@@ -351,6 +351,21 @@ export function GoogleCalendarSyncModal({
                 {/* Comic Style Tabs */}
                 <div className="flex gap-1.5 p-1 border-b-[3px] border-foreground/15 pb-3 overflow-x-auto">
                     <button
+                        onClick={() => setActiveTab("live")}
+                        className={cn(
+                            "flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground shrink-0 relative",
+                            activeTab === "live"
+                                ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
+                                : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                        )}
+                    >
+                        <Zap className="w-4 h-4 fill-current" />
+                        <span>En Vivo (OAuth)</span>
+                        <span className="hidden sm:inline-block bg-black text-[#00F0FF] text-[9px] px-1 py-0.2 rounded font-black tracking-normal uppercase">
+                            ⭐ En Vivo
+                        </span>
+                    </button>
+                    <button
                         onClick={() => setActiveTab("ical")}
                         className={cn(
                             "flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground shrink-0 relative",
@@ -361,21 +376,6 @@ export function GoogleCalendarSyncModal({
                     >
                         <InfinityIcon className="w-4 h-4" />
                         <span>iCal Secreto</span>
-                        <span className="hidden sm:inline-block bg-black text-[#00FF9D] text-[9px] px-1 py-0.2 rounded font-black tracking-normal uppercase">
-                            ⭐ Top
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("live")}
-                        className={cn(
-                            "flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border-[3px] border-foreground shrink-0",
-                            activeTab === "live"
-                                ? "bg-[#00F0FF] text-black shadow-[4px_4px_0_0_#000] -translate-y-0.5"
-                                : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                        )}
-                    >
-                        <Zap className="w-4 h-4 fill-current" />
-                        <span>2 Vías (OAuth)</span>
                     </button>
                     <button
                         onClick={() => setActiveTab("permanent")}
