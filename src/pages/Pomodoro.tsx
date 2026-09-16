@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { Play, Pause, RotateCcw, Settings, Coffee, BookOpen, Target, Loader2, Save, Gamepad2, Swords } from "lucide-react";
+import { Play, Pause, RotateCcw, Settings, Coffee, BookOpen, Target, Loader2, Save, Gamepad2, Swords, CheckSquare, Calendar, Filter, X } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { usePomodoro, TimerMode } from "@/contexts/PomodoroContext";
 import { PomodoroSettings } from "@/components/pomodoro/PomodoroSettings";
-import { Calendar, Filter, X } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { SubjectStudyStats } from "@/components/pomodoro/SubjectStudyStats";
 
 interface Subject {
   id: string;
@@ -62,10 +63,39 @@ export default function Pomodoro() {
     updateSettings,
   } = usePomodoro();
 
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [yearFilter, setYearFilter] = useState<string>("all");
+  const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
+
+  // Parse query parameters (?subject=...&task=...)
+  useEffect(() => {
+    const subParam = searchParams.get("subject");
+    const taskParam = searchParams.get("task");
+
+    if (subParam) {
+      setSelectedSubject(subParam);
+    }
+
+    if (taskParam && user) {
+      supabase
+        .from("study_tasks" as any)
+        .select("id, titulo, subject_id")
+        .eq("id", taskParam)
+        .maybeSingle()
+        .then(({ data }: any) => {
+          if (data) {
+            setActiveTaskTitle(data.titulo);
+            if (data.subject_id) {
+              setSelectedSubject(data.subject_id);
+            }
+          }
+        });
+    }
+  }, [searchParams, user, setSelectedSubject]);
 
   // Still fetch subjects locally as that's UI data, not timer logic
   useEffect(() => {
@@ -144,12 +174,22 @@ export default function Pomodoro() {
             <span>ESTUDIÁ COMO JUGÁS. TÉCNICA POMODORO SINCRONIZADA.</span>
           </p>
         </div>
-        {isActive && mode === "work" && (
-          <div className="relative z-10 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-black bg-white px-4 py-2 border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] animate-pulse">
-            <Save className="w-4 h-4" />
-            Guardando sesión...
-          </div>
-        )}
+        <div className="relative z-10 flex items-center gap-2.5">
+          <button
+            onClick={() => navigate("/tareas")}
+            className="px-4 py-2.5 rounded-xl bg-white text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <CheckSquare className="w-4 h-4 text-[#00E5FF] stroke-[2.5]" />
+            <span>Gestor de Tareas</span>
+          </button>
+
+          {isActive && mode === "work" && (
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-black uppercase tracking-wider text-black bg-white px-3 sm:px-4 py-2 border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] animate-pulse">
+              <Save className="w-4 h-4" />
+              Guardando sesión...
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -401,6 +441,28 @@ export default function Pomodoro() {
                   </span>
                 </div>
               )}
+
+              {/* Active Task Banner */}
+              {activeTaskTitle && (
+                <div className="mt-2 p-3.5 rounded-xl bg-[#00E5FF] border-3 border-foreground shadow-[3px_3px_0_0_#000] flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CheckSquare className="w-4 h-4 text-black shrink-0 stroke-[2.5]" />
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-black uppercase text-black/70 block">Tarea en foco</span>
+                      <span className="font-black text-xs text-black truncate block">
+                        {activeTaskTitle}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTaskTitle(null)}
+                    className="p-1 rounded-md hover:bg-black/10 text-black shrink-0"
+                    title="Quitar tarea en foco"
+                  >
+                    <X className="w-3.5 h-3.5 stroke-[3]" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -428,6 +490,11 @@ export default function Pomodoro() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Real Study Hours by Subject Statistics */}
+      <div className="pt-2">
+        <SubjectStudyStats />
       </div>
     </div>
   );

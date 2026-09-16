@@ -54,6 +54,7 @@ const RPGBattleGame = lazy(() => import("@/pages/RPGBattleGame"));
 const BombGame = lazy(() => import("@/pages/BombGame"));
 const TicTacToeGame = lazy(() => import("@/pages/TicTacToeGame"));
 const ChessGame = lazy(() => import("@/pages/ChessGame"));
+const Tasks = lazy(() => import("@/pages/Tasks"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
@@ -162,6 +163,7 @@ const AppRoutes = () => (
       <Route path="/carrera" element={<CareerPlan />} />
       <Route path="/calendario" element={<Calendar />} />
       <Route path="/pomodoro" element={<Pomodoro />} />
+      <Route path="/tareas" element={<Tasks />} />
       <Route path="/metricas" element={<Metrics />} />
       <Route path="/asistente" element={<Navigate to="/TABEAI" replace />} />
       <Route path="/TABEAI" element={<AIAssistant />} />

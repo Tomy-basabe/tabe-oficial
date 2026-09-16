@@ -20,7 +20,7 @@ import {
   Folder,
   Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame,
-  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2,
+  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare,
   Search, Compass
 } from "lucide-react";
 import { NotionIcon } from "@/components/icons/NotionIcon";
@@ -48,7 +48,7 @@ export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
-  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2,
+  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2, CheckSquare,
   NotionIcon, TabeAIIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous
 };
 
@@ -66,6 +66,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/calendario": "Calendar",
   "/rutinas": "Repeat2",
   "/pomodoro": "Timer",
+  "/tareas": "CheckSquare",
   "/metricas": "BarChart3",
   "/bosque": "TreeDeciduous",
   "/logros": "Trophy",
@@ -117,6 +118,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     items: [
       { id: "item-/calendario", path: "/calendario", label: "Calendario", type: "item", iconName: "Calendar" },
       { id: "item-/pomodoro", path: "/pomodoro", label: "Pomodoro", type: "item", iconName: "Timer" },
+      { id: "item-/tareas", path: "/tareas", label: "Tareas", type: "item", iconName: "CheckSquare" },
       { id: "item-/rutinas", path: "/rutinas", label: "Rutinas", type: "item", iconName: "Repeat2" }
     ]
   },
@@ -162,6 +164,7 @@ export const baseNavItems: NavItem[] = [
   { icon: Calendar, label: "Calendario", path: "/calendario", tourClass: "tour-sidebar-calendar" },
   { icon: Repeat2, label: "Rutinas", path: "/rutinas", tourClass: "tour-sidebar-rutinas" },
   { icon: Timer, label: "Pomodoro", path: "/pomodoro", tourClass: "tour-sidebar-pomodoro" },
+  { icon: CheckSquare, label: "Tareas", path: "/tareas", tourClass: "tour-sidebar-tareas" },
   { icon: BarChart3, label: "Métricas", path: "/metricas", tourClass: "tour-sidebar-metricas" },
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
