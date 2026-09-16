@@ -29,6 +29,106 @@ function getColorForType(tipo: ValidEventType): string {
   return colors[tipo] || "#00d9ff";
 }
 
+// Model configurations with safe max_tokens per model
+interface ModelConfig {
+  id: string;
+  maxTokens: number;
+}
+
+const PREFERRED_MODELS: ModelConfig[] = [
+  { id: "llama-3.3-70b-versatile", maxTokens: 800 },
+  { id: "llama-3.1-70b-versatile", maxTokens: 800 },
+  { id: "llama3-70b-8192", maxTokens: 800 },
+  { id: "llama3-8b-8192", maxTokens: 800 },
+  { id: "gemma2-9b-it", maxTokens: 800 },
+  { id: "mixtral-8x7b-32768", maxTokens: 800 },
+];
+
+// Models to never use (deprecated, non-chat, rate-limited below useful thresholds)
+const BLACKLISTED_KEYWORDS = ["specdec", "guard", "whisper", "orpheus", "embed", "safeguard", "qwen"];
+
+async function callGroqAI(apiKey: string, systemPrompt: string, userText: string, tools: any[]): Promise<any> {
+  // Step 1: Discover available models
+  let availableModels: string[] = [];
+  try {
+    const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+      headers: { "Authorization": `Bearer ${apiKey}` }
+    });
+    if (modelsRes.ok) {
+      const modelsData = await modelsRes.json();
+      availableModels = (modelsData.data || [])
+        .map((m: any) => m.id)
+        .filter((id: string) => !BLACKLISTED_KEYWORDS.some(kw => id.toLowerCase().includes(kw)));
+    }
+  } catch (_) {
+    // If we can't list models, we'll try our preferred list anyway
+  }
+
+  // Step 2: Build ordered list of models to try
+  const modelsToTry: ModelConfig[] = [];
+  for (const pref of PREFERRED_MODELS) {
+    if (availableModels.length === 0 || availableModels.includes(pref.id)) {
+      modelsToTry.push(pref);
+    }
+  }
+  // Add any remaining available models we haven't listed as fallbacks
+  if (availableModels.length > 0) {
+    for (const modelId of availableModels) {
+      if (!modelsToTry.some(m => m.id === modelId)) {
+        modelsToTry.push({ id: modelId, maxTokens: 512 }); // conservative default
+      }
+    }
+  }
+  // Last resort if nothing was found
+  if (modelsToTry.length === 0) {
+    modelsToTry.push({ id: "llama3-8b-8192", maxTokens: 512 });
+  }
+
+  // Step 3: Try each model until one succeeds
+  let lastError = "";
+  for (const model of modelsToTry) {
+    try {
+      const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: model.id,
+          max_tokens: model.maxTokens,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userText }
+          ],
+          tools
+        })
+      });
+
+      if (aiRes.ok) {
+        const data = await aiRes.json();
+        return { success: true, data, model: model.id };
+      }
+
+      const errorBody = await aiRes.text();
+      lastError = errorBody;
+      console.warn(`Model ${model.id} failed (${aiRes.status}): ${errorBody.substring(0, 200)}`);
+
+      // If rate limited, try next model immediately
+      if (aiRes.status === 429 || aiRes.status === 400) {
+        continue;
+      }
+      // For auth errors (401/403), no point trying other models with same key
+      if (aiRes.status === 401 || aiRes.status === 403) {
+        break;
+      }
+    } catch (fetchErr) {
+      lastError = String(fetchErr);
+      console.warn(`Network error with model ${model.id}:`, lastError);
+      continue;
+    }
+  }
+
+  return { success: false, error: lastError };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: getCorsHeaders(req) });
@@ -157,121 +257,89 @@ serve(async (req) => {
       -- INSTRUCCIONES --
       1. Si te pregunta sobre su promedio, notas, materias o exámenes, respondé directamente con los datos de arriba.
       2. Si te pide agendar fechas, eliminar eventos, registrar estudio o cambiar estados de materias, EJECUTÁ LAS HERRAMIENTAS (tools).
-      3. Sé cálido, claro, conciso y usá emojis.
+      3. Sé cálido, claro, conciso y usá emojis. Respondé en español argentino.
+      4. Respuestas cortas: máximo 3-4 oraciones para preguntas simples.
     `;
 
-    let chosenModel = "llama-3.3-70b-versatile";
-    try {
-      const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
-        headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
-      });
-      if (modelsRes.ok) {
-        const modelsData = await modelsRes.json();
-        const available = (modelsData.data || []).map((m: any) => m.id);
-        const nonChat = ["specdec", "guard", "whisper", "orpheus", "embed", "safeguard"];
-        const chatModels = available.filter((id: string) => !nonChat.some(kw => id.toLowerCase().includes(kw)));
-        const preferred = [
-          "llama-3.3-70b-versatile",
-          "llama-3.1-70b-versatile",
-          "llama3-70b-8192",
-          "llama3-8b-8192",
-          "qwen/qwen3.8-27b",
-          "mixtral-8x7b-32768"
-        ];
-        const match = preferred.find((p) => chatModels.includes(p));
-        if (match) chosenModel = match;
-        else if (chatModels.length > 0) chosenModel = chatModels[0];
-      }
-    } catch (_) {
-      // fallback
-    }
-
-    const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: chosenModel,
-        max_tokens: 1024,
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "create_calendar_event",
-              description: "Agrega un examen, sesión de estudio, o consulta al calendario. Úsalo para agendar eventos futuros.",
-              parameters: {
-                type: "object",
-                properties: {
-                  titulo: { type: "string", description: "El título claro del evento" },
-                  fecha: { type: "string", description: "Fecha en formato YYYY-MM-DD" },
-                  tipo: { type: "string", enum: ["P1", "P2", "Global", "Final", "Estudio"], description: "Usa Estudio para consultas o tutorías" },
-                  subject_id: { type: "string", description: "Nombre de la materia" }
-                },
-                required: ["titulo", "fecha", "tipo"],
-                additionalProperties: false
-              }
-            }
-          },
-          {
-            type: "function",
-            function: {
-              name: "delete_calendar_event",
-              description: "Elimina un evento del calendario dada su ID (sácala del contexto de Próximos eventos).",
-              parameters: {
-                type: "object",
-                properties: {
-                  event_id: { type: "string", description: "UUID del evento a eliminar" }
-                },
-                required: ["event_id"],
-                additionalProperties: false
-              }
-            }
-          },
-          {
-            type: "function",
-            function: {
-              name: "log_study_session",
-              description: "Registra horas o minutos de estudio para sumar a las métricas e incrementar la XP/Racha.",
-              parameters: {
-                type: "object",
-                properties: {
-                  duracion_minutos: { type: "number", description: "Minutos de estudio reportados" },
-                  subject_id: { type: "string", description: "ID de la materia (opcional)" }
-                },
-                required: ["duracion_minutos"],
-                additionalProperties: false
-              }
-            }
-          },
-          {
-            type: "function",
-            function: {
-              name: "update_subject_status",
-              description: "Actualiza el estado y/o nota final de una materia (Aprobada, Regular, Libre).",
-              parameters: {
-                type: "object",
-                properties: {
-                  subject_id: { type: "string", description: "Nombre exacto o UUID de la materia" },
-                  estado: { type: "string", enum: ["aprobada", "regular", "libre", "cursable", "sin_cursar"] },
-                  nota: { type: "number", description: "Nota final entre 1 y 10 (opcional)" }
-                },
-                required: ["subject_id", "estado"],
-                additionalProperties: false
-              }
-            }
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "create_calendar_event",
+          description: "Agrega un examen, sesión de estudio, o consulta al calendario. Úsalo para agendar eventos futuros.",
+          parameters: {
+            type: "object",
+            properties: {
+              titulo: { type: "string", description: "El título claro del evento" },
+              fecha: { type: "string", description: "Fecha en formato YYYY-MM-DD" },
+              tipo: { type: "string", enum: ["P1", "P2", "Global", "Final", "Estudio"], description: "Usa Estudio para consultas o tutorías" },
+              subject_id: { type: "string", description: "Nombre de la materia" }
+            },
+            required: ["titulo", "fecha", "tipo"],
+            additionalProperties: false
           }
-        ]
-      })
-    });
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "delete_calendar_event",
+          description: "Elimina un evento del calendario dada su ID (sácala del contexto de Próximos eventos).",
+          parameters: {
+            type: "object",
+            properties: {
+              event_id: { type: "string", description: "UUID del evento a eliminar" }
+            },
+            required: ["event_id"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "log_study_session",
+          description: "Registra horas o minutos de estudio para sumar a las métricas e incrementar la XP/Racha.",
+          parameters: {
+            type: "object",
+            properties: {
+              duracion_minutos: { type: "number", description: "Minutos de estudio reportados" },
+              subject_id: { type: "string", description: "ID de la materia (opcional)" }
+            },
+            required: ["duracion_minutos"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_subject_status",
+          description: "Actualiza el estado y/o nota final de una materia (Aprobada, Regular, Libre).",
+          parameters: {
+            type: "object",
+            properties: {
+              subject_id: { type: "string", description: "Nombre exacto o UUID de la materia" },
+              estado: { type: "string", enum: ["aprobada", "regular", "libre", "cursable", "sin_cursar"] },
+              nota: { type: "number", description: "Nota final entre 1 y 10 (opcional)" }
+            },
+            required: ["subject_id", "estado"],
+            additionalProperties: false
+          }
+        }
+      }
+    ];
 
-    if (!aiRes.ok) {
-        const errorText = await aiRes.text();
-        console.error("AI Gateway Error:", errorText);
-        await sendMessage(platform, senderId, "❌ Error en el cerebro de LA IA:\\n" + errorText);
-        return new Response("OK");
+    // Call Groq with automatic retry across models
+    const result = await callGroqAI(GROQ_API_KEY, systemPrompt, text, tools);
+
+    if (!result.success) {
+      console.error("All AI models failed. Last error:", result.error);
+      await sendMessage(platform, senderId, "⚠️ Estoy teniendo problemas técnicos en este momento. Intentá de nuevo en unos segundos. 🔄");
+      return new Response("OK");
     }
 
-    const aiData = await aiRes.json();
+    const aiData = result.data;
     const choice = aiData.choices?.[0];
 
     if (choice?.message?.tool_calls?.length > 0) {
@@ -300,20 +368,20 @@ serve(async (req) => {
               color: getColorForType(mappedType)
             });
             if (!insError) {
-              actionResponseMsg += `✅ **Agendado:** ${args.titulo} para el ${args.fecha}\\n`;
+              actionResponseMsg += `✅ *Agendado:* ${args.titulo} para el ${args.fecha}\n`;
             } else {
               console.error(insError);
-              actionResponseMsg += `❌ Error al agendar ${args.titulo}\\n`;
+              actionResponseMsg += `❌ Error al agendar ${args.titulo}\n`;
             }
             break;
           }
           case "delete_calendar_event": {
             const { error: delError } = await supabase.from("calendar_events").delete().eq("id", args.event_id).eq("user_id", userId);
             if (!delError) {
-              actionResponseMsg += `🗑️ **Evento eliminado correctamente.**\\n`;
+              actionResponseMsg += `🗑️ *Evento eliminado correctamente.*\n`;
             } else {
               console.error(delError);
-              actionResponseMsg += `❌ Error al eliminar evento.\\n`;
+              actionResponseMsg += `❌ Error al eliminar evento.\n`;
             }
             break;
           }
@@ -326,10 +394,8 @@ serve(async (req) => {
               tipo: 'focus',
               subject_id: resolveSubjectId(args.subject_id)
             });
-            // Also need to manually update user_stats in this basic script, although DB triggers might handle XP
-            // Currently assuming DB simple triggers handles the xp calculation from new study_sessions
             if (!logError) {
-              actionResponseMsg += `⏱️ **Estudio registrado:** +${args.duracion_minutos} minutos añadidos a tus métricas. ¡Sigue así! 🚀\\n`;
+              actionResponseMsg += `⏱️ *Estudio registrado:* +${args.duracion_minutos} minutos añadidos a tus métricas. ¡Sigue así! 🚀\n`;
             }
             break;
           }
@@ -344,9 +410,9 @@ serve(async (req) => {
             
             const { error: statError } = await supabase.from("user_subject_status").upsert(upsertData, { onConflict: "user_id,subject_id" });
             if (!statError) {
-              actionResponseMsg += `🎓 **Materia actualizada:** Ahora estás en estado '${args.estado}'${args.nota ? ` con nota ${args.nota}` : ''}. ¡Felicitaciones! 🎉\\n`;
+              actionResponseMsg += `🎓 *Materia actualizada:* Ahora estás en estado '${args.estado}'${args.nota ? ` con nota ${args.nota}` : ''}. ¡Felicitaciones! 🎉\n`;
             } else {
-               actionResponseMsg += `❌ Error al actualizar materia.\\n`;
+               actionResponseMsg += `❌ Error al actualizar materia.\n`;
             }
             break;
           }
@@ -370,10 +436,11 @@ serve(async (req) => {
 });
 
 async function sendMessage(platform: 'telegram' | 'whatsapp', to: string, text: string) {
-  const cleanText = text.replace(/\\\\n/g, "\\n");
+  // Clean up any literal \\n sequences into actual newlines
+  const cleanText = text.replace(/\\\\n/g, "\n").replace(/\\n/g, "\n");
 
   if (platform === 'telegram') {
-    const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "8673034996:AAGWgOMtgwulbfMs-GtZ-r564KRM-YyMB-k";
+    const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
     
     // Attempt 1: With Markdown parsing
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
