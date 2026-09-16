@@ -452,13 +452,11 @@ export function initSecurityProtection() {
 
     const originalLog = console.log.bind(console);
 
-    // Silenciar métodos de consola para prevenir filtración y ejecución de scripts
+    // Silenciar métodos de consola superfluos en producción pero conservar error y warn para diagnóstico
     const noop = () => {};
     console.log = noop;
     console.debug = noop;
     console.info = noop;
-    console.warn = noop;
-    console.error = noop;
     console.dir = noop;
     console.table = noop;
     console.trace = noop;
