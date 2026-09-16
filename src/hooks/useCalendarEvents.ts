@@ -338,6 +338,7 @@ export function useCalendarEvents() {
         } catch (syncErr) {
           console.warn("Auto-sync to Google Calendar failed on create:", syncErr);
         }
+      }
       // Prevenir duplicación si ya existe un evento idéntico en fecha, hora y título
       const matchKey = buildEventMatchKey(data.titulo, data.fecha, data.hora, data.is_all_day);
       const existingMatch = rawEvents.find(

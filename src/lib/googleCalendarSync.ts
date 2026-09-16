@@ -158,12 +158,16 @@ export function isGoogleCalendarConnected(user?: any): boolean {
   const token = getStoredGoogleToken();
   if (token && token.trim().length > 10) return true;
 
-  // 3. Linked flag in localStorage or user_metadata
-  const isLinked = localStorage.getItem(GCAL_LINKED_KEY) === "true" || user?.user_metadata?.gcal_linked;
+  // 3. Linked flag in localStorage or user_metadata or logged in with Google provider
+  const isLinked =
+    localStorage.getItem(GCAL_LINKED_KEY) === "true" ||
+    user?.user_metadata?.gcal_linked === true ||
+    user?.app_metadata?.provider === "google" ||
+    user?.app_metadata?.providers?.includes("google") ||
+    user?.identities?.some((id: any) => id.provider === "google");
+
   if (isLinked) {
-    const recovered = extractAndStoreTokenFromUrl();
-    if (recovered && recovered.trim().length > 10) return true;
-    if (user?.user_metadata?.gcal_feed_url) return true;
+    return true;
   }
 
   return false;

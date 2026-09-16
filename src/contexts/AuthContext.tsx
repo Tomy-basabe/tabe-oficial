@@ -146,6 +146,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (newUserId !== currentUserId) {
           currentUserId = newUserId;
           fetchProfile(newUser.id);
+
+          // Sincronizar inmediatamente al iniciar sesión si es con Google o tiene Calendar vinculado
+          const isGoogleUser =
+            newUser.app_metadata?.provider === "google" ||
+            newUser.app_metadata?.providers?.includes("google") ||
+            newUser.identities?.some((id: any) => id.provider === "google") ||
+            newUser.user_metadata?.gcal_linked === true;
+
+          if (isGoogleUser && localStorage.getItem("tabe_gcal_explicitly_disconnected") !== "true") {
+            localStorage.setItem(GCAL_LINKED_KEY, "true");
+            if (!newUser.user_metadata?.gcal_linked) {
+              supabase.auth.updateUser({
+                data: { gcal_linked: true, gcal_email: newUser.email }
+              }).catch(() => {});
+            }
+            import("@/lib/globalCalendarSync").then(({ performGlobalCalendarSync }) => {
+              performGlobalCalendarSync(newUser, { force: true, silent: true }).catch((e) => {
+                console.warn("Auto-sync on login failed:", e);
+              });
+            });
+          }
         }
       } else {
         currentUserId = null;
@@ -228,9 +249,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider: "google",
         options: {
           redirectTo,
+          scopes: "https://www.googleapis.com/auth/calendar",
           queryParams: {
             access_type: "offline",
-            prompt: "select_account",
+            prompt: "consent select_account",
           },
         },
       });
