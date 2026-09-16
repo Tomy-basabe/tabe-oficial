@@ -463,39 +463,8 @@ export function initSecurityProtection() {
     console.table = noop;
     console.trace = noop;
 
-    // Mostrar advertencia inicial
+    // Mostrar advertencia inicial limpia una sola vez
     showWarning();
-
-    // Detector periódico de DevTools (docked o detached)
-    let devToolsOpen = false;
-    const threshold = 160;
-
-    const checkDevTools = () => {
-      // Detección por tamaño (DevTools acopladas)
-      const widthDiff = window.outerWidth - window.innerWidth > threshold;
-      const heightDiff = window.outerHeight - window.innerHeight > threshold;
-
-      // Detección por timing de debugger (DevTools abiertas en ventana separada)
-      const t0 = performance.now();
-      // eslint-disable-next-line no-eval
-      Function("debugger")();
-      const t1 = performance.now();
-      const debuggerTripped = t1 - t0 > 100;
-
-      if (widthDiff || heightDiff || debuggerTripped) {
-        if (!devToolsOpen) {
-          devToolsOpen = true;
-          showWarning();
-        }
-        try {
-          console.clear();
-        } catch (_) {}
-      } else {
-        devToolsOpen = false;
-      }
-    };
-
-    setInterval(checkDevTools, 1500);
   }
 }
 

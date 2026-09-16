@@ -91,9 +91,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
     }
   });
 
-  const [particles, setParticles] = useState<ComicParticle[]>([]);
   const lastBurstRef = useRef<number>(0);
-  const particleIdRef = useRef<number>(0);
 
   useEffect(() => {
     ComicAudio.setMuted(!soundEnabled || isApuntes);
@@ -125,8 +123,8 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
       if (!comicMode || isApuntes) return;
 
       const now = Date.now();
-      // Throttle bursts to at most 1 every 200ms
-      if (now - lastBurstRef.current < 200) return;
+      // Throttle bursts to at most 1 every 250ms
+      if (now - lastBurstRef.current < 250) return;
       lastBurstRef.current = now;
 
       // Play comic pop sound
@@ -134,40 +132,13 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
         ComicAudio.playPop();
       }
 
-      const word = customWord || COMIC_WORDS[Math.floor(Math.random() * COMIC_WORDS.length)];
-      const colorScheme = COMIC_COLORS[Math.floor(Math.random() * COMIC_COLORS.length)];
-      const tilt = (Math.random() - 0.5) * 28; // -14deg to +14deg
-
-      const sparkles = Array.from({ length: 4 }).map((_, i) => {
-        const angle = (i * (360 / 4) + Math.random() * 20) * (Math.PI / 180);
-        const distance = 30 + Math.random() * 25;
-        return {
-          id: i,
-          tx: `${Math.cos(angle) * distance}px`,
-          ty: `${Math.sin(angle) * distance}px`,
-          color: COMIC_COLORS[Math.floor(Math.random() * COMIC_COLORS.length)].bg,
-          char: SPARKLE_CHARS[Math.floor(Math.random() * SPARKLE_CHARS.length)],
-        };
-      });
-
-      const newId = ++particleIdRef.current;
-      const newParticle: ComicParticle = {
-        id: newId,
-        x,
-        y,
-        word,
-        color: colorScheme.bg,
-        textColor: colorScheme.text,
-        tilt,
-        sparkles,
-      };
-
-      setParticles((prev) => [...prev.slice(-4), newParticle]);
-
-      // Remove after animation finishes
-      setTimeout(() => {
-        setParticles((prev) => prev.filter((p) => p.id !== newId));
-      }, 850);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("tabe-comic-burst", {
+            detail: { x, y, customWord },
+          })
+        );
+      }
     },
     [comicMode, soundEnabled, isApuntes]
   );
@@ -178,11 +149,9 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
 
     const handleClick = (e: MouseEvent) => {
       if (isApuntes) return;
-      // Don't trigger on comic toggle switch or inside notes
       const target = e.target as HTMLElement | null;
       if (target?.closest("#comic-mode-toggle, .no-comic, .ProseMirror, .notion-container, [data-no-comic]")) return;
 
-      // Trigger burst on buttons, links, cards, or anywhere clicked
       triggerBurst(e.clientX, e.clientY);
     };
 
@@ -206,54 +175,106 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
   return (
     <ComicContext.Provider value={contextValue}>
       {children}
-
-      {/* Comic Interactive Overlay (Hidden on /apuntes) */}
-      {comicMode && !isApuntes && (
-        <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
-          {particles.map((particle) => (
-            <div
-              key={particle.id}
-              className="absolute animate-comic-pop will-change-transform"
-              style={{
-                left: `${particle.x}px`,
-                top: `${particle.y}px`,
-              }}
-            >
-              {/* Sparkle particles radiating outward */}
-              {particle.sparkles.map((sp) => (
-                <span
-                  key={sp.id}
-                  className="absolute text-sm font-black animate-comic-sparkle select-none will-change-transform"
-                  style={
-                    {
-                      left: "50%",
-                      top: "50%",
-                      color: sp.color,
-                      textShadow: "1px 1px 0 #000",
-                      "--tx": sp.tx,
-                      "--ty": sp.ty,
-                    } as React.CSSProperties
-                  }
-                >
-                  {sp.char}
-                </span>
-              ))}
-
-              {/* Onomatopoeia Word Bubble */}
-              <div
-                className="relative px-3 py-1 rounded-xl font-black text-xs sm:text-sm tracking-widest uppercase border-2 border-black shadow-[3px_3px_0_0_#000] select-none whitespace-nowrap will-change-transform"
-                style={{
-                  backgroundColor: particle.color,
-                  color: particle.textColor,
-                  transform: `rotate(${particle.tilt}deg)`,
-                }}
-              >
-                {particle.word}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <ComicParticlesOverlay isApuntes={isApuntes} comicMode={comicMode} />
     </ComicContext.Provider>
+  );
+}
+
+// Independent overlay component that handles particle DOM without re-rendering parent tree
+function ComicParticlesOverlay({ isApuntes, comicMode }: { isApuntes: boolean; comicMode: boolean }) {
+  const [particles, setParticles] = useState<ComicParticle[]>([]);
+  const particleIdRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!comicMode || isApuntes) return;
+
+    const handleBurstEvent = (e: Event) => {
+      const { x, y, customWord } = (e as CustomEvent).detail || {};
+      if (typeof x !== "number" || typeof y !== "number") return;
+
+      const word = customWord || COMIC_WORDS[Math.floor(Math.random() * COMIC_WORDS.length)];
+      const colorScheme = COMIC_COLORS[Math.floor(Math.random() * COMIC_COLORS.length)];
+      const tilt = (Math.random() - 0.5) * 24;
+
+      const sparkles = Array.from({ length: 4 }).map((_, i) => {
+        const angle = (i * (360 / 4) + Math.random() * 20) * (Math.PI / 180);
+        const distance = 30 + Math.random() * 20;
+        return {
+          id: i,
+          tx: `${Math.cos(angle) * distance}px`,
+          ty: `${Math.sin(angle) * distance}px`,
+          color: COMIC_COLORS[Math.floor(Math.random() * COMIC_COLORS.length)].bg,
+          char: SPARKLE_CHARS[Math.floor(Math.random() * SPARKLE_CHARS.length)],
+        };
+      });
+
+      const newId = ++particleIdRef.current;
+      const newParticle: ComicParticle = {
+        id: newId,
+        x,
+        y,
+        word,
+        color: colorScheme.bg,
+        textColor: colorScheme.text,
+        tilt,
+        sparkles,
+      };
+
+      setParticles((prev) => [...prev.slice(-3), newParticle]);
+
+      setTimeout(() => {
+        setParticles((prev) => prev.filter((p) => p.id !== newId));
+      }, 750);
+    };
+
+    window.addEventListener("tabe-comic-burst", handleBurstEvent);
+    return () => window.removeEventListener("tabe-comic-burst", handleBurstEvent);
+  }, [comicMode, isApuntes]);
+
+  if (!comicMode || isApuntes || particles.length === 0) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
+      {particles.map((particle) => (
+        <div
+          key={particle.id}
+          className="absolute animate-comic-pop"
+          style={{
+            left: `${particle.x}px`,
+            top: `${particle.y}px`,
+          }}
+        >
+          {particle.sparkles.map((sp) => (
+            <span
+              key={sp.id}
+              className="absolute text-sm font-black animate-comic-sparkle select-none"
+              style={
+                {
+                  left: "50%",
+                  top: "50%",
+                  color: sp.color,
+                  textShadow: "1px 1px 0 #000",
+                  "--tx": sp.tx,
+                  "--ty": sp.ty,
+                } as React.CSSProperties
+              }
+            >
+              {sp.char}
+            </span>
+          ))}
+
+          <div
+            className="relative px-3 py-1 rounded-xl font-black text-xs sm:text-sm tracking-widest uppercase border-2 border-black shadow-[3px_3px_0_0_#000] select-none whitespace-nowrap"
+            style={{
+              backgroundColor: particle.color,
+              color: particle.textColor,
+              transform: `rotate(${particle.tilt}deg)`,
+            }}
+          >
+            {particle.word}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

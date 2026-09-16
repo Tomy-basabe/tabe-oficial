@@ -10,22 +10,24 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
-// Eagerly loaded (lightweight pages)
+// Eagerly loaded critical initial pages
 import Dashboard from "@/pages/Dashboard";
 import Auth from "@/pages/Auth";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/NotFound";
-import EmailVerified from "@/pages/EmailVerified";
-import Settings from "@/pages/Settings";
-import About from "@/pages/About";
-import Contact from "@/pages/Contact";
-import Privacy from "@/pages/Privacy";
-import Terms from "@/pages/Terms";
-import Careers from "@/pages/Careers";
-import CareerDetail from "@/pages/CareerDetail";
-import StudyGuides from "@/pages/StudyGuides";
-import ResetPassword from "@/pages/ResetPassword";
 import { isSuperAdmin } from "@/lib/adminAuth";
+
+// Lazy loaded secondary routes
+const Settings = lazy(() => import("@/pages/Settings"));
+const About = lazy(() => import("@/pages/About"));
+const Contact = lazy(() => import("@/pages/Contact"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const Careers = lazy(() => import("@/pages/Careers"));
+const CareerDetail = lazy(() => import("@/pages/CareerDetail"));
+const StudyGuides = lazy(() => import("@/pages/StudyGuides"));
+const EmailVerified = lazy(() => import("@/pages/EmailVerified"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 
 // Lazy loaded (heavy pages with large dependencies)
 const Notion = lazy(() => import("@/pages/Notion"));

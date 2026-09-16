@@ -113,18 +113,26 @@ export function MainLayout() {
 
   const navItems = baseNavItems;
   
-  // Auto-sync academic calendars (Google Calendar & Moodle Campus) when entering the app or returning to tab
+  // Auto-sync academic calendars (Google Calendar & Moodle Campus) with 10-minute cooldown
   useEffect(() => {
     if (!user || isGuest) return;
 
+    let lastSyncTime = 0;
+    const SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
     // Run background sync shortly after entry so initial rendering is ultra-fast
     const timer = setTimeout(() => {
+      lastSyncTime = Date.now();
       performGlobalCalendarSync(user);
-    }, 1500);
+    }, 2500);
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        performGlobalCalendarSync(user);
+        const now = Date.now();
+        if (now - lastSyncTime > SYNC_COOLDOWN_MS) {
+          lastSyncTime = now;
+          performGlobalCalendarSync(user);
+        }
       }
     };
 
