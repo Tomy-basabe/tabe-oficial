@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubjectWithStatus, SubjectStatus, PartialGrades } from "@/hooks/useSubjects";
 import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2, Settings2, Sparkles, AlertTriangle } from "lucide-react";
@@ -113,15 +113,14 @@ export function SubjectStatusModal({
     }
   };
 
-  const handlePartialGradesUpdate = async (newGrades: PartialGrades) => {
-    if (!saveGrades) return;
-    setLoading(true);
+  const handlePartialGradesUpdate = useCallback(async (newGrades: PartialGrades) => {
+    if (!saveGrades || !subject?.id) return;
     try {
       await saveGrades(subject.id, newGrades);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error("Error updating partial grades:", err);
     }
-  };
+  }, [saveGrades, subject?.id]);
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -250,7 +249,7 @@ export function SubjectStatusModal({
                 key={subjectId}
                 grades={currentPartialGrades}
                 onUpdate={handlePartialGradesUpdate}
-                disabled={loading || readOnly}
+                disabled={readOnly}
               />
             )}
 

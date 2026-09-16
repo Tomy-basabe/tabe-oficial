@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Trash2, Award, Calendar, BookOpen, GraduationCap, Check, X, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, Award, Calendar, BookOpen, GraduationCap, Check, X } from "lucide-react";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { PartialGrades, ExtraPartial, ExtraGlobal, ExtraFinal } from "@/hooks/useSubjects";
 
@@ -26,13 +26,13 @@ function GradeInput({ label, value, onChange, onBlur, disabled, numericValue, pl
   const isFailing = numericValue !== null && (numericValue > 10 ? numericValue < 60 : numericValue < 4);
 
   return (
-    <div className={cn(
-      "flex items-center justify-between py-1.5 px-2.5 rounded-xl border-2 border-black transition-all shadow-[2px_2px_0_0_#000]",
+    <label className={cn(
+      "flex items-center justify-between py-1.5 px-2.5 rounded-xl border-2 border-black transition-all shadow-[2px_2px_0_0_#000] cursor-pointer",
       isPassing && "bg-[#48BD22]/15 text-foreground",
       isFailing && "bg-[#FF2E93]/15 text-foreground",
       !isPassing && !isFailing && "bg-card text-foreground"
     )}>
-      <span className="text-xs font-black uppercase tracking-tight truncate mr-1.5">{label}</span>
+      <span className="text-xs font-black uppercase tracking-tight truncate mr-1.5 select-none">{label}</span>
       <div className="flex items-center gap-1.5 shrink-0">
         <input
           type="number"
@@ -45,7 +45,7 @@ function GradeInput({ label, value, onChange, onBlur, disabled, numericValue, pl
           disabled={disabled}
           placeholder={placeholder}
           className={cn(
-            "w-16 px-1.5 py-1 text-center text-xs font-black rounded-lg border-2 border-black bg-card shadow-[1.5px_1.5px_0_0_#000]",
+            "w-16 px-1.5 py-1 text-center text-xs font-black rounded-lg border-2 border-black bg-card shadow-[1.5px_1.5px_0_0_#000] cursor-text",
             "focus:outline-none focus:ring-2 focus:ring-[#FFE600]",
             isPassing && "text-[#48BD22] border-[#48BD22]",
             isFailing && "text-[#FF2E93] border-[#FF2E93]",
@@ -53,17 +53,17 @@ function GradeInput({ label, value, onChange, onBlur, disabled, numericValue, pl
           )}
         />
         {isPassing && (
-          <span className="w-5 h-5 rounded-md bg-[#48BD22] text-white flex items-center justify-center font-black text-[10px] border border-black shadow-[1px_1px_0_0_#000]">
+          <span className="w-5 h-5 rounded-md bg-[#48BD22] text-white flex items-center justify-center font-black text-[10px] border border-black shadow-[1px_1px_0_0_#000] select-none">
             ✓
           </span>
         )}
         {isFailing && (
-          <span className="w-5 h-5 rounded-md bg-[#FF2E93] text-white flex items-center justify-center font-black text-[10px] border border-black shadow-[1px_1px_0_0_#000]">
+          <span className="w-5 h-5 rounded-md bg-[#FF2E93] text-white flex items-center justify-center font-black text-[10px] border border-black shadow-[1px_1px_0_0_#000] select-none">
             ✗
           </span>
         )}
       </div>
-    </div>
+    </label>
   );
 }
 
@@ -76,10 +76,50 @@ function parseGradeInput(val: string): number | null {
   return num;
 }
 
+function buildGradesPayload(
+  inputsObj: {
+    nota_parcial_1: string;
+    nota_rec_parcial_1: string;
+    nota_parcial_2: string;
+    nota_rec_parcial_2: string;
+    nota_global: string;
+    nota_rec_global: string;
+    nota_final_examen: string;
+  },
+  extraP: { id: string; nota: string; rec: string }[],
+  extraG: { id: string; nota: string; rec: string }[],
+  extraF: { id: string; nota: string; fecha?: string }[]
+): PartialGrades {
+  return {
+    nota_parcial_1: parseGradeInput(inputsObj.nota_parcial_1),
+    nota_rec_parcial_1: parseGradeInput(inputsObj.nota_rec_parcial_1),
+    nota_parcial_2: parseGradeInput(inputsObj.nota_parcial_2),
+    nota_rec_parcial_2: parseGradeInput(inputsObj.nota_rec_parcial_2),
+    nota_global: parseGradeInput(inputsObj.nota_global),
+    nota_rec_global: parseGradeInput(inputsObj.nota_rec_global),
+    nota_final_examen: parseGradeInput(inputsObj.nota_final_examen),
+    extra_partials: extraP.map((p) => ({
+      id: p.id,
+      nota: parseGradeInput(p.nota),
+      rec: parseGradeInput(p.rec),
+    })),
+    extra_globals: extraG.map((g) => ({
+      id: g.id,
+      nota: parseGradeInput(g.nota),
+      rec: parseGradeInput(g.rec),
+    })),
+    extra_finals: extraF.map((f) => ({
+      id: f.id,
+      nota: parseGradeInput(f.nota),
+      fecha: f.fecha,
+    })),
+  };
+}
+
 export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGradesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Inputs state
+  // Inputs state initialized once per subject
   const [inputs, setInputs] = useState({
     nota_parcial_1: grades.nota_parcial_1?.toString() ?? "",
     nota_rec_parcial_1: grades.nota_rec_parcial_1?.toString() ?? "",
@@ -91,7 +131,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
   });
 
   const [extraPartials, setExtraPartials] = useState<{ id: string; nota: string; rec: string }[]>(
-    (grades.extra_partials || []).map((p) => ({
+    () => (grades.extra_partials || []).map((p) => ({
       id: p.id,
       nota: p.nota?.toString() ?? "",
       rec: p.rec?.toString() ?? "",
@@ -99,7 +139,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
   );
 
   const [extraGlobals, setExtraGlobals] = useState<{ id: string; nota: string; rec: string }[]>(
-    (grades.extra_globals || []).map((g) => ({
+    () => (grades.extra_globals || []).map((g) => ({
       id: g.id,
       nota: g.nota?.toString() ?? "",
       rec: g.rec?.toString() ?? "",
@@ -107,48 +147,14 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
   );
 
   const [extraFinals, setExtraFinals] = useState<{ id: string; nota: string; fecha?: string }[]>(
-    (grades.extra_finals || []).map((f) => ({
+    () => (grades.extra_finals || []).map((f) => ({
       id: f.id,
       nota: f.nota?.toString() ?? "",
       fecha: f.fecha ?? "",
     }))
   );
 
-  // Sync state if props change externally
-  useEffect(() => {
-    setInputs({
-      nota_parcial_1: grades.nota_parcial_1?.toString() ?? "",
-      nota_rec_parcial_1: grades.nota_rec_parcial_1?.toString() ?? "",
-      nota_parcial_2: grades.nota_parcial_2?.toString() ?? "",
-      nota_rec_parcial_2: grades.nota_rec_parcial_2?.toString() ?? "",
-      nota_global: grades.nota_global?.toString() ?? "",
-      nota_rec_global: grades.nota_rec_global?.toString() ?? "",
-      nota_final_examen: grades.nota_final_examen?.toString() ?? "",
-    });
-    setExtraPartials(
-      (grades.extra_partials || []).map((p) => ({
-        id: p.id,
-        nota: p.nota?.toString() ?? "",
-        rec: p.rec?.toString() ?? "",
-      }))
-    );
-    setExtraGlobals(
-      (grades.extra_globals || []).map((g) => ({
-        id: g.id,
-        nota: g.nota?.toString() ?? "",
-        rec: g.rec?.toString() ?? "",
-      }))
-    );
-    setExtraFinals(
-      (grades.extra_finals || []).map((f) => ({
-        id: f.id,
-        nota: f.nota?.toString() ?? "",
-        fecha: f.fecha ?? "",
-      }))
-    );
-  }, [grades]);
-
-  // Parse inputs
+  // Parse numeric values for UI display & indicators
   const numericValues = useMemo(() => ({
     nota_parcial_1: parseGradeInput(inputs.nota_parcial_1),
     nota_rec_parcial_1: parseGradeInput(inputs.nota_rec_parcial_1),
@@ -183,147 +189,145 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     }));
   }, [extraFinals]);
 
-  // ── Auto-save engine ──────────────────────────────────
-  const isMountedRef = useRef(false);
-  const isSavingRef = useRef(false);
-  const saveTimeoutRef = useRef<any>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  // Keep callback and latest saved JSON in refs to prevent unnecessary re-saves
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
 
-  const performSave = useCallback(
-    async (
-      vals: typeof numericValues,
-      partials: typeof parsedExtraPartials,
-      globals: typeof parsedExtraGlobals,
-      finals: typeof parsedExtraFinals
-    ) => {
-      if (disabled || isSavingRef.current) return;
-      isSavingRef.current = true;
-      setSaveStatus("saving");
-      try {
-        await onUpdate({
-          ...vals,
-          extra_partials: partials,
-          extra_globals: globals,
-          extra_finals: finals,
-        });
-        setSaveStatus("saved");
-      } catch (err) {
-        console.error("Auto-save error:", err);
-        setSaveStatus("idle");
-      } finally {
-        isSavingRef.current = false;
-      }
-    },
-    [disabled, onUpdate]
+  const lastSavedJsonRef = useRef<string>(
+    JSON.stringify(buildGradesPayload(inputs, extraPartials, extraGlobals, extraFinals))
   );
+  const saveTimeoutRef = useRef<any>(null);
 
-  // Debounced auto-save on any change
-  useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      return;
+  // Quiet non-blocking save
+  const performSaveQuietly = useCallback((
+    targetInputs: typeof inputs,
+    targetPartials: typeof extraPartials,
+    targetGlobals: typeof extraGlobals,
+    targetFinals: typeof extraFinals
+  ) => {
+    if (disabled) return;
+    const payload = buildGradesPayload(targetInputs, targetPartials, targetGlobals, targetFinals);
+    const jsonStr = JSON.stringify(payload);
+    if (jsonStr === lastSavedJsonRef.current) return;
+    lastSavedJsonRef.current = jsonStr;
+    try {
+      onUpdateRef.current(payload);
+    } catch (err) {
+      console.error("Error saving partial grades:", err);
     }
+  }, [disabled]);
 
+  // Debounced auto-save
+  const scheduleSave = useCallback((
+    targetInputs: typeof inputs,
+    targetPartials: typeof extraPartials,
+    targetGlobals: typeof extraGlobals,
+    targetFinals: typeof extraFinals
+  ) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    setSaveStatus("saving");
-
     saveTimeoutRef.current = setTimeout(() => {
-      performSave(numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals);
-    }, 600);
+      performSaveQuietly(targetInputs, targetPartials, targetGlobals, targetFinals);
+    }, 800);
+  }, [performSaveQuietly]);
 
+  // Clean up timer on unmount
+  useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals, performSave]);
-
-  // Immediate save on blur
-  const triggerImmediateSave = useCallback(() => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    performSave(numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals);
-  }, [numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals, performSave]);
-
-  // Input change helpers
-  const updateInput = useCallback((key: keyof typeof inputs, value: string) => {
-    setInputs((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const updateExtraInput = useCallback((index: number, field: "nota" | "rec", value: string) => {
+  const triggerImmediateSave = useCallback(() => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    performSaveQuietly(inputs, extraPartials, extraGlobals, extraFinals);
+  }, [inputs, extraPartials, extraGlobals, extraFinals, performSaveQuietly]);
+
+  // Input change handlers
+  const updateInput = (key: keyof typeof inputs, value: string) => {
+    setInputs((prev) => {
+      const next = { ...prev, [key]: value };
+      scheduleSave(next, extraPartials, extraGlobals, extraFinals);
+      return next;
+    });
+  };
+
+  const updateExtraInput = (index: number, field: "nota" | "rec", value: string) => {
     setExtraPartials((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
+      scheduleSave(inputs, copy, extraGlobals, extraFinals);
       return copy;
     });
-  }, []);
+  };
 
-  const updateExtraGlobalInput = useCallback((index: number, field: "nota" | "rec", value: string) => {
+  const updateExtraGlobalInput = (index: number, field: "nota" | "rec", value: string) => {
     setExtraGlobals((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
+      scheduleSave(inputs, extraPartials, copy, extraFinals);
       return copy;
     });
-  }, []);
+  };
 
-  const updateExtraFinalInput = useCallback((index: number, field: "nota" | "fecha", value: string) => {
+  const updateExtraFinalInput = (index: number, field: "nota" | "fecha", value: string) => {
     setExtraFinals((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
+      scheduleSave(inputs, extraPartials, extraGlobals, copy);
       return copy;
     });
-  }, []);
+  };
 
   // Adding and removing items
   const addPartial = () => {
     ComicAudio.playPop();
     const nextNumber = 3 + extraPartials.length;
-    setExtraPartials((prev) => [
-      ...prev,
-      { id: `P${nextNumber}`, nota: "", rec: "" },
-    ]);
+    const next = [...extraPartials, { id: `P${nextNumber}`, nota: "", rec: "" }];
+    setExtraPartials(next);
+    performSaveQuietly(inputs, next, extraGlobals, extraFinals);
   };
 
   const removePartial = (index: number) => {
     ComicAudio.playPop();
-    setExtraPartials((prev) => {
-      const copy = [...prev];
-      copy.splice(index, 1);
-      return copy.map((p, i) => ({ ...p, id: `P${i + 3}` }));
-    });
+    const copy = [...extraPartials];
+    copy.splice(index, 1);
+    const next = copy.map((p, i) => ({ ...p, id: `P${i + 3}` }));
+    setExtraPartials(next);
+    performSaveQuietly(inputs, next, extraGlobals, extraFinals);
   };
 
   const addGlobal = () => {
     ComicAudio.playPop();
     const nextNumber = 2 + extraGlobals.length;
-    setExtraGlobals((prev) => [
-      ...prev,
-      { id: `Global ${nextNumber}`, nota: "", rec: "" },
-    ]);
+    const next = [...extraGlobals, { id: `Global ${nextNumber}`, nota: "", rec: "" }];
+    setExtraGlobals(next);
+    performSaveQuietly(inputs, extraPartials, next, extraFinals);
   };
 
   const removeGlobal = (index: number) => {
     ComicAudio.playPop();
-    setExtraGlobals((prev) => {
-      const copy = [...prev];
-      copy.splice(index, 1);
-      return copy.map((g, i) => ({ ...g, id: `Global ${i + 2}` }));
-    });
+    const copy = [...extraGlobals];
+    copy.splice(index, 1);
+    const next = copy.map((g, i) => ({ ...g, id: `Global ${i + 2}` }));
+    setExtraGlobals(next);
+    performSaveQuietly(inputs, extraPartials, next, extraFinals);
   };
 
   const addFinal = () => {
     ComicAudio.playPop();
     const nextNumber = 2 + extraFinals.length;
-    setExtraFinals((prev) => [
-      ...prev,
-      { id: `Llamado ${nextNumber}`, nota: "", fecha: "" },
-    ]);
+    const next = [...extraFinals, { id: `Llamado ${nextNumber}`, nota: "", fecha: "" }];
+    setExtraFinals(next);
+    performSaveQuietly(inputs, extraPartials, extraGlobals, next);
   };
 
   const removeFinal = (index: number) => {
     ComicAudio.playPop();
-    setExtraFinals((prev) => {
-      const copy = [...prev];
-      copy.splice(index, 1);
-      return copy.map((f, i) => ({ ...f, id: `Llamado ${i + 2}` }));
-    });
+    const copy = [...extraFinals];
+    copy.splice(index, 1);
+    const next = copy.map((f, i) => ({ ...f, id: `Llamado ${i + 2}` }));
+    setExtraFinals(next);
+    performSaveQuietly(inputs, extraPartials, extraGlobals, next);
   };
 
   // Count filled grades
@@ -634,32 +638,18 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
 
           {/* Auto-save Status Indicator */}
           <div className="flex items-center justify-between pt-3 border-t-2 border-black/20 px-1">
-            <div className="flex items-center gap-2">
-              {saveStatus === "saving" ? (
-                <span className="flex items-center gap-1.5 text-xs font-black uppercase text-foreground/80 animate-pulse">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00E5FF]" />
-                  Guardando cambios...
-                </span>
-              ) : saveStatus === "saved" ? (
-                <span className="flex items-center gap-1.5 text-xs font-black uppercase text-[#48BD22]">
-                  <Check className="w-4 h-4 stroke-[3]" />
-                  Guardado automático
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase">
-                  <Check className="w-3.5 h-3.5 text-[#48BD22]" />
-                  Autoguardado activado
-                </span>
-              )}
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase select-none">
+              <Check className="w-3.5 h-3.5 text-[#48BD22]" />
+              <span>Autoguardado</span>
             </div>
 
             <button
               type="button"
               onClick={triggerImmediateSave}
-              disabled={disabled || isSavingRef.current}
-              className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg border-2 border-black bg-secondary hover:bg-[#25d06c] hover:text-black transition-colors shadow-[1px_1px_0_0_#000]"
+              disabled={disabled}
+              className="text-[10px] font-black uppercase px-3 py-1 rounded-lg border-2 border-black bg-secondary hover:bg-[#25d06c] hover:text-black transition-colors shadow-[1px_1px_0_0_#000]"
             >
-              {saveStatus === "saving" ? "Guardando..." : "Guardado"}
+              Listo
             </button>
           </div>
         </div>
