@@ -78,17 +78,6 @@ export function useNotifications() {
           setPushStatus(newStatus);
           if (sub) {
             toast.success("¡Conectado al servicio Web Push! Llegarán con la app cerrada 📲");
-            // Auto schedule test greeting 3 minutes later so user can test closed app
-            scheduleDelayedGreetingPush(
-              user.id,
-              180,
-              "¡Hola de parte de TABE! 👋",
-              "¡Funciona perfecto! Esta notificación te llegó 3 minutos después con la app cerrada. Ya estás al día con tus parciales y tareas."
-            ).then((delayedRes) => {
-              if (delayedRes.success) {
-                toast.info("⏱️ Saludo programado para dentro de 3 minutos. ¡Cerrá la app o bloqueá la pantalla para probar!");
-              }
-            });
           }
         }
 

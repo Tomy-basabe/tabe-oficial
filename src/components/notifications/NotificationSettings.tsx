@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
-import { Bell, BellOff, Clock, Calendar, Smartphone, Radio, Send, Timer, Sparkles, CheckCircle2 } from "lucide-react";
+import { Bell, BellOff, Clock, Calendar, Smartphone, Radio } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 export function NotificationSettings() {
   const {
@@ -13,66 +11,11 @@ export function NotificationSettings() {
     pushStatus,
     isSubscribingPush,
     requestPermission,
-    testNotification,
-    testServerPush,
-    scheduleThreeMinuteGreeting,
     updateSettings,
   } = useNotifications();
 
-  const [isScheduling, setIsScheduling] = useState(false);
-  const [scheduledTargetTime, setScheduledTargetTime] = useState<number | null>(() => {
-    const saved = localStorage.getItem("tabe_test_push_scheduled_until");
-    if (saved) {
-      const time = parseInt(saved, 10);
-      if (time > Date.now()) return time;
-    }
-    return null;
-  });
-  const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
-
-  useEffect(() => {
-    if (!scheduledTargetTime) {
-      setRemainingSeconds(0);
-      return;
-    }
-
-    const updateTimer = () => {
-      const now = Date.now();
-      const diff = Math.max(0, Math.ceil((scheduledTargetTime - now) / 1000));
-      setRemainingSeconds(diff);
-      if (diff <= 0) {
-        setScheduledTargetTime(null);
-        localStorage.removeItem("tabe_test_push_scheduled_until");
-      }
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [scheduledTargetTime]);
-
   const handleEnableNotifications = async () => {
-    const ok = await requestPermission();
-    if (ok) {
-      // Iniciar el temporizador de 3 minutos visual en la UI
-      const target = Date.now() + 180 * 1000;
-      setScheduledTargetTime(target);
-      localStorage.setItem("tabe_test_push_scheduled_until", target.toString());
-    }
-  };
-
-  const handleScheduleThreeMinuteGreeting = async () => {
-    setIsScheduling(true);
-    try {
-      const ok = await scheduleThreeMinuteGreeting(180);
-      if (ok) {
-        const target = Date.now() + 180 * 1000;
-        setScheduledTargetTime(target);
-        localStorage.setItem("tabe_test_push_scheduled_until", target.toString());
-      }
-    } finally {
-      setIsScheduling(false);
-    }
+    await requestPermission();
   };
 
   if (!isSupported) {
@@ -86,44 +29,8 @@ export function NotificationSettings() {
     );
   }
 
-  const formatTimer = (totalSec: number) => {
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
-
   return (
     <div className="space-y-4">
-      {/* Active 3-Minute Test Banner */}
-      {scheduledTargetTime && remainingSeconds > 0 && (
-        <div className="bg-[#FFE600] text-black border-4 border-foreground shadow-[6px_6px_0_0_#000] rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className="p-2.5 bg-black text-[#FFE600] rounded-xl border-2 border-black shrink-0 animate-pulse">
-                <Timer className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-xs uppercase px-2 py-0.5 rounded bg-black text-white">
-                    Prueba en curso
-                  </span>
-                  <h4 className="font-black uppercase text-base">Notificación de saludo programada</h4>
-                </div>
-                <p className="font-bold text-xs sm:text-sm mt-0.5 opacity-90">
-                  ¡Podés cerrar la app o bloquear el celular ahora! En <strong>{formatTimer(remainingSeconds)}</strong> te llegará la notificación push desde el servidor.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-              <div className="px-4 py-2 bg-black text-[#00FF9D] font-mono font-black text-xl rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]">
-                {formatTimer(remainingSeconds)}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Permission & Push Status Card */}
       <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -180,41 +87,16 @@ export function NotificationSettings() {
               </button>
             )}
 
-            {permission === "granted" && (
-              <>
-                {!pushStatus.isSubscribed && (
-                  <button
-                    onClick={handleEnableNotifications}
-                    disabled={isSubscribingPush}
-                    className="px-3.5 py-2.5 rounded-xl bg-[#00FF9D] text-black font-black uppercase text-xs border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-1.5 cursor-pointer animate-pulse"
-                    title="Registrar tu teléfono o navegador en el servicio Web Push de TABE"
-                  >
-                    <Radio className="w-3.5 h-3.5" />
-                    <span>{isSubscribingPush ? "Vinculando..." : "Conectar Web Push 🔗"}</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={handleScheduleThreeMinuteGreeting}
-                  disabled={isScheduling}
-                  className="px-4 py-2.5 rounded-xl bg-[#FFE600] text-black font-black uppercase text-xs border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
-                  title="Programa una notificación de saludo para dentro de 3 minutos. Podés cerrar la app o bloquear el teléfono para comprobar que llega."
-                >
-                  <Timer className="w-4 h-4 stroke-[2.5]" />
-                  <span>
-                    {isScheduling ? "Programando..." : "Probar en 3 min (Cerrá la app) ⏰"}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => testServerPush()}
-                  className="px-3 py-2.5 rounded-xl bg-[#00E5FF] text-black font-black uppercase text-xs border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center gap-1.5 cursor-pointer"
-                  title="Envía una notificación push instantánea desde el servidor"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Push Inmediata 📲</span>
-                </button>
-              </>
+            {permission === "granted" && !pushStatus.isSubscribed && (
+              <button
+                onClick={handleEnableNotifications}
+                disabled={isSubscribingPush}
+                className="px-3.5 py-2.5 rounded-xl bg-[#00FF9D] text-black font-black uppercase text-xs border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-1.5 cursor-pointer animate-pulse"
+                title="Registrar tu teléfono o navegador en el servicio Web Push de TABE"
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>{isSubscribingPush ? "Vinculando..." : "Conectar Web Push 🔗"}</span>
+              </button>
             )}
           </div>
         </div>
