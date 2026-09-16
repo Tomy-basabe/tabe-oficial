@@ -90,7 +90,11 @@ async function sendPushToUser(
         message: err?.message,
         body: err?.body
       });
-      if (err?.statusCode === 404 || err?.statusCode === 410) {
+      if (
+        err?.statusCode === 404 || 
+        err?.statusCode === 410 || 
+        (err?.statusCode === 500 && typeof err?.body === "string" && err.body.includes("permanent internal error"))
+      ) {
         await supabase.from("push_subscriptions").delete().eq("id", sub.id);
         expiredCount++;
       }
@@ -335,7 +339,11 @@ serve(async (req) => {
                 }, payload);
                 totalSent++;
               } catch (err: any) {
-                if (err?.statusCode === 404 || err?.statusCode === 410) {
+                if (
+                  err?.statusCode === 404 || 
+                  err?.statusCode === 410 || 
+                  (err?.statusCode === 500 && typeof err?.body === "string" && err.body.includes("permanent internal error"))
+                ) {
                   await supabase.from("push_subscriptions").delete().eq("id", sub.id);
                 }
               }
