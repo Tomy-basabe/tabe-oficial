@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { subscribeUserToPush, syncAlarmsToIndexedDB, getPushSubscriptionStatus } from "@/lib/webPushService";
 import { supabase } from "@/integrations/supabase/client";
@@ -131,7 +131,7 @@ export function GlobalNotificationManager() {
   if (!showPrompt) return null;
 
   return (
-    <aside aria-label="Aviso de notificaciones" className="fixed bottom-20 md:bottom-6 right-4 z-50 max-w-sm w-[calc(100vw-2rem)] md:w-96 bg-white dark:bg-black border-4 border-black dark:border-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] p-4 animate-in fade-in slide-in-from-bottom-5">
+    <aside aria-label="Aviso de notificaciones" className="fixed top-5 left-1/2 -translate-x-1/2 z-50 max-w-md w-[calc(100vw-2rem)] bg-white dark:bg-black border-4 border-black dark:border-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] p-4 animate-in fade-in slide-in-from-top-5">
       <div className="flex items-start gap-3">
         <div className="p-2.5 bg-yellow-400 border-2 border-black dark:border-white text-black font-black flex-shrink-0">
           <Bell className="w-6 h-6 animate-bounce" />
@@ -147,17 +147,18 @@ export function GlobalNotificationManager() {
             <button
               onClick={handleEnable}
               disabled={isSubscribing}
-              className="flex-1 bg-green-500 hover:bg-green-600 text-black font-black text-xs uppercase px-3 py-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 bg-green-500 hover:bg-green-600 text-black font-black text-xs uppercase px-3 py-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4 stroke-[3]" />
               {isSubscribing ? "Activando..." : "Activar Ahora"}
             </button>
             <button
               onClick={handleDismiss}
-              className="bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 text-neutral-700 dark:text-neutral-200 font-bold text-xs px-2.5 py-2 border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px]"
-              title="Más tarde"
+              className="bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 text-neutral-700 dark:text-neutral-200 font-black text-xs px-3 py-2 border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] flex items-center gap-1 cursor-pointer"
+              title="No activar"
             >
               <X className="w-4 h-4" />
+              <span>No</span>
             </button>
           </div>
         </div>

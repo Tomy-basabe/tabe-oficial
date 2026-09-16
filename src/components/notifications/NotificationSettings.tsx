@@ -37,8 +37,8 @@ export function NotificationSettings() {
           <div className="flex items-start sm:items-center gap-3.5">
             <div className={cn(
               "w-12 h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center shrink-0",
-              permission === "granted" 
-                ? "bg-[#00FF9D] text-black" 
+              permission === "granted"
+                ? "bg-[#00FF9D] text-black"
                 : "bg-muted text-muted-foreground"
             )}>
               {permission === "granted" ? (
@@ -66,11 +66,11 @@ export function NotificationSettings() {
                 )}
               </div>
               <p className="font-bold text-xs sm:text-sm text-muted-foreground mt-1">
-                {permission === "granted" 
-                  ? "Las alertas te llegan incluso si tenés la app cerrada o el teléfono en reposo." 
+                {permission === "granted"
+                  ? "Las alertas te llegan incluso si tenés la app cerrada o el teléfono en reposo."
                   : permission === "denied"
-                  ? "Notificaciones bloqueadas por el navegador. Habilítalas en los permisos de sitio del navegador."
-                  : "Activá las notificaciones para recibir alertas de parciales y rachas con la app cerrada."}
+                    ? "Notificaciones bloqueadas por el navegador. Habilítalas en los permisos de sitio del navegador."
+                    : "Activá las notificaciones para recibir alertas de parciales y rachas con la app cerrada."}
               </p>
             </div>
           </div>
