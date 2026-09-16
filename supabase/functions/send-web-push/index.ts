@@ -68,6 +68,7 @@ async function sendPushToUser(
 
   let sentCount = 0;
   let expiredCount = 0;
+  const sendErrors: any[] = [];
 
   for (const sub of subs) {
     const pushSubscription = {
@@ -83,6 +84,12 @@ async function sendPushToUser(
       sentCount++;
     } catch (err: any) {
       console.warn("Failed to send webpush to endpoint:", sub.endpoint, err?.statusCode || err?.message);
+      sendErrors.push({
+        endpoint: sub.endpoint,
+        statusCode: err?.statusCode,
+        message: err?.message,
+        body: err?.body
+      });
       if (err?.statusCode === 404 || err?.statusCode === 410) {
         await supabase.from("push_subscriptions").delete().eq("id", sub.id);
         expiredCount++;
@@ -95,6 +102,7 @@ async function sendPushToUser(
     sent: sentCount,
     expired_cleaned: expiredCount,
     total_devices: subs.length,
+    errors: sendErrors.length > 0 ? sendErrors : undefined,
     message: sentCount > 0
       ? `Notificación enviada con éxito a ${sentCount} dispositivo(s).`
       : "No se pudo entregar la notificación a los dispositivos registrados."
