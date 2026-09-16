@@ -409,6 +409,53 @@ export function injectGoogleEventId(notas: string | null | undefined, gcalId: st
 }
 
 /**
+ * Normaliza el título de un evento para comparaciones seguras (sin tildes, minúsculas, sin corchetes de materias o calendarios)
+ */
+export function normalizeEventTitle(title: string): string {
+  if (!title) return "";
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remueve tildes y diacríticos
+    .replace(/^\[[^\]]+\]\s*/, "") // Remueve tags entre corchetes ej: [Matemática], [Principal], [Tareas]
+    .replace(/\[gcal_id:[^\]]+\]/g, "")
+    .replace(/\[status:[^\]]+\]/g, "")
+    .replace(/[^\w\s]/gi, "") // Remueve signos de puntuación y símbolos
+    .replace(/\s+/g, " ") // Colapsa espacios múltiples
+    .trim();
+}
+
+/**
+ * Normaliza la hora a formato HH:mm o 'allday'
+ */
+export function normalizeEventTime(hora: string | null | undefined, isAllDay?: boolean): string {
+  if (isAllDay || !hora || hora === "allday") return "allday";
+  const clean = hora.trim();
+  const match = clean.match(/^(\d{1,2}):(\d{2})/);
+  if (match) {
+    const h = match[1].padStart(2, "0");
+    const m = match[2];
+    return `${h}:${m}`;
+  }
+  return clean.substring(0, 5);
+}
+
+/**
+ * Genera una clave unívoca para matching estricto de eventos: título normalizado + fecha + hora
+ */
+export function buildEventMatchKey(
+  title: string,
+  date: string,
+  hora?: string | null | undefined,
+  isAllDay?: boolean
+): string {
+  const t = normalizeEventTitle(title);
+  const d = (date || "").split("T")[0];
+  const h = normalizeEventTime(hora, isAllDay);
+  return `${t}___${d}___${h}`;
+}
+
+/**
  * Helper to normalize time string to HH:mm format safely
  */
 function formatTimeToHHMM(time?: string | null): string | null {
@@ -867,22 +914,34 @@ export async function performBidirectionalSync(params: {
 
     const todayStr = toLocalDateStr(new Date());
 
-    // Index existing TABE events by gcal_id and title+date
+    // Index existing TABE events by gcal_id and by normalized matchKey (title + date + time)
     const tabeByGcalId = new Map<string, CalendarEvent>();
-    const tabeByTitleDate = new Map<string, CalendarEvent>();
+    const tabeByMatchKey = new Map<string, CalendarEvent[]>();
+    const tabeByDateTitle = new Map<string, CalendarEvent[]>();
 
     for (const ev of params.tabeEvents) {
+      if (ev.isVirtual) continue;
       const gcalId = extractGoogleEventId(ev.notas);
       if (gcalId) {
         tabeByGcalId.set(gcalId, ev);
       }
       const evDate = (ev.fecha || "").split("T")[0];
-      tabeByTitleDate.set(`${ev.titulo.trim().toLowerCase()}_${evDate}`, ev);
+      const matchKey = buildEventMatchKey(ev.titulo, evDate, ev.hora, ev.is_all_day);
+      const dateTitleKey = `${normalizeEventTitle(ev.titulo)}___${evDate}`;
+
+      const listM = tabeByMatchKey.get(matchKey) || [];
+      listM.push(ev);
+      tabeByMatchKey.set(matchKey, listM);
+
+      const listD = tabeByDateTitle.get(dateTitleKey) || [];
+      listD.push(ev);
+      tabeByDateTitle.set(dateTitleKey, listD);
     }
 
-    // Index Google events by ID and title+date
+    // Index Google events by ID and by normalized matchKey (title + date + time)
     const googleById = new Map<string, any>();
-    const googleByTitleDate = new Map<string, any>();
+    const googleByMatchKey = new Map<string, any[]>();
+    const googleByDateTitle = new Map<string, any[]>();
 
     for (const gEv of googleEvents) {
       if (gEv.id && gEv.status !== "cancelled") {
@@ -890,43 +949,54 @@ export async function performBidirectionalSync(params: {
         const startDt = gEv.start?.dateTime || gEv.start?.date;
         if (startDt) {
           const dPart = String(startDt).split("T")[0];
-          const tNorm = (gEv.summary || "").trim().toLowerCase();
-          if (tNorm && dPart) {
-            googleByTitleDate.set(`${tNorm}_${dPart}`, gEv);
+          const isAllDay = !gEv.start?.dateTime;
+          let gHora: string | undefined = undefined;
+          if (!isAllDay && gEv.start?.dateTime) {
+            try {
+              const d = new Date(gEv.start.dateTime);
+              if (!isNaN(d.getTime())) {
+                gHora = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+              }
+            } catch {}
           }
+          const gMatchKey = buildEventMatchKey(gEv.summary || "", dPart, gHora, isAllDay);
+          const gDateTitleKey = `${normalizeEventTitle(gEv.summary || "")}___${dPart}`;
+
+          const listM = googleByMatchKey.get(gMatchKey) || [];
+          listM.push(gEv);
+          googleByMatchKey.set(gMatchKey, listM);
+
+          const listD = googleByDateTitle.get(gDateTitleKey) || [];
+          listD.push(gEv);
+          googleByDateTitle.set(gDateTitleKey, listD);
         }
       }
     }
 
-    // STEP A: PUSH TABE events to Google Calendar if not yet in Google
+    // STEP A: PUSH TABE events to Google Calendar ONLY if not yet in Google Calendar
     for (const tEvent of params.tabeEvents) {
-      // Ignore virtual recurring instances since the parent event handles it
       if (tEvent.isVirtual) continue;
 
       const eventDate = (tEvent.fecha || "").split("T")[0];
-      // CRITICAL: Do NOT push past events to Google Calendar during automated sync
-      if (eventDate && eventDate < todayStr) {
-        continue;
-      }
+      if (eventDate && eventDate < todayStr) continue;
 
       const gcalId = extractGoogleEventId(tEvent.notas);
-      const titleNorm = (tEvent.titulo || "").trim().toLowerCase();
-      const titleDateKey = `${titleNorm}_${eventDate}`;
+      const matchKey = buildEventMatchKey(tEvent.titulo, eventDate, tEvent.hora, tEvent.is_all_day);
+      const dateTitleKey = `${normalizeEventTitle(tEvent.titulo)}___${eventDate}`;
 
-      // If it already has a Google Calendar ID, it was already pushed/synced before.
-      if (gcalId) {
+      // If it already has a Google Calendar ID that exists in Google, it's synced
+      if (gcalId && googleById.has(gcalId)) {
         continue;
       }
 
-      // Check if an event with identical title and date already exists in Google Calendar!
-      const existingInGoogle = googleByTitleDate.get(titleDateKey);
+      // Check if an event with identical title and date/time already exists in Google Calendar!
+      const existingInGoogle = googleByMatchKey.get(matchKey)?.[0] || googleByDateTitle.get(dateTitleKey)?.[0];
       if (existingInGoogle?.id) {
         // Link it to TABE without uploading duplicate to Google!
         try {
           const newNotas = injectGoogleEventId(tEvent.notas, existingInGoogle.id);
           await params.updateTabeEvent(tEvent.id, { notas: newNotas }, { silent: true, skipRefetch: true });
           tabeByGcalId.set(existingInGoogle.id, { ...tEvent, notas: newNotas });
-          tabeByTitleDate.set(titleDateKey, { ...tEvent, notas: newNotas });
         } catch (linkErr) {
           console.warn("Could not link existing Google event to TABE:", linkErr);
         }
@@ -938,13 +1008,10 @@ export async function performBidirectionalSync(params: {
         const pushResult = await pushEventToGoogleCalendar(tEvent);
         if (pushResult.gcalId) {
           pushedCount++;
-          // Update TABE event note with the new gcal_id silently
           const newNotas = injectGoogleEventId(tEvent.notas, pushResult.gcalId);
           await params.updateTabeEvent(tEvent.id, { notas: newNotas }, { silent: true, skipRefetch: true });
           tabeByGcalId.set(pushResult.gcalId, { ...tEvent, notas: newNotas });
-          tabeByTitleDate.set(titleDateKey, { ...tEvent, notas: newNotas });
           googleById.set(pushResult.gcalId, { id: pushResult.gcalId, summary: tEvent.titulo });
-          googleByTitleDate.set(titleDateKey, { id: pushResult.gcalId, summary: tEvent.titulo });
         }
       } catch (pushErr) {
         console.warn("Could not push event to Google Calendar:", tEvent.titulo, pushErr);
@@ -974,7 +1041,7 @@ export async function performBidirectionalSync(params: {
       return null;
     }
 
-    // STEP B: PULL events from Google Calendar into TABE (from today onwards, handling repeating events)
+    // STEP B: PULL events from Google Calendar into TABE, ensuring NO DUPLICATES and deleting TABE duplicates
     for (const gEv of googleEvents) {
       if (gEv.status === "cancelled") continue;
 
@@ -1015,7 +1082,6 @@ export async function performBidirectionalSync(params: {
 
         // --- CASE 1: RECURRING EVENT (e.g. daily, weekly repeated events) ---
         if (recurringEventId) {
-          // If we already imported or processed the master event for this series, skip all other instances
           if (handledRecurringMasterIds.has(recurringEventId)) {
             continue;
           }
@@ -1024,7 +1090,6 @@ export async function performBidirectionalSync(params: {
             continue;
           }
 
-          // Fetch master recurring event definition to get recurrence RRULE
           const master = await getMasterRecurringEvent(gEv._calendarId || "primary", recurringEventId);
 
           let rule: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" = "DAILY";
@@ -1045,7 +1110,6 @@ export async function performBidirectionalSync(params: {
             }
           }
 
-          // Deduce event type
           let tipo_examen: EventType = "Otro";
           const lower = (master?.summary || title).toLowerCase();
           if (lower.includes("parcial 1") || lower.includes("1er parcial") || lower.includes("primer parcial") || lower.includes("p1")) {
@@ -1073,7 +1137,7 @@ export async function performBidirectionalSync(params: {
 
           // Check if an existing recurring or single event with same title already exists in TABE
           const existingTabeMatch = params.tabeEvents.find(
-            e => (e.titulo || "").trim().toLowerCase() === (master?.summary || title).trim().toLowerCase() &&
+            e => normalizeEventTitle(e.titulo) === normalizeEventTitle(master?.summary || title) &&
                  (e.recurrence_rule || (e.fecha || "").split("T")[0] === datePart)
           );
           if (existingTabeMatch) {
@@ -1084,8 +1148,6 @@ export async function performBidirectionalSync(params: {
             continue;
           }
 
-          // Create ONE master recurring event in TABE starting from current date
-          // TABE's internal engine will generate virtual instances for every day dynamically into infinity!
           await params.createTabeEvent({
             titulo: master?.summary || title,
             fecha: datePart,
@@ -1105,34 +1167,49 @@ export async function performBidirectionalSync(params: {
           continue;
         }
 
-        // --- CASE 2: SINGLE EVENT ---
-        const alreadyInTabe = tabeByGcalId.get(gcalId);
-        const titleDateKey = `${title.trim().toLowerCase()}_${datePart}`;
-        const matchedByTitleDate = tabeByTitleDate.get(titleDateKey);
+        // --- CASE 2: SINGLE EVENT (CON PREVALENCIA DE GOOGLE Y ELIMINACIÓN DE DUPLICADOS EN TABE) ---
+        const matchKey = buildEventMatchKey(title, datePart, hora, isAllDay);
+        const dateTitleKey = `${normalizeEventTitle(title)}___${datePart}`;
 
-        if (alreadyInTabe) {
-          // Event exists in both: verify if time/title changed in Google and update TABE
-          const needsUpdate =
-            alreadyInTabe.titulo !== title ||
-            alreadyInTabe.fecha !== datePart ||
-            (hora && alreadyInTabe.hora !== hora);
+        const matchesByMatchKey = tabeByMatchKey.get(matchKey) || [];
+        const matchesByDateTitle = tabeByDateTitle.get(dateTitleKey) || [];
+        const candidates = matchesByMatchKey.length > 0 ? matchesByMatchKey : matchesByDateTitle;
 
-          if (needsUpdate) {
-            await params.updateTabeEvent(alreadyInTabe.id, {
-              titulo: title,
-              fecha: datePart,
-              hora: hora || undefined,
-              hora_fin: hora_fin || undefined,
-              ubicacion: gEv.location || alreadyInTabe.ubicacion || undefined,
-            }, { silent: true, skipRefetch: true });
+        const alreadyByGcalId = tabeByGcalId.get(gcalId);
+        const primaryMatch = alreadyByGcalId || (candidates.length > 0 ? candidates[0] : null);
+
+        if (primaryMatch) {
+          // El evento ya existe en TABE: actualizar datos y vincular el ID de Google Calendar
+          const newNotas = injectGoogleEventId(primaryMatch.notas || gEv.description, gcalId);
+          await params.updateTabeEvent(primaryMatch.id, {
+            titulo: title,
+            fecha: datePart,
+            hora: hora || undefined,
+            hora_fin: hora_fin || undefined,
+            ubicacion: gEv.location || primaryMatch.ubicacion || undefined,
+            notas: newNotas,
+            is_all_day: isAllDay,
+          }, { silent: true, skipRefetch: true });
+
+          tabeByGcalId.set(gcalId, { ...primaryMatch, notas: newNotas });
+
+          // REGLA CRÍTICA: Eliminar de TABE todos los duplicados adicionales que tengan el mismo nombre y fecha/hora
+          if (candidates.length > 1) {
+            try {
+              const { supabase } = await import("@/integrations/supabase/client");
+              for (let i = 0; i < candidates.length; i++) {
+                const dupTabe = candidates[i];
+                if (dupTabe.id !== primaryMatch.id) {
+                  await supabase.from("calendar_events").delete().eq("id", dupTabe.id);
+                  console.log(`[GoogleSync] Duplicado de TABE eliminado a favor de Google Calendar: ${dupTabe.titulo} (${dupTabe.id})`);
+                }
+              }
+            } catch (delErr) {
+              console.warn("Error eliminando duplicado de TABE:", delErr);
+            }
           }
-        } else if (matchedByTitleDate) {
-          // Match found by title and date: attach the gcalId to TABE event
-          const newNotas = injectGoogleEventId(matchedByTitleDate.notas, gcalId);
-          await params.updateTabeEvent(matchedByTitleDate.id, { notas: newNotas }, { silent: true, skipRefetch: true });
-          tabeByGcalId.set(gcalId, { ...matchedByTitleDate, notas: newNotas });
         } else {
-          // Completely new single event from Google Calendar: create in TABE!
+          // Completamente nuevo desde Google Calendar: crear en TABE
           const notas = injectGoogleEventId(gEv.description, gcalId);
 
           let tipo_examen: EventType = "Otro";
@@ -1180,6 +1257,17 @@ export async function performBidirectionalSync(params: {
 
     // Save last sync time
     localStorage.setItem(GCAL_LAST_SYNC_KEY, new Date().toISOString());
+
+    // Auto-limpieza profunda de duplicados para asegurar que TABE y Google Calendar queden idénticos y sin repeticiones
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await cleanupDuplicateEvents(user.id);
+      }
+    } catch (cleanErr) {
+      console.warn("Auto duplicate cleanup error:", cleanErr);
+    }
 
     // Single refetch after all batch operations finish
     if (params.refetchEvents) {
@@ -1431,6 +1519,9 @@ export function parseGoogleCalendarIcs(icsContent: string): ParsedGoogleIcsEvent
 /**
  * Synchronizes parsed Google Calendar iCal events directly into Supabase DB
  */
+/**
+ * Synchronizes parsed Google Calendar iCal events directly into Supabase DB
+ */
 export async function syncGoogleIcsToTabe(
   userId: string,
   events: ParsedGoogleIcsEvent[]
@@ -1456,21 +1547,35 @@ export async function syncGoogleIcsToTabe(
   }
 
   const gcalIdMap = new Map<string, any>();
-  const titleDateMap = new Map<string, any>();
+  const matchKeyMap = new Map<string, any[]>();
+  const dateTitleMap = new Map<string, any[]>();
 
   (existingEvents || []).forEach((ev) => {
     const gId = extractGoogleEventId(ev.notas);
     if (gId) {
       gcalIdMap.set(gId, ev);
     }
-    const cleanTitle = (ev.titulo || "").trim().toLowerCase();
-    titleDateMap.set(`${cleanTitle}_${ev.fecha}`, ev);
+    const mKey = buildEventMatchKey(ev.titulo, ev.fecha, ev.hora, ev.is_all_day);
+    const dtKey = `${normalizeEventTitle(ev.titulo)}___${ev.fecha}`;
+
+    const listM = matchKeyMap.get(mKey) || [];
+    listM.push(ev);
+    matchKeyMap.set(mKey, listM);
+
+    const listD = dateTitleMap.get(dtKey) || [];
+    listD.push(ev);
+    dateTitleMap.set(dtKey, listD);
   });
 
   const toInsert: any[] = [];
+  const idsToDeleteFromTabe: string[] = [];
 
   for (const gEv of events) {
-    const existing = gcalIdMap.get(gEv.uid) || titleDateMap.get(`${gEv.title.trim().toLowerCase()}_${gEv.date}`);
+    const mKey = buildEventMatchKey(gEv.title, gEv.date, gEv.time, gEv.isAllDay);
+    const dtKey = `${normalizeEventTitle(gEv.title)}___${gEv.date}`;
+
+    const candidates = matchKeyMap.get(mKey) || dateTitleMap.get(dtKey) || [];
+    const existing = gcalIdMap.get(gEv.uid) || (candidates.length > 0 ? candidates[0] : null);
     const notesWithId = injectGoogleEventId(gEv.description, gEv.uid);
 
     if (existing) {
@@ -1502,6 +1607,16 @@ export async function syncGoogleIcsToTabe(
           updated++;
         }
       }
+
+      // Si había duplicados en TABE con la misma clave, eliminarlos para que solo quede el de Google
+      if (candidates.length > 1) {
+        for (let i = 0; i < candidates.length; i++) {
+          const dup = candidates[i];
+          if (dup.id !== existing.id && !idsToDeleteFromTabe.includes(dup.id)) {
+            idsToDeleteFromTabe.push(dup.id);
+          }
+        }
+      }
     } else {
       toInsert.push({
         user_id: userId,
@@ -1520,11 +1635,28 @@ export async function syncGoogleIcsToTabe(
     }
   }
 
+  // Eliminar duplicados de TABE encontrados durante la sincronización
+  if (idsToDeleteFromTabe.length > 0) {
+    try {
+      await supabase.from("calendar_events").delete().in("id", idsToDeleteFromTabe).eq("user_id", userId);
+      console.log(`[GoogleIcsSync] Eliminados ${idsToDeleteFromTabe.length} eventos duplicados de TABE.`);
+    } catch (delErr) {
+      console.warn("Error eliminando duplicados de TABE en iCal sync:", delErr);
+    }
+  }
+
   if (toInsert.length > 0) {
     const { error: insErr } = await supabase.from("calendar_events").insert(toInsert);
     if (!insErr) {
       added = toInsert.length;
     }
+  }
+
+  // Limpieza automática profunda tras la sincronización
+  try {
+    await cleanupDuplicateEvents(userId);
+  } catch (cleanErr) {
+    console.warn("Auto cleanup error after iCal sync:", cleanErr);
   }
 
   if (typeof window !== "undefined") {
@@ -1568,17 +1700,29 @@ export async function syncGoogleOAuthDirect(
     .eq("user_id", userId);
 
   const gcalIdMap = new Map<string, any>();
-  const titleDateMap = new Map<string, any>();
+  const matchKeyMap = new Map<string, any[]>();
+  const dateTitleMap = new Map<string, any[]>();
 
   (existingEvents || []).forEach((ev) => {
     const gId = extractGoogleEventId(ev.notas);
     if (gId) gcalIdMap.set(gId, ev);
-    titleDateMap.set(`${(ev.titulo || "").trim().toLowerCase()}_${ev.fecha}`, ev);
+
+    const mKey = buildEventMatchKey(ev.titulo, ev.fecha, ev.hora, ev.is_all_day);
+    const dtKey = `${normalizeEventTitle(ev.titulo)}___${ev.fecha}`;
+
+    const listM = matchKeyMap.get(mKey) || [];
+    listM.push(ev);
+    matchKeyMap.set(mKey, listM);
+
+    const listD = dateTitleMap.get(dtKey) || [];
+    listD.push(ev);
+    dateTitleMap.set(dtKey, listD);
   });
 
   let added = 0;
   let updated = 0;
   const toInsert: any[] = [];
+  const idsToDeleteFromTabe: string[] = [];
 
   for (const gEv of googleEvents) {
     if (gEv.status === "cancelled") continue;
@@ -1612,7 +1756,11 @@ export async function syncGoogleOAuthDirect(
     }
 
     const title = gEv.summary || "Evento de Google Calendar";
-    const existing = gcalIdMap.get(gcalId) || titleDateMap.get(`${title.trim().toLowerCase()}_${datePart}`);
+    const mKey = buildEventMatchKey(title, datePart, hora, isAllDay);
+    const dtKey = `${normalizeEventTitle(title)}___${datePart}`;
+
+    const candidates = matchKeyMap.get(mKey) || dateTitleMap.get(dtKey) || [];
+    const existing = gcalIdMap.get(gcalId) || (candidates.length > 0 ? candidates[0] : null);
     const notesWithId = injectGoogleEventId(gEv.description, gcalId);
 
     if (existing) {
@@ -1621,7 +1769,8 @@ export async function syncGoogleOAuthDirect(
         existing.hora !== hora ||
         existing.hora_fin !== hora_fin ||
         existing.titulo !== title ||
-        existing.ubicacion !== (gEv.location || null);
+        existing.ubicacion !== (gEv.location || null) ||
+        extractGoogleEventId(existing.notas) !== gcalId;
 
       if (changed) {
         await supabase
@@ -1637,6 +1786,16 @@ export async function syncGoogleOAuthDirect(
           })
           .eq("id", existing.id);
         updated++;
+      }
+
+      // Si había duplicados en TABE con la misma clave, eliminarlos
+      if (candidates.length > 1) {
+        for (let i = 0; i < candidates.length; i++) {
+          const dup = candidates[i];
+          if (dup.id !== existing.id && !idsToDeleteFromTabe.includes(dup.id)) {
+            idsToDeleteFromTabe.push(dup.id);
+          }
+        }
       }
     } else {
       const tipo = deduceGoogleEventType(title);
@@ -1655,9 +1814,26 @@ export async function syncGoogleOAuthDirect(
     }
   }
 
+  // Eliminar duplicados de TABE
+  if (idsToDeleteFromTabe.length > 0) {
+    try {
+      await supabase.from("calendar_events").delete().in("id", idsToDeleteFromTabe).eq("user_id", userId);
+      console.log(`[GoogleOAuthSync] Eliminados ${idsToDeleteFromTabe.length} duplicados de TABE.`);
+    } catch (delErr) {
+      console.warn("Error eliminando duplicados de TABE en OAuth sync:", delErr);
+    }
+  }
+
   if (toInsert.length > 0) {
     const { error: insErr } = await supabase.from("calendar_events").insert(toInsert);
     if (!insErr) added = toInsert.length;
+  }
+
+  // Limpieza automática profunda tras la sincronización
+  try {
+    await cleanupDuplicateEvents(userId);
+  } catch (cleanErr) {
+    console.warn("Auto cleanup error after OAuth sync:", cleanErr);
   }
 
   if (typeof window !== "undefined") {
@@ -1722,7 +1898,9 @@ export interface DuplicateCleanupResult {
 
 /**
  * Identifica y elimina eventos duplicados en TABE y en Google Calendar (si está conectado vía OAuth).
- * Conserva el evento más completo (con materia, notas o detalles) y elimina las copias redundantes.
+ * PRIORIDAD: El evento proveniente de Google Calendar tiene prioridad absoluta sobre copias locales
+ * de TABE. Si existen duplicados con el mismo título y fecha/hora, se preserva el de Google Calendar
+ * (conservando la materia asignada si existía) y se eliminan las copias redundantes de TABE.
  */
 export async function cleanupDuplicateEvents(
   userId: string
@@ -1732,28 +1910,33 @@ export async function cleanupDuplicateEvents(
   // 1. Obtener todos los eventos del usuario de Supabase
   const { data: allEvents, error } = await supabase
     .from("calendar_events")
-    .select("id, titulo, fecha, hora, hora_fin, notas, subject_id, ubicacion, created_at")
+    .select("id, titulo, fecha, hora, hora_fin, notas, subject_id, ubicacion, is_all_day, created_at")
     .eq("user_id", userId);
 
   if (error || !allEvents) {
     throw new Error(error?.message || "No se pudieron consultar los eventos en la base de datos");
   }
 
-  const norm = (s: string) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  // 2. Agrupar por clave única normalizada (título + fecha + hora) y por gcal_id
+  // 2. Agrupar por:
+  // a) Clave primaria: buildEventMatchKey(titulo, fecha, hora, is_all_day)
+  // b) Clave secundaria: normalizeEventTitle(titulo) + "___" + fecha
+  // c) Por gcal_id directo
   const groups = new Map<string, any[]>();
   const gcalGroup = new Map<string, any[]>();
+  const dateTitleGroups = new Map<string, any[]>();
 
   for (const ev of allEvents) {
-    const title = norm(ev.titulo);
-    const date = (ev.fecha || "").split("T")[0];
-    const hour = ev.hora ? ev.hora.substring(0, 5) : "allday";
-    const key = `${title}___${date}___${hour}`;
-
-    const list = groups.get(key) || [];
+    const strictKey = buildEventMatchKey(ev.titulo, ev.fecha, ev.hora, ev.is_all_day);
+    const list = groups.get(strictKey) || [];
     list.push(ev);
-    groups.set(key, list);
+    groups.set(strictKey, list);
+
+    const normTitle = normalizeEventTitle(ev.titulo);
+    const dateOnly = (ev.fecha || "").split("T")[0];
+    const dtKey = `${normTitle}___${dateOnly}`;
+    const dtList = dateTitleGroups.get(dtKey) || [];
+    dtList.push(ev);
+    dateTitleGroups.set(dtKey, dtList);
 
     const gId = extractGoogleEventId(ev.notas);
     if (gId) {
@@ -1764,49 +1947,99 @@ export async function cleanupDuplicateEvents(
   }
 
   const idsToDeleteFromTabe = new Set<string>();
-  const gcalIdsToDelete: string[] = [];
+  const gcalIdsToDelete = new Set<string>();
+  const updatesToApply = new Map<string, { subject_id?: string; notas?: string }>();
 
-  // Duplicados por clave de contenido (título + fecha + hora)
-  for (const [_, evList] of groups.entries()) {
-    if (evList.length > 1) {
-      // Ordenar para conservar el mejor (con subject_id y notas más completas)
-      evList.sort((a, b) => {
-        const scoreA = (a.subject_id ? 10 : 0) + (a.notas?.length || 0);
-        const scoreB = (b.subject_id ? 10 : 0) + (b.notas?.length || 0);
-        return scoreB - scoreA;
-      });
+  const processDuplicateGroup = (evList: any[]) => {
+    const available = evList.filter((e) => !idsToDeleteFromTabe.has(e.id));
+    if (available.length <= 1) return;
 
-      // Conservar evList[0], marcar el resto para eliminar
-      for (let i = 1; i < evList.length; i++) {
-        const dup = evList[i];
-        idsToDeleteFromTabe.add(dup.id);
-        const gId = extractGoogleEventId(dup.notas);
-        if (gId && !gcalIdsToDelete.includes(gId)) {
-          gcalIdsToDelete.push(gId);
-        }
+    // Regla de oro: PRIORIDAD ABSOLUTA AL EVENTO DE GOOGLE CALENDAR (+10000)
+    // De este modo se borran los correspondientes de TABE y quedan los de Google Calendar
+    available.sort((a, b) => {
+      const gIdA = extractGoogleEventId(a.notas);
+      const gIdB = extractGoogleEventId(b.notas);
+      const scoreA = (gIdA ? 10000 : 0) + (a.subject_id ? 50 : 0) + (a.notas?.length || 0);
+      const scoreB = (gIdB ? 10000 : 0) + (b.subject_id ? 50 : 0) + (b.notas?.length || 0);
+      return scoreB - scoreA;
+    });
+
+    const winner = available[0];
+    const winnerGId = extractGoogleEventId(winner.notas);
+
+    // Si el ganador (por ej. importado de Google) no tenía subject_id y un duplicado de TABE sí lo tenía,
+    // preservamos la materia en el ganador
+    let subjectToPreserve = winner.subject_id;
+    for (let i = 1; i < available.length; i++) {
+      const dup = available[i];
+      if (!subjectToPreserve && dup.subject_id) {
+        subjectToPreserve = dup.subject_id;
       }
+    }
+
+    if (subjectToPreserve && subjectToPreserve !== winner.subject_id) {
+      winner.subject_id = subjectToPreserve;
+      updatesToApply.set(winner.id, {
+        ...(updatesToApply.get(winner.id) || {}),
+        subject_id: subjectToPreserve,
+      });
+    }
+
+    // Marcar todas las copias restantes como duplicadas para eliminar de TABE
+    for (let i = 1; i < available.length; i++) {
+      const dup = available[i];
+      idsToDeleteFromTabe.add(dup.id);
+
+      const dupGId = extractGoogleEventId(dup.notas);
+      // Solo si el duplicado tenía un gId DIFERENTE al del ganador, marcar para borrar en Google
+      if (dupGId && dupGId !== winnerGId) {
+        gcalIdsToDelete.add(dupGId);
+      }
+    }
+  };
+
+  // Procesar primero duplicados por mismo Google Event ID
+  for (const [_, gList] of gcalGroup.entries()) {
+    processDuplicateGroup(gList);
+  }
+
+  // Procesar duplicados por clave estricta (título + fecha + hora)
+  for (const [_, evList] of groups.entries()) {
+    processDuplicateGroup(evList);
+  }
+
+  // Procesar duplicados por título y fecha (si coinciden exactamente en fecha y título normalizado)
+  for (const [_, dtList] of dateTitleGroups.entries()) {
+    if (dtList.length > 1) {
+      processDuplicateGroup(dtList);
     }
   }
 
-  // Duplicados por id idéntico de Google Calendar
-  for (const [_, gList] of gcalGroup.entries()) {
-    if (gList.length > 1) {
-      for (let i = 1; i < gList.length; i++) {
-        idsToDeleteFromTabe.add(gList[i].id);
+  // Aplicar enriquecimientos a ganadores (por ej. subject_id transferido)
+  for (const [winId, updateData] of updatesToApply.entries()) {
+    if (!idsToDeleteFromTabe.has(winId)) {
+      try {
+        await supabase
+          .from("calendar_events")
+          .update(updateData)
+          .eq("id", winId)
+          .eq("user_id", userId);
+      } catch (upErr) {
+        console.warn("Error actualizando evento ganador:", winId, upErr);
       }
     }
   }
 
   let googleDuplicatesRemoved = 0;
 
-  // 3. Si el usuario está conectado con Google Calendar OAuth, borrar los duplicados en Google Calendar
+  // 3. Si el usuario está conectado con Google Calendar OAuth, limpiar duplicados en Google Calendar
   let token = getStoredGoogleToken();
   if (!token) {
     token = await refreshGoogleToken();
   }
 
   if (token) {
-    // A. Eliminar en Google los eventos asociados a los duplicados de TABE
+    // A. Eliminar en Google los eventos de IDs sobrantes detectados
     for (const gId of gcalIdsToDelete) {
       try {
         const ok = await deleteEventFromGoogleCalendar(gId);
@@ -1823,8 +2056,13 @@ export async function cleanupDuplicateEvents(
         const gGroups = new Map<string, any[]>();
         for (const gEv of googleEvents) {
           if (gEv.status === "cancelled" || !gEv.id) continue;
-          const start = gEv.start?.dateTime || gEv.start?.date || "";
-          const gKey = `${norm(gEv.summary || "")}___${start}`;
+          const gTitle = normalizeEventTitle(gEv.summary || "");
+          const isAllDay = !gEv.start?.dateTime;
+          const gDate = (gEv.start?.dateTime || gEv.start?.date || "").split("T")[0];
+          const gTimeRaw = gEv.start?.dateTime ? gEv.start.dateTime.split("T")[1] : null;
+          const gHour = normalizeEventTime(gTimeRaw, isAllDay);
+          const gKey = `${gTitle}___${gDate}___${gHour}`;
+
           const gList = gGroups.get(gKey) || [];
           gList.push(gEv);
           gGroups.set(gKey, gList);
@@ -1832,15 +2070,15 @@ export async function cleanupDuplicateEvents(
 
         for (const [_, gList] of gGroups.entries()) {
           if (gList.length > 1) {
-            // Mantener uno, borrar los repetidos en Google Calendar
+            // Mantener el primer evento de Google, borrar las copias redundantes en Google Calendar
             for (let i = 1; i < gList.length; i++) {
               const dupG = gList[i];
-              if (!gcalIdsToDelete.includes(dupG.id)) {
+              if (!gcalIdsToDelete.has(dupG.id)) {
                 try {
                   const ok = await deleteEventFromGoogleCalendar(dupG.id);
                   if (ok) googleDuplicatesRemoved++;
                 } catch (e) {
-                  console.warn("No se pudo eliminar duplicado en Google:", dupG.id, e);
+                  console.warn("No se pudo eliminar duplicado directo en Google:", dupG.id, e);
                 }
               }
             }
@@ -1852,24 +2090,27 @@ export async function cleanupDuplicateEvents(
     }
   }
 
-  // 4. Eliminar duplicados de Supabase
+  // 4. Eliminar duplicados de Supabase (TABE)
   const finalIdsList = Array.from(idsToDeleteFromTabe);
   if (finalIdsList.length > 0) {
-    const { error: delErr } = await supabase
-      .from("calendar_events")
-      .delete()
-      .in("id", finalIdsList)
-      .eq("user_id", userId);
+    for (let i = 0; i < finalIdsList.length; i += 100) {
+      const chunk = finalIdsList.slice(i, i + 100);
+      const { error: delErr } = await supabase
+        .from("calendar_events")
+        .delete()
+        .in("id", chunk)
+        .eq("user_id", userId);
 
-    if (delErr) {
-      throw new Error("Error al eliminar los duplicados en TABE: " + delErr.message);
+      if (delErr) {
+        console.error("Error al eliminar los duplicados en TABE:", delErr);
+      }
     }
   }
 
   return {
     tabeDuplicatesRemoved: finalIdsList.length,
     googleDuplicatesRemoved,
-    remainingEventsCount: allEvents.length - finalIdsList.length,
+    remainingEventsCount: Math.max(0, allEvents.length - finalIdsList.length),
   };
 }
 

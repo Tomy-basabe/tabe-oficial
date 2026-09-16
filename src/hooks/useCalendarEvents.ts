@@ -11,6 +11,7 @@ import {
   extractGoogleEventId,
   injectGoogleEventId,
   cleanupDuplicateEvents,
+  buildEventMatchKey,
 } from "@/lib/googleCalendarSync";
 export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Clase" | "Otro" | string;
 export type RecurrenceRule = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
@@ -337,6 +338,37 @@ export function useCalendarEvents() {
         } catch (syncErr) {
           console.warn("Auto-sync to Google Calendar failed on create:", syncErr);
         }
+      // Prevenir duplicación si ya existe un evento idéntico en fecha, hora y título
+      const matchKey = buildEventMatchKey(data.titulo, data.fecha, data.hora, data.is_all_day);
+      const existingMatch = rawEvents.find(
+        (ev) => buildEventMatchKey(ev.titulo, ev.fecha, ev.hora, ev.is_all_day) === matchKey
+      );
+
+      if (existingMatch) {
+        // Si el evento existente no tiene gcal_id y el nuevo sí (o viceversa), actualizarlo
+        const existingGId = extractGoogleEventId(existingMatch.notas);
+        const newGId = extractGoogleEventId(eventData.notas);
+        const updatePayload: any = {};
+
+        if (!existingGId && newGId) {
+          updatePayload.notas = injectGoogleEventId(existingMatch.notas || "", newGId);
+        }
+        if (!existingMatch.subject_id && data.subject_id) {
+          updatePayload.subject_id = data.subject_id;
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+          await supabase
+            .from("calendar_events")
+            .update(updatePayload)
+            .eq("id", existingMatch.id)
+            .eq("user_id", user.id);
+        }
+
+        if (!options?.skipRefetch) {
+          await fetchEvents();
+        }
+        return;
       }
 
       const { error } = await supabase
