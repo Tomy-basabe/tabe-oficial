@@ -52,12 +52,12 @@ interface ModelConfig {
 }
 
 const PREFERRED_MODELS: ModelConfig[] = [
-  { id: "llama-3.3-70b-versatile", maxTokens: 2048 },
-  { id: "llama-3.1-70b-versatile", maxTokens: 2048 },
-  { id: "llama3-70b-8192", maxTokens: 2048 },
-  { id: "llama3-8b-8192", maxTokens: 1500 },
-  { id: "gemma2-9b-it", maxTokens: 1500 },
-  { id: "mixtral-8x7b-32768", maxTokens: 2048 },
+  { id: "llama-3.3-70b-versatile", maxTokens: 3500 },
+  { id: "llama-3.1-70b-versatile", maxTokens: 3500 },
+  { id: "llama3-70b-8192", maxTokens: 2500 },
+  { id: "llama3-8b-8192", maxTokens: 2000 },
+  { id: "gemma2-9b-it", maxTokens: 2000 },
+  { id: "mixtral-8x7b-32768", maxTokens: 2500 },
 ];
 
 const BLACKLISTED_KEYWORDS = ["specdec", "guard", "whisper", "orpheus", "embed", "safeguard", "qwen"];
@@ -439,76 +439,248 @@ Tareas requeridas:
   return null;
 }
 
-async function callGroqAI(apiKey: string, systemPrompt: string, userText: string, tools: any[]): Promise<any> {
-  // Step 1: Discover available models
-  let availableModels: string[] = [];
-  try {
-    const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
-      headers: { "Authorization": `Bearer ${apiKey}` }
-    });
-    if (modelsRes.ok) {
-      const modelsData = await modelsRes.json();
-      availableModels = (modelsData.data || [])
-        .map((m: any) => m.id)
-        .filter((id: string) => !BLACKLISTED_KEYWORDS.some(kw => id.toLowerCase().includes(kw)));
-    }
-  } catch (_) {}
+// ─── PDF CONTENT EXTRACTION (Gemini Multimodal Native + OpenRouter) ────────
+async function extractPdfContent(
+  geminiKey: string,
+  openrouterKey: string,
+  pdfBytes: Uint8Array,
+  userInstruction?: string
+): Promise<string | null> {
+  if (!pdfBytes || pdfBytes.byteLength === 0) return null;
+  const base64Data = uint8ArrayToBase64(pdfBytes);
+  const prompt = userInstruction?.trim()
+    ? `El estudiante envió este documento PDF académico adjunto con la siguiente consulta/instrucción: "${userInstruction}". Extraé, transcribí y resumí en detalle todo el contenido relevante, conceptos clave, fórmulas, fechas, consignas o temas del documento para que el tutor de TABE pueda trabajar con él (generar cuestionarios, flashcards, resúmenes o resolver ejercicios):`
+    : `Extraé y transcribí de forma exhaustiva, organizada y clara todos los temas, conceptos, definiciones, fórmulas, ejercicios y contenidos de este documento PDF universitario para generar material de estudio:`;
 
-  // Step 2: Build ordered list of models to try
-  const modelsToTry: ModelConfig[] = [];
-  for (const pref of PREFERRED_MODELS) {
-    if (availableModels.length === 0 || availableModels.includes(pref.id)) {
-      modelsToTry.push(pref);
-    }
-  }
-  if (availableModels.length > 0) {
-    for (const modelId of availableModels) {
-      if (!modelsToTry.some(m => m.id === modelId)) {
-        modelsToTry.push({ id: modelId, maxTokens: 512 });
+  // 1. Google Gemini Native (Soporte oficial de documentos PDF de hasta cientos de páginas)
+  if (geminiKey) {
+    const geminiModels = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"];
+    for (const model of geminiModels) {
+      try {
+        console.log(`[PDF Extraction] Procesando PDF con Gemini (${model})...`);
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: prompt },
+                  {
+                    inline_data: {
+                      mime_type: "application/pdf",
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 4000
+            }
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const extractedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (extractedText) {
+            console.log(`[PDF Extraction] Éxito extrayendo PDF con Gemini (${model}). Caracteres: ${extractedText.length}`);
+            return extractedText;
+          }
+        } else {
+          console.warn(`[PDF Extraction] Gemini ${model} status ${res.status}:`, (await res.text()).substring(0, 200));
+        }
+      } catch (e) {
+        console.warn(`[PDF Extraction] Excepción Gemini ${model}:`, e);
       }
     }
   }
-  if (modelsToTry.length === 0) {
-    modelsToTry.push({ id: "llama3-8b-8192", maxTokens: 512 });
+
+  // 2. OpenRouter Fallback
+  if (openrouterKey) {
+    try {
+      console.log("[PDF Extraction] Intentando fallback con OpenRouter...");
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openrouterKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-001",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                {
+                  type: "image_url",
+                  image_url: { url: `data:application/pdf;base64,${base64Data}` }
+                }
+              ]
+            }
+          ],
+          max_tokens: 3000
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text) return text;
+      }
+    } catch (err) {
+      console.warn("[PDF Extraction] Falló OpenRouter:", err);
+    }
   }
 
-  // Step 3: Try each model until one succeeds
-  let lastError = "";
-  for (const model of modelsToTry) {
+  return null;
+}
+
+// ─── TOOL CALLING & LLM ENGINE (Groq + Gemini + OpenRouter Cascade) ────────
+async function callAIWithTools(
+  groqKey: string,
+  geminiKey: string,
+  openrouterKey: string,
+  systemPrompt: string,
+  userText: string,
+  tools: any[]
+): Promise<any> {
+  // 1. ESTRATEGIA 1: Groq (Rápido y preciso con llama-3.3-70b-versatile)
+  if (groqKey) {
+    let availableModels: string[] = [];
     try {
-      const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { "Authorization": `Bearer ${groqKey}` }
+      });
+      if (modelsRes.ok) {
+        const modelsData = await modelsRes.json();
+        availableModels = (modelsData.data || [])
+          .map((m: any) => m.id)
+          .filter((id: string) => !BLACKLISTED_KEYWORDS.some(kw => id.toLowerCase().includes(kw)));
+      }
+    } catch (_) {}
+
+    const modelsToTry: ModelConfig[] = [];
+    for (const pref of PREFERRED_MODELS) {
+      if (availableModels.length === 0 || availableModels.includes(pref.id)) {
+        modelsToTry.push(pref);
+      }
+    }
+    if (availableModels.length > 0) {
+      for (const modelId of availableModels) {
+        if (!modelsToTry.some(m => m.id === modelId)) {
+          modelsToTry.push({ id: modelId, maxTokens: 1000 });
+        }
+      }
+    }
+    if (modelsToTry.length === 0) {
+      modelsToTry.push({ id: "llama-3.3-70b-versatile", maxTokens: 3500 });
+    }
+
+    for (const model of modelsToTry) {
+      try {
+        const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${groqKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: model.id,
+            max_tokens: model.maxTokens,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userText }
+            ],
+            tools
+          })
+        });
+
+        if (aiRes.ok) {
+          const data = await aiRes.json();
+          return { success: true, data, model: model.id, provider: "groq" };
+        }
+
+        const errorBody = await aiRes.text();
+        console.warn(`Groq model ${model.id} failed (${aiRes.status}): ${errorBody.substring(0, 200)}`);
+        if (aiRes.status === 429 || aiRes.status === 400) continue;
+        if (aiRes.status === 401 || aiRes.status === 403) break;
+      } catch (fetchErr) {
+        console.warn(`Network error with Groq model ${model.id}:`, fetchErr);
+        continue;
+      }
+    }
+  }
+
+  // 2. ESTRATEGIA 2: Google Gemini (OpenAI-compatible endpoint con soporte completo de tools)
+  if (geminiKey) {
+    const geminiModels = ["gemini-2.0-flash", "gemini-1.5-flash"];
+    for (const model of geminiModels) {
+      try {
+        console.log(`[AI With Tools] Probando fallback Gemini OpenAI (${model})...`);
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${geminiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userText }
+            ],
+            tools,
+            max_tokens: 3500,
+            temperature: 0.2
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          console.log(`[AI With Tools] Respuesta exitosa con Gemini OpenAI (${model})`);
+          return { success: true, data, model, provider: "gemini" };
+        } else {
+          console.warn(`[AI With Tools] Gemini ${model} falló status ${res.status}:`, (await res.text()).substring(0, 200));
+        }
+      } catch (err) {
+        console.warn(`[AI With Tools] Error en Gemini ${model}:`, err);
+      }
+    }
+  }
+
+  // 3. ESTRATEGIA 3: OpenRouter Fallback
+  if (openrouterKey) {
+    try {
+      console.log("[AI With Tools] Probando fallback OpenRouter...");
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        headers: {
+          "Authorization": `Bearer ${openrouterKey}`,
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-          model: model.id,
-          max_tokens: model.maxTokens,
+          model: "google/gemini-2.0-flash-001",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userText }
           ],
-          tools
+          tools,
+          max_tokens: 3500
         })
       });
 
-      if (aiRes.ok) {
-        const data = await aiRes.json();
-        return { success: true, data, model: model.id };
+      if (res.ok) {
+        const data = await res.json();
+        return { success: true, data, model: "google/gemini-2.0-flash-001", provider: "openrouter" };
       }
-
-      const errorBody = await aiRes.text();
-      lastError = errorBody;
-      console.warn(`Model ${model.id} failed (${aiRes.status}): ${errorBody.substring(0, 200)}`);
-
-      if (aiRes.status === 429 || aiRes.status === 400) continue;
-      if (aiRes.status === 401 || aiRes.status === 403) break;
-    } catch (fetchErr) {
-      lastError = String(fetchErr);
-      console.warn(`Network error with model ${model.id}:`, lastError);
-      continue;
+    } catch (orErr) {
+      console.warn("[AI With Tools] Error en OpenRouter:", orErr);
     }
   }
 
-  return { success: false, error: lastError };
+  return { success: false, error: "Todos los proveedores de IA fallaron" };
 }
 
 serve(async (req) => {
@@ -725,6 +897,37 @@ serve(async (req) => {
           console.error("Telegram photo download error:", photoErr);
         }
       }
+
+      // 3. Document (PDF) in Telegram
+      const isTelegramDocPdf = body.message.document && (
+        body.message.document.mime_type === "application/pdf" ||
+        body.message.document.file_name?.toLowerCase().endsWith(".pdf")
+      );
+      if (isTelegramDocPdf && TELEGRAM_BOT_TOKEN) {
+        try {
+          const docId = body.message.document.file_id;
+          const fileName = body.message.document.file_name || "Documento.pdf";
+          console.log(`[Telegram Document] PDF recibido: ${fileName}`);
+          const fileInfoRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${docId}`);
+          if (fileInfoRes.ok) {
+            const fileInfo = await fileInfoRes.json();
+            const filePath = fileInfo.result?.file_path;
+            if (filePath) {
+              const fileDownloadRes = await fetch(`https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`);
+              if (fileDownloadRes.ok) {
+                const pdfBuffer = await fileDownloadRes.arrayBuffer();
+                const caption = body.message.caption || text || "";
+                const extracted = await extractPdfContent(GEMINI_API_KEY, OPENROUTER_API_KEY, new Uint8Array(pdfBuffer), caption);
+                if (extracted) {
+                  text = `${caption ? `${caption}\n\n` : ""}[CONTENIDO EDUCATIVO EXTRAÍDO DEL DOCUMENTO PDF "${fileName}"]:\n${extracted}`;
+                }
+              }
+            }
+          }
+        } catch (tgPdfErr) {
+          console.error("Telegram PDF download/extract error:", tgPdfErr);
+        }
+      }
     }
 
     // ───────────────── WHATSAPP PARSING ─────────────────
@@ -791,6 +994,42 @@ serve(async (req) => {
           }
         }
       }
+
+      // 3. Document (PDF) in WhatsApp
+      const isWaDocPdf = msg.type === "document" && (
+        msg.document?.mime_type === "application/pdf" || 
+        msg.document?.filename?.toLowerCase().endsWith(".pdf")
+      );
+      if (isWaDocPdf && WHATSAPP_ACCESS_TOKEN) {
+        const mediaId = msg.document?.id;
+        const fileName = msg.document?.filename || "Documento.pdf";
+        const caption = msg.document?.caption || text || "";
+        console.log(`[WhatsApp Document] PDF recibido: ${fileName}, mediaId: ${mediaId}`);
+        if (mediaId) {
+          try {
+            const mediaMetaRes = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
+              headers: { "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}` }
+            });
+            if (mediaMetaRes.ok) {
+              const mediaMeta = await mediaMetaRes.json();
+              if (mediaMeta.url) {
+                const mediaRes = await fetch(mediaMeta.url, {
+                  headers: { "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`, "User-Agent": "curl/8.0" }
+                });
+                if (mediaRes.ok) {
+                  const pdfBuffer = await mediaRes.arrayBuffer();
+                  const extracted = await extractPdfContent(GEMINI_API_KEY, OPENROUTER_API_KEY, new Uint8Array(pdfBuffer), caption);
+                  if (extracted) {
+                    text = `${caption ? `${caption}\n\n` : ""}[CONTENIDO EDUCATIVO EXTRAÍDO DEL DOCUMENTO PDF "${fileName}"]:\n${extracted}`;
+                  }
+                }
+              }
+            }
+          } catch (waPdfErr) {
+            console.error("WhatsApp PDF download/extract error:", waPdfErr);
+          }
+        }
+      }
     }
 
     if (!platform || !senderId) return new Response("OK");
@@ -834,13 +1073,14 @@ serve(async (req) => {
     const userId = botUser.user_id;
 
     // Fetch Full Academic Context
-    const [subjectsRes, subjectStatusRes, eventsRes, profilesRes, statsRes, quizDecksRes] = await Promise.all([
+    const [subjectsRes, subjectStatusRes, eventsRes, profilesRes, statsRes, quizDecksRes, flashcardDecksRes] = await Promise.all([
       supabase.from("subjects").select("id, nombre, año"),
       supabase.from("user_subject_status").select("subject_id, estado, nota").eq("user_id", userId),
       supabase.from("calendar_events").select("id, titulo, fecha, tipo_examen").eq("user_id", userId).gte("fecha", new Date().toISOString().split("T")[0]).order('fecha').limit(20),
       supabase.from("profiles").select("nombre").eq("id", userId).single(),
       supabase.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
-      supabase.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(5)
+      supabase.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+      supabase.from("flashcard_decks").select("id, nombre, subject_id, total_cards, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(5)
     ]);
 
     const subjects = subjectsRes.data || [];
@@ -871,10 +1111,24 @@ serve(async (req) => {
       const subj = subjects.find(s => s.id === q.subject_id);
       return `[ID: ${q.id}] "${q.nombre}" (${subj?.nombre || 'General'}) - ${q.total_questions || '?'} preguntas`;
     });
+    const recentFlashcards = (flashcardDecksRes.data || []).map(f => {
+      const subj = subjects.find(s => s.id === f.subject_id);
+      return `[ID: ${f.id}] "${f.nombre}" (${subj?.nombre || 'General'}) - ${f.total_cards || '?'} tarjetas`;
+    });
 
-    const systemPrompt = `Sos TABE AI (@tabeai_bot), el asistente inteligente de la vida universitaria de ${userName}.
-      Tenés acceso completo al 100% de sus datos académicos.
+    const systemPrompt = `Sos TABE AI (@tabeai_bot), el asistente pedagógico inteligente oficial de la plataforma educativa TABE (web y app móvil en https://www.tabe.software).
+      Estás DIRECTAMENTE integrado a la aplicación TABE y a la cuenta del estudiante ${userName}.
+      Tenés acceso total en tiempo real a su base de datos académica: materias, notas, estado de cursada, eventos de calendario, cuestionarios y flashcards.
       
+      -- CONCIENCIA DE LA APLICACIÓN TABE --
+      - Sos la IA de la App TABE. NUNCA digas que no tenés acceso a la app o que no podés crear cosas en la app.
+      - TODO lo que el estudiante te pida hacer (crear flashcards, armar cuestionarios/quizzes, agendar parciales, registrar sesiones de estudio, cambiar notas o estados de materias) se guarda e impacta DIRECTAMENTE en su cuenta de la App TABE en tiempo real.
+      - Enlaces clave de la App TABE para indicarle al estudiante:
+        * Cuestionarios / Quizzes: https://www.tabe.software/cuestionarios
+        * Flashcards y Mazos: https://www.tabe.software/flashcards
+        * Calendario y Exámenes: https://www.tabe.software/calendario
+        * Panel Principal y Gamificación: https://www.tabe.software/dashboard
+
       -- DATOS ACADÉMICOS DE ${userName.toUpperCase()} --
       Promedio actual: ${promedio} (sobre ${notasValidas.length} materias con nota)
       Materias aprobadas: ${aprobadas}
@@ -887,29 +1141,42 @@ serve(async (req) => {
       Materias y estados:
       ${enrichedSubjects.length ? enrichedSubjects.join("\\n") : "Sin materias cargadas."}
 
-      Quizzes recientes del estudiante:
+      Quizzes recientes del estudiante en TABE:
       ${recentQuizzes.length ? recentQuizzes.join("\\n") : "Ningún quiz creado aún."}
+
+      Mazos de flashcards recientes del estudiante en TABE:
+      ${recentFlashcards.length ? recentFlashcards.join("\\n") : "Ningún mazo de flashcards creado aún."}
       
-      -- INSTRUCCIONES --
+      -- INSTRUCCIONES GENERALES --
       1. Si te pregunta sobre su promedio, notas, materias o exámenes, respondé directamente con los datos de arriba.
       2. Si te pide agendar fechas, eliminar eventos, registrar estudio o cambiar estados de materias, EJECUTÁ LAS HERRAMIENTAS (tools).
-      3. Si te manda fotos de exámenes, ejercicios, apuntes o gráficos, explicaselos paso a paso con máxima claridad pedagógica.
-      4. Sé cálido, claro, conciso y usá emojis. Respondé en español argentino.
+      3. Respondé con calidez, claridad, concisión y emojis en español argentino (usando vos, che, dale, genial).
       
-      -- MODO TUTOR / EVALUADOR --
-      5. Si el usuario pide que lo evalúes, le tomes prueba, quiz, simulacro, flashcards, examen de práctica o similar, SIEMPRE usá la herramienta "generate_quiz". Generá entre 5 y 8 preguntas de opción múltiple (a,b,c,d) de dificultad progresiva sobre la materia indicada.
-      6. Si el usuario responde con letras separadas por coma (ej: "b, a, c, d, a" o "b,a,c,d,a" o "babca") Y existe un quiz reciente en su historial, usá la herramienta "evaluate_quiz_response" con el ID del quiz más reciente y las letras del usuario.
-      7. Al generar preguntas, asegurate de que sean relevantes para el nivel universitario argentino y cubran temas variados de la materia.
+      -- CREACIÓN DE FLASHCARDS EN LA APP (HERRAMIENTA create_flashcards) --
+      4. Si el usuario pide crear "flashcards", "tarjetas de memoria", "fichas de estudio" o repasar conceptos clave:
+         - SIEMPRE usá la herramienta "create_flashcards".
+         - Podés crearlas a partir de una materia/tema libre (sin info previa), o a partir de un texto largo pegado en el chat, un documento PDF o una imagen de apuntes adjunta.
+         - Generá entre 6 y 12 flashcards de altísima calidad pedagógica con preguntas desafiantes y respuestas explicativas concretas.
 
-      -- RESÚMENES DE CLASES Y AUDIOS --
-      8. Si el usuario te pide resumir una clase, transcripción de audio o apuntes de cursada, estructurá tu respuesta didácticamente con: Puntos Clave, Conceptos y Definiciones, Fechas/Entregas Mencionadas y Recomendaciones de Estudio.
+      -- MODO CUESTIONARIO / QUIZ EN LA APP (HERRAMIENTA generate_quiz) --
+      5. Si el usuario pide que lo evalúes, le tomes prueba, cuestionario, quiz, simulacro, test o examen de práctica:
+         - SIEMPRE usá la herramienta "generate_quiz".
+         - Podés generarlo a partir de un tema libre, de un PDF adjunto, de una foto de apuntes o de texto largo sin límite.
+         - Generá entre 5 y 8 preguntas de opción múltiple (a,b,c,d) de dificultad progresiva y con explicaciones didácticas.
+      6. Si el usuario responde con letras de un quiz reciente (ej: "b, a, c, d, a" o "bacda"), usá la herramienta "evaluate_quiz_response".
+
+      -- MULTIMODAL: FOTOS, PDFs Y TEXTOS EXTENSOS --
+      7. Si el usuario te envía un documento PDF, fotos de apuntes/libros o un texto largo sin límite de caracteres:
+         - Analizá todo el contenido académico a fondo.
+         - Si pide crear flashcards o cuestionarios de ese material, llamá de inmediato a la herramienta correspondiente ("create_flashcards" o "generate_quiz") con el contenido extraído.
+         - Si pide explicaciones o resolución de ejercicios de una foto/PDF, resolvelo paso a paso con máxima claridad pedagógica.
     `;
 
 
     // ───────────────── MULTIMODAL: VISION HANDLER ─────────────────
     if (imageBytes && imageBytes.byteLength > 0) {
       console.log(`[Vision] Imagen detectada en ${platform}. Tamaño: ${imageBytes.byteLength} bytes, tipo: ${imageMimeType}`);
-      const userPrompt = text || "Analizá esta imagen detalladamente y decime qué hay acá:";
+      const userPrompt = text || "Analizá detalladamente todo lo que hay en esta imagen académica (apuntes, ejercicios, consignas, fórmulas, fechas):";
       const visionResult = await analyzeImageMultimodal(
         GROQ_API_KEY,
         GEMINI_API_KEY,
@@ -921,8 +1188,19 @@ serve(async (req) => {
       );
 
       if (visionResult) {
-        await sendMessage(platform, senderId, visionResult);
-        return new Response("OK");
+        // Detectar si el usuario pide realizar alguna acción con la imagen (flashcards, quiz, agendar, resumir, etc.)
+        const actionKeywords = /(flashcard|cuestionario|quiz|pregunt|evalu|tomame|prueba|test|agend|anot|guard|resum|apunte|crea|arma|haceme|hacer|generar)/i;
+        const wantsAction = (text && actionKeywords.test(text)) || actionKeywords.test(userPrompt);
+
+        if (wantsAction) {
+          // Inyectar el análisis visual al texto y permitir que el flujo de LLM con TOOLS ejecute create_flashcards, generate_quiz, etc.
+          text = `${text ? `${text}\n\n` : "Creá el material correspondiente a partir de esta imagen:\n"}[CONTENIDO ACADÉMICO EXTRAÍDO DE LA FOTO/IMAGEN]:\n${visionResult}`;
+          console.log("[Vision] Continuando al pipeline de herramientas con contenido visual extraído.");
+        } else {
+          // Consulta o resolución de ejercicio directo
+          await sendMessage(platform, senderId, visionResult);
+          return new Response("OK");
+        }
       } else {
         await sendMessage(
           platform,
@@ -1053,12 +1331,41 @@ serve(async (req) => {
       {
         type: "function",
         function: {
-          name: "generate_quiz",
-          description: "Genera un quiz/cuestionario de opción múltiple sobre una materia o tema. Úsalo cuando el usuario pida que lo evalúes, le tomes prueba, quiz, simulacro, examen de práctica, flashcards de evaluación o similar. Generá entre 5 y 8 preguntas de dificultad progresiva.",
+          name: "create_flashcards",
+          description: "Crea un mazo de tarjetas de estudio (flashcards) para memorización activa y repetición espaciada en la aplicación TABE. Úsalo cuando el usuario pida flashcards, tarjetas de memoria, fichas de estudio o repasar conceptos clave de una materia, tema, apunte, foto o documento PDF. Generá entre 6 y 12 tarjetas de alta calidad con preguntas claras en el anverso y respuestas explicativas en el reverso.",
           parameters: {
             type: "object",
             properties: {
-              materia: { type: "string", description: "Nombre de la materia (debe coincidir con las materias del estudiante)" },
+              materia: { type: "string", description: "Nombre de la materia (debe coincidir con las materias del estudiante o 'General')" },
+              titulo: { type: "string", description: "Título descriptivo del mazo, ej: 'Flashcards de Análisis Matemático - Límites y Continuidad'" },
+              descripcion: { type: "string", description: "Breve descripción pedagógica del mazo (opcional)" },
+              cards: {
+                type: "array",
+                description: "Array de tarjetas de estudio a crear",
+                items: {
+                  type: "object",
+                  properties: {
+                    pregunta: { type: "string", description: "Pregunta o concepto clave para el anverso de la tarjeta" },
+                    respuesta: { type: "string", description: "Respuesta didáctica y precisa para el reverso de la tarjeta" }
+                  },
+                  required: ["pregunta", "respuesta"]
+                }
+              }
+            },
+            required: ["materia", "titulo", "cards"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "generate_quiz",
+          description: "Genera un cuestionario / quiz de opción múltiple interactivo en la aplicación TABE sobre una materia o tema. Úsalo cuando el usuario pida que lo evalúes, le tomes prueba, quiz, simulacro, test o examen de práctica a partir de un tema libre, foto de apunte, documento PDF o texto largo. Generá entre 5 y 8 preguntas de dificultad progresiva.",
+          parameters: {
+            type: "object",
+            properties: {
+              materia: { type: "string", description: "Nombre de la materia (debe coincidir con las materias del estudiante o 'General')" },
               titulo: { type: "string", description: "Título descriptivo del quiz, ej: 'Quiz de Álgebra Lineal - Matrices'" },
               preguntas: {
                 type: "array",
@@ -1098,7 +1405,7 @@ serve(async (req) => {
       }
     ];
 
-    const result = await callGroqAI(GROQ_API_KEY, systemPrompt, text || "Hola", tools);
+    const result = await callAIWithTools(GROQ_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, systemPrompt, text || "Hola", tools);
 
     if (!result.success) {
       console.error("All AI models failed. Last error:", result.error);
@@ -1183,6 +1490,80 @@ serve(async (req) => {
             }
             break;
           }
+          case "create_flashcards": {
+            try {
+              const resolvedSubjId = resolveSubjectId(args.materia);
+              const cards = Array.isArray(args.cards) ? args.cards : [];
+              const numCards = cards.length;
+              const deckTitle = args.titulo || `Flashcards de ${args.materia}`;
+              const deckDesc = args.descripcion || `Creado por TABE AI para ${args.materia}`;
+
+              if (numCards === 0) {
+                actionResponseMsg += `⚠️ No se proporcionaron tarjetas para crear el mazo.\n`;
+                break;
+              }
+
+              // 1. Crear el mazo en flashcard_decks
+              const { data: deck, error: deckErr } = await supabase.from("flashcard_decks").insert({
+                user_id: userId,
+                nombre: deckTitle,
+                description: deckDesc,
+                subject_id: resolvedSubjId,
+                total_cards: numCards,
+                is_public: false
+              }).select("id").single();
+
+              if (deckErr || !deck) {
+                console.error("[create_flashcards deck error]:", deckErr);
+                actionResponseMsg += `❌ Ocurrió un error al guardar el mazo de flashcards en la App TABE.\n`;
+                break;
+              }
+
+              // 2. Insertar cada tarjeta en flashcards
+              const cardsToInsert = cards.map((c: any) => ({
+                deck_id: deck.id,
+                user_id: userId,
+                pregunta: String(c.pregunta || "").trim(),
+                respuesta: String(c.respuesta || "").trim()
+              })).filter((c: any) => c.pregunta && c.respuesta);
+
+              const { error: cardsErr } = await supabase.from("flashcards").insert(cardsToInsert);
+              if (cardsErr) {
+                console.error("[create_flashcards cards error]:", cardsErr);
+              }
+
+              // 3. Formatear confirmación para el estudiante
+              let flashcardsFormatted = `🗂️ *¡MAZO DE FLASHCARDS CREADO EN LA APP TABE!* 🎓\n`;
+              flashcardsFormatted += `📚 *Materia:* ${args.materia}\n`;
+              flashcardsFormatted += `🃏 *Mazo:* ${deckTitle}\n`;
+              flashcardsFormatted += `🔢 *Cantidad:* ${cardsToInsert.length} tarjetas de estudio\n`;
+              flashcardsFormatted += `────────────────────────────\n`;
+              flashcardsFormatted += `✨ *Vista previa de tarjetas generadas:*\n\n`;
+
+              const previewCount = Math.min(cardsToInsert.length, 3);
+              for (let i = 0; i < previewCount; i++) {
+                const c = cardsToInsert[i];
+                flashcardsFormatted += `🃏 *Tarjeta ${i + 1}:*\n`;
+                flashcardsFormatted += `❓ *P:* ${c.pregunta}\n`;
+                flashcardsFormatted += `💡 *R:* ${c.respuesta}\n\n`;
+              }
+
+              if (cardsToInsert.length > previewCount) {
+                flashcardsFormatted += `_...y ${cardsToInsert.length - previewCount} tarjetas más guardadas en tu mazo._\n\n`;
+              }
+
+              flashcardsFormatted += `────────────────────────────\n`;
+              flashcardsFormatted += `🚀 *¡Ya podés repasarlas con repetición espaciada interactiva en la app!*\n`;
+              flashcardsFormatted += `👉 *Abrir Flashcards en TABE:* https://www.tabe.software/flashcards\n`;
+              flashcardsFormatted += `💾 _Mazo sincronizado en tu cuenta con ID: \`${deck.id}\`_`;
+
+              actionResponseMsg += flashcardsFormatted;
+            } catch (fcEx) {
+              console.error("[create_flashcards exception]:", fcEx);
+              actionResponseMsg += `❌ Hubo un inconveniente al armar las flashcards. Por favor, reintenta en un momento.\n`;
+            }
+            break;
+          }
           case "generate_quiz": {
             try {
               const resolvedSubjId = resolveSubjectId(args.materia);
@@ -1203,9 +1584,10 @@ serve(async (req) => {
               }
 
               const letras = ["a", "b", "c", "d"];
-              let quizFormatted = `🧠 *${quizTitle.toUpperCase()}*\n`;
-              quizFormatted += `📚 Materia: ${args.materia}\n`;
-              quizFormatted += `🎯 Cantidad: ${numQuestions} preguntas\n`;
+              let quizFormatted = `🧠 *¡CUESTIONARIO CREADO EN LA APP TABE!* 🎓\n`;
+              quizFormatted += `📚 *Materia:* ${args.materia}\n`;
+              quizFormatted += `🎯 *Título:* ${quizTitle}\n`;
+              quizFormatted += `🔢 *Preguntas:* ${numQuestions}\n`;
               quizFormatted += `────────────────────────────\n\n`;
 
               for (let i = 0; i < numQuestions; i++) {
@@ -1241,8 +1623,9 @@ serve(async (req) => {
               }
 
               quizFormatted += `────────────────────────────\n`;
-              quizFormatted += `📩 *Para responder:* enviame solo las letras en orden (ejemplo: \`${letras.slice(0, Math.min(numQuestions, 4)).join(", ")}\`).\n`;
-              quizFormatted += `💾 _Guardado en TABE: ID \`${deck.id}\`_`;
+              quizFormatted += `📩 *Para responder acá:* enviame solo las letras en orden (ejemplo: \`${letras.slice(0, Math.min(numQuestions, 4)).join(", ")}\`).\n\n`;
+              quizFormatted += `🌐 *O respondelo de forma interactiva en la App TABE:* https://www.tabe.software/cuestionarios\n`;
+              quizFormatted += `💾 _Guardado en tu cuenta con ID: \`${deck.id}\`_`;
 
               actionResponseMsg += quizFormatted;
             } catch (qEx) {
