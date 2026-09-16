@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3, Clock, BookOpen,
   Timer, Layers, Video, Calendar, Library,
-  ChevronLeft, ChevronRight, Plus
+  ChevronLeft, ChevronRight, Plus, GraduationCap
 } from "lucide-react";
 import { 
   subDays, addDays, eachDayOfInterval, format, differenceInDays, 
@@ -15,6 +15,7 @@ import { cn, toLocalDateStr } from "@/lib/utils";
 import { FlashcardStats } from "@/components/metrics/FlashcardStats";
 import { RoutineStats } from "@/components/metrics/RoutineStats";
 import { SleepStats } from "@/components/metrics/SleepStats";
+import { CareerAnalytics } from "@/components/metrics/CareerAnalytics";
 import { ManualStudyDialog } from "@/components/metrics/ManualStudyDialog";
 import { Button } from "@/components/ui/button";
 import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
@@ -45,8 +46,7 @@ export default function Metrics() {
   const { user, isGuest } = useAuth();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; nombre: string; año?: number }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"general" | "flashcards" | "rutinas" | "sueno">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "carrera" | "flashcards" | "rutinas" | "sueno">("general");
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
   const [showManualDialog, setShowManualDialog] = useState(false);
 
@@ -369,6 +369,18 @@ export default function Metrics() {
             General
           </button>
           <button
+            onClick={() => setActiveTab("carrera")}
+            className={cn(
+              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
+              activeTab === "carrera"
+                ? "bg-[#FFD700] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
+                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
+            )}
+          >
+            <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+            Carrera & Predicción
+          </button>
+          <button
             onClick={() => setActiveTab("flashcards")}
             className={cn(
               "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
@@ -409,8 +421,15 @@ export default function Metrics() {
 
       {activeTab === "general" ? (
         <>
-          {/* Manual Study Button */}
-          <div className="flex justify-end -mt-2 mb-2">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center justify-end gap-2 -mt-2 mb-2">
+            <button
+              onClick={() => setActiveTab("carrera")}
+              className="bg-[#FFD700] text-black font-black uppercase text-xs px-4 py-2 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2"
+            >
+              <GraduationCap className="w-4 h-4" strokeWidth={2.5} />
+              Predictor de Graduación 🎓
+            </button>
             <button
               onClick={() => setShowManualDialog(true)}
               className="bg-[#BFFF00] text-black font-black uppercase text-xs px-4 py-2 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2"
@@ -617,6 +636,8 @@ export default function Metrics() {
             subjects={subjects}
           />
         </>
+      ) : activeTab === "carrera" ? (
+        <CareerAnalytics />
       ) : activeTab === "flashcards" ? (
         <FlashcardStats />
       ) : activeTab === "rutinas" ? (
