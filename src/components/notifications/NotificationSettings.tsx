@@ -182,6 +182,18 @@ export function NotificationSettings() {
 
             {permission === "granted" && (
               <>
+                {!pushStatus.isSubscribed && (
+                  <button
+                    onClick={handleEnableNotifications}
+                    disabled={isSubscribingPush}
+                    className="px-3.5 py-2.5 rounded-xl bg-[#00FF9D] text-black font-black uppercase text-xs border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-1.5 cursor-pointer animate-pulse"
+                    title="Registrar tu teléfono o navegador en el servicio Web Push de TABE"
+                  >
+                    <Radio className="w-3.5 h-3.5" />
+                    <span>{isSubscribingPush ? "Vinculando..." : "Conectar Web Push 🔗"}</span>
+                  </button>
+                )}
+
                 <button
                   onClick={handleScheduleThreeMinuteGreeting}
                   disabled={isScheduling}

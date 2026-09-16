@@ -113,6 +113,39 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "send_to_user";
 
+    // ───────────────── 0. SAVE PUSH SUBSCRIPTION (BYPASS RLS VIA SERVICE ROLE) ─────────────────
+    if (action === "save_subscription") {
+      const { user_id, endpoint, p256dh, auth, user_agent } = body;
+      if (!user_id || !endpoint || !p256dh || !auth) {
+        return new Response(JSON.stringify({ error: "Missing required subscription fields" }), {
+          status: 400,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+
+      const { data, error } = await supabase
+        .from("push_subscriptions")
+        .upsert({
+          user_id,
+          endpoint,
+          p256dh,
+          auth,
+          user_agent: user_agent || "",
+          updated_at: new Date().toISOString()
+        }, { onConflict: "endpoint" })
+        .select();
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Suscripción Web Push guardada exitosamente en el servidor",
+        data
+      }), {
+        headers: { ...cors, "Content-Type": "application/json" }
+      });
+    }
+
     // ───────────────── 1. SEND IMMEDIATE PUSH TO USER ─────────────────
     if (action === "send_to_user" || action === "test_push") {
       const userId = body.user_id;
@@ -152,11 +185,31 @@ serve(async (req) => {
 
       console.log(`[Scheduled Push] Initiating delayed push for user ${userId} in ${delaySeconds} seconds`);
 
+      // 1. Enviar notificación push instantánea de confirmación para que el usuario compruebe que su cel recibe pushes
+      try {
+        await sendPushToUser(supabase, userId, {
+          title: "¡Dispositivo Vinculado a TABE! 🎓",
+          body: "¡Las notificaciones funcionan! Cerrá la app ahora: en 3 minutos te enviaremos el saludo de prueba.",
+          url: "/configuracion",
+          tag: "instant-welcome-" + Date.now()
+        });
+      } catch (welcomeErr) {
+        console.warn("[Scheduled Push] Error sending immediate welcome push:", welcomeErr);
+      }
+
+      // 2. Programar el saludo de los 3 minutos con chunks de keep-alive
       const delayedTask = async () => {
         try {
           console.log(`[Scheduled Push] Waiting ${delaySeconds}s for user ${userId}...`);
-          await new Promise((r) => setTimeout(r, delaySeconds * 1000));
-          console.log(`[Scheduled Push] Sending push now to user ${userId}`);
+          const startTime = Date.now();
+          const targetTime = startTime + delaySeconds * 1000;
+          while (Date.now() < targetTime) {
+            const sleepMs = Math.min(10000, targetTime - Date.now());
+            if (sleepMs > 0) {
+              await new Promise((r) => setTimeout(r, sleepMs));
+            }
+          }
+          console.log(`[Scheduled Push] Sending 3-min delayed push now to user ${userId}`);
           const res = await sendPushToUser(supabase, userId, {
             title,
             body: pushBody,

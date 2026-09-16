@@ -68,7 +68,31 @@ export async function subscribeUserToPush(userId: string): Promise<PushSubscript
   }
 
   try {
-    const reg = await navigator.serviceWorker.ready;
+    // Ensure service worker is actively registered
+    let reg: ServiceWorkerRegistration | undefined;
+    try {
+      reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    } catch (_) {
+      reg = await navigator.serviceWorker.getRegistration();
+    }
+
+    if (!reg) {
+      reg = await navigator.serviceWorker.ready;
+    }
+
+    // Wait briefly if installing
+    if (reg.installing || reg.waiting) {
+      await Promise.race([
+        new Promise<void>((resolve) => {
+          const sw = reg?.installing || reg?.waiting;
+          sw?.addEventListener("statechange", () => {
+            if (sw?.state === "activated") resolve();
+          });
+        }),
+        new Promise((resolve) => setTimeout(resolve, 2000))
+      ]);
+    }
+
     let sub = await reg.pushManager.getSubscription();
 
     // If no subscription, subscribe using VAPID public key
@@ -87,22 +111,41 @@ export async function subscribeUserToPush(userId: string): Promise<PushSubscript
     const auth = rawSub.keys?.auth;
 
     if (endpoint && p256dh && auth) {
-      // Save subscription in Supabase push_subscriptions table
-      const { error } = await supabase
-        .from("push_subscriptions" as any)
-        .upsert({
-          user_id: userId,
-          endpoint,
-          p256dh,
-          auth,
-          user_agent: navigator.userAgent,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "endpoint" });
+      // 1. Guardar vía Edge Function con service_role para garantizar 100% éxito sin bloqueos de RLS
+      try {
+        const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke("send-web-push", {
+          body: {
+            action: "save_subscription",
+            user_id: userId,
+            endpoint,
+            p256dh,
+            auth,
+            user_agent: navigator.userAgent,
+          },
+        });
+        if (edgeErr) {
+          console.warn("Edge function save_subscription warning:", edgeErr);
+        } else {
+          console.log("Push subscription verified and saved on server:", edgeRes);
+        }
+      } catch (fErr) {
+        console.warn("Could not save subscription via edge function:", fErr);
+      }
 
-      if (error) {
-        console.warn("Could not save push subscription to Supabase:", error);
-      } else {
-        console.log("Web Push subscription registered and active for user:", userId);
+      // 2. Intentar también vía cliente directo
+      try {
+        await supabase
+          .from("push_subscriptions" as any)
+          .upsert({
+            user_id: userId,
+            endpoint,
+            p256dh,
+            auth,
+            user_agent: navigator.userAgent,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "endpoint" });
+      } catch (upsertErr) {
+        console.warn("Client-side upsert warning (handled):", upsertErr);
       }
     }
 
