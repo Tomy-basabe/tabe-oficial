@@ -29,14 +29,20 @@ function getColorForType(tipo: ValidEventType): string {
   return colors[tipo] || "#00d9ff";
 }
 
-// Convert Uint8Array to base64 in Deno safely
+// Convert Uint8Array to base64 in Deno safely and blazingly fast
 function uint8ArrayToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  try {
+    return btoa(new TextDecoder("latin1").decode(bytes));
+  } catch (_) {
+    let binary = "";
+    const len = bytes.byteLength;
+    const CHUNK_SIZE = 8192;
+    for (let i = 0; i < len; i += CHUNK_SIZE) {
+      const slice = bytes.subarray(i, Math.min(i + CHUNK_SIZE, len));
+      binary += String.fromCharCode.apply(null, slice as any);
+    }
+    return btoa(binary);
   }
-  return btoa(binary);
 }
 
 // Model configurations with safe max_tokens per model
@@ -85,59 +91,215 @@ async function transcribeAudioWithWhisper(audioBytes: Uint8Array, mimeType: stri
   return null;
 }
 
-// ─── VISION IMAGE ANALYSIS (Google Gemini) ────────────────────────
-async function analyzeImageWithGemini(
+// ─── MULTIMODAL VISION ENGINE (Groq Vision + Gemini + OpenRouter) ────────
+async function analyzeImageMultimodal(
+  groqKey: string,
   geminiKey: string,
+  openrouterKey: string,
   imageBytes: Uint8Array,
   mimeType: string,
   caption: string,
   systemPrompt: string
 ): Promise<string | null> {
-  if (!geminiKey || imageBytes.byteLength === 0) return null;
+  if (!imageBytes || imageBytes.byteLength === 0) return null;
+
   const base64Data = uint8ArrayToBase64(imageBytes);
-  const models = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-2.0-flash"];
+  const dataUrl = `data:${mimeType || "image/jpeg"};base64,${base64Data}`;
+  const question = caption?.trim() || "Analizá detalladamente todo lo que hay en esta imagen académica:";
 
-  for (const model of models) {
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }]
+  const promptForVision = `${systemPrompt}
+
+-- INSTRUCCIÓN DE VISIÓN MULTIMODAL --
+El estudiante te envió una imagen/foto con la siguiente consulta: "${question}".
+Tareas requeridas:
+1. Describí con precisión todo lo que ves: textos, apuntes manuscritos, consignas de examen, ejercicios, fórmulas, esquemas, fechas o gráficos.
+2. Si la imagen contiene un ejercicio o pregunta práctica, resolvelo paso a paso con máxima claridad y rigor pedagógico.
+3. Si contiene fechas de exámenes o datos de cursada, destacalos con claridad.
+4. Respondé en español argentino, de forma directa, cálida y usando emojis.`;
+
+  // 1. ESTRATEGIA 1: Groq Vision (llama-3.2-11b-vision-preview y 90b)
+  if (groqKey) {
+    const groqModels = ["llama-3.2-11b-vision-preview", "llama-3.2-90b-vision-preview"];
+    for (const model of groqModels) {
+      try {
+        console.log(`[Vision] Consultando Groq Vision (${model})...`);
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${groqKey}`,
+            "Content-Type": "application/json"
           },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: caption || "Analiza esta imagen con detalle pedagógico y explícame todo su contenido académico:" },
-                {
-                  inline_data: {
-                    mime_type: mimeType || "image/jpeg",
-                    data: base64Data
-                  }
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 1024
-          }
-        })
-      });
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: promptForVision },
+                  { type: "image_url", image_url: { url: dataUrl } }
+                ]
+              }
+            ],
+            max_tokens: 1500,
+            temperature: 0.2
+          })
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text.trim();
-      } else {
-        console.warn(`[Gemini Vision Error ${model}]:`, await res.text());
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.choices?.[0]?.message?.content?.trim();
+          if (text && text.length > 0) {
+            console.log(`[Vision] Respuesta exitosa con Groq Vision (${model})`);
+            return text;
+          }
+        } else {
+          console.warn(`[Vision] Groq ${model} falló con status ${res.status}:`, (await res.text()).substring(0, 200));
+        }
+      } catch (err) {
+        console.warn(`[Vision] Excepción en Groq ${model}:`, err);
       }
-    } catch (e) {
-      console.warn(`[Gemini Vision Exception ${model}]:`, e);
     }
   }
+
+  // 2. ESTRATEGIA 2: Google Gemini (OpenAI-compatible & Native endpoints)
+  if (geminiKey) {
+    const geminiModels = [
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-2.5-flash",
+      "gemini-1.5-flash-8b",
+      "gemini-2.0-flash-lite"
+    ];
+
+    // 2.A: Endpoint OpenAI de Gemini
+    for (const model of geminiModels) {
+      try {
+        console.log(`[Vision] Consultando Gemini OpenAI (${model})...`);
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${geminiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: promptForVision },
+                  { type: "image_url", image_url: { url: dataUrl } }
+                ]
+              }
+            ],
+            max_tokens: 1500,
+            temperature: 0.3
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.choices?.[0]?.message?.content?.trim();
+          if (text) {
+            console.log(`[Vision] Respuesta exitosa con Gemini OpenAI (${model})`);
+            return text;
+          }
+        }
+      } catch (e) {
+        console.warn(`[Vision] Excepción Gemini OpenAI ${model}:`, e);
+      }
+    }
+
+    // 2.B: Endpoint Native GenerateContent de Gemini
+    for (const model of geminiModels) {
+      try {
+        console.log(`[Vision] Consultando Gemini Native (${model})...`);
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: promptForVision },
+                  {
+                    inline_data: {
+                      mime_type: mimeType || "image/jpeg",
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 1500
+            }
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (text) {
+            console.log(`[Vision] Respuesta exitosa con Gemini Native (${model})`);
+            return text;
+          }
+        }
+      } catch (e) {
+        console.warn(`[Vision] Excepción Gemini Native ${model}:`, e);
+      }
+    }
+  }
+
+  // 3. ESTRATEGIA 3: OpenRouter
+  if (openrouterKey) {
+    const openrouterModels = [
+      "google/gemini-2.0-flash-001",
+      "meta-llama/llama-3.2-11b-vision-instruct",
+      "google/gemini-flash-1.5-exp"
+    ];
+
+    for (const model of openrouterModels) {
+      try {
+        console.log(`[Vision] Consultando OpenRouter (${model})...`);
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${openrouterKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: promptForVision },
+                  { type: "image_url", image_url: { url: dataUrl } }
+                ]
+              }
+            ],
+            max_tokens: 1500,
+            temperature: 0.3
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.choices?.[0]?.message?.content?.trim();
+          if (text) {
+            console.log(`[Vision] Respuesta exitosa con OpenRouter (${model})`);
+            return text;
+          }
+        }
+      } catch (e) {
+        console.warn(`[Vision] Excepción OpenRouter ${model}:`, e);
+      }
+    }
+  }
+
   return null;
 }
 
@@ -240,6 +402,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
     const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
     const WHATSAPP_ACCESS_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "";
     const WHATSAPP_PHONE_ID = Deno.env.get("WHATSAPP_PHONE_ID") || "";
@@ -470,13 +633,27 @@ serve(async (req) => {
 
     // ───────────────── MULTIMODAL: VISION HANDLER ─────────────────
     if (imageBytes && imageBytes.byteLength > 0) {
-      const userPrompt = text || "Analiza esta imagen y ayúdame con todo su contenido académico:";
-      const visionResult = await analyzeImageWithGemini(GEMINI_API_KEY, imageBytes, imageMimeType, userPrompt, systemPrompt);
+      console.log(`[Vision] Imagen detectada en ${platform}. Tamaño: ${imageBytes.byteLength} bytes, tipo: ${imageMimeType}`);
+      const userPrompt = text || "Analizá esta imagen detalladamente y decime qué hay acá:";
+      const visionResult = await analyzeImageMultimodal(
+        GROQ_API_KEY,
+        GEMINI_API_KEY,
+        OPENROUTER_API_KEY,
+        imageBytes,
+        imageMimeType,
+        userPrompt,
+        systemPrompt
+      );
+
       if (visionResult) {
         await sendMessage(platform, senderId, visionResult);
         return new Response("OK");
       } else {
-        await sendMessage(platform, senderId, "📸 Pude ver tu imagen, pero tuve un inconveniente analizando los detalles. ¿Podrías enviarla con mejor iluminación o preguntarme algo específico?");
+        await sendMessage(
+          platform,
+          senderId,
+          "📸 Recibí tu imagen, pero en este momento los servicios de análisis visual están con alta demanda o la imagen no pudo ser procesada. ¿Podrías enviarla nuevamente o consultarme lo que necesitas por texto o audio?"
+        );
         return new Response("OK");
       }
     }
