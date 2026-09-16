@@ -1,3 +1,10 @@
+// Load background push and offline notification handlers
+try {
+  importScripts('/custom-sw.js');
+} catch (e) {
+  console.warn('Could not import /custom-sw.js in sw.js:', e);
+}
+
 const CACHE_NAME = 'tabe-cache-v4';
 const NEW_DOMAIN = 'https://www.tabe.software';
 const OLD_DOMAINS = ['tabe-oficial.vercel.app'];

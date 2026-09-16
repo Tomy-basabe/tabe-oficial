@@ -619,11 +619,41 @@ serve(async (req) => {
               sentWhatsapp = true;
             }
 
+            // Also dispatch Web Push notification to user's installed PWA devices
+            let sentWebPush = false;
+            try {
+              const { data: userPushSubs } = await supabase
+                .from('push_subscriptions')
+                .select('id')
+                .eq('user_id', uId);
+
+              if (userPushSubs && userPushSubs.length > 0) {
+                await fetch(`${SUPABASE_URL}/functions/v1/send-web-push`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    action: 'send_to_user',
+                    user_id: uId,
+                    title: 'T.A.B.E. 🎓 Recordatorio Académico',
+                    body: reminderMessage.replace(/\*/g, ''),
+                    url: '/dashboard'
+                  })
+                });
+                sentWebPush = true;
+              }
+            } catch (pushErr) {
+              console.warn('Web push dispatch error in chat-handler:', pushErr);
+            }
+
             results.push({
               user_id: uId,
               studentName,
               sentTelegram,
               sentWhatsapp,
+              sentWebPush,
               reminderMessage
             });
           }

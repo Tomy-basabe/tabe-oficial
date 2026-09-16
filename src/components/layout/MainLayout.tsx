@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
 import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
 import { GuestModeBanner } from "@/components/layout/GuestModeBanner";
+import { GlobalNotificationManager } from "@/components/notifications/GlobalNotificationManager";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
@@ -538,6 +539,7 @@ export function MainLayout() {
       {!isAIPage && <GlobalPomodoroWidget />}
       {!isAIPage && <AIBubbleWidget />}
       <GuestModeBanner />
+      <GlobalNotificationManager />
       
       {/* Mobile Navigation Bar */}
       {!isAIPage && <MobileNavbar />}

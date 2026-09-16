@@ -1,20 +1,47 @@
-import { Bell, BellOff, Clock, Calendar, Sparkles, Smartphone, CheckCircle2, MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { Bell, BellOff, Clock, Calendar, Smartphone, Radio, Send } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function NotificationSettings() {
   const {
     permission,
     isSupported,
     settings,
+    pushStatus,
+    isSubscribingPush,
     requestPermission,
     testNotification,
+    testServerPush,
     updateSettings,
   } = useNotifications();
 
+  const [isSendingServerPush, setIsSendingServerPush] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
   const handleEnableNotifications = async () => {
     await requestPermission();
+  };
+
+  const handleTestServerPush = async () => {
+    setIsSendingServerPush(true);
+    setCountdown(3);
+    toast.info("Minimizá la app o bloqueá la pantalla. ¡La notificación llega en 3 segundos!");
+
+    let count = 3;
+    const interval = setInterval(async () => {
+      count--;
+      if (count > 0) {
+        setCountdown(count);
+      } else {
+        clearInterval(interval);
+        setCountdown(null);
+        await testServerPush();
+        setIsSendingServerPush(false);
+      }
+    }, 1000);
   };
 
   if (!isSupported) {
@@ -30,7 +57,7 @@ export function NotificationSettings() {
 
   return (
     <div className="space-y-4">
-      {/* Permission Status */}
+      {/* Permission & Push Status Card */}
       <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
@@ -47,8 +74,8 @@ export function NotificationSettings() {
               )}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h4 className="font-black uppercase text-base text-foreground">Notificaciones en tu Dispositivo (PWA)</h4>
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="font-black uppercase text-base text-foreground">Notificaciones en Segundo Plano (PWA)</h4>
                 {permission === "granted" ? (
                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
                     Activas
@@ -58,49 +85,72 @@ export function NotificationSettings() {
                     Desactivadas
                   </span>
                 )}
+                {pushStatus.isSubscribed && (
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#00E5FF] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000] flex items-center gap-1">
+                    <Radio className="w-3 h-3 animate-pulse" /> Web Push Conectado
+                  </span>
+                )}
               </div>
-              <p className="font-bold text-xs sm:text-sm text-muted-foreground mt-0.5">
+              <p className="font-bold text-xs sm:text-sm text-muted-foreground mt-1">
                 {permission === "granted" 
-                  ? "Notificaciones del sistema habilitadas para funcionar en segundo plano." 
+                  ? "Las alertas te llegan incluso si tenés la app cerrada o el teléfono en reposo." 
                   : permission === "denied"
-                  ? "Notificaciones bloqueadas por el navegador o sistema operativo."
-                  : "Activa las notificaciones para recibir alertas de exámenes y estudio."}
+                  ? "Notificaciones bloqueadas por el navegador. Habilítalas en los permisos de sitio del navegador."
+                  : "Activá las notificaciones para recibir alertas de parciales y rachas con la app cerrada."}
               </p>
             </div>
           </div>
-          {permission !== "granted" && permission !== "denied" && (
-            <button
-              onClick={handleEnableNotifications}
-              className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00E5FF] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all cursor-pointer shrink-0"
-            >
-              Activar Notificaciones
-            </button>
-          )}
-          {permission === "granted" && (
-            <button
-              onClick={() => testNotification()}
-              className="px-3.5 py-2.5 rounded-xl bg-[#FFE600] text-black font-black uppercase text-xs border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer shrink-0"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Probar Notificación 🔔</span>
-            </button>
-          )}
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {permission !== "granted" && (
+              <button
+                onClick={handleEnableNotifications}
+                disabled={isSubscribingPush}
+                className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00E5FF] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all cursor-pointer"
+              >
+                {isSubscribingPush ? "Conectando..." : "Activar Notificaciones"}
+              </button>
+            )}
+
+            {permission === "granted" && (
+              <>
+                <button
+                  onClick={handleTestServerPush}
+                  disabled={isSendingServerPush}
+                  className="px-3.5 py-2.5 rounded-xl bg-[#00E5FF] text-black font-black uppercase text-xs border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
+                  title="Envía una notificación push real desde el servidor. Puedes cerrar o minimizar la app para comprobar que llega."
+                >
+                  <Send className="w-4 h-4" />
+                  <span>
+                    {countdown !== null ? `Enviando en ${countdown}s...` : "Probar con App Cerrada 📲"}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => testNotification()}
+                  className="px-3.5 py-2.5 rounded-xl bg-[#FFE600] text-black font-black uppercase text-xs border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Prueba Local 🔔</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Guía para recibir notificaciones con la app cerrada */}
+        {/* Explicación de funcionamiento con app cerrada */}
         {permission === "granted" && (
-          <div className="p-4 rounded-xl bg-muted/50 border-2 border-foreground/30 text-xs space-y-2">
+          <div className="p-4 rounded-xl bg-muted/50 border-2 border-foreground/30 text-xs space-y-2.5">
             <div className="flex items-center gap-2 font-black uppercase text-foreground">
               <Smartphone className="w-4 h-4 text-[#00E5FF] shrink-0" />
-              <span>¿Cómo asegurarte de que lleguen con la app cerrada en tu celular?</span>
+              <span>¿Cómo funciona cuando la app está cerrada?</span>
             </div>
             <p className="font-bold text-muted-foreground leading-relaxed">
-              En dispositivos móviles (Android/iOS), el sistema operativo suspende las aplicaciones cerradas por defecto para ahorrar batería. Para que TABE te notifique con la app cerrada:
+              TABE utiliza el estándar <strong className="text-foreground">Web Push y Alarmas en Segundo Plano del Service Worker</strong>. Tu dispositivo está registrado en la nube de TABE para despertar el Service Worker cuando haya un examen próximo o tu horario de estudio:
             </p>
             <ul className="list-disc list-inside font-bold text-foreground/85 space-y-1 pl-1">
-              <li><strong>Android:</strong> Andá a Ajustes &gt; Aplicaciones &gt; TABE &gt; Batería &gt; Seleccioná <em>"Sin restricciones"</em> (para que el sistema no apague el Service Worker).</li>
-              <li><strong>iPhone (iOS):</strong> Agregá TABE a la pantalla de inicio desde Safari para habilitar Web Push en segundo plano (requiere iOS 16.4 o superior).</li>
-              <li><strong>WhatsApp / Telegram:</strong> Vinculá tu chat en la sección de arriba para recibir recordatorios proactivos con 100% de garantía aunque el teléfono esté en modo reposo.</li>
+              <li><strong>Solo con tener la app instalada (PWA):</strong> El sistema operativo (Google Play Services / Apple Push) recibe la alerta y muestra la notificación en tu barra de estado o pantalla de bloqueo sin necesidad de abrir la aplicación.</li>
+              <li><strong>Android:</strong> Si tu celular tiene optimización agresiva de batería (Xiaomi/Samsung), poné TABE en <em>"Sin restricciones"</em> de batería en los Ajustes de Aplicaciones para que las alarmas lleguen puntuales.</li>
+              <li><strong>iPhone (iOS):</strong> Requiere que hayas instalado TABE en la pantalla de inicio desde Safari (iOS 16.4+).</li>
             </ul>
           </div>
         )}
