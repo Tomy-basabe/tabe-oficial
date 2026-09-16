@@ -99,3 +99,60 @@ self.addEventListener('fetch', (event) => {
             })
     );
 });
+
+// ───────────────── BACKGROUND PUSH & NOTIFICATIONS ─────────────────
+self.addEventListener('push', function (event) {
+  var data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
+  }
+
+  var title = data.title || 'T.A.B.E. 🎓';
+  var options = {
+    body: data.body || 'Tenés novedades académicas en TABE.',
+    icon: data.icon || '/pwa-192x192.png',
+    badge: data.badge || '/pwa-192x192.png',
+    tag: data.tag || ('tabe-alert-' + Date.now()),
+    renotify: true,
+    requireInteraction: true,
+    data: {
+      url: data.url || '/dashboard',
+      timestamp: Date.now()
+    },
+    vibrate: [200, 100, 200]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+
+  var targetUrl = (event.notification.data && event.notification.data.url) 
+    ? event.notification.data.url 
+    : '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url && 'focus' in client) {
+          if ('navigate' in client && targetUrl !== '/') {
+            client.navigate(targetUrl);
+          }
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

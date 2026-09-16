@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -22,10 +22,11 @@ export function useNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [isSupported, setIsSupported] = useState(false);
+  const reminderTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
     // Check if notifications are supported
-    const supported = "Notification" in window && "serviceWorker" in navigator;
+    const supported = typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator;
     setIsSupported(supported);
 
     if (supported) {
@@ -35,7 +36,9 @@ export function useNotifications() {
     // Load saved settings from localStorage
     const savedSettings = localStorage.getItem("notification_settings");
     if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+      try {
+        setSettings(JSON.parse(savedSettings));
+      } catch (_) {}
     }
   }, []);
 
@@ -50,10 +53,20 @@ export function useNotifications() {
       setPermission(result);
 
       if (result === "granted") {
-        toast.success("¡Notificaciones activadas!");
+        toast.success("¡Notificaciones del sistema activadas!");
+
+        // Initialize Service Worker notification capability
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            if (reg.active) {
+              reg.active.postMessage({ type: "INIT_NOTIFICATIONS" });
+            }
+          }).catch((err) => console.warn("SW ready check error:", err));
+        }
+
         return true;
       } else if (result === "denied") {
-        toast.error("Notificaciones bloqueadas. Habilítalas en la configuración del navegador");
+        toast.error("Notificaciones bloqueadas. Habilítalas en la configuración de tu navegador o celular");
         return false;
       }
       return false;
@@ -63,9 +76,30 @@ export function useNotifications() {
     }
   }, [isSupported]);
 
-  const sendNotification = useCallback((title: string, options?: NotificationOptions) => {
+  // Send notification using ServiceWorkerRegistration (Required for mobile Android & iOS PWAs)
+  const sendNotification = useCallback(async (title: string, options?: NotificationOptions) => {
     if (permission !== "granted") return;
 
+    // 1. Preferred: Service Worker (works when app is standalone PWA, backgrounded or closed)
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          const swOptions = {
+            icon: "/pwa-192x192.png",
+            badge: "/pwa-192x192.png",
+            vibrate: [200, 100, 200],
+            requireInteraction: true,
+            ...options,
+          };
+          return await reg.showNotification(title, swOptions as any);
+        }
+      } catch (swErr) {
+        console.warn("ServiceWorker showNotification failed, trying fallback:", swErr);
+      }
+    }
+
+    // 2. Desktop browser fallback only if ServiceWorker is not available
     try {
       const notification = new Notification(title, {
         icon: "/pwa-192x192.png",
@@ -84,7 +118,46 @@ export function useNotifications() {
     }
   }, [permission]);
 
-  const scheduleStudyReminder = useCallback(() => {
+  // Immediate test notification for diagnostics
+  const testNotification = useCallback(async () => {
+    if (permission !== "granted") {
+      const ok = await requestPermission();
+      if (!ok) return false;
+    }
+
+    try {
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification("¡Prueba de Notificación de TABE! 🎓", {
+            body: "¡Las notificaciones en tu dispositivo están funcionando perfectamente, incluso en segundo plano!",
+            icon: "/pwa-192x192.png",
+            badge: "/pwa-192x192.png",
+            tag: "tabe-test-notification",
+            data: { url: "/dashboard" },
+            vibrate: [200, 100, 200],
+            requireInteraction: true
+          } as any);
+          toast.success("¡Notificación de prueba enviada al sistema!");
+          return true;
+        }
+      }
+
+      new Notification("¡Prueba de Notificación de TABE! 🎓", {
+        body: "¡Las notificaciones están activas en tu dispositivo!",
+        icon: "/pwa-192x192.png",
+        badge: "/pwa-192x192.png",
+      });
+      toast.success("¡Notificación de prueba enviada al sistema!");
+      return true;
+    } catch (e: any) {
+      console.error("Error en notificación de prueba:", e);
+      toast.error("No se pudo mostrar la notificación: " + (e?.message || "Error desconocido"));
+      return false;
+    }
+  }, [permission, requestPermission]);
+
+  const scheduleStudyReminder = useCallback(async () => {
     if (!settings.studyReminders || permission !== "granted") return;
 
     const now = new Date();
@@ -97,11 +170,58 @@ export function useNotifications() {
 
     const timeUntilReminder = reminderTime.getTime() - now.getTime();
 
-    setTimeout(() => {
+    // 1. Schedule via Service Worker thread so it persists when tab/window sleeps
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+
+        // Use Notification Triggers API if supported by browser/Android PWA
+        // @ts-ignore
+        if (typeof window !== "undefined" && window.Notification && "showTrigger" in Notification.prototype && (window as any).TimestampTrigger) {
+          try {
+            // @ts-ignore
+            await reg.showNotification("¡Hora de estudiar! 📚", {
+              body: "Mantené tu racha de estudio. ¡Solo unos minutos hacen la diferencia!",
+              icon: "/pwa-192x192.png",
+              badge: "/pwa-192x192.png",
+              tag: "study-reminder-trigger",
+              // @ts-ignore
+              showTrigger: new (window as any).TimestampTrigger(reminderTime.getTime()),
+              data: { url: "/pomodoro" },
+              vibrate: [200, 100, 200]
+            } as any);
+          } catch (trigErr) {
+            console.warn("TimestampTrigger failed, using SW message:", trigErr);
+          }
+        }
+
+        if (reg.active) {
+          reg.active.postMessage({
+            type: "SCHEDULE_NOTIFICATION",
+            payload: {
+              delay: timeUntilReminder,
+              title: "¡Hora de estudiar! 📚",
+              body: "Mantené tu racha de estudio activa en TABE. ¡Solo unos minutos hacen la diferencia!",
+              url: "/pomodoro"
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Could not register SW schedule:", e);
+      }
+    }
+
+    // 2. In-memory timeout as backup while window is active
+    if (reminderTimeoutRef.current) {
+      clearTimeout(reminderTimeoutRef.current);
+    }
+
+    reminderTimeoutRef.current = setTimeout(() => {
       sendNotification("¡Hora de estudiar! 📚", {
-        body: "Mantén tu racha de estudio. ¡Solo unos minutos hacen la diferencia!",
+        body: "Mantené tu racha de estudio. ¡Solo unos minutos hacen la diferencia!",
         tag: "study-reminder",
-      });
+        data: { url: "/pomodoro" }
+      } as any);
     }, timeUntilReminder);
   }, [settings, permission, sendNotification]);
 
@@ -129,9 +249,10 @@ export function useNotifications() {
           const dayText = daysUntil === 0 ? "¡Hoy!" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
 
           sendNotification(`📝 ${event.tipo_examen}: ${event.titulo}`, {
-            body: `Tienes un examen ${dayText}. ¡Prepárate!`,
+            body: `Tenés un examen ${dayText}. ¡A no aflojar el repaso!`,
             tag: `exam-${event.fecha}`,
-          });
+            data: { url: "/calendario" }
+          } as any);
         });
       }
     } catch (error) {
@@ -143,7 +264,7 @@ export function useNotifications() {
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
     localStorage.setItem("notification_settings", JSON.stringify(updated));
-    toast.success("Configuración guardada");
+    toast.success("Configuración de notificaciones guardada");
   }, [settings]);
 
   // Schedule reminders when settings change
@@ -152,9 +273,14 @@ export function useNotifications() {
       scheduleStudyReminder();
       checkUpcomingExams();
 
-      // Re-check exams every 6 hours
+      // Re-check exams every 6 hours while active
       const examInterval = setInterval(checkUpcomingExams, 6 * 60 * 60 * 1000);
-      return () => clearInterval(examInterval);
+      return () => {
+        clearInterval(examInterval);
+        if (reminderTimeoutRef.current) {
+          clearTimeout(reminderTimeoutRef.current);
+        }
+      };
     }
   }, [permission, scheduleStudyReminder, checkUpcomingExams]);
 
@@ -164,6 +290,7 @@ export function useNotifications() {
     settings,
     requestPermission,
     sendNotification,
+    testNotification,
     updateSettings,
     checkUpcomingExams,
   };

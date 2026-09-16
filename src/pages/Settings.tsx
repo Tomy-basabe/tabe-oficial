@@ -649,6 +649,17 @@ export default function Settings() {
         </div>
       )}
 
+      {/* Notifications & System Alerts Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h3 className="font-black uppercase text-lg text-foreground">Notificaciones y Alertas</h3>
+          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#00F0FF] text-black border-2 border-black shadow-[2px_2px_0_0_#000] -rotate-1">
+            RECORDATORIOS PWA
+          </span>
+        </div>
+        <NotificationSettings />
+      </div>
+
       {/* Comic Mode & Sound Effects */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
