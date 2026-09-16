@@ -186,6 +186,34 @@ export default function Settings() {
     setLoadingBot(false);
   };
 
+  const [testingProactive, setTestingProactive] = useState(false);
+
+  const handleTestProactiveReminder = async () => {
+    if (!user) return;
+    setTestingProactive(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("chat-handler", {
+        body: {
+          action: "send_proactive_reminders",
+          target_user_id: user.id,
+          force_test: true,
+        },
+      });
+
+      if (error) {
+        toast.error("Error al enviar recordatorio: " + error.message);
+      } else if (data && data.success && data.count > 0) {
+        toast.success("¡Recordatorio proactivo enviado! Revisá tu WhatsApp o Telegram 📲");
+      } else {
+        toast.info("No se encontró número de WhatsApp o Telegram vinculado para enviar el recordatorio.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Error al invocar recordatorio");
+    } finally {
+      setTestingProactive(false);
+    }
+  };
+
   const handleUnlinkBot = async (platform: 'telegram' | 'whatsapp') => {
     if (!user) return;
     const update = platform === 'telegram' ? { telegram_id: null } : { whatsapp_number: null };
@@ -577,6 +605,37 @@ export default function Settings() {
                       </button>
                     )}
                   </div>
+
+                  {/* Recordatorios Proactivos de TABE AI */}
+                  {(botStatus?.telegram_id || botStatus?.whatsapp_number) && (
+                    <div className="p-5 rounded-xl bg-card border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xl">🔔</span>
+                          <div>
+                            <h4 className="font-black uppercase text-sm text-foreground">Recordatorios Proactivos de TABE AI</h4>
+                            <p className="text-xs font-bold text-muted-foreground">La IA te escribe primero antes de tus exámenes y para cuidar tu racha</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#00FF9D] text-black border-2 border-foreground">
+                          Activado
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-foreground/85 leading-relaxed bg-muted/50 p-3 rounded-lg border border-foreground/20">
+                        💡 <strong>¿Cómo funciona?</strong> Un día antes de cada parcial o examen agendado, TABE AI te contactará por WhatsApp o Telegram para proponerte un simulacro interactivo de preguntas o ayudarte a resolver dudas clave.
+                      </p>
+                      <div className="pt-1 flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={handleTestProactiveReminder}
+                          disabled={testingProactive}
+                          className="px-4 py-2.5 rounded-xl bg-[#FFE600] text-black font-black uppercase text-xs border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>{testingProactive ? "Enviando recordatorio..." : "Enviar Recordatorio de Prueba a mi Celular 📲"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="p-4 rounded-xl bg-[#FFD700] text-black border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
                     <p className="text-sm font-bold text-black">

@@ -23,6 +23,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import { supabase } from "@/integrations/supabase/client";
 
 // Interface DisplayMessage is now exported from AIChatContext, we can import it
 import { DisplayMessage } from "@/contexts/AIChatContext";
@@ -35,13 +36,100 @@ const quickActions = [
   { id: "progress", label: "Mi progreso", icon: Sparkles, prompt: "Analizá mi progreso académico y dame recomendaciones" },
 ];
 
-function getGreeting(persona: AIPersona): DisplayMessage {
-  return {
+export interface ProactiveContext {
+  type: "exam" | "streak";
+  subject?: string;
+  examType?: string;
+  daysStreak?: number;
+}
+
+async function getProactiveGreeting(
+  persona: AIPersona,
+  userId?: string
+): Promise<{ message: DisplayMessage; context: ProactiveContext | null }> {
+  const defaultGreeting: DisplayMessage = {
     id: "init",
     role: "assistant",
     content: `¡Hola! 👋 Soy **${persona.name}** (TABE AI), tu asistente académico personal.\n\nTengo acceso al 100% de tu información universitaria: carrera, materias, calificaciones, calendario de exámenes, apuntes, flashcards, rutinas y biblioteca.\n\n¿En qué te puedo ayudar hoy?`,
     timestamp: new Date(),
   };
+
+  if (!userId) return { message: defaultGreeting, context: null };
+
+  try {
+    const today = new Date();
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const todayStr = today.toISOString().split("T")[0];
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+    // 1. Check upcoming exam today or tomorrow
+    const { data: upcomingEvents } = await supabase
+      .from("calendar_events")
+      .select("id, titulo, fecha, tipo_examen, subject_id, subjects(nombre)")
+      .eq("user_id", userId)
+      .neq("tipo_examen", "Estudio")
+      .gte("fecha", todayStr)
+      .lte("fecha", tomorrowStr)
+      .order("fecha", { ascending: true })
+      .limit(1);
+
+    if (upcomingEvents && upcomingEvents.length > 0) {
+      const ex = upcomingEvents[0];
+      const isToday = ex.fecha === todayStr;
+      const dayLabel = isToday ? "¡hoy mismo!" : "mañana";
+      const subjectName = (ex as any).subjects?.nombre || ex.titulo || "tu materia";
+      const examType = ex.tipo_examen || "parcial";
+
+      return {
+        message: {
+          id: "init-proactive-exam",
+          role: "assistant",
+          content: `👋 ¡Hola! 🎓 Soy **${persona.name}**.\n\n⚠️ **Recordatorio importante:** Vi en tu calendario que ${dayLabel} tenés el ${examType} de **${subjectName}**.\n\n¿Querés que te tome un **simulacro rápido de preguntas de repaso** para llegar con la materia fresquísima, o preferís despejar alguna duda puntual de los apuntes?`,
+          timestamp: new Date(),
+        },
+        context: {
+          type: "exam",
+          subject: subjectName,
+          examType,
+        },
+      };
+    }
+
+    // 2. Check study streak in danger
+    const { data: stats } = await supabase
+      .from("user_stats")
+      .select("racha_actual")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (stats && stats.racha_actual >= 2) {
+      const { data: todaySessions } = await supabase
+        .from("study_sessions")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("fecha", todayStr)
+        .limit(1);
+
+      if (!todaySessions || todaySessions.length === 0) {
+        return {
+          message: {
+            id: "init-proactive-streak",
+            role: "assistant",
+            content: `🔥 ¡Hola! Soy **${persona.name}**.\n\nVenís con una racha de **${stats.racha_actual} días consecutivos** de estudio en TABE, pero todavía no registraste ninguna sesión hoy.\n\n¿Hacemos un quiz de repaso de 5 minutos o registramos lo que viste hoy para no perder tu racha? 🎯`,
+            timestamp: new Date(),
+          },
+          context: {
+            type: "streak",
+            daysStreak: stats.racha_actual,
+          },
+        };
+      }
+    }
+  } catch (err) {
+    console.error("Error checking proactive greeting:", err);
+  }
+
+  return { message: defaultGreeting, context: null };
 }
 
 export default function AIAssistant() {
@@ -91,8 +179,9 @@ export default function AIAssistant() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const prevPersonaIdRef = useRef<string | null>(null);
+  const [proactiveContext, setProactiveContext] = useState<ProactiveContext | null>(null);
 
-  // Load sessions when persona changes
+  // Load sessions and proactive greeting when persona changes
   useEffect(() => {
     if (activePersona) {
       loadSessions(activePersona.id);
@@ -102,14 +191,20 @@ export default function AIAssistant() {
         if (!isStreaming) {
           setCurrentSessionId(null);
           currentSessionRef.current = null;
-          setMessages([getGreeting(activePersona)]);
+          getProactiveGreeting(activePersona, user?.id).then(({ message, context }) => {
+            setMessages([message]);
+            setProactiveContext(context);
+          });
         }
       } else if (!messages.length) {
-        setMessages([getGreeting(activePersona)]);
+        getProactiveGreeting(activePersona, user?.id).then(({ message, context }) => {
+          setMessages([message]);
+          setProactiveContext(context);
+        });
       }
       prevPersonaIdRef.current = activePersona.id;
     }
-  }, [activePersona?.id]);
+  }, [activePersona?.id, user?.id]);
 
   // Scroll to bottom
   const scrollToBottom = () => {
@@ -165,7 +260,10 @@ export default function AIAssistant() {
       setCurrentSessionId(null);
       currentSessionRef.current = null;
       if (activePersona) {
-        setMessages([getGreeting(activePersona)]);
+        getProactiveGreeting(activePersona, user?.id).then(({ message, context }) => {
+          setMessages([message]);
+          setProactiveContext(context);
+        });
       }
     }
   };
@@ -173,6 +271,7 @@ export default function AIAssistant() {
   const handleSelectSession = async (sessionId: string) => {
     setCurrentSessionId(sessionId);
     currentSessionRef.current = sessionId;
+    setProactiveContext(null);
     const msgs = await loadMessages(sessionId);
     if (msgs.length > 0) {
       setMessages(
@@ -711,6 +810,68 @@ export default function AIAssistant() {
         {/* ── MESSAGES ───────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto scroll-smooth">
           <div className="max-w-3xl mx-auto px-3 py-4 md:px-6 md:py-6 space-y-1">
+
+            {/* Proactive Context Actions Banner */}
+            {messages.length <= 1 && proactiveContext?.type === 'exam' && (
+              <div className="mb-3 p-3 sm:p-4 rounded-xl bg-[#FFE600] text-black border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] space-y-2.5 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🎯</span>
+                  <span className="font-black text-xs sm:text-sm uppercase tracking-wider">
+                    Acciones recomendadas para {proactiveContext.subject}:
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleQuickAction(`Hazme un simulacro de examen de 5 preguntas tipo quiz sobre ${proactiveContext.subject} para evaluar mis conocimientos`)}
+                    className="px-3 py-1.5 rounded-lg bg-black text-[#BFFF00] font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
+                  >
+                    <FileQuestion className="w-3.5 h-3.5" />
+                    <span>Simulacro de 5 preguntas</span>
+                  </button>
+                  <button
+                    onClick={() => handleQuickAction(`Explicame los temas más importantes, conceptos y fórmulas clave que suelen tomar en ${proactiveContext.subject}`)}
+                    className="px-3 py-1.5 rounded-lg bg-white text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Repasar conceptos clave</span>
+                  </button>
+                  <button
+                    onClick={() => handleQuickAction(`Dame una guía rápida de 3 pasos y recomendaciones para rendir mañana el examen de ${proactiveContext.subject} con tranquilidad`)}
+                    className="px-3 py-1.5 rounded-lg bg-[#00E5FF] text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Tips para rendir</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {messages.length <= 1 && proactiveContext?.type === 'streak' && (
+              <div className="mb-3 p-3 sm:p-4 rounded-xl bg-[#FF5C5C] text-white border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] space-y-2.5 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🔥</span>
+                  <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-black">
+                    ¡Defendé tu racha de {proactiveContext.daysStreak} días!
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleQuickAction("Tomame un quiz express de 5 preguntas variadas de mis materias cursadas para registrar estudio")}
+                    className="px-3 py-1.5 rounded-lg bg-black text-[#FFE600] font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
+                  >
+                    <FileQuestion className="w-3.5 h-3.5" />
+                    <span>Quiz express de 5 preguntas</span>
+                  </button>
+                  <button
+                    onClick={() => handleQuickAction("Armame una sesión de estudio guiada de 15 minutos con técnica Pomodoro")}
+                    className="px-3 py-1.5 rounded-lg bg-white text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Estudio guiado de 15 min</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Quick actions — horizontal scroll on mobile */}
             {messages.length <= 1 && (

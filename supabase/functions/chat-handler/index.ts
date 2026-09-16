@@ -546,6 +546,97 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body = await req.json();
+
+    // ───────────────── PROACTIVE NOTIFICATIONS & REMINDERS ─────────────────
+    if (body && body.action === "send_proactive_reminders") {
+      const targetUserId = body.target_user_id;
+      let botsQuery = supabase.from('user_bots').select('user_id, telegram_id, whatsapp_number');
+      if (targetUserId) {
+        botsQuery = botsQuery.eq('user_id', targetUserId);
+      } else {
+        botsQuery = botsQuery.or('telegram_id.not.is.null,whatsapp_number.not.is.null');
+      }
+
+      const { data: botUsers, error: botErr } = await botsQuery;
+      if (botErr || !botUsers || botUsers.length === 0) {
+        return new Response(JSON.stringify({ success: false, message: "No se encontraron usuarios vinculados" }), {
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+        });
+      }
+
+      const results = [];
+      const now = new Date();
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const todayStr = now.toISOString().split("T")[0];
+
+      for (const bot of botUsers) {
+        try {
+          const uId = bot.user_id;
+          const { data: profile } = await supabase.from('profiles').select('nombre').eq('id', uId).maybeSingle();
+          const studentName = profile?.nombre || "estudiante";
+
+          // Buscar exámenes de mañana en el calendario
+          const { data: tomorrowExams } = await supabase
+            .from('calendar_events')
+            .select('id, titulo, tipo_examen, fecha, subject_id, subjects(nombre)')
+            .eq('user_id', uId)
+            .eq('fecha', tomorrowStr)
+            .neq('tipo_examen', 'Estudio');
+
+          // Buscar estadísticas de racha y sesiones del día
+          const { data: stats } = await supabase.from('user_stats').select('racha_actual').eq('user_id', uId).maybeSingle();
+          const { data: todaySessions } = await supabase
+            .from('study_sessions')
+            .select('id')
+            .eq('user_id', uId)
+            .eq('fecha', todayStr)
+            .limit(1);
+
+          let reminderMessage = "";
+
+          if (tomorrowExams && tomorrowExams.length > 0) {
+            const ex = tomorrowExams[0];
+            const examType = ex.tipo_examen || "parcial";
+            const subjectName = (ex as any).subjects?.nombre || ex.titulo || "tu materia";
+            reminderMessage = `👋 ¡Hola ${studentName}! 🎓 Vi en TABE que mañana tenés el ${examType} de *${subjectName}*.\n\n¿Querés que te haga unas preguntas de repaso rápido para afianzar conceptos o preferís descansar? Escribime *"quiz de ${subjectName}"* o lo que necesites y lo preparamos al instante. ¡Muchos éxitos mañana! 💪📚`;
+          } else if (stats && stats.racha_actual >= 2 && (!todaySessions || todaySessions.length === 0)) {
+            reminderMessage = `🔥 ¡Hola ${studentName}! Venís con una gran racha de *${stats.racha_actual} días seguidos* de estudio en TABE.\n\nTodavía no registraste ninguna sesión hoy y tu racha está en juego. ¿Le dedicamos 15 minutitos a repasar con un quiz o registrar lo que estudiaste hoy? 🎯`;
+          } else if (body.force_test) {
+            reminderMessage = `🔔 ¡Hola ${studentName}! Este es un mensaje de prueba del sistema de *Recordatorios Proactivos de TABE AI*.\n\nCuando tengas un parcial, entrega o tu racha de estudio esté en juego, te voy a avisar por acá con anticipación y sugerirte repasos interactivos. ¡Todo listo y conectado! 🎓🚀`;
+          }
+
+          if (reminderMessage) {
+            let sentTelegram = false;
+            let sentWhatsapp = false;
+
+            if (bot.telegram_id) {
+              await sendMessage('telegram', bot.telegram_id.toString(), reminderMessage);
+              sentTelegram = true;
+            }
+            if (bot.whatsapp_number) {
+              await sendMessage('whatsapp', bot.whatsapp_number.toString(), reminderMessage);
+              sentWhatsapp = true;
+            }
+
+            results.push({
+              user_id: uId,
+              studentName,
+              sentTelegram,
+              sentWhatsapp,
+              reminderMessage
+            });
+          }
+        } catch (botLoopErr) {
+          console.error("Error enviando recordatorio proactivo al usuario:", bot.user_id, botLoopErr);
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, count: results.length, results }), {
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+      });
+    }
+
     let platform: 'telegram' | 'whatsapp' | null = null;
     let senderId: string | null = null;
     let text: string | null = null;
