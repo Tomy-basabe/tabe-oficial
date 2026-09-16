@@ -398,7 +398,9 @@ export default function CareerPlan() {
           onClose={handleCloseStatusModal}
           subject={selectedSubject}
           onStatusChange={updateSubjectStatus}
+          onUpdate={updateSubjectStatus}
           onGradesChange={updatePartialGrades}
+          onUpdatePartialGrades={updatePartialGrades}
           onEditDetails={() => handleEditDetails(selectedSubject)}
           onEditDependencies={() => handleEditDependencies(selectedSubject)}
         />

@@ -76,7 +76,7 @@ function parseGradeInput(val: string): number | null {
 }
 
 export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGradesSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   // Inputs state

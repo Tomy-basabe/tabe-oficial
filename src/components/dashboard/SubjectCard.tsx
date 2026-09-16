@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { BookOpen, Lock, Clock, RotateCcw, X } from "lucide-react";
+import { BookOpen, Lock, Clock, RotateCcw } from "lucide-react";
 import { LegendarySubjectCard } from "@/components/subjects/LegendarySubjectCard";
 
 export type SubjectStatus = "aprobada" | "regular" | "cursable" | "bloqueada" | "recursar";
@@ -122,11 +122,13 @@ export const SubjectCard = memo(function SubjectCard({
     <div
       onClick={onClick}
       style={cardStyle}
-      className="relative group transition-transform duration-200 h-full flex flex-col cursor-pointer hover:-translate-y-1"
+      className="relative group transition-all duration-200 pt-7 h-full flex flex-col cursor-pointer hover:-translate-y-1"
     >
       {/* Folder Tab */}
       <div 
-        className={cn("absolute bottom-[calc(100%-3px)] left-0 px-3 py-1.5 pb-2 rounded-t-lg font-black text-[10px] tracking-wider z-0 flex items-center gap-1.5")}
+        className={cn(
+          "absolute top-0 left-0 h-7 px-3 rounded-t-lg border-[3px] border-b-0 border-foreground font-black text-[10px] tracking-wider z-0 flex items-center gap-1.5 select-none"
+        )}
         style={{ backgroundColor: "var(--tab-bg)", color: "var(--tab-text)" }}
       >
         <Icon className="w-3.5 h-3.5" style={{ color: "var(--tab-text)" }} />
@@ -136,7 +138,7 @@ export const SubjectCard = memo(function SubjectCard({
       {/* Main Folder Body */}
       <div
         className={cn(
-          "relative z-10 w-full rounded-xl rounded-tl-none border-[3px] border-foreground text-left transition-shadow duration-200 flex-1 flex flex-col overflow-hidden",
+          "relative z-10 w-full rounded-xl rounded-tl-none border-[3px] border-foreground text-left transition-shadow duration-200 flex-1 flex flex-col",
           "bg-[var(--card-bg-light)] dark:bg-[var(--card-bg-dark)]",
           "text-[var(--card-text-light)] dark:text-[var(--card-text-dark)]",
           "hover:bg-[var(--card-bg-hover-light)] dark:hover:bg-[var(--card-bg-hover-dark)] hover:shadow-[4px_4px_0_0_var(--card-shadow)]",
@@ -144,7 +146,6 @@ export const SubjectCard = memo(function SubjectCard({
           compact ? "p-3" : "p-4"
         )}
       >
-
         <div className="flex items-start justify-between mb-1 relative z-10">
           <span 
             className="text-[10px] font-extrabold px-2 py-0.5 rounded-md border-2 border-foreground"
@@ -160,37 +161,49 @@ export const SubjectCard = memo(function SubjectCard({
         </div>
 
         <h3 className={cn(
-          "font-black leading-tight mt-2 line-clamp-2",
+          "font-black leading-tight mt-2 line-clamp-2 min-h-[2.5rem]",
           compact ? "text-sm" : "text-base"
         )}>
           {nombre}
         </h3>
 
-        <div className="flex items-center gap-1 mt-2">
-          <span className="text-[10px] font-bold text-foreground/70 uppercase tracking-widest">{codigo}</span>
-        </div>
-
-        {/* Show missing requirements for blocked subjects */}
-        {status === "bloqueada" && requisitos_faltantes.length > 0 && !compact ? (
-          <div className="mt-auto pt-3 border-t-2 border-dashed border-foreground/30">
-            <p className="text-[10px] text-foreground font-bold mb-1 flex items-center gap-1">
-              <Lock className="w-3 h-3" />
-              Requisitos:
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {requisitos_faltantes.slice(0, 3).map((req, idx) => (
-                <span
-                  key={idx}
-                  className="px-1.5 py-0.5 bg-background border-2 border-foreground rounded text-[9px] font-bold text-foreground"
-                >
-                  {req}
-                </span>
-              ))}
-            </div>
+        {/* Bottom Bar matching LegendarySubjectCard */}
+        <div className="mt-auto pt-3 border-t-[3px] border-foreground/20 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black tracking-widest text-foreground/80">
+              {codigo}
+            </span>
+            {nota !== null && nota !== undefined && !isNaN(Number(nota)) && Number(nota) > 0 && (
+              <span className="text-xs font-black px-2 py-0.5 rounded-md border-2 border-foreground bg-background text-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))]">
+                NOTA: {nota}
+              </span>
+            )}
           </div>
-        ) : (
-          <div className="mt-auto"></div>
-        )}
+
+          {/* Show missing requirements for blocked subjects */}
+          {status === "bloqueada" && requisitos_faltantes.length > 0 && !compact && (
+            <div className="pt-1.5 border-t border-dashed border-foreground/30">
+              <p className="text-[9px] text-foreground font-black mb-1 flex items-center gap-1 uppercase">
+                <Lock className="w-2.5 h-2.5" /> Requisitos:
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {requisitos_faltantes.slice(0, 2).map((req, idx) => (
+                  <span
+                    key={idx}
+                    className="px-1.5 py-0.5 bg-background border border-foreground rounded text-[8px] font-black text-foreground"
+                  >
+                    {req}
+                  </span>
+                ))}
+                {requisitos_faltantes.length > 2 && (
+                  <span className="text-[8px] font-black text-muted-foreground self-center">
+                    +{requisitos_faltantes.length - 2}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

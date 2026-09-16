@@ -37,11 +37,13 @@ export const LegendarySubjectCard = memo(function LegendarySubjectCard({
     <div
       onClick={onClick}
       style={cardStyle}
-      className="relative group cursor-pointer transition-transform duration-200 hover:-translate-y-1 mt-6 h-full flex flex-col"
+      className="relative group cursor-pointer transition-all duration-200 hover:-translate-y-1 pt-7 h-full flex flex-col"
     >
       {/* Folder Tab */}
       <div 
-        className={cn("absolute bottom-[calc(100%-3px)] left-0 px-3 py-1.5 pb-2 rounded-t-lg border-[3px] border-foreground font-black text-[10px] tracking-wider z-0 flex items-center gap-1.5")}
+        className={cn(
+          "absolute top-0 left-0 h-7 px-3 rounded-t-lg border-[3px] border-b-0 border-foreground font-black text-[10px] tracking-wider z-0 flex items-center gap-1.5 select-none"
+        )}
         style={{ backgroundColor: "var(--golden-bg)", color: "var(--golden-text)" }}
       >
         <Crown className="w-3.5 h-3.5" style={{ color: "var(--golden-text)" }} />
@@ -75,7 +77,7 @@ export const LegendarySubjectCard = memo(function LegendarySubjectCard({
         {/* Subject name */}
         <h3
           className={cn(
-            "font-black leading-tight mt-2 line-clamp-2",
+            "font-black leading-tight mt-2 line-clamp-2 min-h-[2.5rem]",
             compact ? "text-sm" : "text-base"
           )}
         >
@@ -87,7 +89,7 @@ export const LegendarySubjectCard = memo(function LegendarySubjectCard({
           <span className="text-[10px] font-black tracking-widest">
             {codigo}
           </span>
-          {nota && (
+          {nota !== null && nota !== undefined && !isNaN(Number(nota)) && Number(nota) > 0 && (
             <span 
               className="text-xs font-black px-2 py-0.5 rounded-md border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
               style={{ backgroundColor: "var(--golden-code-bg)", color: "var(--golden-text)" }}

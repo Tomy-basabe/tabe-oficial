@@ -245,7 +245,7 @@ export function SubjectStatusModal({
             )}
 
             {/* Partial Grades Section with Comic styling */}
-            {onUpdatePartialGrades && (
+            {saveGrades && (
               <PartialGradesSection
                 key={subjectId}
                 grades={currentPartialGrades}
