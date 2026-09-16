@@ -61,7 +61,7 @@ async function sendPushToUser(
     body: payloadData.body || "¡Las notificaciones en segundo plano están funcionando con la app cerrada!",
     icon: "/pwa-192x192.png",
     badge: "/pwa-192x192.png",
-    tag: payloadData.tag || ("tabe-" + Date.now()),
+    tag: payloadData.tag || ("tabe-" + (payloadData.title || "alert").toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30)),
     url: payloadData.url || "/dashboard",
     timestamp: Date.now()
   });

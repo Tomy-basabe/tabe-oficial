@@ -1,4 +1,4 @@
-﻿// ==============================================================================
+// ==============================================================================
 // TABE Background Push & Notification Service Worker Script
 // Handles Background Notifications, Web Push, and Clicks when app is closed.
 // ==============================================================================
@@ -6,6 +6,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. LISTEN FOR WEB PUSH NOTIFICATIONS (Wakes up SW even if app is closed)
 // ─────────────────────────────────────────────────────────────────────────────
+// In-memory deduplication cache (drops duplicate pushes within 15 seconds)
+var recentPushes = new Map();
+
 self.addEventListener('push', function (event) {
   var data = {};
   if (event.data) {
@@ -17,16 +20,37 @@ self.addEventListener('push', function (event) {
   }
 
   var title = data.title || 'T.A.B.E. 🎓';
+  var body = data.body || 'Tenés novedades académicas en TABE.';
+  var now = Date.now();
+
+  // 1. Deduplicate by content fingerprint (title + body)
+  var fingerprint = title + ':::' + body;
+  if (recentPushes.has(fingerprint)) {
+    var lastSeen = recentPushes.get(fingerprint);
+    if (now - lastSeen < 15000) {
+      console.log('[SW] Duplicate push event discarded:', title);
+      return;
+    }
+  }
+  recentPushes.set(fingerprint, now);
+  if (recentPushes.size > 50) {
+    recentPushes.clear();
+    recentPushes.set(fingerprint, now);
+  }
+
+  // 2. Deterministic tag so the OS (Android / iOS) merges duplicates
+  var deterministicTag = data.tag || ('tabe-' + title.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30));
+
   var options = {
-    body: data.body || 'Tenés novedades académicas en TABE.',
+    body: body,
     icon: data.icon || '/pwa-192x192.png',
     badge: data.badge || '/pwa-192x192.png',
-    tag: data.tag || ('tabe-push-' + Date.now()),
-    renotify: true,
-    requireInteraction: true,
+    tag: deterministicTag,
+    renotify: false,
+    requireInteraction: false,
     data: {
       url: data.url || '/dashboard',
-      timestamp: Date.now()
+      timestamp: now
     },
     vibrate: [200, 100, 200]
   };
