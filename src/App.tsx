@@ -177,6 +177,10 @@ const AppRoutes = () => (
       <Route path="/examenes" element={<Exams />} />
       <Route path="/amigos" element={<Friends />} />
       <Route path="/configuracion" element={<Settings />} />
+      <Route path="/settings" element={<Navigate to="/configuracion" replace />} />
+      <Route path="/apk" element={<Navigate to="/configuracion" replace />} />
+      <Route path="/android" element={<Navigate to="/configuracion" replace />} />
+      <Route path="/descargar" element={<Navigate to="/configuracion" replace />} />
       <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       <Route path="/bosque" element={<Forest />} />
       <Route path="/rutinas" element={<Routines />} />

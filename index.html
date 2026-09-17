@@ -95,6 +95,12 @@
           });
         }
         window.location.replace('https://www.tabe.software' + window.location.pathname + window.location.search + window.location.hash);
+      } else if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(function(reg) {
+          if (reg) {
+            reg.update();
+          }
+        });
       }
     })();
   </script>

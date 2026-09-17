@@ -4,6 +4,31 @@
 // ==============================================================================
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 0. AUTO-UPDATE & IMMEDIATE LIFECYCLE (Invalidate old cache on mobile instantly)
+// ─────────────────────────────────────────────────────────────────────────────
+self.addEventListener('install', function (event) {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function (event) {
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      // Invalidate any stale caches if needed
+      caches.keys().then(function (cacheNames) {
+        return Promise.all(
+          cacheNames.filter(function (name) {
+            return name.includes('tabe-old-cache');
+          }).map(function (name) {
+            return caches.delete(name);
+          })
+        );
+      })
+    ])
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. LISTEN FOR WEB PUSH NOTIFICATIONS (Wakes up SW even if app is closed)
 // ─────────────────────────────────────────────────────────────────────────────
 // In-memory deduplication cache (drops duplicate pushes within 15 seconds)
@@ -175,6 +200,18 @@ function checkOfflineReminders() {
 // ─────────────────────────────────────────────────────────────────────────────
 self.addEventListener('message', function (event) {
   if (!event.data) return;
+
+  if (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
+
+  if (event.data.type === 'CLEAR_CACHE') {
+    caches.keys().then(function (names) {
+      names.forEach(function (name) {
+        caches.delete(name);
+      });
+    });
+  }
 
   if (event.data.type === 'SHOW_NOTIFICATION') {
     var payload = event.data.payload || {};
