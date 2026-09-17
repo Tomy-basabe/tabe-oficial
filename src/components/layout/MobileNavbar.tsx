@@ -21,8 +21,7 @@ import {
   Compass, 
   LayoutGrid, 
   X, 
-  ChevronUp,
-  Smartphone
+  ChevronUp
 } from "lucide-react";
 import { NotionIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
@@ -305,30 +304,6 @@ export function MobileNavbar() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Direct Banner App Android APK */}
-            <div className="px-4 py-2 border-t-2 border-border/60 bg-[#00FFAA]/10">
-              <SheetClose asChild>
-                <Link
-                  to="/configuracion#descargar-apk-android"
-                  onClick={() => ComicAudio.playPop()}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#00FFAA] text-black border-2 border-black shadow-[2px_2px_0_0_#000] active:translate-y-[1px]"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-black text-[#00FFAA] flex items-center justify-center shrink-0">
-                      <Smartphone className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-black uppercase text-xs leading-none">App Oficial Android</p>
-                      <p className="text-[10px] font-bold text-black/80 mt-0.5">Descargar APK & Widgets</p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-black text-[#00FFAA]">
-                    Instalar
-                  </span>
-                </Link>
-              </SheetClose>
             </div>
 
             {/* Bottom Quick Dismiss Action */}

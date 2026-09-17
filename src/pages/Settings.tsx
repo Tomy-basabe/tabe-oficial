@@ -21,11 +21,7 @@ import {
   Unlink,
   GraduationCap,
   Copy,
-  ExternalLink,
-  Smartphone,
-  Download,
-  Info,
-  RefreshCw
+  ExternalLink
 } from "lucide-react";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
@@ -74,32 +70,6 @@ export default function Settings() {
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [hasGoogleFeed, setHasGoogleFeed] = useState<boolean>(() => !!getStoredGoogleFeedUrl());
   const [moodleSession, setMoodleSession] = useState<MoodleSession | null>(() => getStoredMoodleSession());
-  const [updatingApp, setUpdatingApp] = useState(false);
-
-  const handleForceUpdate = async () => {
-    setUpdatingApp(true);
-    toast.info("Actualizando TABE y limpiando caché del dispositivo...");
-    try {
-      if ("serviceWorker" in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const reg of registrations) {
-          await reg.update().catch(() => {});
-          if (reg.waiting) {
-            reg.waiting.postMessage({ type: "SKIP_WAITING" });
-          }
-        }
-      }
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-      }
-      setTimeout(() => {
-        window.location.reload();
-      }, 400);
-    } catch (err) {
-      window.location.reload();
-    }
-  };
 
   useEffect(() => {
     setMoodleSession(getStoredMoodleSession());
@@ -280,89 +250,6 @@ export default function Settings() {
           <div className="flex-1 min-w-0">
             <h2 className="font-black text-xl sm:text-2xl uppercase tracking-tight text-black truncate">{userName}</h2>
             <p className="font-bold text-black/70 mt-0.5 text-xs sm:text-sm truncate">{userEmail}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Sección Aplicación Móvil Oficial (Android APK & Widgets) */}
-      <div id="descargar-apk-android" className="space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <h3 className="font-black uppercase text-lg sm:text-xl text-foreground flex items-center gap-2">
-              <Smartphone className="w-6 h-6 text-[#00FFAA]" />
-              <span>Aplicación Móvil Oficial (Android)</span>
-            </h3>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#00FFAA] text-black border-2 border-black shadow-[2px_2px_0_0_#000] -rotate-1">
-              APK • WIDGETS
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={handleForceUpdate}
-            disabled={updatingApp}
-            className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Si no ves los últimos cambios o la app no se actualiza en tu teléfono, pulsa aquí"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${updatingApp ? "animate-spin text-[#00FFAA]" : ""}`} />
-            <span>{updatingApp ? "Actualizando..." : "Comprobar actualizaciones"}</span>
-          </button>
-        </div>
-
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 sm:p-6 space-y-4 relative overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl border-3 border-foreground bg-[#00FFAA] shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center shrink-0">
-                <Smartphone className="w-7 h-7 text-black" strokeWidth={2.5} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-black uppercase text-base sm:text-lg text-foreground">
-                    T.A.B.E. para Android
-                  </h4>
-                  <span className="text-xs font-mono font-black px-1.5 py-0.5 rounded bg-foreground text-background">
-                    v2.8.0
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm font-bold text-muted-foreground leading-relaxed max-w-xl">
-                  Instala la versión nativa para habilitar los <strong>Widgets de Calendario y Agenda</strong> en tu pantalla de inicio de Android, con notificaciones instantáneas de parciales y entregas.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
-              <a
-                href="https://github.com/Tomy-basabe/tabe-oficial/releases/latest/download/TABE.apk"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider text-black bg-[#00FFAA] border-3 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_#000] active:translate-y-[1px] transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
-              >
-                <Download className="w-4 h-4" />
-                <span>Descargar APK Oficial</span>
-              </a>
-
-              <a
-                href="https://github.com/Tomy-basabe/tabe-oficial/releases"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-3 rounded-xl font-black text-xs uppercase tracking-wider bg-muted text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Releases</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Guía de instalación y activación del Widget */}
-          <div className="p-4 bg-muted/50 border-2 border-foreground/30 rounded-xl space-y-2 text-xs">
-            <div className="flex items-center gap-2 font-black uppercase text-foreground">
-              <Info className="w-4 h-4 text-[#00FFAA] shrink-0" />
-              <span>Cómo instalar y activar el Widget en tu celular:</span>
-            </div>
-            <ol className="list-decimal list-inside space-y-1.5 font-bold text-muted-foreground pl-1">
-              <li>Pulsa en <strong>Descargar APK Oficial</strong> y autoriza la descarga del archivo en tu teléfono.</li>
-              <li>Abre el archivo descargado para instalarlo (si Android te lo pide, activa <em>"Permitir desde esta fuente"</em>).</li>
-              <li>Ve a tu pantalla de inicio, mantén presionado un espacio vacío, toca en <strong>Widgets</strong>, busca <strong>TABE Calendario</strong> y colócalo en tu pantalla.</li>
-            </ol>
           </div>
         </div>
       </div>
