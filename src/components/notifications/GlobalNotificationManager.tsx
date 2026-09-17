@@ -7,7 +7,6 @@ import { Bell, Check, X } from "lucide-react";
 export function GlobalNotificationManager() {
   const { user } = useAuth();
   const [showPrompt, setShowPrompt] = useState(false);
-  const [isSubscribing, setIsSubscribing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -103,29 +102,29 @@ export function GlobalNotificationManager() {
     }
   }
 
-  const handleEnable = async () => {
+  const handleEnable = () => {
     if (!user) return;
-    setIsSubscribing(true);
-    try {
-      const sub = await subscribeUserToPush(user.id);
-      if (sub) {
-        await syncUpcomingAlarms(user.id);
-        setShowPrompt(false);
-      } else {
-        setShowPrompt(false);
+    // Cerrar inmediatamente el cartel para no bloquear ni molestar al usuario
+    setShowPrompt(false);
+    localStorage.setItem("tabe_notif_prompt_dismissed", (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+
+    // Ejecutar la suscripción y sincronización de forma silenciosa en segundo plano
+    (async () => {
+      try {
+        const sub = await subscribeUserToPush(user.id);
+        if (sub) {
+          await syncUpcomingAlarms(user.id);
+        }
+      } catch (e) {
+        console.warn("Background push activation error:", e);
       }
-    } catch (e) {
-      console.error("Error activating push:", e);
-      setShowPrompt(false);
-    } finally {
-      setIsSubscribing(false);
-    }
+    })();
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    // Dismiss for 7 days
-    localStorage.setItem("tabe_notif_prompt_dismissed", (Date.now() + 7 * 24 * 60 * 60 * 1000).toString());
+    // Descartar por 14 días
+    localStorage.setItem("tabe_notif_prompt_dismissed", (Date.now() + 14 * 24 * 60 * 60 * 1000).toString());
   };
 
   if (!showPrompt) return null;
@@ -158,11 +157,10 @@ export function GlobalNotificationManager() {
           <div className="flex items-center gap-2 mt-3">
             <button
               onClick={handleEnable}
-              disabled={isSubscribing}
-              className="flex-1 bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="flex-1 bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              {isSubscribing ? "Activando..." : "Activar Ahora"}
+              Activar Ahora
             </button>
             <button
               onClick={handleDismiss}
