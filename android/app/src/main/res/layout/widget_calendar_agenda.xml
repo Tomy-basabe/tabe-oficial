@@ -1,0 +1,289 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="14dp">
+
+    <!-- HEADER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="10dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_today_day"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TABE • CALENDARIO"
+                android:textColor="#00FFAA"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
+
+            <TextView
+                android:id="@+id/widget_today_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hoy"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Botón + Agregar Evento -->
+        <TextView
+            android:id="@+id/widget_btn_add"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/widget_btn_circle"
+            android:gravity="center"
+            android:text="+"
+            android:textColor="#000000"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- DIVIDER -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#242430"
+        android:layout_marginBottom="8dp" />
+
+    <!-- EMPTY STATE -->
+    <LinearLayout
+        android:id="@+id/widget_empty_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🎓"
+            android:textSize="24sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="¡Sin exámenes próximos!"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tocá para abrir TABE"
+            android:textColor="#7A7A8C"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- EVENTS LIST CONTAINER -->
+    <LinearLayout
+        android:id="@+id/widget_events_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- EVENT SLOT 1 -->
+        <LinearLayout
+            android:id="@+id/widget_slot_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_item_bg"
+            android:padding="8dp"
+            android:layout_marginBottom="6dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/widget_slot_1_indicator"
+                android:layout_width="4dp"
+                android:layout_height="28dp"
+                android:background="@drawable/widget_indicator"
+                android:layout_marginEnd="8dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_slot_1_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1° Parcial Álgebra"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_slot_1_subject"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Álgebra y Geometría"
+                    android:textColor="#9E9EB0"
+                    android:textSize="10sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/widget_slot_1_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mar 22 • 18:30"
+                android:textColor="#00FFAA"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- EVENT SLOT 2 -->
+        <LinearLayout
+            android:id="@+id/widget_slot_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_item_bg"
+            android:padding="8dp"
+            android:layout_marginBottom="6dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/widget_slot_2_indicator"
+                android:layout_width="4dp"
+                android:layout_height="28dp"
+                android:background="@drawable/widget_indicator"
+                android:layout_marginEnd="8dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_slot_2_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Entrega TP Laboratorio"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_slot_2_subject"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Física I"
+                    android:textColor="#9E9EB0"
+                    android:textSize="10sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/widget_slot_2_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Jue 24 • 14:00"
+                android:textColor="#00FFAA"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- EVENT SLOT 3 -->
+        <LinearLayout
+            android:id="@+id/widget_slot_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_item_bg"
+            android:padding="8dp"
+            android:layout_marginBottom="6dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/widget_slot_3_indicator"
+                android:layout_width="4dp"
+                android:layout_height="28dp"
+                android:background="@drawable/widget_indicator"
+                android:layout_marginEnd="8dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_slot_3_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Recuperatorio Parcial"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_slot_3_subject"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Química General"
+                    android:textColor="#9E9EB0"
+                    android:textSize="10sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/widget_slot_3_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Lun 28 • 10:00"
+                android:textColor="#00FFAA"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- FOOTER -->
+    <TextView
+        android:id="@+id/widget_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Abrir Calendario Completo ➔"
+        android:textColor="#5D5D72"
+        android:textSize="9sp"
+        android:textStyle="bold"
+        android:paddingTop="2dp" />
+
+</LinearLayout>

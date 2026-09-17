@@ -37,3 +37,11 @@ Info importante TABE.txt
 *.p12
 *.pfx
 service_role*
+
+# Android build artifacts
+android/.gradle
+android/build
+android/app/build
+android/captures
+*.apk
+*.aab

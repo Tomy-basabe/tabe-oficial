@@ -282,6 +282,17 @@ export function useCalendarEvents() {
     return allEvents.sort((a, b) => a.fecha.localeCompare(b.fecha));
   }, [rawEvents]);
 
+  // Sincronizar automáticamente con el widget nativo de Android
+  useEffect(() => {
+    if (events && events.length >= 0) {
+      import("@/lib/androidWidgetSync").then(({ syncEventsToAndroidWidget }) => {
+        syncEventsToAndroidWidget(events);
+      }).catch(err => {
+        console.warn("Could not sync to Android widget:", err);
+      });
+    }
+  }, [events]);
+
   const createEvent = async (
     data: CreateEventData,
     options?: { silent?: boolean; skipRefetch?: boolean }

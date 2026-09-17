@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TABE</string>
+    <string name="title_activity_main">TABE</string>
+    <string name="package_name">com.tabe.app</string>
+    <string name="custom_url_scheme">com.tabe.app</string>
+    <string name="widget_calendar_title">TABE Calendario</string>
+    <string name="widget_calendar_description">Visualiza tus próximos exámenes, clases y tareas en la pantalla de inicio</string>
+</resources>
