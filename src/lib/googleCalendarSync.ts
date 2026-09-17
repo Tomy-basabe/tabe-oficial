@@ -67,14 +67,30 @@ export function extractAndStoreTokenFromUrl(): string | null {
         if (raw) {
           try {
             const parsed = JSON.parse(raw);
-            if (parsed?.provider_token && parsed.provider_token.length > 10) {
+            const pToken =
+              parsed?.provider_token ||
+              parsed?.session?.provider_token ||
+              parsed?.currentSession?.provider_token;
+            const rToken =
+              parsed?.provider_refresh_token ||
+              parsed?.session?.provider_refresh_token ||
+              parsed?.currentSession?.provider_refresh_token;
+            const email =
+              parsed?.user?.email ||
+              parsed?.session?.user?.email ||
+              parsed?.currentSession?.user?.email;
+            const expIn =
+              parsed?.expires_in ||
+              parsed?.session?.expires_in;
+
+            if (pToken && typeof pToken === "string" && pToken.length > 10) {
               setStoredGoogleToken(
-                parsed.provider_token,
-                parsed?.user?.email,
-                parsed?.provider_refresh_token ?? undefined,
-                parsed?.expires_in
+                pToken,
+                email,
+                rToken || undefined,
+                expIn
               );
-              return parsed.provider_token;
+              return pToken;
             }
           } catch {}
         }
@@ -742,13 +758,14 @@ export async function fetchEventsFromGoogleCalendar(options?: {
     token = await refreshGoogleToken();
   }
 
-  // Filter events from the start of today (local time) onwards
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const timeMin = options?.timeMin || today.toISOString();
+  // Traer eventos desde hace 60 días para cubrir todo el mes actual y parciales recientes
+  const pastWindow = new Date();
+  pastWindow.setDate(pastWindow.getDate() - 60);
+  pastWindow.setHours(0, 0, 0, 0);
+  const timeMin = options?.timeMin || pastWindow.toISOString();
 
   // Look ahead 1 year
-  const oneYearAhead = new Date(today);
+  const oneYearAhead = new Date();
   oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
   const timeMax = options?.timeMax || oneYearAhead.toISOString();
 
@@ -981,8 +998,10 @@ export async function performBidirectionalSync(params: {
     for (const tEvent of params.tabeEvents) {
       if (tEvent.isVirtual) continue;
 
-      const eventDate = (tEvent.fecha || "").split("T")[0];
-      if (eventDate && eventDate < todayStr) continue;
+      const pastLimit = new Date();
+      pastLimit.setDate(pastLimit.getDate() - 60);
+      const minDateStr = toLocalDateStr(pastLimit);
+      if (eventDate && eventDate < minDateStr) continue;
 
       const gcalId = extractGoogleEventId(tEvent.notas);
       const matchKey = buildEventMatchKey(tEvent.titulo, eventDate, tEvent.hora, tEvent.is_all_day);
@@ -1833,6 +1852,76 @@ export async function syncGoogleOAuthDirect(
     if (!insErr) added = toInsert.length;
   }
 
+  // FASE PUSH (TABE -> Google Calendar): Subir eventos creados en TABE que aún no estén en Google
+  try {
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const minDateStr = toLocalDateStr(sixtyDaysAgo);
+
+    const googleIdsSet = new Set(googleEvents.map((g: any) => g.id).filter(Boolean));
+
+    for (const tEvent of existingEvents || []) {
+      const evDate = (tEvent.fecha || "").split("T")[0];
+      if (evDate && evDate < minDateStr) continue;
+
+      const gcalId = extractGoogleEventId(tEvent.notas);
+      if (gcalId && googleIdsSet.has(gcalId)) {
+        continue;
+      }
+
+      // Verificar si ya existe un evento idéntico en Google Calendar para evitar duplicar
+      const matchKey = buildEventMatchKey(tEvent.titulo, evDate, tEvent.hora, tEvent.is_all_day);
+      const dtKey = `${normalizeEventTitle(tEvent.titulo)}___${evDate}`;
+      const existingInGoogle = googleEvents.find((gEv: any) => {
+        if (gEv.status === "cancelled") return false;
+        const startDt = gEv.start?.dateTime || gEv.start?.date;
+        if (!startDt) return false;
+        const gDate = String(startDt).split("T")[0];
+        const isAllDay = !gEv.start?.dateTime;
+        let gHora: string | undefined = undefined;
+        if (!isAllDay && gEv.start?.dateTime) {
+          try {
+            const d = new Date(gEv.start.dateTime);
+            if (!isNaN(d.getTime())) {
+              gHora = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+            }
+          } catch {}
+        }
+        return (
+          buildEventMatchKey(gEv.summary || "", gDate, gHora, isAllDay) === matchKey ||
+          `${normalizeEventTitle(gEv.summary || "")}___${gDate}` === dtKey
+        );
+      });
+
+      if (existingInGoogle?.id) {
+        const newNotas = injectGoogleEventId(tEvent.notas, existingInGoogle.id);
+        await supabase.from("calendar_events").update({ notas: newNotas }).eq("id", tEvent.id);
+        googleIdsSet.add(existingInGoogle.id);
+        continue;
+      }
+
+      // Subir evento nuevo a Google Calendar
+      const pushRes = await pushEventToGoogleCalendar({
+        id: tEvent.id,
+        titulo: tEvent.titulo,
+        fecha: tEvent.fecha,
+        hora: tEvent.hora,
+        hora_fin: tEvent.hora_fin,
+        notas: tEvent.notas,
+        ubicacion: tEvent.ubicacion,
+        is_all_day: tEvent.is_all_day,
+      });
+
+      if (pushRes.gcalId) {
+        const newNotas = injectGoogleEventId(tEvent.notas, pushRes.gcalId);
+        await supabase.from("calendar_events").update({ notas: newNotas }).eq("id", tEvent.id);
+        googleIdsSet.add(pushRes.gcalId);
+      }
+    }
+  } catch (pushErr) {
+    console.warn("[GoogleOAuthSync] Error en fase push a Google Calendar:", pushErr);
+  }
+
   // Limpieza automática profunda tras la sincronización
   try {
     await cleanupDuplicateEvents(userId);
@@ -1849,13 +1938,26 @@ export async function syncGoogleOAuthDirect(
 
 /**
  * Universal background auto-sync function for Google Calendar.
- * Supports permanent iCal feed (top priority, zero expiration) and OAuth 2-way sync.
+ * Supports direct OAuth 2-way sync (top priority) and permanent iCal feed fallback.
  */
 export async function performGoogleAutoSync(
   userId: string,
   userMetadata?: any
 ): Promise<{ success: boolean; added: number; updated: number; message?: string }> {
-  // 1. Check Permanent iCal Feed first (Best reliability, no token expiration)
+  // 1. Check direct OAuth token first (Best for true 2-way real-time bidirectional sync)
+  let token = getStoredGoogleToken();
+  if (!token) {
+    token = await refreshGoogleToken();
+  }
+  if (token) {
+    try {
+      return await syncGoogleOAuthDirect(userId, token);
+    } catch (err: any) {
+      console.warn("Google OAuth sync error:", err);
+    }
+  }
+
+  // 2. Fallback to Permanent iCal Feed if OAuth is not available
   const feedUrl = getStoredGoogleFeedUrl(userMetadata);
   if (feedUrl) {
     try {
@@ -1870,20 +1972,6 @@ export async function performGoogleAutoSync(
       };
     } catch (err: any) {
       console.warn("Google iCal feed sync error:", err);
-    }
-  }
-
-  // 2. Check direct OAuth token
-  let token = getStoredGoogleToken();
-  if (!token) {
-    token = await refreshGoogleToken();
-  }
-  if (token) {
-    try {
-      return await syncGoogleOAuthDirect(userId, token);
-    } catch (err: any) {
-      console.warn("Google OAuth sync error:", err);
-      return { success: false, added: 0, updated: 0, message: err?.message };
     }
   }
 

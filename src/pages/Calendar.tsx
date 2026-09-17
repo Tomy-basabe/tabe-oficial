@@ -128,18 +128,20 @@ export default function Calendar() {
 
   const handleManualSync = async () => {
     if (isSyncing) return;
-    if (!isGoogleCalendarConnected(user)) {
+    if (!isGoogleCalendarConnected(user) && !isMoodleConnected(user?.user_metadata)) {
       setShowSyncModal(true);
       return;
     }
     setIsSyncing(true);
+    toast.info("Sincronizando calendarios en tiempo real...", { icon: "⚡" });
     try {
-      const res = await performGlobalCalendarSync(user, { force: true, silent: true });
+      const res = await performGlobalCalendarSync(user, { force: true, silent: false });
       await refetch();
       setIsGCalConnected(isGoogleCalendarConnected(user));
       const gRes = res.google;
-      if (gRes?.success) {
-        toast.success("Google Calendar sincronizado", { icon: "📅", duration: 2000 });
+      const mRes = res.moodle;
+      if (gRes?.success || mRes?.success) {
+        toast.success("Sincronización completada con éxito", { icon: "✅", duration: 3000 });
       } else if (gRes?.message) {
         if (gRes.message.includes("expirad") || gRes.message.includes("no conectado")) {
           setShowSyncModal(true);
@@ -420,77 +422,61 @@ export default function Calendar() {
             Exámenes
           </button>
           {/* Botón Google con indicador de estado (verde = sincronizado / rojo = no sincronizado) */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={isGCalConnected ? handleManualSync : () => setShowSyncModal(true)}
-              onContextMenu={(e) => { e.preventDefault(); setShowSyncModal(true); }}
-              disabled={isSyncing}
-              title={
+          <button
+            onClick={() => setShowSyncModal(true)}
+            title={
+              isGCalConnected
+                ? "Google Calendar conectado (Clic para sincronizar o configurar)"
+                : "Google Calendar desconectado (Clic para conectar)"
+            }
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-wider shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-2 bg-white cursor-pointer"
+          >
+            <span
+              className={cn(
+                "w-2.5 h-2.5 rounded-full border border-black shrink-0 transition-colors",
                 isGCalConnected
-                  ? "Google Calendar sincronizado (Clic para actualizar)"
-                  : "Google Calendar no sincronizado (Clic para conectar)"
-              }
-              className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-wider shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-2 disabled:opacity-70 bg-white cursor-pointer"
-            >
-              {isSyncing ? (
-                <Loader2 className="w-4 h-4 animate-spin text-black" />
-              ) : (
-                <span
-                  className={cn(
-                    "w-2.5 h-2.5 rounded-full border border-black shrink-0 transition-colors",
-                    isGCalConnected
-                      ? "bg-[#00FF66] shadow-[0_0_8px_#00FF66]"
-                      : "bg-[#FF0055] shadow-[0_0_8px_#FF0055] animate-pulse"
-                  )}
-                />
+                  ? "bg-[#00FF66] shadow-[0_0_8px_#00FF66]"
+                  : "bg-[#FF0055] shadow-[0_0_8px_#FF0055] animate-pulse"
               )}
-              <span>Google</span>
-            </button>
-            <button
-              onClick={() => setShowSyncModal(true)}
-              title="Configuración de sincronización de Google"
-              className="p-2 text-black border-2 border-black rounded-lg font-black bg-white shadow-[2px_2px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all"
-            >
-              <Zap className="w-3.5 h-3.5" />
-            </button>
-          </div>
+            />
+            <span>Google</span>
+          </button>
 
           {/* Botón Moodle con indicador de estado (verde = sincronizado / rojo = no sincronizado) */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleMoodleButtonClick}
-              disabled={isMoodleSyncing}
-              title={
+          <button
+            onClick={() => setShowMoodleModal(true)}
+            title={
+              isMoodleConn
+                ? "Campus Virtual Moodle conectado (Clic para ver opciones)"
+                : "Campus Virtual Moodle desconectado (Clic para conectar)"
+            }
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-wider shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-2 bg-white cursor-pointer"
+          >
+            <span
+              className={cn(
+                "w-2.5 h-2.5 rounded-full border border-black shrink-0 transition-colors",
                 isMoodleConn
-                  ? "Campus Virtual Moodle sincronizado (Clic para actualizar)"
-                  : "Campus Virtual Moodle no sincronizado (Clic para conectar)"
-              }
-              className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-wider shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-2 disabled:opacity-70 bg-white cursor-pointer"
-            >
-              {isMoodleSyncing ? (
-                <Loader2 className="w-4 h-4 animate-spin text-black" />
-              ) : (
-                <span
-                  className={cn(
-                    "w-2.5 h-2.5 rounded-full border border-black shrink-0 transition-colors",
-                    isMoodleConn
-                      ? "bg-[#00FF66] shadow-[0_0_8px_#00FF66]"
-                      : "bg-[#FF0055] shadow-[0_0_8px_#FF0055] animate-pulse"
-                  )}
-                />
+                  ? "bg-[#00FF66] shadow-[0_0_8px_#00FF66]"
+                  : "bg-[#FF0055] shadow-[0_0_8px_#FF0055] animate-pulse"
               )}
-              <span>Moodle</span>
-            </button>
-            {isMoodleConn && (
-              <button
-                onClick={() => setShowMoodleModal(true)}
-                title="Configurar Campus Virtual Moodle"
-                className="p-2 text-black border-2 border-black rounded-lg font-black bg-white shadow-[2px_2px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all"
-              >
-                <Zap className="w-3.5 h-3.5" />
-              </button>
+            />
+            <span>Moodle</span>
+          </button>
+
+          {/* Botón de Sincronización Rápida con Rayo ⚡ */}
+          <button
+            onClick={handleManualSync}
+            disabled={isSyncing || isMoodleSyncing}
+            title="Sincronizar todo ahora (Google Calendar y Campus Virtual Moodle)"
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-[#FFE600] text-black border-2 sm:border-[3px] border-black rounded-lg font-black uppercase tracking-wider shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[2px] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+          >
+            {isSyncing || isMoodleSyncing ? (
+              <Loader2 className="w-4 h-4 animate-spin text-black" />
+            ) : (
+              <Zap className="w-4 h-4 fill-black text-black" />
             )}
-          </div>
+            <span>Sincronizar</span>
+          </button>
           <button
             onClick={handleCleanupDuplicates}
             disabled={isCleaningDuplicates}
