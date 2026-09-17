@@ -131,34 +131,44 @@ export function GlobalNotificationManager() {
   if (!showPrompt) return null;
 
   return (
-    <aside aria-label="Aviso de notificaciones" className="fixed top-5 left-1/2 -translate-x-1/2 z-50 max-w-md w-[calc(100vw-2rem)] bg-white dark:bg-black border-4 border-black dark:border-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] p-4 animate-in fade-in slide-in-from-top-5">
+    <aside 
+      aria-label="Aviso de notificaciones" 
+      className="fixed top-[calc(4.75rem+env(safe-area-inset-top,0px))] lg:top-6 left-1/2 -translate-x-1/2 z-[1050] max-w-md w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] bg-card border-3 sm:border-4 border-foreground shadow-[5px_5px_0_0_hsl(var(--foreground))] rounded-xl p-3.5 sm:p-4 animate-in fade-in slide-in-from-top-4"
+    >
       <div className="flex items-start gap-3">
-        <div className="p-2.5 bg-yellow-400 border-2 border-black dark:border-white text-black font-black flex-shrink-0">
-          <Bell className="w-6 h-6 animate-bounce" />
+        <div className="p-2 sm:p-2.5 bg-[#FFE600] border-2 border-foreground text-black rounded-lg font-black shrink-0 shadow-[1.5px_1.5px_0_0_#000]">
+          <Bell className="w-5 h-5 animate-bounce" />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-black text-sm uppercase tracking-wider text-black dark:text-white">
-            ¿Activar Notificaciones? 🔔
-          </h4>
-          <p className="text-xs font-bold text-neutral-600 dark:text-neutral-300 mt-1 leading-relaxed">
-            Recibí avisos de exámenes y recordatorios de racha <span className="underline decoration-yellow-400 decoration-2">incluso con la app cerrada</span> en tu celular o PC.
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="font-black text-xs sm:text-sm uppercase tracking-wider text-foreground">
+              ¿Activar Notificaciones? 🔔
+            </h4>
+            <button
+              onClick={handleDismiss}
+              className="text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors cursor-pointer"
+              title="Cerrar aviso"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-[11px] sm:text-xs font-bold text-muted-foreground mt-1 leading-relaxed">
+            Recibí avisos de exámenes y recordatorios de racha <span className="underline decoration-[#FFE600] decoration-2 text-foreground">incluso con la app cerrada</span> en tu celular o PC.
           </p>
           <div className="flex items-center gap-2 mt-3">
             <button
               onClick={handleEnable}
               disabled={isSubscribing}
-              className="flex-1 bg-green-500 hover:bg-green-600 text-black font-black text-xs uppercase px-3 py-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black text-xs uppercase px-3 py-2 rounded-lg border-2 border-foreground shadow-[2px_2px_0_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Check className="w-4 h-4 stroke-[3]" />
               {isSubscribing ? "Activando..." : "Activar Ahora"}
             </button>
             <button
               onClick={handleDismiss}
-              className="bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 text-neutral-700 dark:text-neutral-200 font-black text-xs px-3 py-2 border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] flex items-center gap-1 cursor-pointer"
-              title="No activar"
+              className="bg-secondary hover:bg-muted text-foreground font-black text-xs uppercase px-3 py-2 rounded-lg border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center cursor-pointer"
             >
-              <X className="w-4 h-4" />
-              <span>No</span>
+              Más tarde
             </button>
           </div>
         </div>
