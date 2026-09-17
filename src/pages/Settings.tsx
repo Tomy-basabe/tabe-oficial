@@ -21,7 +21,10 @@ import {
   Unlink,
   GraduationCap,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Smartphone,
+  Download,
+  Info
 } from "lucide-react";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
@@ -472,6 +475,63 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* Sección Aplicación Móvil (Android APK & Widgets) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black uppercase text-lg text-foreground flex items-center gap-2">
+            <Smartphone className="w-5 h-5 text-[#00FFAA]" />
+            <span>Aplicación Móvil Oficial (Android)</span>
+          </h3>
+          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#00FFAA] text-black border border-black shadow-[1px_1px_0_0_#000]">
+            Nativo • Widgets
+          </span>
+        </div>
+
+        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#00FFAA] shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center shrink-0">
+                <Smartphone className="w-6 h-6 text-black" strokeWidth={2.5} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-black uppercase text-base text-foreground flex items-center gap-2">
+                  <span>T.A.B.E. para Android</span>
+                  <span className="text-xs font-mono font-bold text-muted-foreground">v2.8.0</span>
+                </h4>
+                <p className="text-xs font-bold text-muted-foreground leading-relaxed max-w-xl">
+                  Descarga el paquete de instalación oficial para disfrutar de la experiencia completa en tu teléfono: soporte exclusivo para <strong>Widgets de Calendario y Agenda</strong> en tu pantalla de inicio, mayor fluidez y notificaciones instantáneas.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+              <a
+                href="https://github.com/Tomy-basabe/tabe-oficial/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider text-black bg-[#00FFAA] border-3 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_#000] active:translate-y-[1px] transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+              >
+                <Download className="w-4 h-4" />
+                <span>Descargar Paquete APK</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Guía formal de instalación y activación de Widget */}
+          <div className="p-4 bg-muted/40 border-2 border-foreground/30 rounded-xl space-y-2.5 text-xs">
+            <div className="flex items-center gap-2 font-black uppercase text-foreground">
+              <Info className="w-4 h-4 text-[#00FFAA] shrink-0" />
+              <span>Instrucciones de instalación y activación del Widget:</span>
+            </div>
+            <ol className="list-decimal list-inside space-y-1.5 font-bold text-muted-foreground pl-1">
+              <li>Haz clic en <strong>Descargar Paquete APK</strong> y guarda el archivo en tu dispositivo móvil.</li>
+              <li>Abre el instalador y confirma la instalación (si Android lo solicita, habilita la opción <em>"Permitir la instalación de fuentes desconocidas"</em> para este archivo).</li>
+              <li>Una vez instalada la app, mantén presionada la pantalla de inicio de tu celular, pulsa en <strong>Widgets ➔ TABE Calendario</strong> y arrástralo al tamaño que prefieras para tener tus exámenes siempre a la vista.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
 
       {/* Virtual Assistant Section */}
       {!isGuest && (
