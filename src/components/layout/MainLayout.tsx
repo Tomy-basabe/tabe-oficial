@@ -301,7 +301,7 @@ export function MainLayout() {
         {/* Neo-Brutalism Pattern Background */}
         {/* Mobile Header (El usuario especificó: sin panel vertical, todo en la barra horizontal de abajo) */}
         {!isAIPage && (
-          <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-16 bg-card/95 backdrop-blur-md border-b-2 border-foreground/30 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.06)] flex items-center justify-between px-4">
+          <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-[calc(4rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-card/95 backdrop-blur-md border-b-2 border-foreground/30 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.06)] flex items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <TabeLogo size={38} className="shrink-0" />
               <span className="font-extrabold text-lg tracking-tight text-foreground">TABE</span>
@@ -549,7 +549,7 @@ export function MainLayout() {
         "min-h-screen transition-all duration-300 relative z-[1]",
         isAIPage 
           ? "w-full p-0 m-0" 
-          : cn("pt-16 pb-24 lg:pt-0 lg:pb-0", isCollapsed ? "lg:ml-20" : "lg:ml-64")
+          : cn("pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pt-0 lg:pb-0", isCollapsed ? "lg:ml-20" : "lg:ml-64")
       )}>
         <Outlet />
       </main>

@@ -230,44 +230,149 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-4 lg:p-8 space-y-8 max-w-3xl mx-auto pb-24">      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="font-black text-4xl uppercase text-foreground">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-3xl mx-auto pb-28">
+      {/* Header */}
+      <div className="flex flex-col gap-1.5">
+        <h1 className="font-black text-3xl sm:text-4xl uppercase tracking-tight text-foreground">
           Configuración
         </h1>
-        <p className="text-muted-foreground font-bold uppercase text-sm">
-          Administra tu cuenta y preferencias
+        <p className="text-muted-foreground font-bold uppercase text-xs sm:text-sm">
+          Administra tu cuenta, integraciones y preferencias
         </p>
       </div>
 
       {/* Profile Card */}
-      <div className="bg-[#BFFF00] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4 sm:p-6 relative overflow-hidden">
+      <div className="bg-[#BFFF00] text-black border-3 sm:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4 sm:p-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-10 -mt-10 blur-2xl pointer-events-none"></div>
-        <div className="flex items-center gap-4 sm:gap-6 relative z-10 min-w-0">
-          <div className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-xl border-4 border-black shadow-[4px_4px_0_0_#000] bg-white flex items-center justify-center text-black font-black text-xl sm:text-3xl uppercase">
+        <div className="flex items-center gap-3.5 sm:gap-5 relative z-10 min-w-0">
+          <div className="w-13 h-13 sm:w-16 sm:h-16 shrink-0 rounded-xl border-3 sm:border-4 border-black shadow-[3px_3px_0_0_#000] bg-white flex items-center justify-center text-black font-black text-xl sm:text-2xl uppercase">
             {userInitials}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-black text-xl sm:text-2xl uppercase tracking-tight text-black truncate">{userName}</h2>
-            <p className="font-bold text-black/70 mt-0.5 text-xs sm:text-sm truncate">{userEmail}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-black text-lg sm:text-2xl uppercase tracking-tight text-black truncate">{userName}</h2>
+              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-black text-white shrink-0">
+                {isGuest ? "Invitado" : "Estudiante"}
+              </span>
+            </div>
+            <p className="font-bold text-black/80 mt-0.5 text-xs sm:text-sm truncate">{userEmail}</p>
           </div>
         </div>
       </div>
 
+      {/* Campus Virtual / Moodle Section */}
+      {!isGuest && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <h3 className="font-black uppercase text-base sm:text-lg text-foreground flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-[#FF7900]" />
+                <span>Campus Virtual / Moodle</span>
+              </h3>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#FF7900] text-black border-2 border-black shadow-[2px_2px_0_0_#000] rotate-1">
+                UTN & UNIVERSIDADES
+              </span>
+            </div>
+            {moodleSession ? (
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
+                Conectado
+              </span>
+            ) : (
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground border-2 border-foreground">
+                No Vinculado
+              </span>
+            )}
+          </div>
+
+          <div className="bg-card border-3 sm:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-[#FF7900] text-black flex items-center justify-center shrink-0">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div className="space-y-1 min-w-0 flex-1">
+                  <p className="font-black uppercase text-sm sm:text-base text-foreground truncate">
+                    {moodleSession ? moodleSession.fullname : "Sincronización de Campus"}
+                  </p>
+                  <p className="font-bold text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    {moodleSession
+                      ? `Conectado a ${moodleSession.campusUrl.replace(/^https?:\/\//, "")}`
+                      : "Conectá tu campus virtual para importar tus materias matriculadas y fechas de exámenes automáticamente."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="w-full sm:w-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowMoodleModal(true)}
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider text-black border-3 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_#000] active:translate-y-[1px] transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    moodleSession ? "bg-[#FF7900]" : "bg-[#FFE600]"
+                  }`}
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  <span>{moodleSession ? "Gestionar Campus y Sincronizar" : "Conectar Campus Virtual"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Informational banner */}
+            <div className="p-3 bg-muted/50 border-2 border-foreground/30 rounded-lg text-xs font-bold text-muted-foreground">
+              {moodleSession ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <p className="flex items-center gap-2 text-foreground">
+                    <CheckCircle2 className="w-4 h-4 text-[#00FF9D] shrink-0" />
+                    <span>Materias y fechas de exámenes sincronizadas con tu calendario.</span>
+                  </p>
+                  <button
+                    onClick={() => setShowMoodleModal(true)}
+                    className="text-primary hover:underline font-black text-xs uppercase tracking-wider shrink-0 text-left cursor-pointer"
+                  >
+                    Sincronizar ahora →
+                  </button>
+                </div>
+              ) : (
+                <p>
+                  🎓 <strong>Sincronización Académica:</strong> Tus materias y tareas pendientes con fecha límite de entrega se importarán automáticamente a tus asignaturas y a tu Calendario de T.A.B.E.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Google Account Linking Section */}
       {!isGuest && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h3 className="font-black uppercase text-lg text-foreground">Cuenta de Google</h3>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#00F0FF] text-black border-2 border-black shadow-[2px_2px_0_0_#000] -rotate-1">
-              ACCESO Y CALENDARIO
-            </span>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <h3 className="font-black uppercase text-base sm:text-lg text-foreground flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-[#00F0FF]" />
+                <span>Google & Calendario</span>
+              </h3>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#00F0FF] text-black border-2 border-black shadow-[2px_2px_0_0_#000] -rotate-1">
+                ACCESO Y AGENDA
+              </span>
+            </div>
+            {isGoogleLinked ? (
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
+                Vinculado
+              </span>
+            ) : hasGoogleFeed ? (
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
+                iCal Activo
+              </span>
+            ) : (
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground border-2 border-foreground">
+                No Vinculado
+              </span>
+            )}
           </div>
 
-          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 sm:p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start sm:items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-white flex items-center justify-center shrink-0">
+          <div className="bg-card border-3 sm:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-white flex items-center justify-center shrink-0">
                   <svg className="w-6 h-6" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
@@ -287,41 +392,28 @@ export default function Settings() {
                     />
                   </svg>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-black uppercase text-base text-foreground">Google</p>
-                    {isGoogleLinked ? (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
-                        Vinculado
-                      </span>
-                    ) : hasGoogleFeed ? (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
-                        iCal Activo
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground border-2 border-foreground">
-                        No Vinculado
-                      </span>
-                    )}
-                  </div>
-                  <p className="font-bold text-xs sm:text-sm text-muted-foreground mt-0.5">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <p className="font-black uppercase text-sm sm:text-base text-foreground">
+                    Google Calendar & Acceso
+                  </p>
+                  <p className="font-bold text-xs sm:text-sm text-muted-foreground leading-relaxed">
                     {hasGoogleFeed
-                      ? "Sincronización permanente de Google Calendar activa (sin vencimiento)."
+                      ? "Sincronización permanente de Google Calendar activa sin vencimiento."
                       : isGoogleLinked
                       ? (googleIdentity?.identity_data?.email || userEmail || "Cuenta de Google asociada")
-                      : "Asocia tu cuenta de Google para iniciar sesión con un clic y sincronizar tu calendario."}
+                      : "Asocia tu cuenta de Google para sincronizar tus exámenes y entregas con Google Calendar."}
                   </p>
                 </div>
               </div>
 
-              <div className="shrink-0 flex flex-wrap items-center gap-2">
+              <div className="w-full lg:w-auto flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowGoogleModal(true)}
-                  className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00F0FF] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00F0FF] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Calendar className="w-4 h-4" />
-                  {hasGoogleFeed || isGoogleLinked ? "Gestionar Calendar" : "Sincronizar Calendar"}
+                  <span>{hasGoogleFeed || isGoogleLinked ? "Gestionar Calendar" : "Sincronizar Calendar"}</span>
                 </button>
                 {isGoogleLinked ? (
                   <>
@@ -335,23 +427,23 @@ export default function Settings() {
                           toast.error(e?.message || "Error al conectar Google");
                         }
                       }}
-                      className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00FF9D] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00FF9D] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Zap className="w-4 h-4 fill-current" />
-                      Reconectar OAuth
+                      <span>Reconectar OAuth</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleUnlinkGoogle}
                       disabled={unlinkingGoogle}
-                      className="px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-white text-black border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-card text-foreground border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       {unlinkingGoogle ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <Unlink className="w-4 h-4 text-red-500" />
                       )}
-                      Desvincular
+                      <span>Desvincular</span>
                     </button>
                   </>
                 ) : (
@@ -359,14 +451,14 @@ export default function Settings() {
                     type="button"
                     onClick={handleLinkGoogle}
                     disabled={linkingGoogle}
-                    className="px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#FFE600] text-black border-3 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_#000] active:translate-y-[1px] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#FFE600] text-black border-3 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_#000] active:translate-y-[1px] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {linkingGoogle ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <CheckCircle2 className="w-4 h-4" />
                     )}
-                    Vincular cuenta de Google
+                    <span>Vincular cuenta de Google</span>
                   </button>
                 )}
               </div>
@@ -378,7 +470,7 @@ export default function Settings() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <p className="flex items-center gap-2 text-foreground">
                     <CheckCircle2 className="w-4 h-4 text-[#00FF9D] shrink-0" />
-                    <span>Tu cuenta de Google está asociada. Podés entrar usando Google o tu contraseña, y tu Google Calendar está vinculado.</span>
+                    <span>Tu cuenta y Google Calendar están vinculados correctamente.</span>
                   </p>
                   <a
                     href="/calendario"
@@ -389,83 +481,7 @@ export default function Settings() {
                 </div>
               ) : (
                 <p>
-                  💡 <strong>Beneficio:</strong> Podrás iniciar sesión usando el botón "Continuar con Google" o con tu correo y contraseña actuales. Tendrás una sola cuenta unificada y los exámenes de Google Calendar se sincronizarán con TABE.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Campus Virtual / Moodle Section */}
-      {!isGuest && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h3 className="font-black uppercase text-lg text-foreground">Campus Virtual / Moodle</h3>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#FF7900] text-black border-2 border-black shadow-[2px_2px_0_0_#000] rotate-1">
-              UTN & UNIVERSIDADES
-            </span>
-          </div>
-
-          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 sm:p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start sm:items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-[#FF7900] text-black flex items-center justify-center shrink-0">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-black uppercase text-base text-foreground">Moodle</p>
-                    {moodleSession ? (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00FF9D] text-black border-2 border-foreground shadow-[1px_1px_0_0_#000]">
-                        Conectado
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-muted text-muted-foreground border-2 border-foreground">
-                        No Vinculado
-                      </span>
-                    )}
-                  </div>
-                  <p className="font-bold text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    {moodleSession
-                      ? `Conectado como ${moodleSession.fullname} (${moodleSession.campusUrl.replace(/^https?:\/\//, "")})`
-                      : "Conectá tu campus virtual (UTN FRM u otros) para sincronizar tus materias y fechas de exámenes automáticamente."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="shrink-0 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowMoodleModal(true)}
-                  className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider text-black border-3 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_#000] active:translate-y-[1px] transition-all flex items-center gap-2 cursor-pointer ${
-                    moodleSession ? "bg-[#FF7900]" : "bg-[#FFE600]"
-                  }`}
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  {moodleSession ? "Gestionar Campus y Sincronizar" : "Conectar Campus Virtual"}
-                </button>
-              </div>
-            </div>
-
-            {/* Informational banner */}
-            <div className="p-3 bg-muted/50 border-2 border-foreground/30 rounded-lg text-xs font-bold text-muted-foreground">
-              {moodleSession ? (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <p className="flex items-center gap-2 text-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-[#00FF9D] shrink-0" />
-                    <span>Tu campus está conectado. Podés sincronizar materias matriculadas y fechas de parciales al calendario con un clic.</span>
-                  </p>
-                  <button
-                    onClick={() => setShowMoodleModal(true)}
-                    className="text-primary hover:underline font-black text-xs uppercase tracking-wider shrink-0 text-left cursor-pointer"
-                  >
-                    Sincronizar ahora →
-                  </button>
-                </div>
-              ) : (
-                <p>
-                  🎓 <strong>Sincronización Académica:</strong> Tus materias y tareas pendientes con fecha límite de entrega se importarán automáticamente a tus asignaturas y a tu Calendario de T.A.B.E.
+                  💡 <strong>Beneficio:</strong> Podrás iniciar sesión usando tu cuenta de Google o con correo y contraseña. Los exámenes se sincronizarán en tiempo real con Google Calendar.
                 </p>
               )}
             </div>
@@ -795,179 +811,132 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Integrations */}
-      <div className="space-y-3">
-        <h3 className="font-black uppercase text-lg text-foreground">Integraciones</h3>
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl overflow-hidden divide-y-4 divide-foreground">
-          <div className="flex items-center gap-4 p-5">
-            <div className="w-12 h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-[#C688EB] flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-black" strokeWidth={2.5} />
-            </div>
-            <div className="flex-1">
-              <p className="font-black uppercase text-base text-foreground">Google Calendar</p>
-              <p className="font-bold text-sm text-muted-foreground mt-1">
-                {isGoogleLinked || isGoogleCalendarConnected()
-                  ? "Sincronización bidireccional activa con tu cuenta de Google."
-                  : "Sincroniza tus exámenes y sesiones en vivo con Google Calendar."}
-              </p>
-            </div>
-            {isGoogleLinked || isGoogleCalendarConnected() ? (
-              <a
-                href="/calendario"
-                className="text-xs px-3 py-1 font-black uppercase rounded bg-[#00FF9D] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-transform inline-flex items-center gap-1"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Sincronizado
-              </a>
-            ) : (
-              <button
-                onClick={handleLinkGoogle}
-                disabled={linkingGoogle}
-                className="text-xs px-3 py-1 font-black uppercase rounded bg-[#FFE600] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-transform"
-              >
-                {linkingGoogle ? "Conectando..." : "Conectar"}
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => {
-              if (isGuest) {
-                toast.info("Iniciá sesión para conectar servicios externos.");
-                return;
-              }
-              setExpandedSection("bot");
-              document.getElementById("assistant-bot-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
-            }}
-            className="w-full flex items-center gap-4 p-5 hover:bg-muted/50 transition-colors text-left"
-          >
-            <div className="w-12 h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-muted flex items-center justify-center">
-              <Link className="w-6 h-6 text-foreground" strokeWidth={2.5} />
-            </div>
-            <div className="flex-1">
-              <p className="font-black uppercase text-base text-foreground">Otras integraciones</p>
-              <p className="font-bold text-sm text-muted-foreground mt-1">Conectar más servicios</p>
-            </div>
-            <div className="w-10 h-10 border-2 border-foreground rounded-lg bg-muted flex items-center justify-center">
-              <ChevronRight className="w-6 h-6 text-foreground" strokeWidth={3} />
-            </div>
-          </button>
-        </div>
-      </div>
-
       {/* Appearance */}
       <div className="space-y-3">
-        <h3 className="font-black uppercase text-lg text-foreground">Apariencia</h3>
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5">
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-muted flex items-center justify-center">
-                {theme === "dark" ? (
-                  <Moon className="w-6 h-6 text-foreground" strokeWidth={2.5} />
-                ) : theme === "light" ? (
-                  <Sun className="w-6 h-6 text-foreground" strokeWidth={2.5} />
-                ) : (
-                  <Monitor className="w-6 h-6 text-foreground" strokeWidth={2.5} />
-                )}
-              </div>
-              <div>
-                <p className="font-black uppercase text-base text-foreground">Tema del sistema</p>
-                <p className="font-bold text-sm text-muted-foreground mt-1">
-                  Elige cómo se ve T.A.B.E.
-                </p>
-              </div>
+        <h3 className="font-black uppercase text-base sm:text-lg text-foreground">Apariencia</h3>
+        <div className="bg-card border-3 sm:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-5">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] bg-muted flex items-center justify-center shrink-0">
+              {theme === "dark" ? (
+                <Moon className="w-6 h-6 text-foreground" strokeWidth={2.5} />
+              ) : theme === "light" ? (
+                <Sun className="w-6 h-6 text-foreground" strokeWidth={2.5} />
+              ) : (
+                <Monitor className="w-6 h-6 text-foreground" strokeWidth={2.5} />
+              )}
             </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <button
-                onClick={() => setTheme("light")}
-                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-4 transition-all ${theme === "light"
-                  ? "bg-[#BFFF00] text-black border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]"
-                  : "bg-card text-foreground border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
-                  }`}
-              >
-                <Sun className="w-6 h-6" strokeWidth={3} />
-                <span className="font-black uppercase text-xs">Claro</span>
-              </button>
-
-              <button
-                onClick={() => setTheme("dark")}
-                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-4 transition-all ${theme === "dark"
-                  ? "bg-[#00E5FF] text-black border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]"
-                  : "bg-card text-foreground border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
-                  }`}
-              >
-                <Moon className="w-6 h-6" strokeWidth={3} />
-                <span className="font-black uppercase text-xs">Oscuro</span>
-              </button>
-
-              <button
-                onClick={() => setTheme("system")}
-                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-4 transition-all ${theme === "system"
-                  ? "bg-[#FFD700] text-black border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-2px]"
-                  : "bg-card text-foreground border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
-                  }`}
-              >
-                <Monitor className="w-6 h-6" strokeWidth={3} />
-                <span className="font-black uppercase text-xs">Auto</span>
-              </button>
+            <div>
+              <p className="font-black uppercase text-sm sm:text-base text-foreground">Tema de la interfaz</p>
+              <p className="font-bold text-xs sm:text-sm text-muted-foreground">
+                Selecciona cómo se visualiza T.A.B.E. en tus dispositivos
+              </p>
             </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => setTheme("light")}
+              className={`flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 sm:border-4 transition-all cursor-pointer ${theme === "light"
+                ? "bg-[#BFFF00] text-black border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
+                : "bg-card text-foreground border-foreground/50 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
+                }`}
+            >
+              <Sun className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
+              <span className="font-black uppercase text-xs">Claro</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTheme("dark")}
+              className={`flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 sm:border-4 transition-all cursor-pointer ${theme === "dark"
+                ? "bg-[#00E5FF] text-black border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
+                : "bg-card text-foreground border-foreground/50 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
+                }`}
+            >
+              <Moon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
+              <span className="font-black uppercase text-xs">Oscuro</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTheme("system")}
+              className={`flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 sm:border-4 transition-all cursor-pointer ${theme === "system"
+                ? "bg-[#FFD700] text-black border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
+                : "bg-card text-foreground border-foreground/50 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
+                }`}
+            >
+              <Monitor className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
+              <span className="font-black uppercase text-xs">Auto</span>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Pomodoro Settings */}
       <div className="space-y-3">
-        <h3 className="font-black uppercase text-lg text-foreground">Pomodoro</h3>
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between p-3 border-2 border-foreground rounded-xl bg-muted/40">
-            <span className="font-black uppercase text-sm text-foreground">Tiempo de trabajo</span>
-            <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <h3 className="font-black uppercase text-base sm:text-lg text-foreground">Temporizador Pomodoro</h3>
+          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#FF2E93] text-white border-2 border-black shadow-[2px_2px_0_0_#000] rotate-1">
+            ENFOQUE
+          </span>
+        </div>
+        <div className="bg-card border-3 sm:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4 sm:p-6 space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between p-3 sm:p-3.5 border-2 border-foreground rounded-xl bg-muted/40 gap-3">
+            <span className="font-black uppercase text-xs sm:text-sm text-foreground">Tiempo de trabajo</span>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
+                type="button"
                 onClick={() => updatePomodoroSetting("work", -1)}
-                className="w-10 h-10 border-2 border-foreground rounded-lg bg-card text-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[2px] hover:shadow-none transition-all font-black text-xl"
+                className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-foreground rounded-lg bg-card text-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[1px] active:translate-y-[2px] hover:shadow-none transition-all font-black text-lg cursor-pointer"
               >
                 -
               </button>
-              <span className="font-black text-2xl w-12 text-center text-foreground">{pomodoroSettings.work}</span>
+              <span className="font-black text-xl sm:text-2xl w-10 sm:w-12 text-center text-foreground font-mono">{pomodoroSettings.work}</span>
               <button
+                type="button"
                 onClick={() => updatePomodoroSetting("work", 1)}
-                className="w-10 h-10 border-2 border-foreground rounded-lg bg-[#FF5C5C] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[2px] hover:shadow-none transition-all font-black text-xl"
+                className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-foreground rounded-lg bg-[#FF5C5C] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[1px] active:translate-y-[2px] hover:shadow-none transition-all font-black text-lg cursor-pointer"
               >
                 +
               </button>
             </div>
           </div>
-          <div className="flex items-center justify-between p-3 border-2 border-foreground rounded-xl bg-muted/40">
-            <span className="font-black uppercase text-sm text-foreground">Descanso corto</span>
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between p-3 sm:p-3.5 border-2 border-foreground rounded-xl bg-muted/40 gap-3">
+            <span className="font-black uppercase text-xs sm:text-sm text-foreground">Descanso corto</span>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
+                type="button"
                 onClick={() => updatePomodoroSetting("shortBreak", -1)}
-                className="w-10 h-10 border-2 border-foreground rounded-lg bg-card text-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[2px] hover:shadow-none transition-all font-black text-xl"
+                className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-foreground rounded-lg bg-card text-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[1px] active:translate-y-[2px] hover:shadow-none transition-all font-black text-lg cursor-pointer"
               >
                 -
               </button>
-              <span className="font-black text-2xl w-12 text-center text-foreground">{pomodoroSettings.shortBreak}</span>
+              <span className="font-black text-xl sm:text-2xl w-10 sm:w-12 text-center text-foreground font-mono">{pomodoroSettings.shortBreak}</span>
               <button
+                type="button"
                 onClick={() => updatePomodoroSetting("shortBreak", 1)}
-                className="w-10 h-10 border-2 border-foreground rounded-lg bg-[#BFFF00] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[2px] hover:shadow-none transition-all font-black text-xl"
+                className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-foreground rounded-lg bg-[#BFFF00] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[1px] active:translate-y-[2px] hover:shadow-none transition-all font-black text-lg cursor-pointer"
               >
                 +
               </button>
             </div>
           </div>
-          <div className="flex items-center justify-between p-3 border-2 border-foreground rounded-xl bg-muted/40">
-            <span className="font-black uppercase text-sm text-foreground">Descanso largo</span>
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between p-3 sm:p-3.5 border-2 border-foreground rounded-xl bg-muted/40 gap-3">
+            <span className="font-black uppercase text-xs sm:text-sm text-foreground">Descanso largo</span>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
+                type="button"
                 onClick={() => updatePomodoroSetting("longBreak", -1)}
-                className="w-10 h-10 border-2 border-foreground rounded-lg bg-card text-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[2px] hover:shadow-none transition-all font-black text-xl"
+                className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-foreground rounded-lg bg-card text-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[1px] active:translate-y-[2px] hover:shadow-none transition-all font-black text-lg cursor-pointer"
               >
                 -
               </button>
-              <span className="font-black text-2xl w-12 text-center text-foreground">{pomodoroSettings.longBreak}</span>
+              <span className="font-black text-xl sm:text-2xl w-10 sm:w-12 text-center text-foreground font-mono">{pomodoroSettings.longBreak}</span>
               <button
+                type="button"
                 onClick={() => updatePomodoroSetting("longBreak", 1)}
-                className="w-10 h-10 border-2 border-foreground rounded-lg bg-[#00E5FF] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[2px] hover:shadow-none transition-all font-black text-xl"
+                className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-foreground rounded-lg bg-[#00E5FF] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[1px] active:translate-y-[2px] hover:shadow-none transition-all font-black text-lg cursor-pointer"
               >
                 +
               </button>
