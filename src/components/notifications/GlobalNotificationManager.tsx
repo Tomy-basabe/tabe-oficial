@@ -133,10 +133,10 @@ export function GlobalNotificationManager() {
   return (
     <aside 
       aria-label="Aviso de notificaciones" 
-      className="fixed top-[calc(4.75rem+env(safe-area-inset-top,0px))] lg:top-6 left-1/2 -translate-x-1/2 z-[1050] max-w-md w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] bg-card border-3 sm:border-4 border-foreground shadow-[5px_5px_0_0_hsl(var(--foreground))] rounded-xl p-3.5 sm:p-4 animate-in fade-in slide-in-from-top-4"
+      className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-auto md:top-6 left-1/2 -translate-x-1/2 z-[1050] max-w-md w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] bg-card border-3 sm:border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-5 md:slide-in-from-top-4"
     >
       <div className="flex items-start gap-3">
-        <div className="p-2 sm:p-2.5 bg-[#FFE600] border-2 border-foreground text-black rounded-lg font-black shrink-0 shadow-[1.5px_1.5px_0_0_#000]">
+        <div className="w-10 h-10 rounded-xl bg-[#FFE600] border-2 border-foreground text-black flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
           <Bell className="w-5 h-5 animate-bounce" />
         </div>
         <div className="flex-1 min-w-0">
@@ -146,27 +146,27 @@ export function GlobalNotificationManager() {
             </h4>
             <button
               onClick={handleDismiss}
-              className="text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors cursor-pointer"
+              className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition-colors cursor-pointer"
               title="Cerrar aviso"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
           <p className="text-[11px] sm:text-xs font-bold text-muted-foreground mt-1 leading-relaxed">
-            Recibí avisos de exámenes y recordatorios de racha <span className="underline decoration-[#FFE600] decoration-2 text-foreground">incluso con la app cerrada</span> en tu celular o PC.
+            Recibí avisos de exámenes y recordatorios de racha <span className="underline decoration-[#FFE600] decoration-2 text-foreground font-black">incluso con la app cerrada</span> en tu teléfono o PC.
           </p>
           <div className="flex items-center gap-2 mt-3">
             <button
               onClick={handleEnable}
               disabled={isSubscribing}
-              className="flex-1 bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black text-xs uppercase px-3 py-2 rounded-lg border-2 border-foreground shadow-[2px_2px_0_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="flex-1 bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Check className="w-4 h-4 stroke-[3]" />
               {isSubscribing ? "Activando..." : "Activar Ahora"}
             </button>
             <button
               onClick={handleDismiss}
-              className="bg-secondary hover:bg-muted text-foreground font-black text-xs uppercase px-3 py-2 rounded-lg border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center cursor-pointer"
+              className="bg-secondary hover:bg-muted text-foreground font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center cursor-pointer"
             >
               Más tarde
             </button>
