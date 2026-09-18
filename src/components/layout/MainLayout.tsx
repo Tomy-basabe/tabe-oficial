@@ -118,13 +118,13 @@ export function MainLayout() {
     if (!user || isGuest) return;
 
     let lastSyncTime = 0;
-    const SYNC_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+    const SYNC_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes cooldown to save bandwidth & quota
 
-    // Run background sync shortly after entry so initial rendering is ultra-fast
+    // Run background sync once shortly after entry so initial rendering is ultra-fast
     const timer = setTimeout(() => {
       lastSyncTime = Date.now();
       performGlobalCalendarSync(user, { silent: true });
-    }, 2500);
+    }, 3500);
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
@@ -142,7 +142,7 @@ export function MainLayout() {
         lastSyncTime = now;
         performGlobalCalendarSync(user, { silent: true });
       }
-    }, 3 * 60 * 1000);
+    }, 30 * 60 * 1000); // Check at most every 30 minutes
 
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("focus", handleVisibility);

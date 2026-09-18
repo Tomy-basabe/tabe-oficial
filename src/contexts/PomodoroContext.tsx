@@ -195,17 +195,17 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         };
     }, [isActive, timeLeft]);
 
-    // Auto-save logic (every 30s)
+    // Auto-save safety fallback (every 5 minutes of continuous work to protect against crashes without hammering database)
     useEffect(() => {
-        if (isActive && mode === "work" && elapsedSeconds > 0) {
+        if (isActive && mode === "work") {
             saveIntervalRef.current = setInterval(() => {
                 saveCurrentSession(false);
-            }, 30000);
+            }, 5 * 60 * 1000);
         }
         return () => {
             if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
         };
-    }, [isActive, mode, elapsedSeconds, user]);
+    }, [isActive, mode, user]);
 
 
     const saveCurrentSession = async (completed: boolean) => {

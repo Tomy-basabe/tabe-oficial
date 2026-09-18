@@ -37,8 +37,8 @@ export async function performGlobalCalendarSync(
   }
 
   const now = Date.now();
-  // Cooldown: at least 2 minutes between automatic sync runs unless explicitly forced
-  if (!options?.force && now - _lastGlobalSyncTime < 2 * 60 * 1000) {
+  // Cooldown: at least 30 minutes between automatic sync runs unless explicitly forced
+  if (!options?.force && now - _lastGlobalSyncTime < 30 * 60 * 1000) {
     return {};
   }
 
