@@ -178,12 +178,12 @@ export function useDashboardStats() {
         });
       }, 8000);
 
-      // Fetch user stats and sessions
+      // Fetch user stats and sessions (select only needed fields to minimize egress)
       const { data: statsData } = await supabase
         .from("user_stats")
-        .select("*")
+        .select("xp_total, nivel, racha_actual, mejor_racha, horas_estudio_total")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -191,7 +191,7 @@ export function useDashboardStats() {
       const [sessionsRes, allDatesRes] = await Promise.all([
         supabase
           .from("study_sessions")
-          .select("*")
+          .select("id, duracion_segundos, fecha, completada")
           .eq("user_id", user.id)
           .gte("fecha", toLocalDateStr(thirtyDaysAgo))
           .order("fecha", { ascending: false }),
