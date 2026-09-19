@@ -93,6 +93,9 @@ export function MainLayout() {
   });
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isHoverExpanded, setIsHoverExpanded] = useState(false);
+  const hoverExpandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSidebarExpanded = !isCollapsed || isHoverExpanded;
   
   // PWA auto-update check (especially for mobile/installed apps)
   useRegisterSW({
@@ -331,9 +334,24 @@ export function MainLayout() {
         {/* Sidebar (Desktop Only: en móvil todo está en la barra horizontal de abajo) */}
         {!isAIPage && (
           <aside
+            onMouseEnter={() => {
+              if (isCollapsed) {
+                if (hoverExpandTimeoutRef.current) clearTimeout(hoverExpandTimeoutRef.current);
+                setIsHoverExpanded(true);
+              }
+            }}
+            onMouseLeave={() => {
+              if (isCollapsed) {
+                hoverExpandTimeoutRef.current = setTimeout(() => {
+                  setIsHoverExpanded(false);
+                }, 180);
+              }
+            }}
             className={cn(
-              "hidden lg:flex fixed top-0 left-0 h-full border-r-4 border-foreground transition-all duration-300 flex-col bg-card shadow-[4px_0_0_0_hsl(var(--foreground))] z-40",
-              isCollapsed ? "w-20" : "w-64"
+              "hidden lg:flex fixed top-0 left-0 h-full border-r-4 border-foreground transition-all duration-300 ease-out flex-col bg-card z-40",
+              isSidebarExpanded
+                ? "w-64 shadow-[8px_0_0_0_hsl(var(--foreground))]"
+                : "w-20 shadow-[4px_0_0_0_hsl(var(--foreground))]"
             )}
           >
           {/* Toggle Button (Desktop Only) */}
@@ -351,11 +369,11 @@ export function MainLayout() {
           </div>
 
           {/* Logo Header */}
-          <div className={cn("h-16 flex items-center border-b-3 border-foreground flex-shrink-0 transition-all overflow-hidden bg-secondary/30", isCollapsed ? "justify-center px-0" : "justify-between px-4 sm:px-5 gap-2")}>
+          <div className={cn("h-16 flex items-center border-b-3 border-foreground flex-shrink-0 transition-all overflow-hidden bg-secondary/30", !isSidebarExpanded ? "justify-center px-0" : "justify-between px-4 sm:px-5 gap-2")}>
             <div className="flex items-center gap-3 min-w-0">
               <TabeLogo size={42} className="shrink-0" />
-              {!isCollapsed && (
-                <div className="min-w-0">
+              {isSidebarExpanded && (
+                <div className="min-w-0 animate-sidebar-entrance">
                   <div className="flex items-center gap-1.5">
                     <h1 className="font-black text-xl tracking-tight text-foreground truncate">TABE</h1>
                     <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FFE600] text-black border-2 border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-3">
@@ -370,7 +388,7 @@ export function MainLayout() {
 
         {/* Navigation */}
         <ScrollArea className="flex-1 overflow-hidden">
-          <nav className={cn("space-y-2 py-3.5", isCollapsed ? "px-2" : "px-3")}>
+          <nav className={cn("space-y-2 py-3.5", !isSidebarExpanded ? "px-2" : "px-3")}>
             {(() => {
               const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                 const targetPath = item.path || (item.type === "item" ? item.id : null);
@@ -396,7 +414,11 @@ export function MainLayout() {
                   return (
                     <div
                       key={item.id}
-                      className="space-y-1.5 my-2 relative"
+                      style={isHoverExpanded ? { animationDelay: `${index * 35}ms` } : undefined}
+                      className={cn(
+                        "space-y-1.5 my-2 relative",
+                        isHoverExpanded && "animate-sidebar-entrance"
+                      )}
                       onMouseEnter={() => {
                         if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
                         setHoveredCategory(item.id);
@@ -415,12 +437,12 @@ export function MainLayout() {
                         }}
                         className={cn(
                           "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
-                          isCollapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2",
+                          !isSidebarExpanded ? "justify-center p-2" : "gap-2.5 px-3 py-2",
                           hasActiveChild || isVisible
                             ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                             : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40"
                         )}
-                        title={isCollapsed ? item.label : undefined}
+                        title={!isSidebarExpanded ? item.label : undefined}
                       >
                         <div className={cn(
                           "w-7 h-7 rounded-lg border-2 border-foreground/50 flex items-center justify-center shrink-0 transition-colors",
@@ -428,7 +450,7 @@ export function MainLayout() {
                         )}>
                           <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
                         </div>
-                        {!isCollapsed && (
+                        {isSidebarExpanded && (
                           <>
                             <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
                             <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-200 stroke-[3]", isVisible && "rotate-180")} />
@@ -437,14 +459,14 @@ export function MainLayout() {
                       </button>
 
                       {/* Regular expanded or hovered category list in normal sidebar */}
-                      {isVisible && !isCollapsed && item.items && (
+                      {isVisible && isSidebarExpanded && item.items && (
                         <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                           {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
                         </div>
                       )}
 
-                      {/* Flyout popup when sidebar is collapsed */}
-                      {isHovered && isCollapsed && item.items && (
+                      {/* Flyout popup when sidebar is collapsed and not hover-expanded */}
+                      {isHovered && !isSidebarExpanded && item.items && (
                         <div className="absolute left-[calc(100%+8px)] top-0 z-50 bg-card border-3 border-foreground rounded-2xl p-2.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] min-w-[200px] space-y-1 animate-in fade-in slide-in-from-left-2 duration-150">
                           <div className="px-2 py-1 border-b-2 border-foreground/20 mb-1.5 flex items-center gap-2">
                             <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -465,28 +487,30 @@ export function MainLayout() {
                     onMouseEnter={() => preloadRoute(path)}
                     onTouchStart={() => preloadRoute(path)}
                     onFocus={() => preloadRoute(path)}
+                    style={isHoverExpanded ? { animationDelay: `${index * 35}ms` } : undefined}
                     className={cn(
                       "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
-                      isCollapsed && !isInsideCategory ? "justify-center p-2.5" : isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
+                      isHoverExpanded && "animate-sidebar-entrance",
+                      !isSidebarExpanded && !isInsideCategory ? "justify-center p-2.5" : isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
                       isActive
                         ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
-                        : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 font-extrabold"
+                        : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.01] font-extrabold"
                     )}
-                    title={isCollapsed && !isInsideCategory ? item.label : undefined}
+                    title={!isSidebarExpanded && !isInsideCategory ? item.label : undefined}
                   >
                     <Icon
                       className={cn(
                         "transition-all flex-shrink-0",
-                        isCollapsed && !isInsideCategory ? "w-5 h-5" : isInsideCategory ? "w-4 h-4" : "w-4 h-4",
+                        !isSidebarExpanded && !isInsideCategory ? "w-5 h-5" : isInsideCategory ? "w-4 h-4" : "w-4 h-4",
                         isActive ? "stroke-[2.5]" : ""
                       )}
                     />
-                    {(!isCollapsed || isInsideCategory) && (
+                    {(isSidebarExpanded || isInsideCategory) && (
                       <span className={cn("truncate flex-1 text-left", isInsideCategory ? "font-bold text-xs" : "font-black text-xs uppercase tracking-tight")}>
                         {item.label}
                       </span>
                     )}
-                    {(!isCollapsed || isInsideCategory) && (targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
+                    {(isSidebarExpanded || isInsideCategory) && (targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
                       <span className={cn(
                         "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
                         isActive
@@ -496,7 +520,7 @@ export function MainLayout() {
                         AI
                       </span>
                     )}
-                    {isActive && (!isCollapsed || isInsideCategory) && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
+                    {isActive && (isSidebarExpanded || isInsideCategory) && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
                       <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
                     )}
                   </Link>
@@ -509,15 +533,15 @@ export function MainLayout() {
         </ScrollArea>
 
         {/* User Progress Summary - Comic Gamified Card */}
-        <div className={cn("border-t-3 border-foreground flex-shrink-0 transition-all bg-secondary/20", isCollapsed ? "p-2" : "p-3")}>
+        <div className={cn("border-t-3 border-foreground flex-shrink-0 transition-all bg-secondary/20", !isSidebarExpanded ? "p-2" : "p-3")}>
           <div className={cn(
             "rounded-2xl border-3 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all relative overflow-hidden",
-            isCollapsed ? "p-2 flex flex-col items-center gap-1" : "p-3.5"
+            !isSidebarExpanded ? "p-2 flex flex-col items-center gap-1" : "p-3.5"
           )}>
             {/* Decorative comic corner */}
             <div className="absolute top-0 right-0 w-12 h-12 bg-[#FFE600]/15 rounded-bl-full pointer-events-none" />
 
-            {isCollapsed ? (
+            {!isSidebarExpanded ? (
               <div className="flex flex-col items-center gap-1">
                 <div className="w-10 h-10 rounded-xl bg-[#FFE600] text-black flex items-center justify-center font-black text-xs border-2 border-black shadow-[2px_2px_0_0_#000]">
                   {xpData.level}
@@ -527,7 +551,7 @@ export function MainLayout() {
                 </div>
               </div>
             ) : (
-              <>
+              <div className={cn(isHoverExpanded && "animate-sidebar-entrance")}>
                 <div className="flex items-center gap-3 mb-2.5 relative z-10">
                   <div className="relative shrink-0">
                     <div className="w-11 h-11 rounded-xl bg-[#FFE600] text-black flex items-center justify-center font-black text-base border-2 border-black shadow-[2px_2px_0_0_#000]">
@@ -566,7 +590,7 @@ export function MainLayout() {
                     <span className="font-black text-foreground">{Math.round(xpData.xpForNext)} XP</span>
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
