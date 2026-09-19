@@ -39,52 +39,58 @@ export function PersonaSidebar({
     onClose,
 }: PersonaSidebarProps) {
     return (
-        <div className={cn(
-            "w-72 max-w-[85vw] h-full border-r-4 border-foreground bg-card text-foreground flex flex-col fixed md:relative top-0 left-0 shrink-0 z-50 transition-all duration-300 shadow-2xl md:shadow-none",
-            isOpen ? "translate-x-0" : "-translate-x-full hidden"
-        )}>
-            {/* Personas section */}
-            <div className="p-4 border-b-4 border-foreground">
-                <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm font-black text-foreground uppercase tracking-wider">
-                        Tus IAs
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8 text-foreground hover:bg-[#BFFF00] hover:!text-black border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px]"
-                            onClick={onCreatePersona}
-                            title="Crear nueva IA"
-                        >
-                            <Plus className="w-5 h-5" strokeWidth={3} />
-                        </Button>
-                        {onClose && (
+        <aside
+            aria-label="Panel de personalidades y conversaciones"
+            className={cn(
+                "h-full border-foreground bg-card text-foreground flex flex-col fixed md:relative top-0 left-0 shrink-0 z-50 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-2xl md:shadow-none overflow-hidden select-none",
+                isOpen
+                    ? "w-72 max-w-[85vw] translate-x-0 opacity-100 border-r-4 pointer-events-auto"
+                    : "w-0 max-w-0 -translate-x-full md:translate-x-0 opacity-0 pointer-events-none border-r-0"
+            )}
+        >
+            <div className="w-72 h-full flex flex-col shrink-0">
+                {/* Personas section */}
+                <div className="p-4 border-b-4 border-foreground">
+                    <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-black text-foreground uppercase tracking-wider">
+                            Tus IAs
+                        </span>
+                        <div className="flex items-center gap-2">
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="w-8 h-8 text-foreground hover:bg-destructive hover:text-white border-2 border-foreground rounded-lg"
-                                onClick={onClose}
-                                title="Cerrar panel"
+                                className="w-8 h-8 text-foreground hover:bg-[#BFFF00] hover:!text-black border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px]"
+                                onClick={onCreatePersona}
+                                title="Crear nueva IA"
                             >
-                                <Plus className="w-4 h-4 rotate-45" />
+                                <Plus className="w-5 h-5" strokeWidth={3} />
                             </Button>
-                        )}
-                    </div>
-                </div>
-
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                    {personas.map((persona) => (
-                        <div
-                            key={persona.id}
-                            className={cn(
-                                "group flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all border-2",
-                                activePersona?.id === persona.id
-                                    ? "bg-[#C688EB] !text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                                    : "text-foreground hover:bg-muted border-transparent hover:border-foreground hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                            {onClose && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="w-8 h-8 text-foreground hover:bg-destructive hover:text-white border-2 border-foreground rounded-lg"
+                                    onClick={onClose}
+                                    title="Cerrar panel"
+                                >
+                                    <Plus className="w-4 h-4 rotate-45" />
+                                </Button>
                             )}
-                            onClick={() => onSelectPersona(persona)}
-                        >
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        {personas.map((persona) => (
+                            <div
+                                key={persona.id}
+                                className={cn(
+                                    "group flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all border-2",
+                                    activePersona?.id === persona.id
+                                        ? "bg-[#00E5FF] !text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                                        : "text-foreground hover:bg-muted border-transparent hover:border-foreground hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                                )}
+                                onClick={() => onSelectPersona(persona)}
+                            >
                             {persona.avatar_emoji && persona.avatar_emoji !== "🤖" ? (
                                 <span className="text-2xl flex-shrink-0">{persona.avatar_emoji}</span>
                             ) : (
@@ -227,5 +233,6 @@ export function PersonaSidebar({
                 )}
             </div>
         </div>
+    </aside>
     );
 }

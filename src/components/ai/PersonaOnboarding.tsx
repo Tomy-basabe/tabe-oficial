@@ -234,7 +234,7 @@ export function PersonaOnboarding({ onComplete, onCancel }: PersonaOnboardingPro
                                 className={cn(
                                     "w-full flex items-center gap-3 p-4 rounded-xl border-4 transition-all text-left hover:translate-y-[-2px] shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))]",
                                     answers[question.id] === option.value
-                                        ? "border-foreground bg-[#C688EB] !text-black"
+                                        ? "border-foreground bg-[#00E5FF] !text-black"
                                         : "border-foreground bg-card text-foreground hover:bg-muted"
                                 )}
                             >

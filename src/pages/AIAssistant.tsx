@@ -700,12 +700,13 @@ export default function AIAssistant() {
       )}
 
       {/* Mobile Backdrop */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <div
+        className={cn(
+          "fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs transition-opacity duration-300",
+          isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setIsSidebarOpen(false)}
+      />
 
       <div className="flex-1 flex flex-col h-full min-w-0">
 
