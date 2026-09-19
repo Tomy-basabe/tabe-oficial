@@ -1363,9 +1363,11 @@ export default function Notion() {
   );
 
   // --- Gallery View Derived State ---
+  const docIdSet = useMemo(() => new Set(documents.map((d) => d.id)), [documents]);
+
   const filteredAndSortedDocuments = useMemo(() => {
-    // Only root-level documents (do not show child pages of other notes in main gallery)
-    let result = documents.filter(doc => !doc.parent_id);
+    // Show root documents and any orphan subpages whose parent was deleted
+    let result = documents.filter((doc) => !doc.parent_id || !docIdSet.has(doc.parent_id));
 
     // Filter by year
     if (filterYear !== "all") {
@@ -1971,7 +1973,7 @@ export default function Notion() {
 
               {/* Grid */}
               <div className="flex-1 overflow-y-auto p-8 md:p-12">
-                {documents.filter(d => !d.parent_id).length === 0 ? (
+                {documents.filter((d) => !d.parent_id || !docIdSet.has(d.parent_id)).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                     <p>No tienes apuntes todavía. ¡Creá una nueva página para empezar!</p>
                   </div>

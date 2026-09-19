@@ -236,6 +236,9 @@ export function useNotionDocuments() {
       }
     }
 
+    // Clean up child subpages as well to prevent orphaned records in database
+    await supabase.from("notion_documents").delete().eq("parent_id", id);
+
     const { error } = await supabase
       .from("notion_documents")
       .delete()
@@ -247,7 +250,7 @@ export function useNotionDocuments() {
       return false;
     }
 
-    setDocuments(prev => prev.filter(doc => doc.id !== id));
+    setDocuments(prev => prev.filter(doc => doc.id !== id && doc.parent_id !== id));
     toast.success("Documento eliminado");
     return true;
   };

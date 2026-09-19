@@ -68,8 +68,10 @@ export function NotionSidebar({
         [documents]
     );
 
+    const docIdSet = useMemo(() => new Set(documents.map((d) => d.id)), [documents]);
+
     const filteredDocs = useMemo(() => {
-        const baseDocs = documents.filter(d => !d.parent_id); // Only root-level docs
+        const baseDocs = documents.filter(d => !d.parent_id || !docIdSet.has(d.parent_id)); // Root or rescued orphan docs
         if (!searchQuery) return baseDocs;
         const q = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         return baseDocs.filter(
