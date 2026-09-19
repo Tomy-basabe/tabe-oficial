@@ -41,6 +41,8 @@ export function useNotionDocuments() {
   // Persistent content cache - survives refetches
   const contentCacheRef = useRef<Map<string, any>>(new Map());
 
+  const friendDocsLoadedRef = useRef(false);
+
   const fetchDocuments = useCallback(async () => {
     if (!user && !isGuest) {
       setLoading(false);
@@ -86,20 +88,21 @@ export function useNotionDocuments() {
       return;
     }
 
+    // FAST PATH: Only fetch OWN documents first (no costly RLS friendship subquery)
     const { data, error } = await supabase
       .from("notion_documents")
       .select(`
         id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
-        owner:profiles(nombre, avatar_url, username),
         subject:subjects(id, nombre, codigo, año)
       `)
+      .eq("user_id", user!.id)
       .order("updated_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching documents:", error.message, error.details, error.hint);
       toast.error("Error al cargar documentos");
     } else if (data) {
-      // Also cache any subjects received from the join
+      // Cache subjects from join
       data.forEach((d: any) => {
         if (d.subject && d.subject_id) {
           subjectsMapRef.current[d.subject_id] = {
@@ -112,24 +115,6 @@ export function useNotionDocuments() {
           cachedSubjectIdsRef.current.add(d.subject_id);
         }
       });
-
-      // Fetch any missing subjects that weren't joined
-      const allSubjectIds = [...new Set(data.filter((d: any) => d.subject_id && !d.subject).map((d: any) => d.subject_id))] as string[];
-      const newSubjectIds = allSubjectIds.filter(id => !cachedSubjectIdsRef.current.has(id));
-
-      if (newSubjectIds.length > 0) {
-        const { data: subjectsData } = await supabase
-          .from("subjects")
-          .select("id, nombre, codigo, año")
-          .in("id", newSubjectIds);
-
-        if (subjectsData) {
-          (subjectsData as any[]).forEach(s => {
-            subjectsMapRef.current[s.id] = { id: s.id, nombre: s.nombre, codigo: s.codigo, year: s.año, año: s.año };
-            cachedSubjectIdsRef.current.add(s.id);
-          });
-        }
-      }
 
       const subjectsMap = subjectsMapRef.current;
 
@@ -147,7 +132,6 @@ export function useNotionDocuments() {
         return {
           ...d,
           subject: sub,
-          // Preserve cached content across refetches
           contenido: contentCacheRef.current.get(d.id) || undefined,
         };
       }) as NotionDocument[];
@@ -155,6 +139,66 @@ export function useNotionDocuments() {
       setDocuments(mapped);
     }
     setLoading(false);
+  }, [user]);
+
+  // Lazy-load friend documents only when requested
+  const fetchFriendDocuments = useCallback(async () => {
+    if (!user || friendDocsLoadedRef.current) return;
+    friendDocsLoadedRef.current = true;
+
+    const { data, error } = await supabase
+      .from("notion_documents")
+      .select(`
+        id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+        owner:profiles(nombre, avatar_url, username),
+        subject:subjects(id, nombre, codigo, año)
+      `)
+      .neq("user_id", user.id)
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching friend documents:", error.message);
+      friendDocsLoadedRef.current = false; // Allow retry
+      return;
+    }
+
+    if (data && data.length > 0) {
+      // Cache subjects
+      data.forEach((d: any) => {
+        if (d.subject && d.subject_id) {
+          subjectsMapRef.current[d.subject_id] = {
+            id: d.subject.id,
+            nombre: d.subject.nombre,
+            codigo: d.subject.codigo,
+            year: d.subject.año,
+            año: d.subject.año,
+          };
+          cachedSubjectIdsRef.current.add(d.subject_id);
+        }
+      });
+
+      const subjectsMap = subjectsMapRef.current;
+
+      const friendDocs = data.map((d: any) => {
+        const sub = d.subject
+          ? {
+              id: d.subject.id,
+              nombre: d.subject.nombre,
+              codigo: d.subject.codigo,
+              year: d.subject.año,
+              año: d.subject.año,
+            }
+          : (d.subject_id ? subjectsMap[d.subject_id] : undefined);
+
+        return {
+          ...d,
+          subject: sub,
+          contenido: contentCacheRef.current.get(d.id) || undefined,
+        };
+      }) as NotionDocument[];
+
+      setDocuments(prev => [...prev, ...friendDocs]);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -326,10 +370,10 @@ export function useNotionDocuments() {
     }
   };
 
-  // Prefetch content on hover (fire-and-forget)
+  // Prefetch content on hover (fire-and-forget, cache only - no re-render)
   const prefetchDocumentContent = (docId: string) => {
     if (contentCacheRef.current.has(docId)) return; // Already cached
-    // Fire and forget - don't await
+    // Fire and forget - just populate cache, don't trigger state update
     supabase
       .from("notion_documents")
       .select("contenido")
@@ -338,9 +382,6 @@ export function useNotionDocuments() {
       .then(({ data, error }) => {
         if (!error && data?.contenido) {
           contentCacheRef.current.set(docId, data.contenido);
-          setDocuments(prev => prev.map(doc =>
-            doc.id === docId ? { ...doc, contenido: data.contenido } : doc
-          ));
         }
       });
   };
@@ -354,6 +395,7 @@ export function useNotionDocuments() {
     addStudyTime,
     fetchDocumentContent,
     prefetchDocumentContent,
+    fetchFriendDocuments,
     refetch: fetchDocuments,
   };
 }

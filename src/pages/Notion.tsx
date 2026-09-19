@@ -326,6 +326,7 @@ export default function Notion() {
     addStudyTime,
     fetchDocumentContent,
     prefetchDocumentContent,
+    fetchFriendDocuments,
     refetch,
   } = useNotionDocuments();
   const { checkAndUnlockAchievements } = useAchievements();
@@ -1899,7 +1900,12 @@ export default function Notion() {
                     ].map(tab => (
                       <button
                         key={tab.id}
-                        onClick={() => setFilterOwner(tab.id as any)}
+                      onClick={() => {
+                        setFilterOwner(tab.id as any);
+                        if (tab.id === "friends" || tab.id === "all") {
+                          fetchFriendDocuments();
+                        }
+                      }}
                         className={cn(
                           "px-4 py-2 font-black uppercase border-4 border-foreground transition-all rounded-none",
                           filterOwner === tab.id 

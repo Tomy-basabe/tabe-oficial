@@ -188,6 +188,9 @@ export function useDashboardStats() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+      const oneYearAgo = new Date();
+      oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+
       const [sessionsRes, allDatesRes] = await Promise.all([
         supabase
           .from("study_sessions")
@@ -199,6 +202,7 @@ export function useDashboardStats() {
           .from("study_sessions")
           .select("fecha")
           .eq("user_id", user.id)
+          .gte("fecha", toLocalDateStr(oneYearAgo))
       ]);
 
       const sessionsData = sessionsRes.data || [];
