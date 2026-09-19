@@ -19,6 +19,7 @@ interface ModelSelectorProps {
   powerLevel: PowerEffort;
   onSelectPowerLevel: (level: PowerEffort) => void;
   disabled?: boolean;
+  className?: string;
 }
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
@@ -27,6 +28,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   powerLevel,
   onSelectPowerLevel,
   disabled = false,
+  className,
 }) => {
   const powerLabels: Record<PowerEffort, { name: string; icon: any; color: string; desc: string }> = {
     bajo: {
@@ -57,8 +59,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       <DropdownMenuTrigger
         disabled={disabled}
         className={cn(
-          "flex items-center gap-1.5 px-2.5 py-1 rounded-xl border-2 border-foreground bg-card text-foreground font-black text-xs shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all focus:outline-none shrink-0",
-          disabled && "opacity-50 cursor-not-allowed pointer-events-none"
+          "flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border/60 bg-muted/50 hover:bg-muted text-foreground font-semibold text-xs transition-all focus:outline-none shrink-0 shadow-xs hover:border-primary/40",
+          disabled && "opacity-50 cursor-not-allowed pointer-events-none",
+          className
         )}
       >
         <div className="w-5 h-5 rounded-lg flex items-center justify-center p-0.5 bg-[#00d9ff] text-black border border-foreground/30 shadow-xs shrink-0">

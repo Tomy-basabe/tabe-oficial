@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import { AISparkleLogo } from "@/components/icons/AISparkleLogo";
+import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
 import "katex/dist/katex.min.css";
 
 // Proprietary TABE Neural AI Logo (custom engineered for TABE)
@@ -259,7 +261,7 @@ export function AIBubbleWidget() {
                                     )}
                                 >
                                     {!msg.content && isStreaming && (
-                                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                        <AIThinkingIndicator compact personaName={activePersona?.name} />
                                     )}
                                     {msg.content && msg.role === "assistant" ? (
                                         <div className="prose prose-sm dark:prose-invert prose-p:leading-snug prose-p:my-1 prose-pre:bg-black/50 prose-pre:p-2 prose-pre:rounded-lg prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground">

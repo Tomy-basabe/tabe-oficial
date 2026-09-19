@@ -19,6 +19,8 @@ import { AVAILABLE_AI_MODELS, AITask } from "@/config/aiModels";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
+import { AISparkleLogo } from "@/components/icons/AISparkleLogo";
+import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -145,6 +147,13 @@ export default function AIAssistant() {
     selectedModel, setSelectedModel,
     powerLevel, setPowerLevel
   } = useAIChat();
+
+  const userName =
+    user?.user_metadata?.nombre ||
+    user?.user_metadata?.full_name?.split(" ")[0] ||
+    user?.user_metadata?.name?.split(" ")[0] ||
+    user?.email?.split("@")[0] ||
+    "Tomas";
 
   const {
     personas,
@@ -619,57 +628,21 @@ export default function AIAssistant() {
   };
 
   const renderContent = (content: string, role: "user" | "assistant") => {
-    if (!content)
+    if (!content) {
       return (
-        <div className="py-2 px-1 space-y-2.5 min-w-[200px]">
-          {/* Top thinking badge + pulse */}
-          <div className="flex items-center gap-2.5">
-            <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr from-[#00E5FF] to-[#BFFF00] border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] animate-pulse">
-              <Brain className="w-3.5 h-3.5 text-black animate-spin [animation-duration:8s]" />
-              <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF2E93] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF2E93] border border-black" />
-              </span>
-            </div>
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black uppercase tracking-wider text-foreground">
-                  {activePersona?.name || "IA"} está pensando
-                </span>
-                <Sparkles className="w-3 h-3 text-[#00E5FF] animate-spin [animation-duration:3s]" />
-              </div>
-              <span className="text-[9px] font-bold text-muted-foreground uppercase">
-                Conectando ideas...
-              </span>
-            </div>
-          </div>
-
-          {/* Comic Bouncing Dots Chip */}
-          <div className="flex items-center justify-between gap-3 p-1.5 px-2.5 rounded-xl bg-muted/70 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] max-w-[240px]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] border border-black animate-bounce [animation-delay:-0.32s]" />
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FFE600] border border-black animate-bounce [animation-delay:-0.16s]" />
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FF2E93] border border-black animate-bounce" />
-            </div>
-            <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-black text-[#BFFF00] border border-[#BFFF00]">
-              GENERANDO
-            </span>
-          </div>
-
-          {/* Laser scanning bar */}
-          <div className="h-1.5 max-w-[240px] bg-background rounded-full border border-foreground overflow-hidden relative shadow-xs p-[1px]">
-            <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-[#00E5FF] via-[#FFE600] to-[#FF2E93] animate-pulse" />
-          </div>
-        </div>
+        <AIThinkingIndicator
+          personaName={activePersona?.name}
+          statusText="Analizando contexto, materias y apuntes..."
+        />
       );
+    }
 
     if (role === "user") {
-      return content.split("\n").map((line, i) => <div key={i} className="!text-black font-bold">{line}</div>);
+      return content.split("\n").map((line, i) => <div key={i} className="text-foreground leading-relaxed">{line}</div>);
     }
 
     return (
-      <div className="prose prose-sm dark:prose-invert prose-p:leading-snug prose-p:my-1 prose-pre:bg-black/50 prose-pre:p-2 prose-pre:rounded-lg prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground font-semibold">
+      <div className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-p:my-1.5 prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:p-3 prose-pre:rounded-xl prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground font-normal">
         <ReactMarkdown
           remarkPlugins={[remarkMath]}
           rehypePlugins={[rehypeKatex]}
@@ -738,13 +711,13 @@ export default function AIAssistant() {
       <div className="flex-1 flex flex-col h-full min-w-0">
 
         {/* ── HEADER ─────────────────────────────────────── */}
-        <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 border-b-2 md:border-b-4 border-foreground bg-card flex items-center gap-2 md:gap-3 z-10">
+        <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 border-b border-border/40 bg-card/75 backdrop-blur-md flex items-center gap-2 md:gap-3 z-10">
           {/* Sidebar toggle */}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted shrink-0 w-8 h-8 md:w-9 md:h-9"
+            className="border border-border/60 rounded-xl hover:bg-muted text-foreground shrink-0 w-8 h-8 md:w-9 md:h-9 shadow-xs"
             title="Historial y personalidades"
           >
             <Menu className="w-4 h-4" />
@@ -753,31 +726,37 @@ export default function AIAssistant() {
           {/* Back link — only on md+ */}
           <Link
             to="/dashboard"
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-foreground bg-background text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all shrink-0 group"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/60 bg-card hover:bg-muted text-foreground font-semibold text-xs transition-all shrink-0 group shadow-xs"
           >
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
             Volver
           </Link>
 
-          {/* Avatar + name */}
-          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-black text-white dark:bg-white dark:text-black p-1.5 flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
-            <TabeAIIcon className="w-full h-full text-white dark:text-black" />
+          {/* Avatar + name with AISparkleLogo */}
+          <div className="flex items-center justify-center shrink-0">
+            {activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-card border border-border/60 flex items-center justify-center text-base shadow-xs">
+                {activePersona.avatar_emoji}
+              </div>
+            ) : (
+              <AISparkleLogo size={26} animate={isStreaming} withGlow={true} />
+            )}
           </div>
 
           <div className="flex flex-col justify-center min-w-0 flex-1">
-            <h1 className="font-black text-base md:text-xl uppercase text-foreground leading-tight truncate">
+            <h1 className="font-bold text-sm md:text-base text-foreground leading-tight truncate">
               {activePersona?.name || "TABE IA"}
             </h1>
             {activePersona?.description && (
-              <p className="font-bold text-muted-foreground text-[10px] md:text-xs uppercase tracking-wide truncate hidden sm:block">
+              <p className="text-muted-foreground text-[10px] md:text-xs tracking-tight truncate hidden sm:block">
                 {activePersona.description}
               </p>
             )}
           </div>
 
           {/* Status badge */}
-          <div className="px-2 py-1 bg-[#BFFF00] !text-black border-2 border-foreground rounded-full font-black uppercase text-[10px] md:text-xs flex items-center gap-1.5 shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
+          <div className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 rounded-full font-medium text-[10px] md:text-xs flex items-center gap-1.5 shadow-xs shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="hidden xs:inline">Online</span>
           </div>
 
@@ -787,7 +766,7 @@ export default function AIAssistant() {
               variant="ghost"
               size="icon"
               onClick={() => handleDeleteSession(currentSessionId)}
-              className="border-2 border-foreground bg-card rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] text-red-600 hover:bg-[#FF5C5C] hover:!text-white shrink-0 w-8 h-8 md:w-9 md:h-9 transition-transform active:scale-90"
+              className="border border-border/60 bg-card rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10 shrink-0 w-8 h-8 md:w-9 md:h-9 transition-colors shadow-xs"
               title="Eliminar conversación actual"
               aria-label="Eliminar conversación actual"
             >
@@ -800,7 +779,7 @@ export default function AIAssistant() {
             variant="ghost"
             size="icon"
             onClick={() => window.open("/TABEAI", "_blank")}
-            className="border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground shrink-0 hidden md:flex w-8 h-8"
+            className="border border-border/60 rounded-xl hover:bg-muted text-foreground shrink-0 hidden md:flex w-8 h-8 shadow-xs"
             title="Abrir en pestaña nueva"
           >
             <ExternalLink className="w-4 h-4" />
@@ -808,143 +787,150 @@ export default function AIAssistant() {
         </div>
 
         {/* ── MESSAGES ───────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto scroll-smooth">
-          <div className="max-w-3xl mx-auto px-3 py-4 md:px-6 md:py-6 space-y-1">
+        <div className="flex-1 overflow-y-auto scroll-smooth relative">
+          {/* Ambient subtle glow in the background */}
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] bg-gradient-to-tr from-sky-400/10 via-purple-400/5 to-pink-400/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
-            {/* Proactive Context Actions Banner */}
-            {messages.length <= 1 && proactiveContext?.type === 'exam' && (
-              <div className="mb-3 p-3 sm:p-4 rounded-xl bg-[#FFE600] text-black border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] space-y-2.5 animate-in fade-in">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🎯</span>
-                  <span className="font-black text-xs sm:text-sm uppercase tracking-wider">
-                    Acciones recomendadas para {proactiveContext.subject}:
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleQuickAction(`Hazme un simulacro de examen de 5 preguntas tipo quiz sobre ${proactiveContext.subject} para evaluar mis conocimientos`)}
-                    className="px-3 py-1.5 rounded-lg bg-black text-[#BFFF00] font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                  >
-                    <FileQuestion className="w-3.5 h-3.5" />
-                    <span>Simulacro de 5 preguntas</span>
-                  </button>
-                  <button
-                    onClick={() => handleQuickAction(`Explicame los temas más importantes, conceptos y fórmulas clave que suelen tomar en ${proactiveContext.subject}`)}
-                    className="px-3 py-1.5 rounded-lg bg-white text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>Repasar conceptos clave</span>
-                  </button>
-                  <button
-                    onClick={() => handleQuickAction(`Dame una guía rápida de 3 pasos y recomendaciones para rendir mañana el examen de ${proactiveContext.subject} con tranquilidad`)}
-                    className="px-3 py-1.5 rounded-lg bg-[#00E5FF] text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Tips para rendir</span>
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="max-w-3xl mx-auto px-3 py-4 md:px-6 md:py-6 space-y-4">
 
-            {messages.length <= 1 && proactiveContext?.type === 'streak' && (
-              <div className="mb-3 p-3 sm:p-4 rounded-xl bg-[#FF5C5C] text-white border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] space-y-2.5 animate-in fade-in">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🔥</span>
-                  <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-black">
-                    ¡Defendé tu racha de {proactiveContext.daysStreak} días!
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleQuickAction("Tomame un quiz express de 5 preguntas variadas de mis materias cursadas para registrar estudio")}
-                    className="px-3 py-1.5 rounded-lg bg-black text-[#FFE600] font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                  >
-                    <FileQuestion className="w-3.5 h-3.5" />
-                    <span>Quiz express de 5 preguntas</span>
-                  </button>
-                  <button
-                    onClick={() => handleQuickAction("Armame una sesión de estudio guiada de 15 minutos con técnica Pomodoro")}
-                    className="px-3 py-1.5 rounded-lg bg-white text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Estudio guiado de 15 min</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Quick actions — horizontal scroll on mobile */}
+            {/* Hero empty state greeting when no messages yet or only init */}
             {messages.length <= 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2 mb-3 snap-x snap-mandatory scrollbar-none md:grid md:grid-cols-5 md:overflow-visible md:pb-0">
-                {quickActions.map((action) => {
-                  const Icon = action.icon;
-                  return (
-                    <button
-                      key={action.id}
-                      onClick={() => handleQuickAction(action.prompt)}
-                      className="flex flex-col items-center justify-center gap-2 p-3 bg-card border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] rounded-xl hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_hsl(var(--foreground))] transition-all text-center group shrink-0 w-28 md:w-auto snap-start"
-                    >
-                      <div className="p-2 rounded-lg bg-muted border-2 border-foreground text-foreground group-hover:bg-[#00E5FF] group-hover:!text-black transition-colors">
-                        <Icon className="w-4 h-4" strokeWidth={2.5} />
-                      </div>
-                      <span className="text-[11px] font-black uppercase text-foreground leading-tight">
-                        {action.label}
+              <div className="flex flex-col items-center justify-center pt-8 pb-4 text-center animate-in fade-in duration-500">
+                <AISparkleLogo size={52} animate={true} withGlow={true} className="mb-4" />
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-foreground font-sans">
+                  ¿Qué toca hoy, {userName}?
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-md mt-2 mb-6">
+                  {activePersona?.description || "Tu asistente académico inteligente para tus materias, exámenes y apuntes."}
+                </p>
+
+                {/* Proactive Context Actions Banner */}
+                {proactiveContext?.type === 'exam' && (
+                  <div className="w-full mb-4 p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 dark:text-amber-100 shadow-xs space-y-2.5 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🎯</span>
+                      <span className="font-semibold text-xs sm:text-sm">
+                        Acciones recomendadas para {proactiveContext.subject}:
                       </span>
-                    </button>
-                  );
-                })}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleQuickAction(`Hazme un simulacro de examen de 5 preguntas tipo quiz sobre ${proactiveContext.subject} para evaluar mis conocimientos`)}
+                        className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground font-medium text-xs hover:opacity-90 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <FileQuestion className="w-3.5 h-3.5" />
+                        <span>Simulacro de 5 preguntas</span>
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction(`Explicame los temas más importantes, conceptos y fórmulas clave que suelen tomar en ${proactiveContext.subject}`)}
+                        className="px-3 py-1.5 rounded-full bg-card hover:bg-muted text-foreground border border-border/60 font-medium text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Repasar conceptos clave</span>
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction(`Dame una guía rápida de 3 pasos y recomendaciones para rendir mañana el examen de ${proactiveContext.subject} con tranquilidad`)}
+                        className="px-3 py-1.5 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-medium text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Tips para rendir</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {proactiveContext?.type === 'streak' && (
+                  <div className="w-full mb-4 p-3.5 sm:p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-950 dark:text-rose-100 shadow-xs space-y-2.5 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🔥</span>
+                      <span className="font-semibold text-xs sm:text-sm">
+                        ¡Defendé tu racha de {proactiveContext.daysStreak} días!
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleQuickAction("Tomame un quiz express de 5 preguntas variadas de mis materias cursadas para registrar estudio")}
+                        className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground font-medium text-xs hover:opacity-90 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <FileQuestion className="w-3.5 h-3.5" />
+                        <span>Quiz express de 5 preguntas</span>
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction("Armame una sesión de estudio guiada de 15 minutos con técnica Pomodoro")}
+                        className="px-3 py-1.5 rounded-full bg-card hover:bg-muted text-foreground border border-border/60 font-medium text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Estudio guiado de 15 min</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick actions chips */}
+                <div className="flex flex-wrap items-center justify-center gap-2 max-w-xl mx-auto">
+                  {quickActions.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <button
+                        key={action.id}
+                        onClick={() => handleQuickAction(action.prompt)}
+                        className="flex items-center gap-2 px-3.5 py-2 rounded-full border border-border/60 bg-card/80 hover:bg-muted hover:border-primary/40 text-foreground font-medium text-xs shadow-xs hover:shadow-sm transition-all cursor-pointer group"
+                      >
+                        <Icon className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400 group-hover:scale-110 transition-transform" />
+                        <span>{action.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
             {/* Messages */}
-            <div className="space-y-3 md:space-y-4 pb-6 min-h-[200px]">
+            <div className="space-y-3.5 md:space-y-4 pb-4 min-h-[160px]">
               {messages.map((message) => (
                 <div
                   key={message.id}
                   className={cn(
-                    "flex gap-2 md:gap-3 group items-start",
+                    "flex gap-2.5 md:gap-3 group items-start",
                     message.role === "user" ? "flex-row-reverse" : "flex-row"
                   )}
                 >
                   {/* Avatar */}
-                  <div
-                    className={cn(
-                      "w-7 h-7 md:w-8 md:h-8 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl flex items-center justify-center shrink-0 mt-0.5",
-                      message.role === "assistant"
-                        ? "bg-black text-white dark:bg-white dark:text-black p-1"
-                        : "bg-[#FFD700] text-black"
-                    )}
-                  >
+                  <div className="shrink-0 mt-0.5">
                     {message.role === "assistant" ? (
                       activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-                        <span className="text-sm leading-none">{activePersona.avatar_emoji}</span>
+                        <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-card border border-border/60 shadow-xs flex items-center justify-center text-sm">
+                          {activePersona.avatar_emoji}
+                        </div>
                       ) : (
-                        <TabeAIIcon className="w-full h-full text-white dark:text-black" />
+                        <AISparkleLogo size={22} animate={isStreaming} withGlow={true} />
                       )
                     ) : (
-                      <User className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
+                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-muted border border-border/60 shadow-xs flex items-center justify-center text-foreground">
+                        <User className="w-3.5 h-3.5" />
+                      </div>
                     )}
                   </div>
 
                   {/* Bubble */}
                   <div
                     className={cn(
-                      "max-w-[88%] sm:max-w-[80%] md:max-w-[75%] rounded-2xl px-3 py-2 md:px-4 md:py-3 border-2 md:border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] md:shadow-[4px_4px_0_0_hsl(var(--foreground))] overflow-hidden",
+                      "overflow-hidden transition-all",
                       message.role === "user"
-                        ? "bg-[#BFFF00] !text-black rounded-tr-xs"
-                        : "bg-card text-foreground rounded-tl-xs"
+                        ? "max-w-[85%] sm:max-w-[75%] rounded-3xl rounded-tr-md px-4 py-2.5 bg-muted/80 dark:bg-muted/40 text-foreground border border-border/40 shadow-xs font-normal text-xs md:text-sm"
+                        : "max-w-[92%] sm:max-w-[85%] rounded-3xl rounded-tl-md px-4 py-3 bg-card/90 dark:bg-card/70 border border-border/50 shadow-xs text-foreground text-xs md:text-sm"
                     )}
                   >
                     {/* Model badge */}
                     {message.role === "assistant" && message.id !== "init" && (
-                      <div className="flex items-center gap-1 pb-1.5 mb-1.5 border-b border-foreground/15 text-[10px] font-black uppercase text-muted-foreground">
-                        <div className="w-3.5 h-3.5 rounded flex items-center justify-center p-0.5 bg-background border border-foreground/30 shrink-0">
+                      <div className="flex items-center gap-1 pb-1 mb-1.5 border-b border-border/40 text-[10px] font-medium text-muted-foreground">
+                        <div className="w-3.5 h-3.5 rounded flex items-center justify-center p-0.5 bg-background border border-border/40 shrink-0">
                           <ModelLogo modelId={message.modelId || selectedModel.id} className="w-2.5 h-2.5" />
                         </div>
-                        <span className="text-foreground tracking-tight font-black truncate">
+                        <span className="text-foreground tracking-tight font-semibold truncate">
                           {message.modelName || selectedModel.shortName}
                         </span>
-                        <span className="text-[9px] text-muted-foreground/80 font-bold ml-auto shrink-0">
+                        <span className="text-[9px] text-muted-foreground/75 font-normal ml-auto shrink-0">
                           {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
@@ -955,17 +941,17 @@ export default function AIAssistant() {
                         <img
                           src={message.imageUrl}
                           alt="Imagen adjunta"
-                          className="max-h-60 max-w-full rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] object-contain bg-black/10"
+                          className="max-h-60 max-w-full rounded-2xl border border-border/60 shadow-xs object-contain bg-black/10"
                         />
                       </div>
                     )}
 
-                    <div className="text-xs md:text-sm font-bold leading-relaxed break-words">
+                    <div className="leading-relaxed break-words">
                       {renderContent(message.content, message.role)}
                     </div>
 
                     {message.role === "user" && (
-                      <div className="flex items-center justify-end gap-1 mt-1 text-[9px] font-black uppercase !text-black/60">
+                      <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-muted-foreground font-normal">
                         {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     )}
@@ -977,8 +963,8 @@ export default function AIAssistant() {
           </div>
         </div>
 
-        {/* ── INPUT BAR ──────────────────────────────────── */}
-        <div className="shrink-0 px-2 py-2 md:px-6 md:py-3 bg-background/95 backdrop-blur-md border-t-2 border-foreground/20 md:border-none sticky bottom-0 z-20">
+        {/* ── FLOATING INPUT BAR (GEMINI STYLE) ────────────────── */}
+        <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 bg-background/80 backdrop-blur-md sticky bottom-0 z-20">
           <div className="max-w-3xl mx-auto">
             <input
               type="file"
@@ -988,49 +974,49 @@ export default function AIAssistant() {
               accept=".pdf,.txt,.md,image/*,audio/*"
             />
 
-            <div className="flex flex-col bg-card rounded-2xl border-2 md:border-4 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] md:shadow-[5px_5px_0_0_hsl(var(--foreground))] focus-within:ring-2 focus-within:ring-primary overflow-hidden">
+            <div className="flex flex-col rounded-3xl border border-border/70 bg-card/95 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/25 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all overflow-hidden">
               {/* Attached Image Preview */}
               {attachedImage && (
-                <div className="p-2 border-b-2 border-foreground/20 bg-muted/50 flex items-center justify-between gap-2 animate-in fade-in slide-in-from-bottom-1">
+                <div className="p-2 border-b border-border/40 bg-muted/40 flex items-center justify-between gap-2 animate-in fade-in slide-in-from-bottom-1">
                   <div className="flex items-center gap-2 min-w-0">
                     <img
                       src={attachedImage.preview}
                       alt="Vista previa"
-                      className="w-12 h-12 rounded-lg object-cover border-2 border-foreground shadow-[1px_1px_0_0_#000]"
+                      className="w-11 h-11 rounded-xl object-cover border border-border/60 shadow-xs"
                     />
                     <div className="min-w-0">
-                      <span className="text-[11px] font-black uppercase text-foreground block truncate">
+                      <span className="text-[11px] font-semibold text-foreground block truncate">
                         {attachedImage.name}
                       </span>
-                      <span className="text-[9px] font-bold text-muted-foreground block">
-                        Se analizará con Gemini Vision al enviar
+                      <span className="text-[9px] text-muted-foreground block">
+                        Se analizará con IA multimodal al enviar
                       </span>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setAttachedImage(null)}
-                    className="p-1 rounded-lg border-2 border-foreground bg-card hover:bg-destructive hover:text-white transition-colors"
+                    className="p-1.5 rounded-full border border-border/60 bg-card hover:bg-destructive hover:text-white transition-colors"
                     title="Quitar imagen"
                   >
-                    <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}
 
               {/* Recording Indicator */}
               {isRecording && (
-                <div className="p-2 border-b-2 border-foreground/20 bg-destructive/15 flex items-center justify-between gap-2 animate-pulse">
+                <div className="p-2 border-b border-destructive/20 bg-destructive/10 flex items-center justify-between gap-2 animate-pulse">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-ping" />
-                    <span className="text-xs font-black uppercase text-destructive tracking-wide">
+                    <span className="text-xs font-semibold text-destructive tracking-wide">
                       Grabando audio ({Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, "0")})...
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={stopVoiceRecording}
-                    className="px-2.5 py-1 rounded-lg border-2 border-foreground bg-destructive text-white text-[10px] font-black uppercase shadow-[1px_1px_0_0_#000] hover:scale-95 transition-transform"
+                    className="px-2.5 py-1 rounded-full bg-destructive text-white text-[10px] font-semibold hover:opacity-90 transition-opacity"
                   >
                     Detener y Transcribir ⏹️
                   </button>
@@ -1059,30 +1045,34 @@ export default function AIAssistant() {
                       ? "Escribe tu pregunta sobre la foto (o pulsa Enviar para analizarla)..."
                       : isRecording
                         ? "Grabando tu voz..."
-                        : `Pregúntale a ${activePersona?.name || "tu IA"}... (pega o adjunta fotos/audio)`
+                        : `Pregunta a ${activePersona?.name || "TABE IA"}...`
                 }
-                className="w-full px-3 py-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-bold placeholder:text-muted-foreground placeholder:font-bold resize-none overflow-y-auto text-foreground"
-                style={{ minHeight: "40px", maxHeight: "140px" }}
+                className="w-full px-4 pt-3 pb-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-medium placeholder:text-muted-foreground/75 resize-none overflow-y-auto text-foreground"
+                style={{ minHeight: "44px", maxHeight: "140px" }}
                 rows={1}
                 disabled={isStreaming || isUploading}
               />
 
-              {/* Bottom action bar */}
-              <div className="flex items-center justify-between px-2 pb-2 gap-1.5">
-                {/* Left: attach + model selector */}
+              {/* Bottom action bar inside floating pill */}
+              <div className="flex items-center justify-between px-3 pb-2 gap-2">
+                {/* Left: attach (+) + model selector */}
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  {/* Plus / Attach button with subtle sparkle dot like Gemini */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-foreground hover:bg-muted border border-foreground/20 hover:border-foreground rounded-lg h-7 w-7 shrink-0"
+                    className="relative text-muted-foreground hover:text-foreground hover:bg-muted rounded-full h-8 w-8 shrink-0 transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading || isStreaming}
                     title="Adjuntar Imagen, Audio, PDF o Texto"
                   >
                     {isUploading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
                     ) : (
-                      <Paperclip className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      <div className="relative flex items-center justify-center">
+                        <Paperclip className="w-4 h-4" />
+                        <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-sky-500" />
+                      </div>
                     )}
                   </Button>
 
@@ -1109,35 +1099,35 @@ export default function AIAssistant() {
                     size="icon"
                     variant="ghost"
                     className={cn(
-                      "text-foreground hover:bg-muted border border-foreground/20 hover:border-foreground rounded-lg h-7 w-7 transition-all",
-                      isRecording && "bg-destructive text-white border-destructive animate-pulse"
+                      "text-muted-foreground hover:text-foreground hover:bg-muted rounded-full h-8 w-8 transition-colors",
+                      isRecording && "bg-destructive text-white hover:bg-destructive animate-pulse"
                     )}
                     onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
                     title={isRecording ? "Detener grabación" : "Grabar audio / voz con IA"}
                     disabled={isStreaming}
                   >
-                    <Mic className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    <Mic className="w-4 h-4" />
                   </Button>
 
                   <Button
                     onClick={handleSend}
                     disabled={(!inputValue.trim() && !attachedImage) || isStreaming}
+                    size="icon"
                     className={cn(
-                      "rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-8 px-3 flex items-center gap-1 shrink-0",
+                      "rounded-full h-8 w-8 transition-all shrink-0 flex items-center justify-center",
                       (inputValue.trim() || attachedImage) && !isStreaming
-                        ? "bg-[#00E5FF] !text-black hover:bg-[#00cce6] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                        : "bg-muted text-muted-foreground cursor-not-allowed border-foreground/30"
+                        ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md hover:opacity-95"
+                        : "bg-muted text-muted-foreground/50 cursor-not-allowed"
                     )}
                   >
-                    <span className="hidden sm:inline">Enviar</span>
-                    <Send className="w-3.5 h-3.5" strokeWidth={3} />
+                    <Send className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
             </div>
 
-            <p className="text-[9px] text-center font-black uppercase text-muted-foreground mt-1.5 px-2">
-              {activePersona?.name || "T.A.B.E. IA"} puede cometer errores.
+            <p className="text-[10px] text-center text-muted-foreground/75 mt-2 px-2 font-normal">
+              {activePersona?.name || "TABE IA"} puede cometer errores. Verifica información importante.
             </p>
           </div>
         </div>
