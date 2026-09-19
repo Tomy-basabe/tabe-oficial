@@ -226,6 +226,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         if (!user || mode !== "work" || currentElapsed === 0) return;
 
         try {
+            const sessionDate = toLocalDateStr();
             const { error } = await supabase
                 .from("study_sessions")
                 .insert({
@@ -234,7 +235,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                     duracion_segundos: currentElapsed,
                     tipo: "pomodoro",
                     completada: completed,
-                    fecha: sessionStartDate, // Usa la fecha en que inició para celulares suspendidos
+                    fecha: sessionDate,
                 });
 
             if (error) throw error;
@@ -374,7 +375,12 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const toggleTimer = () => setIsActive(!isActive);
+    const toggleTimer = () => {
+        if (!isActive) {
+            setSessionStartDate(toLocalDateStr());
+        }
+        setIsActive(!isActive);
+    };
 
     const resetTimer = () => {
         if (mode === "work" && elapsedSeconds > 60) saveCurrentSession(false);
@@ -383,6 +389,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         setTimeLeft(getMinutesForMode(mode, pomodoroSettings) * 60);
         setElapsedSeconds(0);
         lastTickRef.current = null;
+        setSessionStartDate(toLocalDateStr());
     };
 
     const changeMode = (newMode: TimerMode) => {
@@ -393,6 +400,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         setTimeLeft(getMinutesForMode(newMode, pomodoroSettings) * 60);
         setElapsedSeconds(0);
         lastTickRef.current = null;
+        setSessionStartDate(toLocalDateStr());
     };
 
     const formatTime = (seconds: number) => {

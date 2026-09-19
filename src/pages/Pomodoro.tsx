@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Play, Pause, RotateCcw, Settings, Coffee, BookOpen, Target, Loader2, Save, Gamepad2, Swords, CheckSquare, Calendar, Filter, X } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { usePomodoro, TimerMode } from "@/contexts/PomodoroContext";
 import { PomodoroSettings } from "@/components/pomodoro/PomodoroSettings";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { SubjectStudyStats } from "@/components/pomodoro/SubjectStudyStats";
+import { useSubjects } from "@/hooks/useSubjects";
 
 interface Subject {
   id: string;
@@ -63,6 +64,7 @@ export default function Pomodoro() {
     updateSettings,
   } = usePomodoro();
 
+  const { subjects: careerSubjects } = useSubjects();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -70,6 +72,32 @@ export default function Pomodoro() {
   const [showSettings, setShowSettings] = useState(false);
   const [yearFilter, setYearFilter] = useState<string>("all");
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
+
+  const activeSubjects = useMemo(() => {
+    if (!careerSubjects || careerSubjects.length === 0) return subjects;
+    return careerSubjects
+      .filter((s) => s.status !== "aprobada")
+      .map((s) => ({
+        id: s.id,
+        nombre: s.nombre,
+        codigo: s.codigo,
+        year: s.año,
+        status: s.status,
+      }));
+  }, [careerSubjects, subjects]);
+
+  const approvedSubjects = useMemo(() => {
+    if (!careerSubjects || careerSubjects.length === 0) return [];
+    return careerSubjects
+      .filter((s) => s.status === "aprobada")
+      .map((s) => ({
+        id: s.id,
+        nombre: s.nombre,
+        codigo: s.codigo,
+        year: s.año,
+        status: s.status,
+      }));
+  }, [careerSubjects]);
 
   // Parse query parameters (?subject=...&task=...)
   useEffect(() => {
@@ -418,13 +446,30 @@ export default function Pomodoro() {
                     className="w-full bg-background border-[3px] border-foreground p-3 pr-12 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-foreground/20 transition-all appearance-none cursor-pointer shadow-[4px_4px_0_0_hsl(var(--foreground))]"
                   >
                     <option value="none">Sin materia específica</option>
-                    {subjects
-                      .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
-                      .map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.nombre} ({subject.codigo})
-                        </option>
-                      ))}
+
+                    {activeSubjects.length > 0 && (
+                      <optgroup label="📖 Materias en Cursada / Pendientes">
+                        {activeSubjects
+                          .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
+                          .map((subject) => (
+                            <option key={subject.id} value={subject.id}>
+                              {subject.nombre} ({subject.codigo})
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+
+                    {approvedSubjects.length > 0 && (
+                      <optgroup label="✅ Materias Aprobadas (Semestres Anteriores)">
+                        {approvedSubjects
+                          .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
+                          .map((subject) => (
+                            <option key={subject.id} value={subject.id}>
+                              {subject.nombre} ({subject.codigo}) - [Aprobada]
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
               </div>
@@ -437,7 +482,12 @@ export default function Pomodoro() {
                     <span className="text-[10px] text-black font-black uppercase tracking-widest">Estudiando ahora</span>
                   </div>
                   <span className="font-display font-black text-black text-sm text-center line-clamp-2">
-                    {subjects.find(s => s.id === selectedSubject)?.nombre}
+                    {[...activeSubjects, ...approvedSubjects].find(s => s.id === selectedSubject)?.nombre || subjects.find(s => s.id === selectedSubject)?.nombre}
+                    {approvedSubjects.some(s => s.id === selectedSubject) && (
+                      <span className="block text-[10px] text-black/80 font-black uppercase tracking-wider mt-0.5">
+                        (Materia aprobada en semestre anterior)
+                      </span>
+                    )}
                   </span>
                 </div>
               )}

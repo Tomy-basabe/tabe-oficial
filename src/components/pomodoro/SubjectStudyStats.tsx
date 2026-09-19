@@ -1,8 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Clock, Flame, Trophy, BarChart2, Calendar, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { BookOpen, Clock, Flame, Trophy, BarChart2, Calendar, RefreshCw, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { cn, toLocalDateStr } from "@/lib/utils";
+import { toast } from "sonner";
+
+interface SessionDetail {
+  id: string;
+  seconds: number;
+  date: string;
+}
 
 interface SubjectStat {
   subjectId: string;
@@ -12,16 +19,19 @@ interface SubjectStat {
   totalHours: number;
   sessionsCount: number;
   percentage: number;
+  lastDate: string;
+  sessions: SessionDetail[];
 }
 
-type Timeframe = "7d" | "30d" | "all";
+type Timeframe = "today" | "7d" | "30d" | "all";
 
 export function SubjectStudyStats() {
   const { user } = useAuth();
-  const [timeframe, setTimeframe] = useState<Timeframe>("30d");
+  const [timeframe, setTimeframe] = useState<Timeframe>("7d");
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<SubjectStat[]>([]);
   const [totalSecondsAll, setTotalSecondsAll] = useState(0);
+  const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -32,27 +42,39 @@ export function SubjectStudyStats() {
     if (!user) return;
     setLoading(true);
     try {
-      // Calculate date boundary
+      // Query study sessions strictly of type 'pomodoro'
       let query = supabase
         .from("study_sessions")
-        .select("duracion_segundos, subject_id, subjects(id, nombre, codigo), fecha")
-        .eq("user_id", user.id);
+        .select("id, duracion_segundos, subject_id, subjects(id, nombre, codigo), fecha, tipo, created_at")
+        .eq("user_id", user.id)
+        .eq("tipo", "pomodoro")
+        .order("fecha", { ascending: false });
 
-      if (timeframe === "7d") {
+      const todayStr = toLocalDateStr();
+      if (timeframe === "today") {
+        query = query.eq("fecha", todayStr);
+      } else if (timeframe === "7d") {
         const d = new Date();
         d.setDate(d.getDate() - 7);
-        query = query.gte("fecha", d.toISOString().split("T")[0]);
+        query = query.gte("fecha", toLocalDateStr(d));
       } else if (timeframe === "30d") {
         const d = new Date();
         d.setDate(d.getDate() - 30);
-        query = query.gte("fecha", d.toISOString().split("T")[0]);
+        query = query.gte("fecha", toLocalDateStr(d));
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
       // Aggregate by subject
-      const subjectMap = new Map<string, { name: string; code: string; seconds: number; count: number }>();
+      const subjectMap = new Map<string, {
+        name: string;
+        code: string;
+        seconds: number;
+        count: number;
+        lastDate: string;
+        sessions: SessionDetail[];
+      }>();
       let overallSeconds = 0;
 
       (data || []).forEach((session: any) => {
@@ -62,16 +84,28 @@ export function SubjectStudyStats() {
         const subId = session.subject_id || "general";
         const subName = session.subjects?.nombre || "Estudio Libre (General)";
         const subCode = session.subjects?.codigo || "GEN";
+        const sessionDate = session.fecha || session.created_at?.split("T")[0] || "";
 
         const existing = subjectMap.get(subId) || {
           name: subName,
           code: subCode,
           seconds: 0,
           count: 0,
+          lastDate: sessionDate,
+          sessions: [],
         };
 
         existing.seconds += seconds;
         existing.count += 1;
+        if (!existing.lastDate || sessionDate > existing.lastDate) {
+          existing.lastDate = sessionDate;
+        }
+        existing.sessions.push({
+          id: session.id,
+          seconds,
+          date: sessionDate,
+        });
+
         subjectMap.set(subId, existing);
       });
 
@@ -87,6 +121,8 @@ export function SubjectStudyStats() {
           totalHours: Number((val.seconds / 3600).toFixed(1)),
           sessionsCount: val.count,
           percentage: overallSeconds > 0 ? Math.round((val.seconds / overallSeconds) * 100) : 0,
+          lastDate: val.lastDate,
+          sessions: val.sessions.sort((a, b) => b.date.localeCompare(a.date)),
         }))
         .sort((a, b) => b.totalSeconds - a.totalSeconds);
 
@@ -98,12 +134,45 @@ export function SubjectStudyStats() {
     }
   };
 
+  const deleteSession = async (sessionId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from("study_sessions")
+        .delete()
+        .eq("id", sessionId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      toast.success("Sesión de Pomodoro eliminada");
+      fetchStats();
+    } catch (e) {
+      toast.error("No se pudo eliminar la sesión");
+    }
+  };
+
   const formatHoursMinutes = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     if (hours === 0 && mins === 0) return "< 1m";
     if (hours === 0) return `${mins}m`;
     return `${hours}h ${mins}m`;
+  };
+
+  const formatFriendlyDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const today = toLocalDateStr();
+    if (dateStr === today) return "Hoy";
+
+    const yest = new Date();
+    yest.setDate(yest.getDate() - 1);
+    if (dateStr === toLocalDateStr(yest)) return "Ayer";
+
+    const [y, m, d] = dateStr.split("-");
+    if (y && m && d) {
+      return `${d}/${m}/${y}`;
+    }
+    return dateStr;
   };
 
   const BAR_COLORS = [
@@ -126,33 +195,33 @@ export function SubjectStudyStats() {
           </div>
           <div>
             <h3 className="font-display font-black text-lg sm:text-xl uppercase tracking-tight text-foreground">
-              Horas Reales por Materia
+              Horas Reales de Pomodoro por Materia
             </h3>
             <p className="text-xs font-bold text-muted-foreground">
-              Estadísticas exactas del tiempo de estudio invertido en cada materia
+              Estadísticas exactas de sesiones de Pomodoro registradas en cada materia
             </p>
           </div>
         </div>
 
         {/* Timeframe selector */}
-        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl border-2 border-foreground self-start sm:self-auto">
-          {(["7d", "30d", "all"] as Timeframe[]).map((tf) => (
+        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl border-2 border-foreground self-start sm:self-auto flex-wrap">
+          {(["today", "7d", "30d", "all"] as Timeframe[]).map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
               className={cn(
-                "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                "px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
                 timeframe === tf
                   ? "bg-foreground text-background shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {tf === "7d" ? "7 Días" : tf === "30d" ? "30 Días" : "Histórico"}
+              {tf === "today" ? "Hoy" : tf === "7d" ? "7 Días" : tf === "30d" ? "30 Días" : "Histórico"}
             </button>
           ))}
           <button
             onClick={fetchStats}
-            className="p-1 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground"
+            className="p-1 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground cursor-pointer"
             title="Recargar estadísticas"
           >
             <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
@@ -168,7 +237,7 @@ export function SubjectStudyStats() {
           </div>
           <div>
             <span className="text-[10px] font-black uppercase text-muted-foreground block">
-              Tiempo Total de Estudio
+              Tiempo Total en Pomodoro
             </span>
             <span className="font-black text-xl text-foreground">
               {formatHoursMinutes(totalSecondsAll)}
@@ -182,7 +251,7 @@ export function SubjectStudyStats() {
           </div>
           <div>
             <span className="text-[10px] font-black uppercase text-muted-foreground block">
-              Materias Activas
+              Materias con Pomodoros
             </span>
             <span className="font-black text-xl text-foreground">
               {stats.length}
@@ -211,15 +280,17 @@ export function SubjectStudyStats() {
           <div className="border-2 border-dashed border-foreground/30 rounded-xl p-10 text-center space-y-2">
             <BookOpen className="w-8 h-8 mx-auto text-muted-foreground" />
             <p className="font-black text-sm uppercase text-foreground">
-              Aún no registraste sesiones en este período
+              No hay sesiones de Pomodoro en este período ({timeframe === "today" ? "hoy" : timeframe === "7d" ? "últimos 7 días" : timeframe === "30d" ? "últimos 30 días" : "histórico"})
             </p>
             <p className="text-xs text-muted-foreground font-bold">
-              Iniciá el temporizador Pomodoro seleccionando tu materia para ver aquí cuántas horas reales le dedicás.
+              Iniciá el temporizador Pomodoro seleccionando tu materia actual para registrar tiempo aquí.
             </p>
           </div>
         ) : (
           stats.map((stat, idx) => {
             const barColor = BAR_COLORS[idx % BAR_COLORS.length];
+            const isExpanded = expandedSubjectId === stat.subjectId;
+
             return (
               <div
                 key={stat.subjectId}
@@ -235,19 +306,37 @@ export function SubjectStudyStats() {
                       <h4 className="font-black text-sm text-foreground truncate">
                         {stat.name}
                       </h4>
-                      <span className="text-[10px] font-bold text-muted-foreground">
-                        {stat.sessionsCount} {stat.sessionsCount === 1 ? "sesión" : "sesiones"} registradas
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap text-[10px] font-bold text-muted-foreground">
+                        <span>
+                          {stat.sessionsCount} {stat.sessionsCount === 1 ? "sesión" : "sesiones"}
+                        </span>
+                        {stat.lastDate && (
+                          <span className="px-1.5 py-0.5 rounded bg-muted border border-border text-foreground font-extrabold">
+                            Última: {formatFriendlyDate(stat.lastDate)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <span className="font-black text-base text-foreground block">
-                      {formatHoursMinutes(stat.totalSeconds)}
-                    </span>
-                    <span className="text-[11px] font-black px-1.5 py-0.2 rounded bg-muted border border-foreground/30">
-                      {stat.percentage}% del total
-                    </span>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="text-right">
+                      <span className="font-black text-base text-foreground block">
+                        {formatHoursMinutes(stat.totalSeconds)}
+                      </span>
+                      <span className="text-[11px] font-black px-1.5 py-0.2 rounded bg-muted border border-foreground/30">
+                        {stat.percentage}% del total
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSubjectId(isExpanded ? null : stat.subjectId)}
+                      className="p-1.5 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                      title={isExpanded ? "Ocultar sesiones individuales" : "Ver sesiones individuales"}
+                    >
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -258,6 +347,47 @@ export function SubjectStudyStats() {
                     style={{ width: `${Math.max(3, stat.percentage)}%` }}
                   />
                 </div>
+
+                {/* Expanded Session Details Drawer */}
+                {isExpanded && (
+                  <div className="mt-3 pt-3 border-t border-border/70 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="flex items-center justify-between text-[11px] font-black text-muted-foreground uppercase px-1">
+                      <span>Sesiones registradas ({stat.sessions.length})</span>
+                      <span>Acciones</span>
+                    </div>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      {stat.sessions.map((sess, sIdx) => (
+                        <div
+                          key={sess.id || sIdx}
+                          className="flex items-center justify-between p-2 rounded-lg bg-card border border-border text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="font-bold text-foreground">
+                              {formatFriendlyDate(sess.date)}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                              ({sess.date})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-black text-foreground">
+                              {formatHoursMinutes(sess.seconds)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => deleteSession(sess.id)}
+                              className="p-1 rounded text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Eliminar esta sesión de Pomodoro errónea"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })
