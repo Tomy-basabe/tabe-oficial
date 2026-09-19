@@ -79,18 +79,20 @@ export function MainLayout() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [location.pathname, navigate]);
 
-  // Categorized sidebar state
+  // Categorized sidebar state - closed by default, opens on hover/click
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem("tabe-sidebar-categories-open");
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return {
-      "cat-academico": true,
-      "cat-organizacion": true,
+      "cat-academico": false,
+      "cat-organizacion": false,
       "cat-comunidad": false
     };
   });
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // PWA auto-update check (especially for mobile/installed apps)
   useRegisterSW({
@@ -388,9 +390,23 @@ export function MainLayout() {
                 if (item.type === "category") {
                   const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
                   const isOpen = !!openCategories[item.id];
+                  const isHovered = hoveredCategory === item.id;
+                  const isVisible = isOpen || isHovered;
 
                   return (
-                    <div key={item.id} className="space-y-1.5 my-2">
+                    <div
+                      key={item.id}
+                      className="space-y-1.5 my-2 relative"
+                      onMouseEnter={() => {
+                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                        setHoveredCategory(item.id);
+                      }}
+                      onMouseLeave={() => {
+                        hoverTimeoutRef.current = setTimeout(() => {
+                          setHoveredCategory((prev) => (prev === item.id ? null : prev));
+                        }, 200);
+                      }}
+                    >
                       <button
                         type="button"
                         onClick={() => {
@@ -400,7 +416,7 @@ export function MainLayout() {
                         className={cn(
                           "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
                           isCollapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2",
-                          hasActiveChild
+                          hasActiveChild || isVisible
                             ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                             : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40"
                         )}
@@ -415,12 +431,25 @@ export function MainLayout() {
                         {!isCollapsed && (
                           <>
                             <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
-                            <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-200 stroke-[3]", isOpen && "rotate-180")} />
+                            <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-200 stroke-[3]", isVisible && "rotate-180")} />
                           </>
                         )}
                       </button>
-                      {isOpen && !isCollapsed && item.items && (
-                        <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5">
+
+                      {/* Regular expanded or hovered category list in normal sidebar */}
+                      {isVisible && !isCollapsed && item.items && (
+                        <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                          {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
+                        </div>
+                      )}
+
+                      {/* Flyout popup when sidebar is collapsed */}
+                      {isHovered && isCollapsed && item.items && (
+                        <div className="absolute left-[calc(100%+8px)] top-0 z-50 bg-card border-3 border-foreground rounded-2xl p-2.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] min-w-[200px] space-y-1 animate-in fade-in slide-in-from-left-2 duration-150">
+                          <div className="px-2 py-1 border-b-2 border-foreground/20 mb-1.5 flex items-center gap-2">
+                            <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span className="font-black text-xs uppercase tracking-wider text-foreground">{item.label}</span>
+                          </div>
                           {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
                         </div>
                       )}
@@ -438,26 +467,26 @@ export function MainLayout() {
                     onFocus={() => preloadRoute(path)}
                     className={cn(
                       "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
-                      isCollapsed ? "justify-center p-2.5" : isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
+                      isCollapsed && !isInsideCategory ? "justify-center p-2.5" : isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
                       isActive
                         ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
                         : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 font-extrabold"
                     )}
-                    title={isCollapsed ? item.label : undefined}
+                    title={isCollapsed && !isInsideCategory ? item.label : undefined}
                   >
                     <Icon
                       className={cn(
                         "transition-all flex-shrink-0",
-                        isCollapsed ? "w-5 h-5" : isInsideCategory ? "w-4 h-4" : "w-4 h-4",
+                        isCollapsed && !isInsideCategory ? "w-5 h-5" : isInsideCategory ? "w-4 h-4" : "w-4 h-4",
                         isActive ? "stroke-[2.5]" : ""
                       )}
                     />
-                    {!isCollapsed && (
+                    {(!isCollapsed || isInsideCategory) && (
                       <span className={cn("truncate flex-1 text-left", isInsideCategory ? "font-bold text-xs" : "font-black text-xs uppercase tracking-tight")}>
                         {item.label}
                       </span>
                     )}
-                    {!isCollapsed && (targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
+                    {(!isCollapsed || isInsideCategory) && (targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
                       <span className={cn(
                         "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
                         isActive
@@ -467,7 +496,7 @@ export function MainLayout() {
                         AI
                       </span>
                     )}
-                    {isActive && !isCollapsed && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
+                    {isActive && (!isCollapsed || isInsideCategory) && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
                       <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
                     )}
                   </Link>
