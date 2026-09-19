@@ -1,62 +1,49 @@
 import React from "react";
-import { AISparkleLogo } from "@/components/icons/AISparkleLogo";
 import { cn } from "@/lib/utils";
 
 interface AIThinkingIndicatorProps {
-  personaName?: string;
-  statusText?: string;
-  compact?: boolean;
   className?: string;
+  size?: "sm" | "md" | "lg";
 }
 
 /**
- * Premium AI Thinking Indicator inspired by Gemini, Claude, and ChatGPT.
- * Displays the multi-color AI Sparkle Logo with a subtle breathing pulse
- * and an ultra-clean, minimalist typing/thinking wave.
+ * Clean, minimalist Thinking Dots in vibrant gradient hues.
+ * Free of clutter and framing ("solo los puntitos de pensar").
  */
 export function AIThinkingIndicator({
-  personaName,
-  statusText,
-  compact = false,
   className,
+  size = "md",
 }: AIThinkingIndicatorProps) {
+  const dotSize =
+    size === "sm" ? "w-1.5 h-1.5" : size === "lg" ? "w-2.5 h-2.5" : "w-2 h-2";
+
   return (
     <div
       className={cn(
-        "flex items-center gap-3 select-none transition-all duration-300",
-        compact ? "py-1 px-1" : "py-2 px-1 min-w-[180px]",
+        "inline-flex items-center gap-1.5 py-1 px-1 select-none",
         className
       )}
+      role="status"
+      aria-label="Pensando..."
     >
-      {/* Glowing breathing multi-color logo */}
-      <div className="relative shrink-0 flex items-center justify-center">
-        <AISparkleLogo
-          size={compact ? 20 : 26}
-          animate={true}
-          withGlow={true}
-          className="drop-shadow-[0_0_12px_rgba(56,189,248,0.45)]"
-        />
-      </div>
-
-      {/* Thinking state content */}
-      <div className="flex flex-col justify-center min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs md:text-sm font-semibold tracking-wide text-foreground/90 flex items-center gap-1">
-            <span>Pensando</span>
-            <span className="inline-flex gap-1 items-center ml-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-bounce [animation-delay:-0.3s] opacity-80" />
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce [animation-delay:-0.15s] opacity-80" />
-              <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-bounce opacity-80" />
-            </span>
-          </span>
-        </div>
-
-        {!compact && (
-          <span className="text-[11px] font-medium text-muted-foreground/75 tracking-tight truncate mt-0.5">
-            {statusText || (personaName ? `Conectando con ${personaName}...` : "Analizando contexto y apuntes...")}
-          </span>
+      <span
+        className={cn(
+          dotSize,
+          "rounded-full bg-sky-400 animate-bounce [animation-delay:-0.32s] shadow-[0_0_8px_rgba(56,189,248,0.6)]"
         )}
-      </div>
+      />
+      <span
+        className={cn(
+          dotSize,
+          "rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.16s] shadow-[0_0_8px_rgba(99,102,241,0.6)]"
+        )}
+      />
+      <span
+        className={cn(
+          dotSize,
+          "rounded-full bg-pink-500 animate-bounce shadow-[0_0_8px_rgba(236,72,153,0.6)]"
+        )}
+      />
     </div>
   );
 }

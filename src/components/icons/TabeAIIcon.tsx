@@ -1,24 +1,66 @@
+import React, { useId } from "react";
 import { cn } from "@/lib/utils";
 
-interface TabeAIIconProps extends React.SVGProps<SVGSVGElement> {
+export interface TabeAIIconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
+  variant?: "gradient" | "solid";
+  animate?: boolean;
+  withGlow?: boolean;
+  size?: number | string;
 }
 
 /**
- * Proprietary TABE Neural AI Logo (custom engineered for TABE)
+ * Proprietary TABE Neural AI Logo (custom engineered for TABE).
  * Symmetrical 4-loop quantum vortex with central radiant intelligence spark.
+ * Supports vibrant multi-stop mesh gradient and smooth breathing animation.
  */
-export function TabeAIIcon({ className, ...props }: TabeAIIconProps) {
-  return (
+export function TabeAIIcon({
+  className,
+  variant = "gradient",
+  animate = false,
+  withGlow = false,
+  size,
+  ...props
+}: TabeAIIconProps) {
+  const id = useId().replace(/:/g, "_");
+  const gradId = `tabe_ai_grad_${id}`;
+  const glowId = `tabe_ai_glow_${id}`;
+
+  const svgContent = (
     <svg
       viewBox="0 0 24 24"
-      fill="currentColor"
-      className={cn("w-4 h-4 shrink-0 transition-transform duration-200", className)}
+      fill={variant === "solid" ? "currentColor" : `url(#${gradId})`}
+      style={size ? { width: size, height: size } : undefined}
+      className={cn(
+        "shrink-0 transition-transform duration-200",
+        size ? "" : "w-4 h-4",
+        className
+      )}
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
+      {variant === "gradient" && (
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#38BDF8" />     {/* Electric Sky Blue */}
+            <stop offset="28%" stopColor="#6366F1" />    {/* Indigo */}
+            <stop offset="55%" stopColor="#A855F7" />    {/* Purple */}
+            <stop offset="78%" stopColor="#EC4899" />    {/* Fuchsia Pink */}
+            <stop offset="100%" stopColor="#F59E0B" />   {/* Warm Amber */}
+          </linearGradient>
+
+          <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="0.8" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+      )}
+
       {/* Central Radiant Intelligence Spark */}
-      <path d="M12 7.2C12 9.85 9.85 12 7.2 12C9.85 12 12 14.15 12 16.8C12 14.15 14.15 12 16.8 12C14.15 12 12 9.85 12 7.2Z" />
+      <path
+        d="M12 7.2C12 9.85 9.85 12 7.2 12C9.85 12 12 14.15 12 16.8C12 14.15 14.15 12 16.8 12C14.15 12 12 9.85 12 7.2Z"
+        filter={variant === "gradient" && withGlow ? `url(#${glowId})` : undefined}
+      />
 
       {/* 4 Interlocking Orbital Neural Ribbons (Rotational 90° Symmetry) */}
       <path d="M12 2.2C16.86 2.2 20.8 6.14 20.8 11C20.8 12.6 20.35 14.1 19.55 15.4L17.2 14.05C17.7 13.15 18 12.1 18 11C18 7.69 15.31 5 12 5C10.9 5 9.85 5.3 8.95 5.8L7.6 3.45C8.9 2.65 10.4 2.2 12 2.2Z" />
@@ -27,6 +69,32 @@ export function TabeAIIcon({ className, ...props }: TabeAIIconProps) {
       <path d="M2.2 12C2.2 7.14 6.14 3.2 11 3.2C12.6 3.2 14.1 3.65 15.4 4.45L14.05 6.8C13.15 6.3 12.1 6 11 6C7.69 6 5 8.69 5 12C5 13.1 5.3 14.15 5.8 15.05L3.45 16.4C2.65 15.1 2.2 13.6 2.2 12Z" />
     </svg>
   );
+
+  if (animate || withGlow) {
+    return (
+      <div
+        className={cn(
+          "relative inline-flex items-center justify-center shrink-0",
+          animate && "animate-ai-breathe"
+        )}
+        style={size ? { width: size, height: size } : undefined}
+      >
+        {withGlow && (
+          <div
+            className="absolute inset-0 rounded-full blur-md opacity-50 pointer-events-none -z-10"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(56,189,248,0.5) 0%, rgba(168,85,247,0.4) 50%, rgba(236,72,153,0.3) 100%)",
+              transform: "scale(1.4)",
+            }}
+          />
+        )}
+        {svgContent}
+      </div>
+    );
+  }
+
+  return svgContent;
 }
 
 export default TabeAIIcon;
