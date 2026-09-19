@@ -712,6 +712,17 @@ export default function AIAssistant() {
 
         {/* ── HEADER ─────────────────────────────────────── */}
         <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 border-b-2 border-foreground bg-card flex items-center gap-2 md:gap-3 z-10">
+          {/* Back link — available on mobile & desktop */}
+          <Link
+            to="/dashboard"
+            className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-3 md:py-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group"
+            title="Volver al Dashboard"
+            aria-label="Volver al Dashboard"
+          >
+            <ArrowLeft className="w-4 h-4 md:w-3.5 md:h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="hidden md:inline">Volver</span>
+          </Link>
+
           {/* Sidebar toggle */}
           <Button
             variant="ghost"
@@ -722,15 +733,6 @@ export default function AIAssistant() {
           >
             <Menu className="w-4 h-4" />
           </Button>
-
-          {/* Back link — only on md+ */}
-          <Link
-            to="/dashboard"
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all shrink-0 group"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-            Volver
-          </Link>
 
           {/* Avatar + name with TABE AI 2.0 Logo */}
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-white text-black dark:bg-black dark:text-white border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center p-1 shrink-0">
