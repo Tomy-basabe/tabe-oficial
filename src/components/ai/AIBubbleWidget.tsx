@@ -219,7 +219,7 @@ export function AIBubbleWidget() {
                     <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 relative z-10" style={{ minHeight: "200px" }}>
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground/60">
-                                <div className="w-12 h-12 rounded-2xl bg-black text-white dark:bg-white dark:text-black flex items-center justify-center p-2.5 mb-2 border border-black/20 dark:border-white/20 shadow-sm">
+                                <div className="w-14 h-14 flex items-center justify-center mb-2">
                                     <ProfessionalAILogo className="w-full h-full" />
                                 </div>
                                 <p className="text-xs font-bold">
@@ -232,20 +232,25 @@ export function AIBubbleWidget() {
                             <div
                                 key={msg.id}
                                 className={cn(
-                                    "flex",
-                                    msg.role === "user" ? "justify-end" : "justify-start"
+                                    "flex gap-2",
+                                    msg.role === "user" ? "justify-end" : "justify-start items-start"
                                 )}
                             >
+                                {msg.role === "assistant" && (
+                                    <div className="w-6 h-6 shrink-0 mt-0.5">
+                                        <ProfessionalAILogo className="w-full h-full" />
+                                    </div>
+                                )}
                                 <div
                                     className={cn(
-                                        "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed font-semibold",
+                                        "text-sm leading-relaxed",
                                         msg.role === "user"
-                                            ? "bg-[#1475e5] text-white border-2 border-black/20 dark:border-transparent rounded-br-sm shadow-sm"
-                                            : "bg-white/90 dark:bg-slate-800/90 text-foreground border-2 border-black/10 dark:border-cyan-500/20 rounded-bl-sm shadow-sm"
+                                            ? "max-w-[85%] rounded-2xl px-3.5 py-2 font-bold bg-[#1475e5] text-white border-2 border-black/20 dark:border-transparent rounded-br-sm shadow-sm"
+                                            : "flex-1 min-w-0 bg-transparent text-foreground font-normal py-0.5"
                                     )}
                                 >
                                     {!msg.content && isStreaming && (
-                                        <AIThinkingIndicator compact personaName={activePersona?.name} />
+                                        <AIThinkingIndicator personaName={activePersona?.name} />
                                     )}
                                     {msg.content && msg.role === "assistant" ? (
                                         <div className="prose prose-sm dark:prose-invert prose-p:leading-snug prose-p:my-1 prose-pre:bg-black/50 prose-pre:p-2 prose-pre:rounded-lg prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground">

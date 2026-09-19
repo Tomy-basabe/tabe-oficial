@@ -637,11 +637,11 @@ export default function AIAssistant() {
     }
 
     if (role === "user") {
-      return content.split("\n").map((line, i) => <div key={i} className="text-foreground leading-relaxed">{line}</div>);
+      return content.split("\n").map((line, i) => <div key={i} className="text-black leading-relaxed font-bold">{line}</div>);
     }
 
     return (
-      <div className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-p:my-1.5 prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:p-3 prose-pre:rounded-xl prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground font-normal">
+      <div className="prose prose-sm md:prose-base dark:prose-invert prose-p:leading-relaxed prose-p:my-2 prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:p-3 prose-pre:rounded-xl prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground font-normal">
         <ReactMarkdown
           remarkPlugins={[remarkMath]}
           rehypePlugins={[rehypeKatex]}
@@ -731,12 +731,14 @@ export default function AIAssistant() {
             Volver
           </Link>
 
-          {/* Avatar + name with TABE AI Neural Vortex in colorful gradient */}
-          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-black text-white dark:bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center p-1 shrink-0">
+          {/* Avatar + name with TABE AI 2.0 Logo */}
+          <div className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center shrink-0">
             {activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-              <span className="text-sm leading-none">{activePersona.avatar_emoji}</span>
+              <div className="w-full h-full rounded-xl bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center text-sm">
+                <span className="leading-none">{activePersona.avatar_emoji}</span>
+              </div>
             ) : (
-              <TabeAIIcon size={22} variant="gradient" animate={isStreaming} withGlow={true} />
+              <TabeAIIcon size={32} animate={isStreaming} withGlow={true} />
             )}
           </div>
 
@@ -793,8 +795,8 @@ export default function AIAssistant() {
             {/* Hero empty state greeting when no messages yet or only init */}
             {messages.length <= 1 && (
               <div className="flex flex-col items-center justify-center pt-8 pb-4 text-center animate-in fade-in duration-500">
-                <div className="w-16 h-16 rounded-2xl bg-black dark:bg-card border-3 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] p-2.5 flex items-center justify-center mb-4">
-                  <TabeAIIcon size={44} variant="gradient" animate={true} withGlow={true} />
+                <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center mb-4 transition-transform hover:scale-105">
+                  <TabeAIIcon size={84} animate={true} withGlow={true} />
                 </div>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground font-sans">
                   ¿Qué toca hoy, {userName}?
@@ -904,8 +906,8 @@ export default function AIAssistant() {
                             {activePersona.avatar_emoji}
                           </div>
                         ) : (
-                          <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-black text-white dark:bg-card border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] flex items-center justify-center p-1">
-                            <TabeAIIcon size={18} variant="gradient" animate={isStreaming} withGlow={isStreaming} />
+                          <div className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center">
+                            <TabeAIIcon size={28} animate={isThinking} withGlow={isThinking} />
                           </div>
                         )
                       ) : (
@@ -915,27 +917,28 @@ export default function AIAssistant() {
                       )}
                     </div>
 
-                    {/* Bubble */}
+                    {/* Bubble / Text Stream */}
                     <div
                       className={cn(
-                        "overflow-hidden transition-all",
+                        "transition-all",
                         message.role === "user"
-                          ? "max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-xs px-4 py-2.5 bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-bold text-xs md:text-sm"
+                          ? "max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-xs px-4 py-2.5 bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-bold text-xs md:text-sm overflow-hidden"
                           : isThinking
-                            ? "p-1.5 bg-transparent border-none shadow-none flex items-center"
-                            : "max-w-[92%] sm:max-w-[85%] rounded-2xl rounded-tl-xs px-4 py-3 bg-card text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] text-xs md:text-sm font-medium"
+                            ? "flex-1 min-w-0 py-1 bg-transparent border-none shadow-none flex items-center"
+                            : "flex-1 min-w-0 bg-transparent border-none shadow-none px-0 py-0.5 text-foreground text-sm md:text-base font-normal leading-relaxed"
                       )}
                     >
-                      {/* Model badge */}
+                      {/* Model badge for assistant */}
                       {message.role === "assistant" && message.id !== "init" && message.content && (
-                        <div className="flex items-center gap-1 pb-1 mb-1.5 border-b border-foreground/15 text-[10px] font-black uppercase text-muted-foreground">
-                          <div className="w-3.5 h-3.5 rounded flex items-center justify-center p-0.5 bg-background border border-foreground/30 shrink-0">
+                        <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 select-none">
+                          <div className="w-3.5 h-3.5 rounded flex items-center justify-center p-0.5 bg-muted/60 shrink-0">
                             <ModelLogo modelId={message.modelId || selectedModel.id} className="w-2.5 h-2.5" />
                           </div>
-                          <span className="text-foreground tracking-tight font-black truncate">
+                          <span className="text-foreground/90 font-black truncate">
                             {message.modelName || selectedModel.shortName}
                           </span>
-                          <span className="text-[9px] text-muted-foreground/80 font-bold ml-auto shrink-0">
+                          <span className="text-muted-foreground/40">•</span>
+                          <span className="text-[9px] text-muted-foreground/60 shrink-0">
                             {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         </div>
