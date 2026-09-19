@@ -93,9 +93,6 @@ export function MainLayout() {
   });
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [isHoverExpanded, setIsHoverExpanded] = useState(false);
-  const hoverExpandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isSidebarExpanded = !isCollapsed || isHoverExpanded;
   
   // PWA auto-update check (especially for mobile/installed apps)
   useRegisterSW({
@@ -334,24 +331,9 @@ export function MainLayout() {
         {/* Sidebar (Desktop Only: en móvil todo está en la barra horizontal de abajo) */}
         {!isAIPage && (
           <aside
-            onMouseEnter={() => {
-              if (isCollapsed) {
-                if (hoverExpandTimeoutRef.current) clearTimeout(hoverExpandTimeoutRef.current);
-                setIsHoverExpanded(true);
-              }
-            }}
-            onMouseLeave={() => {
-              if (isCollapsed) {
-                hoverExpandTimeoutRef.current = setTimeout(() => {
-                  setIsHoverExpanded(false);
-                }, 180);
-              }
-            }}
             className={cn(
-              "hidden lg:flex fixed top-0 left-0 h-full border-r-4 border-foreground transition-all duration-300 ease-out flex-col bg-card z-40",
-              isSidebarExpanded
-                ? "w-64 shadow-[8px_0_0_0_hsl(var(--foreground))]"
-                : "w-20 shadow-[4px_0_0_0_hsl(var(--foreground))]"
+              "hidden lg:flex fixed top-0 left-0 h-full border-r-4 border-foreground transition-all duration-300 flex-col bg-card shadow-[4px_0_0_0_hsl(var(--foreground))] z-40",
+              isCollapsed ? "w-20" : "w-64"
             )}
           >
           {/* Toggle Button (Desktop Only) */}
@@ -369,11 +351,11 @@ export function MainLayout() {
           </div>
 
           {/* Logo Header */}
-          <div className={cn("h-16 flex items-center border-b-3 border-foreground flex-shrink-0 transition-all overflow-hidden bg-secondary/30", !isSidebarExpanded ? "justify-center px-0" : "justify-between px-4 sm:px-5 gap-2")}>
+          <div className={cn("h-16 flex items-center border-b-3 border-foreground flex-shrink-0 transition-all overflow-hidden bg-secondary/30", isCollapsed ? "justify-center px-0" : "justify-between px-4 sm:px-5 gap-2")}>
             <div className="flex items-center gap-3 min-w-0">
               <TabeLogo size={42} className="shrink-0" />
-              {isSidebarExpanded && (
-                <div className="min-w-0 animate-sidebar-entrance">
+              {!isCollapsed && (
+                <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <h1 className="font-black text-xl tracking-tight text-foreground truncate">TABE</h1>
                     <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FFE600] text-black border-2 border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-3">
@@ -387,8 +369,8 @@ export function MainLayout() {
           </div>
 
         {/* Navigation */}
-        <ScrollArea className="flex-1 overflow-hidden">
-          <nav className={cn("space-y-2 py-3.5", !isSidebarExpanded ? "px-2" : "px-3")}>
+        {isCollapsed ? (
+          <nav className="flex-1 overflow-visible space-y-2 py-3.5 px-2">
             {(() => {
               const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                 const targetPath = item.path || (item.type === "item" ? item.id : null);
@@ -407,18 +389,12 @@ export function MainLayout() {
 
                 if (item.type === "category") {
                   const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
-                  const isOpen = !!openCategories[item.id];
                   const isHovered = hoveredCategory === item.id;
-                  const isVisible = isOpen || isHovered;
 
                   return (
                     <div
                       key={item.id}
-                      style={isHoverExpanded ? { animationDelay: `${index * 35}ms` } : undefined}
-                      className={cn(
-                        "space-y-1.5 my-2 relative",
-                        isHoverExpanded && "animate-sidebar-entrance"
-                      )}
+                      className="space-y-1.5 my-2 relative group/cat"
                       onMouseEnter={() => {
                         if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
                         setHoveredCategory(item.id);
@@ -426,7 +402,7 @@ export function MainLayout() {
                       onMouseLeave={() => {
                         hoverTimeoutRef.current = setTimeout(() => {
                           setHoveredCategory((prev) => (prev === item.id ? null : prev));
-                        }, 200);
+                        }, 250);
                       }}
                     >
                       <button
@@ -436,13 +412,12 @@ export function MainLayout() {
                           toggleCategory(item.id);
                         }}
                         className={cn(
-                          "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
-                          !isSidebarExpanded ? "justify-center p-2" : "gap-2.5 px-3 py-2",
-                          hasActiveChild || isVisible
+                          "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none justify-center p-2 cursor-pointer",
+                          hasActiveChild || isHovered
                             ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                            : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40"
+                            : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40 hover:scale-105"
                         )}
-                        title={!isSidebarExpanded ? item.label : undefined}
+                        aria-label={item.label}
                       >
                         <div className={cn(
                           "w-7 h-7 rounded-lg border-2 border-foreground/50 flex items-center justify-center shrink-0 transition-colors",
@@ -450,98 +425,243 @@ export function MainLayout() {
                         )}>
                           <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
                         </div>
-                        {isSidebarExpanded && (
-                          <>
-                            <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
-                            <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-200 stroke-[3]", isVisible && "rotate-180")} />
-                          </>
-                        )}
                       </button>
 
-                      {/* Regular expanded or hovered category list in normal sidebar */}
-                      {isVisible && isSidebarExpanded && item.items && (
-                        <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                          {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
-                        </div>
-                      )}
-
-                      {/* Flyout popup when sidebar is collapsed and not hover-expanded */}
-                      {isHovered && !isSidebarExpanded && item.items && (
-                        <div className="absolute left-[calc(100%+8px)] top-0 z-50 bg-card border-3 border-foreground rounded-2xl p-2.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] min-w-[200px] space-y-1 animate-in fade-in slide-in-from-left-2 duration-150">
-                          <div className="px-2 py-1 border-b-2 border-foreground/20 mb-1.5 flex items-center gap-2">
-                            <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
+                      {/* Floating Category Menu on Hover with cool spring bounce entrance */}
+                      {isHovered && item.items && (
+                        <div className="absolute left-[calc(100%+10px)] top-0 z-50 bg-card border-3 border-foreground rounded-2xl p-2.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] min-w-[210px] space-y-1.5 animate-sidebar-entrance">
+                          <div className="absolute -left-2 top-3.5 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-foreground" />
+                          <div className="px-2 py-1 border-b-2 border-foreground/20 mb-1 flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-md bg-[#FFE600] text-black flex items-center justify-center font-black text-xs border border-black shadow-[1px_1px_0_0_#000]">
+                              <Icon className="w-3 h-3 stroke-[2.5]" />
+                            </div>
                             <span className="font-black text-xs uppercase tracking-wider text-foreground">{item.label}</span>
                           </div>
-                          {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
+                          <div className="space-y-1">
+                            {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
+                          </div>
                         </div>
                       )}
                     </div>
                   );
                 }
 
-                return (
-                  <Link
-                    key={item.id}
-                    to={path}
-                    onClick={() => ComicAudio.playPop()}
-                    onMouseEnter={() => preloadRoute(path)}
-                    onTouchStart={() => preloadRoute(path)}
-                    onFocus={() => preloadRoute(path)}
-                    style={isHoverExpanded ? { animationDelay: `${index * 35}ms` } : undefined}
-                    className={cn(
-                      "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
-                      isHoverExpanded && "animate-sidebar-entrance",
-                      !isSidebarExpanded && !isInsideCategory ? "justify-center p-2.5" : isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
-                      isActive
-                        ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
-                        : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.01] font-extrabold"
-                    )}
-                    title={!isSidebarExpanded && !isInsideCategory ? item.label : undefined}
-                  >
-                    <Icon
+                // Single link inside category flyout
+                if (isInsideCategory) {
+                  return (
+                    <Link
+                      key={item.id}
+                      to={path}
+                      onClick={() => {
+                        ComicAudio.playPop();
+                        setHoveredCategory(null);
+                      }}
+                      onMouseEnter={() => preloadRoute(path)}
+                      onTouchStart={() => preloadRoute(path)}
+                      onFocus={() => preloadRoute(path)}
+                      style={{ animationDelay: `${index * 30}ms` }}
                       className={cn(
-                        "transition-all flex-shrink-0",
-                        !isSidebarExpanded && !isInsideCategory ? "w-5 h-5" : isInsideCategory ? "w-4 h-4" : "w-4 h-4",
-                        isActive ? "stroke-[2.5]" : ""
+                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2 px-3 py-1.5 text-xs animate-sidebar-entrance",
+                        isActive
+                          ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
+                          : "text-foreground/85 border-transparent hover:border-foreground hover:bg-secondary/60 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.02] font-extrabold"
                       )}
-                    />
-                    {(isSidebarExpanded || isInsideCategory) && (
-                      <span className={cn("truncate flex-1 text-left", isInsideCategory ? "font-bold text-xs" : "font-black text-xs uppercase tracking-tight")}>
+                    >
+                      <Icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", isActive && "stroke-[2.5]")} />
+                      <span className="truncate flex-1 text-left font-bold text-xs">
                         {item.label}
                       </span>
-                    )}
-                    {(isSidebarExpanded || isInsideCategory) && (targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
-                      <span className={cn(
-                        "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
+                      {(targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
+                        <span className={cn(
+                          "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
+                          isActive
+                            ? "bg-black text-white border-black"
+                            : "bg-[#00E5FF] text-black border-black shadow-[1px_1px_0_0_#000]"
+                        )}>
+                          AI
+                        </span>
+                      )}
+                      {isActive && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black shrink-0" />
+                      )}
+                    </Link>
+                  );
+                }
+
+                // Single item in collapsed dock
+                return (
+                  <div key={item.id} className="relative group/navitem">
+                    <Link
+                      to={path}
+                      onClick={() => ComicAudio.playPop()}
+                      onMouseEnter={() => preloadRoute(path)}
+                      onTouchStart={() => preloadRoute(path)}
+                      onFocus={() => preloadRoute(path)}
+                      className={cn(
+                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none justify-center p-2.5",
                         isActive
-                          ? "bg-black text-white border-black"
-                          : "bg-[#00E5FF] text-black border-black shadow-[1px_1px_0_0_#000]"
-                      )}>
-                        AI
+                          ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
+                          : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-105 font-extrabold"
+                      )}
+                      aria-label={item.label}
+                    >
+                      <Icon
+                        className={cn(
+                          "w-5 h-5 transition-transform group-hover:scale-110 flex-shrink-0",
+                          isActive ? "stroke-[2.5]" : ""
+                        )}
+                      />
+                    </Link>
+
+                    {/* Popout badge only for this item when hovered */}
+                    <div className="hidden group-hover/navitem:flex absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-50 bg-card border-3 border-foreground rounded-xl px-3 py-1.5 shadow-[4px_4px_0_0_hsl(var(--foreground))] items-center gap-2 whitespace-nowrap pointer-events-none animate-sidebar-entrance">
+                      <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-foreground" />
+                      <span className="font-black text-xs uppercase tracking-wider text-foreground">
+                        {item.label}
                       </span>
-                    )}
-                    {isActive && (isSidebarExpanded || isInsideCategory) && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
-                    )}
-                  </Link>
+                      {(targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
+                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#00E5FF] text-black border border-black shadow-[1px_1px_0_0_#000]">
+                          AI
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 );
               };
 
               return displayItems.map((item: any, idx: number) => renderNavItem(item, false, idx));
             })()}
           </nav>
-        </ScrollArea>
+        ) : (
+          <ScrollArea className="flex-1 overflow-hidden">
+            <nav className="space-y-2 py-3.5 px-3">
+              {(() => {
+                const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
+                  const targetPath = item.path || (item.type === "item" ? item.id : null);
+                  if (targetPath === "/admin" && !isSuperAdmin(user)) return null;
+                  const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
+                  
+                  if (!baseItem && item.type === "item") return null;
+
+                  const Icon = (item.iconName && item.iconName !== "FileText" && ICON_MAP[item.iconName]) 
+                    || baseItem?.icon 
+                    || (item.iconName && ICON_MAP[item.iconName])
+                    || Folder;
+                  
+                  const path = targetPath || "#";
+                  const isActive = location.pathname === path;
+
+                  if (item.type === "category") {
+                    const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
+                    const isOpen = !!openCategories[item.id];
+                    const isHovered = hoveredCategory === item.id;
+                    const isVisible = isOpen || isHovered;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="space-y-1.5 my-2 relative"
+                        onMouseEnter={() => {
+                          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                          setHoveredCategory(item.id);
+                        }}
+                        onMouseLeave={() => {
+                          hoverTimeoutRef.current = setTimeout(() => {
+                            setHoveredCategory((prev) => (prev === item.id ? null : prev));
+                          }, 200);
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            ComicAudio.playPop();
+                            toggleCategory(item.id);
+                          }}
+                          className={cn(
+                            "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2.5 px-3 py-2",
+                            hasActiveChild || isVisible
+                              ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                              : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-7 h-7 rounded-lg border-2 border-foreground/50 flex items-center justify-center shrink-0 transition-colors",
+                            hasActiveChild ? "bg-[#FFE600] text-black border-black" : "bg-card text-foreground"
+                          )}>
+                            <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </div>
+                          <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
+                          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-200 stroke-[3]", isVisible && "rotate-180")} />
+                        </button>
+
+                        {/* Regular expanded category list in normal sidebar */}
+                        {isVisible && item.items && (
+                          <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                            {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={item.id}
+                      to={path}
+                      onClick={() => ComicAudio.playPop()}
+                      onMouseEnter={() => preloadRoute(path)}
+                      onTouchStart={() => preloadRoute(path)}
+                      onFocus={() => preloadRoute(path)}
+                      className={cn(
+                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
+                        isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
+                        isActive
+                          ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
+                          : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.01] font-extrabold"
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "w-4 h-4 transition-all flex-shrink-0",
+                          isActive ? "stroke-[2.5]" : ""
+                        )}
+                      />
+                      <span className={cn("truncate flex-1 text-left", isInsideCategory ? "font-bold text-xs" : "font-black text-xs uppercase tracking-tight")}>
+                        {item.label}
+                      </span>
+                      {(targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
+                        <span className={cn(
+                          "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
+                          isActive
+                            ? "bg-black text-white border-black"
+                            : "bg-[#00E5FF] text-black border-black shadow-[1px_1px_0_0_#000]"
+                        )}>
+                          AI
+                        </span>
+                      )}
+                      {isActive && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
+                      )}
+                    </Link>
+                  );
+                };
+
+                return displayItems.map((item: any, idx: number) => renderNavItem(item, false, idx));
+              })()}
+            </nav>
+          </ScrollArea>
+        )}
 
         {/* User Progress Summary - Comic Gamified Card */}
-        <div className={cn("border-t-3 border-foreground flex-shrink-0 transition-all bg-secondary/20", !isSidebarExpanded ? "p-2" : "p-3")}>
+        <div className={cn("border-t-3 border-foreground flex-shrink-0 transition-all bg-secondary/20 relative group/xp", isCollapsed ? "p-2" : "p-3")}>
           <div className={cn(
             "rounded-2xl border-3 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all relative overflow-hidden",
-            !isSidebarExpanded ? "p-2 flex flex-col items-center gap-1" : "p-3.5"
+            isCollapsed ? "p-2 flex flex-col items-center gap-1 cursor-pointer hover:border-black" : "p-3.5"
           )}>
             {/* Decorative comic corner */}
             <div className="absolute top-0 right-0 w-12 h-12 bg-[#FFE600]/15 rounded-bl-full pointer-events-none" />
 
-            {!isSidebarExpanded ? (
+            {isCollapsed ? (
               <div className="flex flex-col items-center gap-1">
                 <div className="w-10 h-10 rounded-xl bg-[#FFE600] text-black flex items-center justify-center font-black text-xs border-2 border-black shadow-[2px_2px_0_0_#000]">
                   {xpData.level}
@@ -551,7 +671,7 @@ export function MainLayout() {
                 </div>
               </div>
             ) : (
-              <div className={cn(isHoverExpanded && "animate-sidebar-entrance")}>
+              <div>
                 <div className="flex items-center gap-3 mb-2.5 relative z-10">
                   <div className="relative shrink-0">
                     <div className="w-11 h-11 rounded-xl bg-[#FFE600] text-black flex items-center justify-center font-black text-base border-2 border-black shadow-[2px_2px_0_0_#000]">
@@ -593,6 +713,51 @@ export function MainLayout() {
               </div>
             )}
           </div>
+
+          {/* Floating XP card when collapsed on hover */}
+          {isCollapsed && (
+            <div className="hidden group-hover/xp:block absolute left-[calc(100%+10px)] bottom-2 z-50 bg-card border-3 border-foreground rounded-2xl p-3.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] w-56 animate-sidebar-entrance pointer-events-none">
+              <div className="absolute -left-2 bottom-4 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-foreground" />
+              <div className="flex items-center gap-3 mb-2.5 relative z-10">
+                <div className="relative shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-[#FFE600] text-black flex items-center justify-center font-black text-base border-2 border-black shadow-[2px_2px_0_0_#000]">
+                    {xpData.level}
+                  </div>
+                  <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#FF2E93] text-white border-2 border-black flex items-center justify-center text-[10px] font-black">
+                    ⚡
+                  </div>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-black text-xs tracking-tight text-foreground uppercase">
+                      Nivel {xpData.level}
+                    </span>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-[#FFE600] text-black border border-black shadow-[1px_1px_0_0_#000]">
+                      {Math.round(xpData.progress)}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-bold text-muted-foreground truncate mt-0.5">
+                    <span className="text-foreground font-black">{xpData.currentXp.toLocaleString()}</span> XP total
+                  </p>
+                </div>
+              </div>
+
+              {/* Chunky Comic XP Bar */}
+              <div className="space-y-1 relative z-10">
+                <div className="h-3 bg-secondary rounded-full border-2 border-foreground overflow-hidden p-[1px] shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))]">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#1475e5] via-[#00E5FF] to-[#BFFF00] rounded-full transition-all duration-500"
+                    style={{ width: `${Math.max(6, xpData.progress)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground px-0.5">
+                  <span className="font-black uppercase text-[9px]">Siguiente nivel</span>
+                  <span className="font-black text-foreground">{Math.round(xpData.xpForNext)} XP</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
       )}
