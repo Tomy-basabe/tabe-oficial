@@ -215,13 +215,16 @@ export function useNotionDocuments() {
       return false;
     }
 
-    // Keep content cache in sync
+    // Keep content cache in sync for when document is opened
     if (updates.contenido) {
       contentCacheRef.current.set(id, updates.contenido);
     }
 
+    // Do NOT put heavy 'contenido' into the global documents list state!
+    // The documents list only needs metadata (titulo, emoji, cover, etc.)
+    const { contenido, ...metaUpdates } = updates;
     setDocuments(prev =>
-      prev.map(doc => doc.id === id ? { ...doc, ...updates } : doc)
+      prev.map(doc => doc.id === id ? { ...doc, ...metaUpdates, updated_at: new Date().toISOString() } : doc)
     );
     return true;
   };

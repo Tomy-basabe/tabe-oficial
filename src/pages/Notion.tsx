@@ -405,6 +405,7 @@ export default function Notion() {
   const [saveInProgress, setSaveInProgress] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveInProgressRef = useRef(false);
+  const isDirtyRef = useRef(false);
 
   // Sync state to refs to avoid stale closures in callbacks
   useEffect(() => {
@@ -719,8 +720,15 @@ export default function Notion() {
       const contentToSave = editorContentRef.current;
       if (!contentToSave) return true;
       
-      const contentStr = JSON.stringify(contentToSave);
       const currentTitle = localTitleRef.current;
+      const titleChanged = currentTitle !== docToSave.titulo;
+
+      // If not marked dirty and title hasn't changed, skip immediately without stringifying
+      if (!isDirtyRef.current && !titleChanged && !pendingSaveRef.current) {
+        return true;
+      }
+
+      const contentStr = JSON.stringify(contentToSave);
 
       // 10MB soft limit to avoid Supabase errors / browser freezes
       if (contentStr.length > 10 * 1024 * 1024) {
@@ -730,14 +738,10 @@ export default function Notion() {
       }
 
       const contentChanged = contentStr !== lastSavedContentRef.current;
-      const titleChanged = currentTitle !== docToSave.titulo;
 
       if (!contentChanged && !titleChanged) {
-        // Check if something was queued while we were "thinking"
-        if (pendingSaveRef.current) {
-           pendingSaveRef.current = false;
-           return saveDocument(silent);
-        }
+        isDirtyRef.current = false;
+        pendingSaveRef.current = false;
         return true;
       }
 
@@ -745,16 +749,24 @@ export default function Notion() {
       setSaveInProgress(true);
       saveInProgressRef.current = true;
       pendingSaveRef.current = false;
-      setSaveError(null);
 
       try {
         const updates: { contenido?: JSONContent; titulo?: string } = {};
         if (contentChanged) updates.contenido = contentToSave;
         if (titleChanged) updates.titulo = currentTitle;
 
-        const success = await updateDocument(docToSave.id, updates);
+        let success = await updateDocument(docToSave.id, updates);
+        
+        // Automatic retry once after 1.2s if network or gateway had a temporary hiccup
+        if (!success) {
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          success = await updateDocument(docToSave.id, updates);
+        }
+
         if (success) {
           lastSavedContentRef.current = contentStr;
+          isDirtyRef.current = false;
+          setSaveError(null);
           // Only update state if we are still on the SAME document
           if (activeDocumentRef.current?.id === docToSave.id) {
             setActiveDocument((prev) => (prev ? { ...prev, titulo: currentTitle } : null));
@@ -763,7 +775,7 @@ export default function Notion() {
           if (!silent) toast.success("Apunte guardado");
           return true;
         } else {
-          throw new Error("Update failed");
+          throw new Error("Update failed after retry");
         }
       } catch (error) {
         console.error("Error saving document:", error);
@@ -774,18 +786,22 @@ export default function Notion() {
         saveInProgressRef.current = false;
         setSaveInProgress(false);
         setIsSaving(false);
-        // If changes were made while we were saving, trigger another save immediately
+        // If changes were queued while saving, run save again
         if (pendingSaveRef.current) {
+          pendingSaveRef.current = false;
           await saveDocument(silent);
         }
       }
     },
-    [updateDocument]
+    [updateDocument, user]
   );
 
   // Trigger auto-save on content changes
   const scheduleAutoSave = useCallback(() => {
-    // 1. Debounce timer (1.5s of inactivity)
+    isDirtyRef.current = true;
+    setSaveError(null); // Clear previous error indicator as user continues editing
+
+    // 1. Debounce timer (2.5s of inactivity gives the browser time to layout pasted text)
     if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = window.setTimeout(() => {
       saveDocument(true);
@@ -793,14 +809,14 @@ export default function Notion() {
         window.clearTimeout(forceSaveTimerRef.current);
         forceSaveTimerRef.current = null;
       }
-    }, 1500);
+    }, 2500);
 
-    // 2. Continuous typing periodic save (5s)
+    // 2. Continuous typing periodic save (10s prevents network saturation)
     if (!forceSaveTimerRef.current) {
       forceSaveTimerRef.current = window.setTimeout(() => {
         saveDocument(true);
         forceSaveTimerRef.current = null;
-      }, 5000); 
+      }, 10000); 
     }
   }, [saveDocument]);
 

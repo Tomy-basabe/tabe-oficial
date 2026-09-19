@@ -81,8 +81,13 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const elapsedSecondsRef = useRef(0);
     const [completedPomodoros, setCompletedPomodoros] = useState(0);
     const [sessionStartDate, setSessionStartDate] = useState<string>(() => toLocalDateStr());
+
+    useEffect(() => {
+        elapsedSecondsRef.current = elapsedSeconds;
+    }, [elapsedSeconds]);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -217,7 +222,8 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        if (!user || mode !== "work" || elapsedSeconds === 0) return;
+        const currentElapsed = elapsedSecondsRef.current || elapsedSeconds;
+        if (!user || mode !== "work" || currentElapsed === 0) return;
 
         try {
             const { error } = await supabase
@@ -225,7 +231,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                 .insert({
                     user_id: user.id,
                     subject_id: selectedSubject,
-                    duracion_segundos: elapsedSeconds,
+                    duracion_segundos: currentElapsed,
                     tipo: "pomodoro",
                     completada: completed,
                     fecha: sessionStartDate, // Usa la fecha en que inició para celulares suspendidos
@@ -234,8 +240,8 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             if (error) throw error;
 
             // Update user stats (XP)
-            const hours = Math.floor(elapsedSeconds / 3600);
-            let xpGained = Math.floor(elapsedSeconds / 60) * 2;
+            const hours = Math.floor(currentElapsed / 3600);
+            let xpGained = Math.floor(currentElapsed / 60) * 2;
 
             const { data: stats } = await supabase.from("user_stats").select("*").eq("user_id", user.id).single();
             if (stats) {
