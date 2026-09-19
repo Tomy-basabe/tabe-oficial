@@ -539,11 +539,11 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA:
 \`\`\`tabe-action:calendar
 [{"titulo": "Nombre del evento", "fecha": "YYYY-MM-DD", "hora": "HH:mm", "tipo_examen": "P1"}]
 \`\`\`
-6. Si el usuario te pide crear flashcards para estudiar un tema, incluí al final:
+6. Si el usuario te pide crear flashcards para estudiar un tema o a partir de un archivo (PDF, texto, imagen), genera EXACTAMENTE la cantidad solicitada (ej: 10, 15, 20, 25, 30 tarjetas) analizando a fondo todo el material adjunto e incluí al final el bloque:
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-7. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o examen de práctica, formula entre 3 y 5 preguntas de opción múltiple pedagógicas (a, b, c, d) para que las responda en el chat y guardá el mazo en su cuenta incluyendo al final:
+7. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o cuestionario (o a partir de un PDF/imagen/texto), genera EXACTAMENTE la cantidad de preguntas solicitada (si pide 10, hacé 10; si pide 15, hacé 15; si no especifica cantidad, genera al menos 10 preguntas pedagógicas con 4-5 opciones múltiples) y guardá el mazo en su cuenta incluyendo al final:
 \`\`\`tabe-action:quiz
 {"quiz_name": "Nombre del Quiz", "subject_name": "Materia (opcional)", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
 \`\`\`
@@ -845,7 +845,7 @@ async function streamFromOpenRouter(opts: {
   const reasoningEffort =
     powerLevel === "alto" ? "high" : powerLevel === "medio" ? "low" : "none";
   const temperature = powerLevel === "alto" ? 0.7 : powerLevel === "bajo" ? 0.4 : 0.6;
-  const maxTokens = powerLevel === "alto" ? 4096 : powerLevel === "bajo" ? 1800 : 3000;
+  const maxTokens = powerLevel === "alto" ? 8192 : powerLevel === "bajo" ? 4096 : 8192;
 
   // Only include reasoning param for models that actually support extended thinking.
   // Sending it with effort="none" (or to non-reasoning models) triggers the
@@ -1093,7 +1093,7 @@ async function streamFromGoogle(opts: {
   const timeoutId = setTimeout(() => controller.abort(), 12000);
 
   const temperature = powerLevel === "alto" ? 0.7 : powerLevel === "bajo" ? 0.4 : 0.6;
-  const maxTokens = powerLevel === "alto" ? 4096 : powerLevel === "bajo" ? 1800 : 3000;
+  const maxTokens = powerLevel === "alto" ? 8192 : powerLevel === "bajo" ? 4096 : 8192;
 
   try {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;

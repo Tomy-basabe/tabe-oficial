@@ -507,9 +507,11 @@ serve(async (req) => {
       "6. Responde en Español Argentino.\n" +
       "7. Solo analiza metricas de materias EN CURSO, no aprobadas/regulares.\n" +
       "8. Para multiples eventos usa create_calendar_events con array completo.\n" +
-      "9. GESTION ILIMITADA DE FLASHCARDS Y CUESTIONARIOS:\n" +
-      "   - NO EXISTE NINGÚN LÍMITE: Si el estudiante te pide crear o modificar flashcards o cuestionarios (incluso 50, 100 o 500 cartas), ACEPTÁ SIEMPRE y crealas.\n" +
-      "   - Generá todas las preguntas/respuestas posibles en el llamado de la herramienta. Si pide una cantidad masiva como 500 cartas, creá el primer lote grande con el mazo y explícale con entusiasmo que ya se guardaron y que podés continuar agregando más lotes en segundo plano al mismo mazo con 'manage_flashcards (add_cards)'.\n" +
+      "9. GESTIÓN ILIMITADA Y EXACTA DE FLASHCARDS Y CUESTIONARIOS:\n" +
+      "   - CUMPLIMIENTO ESTRICTO DE CANTIDAD SOLICITADA: Si el estudiante te pide una cantidad específica de flashcards o preguntas de cuestionario (ej: 'haceme 10 flashcards', 'creame 20 flashcards de este PDF', 'haceme 15 preguntas de quiz de esta imagen', 'creame 30 preguntas de este texto'), DEBES GENERAR EXACTAMENTE ESA CANTIDAD en el llamado a la herramienta ('cards' o 'questions'). Analizá todo el contenido adjunto (PDF, imagen o texto) minuciosamente para extraer cada tema hasta alcanzar la cantidad exacta pedida. NUNCA resumas ni recortes a menos cartas o preguntas de las solicitadas.\n" +
+      "   - Si el estudiante no especifica cantidad pero adjunta un material o tema extenso, generá al menos 10 a 15 flashcards o 10 preguntas de quiz para asegurar una cobertura completa y profunda.\n" +
+      "   - ACCIÓN DIRECTA OBLIGATORIA: Cuando el usuario pide crear flashcards o cuestionarios a partir de un PDF, imagen o texto, LLAMÁ SIEMPRE a 'create_flashcards' o 'create_quiz'. NUNCA respondas sólo texto explicando lo que harías ni las dejes en un mensaje de texto sin llamar a la herramienta; deben crearse directamente en la base de datos para que el usuario las tenga en su mazo.\n" +
+      "   - Si pide una cantidad masiva como 50 o 100 cartas, creá el primer lote completo en el llamado de la herramienta y explícale con entusiasmo que ya se guardaron.\n" +
       "   - Para modificar cartas existentes o agregar a un mazo existente, usá 'manage_flashcards'. Para modificar preguntas o agregar a un cuestionario existente, usá 'manage_quizzes'.\n" +
       "10. GESTION DE PROFESORES: Si el usuario menciona un nombre y una materia, buscá siempre el ID de la materia y usá manage_professors.\n" +
       "11. GESTION DE CONSULTAS: Un profesor puede tener múltiples horarios. Usá manege_consultations para añadir, actualizar o eliminar horarios específicos (lunes, martes, etc.).";
@@ -552,7 +554,33 @@ serve(async (req) => {
       },
       { type: "function", function: { name: "delete_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE eliminar un evento.", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } } },
       { type: "function", function: { name: "update_calendar_event", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE modificar un evento.", parameters: { type: "object", properties: { id: { type: "string" }, titulo: { type: "string" }, fecha: { type: "string" }, hora: { type: "string" }, tipo_examen: { type: "string" }, notas: { type: "string" } }, required: ["id"] } } },
-      { type: "function", function: { name: "create_flashcards", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear flashcards.", parameters: { type: "object", properties: { deck_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, cards: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, respuesta: { type: "string" } }, required: ["pregunta", "respuesta"] } } }, required: ["deck_name", "cards"] } } },
+      {
+        type: "function",
+        function: {
+          name: "create_flashcards",
+          description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear flashcards. Debe generar la cantidad exacta de tarjetas pedidas por el usuario.",
+          parameters: {
+            type: "object",
+            properties: {
+              deck_name: { type: "string" },
+              subject_id: { type: "string", description: "Nombre materia" },
+              cards: {
+                type: "array",
+                description: "Array con la cantidad exacta de cartas pedidas por el usuario (ej: 10, 15, 20, 30, etc.)",
+                items: {
+                  type: "object",
+                  properties: {
+                    pregunta: { type: "string" },
+                    respuesta: { type: "string" }
+                  },
+                  required: ["pregunta", "respuesta"]
+                }
+              }
+            },
+            required: ["deck_name", "cards"]
+          }
+        }
+      },
       {
         type: "function",
         function: {
@@ -570,7 +598,7 @@ serve(async (req) => {
               respuesta: { type: "string", description: "Nueva respuesta para update_card" },
               cards: {
                 type: "array",
-                description: "Array de cartas a agregar o crear",
+                description: "Array de cartas a agregar o crear con la cantidad solicitada",
                 items: {
                   type: "object",
                   properties: {
@@ -588,7 +616,35 @@ serve(async (req) => {
       { type: "function", function: { name: "update_subject_status", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE cambiar estado de una materia.", parameters: { type: "object", properties: { subject_id: { type: "string", description: "Nombre materia" }, estado: { type: "string", enum: ["sin_cursar", "en_curso", "regular", "aprobada", "libre"] }, nota: { type: "number" } }, required: ["subject_id", "estado"] } } },
       { type: "function", function: { name: "create_notion_document", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un documento o apunte con palabras como 'creame un doc', 'haceme un apunte'. NUNCA usar para responder preguntas, saludos, ni conversacion.", parameters: { type: "object", properties: { titulo: { type: "string" }, contenido: { type: "string" }, subject_id: { type: "string" } }, required: ["titulo"] } } },
       { type: "function", function: { name: "search_library", description: "Busca archivos en la biblioteca.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
-      { type: "function", function: { name: "create_quiz", description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un cuestionario.", parameters: { type: "object", properties: { quiz_name: { type: "string" }, subject_id: { type: "string", description: "Nombre materia" }, questions: { type: "array", items: { type: "object", properties: { pregunta: { type: "string" }, opciones: { type: "array", items: { type: "string" }, description: "5 opciones" }, correcta: { type: "integer", description: "Indice 0-4" }, explicacion: { type: "string" } }, required: ["pregunta", "opciones", "correcta"] } } }, required: ["quiz_name", "questions"] } } },
+      {
+        type: "function",
+        function: {
+          name: "create_quiz",
+          description: "SOLO usar cuando el usuario PIDE EXPRESAMENTE crear un cuestionario. Debe generar la cantidad exacta de preguntas pedidas por el usuario.",
+          parameters: {
+            type: "object",
+            properties: {
+              quiz_name: { type: "string" },
+              subject_id: { type: "string", description: "Nombre materia" },
+              questions: {
+                type: "array",
+                description: "Array con la cantidad exacta de preguntas pedidas por el usuario (ej: 5, 10, 15, 20, etc.)",
+                items: {
+                  type: "object",
+                  properties: {
+                    pregunta: { type: "string" },
+                    opciones: { type: "array", items: { type: "string" }, description: "4-5 opciones" },
+                    correcta: { type: "integer", description: "Indice 0-4 de la opción correcta" },
+                    explicacion: { type: "string" }
+                  },
+                  required: ["pregunta", "opciones", "correcta"]
+                }
+              }
+            },
+            required: ["quiz_name", "questions"]
+          }
+        }
+      },
       {
         type: "function",
         function: {
@@ -608,7 +664,7 @@ serve(async (req) => {
               correcta: { type: "integer", description: "Índice de la respuesta correcta para update_question (0 a N)" },
               questions: {
                 type: "array",
-                description: "Array de preguntas a añadir o crear",
+                description: "Array de preguntas a añadir o crear con la cantidad solicitada",
                 items: {
                   type: "object",
                   properties: {
@@ -768,9 +824,14 @@ serve(async (req) => {
       }
     }
 
+    const bulkPromptNote = "\n\n10. ⚠️ REGLA DE CREACIÓN DE FLASHCARDS Y CUESTIONARIOS:\n" +
+      "- Si el usuario te envía un PDF, texto, apunte o imagen y pide crear flashcards o cuestionarios indicando una cantidad (ej: 10, 15, 20, 25, 30, etc.), LLAMÁ DE INMEDIATO a 'create_flashcards' o 'create_quiz' generando EXACTAMENTE esa cantidad en el array ('cards' o 'questions').\n" +
+      "- Analizá minuciosamente el material completo para extraer todas las tarjetas o preguntas requeridas sin atajos ni resúmenes menores a lo pedido.\n" +
+      "- NO escribas introducciones largas: comenzá directamente ejecutando la herramienta para evitar demoras o cortes.";
+
     const combinedSysPrompt = clientSystemPrompt
-      ? `${clientSystemPrompt}\n\n=== CONTEXTO ADICIONAL Y RAG EN SERVIDOR ===\n${ragContext}\n\n10. ⚠️ REGLA DE CREACION MASIVA: Si el usuario te manda una lista de mas de 15 tarjetas o preguntas, empeza tu respuesta DIRECTAMENTE con la herramienta, sin saludos ni introducciones. Esto evita errores de parsing.`
-      : `${sysPrompt}${ragContext}\n\n10. ⚠️ REGLA DE CREACION MASIVA: Si el usuario te manda una lista de mas de 15 tarjetas o preguntas, empeza tu respuesta DIRECTAMENTE con la herramienta, sin saludos ni introducciones. Esto evita errores de parsing.`;
+      ? `${clientSystemPrompt}\n\n=== CONTEXTO ADICIONAL Y RAG EN SERVIDOR ===\n${ragContext}${bulkPromptNote}`
+      : `${sysPrompt}${ragContext}${bulkPromptNote}`;
 
     // High capacity limit: Llama 3.3 70B supports 128k context (~500k chars). 45k chars allows full 100% academic history without truncation.
     const maxSysLength = 45000;
@@ -799,7 +860,7 @@ serve(async (req) => {
     let lastError = "";
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-    // ── Si el mensaje tiene imagen, usar Google Gemini Vision directamente ──
+    // ── Si el mensaje tiene imagen, usar Google Gemini Vision con soporte de Tools ──
     if (hasImage && GEMINI_API_KEY) {
       console.log("[AI] Mensaje con imagen detectado. Transmitiendo con Gemini Vision...");
       for (const geminiModel of ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.5-flash"]) {
@@ -813,11 +874,34 @@ serve(async (req) => {
             body: JSON.stringify({
               model: geminiModel,
               messages: groqMessages,
+              tools: tools,
+              tool_choice: "auto",
               temperature: 0.4,
-              max_tokens: 4096,
+              max_tokens: 8192,
               stream: true
             })
           });
+
+          // Si falla con tools en modo multimodal, reintentar sin tools
+          if (!streamRes.ok) {
+            const geminiErr1 = await streamRes.text();
+            console.warn(`[Gemini Vision] Falló con tools (${streamRes.status}):`, geminiErr1);
+            streamRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${GEMINI_API_KEY}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                model: geminiModel,
+                messages: groqMessages,
+                temperature: 0.4,
+                max_tokens: 8192,
+                stream: true
+              })
+            });
+          }
+
           if (streamRes.ok) break;
         } catch (geminiErr: any) {
           lastError += ` | [Gemini Vision error] ${geminiErr.message}`;
@@ -878,7 +962,7 @@ serve(async (req) => {
             tools: tools,
             tool_choice: "auto",
             temperature: 0.5,
-            max_tokens: 4096,
+            max_tokens: 8192,
             stream: true
           })
         });
@@ -899,7 +983,7 @@ serve(async (req) => {
               model: selectedModel,
               messages: groqMessages,
               temperature: 0.5,
-              max_tokens: 4096,
+              max_tokens: 8192,
               stream: true
             })
           });
@@ -919,7 +1003,6 @@ serve(async (req) => {
     }
 
     // Fallback 1: Google Gemini (si Groq no responde)
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if ((!streamRes || !streamRes.ok) && GEMINI_API_KEY) {
       console.warn("[AI] Usando Google Gemini como respaldo...");
       for (const geminiModel of ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.5-flash"]) {
@@ -933,11 +1016,31 @@ serve(async (req) => {
             body: JSON.stringify({
               model: geminiModel,
               messages: groqMessages,
+              tools: tools,
+              tool_choice: "auto",
               temperature: 0.5,
-              max_tokens: 4096,
+              max_tokens: 8192,
               stream: true
             })
           });
+
+          if (!streamRes.ok) {
+            streamRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${GEMINI_API_KEY}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                model: geminiModel,
+                messages: groqMessages,
+                temperature: 0.5,
+                max_tokens: 8192,
+                stream: true
+              })
+            });
+          }
+
           if (streamRes.ok) break;
         } catch (geminiErr: any) {
           lastError += ` | [Gemini error] ${geminiErr.message}`;
@@ -961,7 +1064,7 @@ serve(async (req) => {
             model: "google/gemini-2.0-flash-001",
             messages: groqMessages,
             temperature: 0.5,
-            max_tokens: 4096,
+            max_tokens: 8192,
             stream: true
           })
         });

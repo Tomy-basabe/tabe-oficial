@@ -14,7 +14,7 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
         let fullText = '';
-        const maxPages = Math.min(pdf.numPages, 15); // Límite de seguridad
+        const maxPages = Math.min(pdf.numPages, 35); // Límite amplio para documentos universitarios
 
         for (let i = 1; i <= maxPages; i++) {
             const page = await pdf.getPage(i);
