@@ -326,7 +326,6 @@ export default function Notion() {
     addStudyTime,
     fetchDocumentContent,
     prefetchDocumentContent,
-    fetchFriendDocuments,
     refetch,
   } = useNotionDocuments();
   const { checkAndUnlockAchievements } = useAchievements();
@@ -989,13 +988,13 @@ export default function Notion() {
 
   // === Document operations ===
   const openDocument = useCallback(async (doc: NotionDocument) => {
-    // Save current doc first
-    if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
+    // Save current doc first in background without blocking switching
+    if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current) {
       if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
       if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
       autoSaveTimerRef.current = null;
       forceSaveTimerRef.current = null;
-      await saveDocument(true);
+      saveDocument(true);
     }
 
     // Save study time for the previous document before switching
@@ -1032,19 +1031,24 @@ export default function Notion() {
       
       if (fullContent) {
         let content = ensureTipTapFormat(fullContent);
-        // Check for base64 images and migrate them in the background
-        if (JSON.stringify(content).includes('data:image/')) {
-          setSaveInProgress(true);
-          content = await migrateBase64Images(content, doc.id);
-          setSaveInProgress(false);
-        }
         lastSavedContentRef.current = JSON.stringify(content);
         setEditorContent(content);
         editorContentRef.current = content;
+
+        // Check for base64 images and migrate them in the background (non-blocking)
+        if (JSON.stringify(content).includes('data:image/')) {
+          setSaveInProgress(true);
+          migrateBase64Images(content, doc.id).then(cleaned => {
+            setEditorContent(cleaned);
+            editorContentRef.current = cleaned;
+            lastSavedContentRef.current = JSON.stringify(cleaned);
+            setSaveInProgress(false);
+          });
+        }
       }
     } else {
       let content = ensureTipTapFormat(doc.contenido);
-       // Check for base64 images and migrate them in the background
+       // Check for base64 images and migrate them in the background (non-blocking)
        if (JSON.stringify(content).includes('data:image/')) {
         setSaveInProgress(true);
         migrateBase64Images(content, doc.id).then(cleaned => {
@@ -1058,7 +1062,7 @@ export default function Notion() {
       setEditorContent(content);
       editorContentRef.current = content;
     }
-  }, [saveDocument, handleSaveOnExit, fetchDocumentContent]);
+  }, [saveDocument, handleSaveOnExit, fetchDocumentContent, migrateBase64Images]);
 
   const closeDocument = useCallback(() => {
     if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
@@ -1700,13 +1704,13 @@ export default function Notion() {
         )}
 
         {/* Editor area */}
-        <div className="notion-editor-area overflow-hidden flex flex-col h-full min-h-0">
+        <div className="notion-editor-area overflow-hidden flex flex-col h-full min-h-0 relative">
           {activeDocument ? (
-            isOpeningDoc ? (
+            isOpeningDoc && !editorContent ? (
               <div className="flex flex-col items-center justify-center h-full gap-4">
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
                 <p className="text-muted-foreground animate-pulse font-medium">
-                  Cargando contenido pesado...
+                  Cargando apunte...
                 </p>
               </div>
             ) : (
@@ -1715,6 +1719,11 @@ export default function Notion() {
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               }>
+                {isOpeningDoc && (
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-primary/20 z-50 overflow-hidden">
+                    <div className="h-full bg-primary w-full animate-pulse" />
+                  </div>
+                )}
                 <AdvancedNotionEditor
                   headerContent={
                     <>
@@ -1824,7 +1833,7 @@ export default function Notion() {
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {
                           detail: { oldTitle: pageTitle, newPageId: newDoc.id },
                         }));
-                        await saveDocument(true);
+                        saveDocument(true);
                         const fullDoc = { ...newDoc, parent_id: activeDocument?.id || null };
                         openDocument(fullDoc);
                       }
@@ -1900,12 +1909,7 @@ export default function Notion() {
                     ].map(tab => (
                       <button
                         key={tab.id}
-                      onClick={() => {
-                        setFilterOwner(tab.id as any);
-                        if (tab.id === "friends" || tab.id === "all") {
-                          fetchFriendDocuments();
-                        }
-                      }}
+                        onClick={() => setFilterOwner(tab.id as any)}
                         className={cn(
                           "px-4 py-2 font-black uppercase border-4 border-foreground transition-all rounded-none",
                           filterOwner === tab.id 

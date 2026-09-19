@@ -88,14 +88,13 @@ export function useNotionDocuments() {
       return;
     }
 
-    // FAST PATH: Only fetch OWN documents first (no costly RLS friendship subquery)
     const { data, error } = await supabase
       .from("notion_documents")
       .select(`
         id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+        owner:profiles(nombre, avatar_url, username),
         subject:subjects(id, nombre, codigo, año)
       `)
-      .eq("user_id", user!.id)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -141,66 +140,6 @@ export function useNotionDocuments() {
     setLoading(false);
   }, [user]);
 
-  // Lazy-load friend documents only when requested
-  const fetchFriendDocuments = useCallback(async () => {
-    if (!user || friendDocsLoadedRef.current) return;
-    friendDocsLoadedRef.current = true;
-
-    const { data, error } = await supabase
-      .from("notion_documents")
-      .select(`
-        id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
-        owner:profiles(nombre, avatar_url, username),
-        subject:subjects(id, nombre, codigo, año)
-      `)
-      .neq("user_id", user.id)
-      .order("updated_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching friend documents:", error.message);
-      friendDocsLoadedRef.current = false; // Allow retry
-      return;
-    }
-
-    if (data && data.length > 0) {
-      // Cache subjects
-      data.forEach((d: any) => {
-        if (d.subject && d.subject_id) {
-          subjectsMapRef.current[d.subject_id] = {
-            id: d.subject.id,
-            nombre: d.subject.nombre,
-            codigo: d.subject.codigo,
-            year: d.subject.año,
-            año: d.subject.año,
-          };
-          cachedSubjectIdsRef.current.add(d.subject_id);
-        }
-      });
-
-      const subjectsMap = subjectsMapRef.current;
-
-      const friendDocs = data.map((d: any) => {
-        const sub = d.subject
-          ? {
-              id: d.subject.id,
-              nombre: d.subject.nombre,
-              codigo: d.subject.codigo,
-              year: d.subject.año,
-              año: d.subject.año,
-            }
-          : (d.subject_id ? subjectsMap[d.subject_id] : undefined);
-
-        return {
-          ...d,
-          subject: sub,
-          contenido: contentCacheRef.current.get(d.id) || undefined,
-        };
-      }) as NotionDocument[];
-
-      setDocuments(prev => [...prev, ...friendDocs]);
-    }
-  }, [user]);
-
   useEffect(() => {
     if (user || isGuest) {
       fetchDocuments();
@@ -210,14 +149,16 @@ export function useNotionDocuments() {
   const createDocument = async (subjectId: string, titulo: string = "Sin título", parentId: string | null = null) => {
     if (!user) return null;
 
+    const initialContent = { type: "doc", content: [{ type: "paragraph" }] };
+
     const { data, error } = await supabase
       .from("notion_documents")
       .insert({
         user_id: user.id,
-        subject_id: subjectId,
+        subject_id: subjectId || null,
         parent_id: parentId,
         titulo,
-        contenido: { type: "doc", content: [{ type: "paragraph" }] },
+        contenido: initialContent,
       })
       .select()
       .single();
@@ -228,23 +169,33 @@ export function useNotionDocuments() {
       return null;
     }
 
-    // Fetch the subject info separately
-    const { data: subjectData } = await supabase
-      .from("subjects")
-      .select("nombre, codigo, año")
-      .eq("id", subjectId)
-      .single();
+    // Use cached subject info if available to avoid an extra DB roundtrip
+    let subjectInfo = subjectId ? subjectsMapRef.current[subjectId] : undefined;
+    if (!subjectInfo && subjectId) {
+      const { data: subjectData } = await supabase
+        .from("subjects")
+        .select("nombre, codigo, año")
+        .eq("id", subjectId)
+        .maybeSingle();
 
-    const subjectInfo = subjectData ? {
-      nombre: (subjectData as any).nombre,
-      codigo: (subjectData as any).codigo,
-      year: (subjectData as any).año
-    } : undefined;
+      if (subjectData) {
+        subjectInfo = {
+          nombre: (subjectData as any).nombre,
+          codigo: (subjectData as any).codigo,
+          year: (subjectData as any).año
+        };
+        subjectsMapRef.current[subjectId] = subjectInfo;
+      }
+    }
 
-    const newDoc = {
+    const newDoc: NotionDocument = {
       ...data,
+      contenido: initialContent,
       subject: subjectInfo
-    } as NotionDocument;
+    };
+
+    // Cache initial content immediately so opening it is instantaneous
+    contentCacheRef.current.set(newDoc.id, initialContent);
 
     setDocuments(prev => [newDoc, ...prev]);
     return newDoc;
@@ -395,7 +346,6 @@ export function useNotionDocuments() {
     addStudyTime,
     fetchDocumentContent,
     prefetchDocumentContent,
-    fetchFriendDocuments,
     refetch: fetchDocuments,
   };
 }
