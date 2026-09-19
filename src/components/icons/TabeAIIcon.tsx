@@ -7,6 +7,7 @@ export interface TabeAIIconProps extends React.HTMLAttributes<HTMLDivElement> {
   animate?: boolean;
   withGlow?: boolean;
   size?: number | string;
+  inverted?: boolean;
 }
 
 /**
@@ -15,6 +16,7 @@ export interface TabeAIIconProps extends React.HTMLAttributes<HTMLDivElement> {
  * high-fidelity transparent PNG assets provided in TABE 2.0:
  * - Light theme: /logos/tabe-ai-light.png (dark central spark & ribbon)
  * - Dark theme:  /logos/tabe-ai-dark.png (luminous white central spark & ribbon)
+ * If `inverted` is true, the theme mapping is reversed (e.g. for floating bubble with dark button in light mode).
  */
 export function TabeAIIcon({
   className,
@@ -22,12 +24,16 @@ export function TabeAIIcon({
   animate = false,
   withGlow = false,
   size,
+  inverted = false,
   style,
   ...props
 }: TabeAIIconProps) {
   const sizeStyle = size
     ? { width: size, height: size, minWidth: size, minHeight: size, ...style }
     : style;
+
+  const lightSrc = inverted ? "/logos/tabe-ai-dark.png" : "/logos/tabe-ai-light.png";
+  const darkSrc = inverted ? "/logos/tabe-ai-light.png" : "/logos/tabe-ai-dark.png";
 
   return (
     <div
@@ -41,7 +47,7 @@ export function TabeAIIcon({
       {...props}
     >
       <img
-        src="/logos/tabe-ai-light.png"
+        src={lightSrc}
         alt="TABE IA"
         className={cn(
           "w-full h-full object-contain dark:hidden pointer-events-none transition-transform duration-300",
@@ -50,7 +56,7 @@ export function TabeAIIcon({
         loading="eager"
       />
       <img
-        src="/logos/tabe-ai-dark.png"
+        src={darkSrc}
         alt="TABE IA"
         className={cn(
           "w-full h-full object-contain hidden dark:block pointer-events-none transition-transform duration-300",

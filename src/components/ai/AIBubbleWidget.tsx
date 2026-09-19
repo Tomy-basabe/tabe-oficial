@@ -13,8 +13,14 @@ import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
 import "katex/dist/katex.min.css";
 
 // Proprietary TABE Neural AI Logo (custom engineered for TABE)
-export function ProfessionalAILogo({ className = "w-6 h-6" }: { className?: string }) {
-    return <TabeAIIcon className={className} variant="gradient" />;
+export function ProfessionalAILogo({
+    className = "w-6 h-6",
+    inverted = true,
+}: {
+    className?: string;
+    inverted?: boolean;
+}) {
+    return <TabeAIIcon className={className} variant="gradient" inverted={inverted} />;
 }
 
 

@@ -41,8 +41,7 @@ export function PersonaSidebar({
     return (
         <div className={cn(
             "w-72 max-w-[85vw] h-full border-r-4 border-foreground bg-card text-foreground flex flex-col fixed md:relative top-0 left-0 shrink-0 z-50 transition-all duration-300 shadow-2xl md:shadow-none",
-            isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-            !isOpen && "hidden md:flex"
+            isOpen ? "translate-x-0" : "-translate-x-full hidden"
         )}>
             {/* Personas section */}
             <div className="p-4 border-b-4 border-foreground">
@@ -64,7 +63,7 @@ export function PersonaSidebar({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="md:hidden w-8 h-8 text-foreground hover:bg-destructive hover:text-white border-2 border-foreground rounded-lg"
+                                className="w-8 h-8 text-foreground hover:bg-destructive hover:text-white border-2 border-foreground rounded-lg"
                                 onClick={onClose}
                                 title="Cerrar panel"
                             >
@@ -89,8 +88,8 @@ export function PersonaSidebar({
                             {persona.avatar_emoji && persona.avatar_emoji !== "🤖" ? (
                                 <span className="text-2xl flex-shrink-0">{persona.avatar_emoji}</span>
                             ) : (
-                                <div className="w-7 h-7 rounded-lg bg-black text-white dark:bg-white dark:text-black p-1 flex items-center justify-center border border-foreground/50 shadow-sm shrink-0">
-                                    <TabeAIIcon className="w-full h-full text-white dark:text-black" />
+                                <div className="w-7 h-7 rounded-lg bg-white text-black dark:bg-black dark:text-white p-1 flex items-center justify-center border border-foreground/50 shadow-sm shrink-0">
+                                    <TabeAIIcon className="w-full h-full" />
                                 </div>
                             )}
                             <div className="flex-1 min-w-0">

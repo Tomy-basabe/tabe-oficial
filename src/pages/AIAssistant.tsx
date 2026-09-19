@@ -732,13 +732,11 @@ export default function AIAssistant() {
           </Link>
 
           {/* Avatar + name with TABE AI 2.0 Logo */}
-          <div className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-white text-black dark:bg-black dark:text-white border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center p-1 shrink-0">
             {activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-              <div className="w-full h-full rounded-xl bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center text-sm">
-                <span className="leading-none">{activePersona.avatar_emoji}</span>
-              </div>
+              <span className="leading-none text-sm">{activePersona.avatar_emoji}</span>
             ) : (
-              <TabeAIIcon size={32} animate={isStreaming} withGlow={true} />
+              <TabeAIIcon size={24} animate={isStreaming} withGlow={true} />
             )}
           </div>
 
@@ -931,9 +929,6 @@ export default function AIAssistant() {
                       {/* Model badge for assistant */}
                       {message.role === "assistant" && message.id !== "init" && message.content && (
                         <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 select-none">
-                          <div className="w-3.5 h-3.5 rounded flex items-center justify-center p-0.5 bg-muted/60 shrink-0">
-                            <ModelLogo modelId={message.modelId || selectedModel.id} className="w-2.5 h-2.5" />
-                          </div>
                           <span className="text-foreground/90 font-black truncate">
                             {message.modelName || selectedModel.shortName}
                           </span>
