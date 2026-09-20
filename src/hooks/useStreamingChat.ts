@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AIModelOption, DEFAULT_AI_MODEL, PowerEffort } from "@/config/aiModels";
 import { buildStudentContext, streamAIChat, StreamResult } from "@/lib/aiClientService";
 
+const personaCache = new Map<string, { name: string; prompt: string }>();
+
 export function useStreamingChat(
   activeModel: AIModelOption = DEFAULT_AI_MODEL,
   powerLevel: PowerEffort = "medio"
@@ -48,25 +50,32 @@ export function useStreamingChat(
         const targetModel = modelOverride || activeModel;
         const targetPower = powerOverride || powerLevel;
 
-        // 1. Resolve Persona info
+        // 1. Resolve Persona info con caché en memoria (0ms en mensajes sucesivos)
         let personaName = "T.A.B.E. IA";
         let personaPrompt =
           "Sos un tutor académico cercano, claro y motivador. Usás español rioplatense (argentino). Celebrás los avances y explicás los temas paso a paso.";
 
         if (persona_id && persona_id !== "local-default") {
-          try {
-            const { data: p } = await (supabase as any)
-              .from("ai_personas")
-              .select("name, personality_prompt")
-              .eq("id", persona_id)
-              .maybeSingle();
+          const cachedPersona = personaCache.get(persona_id);
+          if (cachedPersona) {
+            personaName = cachedPersona.name;
+            personaPrompt = cachedPersona.prompt;
+          } else {
+            try {
+              const { data: p } = await (supabase as any)
+                .from("ai_personas")
+                .select("name, personality_prompt")
+                .eq("id", persona_id)
+                .maybeSingle();
 
-            if (p) {
-              personaName = p.name || personaName;
-              personaPrompt = p.personality_prompt || personaPrompt;
+              if (p) {
+                personaName = p.name || personaName;
+                personaPrompt = p.personality_prompt || personaPrompt;
+                personaCache.set(persona_id, { name: personaName, prompt: personaPrompt });
+              }
+            } catch (e) {
+              console.warn("Could not load persona from DB, using defaults:", e);
             }
-          } catch (e) {
-            console.warn("Could not load persona from DB, using defaults:", e);
           }
         }
 

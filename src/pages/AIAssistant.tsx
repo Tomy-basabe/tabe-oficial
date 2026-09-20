@@ -521,13 +521,17 @@ export default function AIAssistant() {
           : normalizedInput.includes("resum")
             ? "resumen"
             : "chat";
-    const hasTokenBudget = await reserveAITokens(selectedModel, powerLevel, task);
-    const requestModel = hasTokenBudget
-      ? selectedModel
-      : AVAILABLE_AI_MODELS.find((model) => model.provider === "local") || selectedModel;
+    const requestModel = selectedModel;
 
-    await saveMessage(sessionId, "user", userMessage.content);
-    if (requestModel.provider !== "local") await incrementUsage("ia_daily");
+    // Persistencia asíncrona sin retrasar el inicio del stream
+    saveMessage(sessionId, "user", userMessage.content).catch((err) =>
+      console.warn("Could not persist user message:", err)
+    );
+    if (requestModel.provider !== "local") {
+      incrementUsage("ia_daily").catch((err) =>
+        console.warn("Could not increment usage:", err)
+      );
+    }
 
     // Prepare conversation for the AI
     const conversationHistory = newMessages

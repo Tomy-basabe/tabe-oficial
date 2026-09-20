@@ -15,9 +15,19 @@ export interface StreamResult {
   quiz_created?: { deck: any; questions_count: number };
 }
 
-// In-memory cache of student context to avoid re-querying on rapid consecutive messages
+// In-memory cache of student context to avoid re-querying on rapid consecutive messages (5 minutes TTL)
 const contextCache = new Map<string, { data: string; timestamp: number }>();
-const CONTEXT_CACHE_TTL = 60 * 1000; // 1 minute
+const CONTEXT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+export function invalidateStudentContextCache(userId?: string) {
+  if (userId) {
+    for (const key of contextCache.keys()) {
+      if (key.startsWith(userId)) contextCache.delete(key);
+    }
+  } else {
+    contextCache.clear();
+  }
+}
 
 /**
  * Strips chain-of-thought blocks (<think>...</think>, <thought>...</thought>,
@@ -149,7 +159,7 @@ export async function buildStudentContext(
   if (userId && userId !== "guest") {
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("context_timeout")), 7500)
+        setTimeout(() => reject(new Error("context_timeout")), 2500)
       );
 
       const fetchPromise = Promise.allSettled([
@@ -186,8 +196,9 @@ export async function buildStudentContext(
           .from("calendar_events")
           .select("id, titulo, fecha, hora, hora_fin, tipo_examen, notas, subject_id")
           .eq("user_id", userId)
+          .gte("fecha", hoyStr)
           .order("fecha", { ascending: true })
-          .limit(100),
+          .limit(30),
 
         // 5. Notion documents / notes
         (supabase as any)
@@ -686,6 +697,10 @@ async function executeActionBlock(
       console.warn("Failed to parse quiz action:", e);
     }
     cleanedContent = cleanedContent.replace(quizRegex, "").trim();
+  }
+
+  if (event_created || flashcards_created || quiz_created) {
+    invalidateStudentContextCache(userId);
   }
 
   return { event_created, flashcards_created, quiz_created, cleanedContent };
