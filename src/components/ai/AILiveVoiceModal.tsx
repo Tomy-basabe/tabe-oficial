@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   X, Mic, MicOff, Video, VideoOff, SwitchCamera, Monitor, MonitorOff,
-  Volume2, VolumeX, Sparkles, Radio, RotateCcw, Camera, ShieldAlert,
-  ChevronDown, ChevronUp, Maximize2, Minimize2, Send, Sliders
+  Volume2, VolumeX, Sparkles, Radio, ChevronDown, ChevronUp, Send,
+  Zap, Volume1, CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -36,7 +36,6 @@ interface AILiveVoiceModalProps {
 }
 
 type LiveState = "idle" | "listening" | "thinking" | "speaking";
-
 type VoiceLanguageMode = "es" | "es-AR" | "es-MX" | "es-ES";
 
 // Clean text for speech synthesis (strip markdown, links, LaTeX markers)
@@ -68,6 +67,52 @@ function cleanTextForSpeech(text: string): string {
   return cleaned.trim();
 }
 
+// Select natural human voice based on language mode
+function pickBestVoice(voices: SpeechSynthesisVoice[], langMode: VoiceLanguageMode): SpeechSynthesisVoice | null {
+  if (!voices || voices.length === 0) return null;
+
+  // Filter out any robotic desktop/SAPI legacy voices
+  const naturalVoices = voices.filter(v => {
+    const n = v.name.toLowerCase();
+    return !n.includes("desktop") && !n.includes("espeak") && !n.includes("sabina") && !n.includes("helena");
+  });
+
+  const pool = naturalVoices.length > 0 ? naturalVoices : voices;
+
+  const targetCode = langMode === "es-AR" ? "es-ar" : langMode === "es-MX" ? "es-mx" : "es-es";
+
+  // Tier 1: Natural/Neural/Online/Google/Siri in the exact target dialect
+  const dialectNeural = pool.find(v => {
+    const l = (v.lang || "").toLowerCase();
+    const n = v.name.toLowerCase();
+    const isNeural = n.includes("natural") || n.includes("online") || n.includes("google") || n.includes("neural") || n.includes("siri");
+    return (l.includes(targetCode) || (targetCode === "es-mx" && l.includes("es-419")) || (targetCode === "es-ar" && l.includes("es-ar"))) && isNeural;
+  });
+  if (dialectNeural) return dialectNeural;
+
+  // Tier 2: Any voice in the exact dialect
+  const dialectAny = pool.find(v => {
+    const l = (v.lang || "").toLowerCase();
+    return l.includes(targetCode) || (targetCode === "es-mx" && (l.includes("es-419") || l.includes("es-us")));
+  });
+  if (dialectAny) return dialectAny;
+
+  // Tier 3: Any Natural/Neural/Google Spanish voice
+  const anySpanishNeural = pool.find(v => {
+    const l = (v.lang || "").toLowerCase();
+    const n = v.name.toLowerCase();
+    const isNeural = n.includes("natural") || n.includes("online") || n.includes("google") || n.includes("neural") || n.includes("siri");
+    return l.startsWith("es") && isNeural;
+  });
+  if (anySpanishNeural) return anySpanishNeural;
+
+  // Tier 4: Any Spanish voice
+  const anySpanish = pool.find(v => (v.lang || "").toLowerCase().startsWith("es"));
+  if (anySpanish) return anySpanish;
+
+  return pool[0] || null;
+}
+
 export function AILiveVoiceModal({
   isOpen,
   onClose,
@@ -83,12 +128,14 @@ export function AILiveVoiceModal({
   const [liveState, setLiveState] = useState<LiveState>("listening");
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isSoundMuted, setIsSoundMuted] = useState(false);
-  const [audioLevel, setAudioLevel] = useState(0); // 0 to 1 for visualizer
+  const [audioLevel, setAudioLevel] = useState(0.2); // for animated visualizer orb
+  const [isUserTalking, setIsUserTalking] = useState(false);
   const [userInterimTranscript, setUserInterimTranscript] = useState("");
   const [currentAiSpeechText, setCurrentAiSpeechText] = useState("");
   const [transcriptHistory, setTranscriptHistory] = useState<Array<{ role: "user" | "assistant"; text: string; imagePreview?: string }>>([]);
   const [showFullTranscript, setShowFullTranscript] = useState(false);
   const [voiceLang, setVoiceLang] = useState<VoiceLanguageMode>("es-AR");
+  const [currentVoiceName, setCurrentVoiceName] = useState<string>("Voz Humana Natural");
 
   // Multimodal state (Camera & Screen Share)
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -99,23 +146,22 @@ export function AILiveVoiceModal({
 
   // References
   const recognitionRef = useRef<any>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-  const animFrameRef = useRef<number | null>(null);
+  const isRecognizingRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const videoStreamRef = useRef<MediaStream | null>(null);
   const silenceTimerRef = useRef<any>(null);
+  const restartTimeoutRef = useRef<any>(null);
   const isSpeakingTtsRef = useRef(false);
   const isStreamingAiRef = useRef(false);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioQueueRef = useRef<string[]>([]);
   const isPlayingAudioQueueRef = useRef(false);
   const sentenceBufferRef = useRef("");
   const accumulatedAiResponseRef = useRef("");
   const lastRecognizedRef = useRef("");
   const isComponentActiveRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const availableVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const activeUtterancesRef = useRef<Set<SpeechSynthesisUtterance>>(new Set());
+  const keepAliveTimerRef = useRef<any>(null);
 
   // Stop any playing audio immediately (Instant Barge-in)
   const stopAudio = useCallback(() => {
@@ -124,16 +170,62 @@ export function AILiveVoiceModal({
     isSpeakingTtsRef.current = false;
     sentenceBufferRef.current = "";
 
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.src = "";
-      currentAudioRef.current = null;
+    if (keepAliveTimerRef.current) {
+      clearInterval(keepAliveTimerRef.current);
+      keepAliveTimerRef.current = null;
     }
 
     if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+      } catch (_) {}
     }
+    activeUtterancesRef.current.clear();
   }, []);
+
+  // Speak a single sentence using SpeechSynthesis with GC protection and Watchdog
+  const speakUtterance = useCallback((textToSpeak: string, voice: SpeechSynthesisVoice | null): Promise<void> => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined" || !window.speechSynthesis) {
+        resolve();
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      } else {
+        utterance.lang = voiceLang === "es-AR" ? "es-AR" : voiceLang === "es-MX" ? "es-MX" : "es-ES";
+      }
+
+      utterance.rate = 1.08; // natural, brisk conversational pace
+      utterance.pitch = 1.0;
+
+      let hasFinished = false;
+      let watchdogTimer: any = null;
+
+      const cleanup = () => {
+        if (hasFinished) return;
+        hasFinished = true;
+        if (watchdogTimer) clearTimeout(watchdogTimer);
+        activeUtterancesRef.current.delete(utterance);
+        resolve();
+      };
+
+      utterance.onend = cleanup;
+      utterance.onerror = cleanup;
+
+      // Hard watchdog: max 6.5 seconds per sentence chunk so the queue NEVER freezes
+      const maxDuration = Math.min(6500, Math.max(1800, textToSpeak.length * 70));
+      watchdogTimer = setTimeout(() => {
+        cleanup();
+      }, maxDuration);
+
+      activeUtterancesRef.current.add(utterance);
+      window.speechSynthesis.speak(utterance);
+    });
+  }, [voiceLang]);
 
   // Play natural human neural audio queue
   const playNextInAudioQueue = useCallback(async () => {
@@ -160,61 +252,17 @@ export function AILiveVoiceModal({
     setCurrentAiSpeechText(cleaned);
 
     try {
-      // Human Neural Audio: Google's ultra-natural human voice stream
-      // Using es-AR / es-419 / es-ES
-      const langCode = voiceLang === "es-AR" ? "es" : voiceLang;
-      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langCode}&client=tw-ob&q=${encodeURIComponent(cleaned.slice(0, 200))}`;
-      const audio = new Audio(ttsUrl);
-      audio.playbackRate = 1.08; // slightly brisk conversational pace
-      currentAudioRef.current = audio;
-
-      await new Promise<void>((resolve) => {
-        audio.onended = () => {
-          currentAudioRef.current = null;
-          resolve();
-        };
-        audio.onerror = () => {
-          currentAudioRef.current = null;
-          // Fallback to browser synthesis if audio failed
-          fallbackBrowserSpeech(cleaned).then(resolve);
-        };
-        audio.play().catch(() => {
-          currentAudioRef.current = null;
-          fallbackBrowserSpeech(cleaned).then(resolve);
-        });
-      });
+      const activeVoice = pickBestVoice(availableVoicesRef.current, voiceLang);
+      if (activeVoice) {
+        setCurrentVoiceName(activeVoice.name);
+      }
+      await speakUtterance(cleaned, activeVoice);
     } catch (_) {
-      await fallbackBrowserSpeech(cleaned);
+      // Continue to next sentence if any error
     }
 
     playNextInAudioQueue();
-  }, [isSoundMuted, voiceLang]);
-
-  // Fallback to browser speech synthesis ONLY with verified Natural voices (never SAPI desktop)
-  const fallbackBrowserSpeech = (text: string): Promise<void> => {
-    return new Promise((resolve) => {
-      if (typeof window === "undefined" || !window.speechSynthesis) {
-        resolve();
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(text);
-      const voices = window.speechSynthesis.getVoices();
-      // Filter out any robotic desktop voices
-      const humanVoice = voices.find(v => {
-        const name = v.name.toLowerCase();
-        if (name.includes("desktop") || name.includes("espeak") || name.includes("sabina") || name.includes("helena")) return false;
-        return v.lang.startsWith("es") && (name.includes("natural") || name.includes("online") || name.includes("google") || name.includes("siri"));
-      }) || voices.find(v => v.lang.startsWith("es") && !v.name.toLowerCase().includes("desktop"));
-
-      if (humanVoice) utterance.voice = humanVoice;
-      utterance.lang = "es-AR";
-      utterance.rate = 1.05;
-
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
-      window.speechSynthesis.speak(utterance);
-    });
-  };
+  }, [isSoundMuted, voiceLang, speakUtterance]);
 
   // Enqueue sentence for natural speech
   const queueSentenceToSpeak = useCallback((text: string) => {
@@ -224,6 +272,45 @@ export function AILiveVoiceModal({
       playNextInAudioQueue();
     }
   }, [isSoundMuted, playNextInAudioQueue]);
+
+  // Keep-alive for SpeechSynthesis to avoid Chrome freezing on long speech
+  useEffect(() => {
+    if (!isOpen) return;
+    keepAliveTimerRef.current = setInterval(() => {
+      if (typeof window !== "undefined" && window.speechSynthesis && isSpeakingTtsRef.current) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 4500);
+
+    return () => {
+      if (keepAliveTimerRef.current) clearInterval(keepAliveTimerRef.current);
+    };
+  }, [isOpen]);
+
+  // Pre-load and sync voices
+  useEffect(() => {
+    const loadVoices = () => {
+      if (typeof window === "undefined" || !window.speechSynthesis) return;
+      const allVoices = window.speechSynthesis.getVoices();
+      if (allVoices && allVoices.length > 0) {
+        availableVoicesRef.current = allVoices;
+        const best = pickBestVoice(allVoices, voiceLang);
+        if (best) setCurrentVoiceName(best.name);
+      }
+    };
+
+    loadVoices();
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, [voiceLang]);
 
   // Capture frame from active video (Camera or Screen share)
   const captureSnapshot = useCallback((): { data: string; mime_type: string; preview: string } | null => {
@@ -270,7 +357,9 @@ export function AILiveVoiceModal({
     const text = spokenText.trim();
     if (!text || isStreamingAiRef.current) return;
 
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     setUserInterimTranscript("");
+    setIsUserTalking(false);
     setLiveState("thinking");
     isStreamingAiRef.current = true;
     accumulatedAiResponseRef.current = "";
@@ -322,7 +411,7 @@ export function AILiveVoiceModal({
 
           // Check if we have a full sentence to speak with low latency (8+ chars and punctuation)
           const match = sentenceBufferRef.current.match(/^([\s\S]+?([.!?\n]+|\:\s))(\s+[\s\S]*)$/);
-          if (match && match[1].length >= 8) {
+          if (match && match[1].length >= 6) {
             const sentenceToSpeak = match[1].trim();
             sentenceBufferRef.current = match[3] || "";
             queueSentenceToSpeak(sentenceToSpeak);
@@ -390,7 +479,34 @@ export function AILiveVoiceModal({
     stopAudio
   ]);
 
-  // Voice Activity & Speech Recognition Setup (continuous hands-free with ultra-snappy 350ms turnaround)
+  // Trigger submission with debounced silence detection
+  const scheduleSubmission = useCallback((delayMs: number) => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = setTimeout(() => {
+      if (lastRecognizedRef.current && isComponentActiveRef.current && !isStreamingAiRef.current) {
+        const query = lastRecognizedRef.current;
+        lastRecognizedRef.current = "";
+        handleUserSpoke(query);
+      }
+    }, delayMs);
+  }, [handleUserSpoke]);
+
+  // Safely start or restart recognition
+  const startRecognition = useCallback(() => {
+    if (!recognitionRef.current || !isComponentActiveRef.current || isMicMuted) return;
+    if (isRecognizingRef.current) return;
+
+    try {
+      recognitionRef.current.start();
+      isRecognizingRef.current = true;
+    } catch (err: any) {
+      if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+        isRecognizingRef.current = true;
+      }
+    }
+  }, [isMicMuted]);
+
+  // Voice Activity & Continuous Speech Recognition Setup (Zero-Contention, Snappy Turnaround)
   useEffect(() => {
     if (!isOpen) return;
     isComponentActiveRef.current = true;
@@ -398,16 +514,50 @@ export function AILiveVoiceModal({
     // @ts-ignore
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast.error("Tu navegador no soporta reconocimiento de voz continuo");
+      toast.error("Tu navegador no soporta reconocimiento de voz en vivo");
       return;
     }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "es-AR";
+    recognition.lang = voiceLang === "es-AR" ? "es-AR" : voiceLang === "es-MX" ? "es-MX" : "es-ES";
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
+
+    recognition.onstart = () => {
+      isRecognizingRef.current = true;
+      if (liveState === "idle") setLiveState("listening");
+    };
+
+    recognition.onspeechstart = () => {
+      setIsUserTalking(true);
+      // Instant Barge-In: User spoke, cut AI speech immediately!
+      if (isSpeakingTtsRef.current || isStreamingAiRef.current) {
+        stopAudio();
+        isStreamingAiRef.current = false;
+        setLiveState("listening");
+      }
+    };
+
+    recognition.onspeechend = () => {
+      setIsUserTalking(false);
+      // When user stops speaking, submit fast (300ms)
+      if (lastRecognizedRef.current.trim().length > 1) {
+        scheduleSubmission(300);
+      }
+    };
+
+    recognition.onsoundstart = () => {
+      setIsUserTalking(true);
+    };
+
+    recognition.onsoundend = () => {
+      setIsUserTalking(false);
+      if (lastRecognizedRef.current.trim().length > 1) {
+        scheduleSubmission(350);
+      }
+    };
 
     recognition.onresult = (event: any) => {
       if (isMicMuted) return;
@@ -427,140 +577,124 @@ export function AILiveVoiceModal({
       const currentChunk = (final || interim).trim();
 
       // BARGE-IN: Natural user interruption!
-      // If user speaks while AI is talking or thinking, immediately cut off AI speech and listen!
       if (currentChunk.length > 1 && (isSpeakingTtsRef.current || isStreamingAiRef.current)) {
         stopAudio();
         isStreamingAiRef.current = false;
         setLiveState("listening");
       }
 
-      if (interim) {
-        setUserInterimTranscript(interim);
+      if (currentChunk) {
+        setUserInterimTranscript(currentChunk);
+        lastRecognizedRef.current = currentChunk;
         setLiveState("listening");
-      }
-
-      // Reset debounce silence timer
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
+        setIsUserTalking(true);
       }
 
       if (final.trim()) {
         lastRecognizedRef.current = final.trim();
-        // Snappy turnaround: 350ms of silence after final result before submitting to AI
-        silenceTimerRef.current = setTimeout(() => {
-          if (lastRecognizedRef.current && isComponentActiveRef.current && !isStreamingAiRef.current) {
-            const query = lastRecognizedRef.current;
-            lastRecognizedRef.current = "";
-            handleUserSpoke(query);
-          }
-        }, 350);
-      } else if (interim.trim().length > 2) {
+        // Snappy turnaround: 280ms of silence after final result before submitting to AI
+        scheduleSubmission(280);
+      } else if (interim.trim().length > 1) {
         lastRecognizedRef.current = interim.trim();
-        // If user pauses for 550ms on interim without explicit final, auto submit
-        silenceTimerRef.current = setTimeout(() => {
-          if (lastRecognizedRef.current && isComponentActiveRef.current && !isStreamingAiRef.current) {
-            const query = lastRecognizedRef.current;
-            lastRecognizedRef.current = "";
-            handleUserSpoke(query);
-          }
-        }, 550);
+        // If user pauses for 600ms on interim without explicit final, auto-submit
+        scheduleSubmission(600);
       }
     };
 
     recognition.onerror = (event: any) => {
-      if (event.error === "no-speech") return;
+      if (event.error === "no-speech") {
+        setIsUserTalking(false);
+        return;
+      }
       if (event.error === "audio-capture") {
         toast.error("No se detectó entrada de micrófono");
       }
     };
 
     recognition.onend = () => {
-      // Auto-restart continuous recognition while modal is open and mic isn't muted
+      isRecognizingRef.current = false;
+      setIsUserTalking(false);
+      // Auto-restart continuous recognition with small safe delay to prevent InvalidStateError
       if (isComponentActiveRef.current && !isMicMuted) {
-        try {
-          recognition.start();
-        } catch (_) {}
+        restartTimeoutRef.current = setTimeout(() => {
+          startRecognition();
+        }, 120);
       }
     };
 
-    try {
-      recognition.start();
-    } catch (e) {
-      console.warn("Could not start SpeechRecognition:", e);
-    }
+    startRecognition();
 
     return () => {
       isComponentActiveRef.current = false;
+      isRecognizingRef.current = false;
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
       try {
         recognition.stop();
       } catch (_) {}
     };
-  }, [isOpen, isMicMuted, handleUserSpoke, stopAudio]);
+  }, [isOpen, isMicMuted, voiceLang, scheduleSubmission, startRecognition, stopAudio, liveState]);
 
-  // AudioContext Volume Meter for the Glowing Orb
+  // Keep-alive Heartbeat for SpeechRecognition
   useEffect(() => {
     if (!isOpen) return;
-
-    let localAudioCtx: AudioContext | null = null;
-    let localStream: MediaStream | null = null;
-
-    const startAudioMeter = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        localStream = stream;
-        micStreamRef.current = stream;
-
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        localAudioCtx = new AudioCtx();
-        audioContextRef.current = localAudioCtx;
-
-        const source = localAudioCtx.createMediaStreamSource(stream);
-        const analyser = localAudioCtx.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.8;
-        source.connect(analyser);
-        analyserRef.current = analyser;
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-        const updateMeter = () => {
-          if (!analyserRef.current) return;
-          analyserRef.current.getByteFrequencyData(dataArray);
-
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-          }
-          const avg = sum / dataArray.length;
-          const normalized = Math.min(1, Math.max(0, avg / 128));
-          setAudioLevel(normalized);
-
-          // Barge-In volume spike threshold while AI is speaking
-          if (normalized > 0.35 && isSpeakingTtsRef.current) {
-            stopAudio();
-            setLiveState("listening");
-          }
-
-          animFrameRef.current = requestAnimationFrame(updateMeter);
-        };
-
-        updateMeter();
-      } catch (err) {
-        console.warn("Audio meter setup error:", err);
+    const heartbeat = setInterval(() => {
+      if (
+        isComponentActiveRef.current &&
+        !isMicMuted &&
+        !isRecognizingRef.current &&
+        liveState === "listening" &&
+        !isStreamingAiRef.current
+      ) {
+        startRecognition();
       }
+    }, 1200);
+
+    return () => clearInterval(heartbeat);
+  }, [isOpen, isMicMuted, liveState, startRecognition]);
+
+  // Thinking State Watchdog (Never get stuck thinking for > 7.5s)
+  useEffect(() => {
+    if (liveState !== "thinking") return;
+    const watchdog = setTimeout(() => {
+      if (isStreamingAiRef.current) {
+        console.warn("Watchdog: AI streaming timeout, recovering to listening");
+        isStreamingAiRef.current = false;
+        setLiveState("listening");
+        toast.info("Te escucho, hazme otra pregunta...");
+      }
+    }, 7500);
+
+    return () => clearTimeout(watchdog);
+  }, [liveState]);
+
+  // Visualizer Animation Loop (Driven by dynamic state without mic locking)
+  useEffect(() => {
+    if (!isOpen) return;
+    let animId: number;
+    let phase = 0;
+
+    const tick = () => {
+      phase += 0.08;
+      if (liveState === "speaking") {
+        // Equalizer wave cadence while AI speaks
+        const level = 0.45 + Math.sin(phase * 1.5) * 0.35;
+        setAudioLevel(level);
+      } else if (isUserTalking || userInterimTranscript) {
+        // High energy wave while user speaks
+        const level = 0.55 + Math.sin(phase * 2.2) * 0.35;
+        setAudioLevel(level);
+      } else {
+        // Idle gentle rhythmic breathing
+        const level = 0.15 + Math.sin(phase * 0.8) * 0.08;
+        setAudioLevel(level);
+      }
+      animId = requestAnimationFrame(tick);
     };
 
-    startAudioMeter();
-
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      if (localStream) localStream.getTracks().forEach(t => t.stop());
-      if (localAudioCtx && localAudioCtx.state !== "closed") {
-        localAudioCtx.close().catch(() => {});
-      }
-    };
-  }, [isOpen, stopAudio]);
+    tick();
+    return () => cancelAnimationFrame(animId);
+  }, [isOpen, liveState, isUserTalking, userInterimTranscript]);
 
   // Camera Management
   const toggleCamera = async () => {
@@ -658,10 +792,36 @@ export function AILiveVoiceModal({
     }
   };
 
+  // Manual Trigger: User taps the Orb to talk or send immediately
+  const handleOrbTap = () => {
+    // If AI is speaking, tap interrupts and listens
+    if (isSpeakingTtsRef.current || isStreamingAiRef.current) {
+      stopAudio();
+      isStreamingAiRef.current = false;
+      setLiveState("listening");
+      toast.info("Interrumpido. Te escucho...");
+      return;
+    }
+
+    // If user has transcript in progress, submit right now with 0ms delay!
+    if (userInterimTranscript || lastRecognizedRef.current) {
+      const textToSend = userInterimTranscript || lastRecognizedRef.current;
+      setUserInterimTranscript("");
+      lastRecognizedRef.current = "";
+      handleUserSpoke(textToSend);
+      return;
+    }
+
+    // If idle, ensure recognition is running
+    startRecognition();
+    toast.info("Te escucho... habla directamente");
+  };
+
   // Clean exit on modal close
   const handleClose = () => {
     stopAudio();
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch (_) {}
     }
@@ -692,11 +852,11 @@ export function AILiveVoiceModal({
               </h2>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Voz Humana
+                Voz Natural Humana
               </div>
             </div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
-              Respuesta Instantánea (&lt;300ms) · Voz Natural Neural
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide truncate max-w-[220px] sm:max-w-xs">
+              {currentVoiceName} · &lt;250ms
             </p>
           </div>
         </div>
@@ -706,20 +866,23 @@ export function AILiveVoiceModal({
           {/* Accent / Voice Dialect Selector */}
           <div className="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1 text-xs">
             <button
-              onClick={() => { setVoiceLang("es-AR"); toast.success("Voz Natural Rioplatense"); }}
+              onClick={() => { setVoiceLang("es-AR"); toast.success("Voz Natural Rioplatense (Argentina)"); }}
               className={cn("px-2 py-1 rounded-lg font-bold text-[11px] transition-all", voiceLang === "es-AR" ? "bg-cyan-500 text-black font-black" : "text-slate-400 hover:text-white")}
+              title="Acento Rioplatense"
             >
               🇦🇷 AR
             </button>
             <button
-              onClick={() => { setVoiceLang("es-MX"); toast.success("Voz Natural Latino"); }}
+              onClick={() => { setVoiceLang("es-MX"); toast.success("Voz Natural Latino (México)"); }}
               className={cn("px-2 py-1 rounded-lg font-bold text-[11px] transition-all", voiceLang === "es-MX" ? "bg-cyan-500 text-black font-black" : "text-slate-400 hover:text-white")}
+              title="Acento Latino"
             >
               🇲🇽 MX
             </button>
             <button
-              onClick={() => { setVoiceLang("es-ES"); toast.success("Voz Natural España"); }}
+              onClick={() => { setVoiceLang("es-ES"); toast.success("Voz Natural Castellano (España)"); }}
               className={cn("px-2 py-1 rounded-lg font-bold text-[11px] transition-all", voiceLang === "es-ES" ? "bg-cyan-500 text-black font-black" : "text-slate-400 hover:text-white")}
+              title="Acento España"
             >
               🇪🇸 ES
             </button>
@@ -827,19 +990,23 @@ export function AILiveVoiceModal({
           )}
         </div>
 
-        {/* ── THE INTERACTIVE LIVE ORB ────────────────────────── */}
-        <div className="relative flex items-center justify-center my-auto">
+        {/* ── THE INTERACTIVE LIVE ORB (Click to talk / send / interrupt) ──────────────── */}
+        <div
+          onClick={handleOrbTap}
+          className="relative flex items-center justify-center my-auto cursor-pointer group select-none"
+          title="Toca para enviar tu voz o interrumpir"
+        >
           {/* Layer 3: Outer pulsating ambient glow */}
           <div
             className={cn(
-              "absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl transition-all duration-500 pointer-events-none opacity-60",
-              liveState === "listening" && "bg-gradient-to-tr from-cyan-500/50 via-sky-500/30 to-blue-600/50",
+              "absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl transition-all duration-300 pointer-events-none opacity-60",
+              liveState === "listening" && (isUserTalking ? "bg-gradient-to-tr from-cyan-400 via-sky-400 to-blue-500 scale-110 opacity-80" : "bg-gradient-to-tr from-cyan-500/50 via-sky-500/30 to-blue-600/50"),
               liveState === "thinking" && "bg-gradient-to-tr from-purple-600/60 via-amber-500/40 to-pink-600/50 animate-pulse",
               liveState === "speaking" && "bg-gradient-to-tr from-emerald-500/60 via-teal-400/40 to-cyan-400/50",
               isMicMuted && "bg-rose-500/20"
             )}
             style={{
-              transform: `scale(${1 + audioLevel * 0.45})`,
+              transform: `scale(${1 + audioLevel * 0.4})`,
             }}
           />
 
@@ -847,60 +1014,80 @@ export function AILiveVoiceModal({
           <div
             className={cn(
               "absolute w-56 h-56 sm:w-72 sm:h-72 rounded-full border-2 transition-all duration-200",
-              liveState === "listening" && "border-cyan-400/40 shadow-[0_0_40px_rgba(0,229,255,0.4)]",
+              liveState === "listening" && (isUserTalking ? "border-cyan-300 shadow-[0_0_50px_rgba(0,229,255,0.7)]" : "border-cyan-400/40 shadow-[0_0_40px_rgba(0,229,255,0.4)]"),
               liveState === "thinking" && "border-amber-400/40 animate-spin shadow-[0_0_40px_rgba(251,191,36,0.3)]",
               liveState === "speaking" && "border-emerald-400/50 shadow-[0_0_50px_rgba(52,211,153,0.5)]",
               isMicMuted && "border-white/10"
             )}
             style={{
-              transform: `scale(${1 + audioLevel * 0.35})`,
+              transform: `scale(${1 + audioLevel * 0.3})`,
             }}
           />
 
           {/* Layer 1: Core dynamic sphere */}
           <div
             className={cn(
-              "relative w-40 h-40 sm:w-48 sm:h-48 rounded-full flex flex-col items-center justify-center transition-all duration-150 shadow-2xl border-4",
-              liveState === "listening" && "bg-gradient-to-tr from-cyan-400 via-sky-500 to-blue-600 border-white/50 shadow-[0_0_60px_rgba(0,229,255,0.6)]",
-              liveState === "thinking" && "bg-gradient-to-tr from-purple-700 via-pink-600 to-amber-500 border-amber-300/60 shadow-[0_0_60px_rgba(236,72,153,0.6)] animate-pulse",
-              liveState === "speaking" && "bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-400 border-white/60 shadow-[0_0_60px_rgba(52,211,153,0.7)]",
+              "relative w-40 h-40 sm:w-48 sm:h-48 rounded-full flex flex-col items-center justify-center transition-all duration-150 shadow-2xl border-4 group-hover:scale-105 active:scale-95",
+              liveState === "listening" && (isUserTalking
+                ? "bg-gradient-to-tr from-cyan-300 via-sky-400 to-blue-500 border-white shadow-[0_0_70px_rgba(0,229,255,0.8)]"
+                : "bg-gradient-to-tr from-cyan-400 via-sky-500 to-blue-600 border-white/60 shadow-[0_0_60px_rgba(0,229,255,0.6)]"),
+              liveState === "thinking" && "bg-gradient-to-tr from-purple-700 via-pink-600 to-amber-500 border-amber-300/70 shadow-[0_0_60px_rgba(236,72,153,0.6)] animate-pulse",
+              liveState === "speaking" && "bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-400 border-white/70 shadow-[0_0_60px_rgba(52,211,153,0.7)]",
               isMicMuted && "bg-slate-800 border-rose-500/40"
             )}
             style={{
-              transform: `scale(${1 + (liveState === "listening" ? audioLevel * 0.25 : liveState === "speaking" ? 0.08 : 0)})`,
+              transform: `scale(${1 + (isUserTalking ? 0.08 : liveState === "speaking" ? 0.06 : 0)})`,
             }}
           >
             {/* Center icon / visual state */}
             {liveState === "listening" && (
-              <div className="flex items-center gap-1">
-                {[40, 75, 100, 60, 90, 45].map((h, idx) => (
-                  <span
-                    key={idx}
-                    className="w-1.5 bg-white rounded-full transition-all duration-75"
-                    style={{
-                      height: `${Math.max(10, h * (audioLevel * 0.9 + 0.25))}px`,
-                    }}
-                  />
-                ))}
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {[35, 70, 95, 60, 90, 40].map((h, idx) => (
+                    <span
+                      key={idx}
+                      className={cn(
+                        "w-1.5 rounded-full transition-all duration-75",
+                        isUserTalking ? "bg-white" : "bg-white/80"
+                      )}
+                      style={{
+                        height: `${Math.max(12, h * (audioLevel * 0.9 + 0.2))}px`,
+                      }}
+                    />
+                  ))}
+                </div>
+                {isUserTalking && (
+                  <span className="text-[10px] font-black uppercase tracking-wider text-black bg-white px-2 py-0.5 rounded-full shadow-md animate-bounce">
+                    Escuchándote...
+                  </span>
+                )}
               </div>
             )}
             {liveState === "thinking" && (
-              <div className="flex flex-col items-center gap-1.5 animate-bounce">
+              <div className="flex flex-col items-center gap-1.5">
                 <Sparkles className="w-10 h-10 text-white animate-spin" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-200">
+                  Pensando...
+                </span>
               </div>
             )}
             {liveState === "speaking" && (
-              <div className="flex items-center gap-1.5">
-                {[60, 95, 45, 100, 70, 85, 40].map((h, idx) => (
-                  <span
-                    key={idx}
-                    className="w-1.5 bg-white rounded-full animate-pulse"
-                    style={{
-                      height: `${Math.max(16, h * 0.65)}px`,
-                      animationDelay: `${idx * 120}ms`,
-                    }}
-                  />
-                ))}
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  {[60, 95, 45, 100, 70, 85, 40].map((h, idx) => (
+                    <span
+                      key={idx}
+                      className="w-1.5 bg-white rounded-full animate-pulse"
+                      style={{
+                        height: `${Math.max(16, h * 0.65)}px`,
+                        animationDelay: `${idx * 120}ms`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-black bg-emerald-300 px-2 py-0.5 rounded-full shadow-md">
+                  Hablando
+                </span>
               </div>
             )}
             {isMicMuted && (
@@ -916,7 +1103,7 @@ export function AILiveVoiceModal({
             <span
               className={cn(
                 "w-2 h-2 rounded-full",
-                liveState === "listening" && "bg-cyan-400 animate-ping",
+                liveState === "listening" && (isUserTalking ? "bg-cyan-300 animate-ping" : "bg-cyan-400"),
                 liveState === "thinking" && "bg-amber-400 animate-pulse",
                 liveState === "speaking" && "bg-emerald-400 animate-ping",
                 isMicMuted && "bg-rose-500"
@@ -926,21 +1113,21 @@ export function AILiveVoiceModal({
               {isMicMuted
                 ? "Micrófono en Pausa"
                 : liveState === "listening"
-                ? "Escuchando... Habla libremente"
+                ? (isUserTalking ? "Detectando tu voz..." : "Escuchando... Habla libremente")
                 : liveState === "thinking"
                 ? "Pensando respuesta instantánea..."
-                : "Hablando... (Interrumpe cuando quieras)"}
+                : "Hablando... (Toca o habla para interrumpir)"}
             </span>
           </div>
 
           {/* Subtitle / Realtime Speech Display */}
-          <div className="min-h-[48px] flex items-center justify-center">
+          <div className="min-h-[52px] flex items-center justify-center">
             {userInterimTranscript ? (
-              <div className="flex items-center gap-2">
-                <p className="text-base sm:text-lg font-bold text-cyan-200 bg-cyan-950/60 border border-cyan-500/30 px-4 py-2 rounded-2xl backdrop-blur-md animate-in fade-in">
+              <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-150">
+                <p className="text-base sm:text-lg font-bold text-cyan-200 bg-cyan-950/70 border-2 border-cyan-400/50 px-4 py-2 rounded-2xl backdrop-blur-md shadow-lg shadow-cyan-950/50">
                   "{userInterimTranscript}"
                 </p>
-                {/* Instant Send Button if user doesn't want to wait 350ms */}
+                {/* Instant Send Button: 0ms delay */}
                 <button
                   onClick={() => {
                     if (userInterimTranscript) {
@@ -949,19 +1136,20 @@ export function AILiveVoiceModal({
                       handleUserSpoke(text);
                     }
                   }}
-                  className="p-2 rounded-xl bg-cyan-400 text-black font-black hover:scale-105 active:scale-95 transition-all shadow-md"
-                  title="Enviar ahora sin esperar silencio"
+                  className="px-3 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs uppercase tracking-wider flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-cyan-400/30"
+                  title="Responder ahora sin esperar"
                 >
-                  <Send className="w-4 h-4 stroke-[2.5]" />
+                  <Zap className="w-4 h-4 fill-black stroke-none" />
+                  <span className="hidden sm:inline">Enviar ya</span>
                 </button>
               </div>
             ) : currentAiSpeechText && liveState === "speaking" ? (
-              <p className="text-sm sm:text-base font-semibold text-slate-200 max-w-lg leading-relaxed px-4 py-1.5 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-md animate-in fade-in">
+              <p className="text-sm sm:text-base font-semibold text-slate-200 max-w-lg leading-relaxed px-4 py-2 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-md animate-in fade-in">
                 {currentAiSpeechText}
               </p>
             ) : (
               <p className="text-xs sm:text-sm font-bold text-slate-400 tracking-wide">
-                Respuestas cortas de 1 o 2 oraciones, voz humana natural y sin demoras.
+                Respuestas concisas y directas en voz humana natural. Puedes hablar sin tocar botones.
               </p>
             )}
           </div>
@@ -977,9 +1165,13 @@ export function AILiveVoiceModal({
             setIsMicMuted(next);
             if (next) {
               setLiveState("idle");
+              if (recognitionRef.current) {
+                try { recognitionRef.current.stop(); } catch (_) {}
+              }
               toast.info("Micrófono silenciado");
             } else {
               setLiveState("listening");
+              startRecognition();
               toast.success("Micrófono activado");
             }
           }}
