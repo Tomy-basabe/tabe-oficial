@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
-import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
+import { AILiveVoiceModal } from "@/components/ai/AILiveVoiceModal";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -179,6 +180,14 @@ export default function AIAssistant() {
   const [attachedImage, setAttachedImage] = useState<{ preview: string; base64: string; mimeType: string; name: string } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [showLiveVoice, setShowLiveVoice] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("live") === "true" || searchParams.get("voice") === "true") {
+      setShowLiveVoice(true);
+    }
+  }, [searchParams]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<any>(null);
@@ -764,6 +773,16 @@ export default function AIAssistant() {
             <span className="hidden xs:inline">Online</span>
           </div>
 
+          {/* Live Voice Mode Button */}
+          <button
+            onClick={() => setShowLiveVoice(true)}
+            className="px-2.5 sm:px-3 py-1 bg-[#00E5FF] hover:bg-[#00cce6] !text-black border-2 border-foreground rounded-xl font-black uppercase text-[10px] md:text-xs flex items-center gap-1.5 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer shrink-0"
+            title="Modo de Voz en Vivo (ChatGPT / Gemini Live)"
+          >
+            <Radio className="w-3.5 h-3.5 text-black animate-pulse stroke-[2.5]" />
+            <span className="hidden xs:inline">Modo Voz</span>
+          </button>
+
           {/* Delete current chat button */}
           {currentSessionId && (
             <Button
@@ -1100,8 +1119,19 @@ export default function AIAssistant() {
                   </div>
                 </div>
 
-                {/* Right: mic + send */}
+                {/* Right: live voice + mic + send */}
                 <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] bg-[#00E5FF] hover:bg-[#00cce6] !text-black h-7 w-7 sm:h-8 sm:w-8 transition-transform active:scale-95 shrink-0"
+                    onClick={() => setShowLiveVoice(true)}
+                    title="Modo de Voz en Vivo (ChatGPT Live / Manos Libres)"
+                    disabled={isStreaming}
+                  >
+                    <Radio className="w-3.5 h-3.5 stroke-[2.5] animate-pulse" />
+                  </Button>
+
                   <Button
                     size="icon"
                     variant="ghost"
@@ -1140,6 +1170,39 @@ export default function AIAssistant() {
         </div>
 
       </div>
+
+      {showLiveVoice && (
+        <AILiveVoiceModal
+          isOpen={showLiveVoice}
+          onClose={() => setShowLiveVoice(false)}
+          activePersona={activePersona}
+          selectedModel={selectedModel}
+          powerLevel={powerLevel}
+          onSaveMessage={async (text: string, isUser: boolean, imageUrl?: string) => {
+            let sessionId = currentSessionRef.current;
+            if (!sessionId) {
+              const title = text.slice(0, 40) || "Conversación Live";
+              const session = await createSession(activePersona.id, title);
+              if (session) {
+                sessionId = session.id;
+                currentSessionRef.current = sessionId;
+                setCurrentSessionId(sessionId);
+              }
+            }
+            if (sessionId) {
+              await saveMessage(sessionId, isUser ? "user" : "assistant", text);
+            }
+            if (isUser && selectedModel.provider !== "local") {
+              incrementUsage("ia_daily").catch(() => {});
+            }
+          }}
+          streamMessage={streamMessage}
+          existingMessages={messages}
+          onAddDisplayMessage={(msg: DisplayMessage) => {
+            setMessages((prev) => [...prev.filter((m) => m.id !== "init"), msg]);
+          }}
+        />
+      )}
     </div>
   );
 }

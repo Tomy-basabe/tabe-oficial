@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { X, Send, Loader2, Minimize2, Maximize2 } from "lucide-react";
+import { X, Send, Loader2, Minimize2, Maximize2, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAIPersonas } from "@/hooks/useAIPersonas";
 import { useAIChat, DisplayMessage } from "@/contexts/AIChatContext";
@@ -290,9 +290,16 @@ export function AIBubbleWidget() {
                                 className="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-800/70 border-2 border-black/10 dark:border-cyan-500/30 rounded-xl text-sm font-bold focus:outline-none focus:border-primary disabled:opacity-50 text-foreground placeholder:text-muted-foreground/60"
                             />
                             <button
+                                onClick={() => navigate("/asistente?live=true")}
+                                className="p-2 rounded-xl bg-[#00E5FF] hover:bg-[#00cce6] text-black transition-all border-2 border-black/20 shadow-sm cursor-pointer"
+                                title="Iniciar Modo de Voz en Vivo (ChatGPT / Gemini Live)"
+                            >
+                                <Radio className="w-4 h-4 stroke-[2.5] animate-pulse" />
+                            </button>
+                            <button
                                 onClick={handleSend}
                                 disabled={isStreaming || !input.trim()}
-                                className="p-2 rounded-xl bg-gradient-to-br from-[#1475e5] to-[#805ad5] text-white hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed border-2 border-black/20 shadow-sm"
+                                className="p-2 rounded-xl bg-gradient-to-br from-[#1475e5] to-[#805ad5] text-white hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed border-2 border-black/20 shadow-sm cursor-pointer"
                             >
                                 {isStreaming ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
