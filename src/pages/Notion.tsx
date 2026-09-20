@@ -1079,17 +1079,6 @@ export default function Notion() {
       content = { type: "doc", content: [{ type: "paragraph" }] };
     }
 
-    // 5. AUTO-HEALING: Detect and fix corrupted subpages that were infected by parent content!
-    const contentStr = JSON.stringify(content);
-    const isSelfReferencing = doc.parent_id && contentStr.includes(`"pageId":"${doc.id}"`);
-    const isDuplicateOfParent = prevDoc && doc.parent_id === prevDoc.id && contentStr.length > 60 && contentStr === JSON.stringify(prevDoc.contenido);
-    if (isSelfReferencing || isDuplicateOfParent) {
-      console.warn(`[Notion] Sub-página corrupta detectada para ${doc.id} (duplicaba apunte padre ${doc.parent_id}). Restaurando a documento limpio.`);
-      content = { type: "doc", content: [{ type: "paragraph" }] };
-      updateDocument(doc.id, { contenido: content });
-      toast.info("Sub-página restaurada a su contenido limpio");
-    }
-
     lastSavedContentRef.current = JSON.stringify(content);
     setEditorContent(content);
     editorContentRef.current = content;
@@ -1872,24 +1861,34 @@ export default function Notion() {
                   onEditorReady={setTiptapEditorInstance}
                   onActivity={() => lastActivityRef.current = Date.now()}
                   onSubPageClick={async (pageId, pageTitle) => {
-                      if (pageId) {
-                        let target = documents.find(d => d.id === pageId);
-                        if (!target) {
-                          const { data } = await supabase
-                            .from("notion_documents")
-                            .select("*")
-                            .eq("id", pageId)
-                            .single();
-                          if (data) target = data as NotionDocument;
-                        }
-                        if (target) {
-                          openDocument(target);
-                          return;
-                        }
+                      let target = pageId ? documents.find(d => d.id === pageId) : null;
+                      if (!target && pageId) {
+                        const { data } = await supabase
+                          .from("notion_documents")
+                          .select("*")
+                          .eq("id", pageId)
+                          .maybeSingle();
+                        if (data) target = data as NotionDocument;
                       }
 
                       const parent = activeDocumentRef.current;
                       const parentId = parent?.id || null;
+
+                      // Fallback: If not found by pageId, look for an existing subpage under this parent with the same title!
+                      if (!target && parentId && pageTitle) {
+                        const titleNorm = pageTitle.trim().toLowerCase();
+                        const matching = documents.filter(d => 
+                          d.parent_id === parentId && 
+                          d.titulo?.trim().toLowerCase() === titleNorm
+                        );
+                        // Prefer candidate with content if available
+                        target = matching.find(d => d.contenido && JSON.stringify(d.contenido).length > 100) || matching[0] || null;
+                      }
+
+                      if (target) {
+                        openDocument(target);
+                        return;
+                      }
                       const subjectId = parent?.subject_id || "";
                       const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
                       if (newDoc) {
