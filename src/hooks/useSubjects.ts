@@ -136,6 +136,42 @@ let _cachedUserStatuses: UserSubjectStatus[] | null = null;
 let _cachedDependencies: Dependency[] | null = null;
 let _cachedUserId: string | null = null;
 
+const SUBJECTS_DAILY_CACHE_KEY = "tabe_subjects_daily_cache";
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface DailySubjectCache {
+  userId: string;
+  timestamp: number;
+  subjects: Subject[];
+  userStatuses: UserSubjectStatus[];
+  dependencies: Dependency[];
+}
+
+function getStoredDailySubjects(userId: string): DailySubjectCache | null {
+  try {
+    const raw = localStorage.getItem(SUBJECTS_DAILY_CACHE_KEY);
+    if (!raw) return null;
+    const parsed: DailySubjectCache = JSON.parse(raw);
+    if (parsed && parsed.userId === userId && Array.isArray(parsed.subjects) && parsed.subjects.length > 0) {
+      return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function setStoredDailySubjects(userId: string, subjects: Subject[], userStatuses: UserSubjectStatus[], dependencies: Dependency[]) {
+  try {
+    const payload: DailySubjectCache = {
+      userId,
+      timestamp: Date.now(),
+      subjects,
+      userStatuses,
+      dependencies,
+    };
+    localStorage.setItem(SUBJECTS_DAILY_CACHE_KEY, JSON.stringify(payload));
+  } catch (e) {}
+}
+
 export function useSubjects() {
   const { user, isGuest } = useAuth();
 
@@ -147,11 +183,21 @@ export function useSubjects() {
     _cachedUserId = user.id;
   }
 
+  // Check 24-hour persistent cache in localStorage
+  const dailyCache = user ? getStoredDailySubjects(user.id) : null;
+  const isDailyCacheFresh = dailyCache !== null && (Date.now() - dailyCache.timestamp < CACHE_TTL_MS);
+
+  if (!_cachedSubjects && isDailyCacheFresh && dailyCache) {
+    _cachedSubjects = dailyCache.subjects;
+    _cachedUserStatuses = dailyCache.userStatuses;
+    _cachedDependencies = dailyCache.dependencies;
+  }
+
   const [subjects, setSubjects] = useState<Subject[]>(_cachedSubjects || []);
   const [userStatuses, setUserStatuses] = useState<UserSubjectStatus[]>(_cachedUserStatuses || []);
   const [dependencies, setDependencies] = useState<Dependency[]>(_cachedDependencies || []);
-  const [loading, setLoading] = useState(!_cachedSubjects);
-  const isInitialLoad = useRef(!_cachedSubjects);
+  const [loading, setLoading] = useState(!_cachedSubjects && !isDailyCacheFresh);
+  const isInitialLoad = useRef(!_cachedSubjects && !isDailyCacheFresh);
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async (showLoading = true, retries = 2) => {
@@ -226,6 +272,10 @@ export function useSubjects() {
       _cachedUserStatuses = newStatuses;
       _cachedDependencies = newDeps;
       _cachedUserId = user ? user.id : null;
+
+      if (user && newSubs.length > 0) {
+        setStoredDailySubjects(user.id, newSubs, newStatuses, newDeps);
+      }
 
       setSubjects(newSubs);
       setUserStatuses(newStatuses);
@@ -318,6 +368,20 @@ export function useSubjects() {
     const initData = async () => {
       if (user) {
         const loadedTemplate = await loadTemplateIfPending();
+        if (loadedTemplate) {
+          fetchData(true);
+          return;
+        }
+
+        // 24-hour Daily Cache: If cached within last 24h, 0 queries to Supabase!
+        const daily = getStoredDailySubjects(user.id);
+        const fresh = daily !== null && (Date.now() - daily.timestamp < CACHE_TTL_MS);
+        if (fresh) {
+          setLoading(false);
+          isInitialLoad.current = false;
+          return;
+        }
+
         fetchData(!_cachedSubjects);
       } else if (isGuest) {
         // ALWAYS use the template for Guest Mode, ignore localStorage
