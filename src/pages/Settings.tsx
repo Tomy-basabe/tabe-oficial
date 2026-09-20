@@ -17,6 +17,7 @@ import {
   Volume2,
   VolumeX,
   CheckCircle2,
+  Check,
   Loader2,
   Unlink,
   GraduationCap,
@@ -869,6 +870,58 @@ export default function Settings() {
               <Monitor className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
               <span className="font-black uppercase text-xs">Auto</span>
             </button>
+          </div>
+
+          {/* Color de Acento (Neon Accent Themes) */}
+          <div className="pt-4 border-t-2 border-border/70 space-y-3">
+            <div>
+              <p className="font-black uppercase text-sm sm:text-base text-foreground">Color de Acento</p>
+              <p className="font-bold text-xs sm:text-sm text-muted-foreground mt-0.5">
+                Personalizá el color de la interfaz (botones, resaltados y detalles)
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+              {[
+                { id: "theme-neon-gold", label: "Oro Neón", color: "#FFE600" },
+                { id: "theme-cyan", label: "Azul Cian", color: "#00E5FF" },
+                { id: "theme-blue", label: "Azul Real", color: "#2563EB" },
+                { id: "theme-purple", label: "Morado", color: "#A855F7" },
+                { id: "theme-green", label: "Verde Neón", color: "#00FF66" },
+                { id: "theme-red", label: "Rojo Neón", color: "#FF3333" },
+                { id: "theme-pink", label: "Rosa Neón", color: "#FF2E93" },
+                { id: "theme-black", label: "Negro", color: "#18181B" },
+                { id: "theme-white", label: "Blanco", color: "#F4F4F5" },
+              ].map((accent) => {
+                const isSelected = profile?.active_theme === accent.id || (!profile?.active_theme && accent.id === "theme-cyan");
+                return (
+                  <button
+                    key={accent.id}
+                    type="button"
+                    onClick={() => {
+                      try { ComicAudio.playPop(); } catch (e) {}
+                      updateTheme(accent.id);
+                      toast.success(`Color cambiado a ${accent.label}`);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2.5 p-2.5 rounded-xl border-2 transition-all cursor-pointer text-left",
+                      isSelected
+                        ? "border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px] bg-secondary/80 font-black"
+                        : "border-foreground/30 hover:border-foreground hover:bg-muted/40 font-bold"
+                    )}
+                  >
+                    <span
+                      className="w-5 h-5 rounded-full border border-foreground/60 shrink-0 shadow-xs"
+                      style={{ backgroundColor: accent.color }}
+                    />
+                    <span className="font-black text-xs uppercase truncate text-foreground flex-1">
+                      {accent.label}
+                    </span>
+                    {isSelected && <Check className="w-4 h-4 text-primary shrink-0 stroke-[3]" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

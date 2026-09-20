@@ -196,6 +196,9 @@ export function useNotionDocuments() {
 
     // Cache initial content immediately so opening it is instantaneous
     contentCacheRef.current.set(newDoc.id, initialContent);
+    try {
+      sessionStorage.setItem(`tabe_doc_content_${newDoc.id}`, JSON.stringify(initialContent));
+    } catch (e) {}
 
     setDocuments(prev => [newDoc, ...prev]);
     return newDoc;
@@ -218,6 +221,9 @@ export function useNotionDocuments() {
     // Keep content cache in sync for when document is opened
     if (updates.contenido) {
       contentCacheRef.current.set(id, updates.contenido);
+      try {
+        sessionStorage.setItem(`tabe_doc_content_${id}`, JSON.stringify(updates.contenido));
+      } catch (e) {}
     }
 
     // Do NOT put heavy 'contenido' into the global documents list state!
@@ -254,6 +260,9 @@ export function useNotionDocuments() {
     }
 
     contentCacheRef.current.delete(id);
+    try {
+      sessionStorage.removeItem(`tabe_doc_content_${id}`);
+    } catch (e) {}
     setDocuments(prev => prev.filter(doc => doc.id !== id && doc.parent_id !== id));
     toast.success("Documento eliminado");
     return true;
@@ -296,11 +305,21 @@ export function useNotionDocuments() {
   };
 
   const fetchDocumentContent = async (docId: string): Promise<any> => {
-    // Return from cache if available
+    // 1. Return from memory cache if available (0ms)
     const cached = contentCacheRef.current.get(docId);
     if (cached) {
       return cached;
     }
+
+    // 2. Return from sessionStorage cache if available (0ms)
+    try {
+      const stored = sessionStorage.getItem(`tabe_doc_content_${docId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        contentCacheRef.current.set(docId, parsed);
+        return parsed;
+      }
+    } catch (e) {}
 
     try {
       const { data, error } = await supabase
@@ -311,9 +330,12 @@ export function useNotionDocuments() {
 
       if (error) throw error;
       
-      // Store in persistent cache
+      // Store in memory and persistent session cache
       if (data.contenido) {
         contentCacheRef.current.set(docId, data.contenido);
+        try {
+          sessionStorage.setItem(`tabe_doc_content_${docId}`, JSON.stringify(data.contenido));
+        } catch (e) {}
       }
 
       setDocuments(prev => prev.map(doc => 

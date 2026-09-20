@@ -716,8 +716,11 @@ export default function Notion() {
         return true; 
       }
 
-      const contentToSave = editorContentRef.current;
+      const contentToSave = (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed)
+        ? tiptapEditorInstance.getJSON()
+        : editorContentRef.current;
       if (!contentToSave) return true;
+      editorContentRef.current = contentToSave;
       
       const currentTitle = localTitleRef.current;
       const titleChanged = currentTitle !== docToSave.titulo;
@@ -1018,10 +1021,10 @@ export default function Notion() {
       forceSaveTimerRef.current = null;
     }
 
-    // 2. Save current document before switching if there are pending changes
+    // 2. Save current document in the background before switching if there are pending changes
     const prevDoc = activeDocumentRef.current;
     if (prevDoc && isDirtyRef.current && prevDoc.id !== doc.id) {
-      await saveDocument(true);
+      saveDocument(true).catch(console.error);
     }
 
     // Save study time for the previous document before switching
@@ -1060,8 +1063,14 @@ export default function Notion() {
       return updated.length > 10 ? updated.slice(-10) : updated;
     });
 
-    // 4. Fetch content if not already loaded (lazy loading)
+    // 4. Fetch content if not already loaded (check sessionStorage cache first for 0ms load)
     let rawContent = doc.contenido;
+    if (!rawContent) {
+      try {
+        const stored = sessionStorage.getItem(`tabe_doc_content_${doc.id}`);
+        if (stored) rawContent = JSON.parse(stored);
+      } catch (e) {}
+    }
     if (!rawContent) {
       setIsOpeningDoc(true);
       rawContent = await fetchDocumentContent(doc.id);
@@ -1078,12 +1087,13 @@ export default function Notion() {
       content = { type: "doc", content: [{ type: "paragraph" }] };
     }
 
-    lastSavedContentRef.current = JSON.stringify(content);
+    const contentStr = JSON.stringify(content);
+    lastSavedContentRef.current = contentStr;
     setEditorContent(content);
     editorContentRef.current = content;
 
     // Check for base64 images and migrate them in the background (non-blocking)
-    if (JSON.stringify(content).includes('data:image/')) {
+    if (contentStr.includes('data:image/')) {
       setSaveInProgress(true);
       migrateBase64Images(content, doc.id).then(cleaned => {
         if (activeDocumentRef.current?.id === doc.id) {

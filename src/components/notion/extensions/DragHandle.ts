@@ -183,6 +183,8 @@ export const DragHandle = Extension.create<DragHandleOptions>({
           view.dom.parentElement?.appendChild(dragHandleElement);
           document.body.appendChild(dropIndicator);
 
+          let lastMouseMoveTime = 0;
+
           return {
             destroy: () => {
               dragHandleElement?.remove();
@@ -199,6 +201,13 @@ export const DragHandle = Extension.create<DragHandleOptions>({
               
               // Don't show handle while dragging
               if (draggedNodePos !== null) return false;
+
+              // Throttle mousemove to avoid forced layout reflows on large documents
+              const now = performance.now();
+              if (now - lastMouseMoveTime < 50) {
+                return false;
+              }
+              lastMouseMoveTime = now;
 
               const draggable = getDraggableNodeAtCoords({ x: event.clientX, y: event.clientY }, view);
 

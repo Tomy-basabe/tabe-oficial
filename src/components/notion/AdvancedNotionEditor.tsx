@@ -99,6 +99,15 @@ export function AdvancedNotionEditor({
   onEditorReady,
 }: AdvancedNotionEditorProps) {
   const lastLoadedDocumentIdRef = useRef<string | undefined>(undefined);
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -214,8 +223,13 @@ export function AdvancedNotionEditor({
     content,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
-      onUpdate(editor.getJSON());
       if (onActivity) onActivity();
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+      updateTimeoutRef.current = setTimeout(() => {
+        onUpdate(editor.getJSON());
+      }, 400);
     },
     editorProps: {
       attributes: {

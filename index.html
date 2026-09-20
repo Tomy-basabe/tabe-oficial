@@ -15,6 +15,16 @@
           document.documentElement.classList.add("light");
           document.documentElement.classList.remove("dark");
         }
+        var activeColor = localStorage.getItem("active-theme-color");
+        if (activeColor) {
+          if (document.body) {
+            document.body.classList.add(activeColor);
+          } else {
+            document.addEventListener("DOMContentLoaded", function () {
+              if (document.body) document.body.classList.add(activeColor);
+            });
+          }
+        }
       } catch (e) {}
     })();
   </script>

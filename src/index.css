@@ -292,6 +292,36 @@
     --sidebar-ring: 186 100% 50%;
   }
 
+  /* ELECTRIC BLUE (Azul) */
+  .theme-blue {
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 221 83% 53%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 221 83% 53%;
+    --neon-cyan: 221 83% 53%;
+    --status-regular: 221 83% 53%;
+    --glow-cyan: 0 0 20px hsl(221 83% 53% / 0.5), 0 0 40px hsl(221 83% 53% / 0.3);
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(200 90% 50%) 100%);
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-ring: 221 83% 53%;
+  }
+
+  /* NEON PURPLE (Morado) */
+  .theme-purple {
+    --primary: 270 95% 65%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 270 95% 65%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 270 95% 65%;
+    --neon-cyan: 270 95% 65%;
+    --status-regular: 270 95% 65%;
+    --glow-cyan: 0 0 20px hsl(270 95% 65% / 0.5), 0 0 40px hsl(270 95% 65% / 0.3);
+    --gradient-primary: linear-gradient(135deg, hsl(270 95% 65%) 0%, hsl(295 90% 55%) 100%);
+    --sidebar-primary: 270 95% 65%;
+    --sidebar-ring: 270 95% 65%;
+  }
+
   /* NEON GREEN */
   .theme-green {
     --primary: 142 76% 50%;

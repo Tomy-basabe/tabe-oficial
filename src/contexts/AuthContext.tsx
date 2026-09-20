@@ -32,20 +32,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null>(null);
   const [isGuest, setIsGuest] = useState(true);
 
-  const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-green', 'theme-red', 'theme-pink', 'theme-black', 'theme-white'];
+  const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-blue', 'theme-purple', 'theme-green', 'theme-red', 'theme-pink', 'theme-black', 'theme-white'];
 
   const applyTheme = (themeClass: string | null) => {
     const body = document.body;
     body.classList.remove(...AVAILABLE_THEMES);
     if (themeClass && AVAILABLE_THEMES.includes(themeClass)) {
       body.classList.add(themeClass);
-      localStorage.setItem("active-theme-color", themeClass);
+      try { localStorage.setItem("active-theme-color", themeClass); } catch (e) {}
     } else {
-      localStorage.removeItem("active-theme-color");
+      try { localStorage.removeItem("active-theme-color"); } catch (e) {}
     }
   };
 
   const fetchProfile = async (userId: string) => {
+    // 1. Immediately hydrate from localStorage cache for 0ms instant display
+    try {
+      const cached = localStorage.getItem(`tabe_profile_${userId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setProfile(parsed);
+        if (parsed.active_theme) {
+          applyTheme(parsed.active_theme);
+        }
+      }
+    } catch (e) {}
+
     const { data } = await supabase
       .from("profiles")
       .select("active_theme, active_badge, sidebar_config")
@@ -56,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const typedData = data as unknown as { active_theme: string | null; active_badge: string | null; sidebar_config: any | null };
       setProfile(typedData);
       applyTheme(typedData.active_theme);
+      try {
+        localStorage.setItem(`tabe_profile_${userId}`, JSON.stringify(typedData));
+      } catch (e) {}
     }
   };
 
@@ -143,6 +158,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (newUser) {
         setIsGuest(false);
+        const savedTheme = localStorage.getItem("active-theme-color");
+        if (savedTheme) {
+          applyTheme(savedTheme);
+        }
         if (newUserId !== currentUserId) {
           currentUserId = newUserId;
           fetchProfile(newUser.id);
