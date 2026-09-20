@@ -53,12 +53,67 @@ type StudyState = "browsing" | "studying" | "completed";
 let flashcardDecksCache: Deck[] | null = null;
 let flashcardSubjectsCache: Subject[] | null = null;
 
+const FLASHCARDS_CACHE_KEY = "tabe-flashcards-cache";
+const FLASHCARDS_SUBJECTS_CACHE_KEY = "tabe-subjects-cache";
+
+function getCachedFlashcardDecks(): Deck[] {
+  if (flashcardDecksCache && flashcardDecksCache.length > 0) return flashcardDecksCache;
+  try {
+    const stored = localStorage.getItem(FLASHCARDS_CACHE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        flashcardDecksCache = parsed;
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error("Error reading flashcard decks cache", e);
+  }
+  return [];
+}
+
+function setCachedFlashcardDecks(decks: Deck[]) {
+  flashcardDecksCache = decks;
+  try {
+    localStorage.setItem(FLASHCARDS_CACHE_KEY, JSON.stringify(decks));
+  } catch (e) {
+    console.error("Error saving flashcard decks cache", e);
+  }
+}
+
+function getCachedFlashcardSubjects(): Subject[] {
+  if (flashcardSubjectsCache && flashcardSubjectsCache.length > 0) return flashcardSubjectsCache;
+  try {
+    const stored = localStorage.getItem(FLASHCARDS_SUBJECTS_CACHE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        flashcardSubjectsCache = parsed;
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error("Error reading flashcard subjects cache", e);
+  }
+  return [];
+}
+
+function setCachedFlashcardSubjects(subs: Subject[]) {
+  flashcardSubjectsCache = subs;
+  try {
+    localStorage.setItem(FLASHCARDS_SUBJECTS_CACHE_KEY, JSON.stringify(subs));
+  } catch (e) {
+    console.error("Error saving flashcard subjects cache", e);
+  }
+}
+
 export default function Flashcards() {
   const { user, isGuest } = useAuth();
   const { checkAndUnlockAchievements } = useAchievements();
   const { canUse, incrementUsage, getRemaining, isPremium } = useUsageLimits();
-  const [subjects, setSubjects] = useState<Subject[]>(() => flashcardSubjectsCache || []);
-  const [decks, setDecks] = useState<Deck[]>(() => flashcardDecksCache || []);
+  const [subjects, setSubjects] = useState<Subject[]>(() => getCachedFlashcardSubjects());
+  const [decks, setDecks] = useState<Deck[]>(() => getCachedFlashcardDecks());
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const { publishResource } = useMarketplace();
@@ -80,7 +135,7 @@ export default function Flashcards() {
   const [newDeckName, setNewDeckName] = useState("");
   const [newCardQuestion, setNewCardQuestion] = useState("");
   const [newCardAnswer, setNewCardAnswer] = useState("");
-  const [loading, setLoading] = useState(() => !flashcardDecksCache);
+  const [loading, setLoading] = useState(() => getCachedFlashcardDecks().length === 0);
 
   // Edit Deck State
   const [showEditDeckModal, setShowEditDeckModal] = useState(false);
@@ -125,7 +180,7 @@ export default function Flashcards() {
     try {
       if (isGuest) {
         const guestSubs: Subject[] = [{ id: "mock", nombre: "Uso de Tablero", codigo: "TAB1", año: 1 }];
-        flashcardSubjectsCache = guestSubs;
+        setCachedFlashcardSubjects(guestSubs);
         setSubjects(guestSubs);
         return guestSubs;
       }
@@ -151,14 +206,14 @@ export default function Flashcards() {
       }
 
       if (!error && data) {
-        flashcardSubjectsCache = data;
+        setCachedFlashcardSubjects(data);
         setSubjects(data);
         return data;
       }
     } catch (e) {
       console.error("Error fetching flashcard subjects:", e);
     }
-    return flashcardSubjectsCache || [];
+    return getCachedFlashcardSubjects();
   };
 
   const fetchDecks = async (showLoading = false) => {
@@ -166,7 +221,7 @@ export default function Flashcards() {
       setLoading(false);
       return;
     }
-    if (showLoading && (!flashcardDecksCache || flashcardDecksCache.length === 0)) {
+    if (showLoading && getCachedFlashcardDecks().length === 0) {
       setLoading(true);
     }
 
@@ -175,7 +230,7 @@ export default function Flashcards() {
         const guestDecks: Deck[] = [
           { id: "mock-deck-1", nombre: "Uso de Flashcards", subject_id: "mock", total_cards: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } },
         ];
-        flashcardDecksCache = guestDecks;
+        setCachedFlashcardDecks(guestDecks);
         setDecks(guestDecks);
         return;
       }
@@ -188,7 +243,7 @@ export default function Flashcards() {
 
       if (!error && data) {
         const mapped = data.map((d: any) => ({ ...d, subject: d.subjects }));
-        flashcardDecksCache = mapped;
+        setCachedFlashcardDecks(mapped);
         setDecks(mapped);
       } else {
         // Fallback in case PostgREST schema cache relationship failed
@@ -198,12 +253,12 @@ export default function Flashcards() {
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
         if (rawData) {
-          const subs = flashcardSubjectsCache || subjects;
+          const subs = getCachedFlashcardSubjects();
           const mapped = rawData.map((d: any) => {
             const s = subs.find(sub => sub.id === d.subject_id);
             return { ...d, subject: s ? { nombre: s.nombre, codigo: s.codigo, año: s.año } : undefined };
           });
-          flashcardDecksCache = mapped;
+          setCachedFlashcardDecks(mapped);
           setDecks(mapped);
         }
       }
@@ -220,7 +275,7 @@ export default function Flashcards() {
       return;
     }
 
-    if (!flashcardDecksCache || flashcardDecksCache.length === 0) {
+    if (getCachedFlashcardDecks().length === 0) {
       setLoading(true);
     }
 

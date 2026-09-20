@@ -33,7 +33,7 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), index * 100);
+    const timer = setTimeout(() => setMounted(true), Math.min(index * 35, 300));
     return () => clearTimeout(timer);
   }, [index]);
 

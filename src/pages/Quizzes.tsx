@@ -57,6 +57,61 @@ interface Subject {
 let quizzesDecksCache: QuizDeck[] | null = null;
 let quizzesSubjectsCache: Subject[] | null = null;
 
+const QUIZZES_CACHE_KEY = "tabe-quizzes-cache";
+const QUIZZES_SUBJECTS_CACHE_KEY = "tabe-subjects-cache";
+
+function getCachedQuizzesDecks(): QuizDeck[] {
+    if (quizzesDecksCache && quizzesDecksCache.length > 0) return quizzesDecksCache;
+    try {
+        const stored = localStorage.getItem(QUIZZES_CACHE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                quizzesDecksCache = parsed;
+                return parsed;
+            }
+        }
+    } catch (e) {
+        console.error("Error reading quizzes cache", e);
+    }
+    return [];
+}
+
+function setCachedQuizzesDecks(decks: QuizDeck[]) {
+    quizzesDecksCache = decks;
+    try {
+        localStorage.setItem(QUIZZES_CACHE_KEY, JSON.stringify(decks));
+    } catch (e) {
+        console.error("Error saving quizzes cache", e);
+    }
+}
+
+function getCachedSubjects(): Subject[] {
+    if (quizzesSubjectsCache && quizzesSubjectsCache.length > 0) return quizzesSubjectsCache;
+    try {
+        const stored = localStorage.getItem(QUIZZES_SUBJECTS_CACHE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                quizzesSubjectsCache = parsed;
+                return parsed;
+            }
+        }
+    } catch (e) {
+        console.error("Error reading subjects cache", e);
+    }
+    return [];
+}
+
+function setCachedSubjects(subs: Subject[]) {
+    quizzesSubjectsCache = subs;
+    try {
+        localStorage.setItem(QUIZZES_SUBJECTS_CACHE_KEY, JSON.stringify(subs));
+    } catch (e) {
+        console.error("Error saving subjects cache", e);
+    }
+}
+
 interface QuizDeckItemProps {
     deck: QuizDeck;
     index: number;
@@ -69,7 +124,7 @@ function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckI
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        const timer = setTimeout(() => setMounted(true), index * 100);
+        const timer = setTimeout(() => setMounted(true), Math.min(index * 35, 300));
         return () => clearTimeout(timer);
     }, [index]);
 
@@ -135,9 +190,9 @@ function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckI
 export default function Quizzes() {
     const { user, isGuest } = useAuth();
     const { canUse, incrementUsage, isPremium } = useUsageLimits();
-    const [decks, setDecks] = useState<QuizDeck[]>(() => quizzesDecksCache || []);
-    const [subjects, setSubjects] = useState<Subject[]>(() => quizzesSubjectsCache || []);
-    const [loading, setLoading] = useState(() => !quizzesDecksCache);
+    const [decks, setDecks] = useState<QuizDeck[]>(() => getCachedQuizzesDecks());
+    const [subjects, setSubjects] = useState<Subject[]>(() => getCachedSubjects());
+    const [loading, setLoading] = useState(() => getCachedQuizzesDecks().length === 0);
 
     // Create deck state
     const [newDeckName, setNewDeckName] = useState("");
@@ -296,8 +351,8 @@ export default function Quizzes() {
             const guestDecks: QuizDeck[] = [
                 { id: "mock-1", nombre: "Cuestionario de Prueba", subject_id: "mock", total_questions: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } }
             ];
-            quizzesSubjectsCache = guestSubjects;
-            quizzesDecksCache = guestDecks;
+            setCachedSubjects(guestSubjects);
+            setCachedQuizzesDecks(guestDecks);
             setSubjects(guestSubjects);
             setDecks(guestDecks);
             setLoading(false);
@@ -305,7 +360,7 @@ export default function Quizzes() {
         }
 
         // Only show spinner if we don't have any cached decks yet
-        if (!quizzesDecksCache || quizzesDecksCache.length === 0) {
+        if (getCachedQuizzesDecks().length === 0) {
             setLoading(true);
         }
 
@@ -327,23 +382,33 @@ export default function Quizzes() {
                 })(),
                 supabase
                     .from("quiz_decks")
-                    .select("id, nombre, subject_id, total_questions")
+                    .select("id, nombre, subject_id, total_questions, subjects(id, nombre, codigo, año)")
                     .eq("user_id", user.id)
                     .order("created_at", { ascending: false })
             ]);
 
-            const loadedSubjects = subjectsRes.status === "fulfilled" ? subjectsRes.value : (quizzesSubjectsCache || []);
+            const loadedSubjects = subjectsRes.status === "fulfilled" && subjectsRes.value.length > 0 
+                ? subjectsRes.value 
+                : getCachedSubjects();
             const rawDecks = decksRes.status === "fulfilled" && decksRes.value.data ? decksRes.value.data : [];
 
             const enrichedDecks: QuizDeck[] = rawDecks.map((d: any) => {
-                const sub = loadedSubjects.find(s => s.id === d.subject_id);
-                return { ...d, subject: sub || undefined };
+                const sub = d.subjects || loadedSubjects.find(s => s.id === d.subject_id);
+                return {
+                    id: d.id,
+                    nombre: d.nombre,
+                    subject_id: d.subject_id,
+                    total_questions: d.total_questions,
+                    subject: sub || undefined
+                };
             });
 
-            quizzesSubjectsCache = loadedSubjects;
-            quizzesDecksCache = enrichedDecks;
+            if (loadedSubjects.length > 0) {
+                setCachedSubjects(loadedSubjects);
+                setSubjects(loadedSubjects);
+            }
 
-            setSubjects(loadedSubjects);
+            setCachedQuizzesDecks(enrichedDecks);
             setDecks(enrichedDecks);
         } catch (err) {
             console.error("Error loading quizzes data:", err);
@@ -358,23 +423,29 @@ export default function Quizzes() {
             if (isGuest) return;
             const { data } = await supabase
                 .from("quiz_decks")
-                .select("id, nombre, subject_id, total_questions")
+                .select("id, nombre, subject_id, total_questions, subjects(id, nombre, codigo, año)")
                 .eq("user_id", user.id)
                 .order("created_at", { ascending: false });
 
-            setDecks(prev => {
-                const subs = quizzesSubjectsCache || subjects;
-                const enriched = (data || []).map((d: any) => {
-                    const sub = subs.find(s => s.id === d.subject_id);
-                    return { ...d, subject: sub || undefined };
+            if (data) {
+                const subs = getCachedSubjects();
+                const enriched: QuizDeck[] = data.map((d: any) => {
+                    const sub = d.subjects || subs.find(s => s.id === d.subject_id);
+                    return {
+                        id: d.id,
+                        nombre: d.nombre,
+                        subject_id: d.subject_id,
+                        total_questions: d.total_questions,
+                        subject: sub || undefined
+                    };
                 });
-                quizzesDecksCache = enriched;
-                return enriched;
-            });
+                setCachedQuizzesDecks(enriched);
+                setDecks(enriched);
+            }
         } catch (e) {
             console.error("Error fetching decks:", e);
         }
-    }, [user, isGuest, subjects]);
+    }, [user, isGuest]);
 
     useEffect(() => {
         loadInitialData();
@@ -693,7 +764,11 @@ export default function Quizzes() {
                 total_questions: creationQuestions.length,
                 subject: subjects.find(s => s.id === newDeckSubject)
             };
-            setDecks(prev => [newDeck, ...prev]);
+            setDecks(prev => {
+                const updated = [newDeck, ...prev];
+                setCachedQuizzesDecks(updated);
+                return updated;
+            });
             toast.success(creationQuestions.length > 0
                 ? `Cuestionario creado con ${creationQuestions.length} pregunta(s)`
                 : "Cuestionario creado");
