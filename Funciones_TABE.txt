@@ -1,0 +1,61 @@
+================================================================================
+          T.A.B.E. (Tu Asistente Básico de Estudio) - MANUAL DE FUNCIONES
+================================================================================
+
+1. CONTEXTO GENERAL Y OBJETIVO DE LA APP
+--------------------------------------------------------------------------------
+T.A.B.E. es una plataforma educativa integral y un asistente virtual de estudio diseñado principalmente para estudiantes universitarios. Su objetivo principal es centralizar todas las herramientas necesarias para la vida académica en un solo lugar. Busca mejorar la productividad, el seguimiento del progreso académico, y facilitar el aprendizaje a través de herramientas basadas en neuroeducación (como la repetición espaciada y los repasos activos), gamificación, e inteligencia artificial.
+
+2. APARTADOS Y FUNCIONES PRINCIPALES
+--------------------------------------------------------------------------------
+
+A. PANEL PRINCIPAL (DASHBOARD)
+- Función de la app: Actúa como el centro de control del estudiante.
+- Sirve para: Visualizar un resumen rápido del progreso del usuario, próximas tareas, rendimiento general, métricas clave, y accesos directos a las herramientas más utilizadas. 
+
+B. PLAN DE CARRERA (/carrera, /carreras, /carreras/:id)
+- Función de la app: Gestión y seguimiento del plan de estudios.
+- Sirve para: Ver el progreso en la carrera, administrar materias aprobadas, regulares y pendientes.
+- Mapa de Correlatividades (/mapa): Permite visualizar gráficamente qué materias habilitan a otras, ayudando al estudiante a planificar su ruta óptima de cursado.
+
+C. ESTUDIO ACTIVO Y HERRAMIENTAS DE REPASO
+- Flashcards (/flashcards): Sistema de tarjetas de memoria para aplicar repetición espaciada. Ayuda a memorizar conceptos a largo plazo.
+- Cuestionarios (/cuestionarios): Exámenes de práctica tipo múltiple choice o a desarrollar para autoevaluación (active recall).
+- Apuntes / Notion (/apuntes): Editor de texto enriquecido integrado para tomar notas estructuradas sin salir de la plataforma.
+- Biblioteca (/biblioteca): Repositorio central de archivos, PDFs, y material de estudio.
+
+D. INTELIGENCIA ARTIFICIAL (TABE AI / Asistente)
+- Función de la app: Tutor virtual personalizado (AIAssistant).
+- Sirve para: Resolver dudas en tiempo real, explicar conceptos difíciles, generar resúmenes, o incluso crear flashcards/cuestionarios automáticamente a partir de los apuntes del alumno.
+
+E. PRODUCTIVIDAD Y GESTIÓN DEL TIEMPO
+- Calendario (/calendario): Organización visual de clases, exámenes y fechas importantes. Se integra con las rutinas.
+- Tareas (/tareas): Gestor de "To-Do" lists para organizar entregas y trabajos prácticos.
+- Pomodoro (/pomodoro) y Bosque (/bosque): Temporizadores basados en la técnica Pomodoro (estudio/descanso) para mantener el enfoque. La variante "Bosque" añade gamificación (plantar un árbol virtual que crece mientras estudias).
+- Rutinas (/rutinas): Planificador de hábitos diarios para estructurar el día del estudiante.
+
+F. GAMIFICACIÓN Y RECREACIÓN (JUEGOS)
+- Función de la app: Evitar el burnout (agotamiento mental) y mantener la motivación.
+- Sirve para: Desconectar unos minutos entre sesiones de estudio intensas.
+- Juegos incluidos: Batalla RPG, Carreras de Karts (KartRace), Penales, Bomba, TaTeTi, y Ajedrez.
+- Logros (/logros): Sistema de medallas y recompensas virtuales por cumplir objetivos de estudio y consistencia.
+
+G. COMUNIDAD Y SOCIAL
+- Amigos (/amigos): Funciones sociales para conectar con compañeros.
+- Discord (/discord): Integración con canales de voz y texto para crear salas de estudio virtuales.
+- Consultas (/consultas): Posiblemente un espacio de tutorías u "Office Hours" para interactuar con profesores o ayudantes.
+- Marketplace (/marketplace): Intercambio o venta de apuntes, resúmenes y materiales de estudio de calidad (función Premium).
+
+H. SEGUIMIENTO ACADÉMICO
+- Exámenes (/examenes): Registro de notas de parciales y finales.
+- Métricas (/metricas): Analíticas detalladas del tiempo invertido estudiando, promedios, tasas de efectividad en cuestionarios, y evolución a lo largo del cuatrimestre.
+
+3. FUNCIONES TRANSVERSALES Y CONFIGURACIÓN
+- Premium Gate: Restricción de funciones avanzadas (como Marketplace o ciertas integraciones de IA) para usuarios con suscripción.
+- PWA (Progressive Web App): La plataforma puede instalarse como aplicación de escritorio o móvil, permitiendo notificaciones y un acceso más rápido.
+- Modo Oscuro/Claro (Theme): Adaptación visual para reducir fatiga ocular.
+- Sincronización en la Nube: Uso de Supabase para guardar el progreso, base de datos y autenticación, permitiendo al usuario retomar su estudio desde cualquier dispositivo.
+
+--------------------------------------------------------------------------------
+RESUMEN:
+T.A.B.E. no es solo un organizador; es un ecosistema. Combina la toma de apuntes (Notion), el estudio activo (Anki/Quizlet), el seguimiento de materias (Sistemas Universitarios), la gestión del tiempo (Pomodoro/Todoist) y el apoyo de IA (ChatGPT), todo gamificado para hacer la experiencia universitaria más llevadera, productiva y exitosa.
