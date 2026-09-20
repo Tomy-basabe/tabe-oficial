@@ -57,6 +57,81 @@ interface Subject {
 let quizzesDecksCache: QuizDeck[] | null = null;
 let quizzesSubjectsCache: Subject[] | null = null;
 
+interface QuizDeckItemProps {
+    deck: QuizDeck;
+    index: number;
+    onDelete: (deck: QuizDeck) => void;
+    onManage: (deck: QuizDeck) => void;
+    onPractice: (deck: QuizDeck) => void;
+}
+
+function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckItemProps) {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), index * 100);
+        return () => clearTimeout(timer);
+    }, [index]);
+
+    return (
+        <div
+            className={cn(
+                "transition-all duration-300 flex flex-col",
+                mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+            )}
+        >
+            <Card className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl hover:-translate-y-2 hover:shadow-[12px_12px_0_0_#000] transition-all group flex flex-col flex-1 h-full">
+                <CardContent className="p-6 flex flex-col flex-1">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-[#ffd21c] border-[3px] border-foreground flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
+                                <ClipboardList className="w-6 h-6 text-black" />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-lg leading-snug line-clamp-2 uppercase">{deck.nombre}</h3>
+                                <p className="text-sm font-bold text-muted-foreground">{deck.total_questions} preguntas</p>
+                            </div>
+                        </div>
+                        <button
+                            className="w-10 h-10 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-xl shadow-[2px_2px_0_0_#000] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all opacity-0 group-hover:opacity-100 shrink-0 ml-2 cursor-pointer"
+                            onClick={() => onDelete(deck)}
+                            title="Eliminar"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {deck.subject && (
+                        <Badge className="bg-secondary text-foreground border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider mb-4 mt-auto">
+                            <GraduationCap className="w-4 h-4 mr-1.5" />
+                            Año {deck.subject.año} · {deck.subject.nombre}
+                        </Badge>
+                    )}
+                    {!deck.subject && <div className="mt-auto" />}
+
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            className="flex-1 flex items-center justify-center py-2.5 bg-background text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all text-sm cursor-pointer"
+                            onClick={() => onManage(deck)}
+                        >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Gestionar
+                        </button>
+                        <button
+                            className="flex-1 flex items-center justify-center py-2.5 bg-[#00ffcc] text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all text-sm cursor-pointer"
+                            disabled={deck.total_questions === 0}
+                            onClick={() => onPractice(deck)}
+                        >
+                            <Zap className="w-4 h-4 mr-2" />
+                            Practicar
+                        </button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 export default function Quizzes() {
     const { user, isGuest } = useAuth();
     const { canUse, incrementUsage, isPremium } = useUsageLimits();
@@ -1694,58 +1769,18 @@ export default function Quizzes() {
                             if (selectedSubject && d.subject_id !== selectedSubject) return false;
                             return true;
                         })
-                        .map((deck) => (
-                            <Card key={deck.id} className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl hover:-translate-y-2 hover:shadow-[12px_12px_0_0_#000] transition-all group flex flex-col">
-                                <CardContent className="p-6 flex flex-col flex-1">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-[#ffd21c] border-[3px] border-foreground flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
-                                                <ClipboardList className="w-6 h-6 text-black" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-black text-lg leading-snug line-clamp-2 uppercase">{deck.nombre}</h3>
-                                                <p className="text-sm font-bold text-muted-foreground">{deck.total_questions} preguntas</p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            className="w-10 h-10 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-xl shadow-[2px_2px_0_0_#000] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all opacity-0 group-hover:opacity-100 shrink-0 ml-2"
-                                            onClick={() => setDeleteDeck(deck)}
-                                            title="Eliminar"
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
-                                    </div>
-
-                                    {deck.subject && (
-                                        <Badge className="bg-secondary text-foreground border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider mb-4 mt-auto">
-                                            <GraduationCap className="w-4 h-4 mr-1.5" />
-                                            Año {deck.subject.año} · {deck.subject.nombre}
-                                        </Badge>
-                                    )}
-                                    {!deck.subject && <div className="mt-auto" />}
-
-                                    <div className="flex gap-3 pt-2">
-                                        <button
-                                            className="flex-1 flex items-center justify-center py-2.5 bg-background text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all text-sm"
-                                            onClick={() => {
-                                                setManageDeck(deck);
-                                                fetchQuestions(deck.id);
-                                            }}
-                                        >
-                                            <Edit className="w-4 h-4 mr-2" />
-                                            Gestionar
-                                        </button>
-                                        <button
-                                            className="flex-1 flex items-center justify-center py-2.5 bg-[#00ffcc] text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all text-sm"
-                                            disabled={deck.total_questions === 0}
-                                            onClick={() => checkStudyOptions(deck)}
-                                        >
-                                            <Zap className="w-4 h-4 mr-2" />
-                                            Practicar
-                                        </button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                        .map((deck, index) => (
+                            <QuizDeckItem
+                                key={deck.id}
+                                deck={deck}
+                                index={index}
+                                onDelete={(d) => setDeleteDeck(d)}
+                                onManage={(d) => {
+                                    setManageDeck(d);
+                                    fetchQuestions(d.id);
+                                }}
+                                onPractice={(d) => checkStudyOptions(d)}
+                            />
                         ))}
                 </div>
             )}

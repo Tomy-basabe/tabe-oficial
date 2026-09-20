@@ -278,19 +278,40 @@ export function MainLayout() {
     try {
       ComicAudio.playPop();
     } catch (e) {}
+    setHoveredCategory(null);
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      try {
+        localStorage.setItem("tabe-sidebar-collapsed", JSON.stringify(false));
+      } catch (e) {}
+      setOpenCategories(prev => {
+        const next = { ...prev, [catId]: true };
+        try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+      return;
+    }
 
-    const isCurrentlyOpen = hoveredCategory === catId && !closedByClickRef.current[catId];
+    const isCurrentlyOpen = !!openCategories[catId] || hoveredCategory === catId;
     if (isCurrentlyOpen) {
-      // Cierre inmediato al hacer click
+      // Cierre inmediato al hacer click: evita que el hover mantenga abierta la categoría mientras el cursor siga encima
       closedByClickRef.current[catId] = true;
-      setHoveredCategory(null);
+      setOpenCategories(prev => {
+        const next = { ...prev, [catId]: false };
+        try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
     } else {
       delete closedByClickRef.current[catId];
-      setHoveredCategory(catId);
+      setOpenCategories(prev => {
+        const next = { ...prev, [catId]: true };
+        try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
     }
   };
 
@@ -392,7 +413,7 @@ export function MainLayout() {
 
                 if (item.type === "category") {
                   const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
-                  const isHovered = hoveredCategory === item.id && !closedByClickRef.current[item.id];
+                  const isHovered = hoveredCategory === item.id;
 
                   return (
                     <div
@@ -400,15 +421,12 @@ export function MainLayout() {
                       className="space-y-1.5 my-2 relative group/cat"
                       onMouseEnter={() => {
                         if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                        if (!closedByClickRef.current[item.id]) {
-                          setHoveredCategory(item.id);
-                        }
+                        setHoveredCategory(item.id);
                       }}
                       onMouseLeave={() => {
-                        delete closedByClickRef.current[item.id];
                         hoverTimeoutRef.current = setTimeout(() => {
                           setHoveredCategory((prev) => (prev === item.id ? null : prev));
-                        }, 220);
+                        }, 250);
                       }}
                     >
                       <button
@@ -436,7 +454,6 @@ export function MainLayout() {
                       {/* Floating Category Menu on Hover with cool spring bounce entrance */}
                       {isHovered && item.items && (
                         <div className="absolute left-[calc(100%+10px)] top-0 z-50 bg-card border-3 border-foreground rounded-2xl p-2.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] min-w-[210px] space-y-1.5 animate-sidebar-entrance">
-                          <div className="absolute -left-3 top-0 w-3.5 h-full" />
                           <div className="absolute -left-2 top-3.5 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-foreground" />
                           <div className="px-2 py-1 border-b-2 border-foreground/20 mb-1 flex items-center gap-2">
                             <div className="w-5 h-5 rounded-md bg-[#FFE600] text-black flex items-center justify-center font-black text-xs border border-black shadow-[1px_1px_0_0_#000]">
@@ -540,110 +557,99 @@ export function MainLayout() {
             })()}
           </nav>
         ) : (
-          <nav className="flex-1 overflow-visible space-y-2 py-3.5 px-3">
-            {(() => {
-              const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
-                const targetPath = item.path || (item.type === "item" ? item.id : null);
-                if (targetPath === "/admin" && !isSuperAdmin(user)) return null;
-                const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
-                
-                if (!baseItem && item.type === "item") return null;
+          <ScrollArea className="flex-1 overflow-hidden">
+            <nav className="space-y-2 py-3.5 px-3">
+              {(() => {
+                const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
+                  const targetPath = item.path || (item.type === "item" ? item.id : null);
+                  if (targetPath === "/admin" && !isSuperAdmin(user)) return null;
+                  const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
+                  
+                  if (!baseItem && item.type === "item") return null;
 
-                const Icon = (item.iconName && item.iconName !== "FileText" && ICON_MAP[item.iconName]) 
-                  || baseItem?.icon 
-                  || (item.iconName && ICON_MAP[item.iconName])
-                  || Folder;
-                
-                const path = targetPath || "#";
-                const isActive = location.pathname === path;
+                  const Icon = (item.iconName && item.iconName !== "FileText" && ICON_MAP[item.iconName]) 
+                    || baseItem?.icon 
+                    || (item.iconName && ICON_MAP[item.iconName])
+                    || Folder;
+                  
+                  const path = targetPath || "#";
+                  const isActive = location.pathname === path;
 
-                if (item.type === "category") {
-                  const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
-                  const isHovered = hoveredCategory === item.id && !closedByClickRef.current[item.id];
+                  if (item.type === "category") {
+                    const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
+                    const isOpen = !!openCategories[item.id];
+                    const isHovered = hoveredCategory === item.id && !closedByClickRef.current[item.id];
+                    const isVisible = isOpen || isHovered;
 
-                  return (
-                    <div
-                      key={item.id}
-                      className="space-y-1.5 my-2 relative group/cat"
-                      onMouseEnter={() => {
-                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                        if (!closedByClickRef.current[item.id]) {
-                          setHoveredCategory(item.id);
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        delete closedByClickRef.current[item.id];
-                        hoverTimeoutRef.current = setTimeout(() => {
-                          setHoveredCategory((prev) => (prev === item.id ? null : prev));
-                        }, 220);
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          toggleCategory(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        className="space-y-1.5 my-2 relative"
+                        onMouseEnter={() => {
+                          if (!closedByClickRef.current[item.id]) {
+                            setHoveredCategory(item.id);
+                          }
                         }}
-                        className={cn(
-                          "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2.5 px-3 py-2 cursor-pointer",
-                          hasActiveChild || isHovered
-                            ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                            : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40 hover:translate-x-0.5"
-                        )}
-                        aria-label={item.label}
+                        onMouseLeave={() => {
+                          delete closedByClickRef.current[item.id];
+                          setHoveredCategory((prev) => (prev === item.id ? null : prev));
+                        }}
                       >
-                        <div className={cn(
-                          "w-7 h-7 rounded-lg border-2 border-foreground/50 flex items-center justify-center shrink-0 transition-colors",
-                          hasActiveChild ? "bg-[#FFE600] text-black border-black" : "bg-card text-foreground"
-                        )}>
-                          <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
-                        </div>
-                        <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
-                        <ChevronRight className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform duration-150 stroke-[3]", isHovered && "rotate-90 opacity-100")} />
-                      </button>
-
-                      {/* Floating Category Menu to the right on Hover with cool spring bounce entrance */}
-                      {isHovered && item.items && (
-                        <div className="absolute left-[calc(100%+10px)] top-0 z-50 bg-card border-3 border-foreground rounded-2xl p-2.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] min-w-[210px] space-y-1.5 animate-sidebar-entrance">
-                          <div className="absolute -left-3 top-0 w-3.5 h-full" />
-                          <div className="absolute -left-2 top-3.5 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-foreground" />
-                          <div className="px-2 py-1 border-b-2 border-foreground/20 mb-1 flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-md bg-[#FFE600] text-black flex items-center justify-center font-black text-xs border border-black shadow-[1px_1px_0_0_#000]">
-                              <Icon className="w-3 h-3 stroke-[2.5]" />
-                            </div>
-                            <span className="font-black text-xs uppercase tracking-wider text-foreground">{item.label}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            toggleCategory(item.id);
+                          }}
+                          className={cn(
+                            "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2.5 px-3 py-2 cursor-pointer",
+                            hasActiveChild || isVisible
+                              ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                              : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-7 h-7 rounded-lg border-2 border-foreground/50 flex items-center justify-center shrink-0 transition-colors",
+                            hasActiveChild ? "bg-[#FFE600] text-black border-black" : "bg-card text-foreground"
+                          )}>
+                            <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
                           </div>
-                          <div className="space-y-1">
+                          <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
+                          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-150 stroke-[3]", isVisible && "rotate-180")} />
+                        </button>
+
+                        {/* Regular expanded category list in normal sidebar */}
+                        {isVisible && item.items && (
+                          <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                             {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
+                        )}
+                      </div>
+                    );
+                  }
 
-                // Single link inside category flyout
-                if (isInsideCategory) {
                   return (
                     <Link
                       key={item.id}
                       to={path}
-                      onClick={() => {
-                        ComicAudio.playPop();
-                        setHoveredCategory(null);
-                      }}
+                      onClick={() => ComicAudio.playPop()}
                       onMouseEnter={() => preloadRoute(path)}
                       onTouchStart={() => preloadRoute(path)}
                       onFocus={() => preloadRoute(path)}
-                      style={{ animationDelay: `${index * 30}ms` }}
                       className={cn(
-                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2 px-3 py-1.5 text-xs animate-sidebar-entrance",
+                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
+                        isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
                         isActive
                           ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
-                          : "text-foreground/85 border-transparent hover:border-foreground hover:bg-secondary/60 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.02] font-extrabold"
+                          : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.01] font-extrabold"
                       )}
                     >
-                      <Icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", isActive && "stroke-[2.5]")} />
-                      <span className="truncate flex-1 text-left font-bold text-xs">
+                      <Icon
+                        className={cn(
+                          "w-4 h-4 transition-all flex-shrink-0",
+                          isActive ? "stroke-[2.5]" : ""
+                        )}
+                      />
+                      <span className={cn("truncate flex-1 text-left", isInsideCategory ? "font-bold text-xs" : "font-black text-xs uppercase tracking-tight")}>
                         {item.label}
                       </span>
                       {(targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
@@ -657,56 +663,16 @@ export function MainLayout() {
                         </span>
                       )}
                       {isActive && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black shrink-0" />
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
                       )}
                     </Link>
                   );
-                }
+                };
 
-                return (
-                  <Link
-                    key={item.id}
-                    to={path}
-                    onClick={() => ComicAudio.playPop()}
-                    onMouseEnter={() => preloadRoute(path)}
-                    onTouchStart={() => preloadRoute(path)}
-                    onFocus={() => preloadRoute(path)}
-                    className={cn(
-                      "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-3 px-3 py-2",
-                      isActive
-                        ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
-                        : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.01] font-extrabold"
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "w-4 h-4 transition-all flex-shrink-0",
-                        isActive ? "stroke-[2.5]" : ""
-                      )}
-                    />
-                    <span className="truncate flex-1 text-left font-black text-xs uppercase tracking-tight">
-                      {item.label}
-                    </span>
-                    {(targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
-                      <span className={cn(
-                        "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
-                        isActive
-                          ? "bg-black text-white border-black"
-                          : "bg-[#00E5FF] text-black border-black shadow-[1px_1px_0_0_#000]"
-                      )}>
-                        AI
-                      </span>
-                    )}
-                    {isActive && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
-                    )}
-                  </Link>
-                );
-              };
-
-              return displayItems.map((item: any, idx: number) => renderNavItem(item, false, idx));
-            })()}
-          </nav>
+                return displayItems.map((item: any, idx: number) => renderNavItem(item, false, idx));
+              })()}
+            </nav>
+          </ScrollArea>
         )}
 
         {/* User Progress Summary - Comic Gamified Card */}
