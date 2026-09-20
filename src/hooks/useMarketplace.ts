@@ -15,6 +15,7 @@ export interface PublicDeck {
   user_id: string;
   subject_id: string;
   created_at: string;
+  is_anonymous?: boolean;
   creator?: {
     username: string | null;
     display_id: number;
@@ -22,6 +23,7 @@ export interface PublicDeck {
     nivel: number;
     facultad?: string | null;
     carrera?: string | null;
+    is_anonymous?: boolean;
   };
   subject?: {
     nombre: string;
@@ -44,6 +46,7 @@ export interface PublicFile {
   user_id: string;
   subject_id: string | null;
   created_at: string;
+  is_anonymous?: boolean;
   creator?: PublicDeck["creator"];
 }
 
@@ -59,6 +62,7 @@ export interface PublicQuiz {
   user_id: string;
   subject_id: string | null;
   created_at: string;
+  is_anonymous?: boolean;
   creator?: PublicDeck["creator"];
   subject?: PublicDeck["subject"];
 }
@@ -77,6 +81,7 @@ export interface PublicApunte {
   subject_id: string | null;
   created_at: string;
   contenido?: any;
+  is_anonymous?: boolean;
   creator?: PublicDeck["creator"];
   subject?: PublicDeck["subject"];
 }
@@ -93,6 +98,7 @@ export interface PublicFolder {
   user_id: string;
   subject_id: string | null;
   created_at: string;
+  is_anonymous?: boolean;
   creator?: PublicDeck["creator"];
 }
 
@@ -153,7 +159,7 @@ export function useMarketplace() {
         supabase.from("library_files").select("*").eq("is_public", true).order("download_count", { ascending: false }),
         supabase.from("library_folders").select("*").eq("is_public", true).order("download_count", { ascending: false }),
         supabase.from("quiz_decks").select("*").eq("is_public", true).order("download_count", { ascending: false }),
-        supabase.from("notion_documents").select("id, user_id, subject_id, titulo, description, category, emoji, cover_url, download_count, rating_sum, rating_count, created_at").eq("is_public", true).order("download_count", { ascending: false })
+        supabase.from("notion_documents").select("id, user_id, subject_id, titulo, description, category, emoji, cover_url, download_count, rating_sum, rating_count, created_at, is_anonymous").eq("is_public", true).order("download_count", { ascending: false })
       ]);
 
       const allResources = [
@@ -181,24 +187,41 @@ export function useMarketplace() {
       });
 
       const enrich = (item: any) => {
+        const isAnon = !!item.is_anonymous;
         const profile = profileMap.get(item.user_id);
         const stats = statsMap.get(item.user_id);
         const subject = item.subject_id ? subjectMap.get(item.subject_id) : null;
 
         return {
           ...item,
-          creator: profile ? {
-            username: profile.username || "Usuario",
-            display_id: profile.display_id,
-            nombre: profile.nombre || (profile.username ? null : "Usuario"),
-            nivel: stats?.nivel || 1,
-            facultad: profile.facultad || null,
-            carrera: profile.carrera || null,
-          } : undefined,
-          subject: subject ? {
-            nombre: subject.nombre,
-            year: subject.year
-          } : undefined
+          is_anonymous: isAnon,
+          creator: isAnon
+            ? {
+                username: "Anónimo",
+                display_id: 0,
+                nombre: "Estudiante Anónimo",
+                nivel: 1,
+                facultad: null,
+                carrera: null,
+                is_anonymous: true,
+              }
+            : profile
+            ? {
+                username: profile.username || "Usuario",
+                display_id: profile.display_id,
+                nombre: profile.nombre || (profile.username ? null : "Usuario"),
+                nivel: stats?.nivel || 1,
+                facultad: profile.facultad || null,
+                carrera: profile.carrera || null,
+                is_anonymous: false,
+              }
+            : undefined,
+          subject: subject
+            ? {
+                nombre: subject.nombre,
+                year: subject.year,
+              }
+            : undefined,
         };
       };
 
@@ -239,11 +262,17 @@ export function useMarketplace() {
     setMyPublicDecks((decks.data || []) as PublicDeck[]);
   }, [user]);
 
-  const publishResource = async (type: "deck" | "file" | "folder" | "quiz" | "apunte", id: string, description: string, category: string) => {
+  const publishResource = async (
+    type: "deck" | "file" | "folder" | "quiz" | "apunte",
+    id: string,
+    description: string,
+    category: string,
+    isAnonymous: boolean = false
+  ) => {
     const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
     const { error } = await supabase
       .from(table as any)
-      .update({ is_public: true, description, category } as any)
+      .update({ is_public: true, description, category, is_anonymous: isAnonymous } as any)
       .eq("id", id);
 
     if (error) {
@@ -251,7 +280,7 @@ export function useMarketplace() {
       return false;
     }
 
-    toast.success(`¡${type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : "Carpeta"} publicado en el marketplace!`);
+    toast.success(`¡${type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : "Carpeta"} publicado en el marketplace${isAnonymous ? " de forma anónima" : ""}!`);
     await fetchMyPublicDecks();
     return true;
   };
@@ -260,7 +289,7 @@ export function useMarketplace() {
     const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
     const { error } = await supabase
       .from(table as any)
-      .update({ is_public: false } as any)
+      .update({ is_public: false, is_anonymous: false } as any)
       .eq("id", id);
 
     if (error) {

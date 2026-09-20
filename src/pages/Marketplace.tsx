@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Store, Search, Download, Star, User, Tag, Eye, ChevronLeft, ChevronRight,
   Layers, Upload, X, GraduationCap, Calendar, FileText, Folder, Loader2,
-  HelpCircle
+  HelpCircle, ShieldCheck, Check
 } from "lucide-react";
 import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz } from "@/hooks/useMarketplace";
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,6 +84,7 @@ export default function Marketplace() {
   const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: 'deck' | 'file' | 'folder' | 'quiz' | 'apunte'; nombre: string } | null>(null);
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
@@ -165,12 +166,13 @@ export default function Marketplace() {
   const handlePublish = async () => {
     if (!resourceToPublish || !description.trim() || !category.trim()) return;
     setIsPublishing(true);
-    const success = await publishResource(resourceToPublish.type, resourceToPublish.id, description, category);
+    const success = await publishResource(resourceToPublish.type, resourceToPublish.id, description, category, isAnonymous);
     if (success) {
       setPublishSelectOpen(false);
       setResourceToPublish(null);
       setDescription("");
       setCategory("");
+      setIsAnonymous(false);
       // Recargar recursos propios
       window.location.reload();
     }
@@ -244,13 +246,31 @@ export default function Marketplace() {
           {item.creator && (
             <div className="flex flex-col gap-1 mb-4 pb-4 border-b-4 border-border">
               <div className="flex items-center gap-2 text-sm font-black text-foreground">
-                <User className="w-4 h-4" strokeWidth={3} />
-                <span className="truncate flex-1 uppercase">
-                  {item.creator.nombre || item.creator.username || `#${item.creator.display_id}`}
-                </span>
-                <span className="bg-[#BFFF00] text-black border-2 border-foreground text-[10px] px-2 py-0.5 rounded font-black">Nv. {item.creator.nivel}</span>
+                {item.is_anonymous || item.creator?.is_anonymous ? (
+                  <>
+                    <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center border border-foreground/30 flex-shrink-0">
+                      <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={2.5} />
+                    </div>
+                    <span className="truncate flex-1 uppercase tracking-wider text-muted-foreground font-bold">
+                      Estudiante Anónimo
+                    </span>
+                    <span className="bg-muted text-muted-foreground border-2 border-foreground/20 text-[10px] px-2 py-0.5 rounded font-black">
+                      ANÓNIMO
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4" strokeWidth={3} />
+                    <span className="truncate flex-1 uppercase">
+                      {item.creator.nombre || item.creator.username || `#${item.creator.display_id}`}
+                    </span>
+                    <span className="bg-[#BFFF00] text-black border-2 border-foreground text-[10px] px-2 py-0.5 rounded font-black">
+                      Nv. {item.creator.nivel}
+                    </span>
+                  </>
+                )}
               </div>
-              {item.creator.carrera && (
+              {!(item.is_anonymous || item.creator?.is_anonymous) && item.creator.carrera && (
                 <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground ml-6 uppercase">
                   <GraduationCap className="w-3 h-3" strokeWidth={3} />
                   <span className="truncate">{item.creator.carrera}</span>
@@ -420,7 +440,14 @@ export default function Marketplace() {
                       {resource.type === 'deck' ? <Layers className="w-5 h-5 text-black" strokeWidth={2.5} /> : resource.type === 'file' ? <FileText className="w-5 h-5 text-black" strokeWidth={2.5} /> : resource.type === 'apunte' ? <GraduationCap className="w-5 h-5 text-black" strokeWidth={2.5} /> : <Folder className="w-5 h-5 text-black" strokeWidth={2.5} />}
                     </div>
                     <div>
-                      <span className="font-black uppercase text-lg block leading-tight text-foreground">{resource.nombre}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black uppercase text-lg block leading-tight text-foreground">{resource.nombre}</span>
+                        {resource.is_anonymous && (
+                          <span className="bg-muted text-muted-foreground border-2 border-foreground/30 text-[10px] px-2 py-0.5 rounded font-black flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" /> ANÓNIMO
+                          </span>
+                        )}
+                      </div>
                       <span className="font-bold text-muted-foreground text-xs uppercase">{resource.type}</span>
                     </div>
                   </div>
@@ -512,6 +539,9 @@ export default function Marketplace() {
           setPublishSubject(null);
           setCurrentFolderId(null);
           setFolderHistory([{id: null, name: 'Raíz'}]);
+          setIsAnonymous(false);
+          setDescription("");
+          setCategory("");
         }
       }}>
         <DialogContent className="bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -730,6 +760,37 @@ export default function Marketplace() {
                   />
                 </div>
                 
+                <div 
+                  onClick={() => setIsAnonymous(!isAnonymous)}
+                  className={cn(
+                    "p-4 rounded-xl border-4 border-foreground cursor-pointer transition-all flex items-center justify-between shadow-[4px_4px_0_0_hsl(var(--foreground))] select-none",
+                    isAnonymous 
+                      ? "bg-muted/80 border-foreground" 
+                      : "bg-background hover:bg-muted/40"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-11 h-11 rounded-lg border-2 border-foreground flex items-center justify-center font-bold flex-shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]",
+                      isAnonymous ? "bg-foreground text-background" : "bg-muted text-foreground"
+                    )}>
+                      <ShieldCheck className="w-6 h-6" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <p className="font-black uppercase text-sm text-foreground">Publicar como anónimo</p>
+                      <p className="text-xs text-muted-foreground font-bold">
+                        Tu nombre, usuario y carrera permanecerán ocultos para los demás.
+                      </p>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "w-7 h-7 rounded-lg border-2 border-foreground flex items-center justify-center font-black transition-colors flex-shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]",
+                    isAnonymous ? "bg-[#BFFF00] text-black" : "bg-background"
+                  )}>
+                    {isAnonymous && <Check className="w-4 h-4 stroke-[3]" />}
+                  </div>
+                </div>
+
                 <div className="flex gap-4 pt-4">
                   <Button className="flex-1 bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-muted font-black uppercase h-14 rounded-xl text-lg" onClick={() => setPublishStep('select')}>Volver</Button>
                   <Button 

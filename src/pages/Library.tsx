@@ -5,7 +5,8 @@ import {
   FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
   ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2,
-  CheckCircle2, Square, CheckSquare, Repeat2, Clock, Volume2, Loader2
+  CheckCircle2, Square, CheckSquare, Repeat2, Clock, Volume2, Loader2,
+  ShieldCheck, Check
 } from "lucide-react";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { cn, toLocalDateStr } from "@/lib/utils";
@@ -133,6 +134,7 @@ export default function Library() {
   const [publishingResource, setPublishingResource] = useState<{ id: string; type: "file" | "folder"; nombre: string } | null>(null);
   const [pubDescription, setPubDescription] = useState("");
   const [pubCategory, setPubCategory] = useState("");
+  const [pubIsAnonymous, setPubIsAnonymous] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -752,7 +754,8 @@ export default function Library() {
       publishingResource.type,
       publishingResource.id,
       pubDescription,
-      pubCategory
+      pubCategory,
+      pubIsAnonymous
     );
 
     if (success) {
@@ -760,6 +763,7 @@ export default function Library() {
       setPublishingResource(null);
       setPubDescription("");
       setPubCategory("");
+      setPubIsAnonymous(false);
     }
   };
 
@@ -2510,7 +2514,10 @@ export default function Library() {
       </Dialog>
 
       {/* Marketplace Publish Modal */}
-      <Dialog open={showPublishModal} onOpenChange={setShowPublishModal}>
+      <Dialog open={showPublishModal} onOpenChange={(open) => {
+        setShowPublishModal(open);
+        if (!open) setPubIsAnonymous(false);
+      }}>
         <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
@@ -2546,6 +2553,37 @@ export default function Library() {
                 placeholder="EJ: RESÚMENES, APUNTE, MODELOS DE EXAMEN..."
                 className="w-full p-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
               />
+            </div>
+
+            <div 
+              onClick={() => setPubIsAnonymous(!pubIsAnonymous)}
+              className={cn(
+                "p-3 rounded-xl border-[3px] border-foreground cursor-pointer transition-all flex items-center justify-between shadow-[4px_4px_0_0_#000] select-none",
+                pubIsAnonymous 
+                  ? "bg-[#1475e5]/15" 
+                  : "bg-background hover:bg-muted/40"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-8 h-8 rounded-lg border-2 border-foreground flex items-center justify-center font-bold flex-shrink-0 shadow-[1px_1px_0_0_#000]",
+                  pubIsAnonymous ? "bg-foreground text-background" : "bg-muted text-foreground"
+                )}>
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-black uppercase text-xs tracking-wider text-foreground">PUBLICAR COMO ANÓNIMO</p>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                    TU IDENTIDAD Y CARRERA PERMANECERÁN OCULTAS
+                  </p>
+                </div>
+              </div>
+              <div className={cn(
+                "w-5 h-5 rounded-md border-2 border-foreground flex items-center justify-center font-black transition-colors flex-shrink-0 shadow-[1px_1px_0_0_#000]",
+                pubIsAnonymous ? "bg-[#1475e5] text-white" : "bg-background"
+              )}>
+                {pubIsAnonymous && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0 mt-4">

@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Layers, Plus, Sparkles, GraduationCap,
-  BookOpen, Zap, Trash2, X, ShoppingBag, Edit2
+  BookOpen, Zap, Trash2, X, ShoppingBag, Edit2, ShieldCheck, Check
 } from "lucide-react";
 import { useMarketplace } from "@/hooks/useMarketplace";
 import { cn } from "@/lib/utils";
@@ -121,6 +121,7 @@ export default function Flashcards() {
   const [publishingDeck, setPublishingDeck] = useState<Deck | null>(null);
   const [pubDescription, setPubDescription] = useState("");
   const [pubCategory, setPubCategory] = useState("");
+  const [pubIsAnonymous, setPubIsAnonymous] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -773,12 +774,13 @@ export default function Flashcards() {
   const handlePublishDeck = async () => {
     if (!publishingDeck || !pubDescription.trim() || !pubCategory.trim()) return;
     setIsPublishing(true);
-    const success = await publishResource("deck", publishingDeck.id, pubDescription, pubCategory);
+    const success = await publishResource("deck", publishingDeck.id, pubDescription, pubCategory, pubIsAnonymous);
     if (success) {
       setShowPublishModal(false);
       setPublishingDeck(null);
       setPubDescription("");
       setPubCategory("");
+      setPubIsAnonymous(false);
       fetchDecks();
     }
     setIsPublishing(false);
@@ -1665,7 +1667,10 @@ export default function Flashcards() {
         </DialogContent>
       </Dialog>
       {/* Modal de Publicar en Marketplace */}
-      <Dialog open={showPublishModal} onOpenChange={setShowPublishModal}>
+      <Dialog open={showPublishModal} onOpenChange={(open) => {
+        setShowPublishModal(open);
+        if (!open) setPubIsAnonymous(false);
+      }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle>Publicar mazo en el Marketplace</DialogTitle>
@@ -1688,6 +1693,36 @@ export default function Flashcards() {
                 value={pubCategory}
                 onChange={(e) => setPubCategory(e.target.value)}
               />
+            </div>
+            <div 
+              onClick={() => setPubIsAnonymous(!pubIsAnonymous)}
+              className={cn(
+                "p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between select-none",
+                pubIsAnonymous 
+                  ? "bg-neon-cyan/10 border-neon-cyan" 
+                  : "bg-secondary border-border hover:border-muted-foreground/50"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
+                  pubIsAnonymous ? "bg-neon-cyan text-black" : "bg-background text-muted-foreground"
+                )}>
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Publicar como anónimo</p>
+                  <p className="text-xs text-muted-foreground">
+                    Oculta tu identidad y carrera a los demás usuarios.
+                  </p>
+                </div>
+              </div>
+              <div className={cn(
+                "w-5 h-5 rounded border flex items-center justify-center transition-colors flex-shrink-0",
+                pubIsAnonymous ? "bg-neon-cyan border-neon-cyan text-black" : "border-muted-foreground"
+              )}>
+                {pubIsAnonymous && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowPublishModal(false)}>Cancelar</Button>
