@@ -98,7 +98,7 @@ export function AdvancedNotionEditor({
   readOnly = false,
   onEditorReady,
 }: AdvancedNotionEditorProps) {
-  const lastLoadedDocumentIdRef = useRef<string | undefined>(documentId);
+  const lastLoadedDocumentIdRef = useRef<string | undefined>(undefined);
 
   const editor = useEditor({
     extensions: [
@@ -426,8 +426,9 @@ export function AdvancedNotionEditor({
 
   // Load content when document changes
   useEffect(() => {
+    if (!editor || !content) return;
     const shouldReload = documentId && documentId !== lastLoadedDocumentIdRef.current;
-    if (!shouldReload || !editor || !content) return;
+    if (!shouldReload) return;
     lastLoadedDocumentIdRef.current = documentId;
     editor.commands.setContent(content);
     editor.setEditable(!readOnly);

@@ -1004,13 +1004,25 @@ export default function Notion() {
 
   // === Document operations ===
   const openDocument = useCallback(async (doc: NotionDocument) => {
-    // Save current doc first in background without blocking switching
-    if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current) {
-      if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
-      if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
+    // If opening the exact same document that is already open and loaded, do nothing
+    if (activeDocumentRef.current?.id === doc.id && editorContentRef.current) {
+      return;
+    }
+
+    // 1. Flush any existing auto-save timers
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
+    }
+    if (forceSaveTimerRef.current) {
+      window.clearTimeout(forceSaveTimerRef.current);
       forceSaveTimerRef.current = null;
-      saveDocument(true);
+    }
+
+    // 2. Save current document before switching if there are pending changes
+    const prevDoc = activeDocumentRef.current;
+    if (prevDoc && isDirtyRef.current && prevDoc.id !== doc.id) {
+      await saveDocument(true);
     }
 
     // Save study time for the previous document before switching
@@ -1026,59 +1038,75 @@ export default function Notion() {
     audioBook.stop();
     setShowAudioBookPlayer(false);
 
+    // 3. CRITICAL: Clear current editor state immediately so the old document's content is NOT displayed
+    // or passed into the editor for the new document!
+    setEditorContent(null);
+    editorContentRef.current = null;
+    lastSavedContentRef.current = "";
+    isDirtyRef.current = false;
+    pendingSaveRef.current = false;
+    setSaveError(null);
+
     setLocalTitle(doc.titulo);
+    localTitleRef.current = doc.titulo;
     setActiveDocument(doc);
+    activeDocumentRef.current = doc;
     setLastSaved(null);
 
     // Add to tabs if not already present
     setOpenTabs(prev => {
       if (prev.some(t => t.id === doc.id)) return prev;
       const newTab = { id: doc.id, title: doc.titulo || "Sin título", emoji: doc.emoji || "" };
-      // Keep max 10 tabs
       const updated = [...prev, newTab];
       return updated.length > 10 ? updated.slice(-10) : updated;
     });
 
-    // Fetch content if not already loaded (lazy loading)
-    if (!doc.contenido) {
+    // 4. Fetch content if not already loaded (lazy loading)
+    let rawContent = doc.contenido;
+    if (!rawContent) {
       setIsOpeningDoc(true);
-      const fullContent = await fetchDocumentContent(doc.id);
+      rawContent = await fetchDocumentContent(doc.id);
       setIsOpeningDoc(false);
-      
-      if (fullContent) {
-        let content = ensureTipTapFormat(fullContent);
-        lastSavedContentRef.current = JSON.stringify(content);
-        setEditorContent(content);
-        editorContentRef.current = content;
+    }
 
-        // Check for base64 images and migrate them in the background (non-blocking)
-        if (JSON.stringify(content).includes('data:image/')) {
-          setSaveInProgress(true);
-          migrateBase64Images(content, doc.id).then(cleaned => {
-            setEditorContent(cleaned);
-            editorContentRef.current = cleaned;
-            lastSavedContentRef.current = JSON.stringify(cleaned);
-            setSaveInProgress(false);
-          });
-        }
-      }
-    } else {
-      let content = ensureTipTapFormat(doc.contenido);
-       // Check for base64 images and migrate them in the background (non-blocking)
-       if (JSON.stringify(content).includes('data:image/')) {
-        setSaveInProgress(true);
-        migrateBase64Images(content, doc.id).then(cleaned => {
+    // If active document changed while awaiting DB fetch, discard stale response
+    if (activeDocumentRef.current?.id !== doc.id) {
+      return;
+    }
+
+    let content = ensureTipTapFormat(rawContent);
+    if (!content || !content.content || content.content.length === 0) {
+      content = { type: "doc", content: [{ type: "paragraph" }] };
+    }
+
+    // 5. AUTO-HEALING: Detect and fix corrupted subpages that were infected by parent content!
+    const contentStr = JSON.stringify(content);
+    const isSelfReferencing = doc.parent_id && contentStr.includes(`"pageId":"${doc.id}"`);
+    const isDuplicateOfParent = prevDoc && doc.parent_id === prevDoc.id && contentStr.length > 60 && contentStr === JSON.stringify(prevDoc.contenido);
+    if (isSelfReferencing || isDuplicateOfParent) {
+      console.warn(`[Notion] Sub-página corrupta detectada para ${doc.id} (duplicaba apunte padre ${doc.parent_id}). Restaurando a documento limpio.`);
+      content = { type: "doc", content: [{ type: "paragraph" }] };
+      updateDocument(doc.id, { contenido: content });
+      toast.info("Sub-página restaurada a su contenido limpio");
+    }
+
+    lastSavedContentRef.current = JSON.stringify(content);
+    setEditorContent(content);
+    editorContentRef.current = content;
+
+    // Check for base64 images and migrate them in the background (non-blocking)
+    if (JSON.stringify(content).includes('data:image/')) {
+      setSaveInProgress(true);
+      migrateBase64Images(content, doc.id).then(cleaned => {
+        if (activeDocumentRef.current?.id === doc.id) {
           setEditorContent(cleaned);
           editorContentRef.current = cleaned;
           lastSavedContentRef.current = JSON.stringify(cleaned);
-          setSaveInProgress(false);
-        });
-      }
-      lastSavedContentRef.current = JSON.stringify(content);
-      setEditorContent(content);
-      editorContentRef.current = content;
+        }
+        setSaveInProgress(false);
+      });
     }
-  }, [saveDocument, handleSaveOnExit, fetchDocumentContent, migrateBase64Images]);
+  }, [saveDocument, handleSaveOnExit, fetchDocumentContent, migrateBase64Images, updateDocument]);
 
   const closeDocument = useCallback(() => {
     if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
@@ -1485,16 +1513,30 @@ export default function Notion() {
         <div className="notion-topbar">
           <div className="notion-topbar-left">
 
-            {activeDocument ? (
-              <NotionBreadcrumb
-                subjectCode={activeDocument.subject?.codigo}
-                subjectName={activeDocument.subject?.nombre}
-                documentTitle={localTitle || activeDocument.titulo}
-                documentEmoji={activeDocument.emoji}
-                onClickSubject={closeDocument}
-                onBack={closeDocument}
-              />
-            ) : (
+            {activeDocument ? (() => {
+              const parentDoc = activeDocument.parent_id
+                ? documents.find(d => d.id === activeDocument.parent_id)
+                : null;
+              return (
+                <NotionBreadcrumb
+                  subjectCode={activeDocument.subject?.codigo}
+                  subjectName={activeDocument.subject?.nombre}
+                  documentTitle={localTitle || activeDocument.titulo}
+                  documentEmoji={activeDocument.emoji}
+                  parentTitle={parentDoc?.titulo}
+                  parentEmoji={parentDoc?.emoji}
+                  onClickParent={() => parentDoc && openDocument(parentDoc)}
+                  onClickSubject={closeDocument}
+                  onBack={() => {
+                    if (parentDoc) {
+                      openDocument(parentDoc);
+                    } else {
+                      closeDocument();
+                    }
+                  }}
+                />
+              );
+            })() : (
               <span style={{ fontWeight: 500 }}>Apuntes</span>
             )}
           </div>
@@ -1724,7 +1766,7 @@ export default function Notion() {
         {/* Editor area */}
         <div className="notion-editor-area overflow-hidden flex flex-col h-full min-h-0 relative">
           {activeDocument ? (
-            isOpeningDoc && !editorContent ? (
+            isOpeningDoc || !editorContent ? (
               <div className="flex flex-col items-center justify-center h-full gap-4">
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
                 <p className="text-muted-foreground animate-pulse font-medium">
@@ -1743,6 +1785,7 @@ export default function Notion() {
                   </div>
                 )}
                 <AdvancedNotionEditor
+                  key={activeDocument.id}
                   headerContent={
                     <>
                       {/* Cover */}
@@ -1845,14 +1888,23 @@ export default function Notion() {
                         }
                       }
 
-                      const subjectId = activeDocument?.subject_id || "";
-                      const newDoc = await createDocument(subjectId, pageTitle || "Sin título", activeDocument?.id || undefined);
+                      const parent = activeDocumentRef.current;
+                      const parentId = parent?.id || null;
+                      const subjectId = parent?.subject_id || "";
+                      const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
                       if (newDoc) {
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {
                           detail: { oldTitle: pageTitle, newPageId: newDoc.id },
                         }));
-                        saveDocument(true);
-                        const fullDoc = { ...newDoc, parent_id: activeDocument?.id || null };
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                        if (parent && isDirtyRef.current) {
+                          await saveDocument(true);
+                        }
+                        const fullDoc: NotionDocument = {
+                          ...newDoc,
+                          parent_id: parentId,
+                          contenido: { type: "doc", content: [{ type: "paragraph" }] },
+                        };
                         openDocument(fullDoc);
                       }
                   }}
