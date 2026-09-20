@@ -37,7 +37,7 @@ interface SubjectOption {
 }
 
 export default function Tasks() {
-  const { user } = useAuth();
+  const { user, isGuest, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [tasks, setTasks] = useState<StudyTask[]>([]);
@@ -56,31 +56,57 @@ export default function Tasks() {
 
   // Load data
   useEffect(() => {
-    if (!user) return;
-    loadAllData();
-  }, [user]);
+    if (authLoading) return;
+
+    let isMounted = true;
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 4000);
+
+    const run = async () => {
+      setLoading(true);
+      try {
+        await loadAllData();
+      } finally {
+        if (isMounted) {
+          clearTimeout(safetyTimeout);
+          setLoading(false);
+        }
+      }
+    };
+
+    run();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimeout);
+    };
+  }, [user, isGuest, authLoading]);
 
   const loadAllData = async () => {
-    setLoading(true);
     try {
       // 1. Fetch user subjects
-      let subQuery = supabase
-        .from("subjects")
-        .select("id, nombre, codigo, año")
-        .order("nombre", { ascending: true });
+      let subData: any[] = [];
+      try {
+        if (user && !isGuest) {
+          const { data } = await supabase
+            .from("subjects")
+            .select("id, nombre, codigo, año")
+            .eq("user_id", user.id)
+            .order("nombre", { ascending: true });
+          if (data && data.length > 0) subData = data;
+        }
 
-      if (user) {
-        subQuery = subQuery.eq("user_id", user.id);
-      }
-
-      let { data: subData } = await subQuery;
-      if (user && (!subData || subData.length === 0)) {
-        const fallback = await supabase
-          .from("subjects")
-          .select("id, nombre, codigo, año")
-          .is("user_id", null)
-          .order("nombre", { ascending: true });
-        if (fallback.data) subData = fallback.data;
+        if (subData.length === 0) {
+          const { data } = await supabase
+            .from("subjects")
+            .select("id, nombre, codigo, año")
+            .is("user_id", null)
+            .order("nombre", { ascending: true });
+          if (data) subData = data;
+        }
+      } catch (err) {
+        console.warn("Could not load subjects for tasks:", err);
       }
 
       setSubjects(
@@ -93,14 +119,11 @@ export default function Tasks() {
       );
 
       // 2. Fetch tasks
-      if (user) {
-        const userTasks = await fetchUserTasks(user.id);
-        setTasks(userTasks);
-      }
+      const effectiveUserId = user?.id || "guest";
+      const userTasks = await fetchUserTasks(effectiveUserId);
+      setTasks(userTasks);
     } catch (e) {
       console.error("Error loading tasks page:", e);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -146,10 +169,9 @@ export default function Tasks() {
     } else {
       toast.error("No se pudo actualizar el estado de la tarea");
       // Revert on error
-      if (user) {
-        const fresh = await fetchUserTasks(user.id);
-        setTasks(fresh);
-      }
+      const effectiveUserId = user?.id || "guest";
+      const fresh = await fetchUserTasks(effectiveUserId);
+      setTasks(fresh);
     }
   };
 
@@ -172,32 +194,31 @@ export default function Tasks() {
       toast.success("Tarea eliminada");
     } else {
       toast.error("Error al eliminar la tarea");
-      if (user) {
-        const fresh = await fetchUserTasks(user.id);
-        setTasks(fresh);
-      }
+      const effectiveUserId = user?.id || "guest";
+      const fresh = await fetchUserTasks(effectiveUserId);
+      setTasks(fresh);
     }
   };
 
   const handleSaveTask = async (taskData: CreateTaskInput) => {
-    if (!user) return;
+    const effectiveUserId = user?.id || "guest";
     if (editingTask) {
       const ok = await updateStudyTask(editingTask.id, taskData);
       if (ok) {
         toast.success("Tarea actualizada");
-        const fresh = await fetchUserTasks(user.id);
+        const fresh = await fetchUserTasks(effectiveUserId);
         setTasks(fresh);
       } else {
         toast.error("Error al actualizar la tarea");
       }
     } else {
-      const newTask = await createStudyTask(user.id, {
+      const newTask = await createStudyTask(effectiveUserId, {
         ...taskData,
         estado: defaultStatusForNew,
       });
       if (newTask) {
         toast.success("¡Tarea creada con éxito!");
-        const fresh = await fetchUserTasks(user.id);
+        const fresh = await fetchUserTasks(effectiveUserId);
         setTasks(fresh);
       } else {
         toast.error("Error al crear la tarea");
