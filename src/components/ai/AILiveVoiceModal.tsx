@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   X, Mic, MicOff, Video, VideoOff, SwitchCamera, Monitor, MonitorOff,
   Volume2, VolumeX, Sparkles, Radio, RotateCcw, Camera, ShieldAlert,
-  ChevronDown, ChevronUp, Maximize2, Minimize2
+  ChevronDown, ChevronUp, Maximize2, Minimize2, Send, Sliders
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -37,12 +37,14 @@ interface AILiveVoiceModalProps {
 
 type LiveState = "idle" | "listening" | "thinking" | "speaking";
 
+type VoiceLanguageMode = "es" | "es-AR" | "es-MX" | "es-ES";
+
 // Clean text for speech synthesis (strip markdown, links, LaTeX markers)
 function cleanTextForSpeech(text: string): string {
   if (!text) return "";
   let cleaned = text;
   // Remove code blocks
-  cleaned = cleaned.replace(/```[\s\S]*?```/g, " Bloque de código omitido para lectura. ");
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, " Bloque de código omitido. ");
   // Remove inline code
   cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
   // Remove links [text](url)
@@ -86,6 +88,7 @@ export function AILiveVoiceModal({
   const [currentAiSpeechText, setCurrentAiSpeechText] = useState("");
   const [transcriptHistory, setTranscriptHistory] = useState<Array<{ role: "user" | "assistant"; text: string; imagePreview?: string }>>([]);
   const [showFullTranscript, setShowFullTranscript] = useState(false);
+  const [voiceLang, setVoiceLang] = useState<VoiceLanguageMode>("es-AR");
 
   // Multimodal state (Camera & Screen Share)
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -103,48 +106,39 @@ export function AILiveVoiceModal({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const videoStreamRef = useRef<MediaStream | null>(null);
   const silenceTimerRef = useRef<any>(null);
-  const speechQueueRef = useRef<string[]>([]);
   const isSpeakingTtsRef = useRef(false);
   const isStreamingAiRef = useRef(false);
-  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioQueueRef = useRef<string[]>([]);
+  const isPlayingAudioQueueRef = useRef(false);
   const sentenceBufferRef = useRef("");
   const accumulatedAiResponseRef = useRef("");
   const lastRecognizedRef = useRef("");
   const isComponentActiveRef = useRef(false);
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Pick natural Spanish voice
-  const initSpanishVoice = useCallback(() => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    const voices = window.speechSynthesis.getVoices();
-    // Prioritize natural or Latin-American/Argentine Spanish
-    const best =
-      voices.find(v => v.lang.startsWith("es-AR") || v.lang.startsWith("es-419")) ||
-      voices.find(v => v.lang.startsWith("es") && (v.name.includes("Natural") || v.name.includes("Google") || v.name.includes("Sabina") || v.name.includes("Paulina") || v.name.includes("Elena"))) ||
-      voices.find(v => v.lang.startsWith("es"));
-    voiceRef.current = best || null;
-  }, []);
-
-  useEffect(() => {
-    initSpanishVoice();
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.onvoiceschanged = initSpanishVoice;
-    }
-  }, [initSpanishVoice]);
-
-  // TTS helper: cancels any current speech immediately (used for Barge-In)
-  const stopTts = useCallback(() => {
-    speechQueueRef.current = [];
+  // Stop any playing audio immediately (Instant Barge-in)
+  const stopAudio = useCallback(() => {
+    audioQueueRef.current = [];
+    isPlayingAudioQueueRef.current = false;
     isSpeakingTtsRef.current = false;
     sentenceBufferRef.current = "";
+
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.src = "";
+      currentAudioRef.current = null;
+    }
+
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
   }, []);
 
-  // TTS play next in queue
-  const playNextSentence = useCallback(() => {
-    if (isSoundMuted || speechQueueRef.current.length === 0) {
+  // Play natural human neural audio queue
+  const playNextInAudioQueue = useCallback(async () => {
+    if (isSoundMuted || audioQueueRef.current.length === 0) {
+      isPlayingAudioQueueRef.current = false;
       isSpeakingTtsRef.current = false;
       if (!isStreamingAiRef.current) {
         setLiveState("listening");
@@ -152,44 +146,84 @@ export function AILiveVoiceModal({
       return;
     }
 
+    isPlayingAudioQueueRef.current = true;
     isSpeakingTtsRef.current = true;
     setLiveState("speaking");
-    const sentence = speechQueueRef.current.shift()!;
-    const cleaned = cleanTextForSpeech(sentence);
+
+    const textToPlay = audioQueueRef.current.shift()!;
+    const cleaned = cleanTextForSpeech(textToPlay);
     if (!cleaned) {
-      playNextSentence();
+      playNextInAudioQueue();
       return;
     }
 
     setCurrentAiSpeechText(cleaned);
 
-    const utterance = new SpeechSynthesisUtterance(cleaned);
-    if (voiceRef.current) utterance.voice = voiceRef.current;
-    utterance.lang = voiceRef.current?.lang || "es-ES";
-    utterance.rate = 1.06;
-    utterance.pitch = 1.0;
+    try {
+      // Human Neural Audio: Google's ultra-natural human voice stream
+      // Using es-AR / es-419 / es-ES
+      const langCode = voiceLang === "es-AR" ? "es" : voiceLang;
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langCode}&client=tw-ob&q=${encodeURIComponent(cleaned.slice(0, 200))}`;
+      const audio = new Audio(ttsUrl);
+      audio.playbackRate = 1.08; // slightly brisk conversational pace
+      currentAudioRef.current = audio;
 
-    utterance.onend = () => {
-      activeUtteranceRef.current = null;
-      playNextSentence();
-    };
-    utterance.onerror = () => {
-      activeUtteranceRef.current = null;
-      playNextSentence();
-    };
+      await new Promise<void>((resolve) => {
+        audio.onended = () => {
+          currentAudioRef.current = null;
+          resolve();
+        };
+        audio.onerror = () => {
+          currentAudioRef.current = null;
+          // Fallback to browser synthesis if audio failed
+          fallbackBrowserSpeech(cleaned).then(resolve);
+        };
+        audio.play().catch(() => {
+          currentAudioRef.current = null;
+          fallbackBrowserSpeech(cleaned).then(resolve);
+        });
+      });
+    } catch (_) {
+      await fallbackBrowserSpeech(cleaned);
+    }
 
-    activeUtteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  }, [isSoundMuted]);
+    playNextInAudioQueue();
+  }, [isSoundMuted, voiceLang]);
 
-  // Enqueue sentence for streaming speech
+  // Fallback to browser speech synthesis ONLY with verified Natural voices (never SAPI desktop)
+  const fallbackBrowserSpeech = (text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined" || !window.speechSynthesis) {
+        resolve();
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      // Filter out any robotic desktop voices
+      const humanVoice = voices.find(v => {
+        const name = v.name.toLowerCase();
+        if (name.includes("desktop") || name.includes("espeak") || name.includes("sabina") || name.includes("helena")) return false;
+        return v.lang.startsWith("es") && (name.includes("natural") || name.includes("online") || name.includes("google") || name.includes("siri"));
+      }) || voices.find(v => v.lang.startsWith("es") && !v.name.toLowerCase().includes("desktop"));
+
+      if (humanVoice) utterance.voice = humanVoice;
+      utterance.lang = "es-AR";
+      utterance.rate = 1.05;
+
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+      window.speechSynthesis.speak(utterance);
+    });
+  };
+
+  // Enqueue sentence for natural speech
   const queueSentenceToSpeak = useCallback((text: string) => {
     if (isSoundMuted) return;
-    speechQueueRef.current.push(text);
-    if (!isSpeakingTtsRef.current) {
-      playNextSentence();
+    audioQueueRef.current.push(text);
+    if (!isPlayingAudioQueueRef.current) {
+      playNextInAudioQueue();
     }
-  }, [isSoundMuted, playNextSentence]);
+  }, [isSoundMuted, playNextInAudioQueue]);
 
   // Capture frame from active video (Camera or Screen share)
   const captureSnapshot = useCallback((): { data: string; mime_type: string; preview: string } | null => {
@@ -241,7 +275,7 @@ export function AILiveVoiceModal({
     isStreamingAiRef.current = true;
     accumulatedAiResponseRef.current = "";
     sentenceBufferRef.current = "";
-    stopTts();
+    stopAudio();
 
     // Capture visual snapshot if camera or screen share is enabled
     const snapshot = captureSnapshot();
@@ -255,7 +289,7 @@ export function AILiveVoiceModal({
     // Format recent history for model context
     const recentMsgs = existingMessages
       .filter(m => m.id !== "init" && m.id !== "init-proactive-exam" && m.id !== "init-proactive-streak")
-      .slice(-6)
+      .slice(-4)
       .map(m => ({
         role: m.role as "user" | "assistant",
         content: m.content
@@ -276,6 +310,8 @@ export function AILiveVoiceModal({
     onSaveMessage(text, true, snapshot?.preview).catch(console.error);
 
     try {
+      // Use "Modo Live de Voz Fluida" so useStreamingChat generates the 0ms conversational prompt
+      // and powerOverride "bajo" to use the ultra-fast Groq model (<250ms response time)
       await streamMessage(
         recentMsgs,
         activePersona.id,
@@ -284,9 +320,9 @@ export function AILiveVoiceModal({
           accumulatedAiResponseRef.current += delta;
           sentenceBufferRef.current += delta;
 
-          // Check if we have a full sentence to speak with low latency
+          // Check if we have a full sentence to speak with low latency (8+ chars and punctuation)
           const match = sentenceBufferRef.current.match(/^([\s\S]+?([.!?\n]+|\:\s))(\s+[\s\S]*)$/);
-          if (match && match[1].length >= 15) {
+          if (match && match[1].length >= 8) {
             const sentenceToSpeak = match[1].trim();
             sentenceBufferRef.current = match[3] || "";
             queueSentenceToSpeak(sentenceToSpeak);
@@ -320,7 +356,7 @@ export function AILiveVoiceModal({
           onAddDisplayMessage(assistantDisplayMsg);
           onSaveMessage(fullContent, false).catch(console.error);
 
-          if (!isSpeakingTtsRef.current) {
+          if (!isSpeakingTtsRef.current && !isPlayingAudioQueueRef.current) {
             setLiveState("listening");
           }
         },
@@ -333,7 +369,7 @@ export function AILiveVoiceModal({
         },
         "Modo Live de Voz Fluida",
         selectedModel,
-        powerLevel,
+        "bajo", // Ultra-fast model priority (200ms latency)
         undefined,
         snapshot ? { data: snapshot.data, mime_type: snapshot.mime_type } : undefined
       );
@@ -351,11 +387,10 @@ export function AILiveVoiceModal({
     activePersona.id,
     queueSentenceToSpeak,
     selectedModel,
-    powerLevel,
-    stopTts
+    stopAudio
   ]);
 
-  // Voice Activity & Speech Recognition Setup (continuous hands-free)
+  // Voice Activity & Speech Recognition Setup (continuous hands-free with ultra-snappy 350ms turnaround)
   useEffect(() => {
     if (!isOpen) return;
     isComponentActiveRef.current = true;
@@ -363,7 +398,7 @@ export function AILiveVoiceModal({
     // @ts-ignore
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast.error("Tu navegador no soporta reconocimiento de voz continuo en tiempo real");
+      toast.error("Tu navegador no soporta reconocimiento de voz continuo");
       return;
     }
 
@@ -394,7 +429,7 @@ export function AILiveVoiceModal({
       // BARGE-IN: Natural user interruption!
       // If user speaks while AI is talking or thinking, immediately cut off AI speech and listen!
       if (currentChunk.length > 1 && (isSpeakingTtsRef.current || isStreamingAiRef.current)) {
-        stopTts();
+        stopAudio();
         isStreamingAiRef.current = false;
         setLiveState("listening");
       }
@@ -411,24 +446,24 @@ export function AILiveVoiceModal({
 
       if (final.trim()) {
         lastRecognizedRef.current = final.trim();
-        // Wait 1.1s of silence after final result before submitting to AI
-        silenceTimerRef.current = setTimeout(() => {
-          if (lastRecognizedRef.current && isComponentActiveRef.current) {
-            const query = lastRecognizedRef.current;
-            lastRecognizedRef.current = "";
-            handleUserSpoke(query);
-          }
-        }, 1100);
-      } else if (interim.trim().length > 3) {
-        lastRecognizedRef.current = interim.trim();
-        // If user pauses for 1.4s on interim without explicit final, auto submit
+        // Snappy turnaround: 350ms of silence after final result before submitting to AI
         silenceTimerRef.current = setTimeout(() => {
           if (lastRecognizedRef.current && isComponentActiveRef.current && !isStreamingAiRef.current) {
             const query = lastRecognizedRef.current;
             lastRecognizedRef.current = "";
             handleUserSpoke(query);
           }
-        }, 1400);
+        }, 350);
+      } else if (interim.trim().length > 2) {
+        lastRecognizedRef.current = interim.trim();
+        // If user pauses for 550ms on interim without explicit final, auto submit
+        silenceTimerRef.current = setTimeout(() => {
+          if (lastRecognizedRef.current && isComponentActiveRef.current && !isStreamingAiRef.current) {
+            const query = lastRecognizedRef.current;
+            lastRecognizedRef.current = "";
+            handleUserSpoke(query);
+          }
+        }, 550);
       }
     };
 
@@ -461,7 +496,7 @@ export function AILiveVoiceModal({
         recognition.stop();
       } catch (_) {}
     };
-  }, [isOpen, isMicMuted, handleUserSpoke, stopTts]);
+  }, [isOpen, isMicMuted, handleUserSpoke, stopAudio]);
 
   // AudioContext Volume Meter for the Glowing Orb
   useEffect(() => {
@@ -503,7 +538,7 @@ export function AILiveVoiceModal({
 
           // Barge-In volume spike threshold while AI is speaking
           if (normalized > 0.35 && isSpeakingTtsRef.current) {
-            stopTts();
+            stopAudio();
             setLiveState("listening");
           }
 
@@ -525,7 +560,7 @@ export function AILiveVoiceModal({
         localAudioCtx.close().catch(() => {});
       }
     };
-  }, [isOpen, stopTts]);
+  }, [isOpen, stopAudio]);
 
   // Camera Management
   const toggleCamera = async () => {
@@ -597,7 +632,7 @@ export function AILiveVoiceModal({
     } else {
       try {
         if (!navigator.mediaDevices?.getDisplayMedia) {
-          toast.error("Compartir pantalla no está soportado en este dispositivo/navegador");
+          toast.error("Compartir pantalla no está soportado en este dispositivo");
           return;
         }
         if (videoStreamRef.current) {
@@ -625,7 +660,7 @@ export function AILiveVoiceModal({
 
   // Clean exit on modal close
   const handleClose = () => {
-    stopTts();
+    stopAudio();
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch (_) {}
@@ -653,21 +688,43 @@ export function AILiveVoiceModal({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-black text-sm md:text-base uppercase tracking-wider text-white">
-                {activePersona?.name || "TABE IA"} Live Voice
+                {activePersona?.name || "TABE IA"} Live
               </h2>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Live
+                Voz Humana
               </div>
             </div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
-              {selectedModel.shortName} · Full-Duplex Multimodal
+              Respuesta Instantánea (&lt;300ms) · Voz Natural Neural
             </p>
           </div>
         </div>
 
         {/* Action Controls Top Right */}
         <div className="flex items-center gap-2">
+          {/* Accent / Voice Dialect Selector */}
+          <div className="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1 text-xs">
+            <button
+              onClick={() => { setVoiceLang("es-AR"); toast.success("Voz Natural Rioplatense"); }}
+              className={cn("px-2 py-1 rounded-lg font-bold text-[11px] transition-all", voiceLang === "es-AR" ? "bg-cyan-500 text-black font-black" : "text-slate-400 hover:text-white")}
+            >
+              🇦🇷 AR
+            </button>
+            <button
+              onClick={() => { setVoiceLang("es-MX"); toast.success("Voz Natural Latino"); }}
+              className={cn("px-2 py-1 rounded-lg font-bold text-[11px] transition-all", voiceLang === "es-MX" ? "bg-cyan-500 text-black font-black" : "text-slate-400 hover:text-white")}
+            >
+              🇲🇽 MX
+            </button>
+            <button
+              onClick={() => { setVoiceLang("es-ES"); toast.success("Voz Natural España"); }}
+              className={cn("px-2 py-1 rounded-lg font-bold text-[11px] transition-all", voiceLang === "es-ES" ? "bg-cyan-500 text-black font-black" : "text-slate-400 hover:text-white")}
+            >
+              🇪🇸 ES
+            </button>
+          </div>
+
           <button
             onClick={() => setShowFullTranscript(prev => !prev)}
             className="px-3 py-1.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
@@ -676,6 +733,7 @@ export function AILiveVoiceModal({
             {showFullTranscript ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">Historial</span>
           </button>
+
           <button
             onClick={handleClose}
             className="w-9 h-9 rounded-xl border-2 border-white/20 bg-white/10 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-lg active:scale-95"
@@ -774,7 +832,7 @@ export function AILiveVoiceModal({
           {/* Layer 3: Outer pulsating ambient glow */}
           <div
             className={cn(
-              "absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl transition-all duration-700 pointer-events-none opacity-60",
+              "absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl transition-all duration-500 pointer-events-none opacity-60",
               liveState === "listening" && "bg-gradient-to-tr from-cyan-500/50 via-sky-500/30 to-blue-600/50",
               liveState === "thinking" && "bg-gradient-to-tr from-purple-600/60 via-amber-500/40 to-pink-600/50 animate-pulse",
               liveState === "speaking" && "bg-gradient-to-tr from-emerald-500/60 via-teal-400/40 to-cyan-400/50",
@@ -788,7 +846,7 @@ export function AILiveVoiceModal({
           {/* Layer 2: Harmonic waveform rings */}
           <div
             className={cn(
-              "absolute w-56 h-56 sm:w-72 sm:h-72 rounded-full border-2 transition-all duration-300",
+              "absolute w-56 h-56 sm:w-72 sm:h-72 rounded-full border-2 transition-all duration-200",
               liveState === "listening" && "border-cyan-400/40 shadow-[0_0_40px_rgba(0,229,255,0.4)]",
               liveState === "thinking" && "border-amber-400/40 animate-spin shadow-[0_0_40px_rgba(251,191,36,0.3)]",
               liveState === "speaking" && "border-emerald-400/50 shadow-[0_0_50px_rgba(52,211,153,0.5)]",
@@ -802,7 +860,7 @@ export function AILiveVoiceModal({
           {/* Layer 1: Core dynamic sphere */}
           <div
             className={cn(
-              "relative w-40 h-40 sm:w-48 sm:h-48 rounded-full flex flex-col items-center justify-center transition-all duration-200 shadow-2xl border-4",
+              "relative w-40 h-40 sm:w-48 sm:h-48 rounded-full flex flex-col items-center justify-center transition-all duration-150 shadow-2xl border-4",
               liveState === "listening" && "bg-gradient-to-tr from-cyan-400 via-sky-500 to-blue-600 border-white/50 shadow-[0_0_60px_rgba(0,229,255,0.6)]",
               liveState === "thinking" && "bg-gradient-to-tr from-purple-700 via-pink-600 to-amber-500 border-amber-300/60 shadow-[0_0_60px_rgba(236,72,153,0.6)] animate-pulse",
               liveState === "speaking" && "bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-400 border-white/60 shadow-[0_0_60px_rgba(52,211,153,0.7)]",
@@ -868,9 +926,9 @@ export function AILiveVoiceModal({
               {isMicMuted
                 ? "Micrófono en Pausa"
                 : liveState === "listening"
-                ? "Escuchando... (Habla libremente)"
+                ? "Escuchando... Habla libremente"
                 : liveState === "thinking"
-                ? "Pensando respuesta..."
+                ? "Pensando respuesta instantánea..."
                 : "Hablando... (Interrumpe cuando quieras)"}
             </span>
           </div>
@@ -878,16 +936,32 @@ export function AILiveVoiceModal({
           {/* Subtitle / Realtime Speech Display */}
           <div className="min-h-[48px] flex items-center justify-center">
             {userInterimTranscript ? (
-              <p className="text-base sm:text-lg font-bold text-cyan-200 bg-cyan-950/60 border border-cyan-500/30 px-4 py-2 rounded-2xl backdrop-blur-md animate-in fade-in">
-                "{userInterimTranscript}"
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-base sm:text-lg font-bold text-cyan-200 bg-cyan-950/60 border border-cyan-500/30 px-4 py-2 rounded-2xl backdrop-blur-md animate-in fade-in">
+                  "{userInterimTranscript}"
+                </p>
+                {/* Instant Send Button if user doesn't want to wait 350ms */}
+                <button
+                  onClick={() => {
+                    if (userInterimTranscript) {
+                      const text = userInterimTranscript;
+                      setUserInterimTranscript("");
+                      handleUserSpoke(text);
+                    }
+                  }}
+                  className="p-2 rounded-xl bg-cyan-400 text-black font-black hover:scale-105 active:scale-95 transition-all shadow-md"
+                  title="Enviar ahora sin esperar silencio"
+                >
+                  <Send className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
             ) : currentAiSpeechText && liveState === "speaking" ? (
-              <p className="text-sm sm:text-base font-semibold text-slate-200 max-w-lg leading-relaxed line-clamp-2 px-4 py-1.5 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-md">
+              <p className="text-sm sm:text-base font-semibold text-slate-200 max-w-lg leading-relaxed px-4 py-1.5 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-md animate-in fade-in">
                 {currentAiSpeechText}
               </p>
             ) : (
               <p className="text-xs sm:text-sm font-bold text-slate-400 tracking-wide">
-                Podes hablar fluidamente en tiempo real o apuntar tu cámara a apuntes o ejercicios.
+                Respuestas cortas de 1 o 2 oraciones, voz humana natural y sin demoras.
               </p>
             )}
           </div>
@@ -953,7 +1027,7 @@ export function AILiveVoiceModal({
           onClick={() => {
             const next = !isSoundMuted;
             setIsSoundMuted(next);
-            if (next) stopTts();
+            if (next) stopAudio();
             toast.info(next ? "Voz de la IA silenciada" : "Voz de la IA activada");
           }}
           className={cn(

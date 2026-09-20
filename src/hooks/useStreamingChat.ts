@@ -79,14 +79,24 @@ export function useStreamingChat(
           }
         }
 
-        // 2. Build full academic context for the student
-        const systemPrompt = await buildStudentContext(
-          user?.id || "guest",
-          personaPrompt,
-          personaName,
-          user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Estudiante",
-          targetPower
-        );
+        // 2. Build context: For live voice, use an ultra-fast conversational prompt (0ms) so response starts immediately
+        const isLiveVoice = context_page === "Modo Live de Voz Fluida";
+        const studentName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Estudiante";
+
+        const systemPrompt = isLiveVoice
+          ? `Sos ${personaName}, asistente académico en MODO VOZ EN VIVO (llamada de audio en tiempo real con ${studentName}).
+REGLAS OBLIGATORIAS PARA CONVERSACIÓN FLUIDA EN TIEMPO REAL:
+1. Sé ultra conciso: MÁXIMO 1 o 2 oraciones breves (20 a 35 palabras por respuesta). NUNCA des discursos ni párrafos largos, porque estamos hablando por voz.
+2. Hablá en tono 100% natural, humano, cálido y cercano (español rioplatense si el usuario lo habla).
+3. Responde directamente la duda del usuario sin rodeos, introducciones innecesarias ni saludos repetitivos.
+4. NO uses asteriscos, viñetas ni títulos markdown, porque se van a escuchar directamente por audio.`
+          : await buildStudentContext(
+              user?.id || "guest",
+              personaPrompt,
+              personaName,
+              studentName,
+              targetPower
+            );
 
         // 3. Stream with automatic provider fallback and power level
         await streamAIChat({
