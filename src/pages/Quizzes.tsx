@@ -364,6 +364,11 @@ export default function Quizzes() {
             setLoading(true);
         }
 
+        // Safety timeout: Never leave user stuck on loading screen longer than 1.5s
+        const safetyTimer = setTimeout(() => {
+            setLoading(false);
+        }, 1500);
+
         try {
             const [subjectsRes, decksRes] = await Promise.allSettled([
                 (async () => {
@@ -382,7 +387,7 @@ export default function Quizzes() {
                 })(),
                 supabase
                     .from("quiz_decks")
-                    .select("id, nombre, subject_id, total_questions, subjects(id, nombre, codigo, año)")
+                    .select("id, nombre, subject_id, total_questions")
                     .eq("user_id", user.id)
                     .order("created_at", { ascending: false })
             ]);
@@ -393,7 +398,7 @@ export default function Quizzes() {
             const rawDecks = decksRes.status === "fulfilled" && decksRes.value.data ? decksRes.value.data : [];
 
             const enrichedDecks: QuizDeck[] = rawDecks.map((d: any) => {
-                const sub = d.subjects || loadedSubjects.find(s => s.id === d.subject_id);
+                const sub = loadedSubjects.find(s => s.id === d.subject_id);
                 return {
                     id: d.id,
                     nombre: d.nombre,
@@ -413,6 +418,7 @@ export default function Quizzes() {
         } catch (err) {
             console.error("Error loading quizzes data:", err);
         } finally {
+            clearTimeout(safetyTimer);
             setLoading(false);
         }
     }, [user, isGuest]);
@@ -423,14 +429,14 @@ export default function Quizzes() {
             if (isGuest) return;
             const { data } = await supabase
                 .from("quiz_decks")
-                .select("id, nombre, subject_id, total_questions, subjects(id, nombre, codigo, año)")
+                .select("id, nombre, subject_id, total_questions")
                 .eq("user_id", user.id)
                 .order("created_at", { ascending: false });
 
             if (data) {
                 const subs = getCachedSubjects();
                 const enriched: QuizDeck[] = data.map((d: any) => {
-                    const sub = d.subjects || subs.find(s => s.id === d.subject_id);
+                    const sub = subs.find(s => s.id === d.subject_id);
                     return {
                         id: d.id,
                         nombre: d.nombre,

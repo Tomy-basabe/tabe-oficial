@@ -1,0 +1,12 @@
+# Ignore heavy non-web assets from Vercel deployments
+android
+Skills
+.kilo
+TABE 2.0
+Fotos para la web
+testBD
+.vscode
+.github
+*.log
+*.tmp
+*.zip

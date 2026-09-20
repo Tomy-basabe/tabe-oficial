@@ -44,3 +44,20 @@ export function preloadRoute(path: string) {
     }
   }
 }
+
+// Background preload core pages after initial load so clicking apartados is 0ms
+export function preloadCoreRoutes() {
+  if (typeof window === "undefined") return;
+  const core = ["/cuestionarios", "/flashcards", "/apuntes", "/TABEAI", "/calendario", "/pomodoro", "/biblioteca"];
+  const runner = () => {
+    core.forEach((path, idx) => {
+      setTimeout(() => preloadRoute(path), 500 + idx * 400);
+    });
+  };
+
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(runner, { timeout: 4000 });
+  } else {
+    setTimeout(runner, 1500);
+  }
+}

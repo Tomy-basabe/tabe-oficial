@@ -60,10 +60,12 @@ import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
 import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
 import { extractAndStoreTokenFromUrl } from "@/lib/googleCalendarSync";
+import { preloadCoreRoutes } from "@/lib/routePreload";
 
-// Automatically capture OAuth provider token from Google redirects globally
+// Automatically capture OAuth provider token from Google redirects globally & preload core routes
 if (typeof window !== "undefined") {
   extractAndStoreTokenFromUrl();
+  preloadCoreRoutes();
 }
 
 const queryClient = new QueryClient({

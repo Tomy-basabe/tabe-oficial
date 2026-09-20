@@ -279,9 +279,14 @@ export default function Flashcards() {
       setLoading(true);
     }
 
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     try {
       await Promise.allSettled([fetchSubjects(), fetchDecks(false)]);
     } finally {
+      clearTimeout(safetyTimer);
       setLoading(false);
     }
   };
