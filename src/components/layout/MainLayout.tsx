@@ -235,6 +235,8 @@ export function MainLayout() {
   }, [isLegacyOrIncomplete, userConfig]);
 
   const prevPathRef = useRef(location.pathname);
+  const closedByClickRef = useRef<Record<string, boolean>>({});
+
   // Auto-expand category if current route is inside it upon navigation
   useEffect(() => {
     if (prevPathRef.current !== location.pathname) {
@@ -293,11 +295,24 @@ export function MainLayout() {
       });
       return;
     }
-    setOpenCategories(prev => {
-      const next = { ...prev, [catId]: !prev[catId] };
-      try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(next)); } catch (e) {}
-      return next;
-    });
+
+    const isCurrentlyOpen = !!openCategories[catId] || hoveredCategory === catId;
+    if (isCurrentlyOpen) {
+      // Cierre inmediato al hacer click: evita que el hover mantenga abierta la categoría mientras el cursor siga encima
+      closedByClickRef.current[catId] = true;
+      setOpenCategories(prev => {
+        const next = { ...prev, [catId]: false };
+        try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    } else {
+      delete closedByClickRef.current[catId];
+      setOpenCategories(prev => {
+        const next = { ...prev, [catId]: true };
+        try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    }
   };
 
   return (
@@ -563,11 +578,22 @@ export function MainLayout() {
                   if (item.type === "category") {
                     const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
                     const isOpen = !!openCategories[item.id];
+                    const isHovered = hoveredCategory === item.id && !closedByClickRef.current[item.id];
+                    const isVisible = isOpen || isHovered;
 
                     return (
                       <div
                         key={item.id}
                         className="space-y-1.5 my-2 relative"
+                        onMouseEnter={() => {
+                          if (!closedByClickRef.current[item.id]) {
+                            setHoveredCategory(item.id);
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          delete closedByClickRef.current[item.id];
+                          setHoveredCategory((prev) => (prev === item.id ? null : prev));
+                        }}
                       >
                         <button
                           type="button"
@@ -576,7 +602,7 @@ export function MainLayout() {
                           }}
                           className={cn(
                             "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2.5 px-3 py-2 cursor-pointer",
-                            hasActiveChild || isOpen
+                            hasActiveChild || isVisible
                               ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                               : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40"
                           )}
@@ -588,11 +614,11 @@ export function MainLayout() {
                             <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
                           </div>
                           <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
-                          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-150 stroke-[3]", isOpen && "rotate-180")} />
+                          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-150 stroke-[3]", isVisible && "rotate-180")} />
                         </button>
 
                         {/* Regular expanded category list in normal sidebar */}
-                        {isOpen && item.items && (
+                        {isVisible && item.items && (
                           <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                             {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
                           </div>
