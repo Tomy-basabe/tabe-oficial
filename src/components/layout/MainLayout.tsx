@@ -234,24 +234,28 @@ export function MainLayout() {
     return ensureTabeAISecond(raw);
   }, [isLegacyOrIncomplete, userConfig]);
 
-  // Auto-expand category if current route is inside it
+  const prevPathRef = useRef(location.pathname);
+  // Auto-expand category if current route is inside it upon navigation
   useEffect(() => {
-    let hasChanges = false;
-    let nextCategories = { ...openCategories };
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      let hasChanges = false;
+      let nextCategories = { ...openCategories };
 
-    displayItems.forEach((item: any) => {
-      if (item.type === "category" && item.items) {
-        const isInside = item.items.some((sub: any) => (sub.path || sub.id) === location.pathname);
-        if (isInside && !nextCategories[item.id]) {
-          nextCategories[item.id] = true;
-          hasChanges = true;
+      displayItems.forEach((item: any) => {
+        if (item.type === "category" && item.items) {
+          const isInside = item.items.some((sub: any) => (sub.path || sub.id) === location.pathname);
+          if (isInside && !nextCategories[item.id]) {
+            nextCategories[item.id] = true;
+            hasChanges = true;
+          }
         }
-      }
-    });
+      });
 
-    if (hasChanges) {
-      setOpenCategories(nextCategories);
-      try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(nextCategories)); } catch (e) {}
+      if (hasChanges) {
+        setOpenCategories(nextCategories);
+        try { localStorage.setItem("tabe-sidebar-categories-open", JSON.stringify(nextCategories)); } catch (e) {}
+      }
     }
   }, [location.pathname, displayItems]);
 
@@ -272,6 +276,11 @@ export function MainLayout() {
     try {
       ComicAudio.playPop();
     } catch (e) {}
+    setHoveredCategory(null);
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
     if (isCollapsed) {
       setIsCollapsed(false);
       try {
@@ -554,32 +563,20 @@ export function MainLayout() {
                   if (item.type === "category") {
                     const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
                     const isOpen = !!openCategories[item.id];
-                    const isHovered = hoveredCategory === item.id;
-                    const isVisible = isOpen || isHovered;
 
                     return (
                       <div
                         key={item.id}
                         className="space-y-1.5 my-2 relative"
-                        onMouseEnter={() => {
-                          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                          setHoveredCategory(item.id);
-                        }}
-                        onMouseLeave={() => {
-                          hoverTimeoutRef.current = setTimeout(() => {
-                            setHoveredCategory((prev) => (prev === item.id ? null : prev));
-                          }, 200);
-                        }}
                       >
                         <button
                           type="button"
                           onClick={() => {
-                            ComicAudio.playPop();
                             toggleCategory(item.id);
                           }}
                           className={cn(
-                            "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2.5 px-3 py-2",
-                            hasActiveChild || isVisible
+                            "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2.5 px-3 py-2 cursor-pointer",
+                            hasActiveChild || isOpen
                               ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
                               : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40"
                           )}
@@ -591,11 +588,11 @@ export function MainLayout() {
                             <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
                           </div>
                           <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
-                          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-200 stroke-[3]", isVisible && "rotate-180")} />
+                          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-150 stroke-[3]", isOpen && "rotate-180")} />
                         </button>
 
                         {/* Regular expanded category list in normal sidebar */}
-                        {isVisible && item.items && (
+                        {isOpen && item.items && (
                           <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                             {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
                           </div>
