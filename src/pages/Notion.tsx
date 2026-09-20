@@ -26,6 +26,7 @@ import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { useFriends } from "@/hooks/useFriends";
 import { useAchievements } from "@/hooks/useAchievements";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { TabeLogo } from "@/components/ui/TabeLogo";
 import { JSONContent } from "@tiptap/core";
 import { tipTapTemplates, TipTapTemplate } from "@/lib/tipTapTemplates";
 import { ensureTipTapFormat } from "@/lib/contentMigration";
@@ -223,22 +224,23 @@ const GalleryCard = ({
         <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full relative">
-            {/* Simulated mini page header line */}
-            <div className="w-12 h-2 bg-foreground mb-3" />
-            
             {textSnippet ? (
-               <div className="opacity-80">
-                 <p className="text-[11px] text-foreground font-bold leading-[1.7] line-clamp-5 text-left">
-                   {textSnippet}
-                 </p>
-               </div>
+              <>
+                {/* Simulated mini page header line */}
+                <div className="w-12 h-2 bg-foreground mb-3" />
+                <div className="opacity-80">
+                  <p className="text-[11px] text-foreground font-bold leading-[1.7] line-clamp-5 text-left">
+                    {textSnippet}
+                  </p>
+                </div>
+                {/* Gradient fade to hide text bottom */}
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+              </>
             ) : (
-              <div className="w-full h-full flex mt-4 justify-center">
-                 <span className="text-foreground text-[10px] uppercase font-black tracking-widest border-2 border-dashed border-foreground px-3 py-1 bg-muted h-fit">Vacío</span>
+              <div className="w-full h-full flex items-center justify-center">
+                <TabeLogo size={52} className="opacity-40 group-hover:opacity-85 group-hover:scale-110 transition-all duration-300 drop-shadow-sm select-none" />
               </div>
             )}
-            {/* Gradient fade to hide text bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card to-transparent" />
           </div>
         )}
       </div>
