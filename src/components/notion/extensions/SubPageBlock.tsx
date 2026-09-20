@@ -19,20 +19,31 @@ declare module "@tiptap/core" {
 const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
   const title = node.attrs.title || "Sin título";
   const pageId = node.attrs.pageId;
+  const blockId = node.attrs.blockId || React.useMemo(() => crypto.randomUUID(), []);
   const containerRef = React.useRef<HTMLDivElement>(null);
+
+  // Initialize blockId if missing
+  React.useEffect(() => {
+    if (!node.attrs.blockId && blockId) {
+      updateAttributes({ blockId });
+    }
+  }, [node.attrs.blockId, blockId, updateAttributes]);
 
   // Listen for the creation event to update this block's pageId
   React.useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      // Match by title if this block has no pageId yet
-      if (!node.attrs.pageId && detail?.oldTitle === node.attrs.title && detail?.newPageId) {
+      const matchesBlockId = detail?.blockId && detail.blockId === (node.attrs.blockId || blockId);
+      const matchesOldPageId = detail?.oldPageId && node.attrs.pageId === detail.oldPageId;
+      const matchesTitle = !node.attrs.pageId && detail?.oldTitle === node.attrs.title;
+
+      if ((matchesBlockId || matchesOldPageId || matchesTitle) && detail?.newPageId) {
         updateAttributes({ pageId: detail.newPageId });
       }
     };
     document.addEventListener("notion-subpage-created", handler);
     return () => document.removeEventListener("notion-subpage-created", handler);
-  }, [node.attrs.pageId, node.attrs.title, updateAttributes]);
+  }, [node.attrs.pageId, node.attrs.title, node.attrs.blockId, blockId, updateAttributes]);
 
   React.useEffect(() => {
     const el = containerRef.current;
@@ -43,7 +54,7 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
       e.stopPropagation();
       
       const event = new CustomEvent("notion-subpage-click", {
-        detail: { pageId: node.attrs.pageId, title },
+        detail: { pageId: node.attrs.pageId, title, blockId: node.attrs.blockId || blockId },
         bubbles: true,
       });
       document.dispatchEvent(event);
@@ -51,7 +62,7 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
 
     el.addEventListener("click", handleClick);
     return () => el.removeEventListener("click", handleClick);
-  }, [node.attrs.pageId, title]);
+  }, [node.attrs.pageId, node.attrs.blockId, title, blockId]);
 
   return (
     <NodeViewWrapper className="notion-subpage-wrapper" contentEditable={false}>
@@ -85,6 +96,11 @@ export const SubPage = Node.create({
         default: null,
         parseHTML: (element) => element.getAttribute("data-page-id"),
         renderHTML: (attributes) => ({ "data-page-id": attributes.pageId }),
+      },
+      blockId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-block-id"),
+        renderHTML: (attributes) => attributes.blockId ? ({ "data-block-id": attributes.blockId }) : {},
       },
     };
   },

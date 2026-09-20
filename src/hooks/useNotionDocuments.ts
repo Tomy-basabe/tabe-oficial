@@ -253,6 +253,7 @@ export function useNotionDocuments() {
       return false;
     }
 
+    contentCacheRef.current.delete(id);
     setDocuments(prev => prev.filter(doc => doc.id !== id && doc.parent_id !== id));
     toast.success("Documento eliminado");
     return true;

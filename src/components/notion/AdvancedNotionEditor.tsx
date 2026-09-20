@@ -63,7 +63,7 @@ interface AdvancedNotionEditorProps {
   content: any;
   onUpdate: (content: any) => void;
   onActivity?: () => void;
-  onSubPageClick?: (pageId: string | null, title: string) => void;
+  onSubPageClick?: (pageId: string | null, title: string, blockId?: string | null) => void;
   placeholder?: string;
   documentId?: string;
   readOnly?: boolean;
@@ -470,7 +470,7 @@ export function AdvancedNotionEditor({
     const handleSubPageClick = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.pageId || detail?.title) {
-        onSubPageClick(detail.pageId, detail.title);
+        onSubPageClick(detail.pageId, detail.title, detail.blockId);
       }
     };
     document.addEventListener("notion-subpage-click", handleSubPageClick);

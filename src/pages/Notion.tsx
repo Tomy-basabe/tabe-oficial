@@ -1238,6 +1238,7 @@ export default function Notion() {
       setActiveDocument(null);
       setEditorContent(null);
     }
+    setOpenTabs(prev => prev.filter(t => t.id !== docToDelete.id));
     setShowDeleteModal(false);
     setDocToDelete(null);
   }, [docToDelete, activeDocument, deleteDocument]);
@@ -1860,40 +1861,34 @@ export default function Notion() {
                   readOnly={activeDocument?.user_id !== user?.id}
                   onEditorReady={setTiptapEditorInstance}
                   onActivity={() => lastActivityRef.current = Date.now()}
-                  onSubPageClick={async (pageId, pageTitle) => {
-                      let target = pageId ? documents.find(d => d.id === pageId) : null;
-                      if (!target && pageId) {
-                        const { data } = await supabase
-                          .from("notion_documents")
-                          .select("*")
-                          .eq("id", pageId)
-                          .maybeSingle();
-                        if (data) target = data as NotionDocument;
+                  onSubPageClick={async (pageId, pageTitle, blockId) => {
+                      // 1. If pageId is provided, open that specific document
+                      if (pageId) {
+                        let target = documents.find(d => d.id === pageId);
+                        if (!target) {
+                          const { data } = await supabase
+                            .from("notion_documents")
+                            .select("*")
+                            .eq("id", pageId)
+                            .maybeSingle();
+                          if (data) target = data as NotionDocument;
+                        }
+                        if (target) {
+                          openDocument(target);
+                          return;
+                        }
                       }
 
+                      // 2. If pageId is null (or the document was deleted and not found in DB),
+                      // ALWAYS create a brand new, empty document!
+                      // NEVER search or reuse existing documents by title.
                       const parent = activeDocumentRef.current;
                       const parentId = parent?.id || null;
-
-                      // Fallback: If not found by pageId, look for an existing subpage under this parent with the same title!
-                      if (!target && parentId && pageTitle) {
-                        const titleNorm = pageTitle.trim().toLowerCase();
-                        const matching = documents.filter(d => 
-                          d.parent_id === parentId && 
-                          d.titulo?.trim().toLowerCase() === titleNorm
-                        );
-                        // Prefer candidate with content if available
-                        target = matching.find(d => d.contenido && JSON.stringify(d.contenido).length > 100) || matching[0] || null;
-                      }
-
-                      if (target) {
-                        openDocument(target);
-                        return;
-                      }
                       const subjectId = parent?.subject_id || "";
                       const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
                       if (newDoc) {
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {
-                          detail: { oldTitle: pageTitle, newPageId: newDoc.id },
+                          detail: { oldTitle: pageTitle, oldPageId: pageId, newPageId: newDoc.id, blockId },
                         }));
                         await new Promise(resolve => setTimeout(resolve, 50));
                         if (parent && isDirtyRef.current) {
