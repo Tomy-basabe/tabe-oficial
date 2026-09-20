@@ -151,7 +151,6 @@ const GalleryCard = ({
   return (
     <div 
       onClick={() => onClick(doc)}
-      onMouseEnter={() => onHover?.(doc)}
       className="group flex flex-col bg-card border-4 border-foreground rounded-none overflow-hidden transition-all duration-300 cursor-pointer shadow-[8px_8px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-x-[4px] hover:translate-y-[4px] h-[300px]"
     >
       {/* Top Area: Cover Image or Content Snippet */}
@@ -906,9 +905,9 @@ export default function Notion() {
         totalSecondsRef.current += 1;
         setSessionSeconds(totalSecondsRef.current);
 
-        // Auto-save time to DB every 60 seconds
+        // Auto-save time to DB every 5 minutes (300s) to avoid hammering database egress
         const unsaved = totalSecondsRef.current - savedSecondsRef.current;
-        if (unsaved >= 60) {
+        if (unsaved >= 300) {
           const doc = activeDocumentRef.current;
           if (doc) {
             handleSaveTime(unsaved, doc.id, doc.subject_id || undefined);
@@ -2065,7 +2064,6 @@ export default function Notion() {
                           setDocToDelete(d);
                           setShowDeleteModal(true);
                         }}
-                        onHover={(d) => prefetchDocumentContent(d.id)}
                         currentUserId={user?.id}
                         onImportFriendDoc={(d) => {
                           setPreselectedFriendNote({

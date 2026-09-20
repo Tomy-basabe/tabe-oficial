@@ -328,20 +328,10 @@ export function useNotionDocuments() {
     }
   };
 
-  // Prefetch content on hover (fire-and-forget, cache only - no re-render)
-  const prefetchDocumentContent = (docId: string) => {
-    if (contentCacheRef.current.has(docId)) return; // Already cached
-    // Fire and forget - just populate cache, don't trigger state update
-    supabase
-      .from("notion_documents")
-      .select("contenido")
-      .eq("id", docId)
-      .single()
-      .then(({ data, error }) => {
-        if (!error && data?.contenido) {
-          contentCacheRef.current.set(docId, data.contenido);
-        }
-      });
+  // Prefetch content on hover (Disabled to prevent heavy egress bills from Supabase)
+  const prefetchDocumentContent = (_docId: string) => {
+    // Content is loaded lazily on explicit document click/open
+    return;
   };
 
   return {

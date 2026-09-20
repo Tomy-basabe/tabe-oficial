@@ -32,6 +32,14 @@ interface UseRealtimeSubscriptionOptions {
   enabled?: boolean;
 }
 
+// Only tables that require live multi-user collaboration should maintain active WebSockets.
+// Private single-user tables (user_stats, study_sessions, etc.) are managed by local state
+// and mutations to save bandwidth and prevent high egress bills from Supabase.
+const REALTIME_ALLOWED_TABLES: Set<TableName> = new Set([
+  "study_rooms",
+  "room_participants",
+]);
+
 export function useRealtimeSubscription({
   table,
   filter,
@@ -58,7 +66,8 @@ export function useRealtimeSubscription({
   }, [onChange, onInsert, onUpdate, onDelete]);
 
   useEffect(() => {
-    if (!enabled) return;
+    // Skip subscription for single-user tables to save massive egress bandwidth
+    if (!enabled || !REALTIME_ALLOWED_TABLES.has(table)) return;
 
     // Use a unique suffix per subscription instance to prevent channel cross-cleanup
     const channelName = `realtime-${table}-${filter || "all"}-${Math.random().toString(36).slice(2, 7)}`;

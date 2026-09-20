@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "./useSubjects";
-import { useRealtimeSubscription } from "./useRealtimeSubscription";
 import { toLocalDateStr } from "@/lib/utils";
 
 interface StudySession {
@@ -105,6 +104,40 @@ let _cachedUserStats: UserStats | null = null;
 let _cachedStudySessions: StudySession[] | null = null;
 let _cachedStatsUserId: string | null = null;
 
+const DASHBOARD_STATS_CACHE_KEY = "tabe_dashboard_stats_cache";
+const STATS_CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+interface StoredDashboardStats {
+  userId: string;
+  timestamp: number;
+  userStats: UserStats;
+  studySessions: StudySession[];
+}
+
+function getStoredDashboardStats(userId: string): StoredDashboardStats | null {
+  try {
+    const raw = localStorage.getItem(DASHBOARD_STATS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed: StoredDashboardStats = JSON.parse(raw);
+    if (parsed && parsed.userId === userId && parsed.userStats) {
+      return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function setStoredDashboardStats(userId: string, userStats: UserStats, studySessions: StudySession[]) {
+  try {
+    const payload: StoredDashboardStats = {
+      userId,
+      timestamp: Date.now(),
+      userStats,
+      studySessions,
+    };
+    localStorage.setItem(DASHBOARD_STATS_CACHE_KEY, JSON.stringify(payload));
+  } catch (e) {}
+}
+
 export function useDashboardStats() {
   const { user, isGuest } = useAuth();
   const { subjects } = useSubjects();
@@ -116,12 +149,19 @@ export function useDashboardStats() {
     _cachedStatsUserId = user.id;
   }
 
+  // Check persistent cache in localStorage
+  const dailyCache = user ? getStoredDashboardStats(user.id) : null;
+  const isDailyCacheFresh = dailyCache !== null && (Date.now() - dailyCache.timestamp < STATS_CACHE_TTL_MS);
+
+  if (!_cachedUserStats && isDailyCacheFresh && dailyCache) {
+    _cachedUserStats = dailyCache.userStats;
+    _cachedStudySessions = dailyCache.studySessions;
+  }
+
   const [userStats, setUserStats] = useState<UserStats | null>(_cachedUserStats);
   const [studySessions, setStudySessions] = useState<StudySession[]>(_cachedStudySessions || []);
-  const [loading, setLoading] = useState<boolean>(!_cachedUserStats);
-
+  const [loading, setLoading] = useState<boolean>(!_cachedUserStats && !isDailyCacheFresh);
   const hasAutoHealedStreak = useRef(false);
-  const realtimeDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchStats = useCallback(async (showLoading = !_cachedUserStats) => {
     if (!user && !isGuest) {
@@ -239,6 +279,9 @@ export function useDashboardStats() {
 
       _cachedUserStats = mergedStats;
       _cachedStudySessions = sessionsData;
+      if (user) {
+        setStoredDashboardStats(user.id, mergedStats, sessionsData);
+      }
       setUserStats(mergedStats);
       setStudySessions(sessionsData);
     } catch (error) {
@@ -250,30 +293,14 @@ export function useDashboardStats() {
   }, [user, isGuest]);
 
   useEffect(() => {
+    const daily = user ? getStoredDashboardStats(user.id) : null;
+    const fresh = daily !== null && (Date.now() - daily.timestamp < STATS_CACHE_TTL_MS);
+    if (fresh) {
+      setLoading(false);
+      return;
+    }
     fetchStats(!_cachedUserStats);
-  }, [fetchStats]);
-
-  const debouncedFetchStats = useCallback(() => {
-    if (realtimeDebounceTimer.current) clearTimeout(realtimeDebounceTimer.current);
-    realtimeDebounceTimer.current = setTimeout(() => {
-      fetchStats(false);
-    }, 500);
-  }, [fetchStats]);
-
-  // Realtime subscriptions with debouncing and user scoping
-  useRealtimeSubscription({
-    table: "user_stats",
-    filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: debouncedFetchStats,
-    enabled: !!user,
-  });
-
-  useRealtimeSubscription({
-    table: "study_sessions",
-    filter: user ? `user_id=eq.${user.id}` : undefined,
-    onChange: debouncedFetchStats,
-    enabled: !!user,
-  });
+  }, [fetchStats, user]);
 
   // Calculate subject statistics
   const subjectStats = {
