@@ -227,5 +227,50 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
     cleaned.splice(1, 0, tabeAIItem);
   }
 
+  // Ensure /tareas is present in the sidebar
+  const hasItemRecursively = (list: CustomSidebarItem[], targetPath: string): boolean => {
+    return list.some(item => {
+      const p = item.path || item.id;
+      if (p === targetPath || item.id === `item-${targetPath}`) return true;
+      if (item.items && item.items.length > 0) return hasItemRecursively(item.items, targetPath);
+      return false;
+    });
+  };
+
+  if (!hasItemRecursively(cleaned, "/tareas")) {
+    const tareasItem: CustomSidebarItem = {
+      id: "item-/tareas",
+      path: "/tareas",
+      label: "Tareas",
+      type: "item",
+      iconName: "CheckSquare"
+    };
+
+    // Find "Productividad" or "Organización" category (id: "cat-organizacion")
+    const orgCat = cleaned.find(i => 
+      i.type === "category" && 
+      (i.id === "cat-organizacion" || 
+       i.label?.toLowerCase().includes("productividad") || 
+       i.label?.toLowerCase().includes("organiza") ||
+       (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/pomodoro" || (sub.path || sub.id) === "/calendario" || (sub.path || sub.id) === "/rutinas")))
+    );
+
+    if (orgCat && orgCat.items) {
+      const pomodoroIdx = orgCat.items.findIndex((sub: any) => (sub.path || sub.id) === "/pomodoro" || sub.id === "item-/pomodoro");
+      if (pomodoroIdx !== -1) {
+        orgCat.items.splice(pomodoroIdx + 1, 0, tareasItem);
+      } else {
+        orgCat.items.push(tareasItem);
+      }
+    } else {
+      const firstCat = cleaned.find(i => i.type === "category" && i.items);
+      if (firstCat && firstCat.items) {
+        firstCat.items.push(tareasItem);
+      } else {
+        cleaned.push(tareasItem);
+      }
+    }
+  }
+
   return cleaned;
 }

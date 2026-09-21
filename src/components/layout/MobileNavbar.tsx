@@ -21,7 +21,8 @@ import {
   Compass, 
   LayoutGrid, 
   X, 
-  ChevronUp
+  ChevronUp,
+  CheckSquare
 } from "lucide-react";
 import { NotionIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
@@ -82,6 +83,7 @@ export const ALL_MOBILE_NAV_ITEMS: {
     items: [
       { icon: Calendar, label: "Calendario", path: "/calendario", color: "text-[#FF6600]", bgActive: "bg-[#FF6600] text-white" },
       { icon: Timer, label: "Pomodoro", path: "/pomodoro", color: "text-[#FF2E93]", bgActive: "bg-[#FF2E93] text-white" },
+      { icon: CheckSquare, label: "Tareas", path: "/tareas", color: "text-[#10B981]", bgActive: "bg-[#10B981] text-white" },
       { icon: Repeat2, label: "Rutinas", path: "/rutinas", color: "text-[#3B82F6]", bgActive: "bg-[#3B82F6] text-white" },
       { icon: BarChart3, label: "Métricas", path: "/metricas", color: "text-[#EC4899]", bgActive: "bg-[#EC4899] text-white" },
     ]

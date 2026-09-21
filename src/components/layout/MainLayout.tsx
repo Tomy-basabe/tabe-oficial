@@ -234,6 +234,22 @@ export function MainLayout() {
     return ensureTabeAISecond(raw);
   }, [isLegacyOrIncomplete, userConfig]);
 
+  // Sync missing essential items (like /tareas) to local storage if user had an older saved config
+  useEffect(() => {
+    try {
+      const local = localStorage.getItem("tabe-custom-sidebar-config");
+      if (local && displayItems && displayItems.length > 0) {
+        const parsed = JSON.parse(local);
+        const hasTareas = parsed?.some((i: any) => 
+          (i.path || i.id) === "/tareas" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/tareas"))
+        );
+        if (!hasTareas) {
+          localStorage.setItem("tabe-custom-sidebar-config", JSON.stringify(displayItems));
+        }
+      }
+    } catch (e) {}
+  }, [displayItems]);
+
   const prevPathRef = useRef(location.pathname);
   const closedByClickRef = useRef<Record<string, boolean>>({});
 
