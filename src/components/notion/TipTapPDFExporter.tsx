@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Download, Loader2, Library, ChevronDown, FileText, Sparkles, Check, Settings2, BookOpen } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Download, Loader2, Library, ChevronDown, FileText, Sparkles, Check, Settings2, BookOpen, X, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { JSONContent } from "@tiptap/core";
@@ -95,6 +95,35 @@ function cleanTextForPdf(text: string): string {
 }
 
 /**
+ * Cede el control de ejecución al event loop del navegador de manera cooperativa.
+ * Esto permite que el navegador procese entradas del usuario (clicks, scroll, teclado),
+ * dibuje a 60 FPS y ejecute microtareas mientras la exportación avanza en segundo plano.
+ */
+function yieldToMainThread(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(() => setTimeout(resolve, 0));
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
+/**
+ * Cuenta la cantidad total aproximada de nodos para calcular el porcentaje de progreso.
+ */
+function countTotalNodes(nodes: JSONContent[]): number {
+  let count = 0;
+  for (const n of nodes) {
+    count++;
+    if (n.content && Array.isArray(n.content)) {
+      count += countTotalNodes(n.content);
+    }
+  }
+  return count;
+}
+
+/**
  * Renderiza emojis a imagen PNG para que no se corrompan en jsPDF.
  */
 function renderEmojiToDataUrl(emoji: string): string | null {
@@ -116,47 +145,106 @@ function renderEmojiToDataUrl(emoji: string): string | null {
 }
 
 /**
- * Comprime y redimensiona una imagen para que el PDF no sea excesivamente pesado.
- * Reduce fotos gigantes a un tamaño óptimo para A4 (máx 1000px) y formato JPEG 80%.
+ * Comprime y redimensiona una imagen o Blob para que el PDF no sea excesivamente pesado ni trabe la memoria.
+ * Reduce fotos gigantes a un tamaño óptimo para A4 (máx 850px) y formato JPEG 72%.
  */
-function compressImageToDataUrl(
-  img: HTMLImageElement,
-  maxDim: number = 1000,
-  quality: number = 0.80
-): { dataUrl: string; width: number; height: number; format: "JPEG" } {
-  let w = img.naturalWidth || 800;
-  let h = img.naturalHeight || 600;
+async function compressImageSource(
+  source: Blob | HTMLImageElement,
+  maxDim: number = 850,
+  quality: number = 0.72
+): Promise<{ dataUrl: string; width: number; height: number; format: "JPEG" }> {
+  // 1. Usar createImageBitmap si la fuente es un Blob (asíncrono, súper veloz y no traba el hilo de UI)
+  if (typeof createImageBitmap !== "undefined" && source instanceof Blob) {
+    try {
+      const bitmap = await createImageBitmap(source);
+      let w = bitmap.width;
+      let h = bitmap.height;
 
-  if (w > maxDim || h > maxDim) {
-    if (w > h) {
-      h = Math.round((h * maxDim) / w);
-      w = maxDim;
-    } else {
-      w = Math.round((w * maxDim) / h);
-      h = maxDim;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(bitmap, 0, 0, w, h);
+
+      // Liberar de inmediato la memoria nativa del bitmap
+      bitmap.close?.();
+
+      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      return { dataUrl, width: w, height: h, format: "JPEG" };
+    } catch {
+      // Continuar al fallback
     }
   }
 
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(img, 0, 0, w, h);
+  // 2. Si es HTMLImageElement
+  if (source instanceof HTMLImageElement) {
+    let w = source.naturalWidth || 800;
+    let h = source.naturalHeight || 600;
 
-  const dataUrl = canvas.toDataURL("image/jpeg", quality);
-  return { dataUrl, width: w, height: h, format: "JPEG" };
+    if (w > maxDim || h > maxDim) {
+      if (w > h) {
+        h = Math.round((h * maxDim) / w);
+        w = maxDim;
+      } else {
+        w = Math.round((w * maxDim) / h);
+        h = maxDim;
+      }
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(source, 0, 0, w, h);
+
+    const dataUrl = canvas.toDataURL("image/jpeg", quality);
+    return { dataUrl, width: w, height: h, format: "JPEG" };
+  }
+
+  throw new Error("Formato de imagen no compatible");
 }
 
 const imageCache = new Map<string, { dataUrl: string; width: number; height: number; format: "JPEG" }>();
 
 /**
- * Carga una imagen real y la comprime para incrustarla liviana en jsPDF.
- * Incluye optimizaciones de caché en memoria y reuso del DOM para velocidad instantánea.
+ * Combina señales de AbortSignal para cancelar peticiones pendientes si el usuario aborta.
  */
-async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width: number; height: number; format: "JPEG" } | null> {
+function mergeAbortSignals(signals: (AbortSignal | undefined)[]): AbortSignal {
+  const controller = new AbortController();
+  for (const sig of signals) {
+    if (!sig) continue;
+    if (sig.aborted) {
+      controller.abort();
+      break;
+    }
+    sig.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  return controller.signal;
+}
+
+/**
+ * Carga una imagen real y la comprime para incrustarla liviana en jsPDF sin saturar la RAM.
+ */
+async function fetchImageDataUrl(
+  src: string,
+  abortSignal?: AbortSignal
+): Promise<{ dataUrl: string; width: number; height: number; format: "JPEG" } | null> {
   if (!src) return null;
+  if (abortSignal?.aborted) return null;
   if (imageCache.has(src)) return imageCache.get(src)!;
 
   // 0. Si la imagen ya está cargada en el DOM de la aplicación, reusarla al instante sin red (0ms)
@@ -165,7 +253,7 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
       (img) => (img.src === src || img.currentSrc === src) && img.complete && img.naturalWidth > 0
     );
     if (existingImg) {
-      const res = compressImageToDataUrl(existingImg);
+      const res = await compressImageSource(existingImg);
       imageCache.set(src, res);
       return res;
     }
@@ -175,46 +263,52 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
 
   // 1. Data URL
   if (src.startsWith("data:image/")) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const res = compressImageToDataUrl(img);
-        imageCache.set(src, res);
-        resolve(res);
-      };
-      img.onerror = () => resolve(null);
-      img.src = src;
-    });
+    try {
+      const byteString = atob(src.split(",")[1] || "");
+      const mimeString = src.split(",")[0].split(":")[1].split(";")[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      const res = await compressImageSource(blob);
+      imageCache.set(src, res);
+      return res;
+    } catch {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = async () => {
+          try {
+            const res = await compressImageSource(img);
+            imageCache.set(src, res);
+            resolve(res);
+          } catch {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
   }
 
-  // 2. Fetch con timeout de 3.5 segundos para evitar cuelgues
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3500);
+  // 2. Fetch con timeout de 6 segundos y abortSignal para evitar cuelgues
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), 6000);
+  const combinedSignal = mergeAbortSignals([abortSignal, timeoutController.signal]);
 
   try {
-    const res = await fetch(src, { mode: "cors", signal: controller.signal });
+    const res = await fetch(src, { mode: "cors", signal: combinedSignal });
     clearTimeout(timeoutId);
     if (res.ok) {
       const blob = await res.blob();
-      const dataUrl = await new Promise<string>((resBlob, rejBlob) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resBlob(reader.result as string);
-        reader.onerror = rejBlob;
-        reader.readAsDataURL(blob);
-      });
-
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const compressed = compressImageToDataUrl(img);
-          imageCache.set(src, compressed);
-          resolve(compressed);
-        };
-        img.onerror = () => resolve(null);
-        img.src = dataUrl;
-      });
+      const compressed = await compressImageSource(blob);
+      imageCache.set(src, compressed);
+      return compressed;
     }
   } catch (err) {
+    if (abortSignal?.aborted) return null;
     console.warn("Fetch image failed, trying Image fallback:", err);
   } finally {
     clearTimeout(timeoutId);
@@ -224,9 +318,9 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => {
+    img.onload = async () => {
       try {
-        const res = compressImageToDataUrl(img);
+        const res = await compressImageSource(img);
         imageCache.set(src, res);
         resolve(res);
       } catch (e) {
@@ -436,12 +530,21 @@ function renderCodeBlockToImages(code: string, language: string = "text"): Rende
  * Motor de renderizado PDF directo con jsPDF.
  * Renderiza textos, resaltados, imágenes reales y bloques de código con total fidelidad.
  */
+interface PDFRendererOptions {
+  onProgress?: (percent: number, statusText: string) => void;
+  abortSignal?: AbortSignal;
+}
+
 class PDFRenderer {
   private doc: jsPDF;
   private y: number;
   private pageNum: number;
+  private onProgress?: (percent: number, statusText: string) => void;
+  private abortSignal?: AbortSignal;
+  private totalNodes: number = 1;
+  private processedNodes: number = 0;
 
-  constructor() {
+  constructor(options?: PDFRendererOptions) {
     this.doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -450,6 +553,19 @@ class PDFRenderer {
     });
     this.y = MARGIN_T;
     this.pageNum = 1;
+    this.onProgress = options?.onProgress;
+    this.abortSignal = options?.abortSignal;
+  }
+
+  private checkAbort() {
+    if (this.abortSignal?.aborted) {
+      throw new Error("EXPORT_CANCELLED");
+    }
+  }
+
+  private getCurrentProgressPct(): number {
+    if (this.totalNodes <= 0) return 10;
+    return Math.min(95, Math.max(5, Math.round((this.processedNodes / this.totalNodes) * 90) + 5));
   }
 
   /* ── Gestión de página ── */
@@ -645,16 +761,22 @@ class PDFRenderer {
 
   /* ── Encabezado del documento ── */
   async renderHeader(title: string, emoji: string, coverUrl?: string | null) {
+    this.checkAbort();
+    this.onProgress?.(5, "Iniciando encabezado y portada...");
+    await yieldToMainThread();
+
     // Portada si existe
     if (coverUrl) {
       try {
-        const coverImg = await fetchImageDataUrl(coverUrl);
+        const coverImg = await fetchImageDataUrl(coverUrl, this.abortSignal);
+        this.checkAbort();
         if (coverImg) {
           const coverH = 40;
           this.doc.addImage(coverImg.dataUrl, coverImg.format, MARGIN_L, this.y, CONTENT_W, coverH);
           this.y += coverH + 6;
         }
       } catch (e) {
+        if (this.abortSignal?.aborted) throw new Error("EXPORT_CANCELLED");
         console.warn("Cover image failed to load:", e);
       }
     }
@@ -692,9 +814,23 @@ class PDFRenderer {
     this.y += 8;
   }
 
-  /* ── Procesar nodos ── */
-  async processNodes(nodes: JSONContent[]) {
+  /* ── Procesar nodos con yielding cooperativo y reporte de progreso ── */
+  async processNodes(nodes: JSONContent[], isRoot: boolean = true) {
+    if (isRoot) {
+      this.totalNodes = Math.max(1, countTotalNodes(nodes));
+      this.processedNodes = 0;
+    }
+
     for (const node of nodes) {
+      this.checkAbort();
+      this.processedNodes++;
+
+      const pct = this.getCurrentProgressPct();
+      this.onProgress?.(pct, `Procesando contenido (${pct}%)...`);
+
+      // Ceder el hilo de ejecución al event loop para que el usuario pueda seguir usando la app sin trabas
+      await yieldToMainThread();
+
       await this.processNode(node);
     }
   }
@@ -741,7 +877,7 @@ class PDFRenderer {
         await this.renderImage(node);
         break;
       default:
-        if (node.content) await this.processNodes(node.content);
+        if (node.content) await this.processNodes(node.content, false);
         break;
     }
   }
@@ -908,6 +1044,7 @@ class PDFRenderer {
 
   /* ── Bloque de código con soporte para diagramas Mermaid y alta fidelidad gráfica ── */
   private async renderCodeBlock(node: JSONContent) {
+    this.checkAbort();
     const code = node.content?.[0]?.text || "";
     const language = node.attrs?.language || "text";
 
@@ -916,8 +1053,11 @@ class PDFRenderer {
     const isMermaid = language === "mermaid" || isMermaidSyntax;
 
     if (isMermaid && code.trim()) {
+      this.onProgress?.(this.getCurrentProgressPct(), "Renderizando diagrama...");
+      await yieldToMainThread();
       try {
         const diagram = await renderMermaidDiagramToImage(code);
+        this.checkAbort();
         if (diagram) {
           this.ensureSpace(diagram.heightMm + 6);
           const x = MARGIN_L + (CONTENT_W - diagram.widthMm) / 2;
@@ -926,6 +1066,7 @@ class PDFRenderer {
           return;
         }
       } catch (err) {
+        if (this.abortSignal?.aborted) throw new Error("EXPORT_CANCELLED");
         console.warn("Fallback to code block for mermaid:", err);
       }
     }
@@ -935,6 +1076,7 @@ class PDFRenderer {
     if (chunks.length === 0) return;
 
     for (const chunk of chunks) {
+      this.checkAbort();
       this.ensureSpace(chunk.heightMm + 4);
       this.doc.addImage(chunk.dataUrl, "JPEG", MARGIN_L, this.y, chunk.widthMm, chunk.heightMm);
       this.y += chunk.heightMm + 4;
@@ -1127,12 +1269,17 @@ class PDFRenderer {
 
   /* ── Renderizado de Imágenes Reales ── */
   private async renderImage(node: JSONContent) {
+    this.checkAbort();
     const src = node.attrs?.src;
     const alt = cleanTextForPdf(node.attrs?.alt || "");
     if (!src) return;
 
+    this.onProgress?.(this.getCurrentProgressPct(), "Optimizando imagen pesada...");
+    await yieldToMainThread();
+
     try {
-      const imgData = await fetchImageDataUrl(src);
+      const imgData = await fetchImageDataUrl(src, this.abortSignal);
+      this.checkAbort();
       if (!imgData) {
         this.renderImageFallback(alt || "Imagen adjunta");
         return;
@@ -1174,6 +1321,7 @@ class PDFRenderer {
         this.y += 2;
       }
     } catch (err) {
+      if (this.abortSignal?.aborted) throw new Error("EXPORT_CANCELLED");
       console.warn("Image rendering error in PDF:", err);
       this.renderImageFallback(alt || "Imagen adjunta");
     }
@@ -1208,6 +1356,16 @@ class PDFRenderer {
   }
 }
 
+interface BackgroundTaskState {
+  active: boolean;
+  title: string;
+  progress: number;
+  statusText: string;
+  isComplete: boolean;
+  error?: string | null;
+  abortController: AbortController | null;
+}
+
 export function TipTapPDFExporter({
   documentTitle,
   documentEmoji,
@@ -1223,6 +1381,31 @@ export function TipTapPDFExporter({
   const [showExportModal, setShowExportModal] = useState(false);
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
   const [pendingFile, setPendingFile] = useState<{ blob: Blob; fileName: string } | null>(null);
+
+  const [backgroundTask, setBackgroundTask] = useState<BackgroundTaskState | null>(null);
+  const activeTaskRef = useRef<BackgroundTaskState | null>(null);
+  activeTaskRef.current = backgroundTask;
+  const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
+  }, []);
+
+  const cancelExport = () => {
+    if (activeTaskRef.current?.abortController) {
+      activeTaskRef.current.abortController.abort();
+    }
+    setBackgroundTask(null);
+    setExporting(false);
+    toast.info("Descarga en segundo plano cancelada");
+  };
+
+  const dismissTask = () => {
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    setBackgroundTask(null);
+  };
 
   const uploadFile = async (blob: Blob, fileName: string, upsert: boolean) => {
     try {
@@ -1281,7 +1464,7 @@ export function TipTapPDFExporter({
       if (errMsg.toLowerCase().includes("exceeded") || errMsg.toLowerCase().includes("size") || errMsg.includes("413")) {
         toast.warning("El archivo es demasiado grande para la nube de la biblioteca. Se ha descargado automáticamente a tu equipo.");
         try {
-          const url = URL.createObjectURL(finalBlob);
+          const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
           a.download = `${fileName}.pdf`;
@@ -1323,17 +1506,56 @@ export function TipTapPDFExporter({
       return;
     }
 
+    if (backgroundTask?.active) {
+      toast.info("Ya hay una exportación en segundo plano en curso");
+      return;
+    }
+
+    // Cerrar el modal de inmediato para no bloquear la pantalla del usuario
+    setShowExportModal(false);
+
+    const abortController = new AbortController();
+    const taskTitle = documentTitle || "Apunte sin título";
+
+    setBackgroundTask({
+      active: true,
+      title: taskTitle,
+      progress: 5,
+      statusText: "Iniciando descarga en segundo plano...",
+      isComplete: false,
+      error: null,
+      abortController,
+    });
+
     setExporting(true);
     ComicAudio.playPop();
 
     try {
-      const renderer = new PDFRenderer();
+      const renderer = new PDFRenderer({
+        abortSignal: abortController.signal,
+        onProgress: (pct, status) => {
+          setBackgroundTask((prev) =>
+            prev && prev.active
+              ? { ...prev, progress: pct, statusText: status }
+              : prev
+          );
+        },
+      });
 
       // Header del documento (título, emoji y portada si existe)
       await renderer.renderHeader(documentTitle, documentEmoji, includeCover ? coverUrl : null);
 
-      // Renderizar todos los nodos del contenido asíncronamente
+      // Renderizar todos los nodos del contenido asíncronamente con yielding cooperativo
       await renderer.processNodes(content.content);
+
+      if (abortController.signal.aborted) {
+        throw new Error("EXPORT_CANCELLED");
+      }
+
+      setBackgroundTask((prev) =>
+        prev ? { ...prev, progress: 95, statusText: "Generando archivo PDF..." } : prev
+      );
+      await yieldToMainThread();
 
       const doc = renderer.finalize();
 
@@ -1346,6 +1568,11 @@ export function TipTapPDFExporter({
 
       // Si el usuario eligió guardar una copia en la biblioteca
       if (shouldSaveToLibrary && subjectId) {
+        setBackgroundTask((prev) =>
+          prev ? { ...prev, progress: 97, statusText: "Guardando copia en la nube..." } : prev
+        );
+        await yieldToMainThread();
+
         const pdfBlob = doc.output("blob");
 
         const { data: existingFiles } = await supabase.storage
@@ -1360,12 +1587,21 @@ export function TipTapPDFExporter({
         if (exists) {
           setPendingFile({ blob: pdfBlob, fileName });
           setShowOverwriteDialog(true);
-          // Si también correspondía descargar a la PC, descargamos el archivo de inmediato
           if (shouldDownload) {
             doc.save(`${fileName}.pdf`);
             ComicAudio.playPowerUp();
-            toast.success("💥 ¡BAM! Tu apunte se descargó exitosamente");
           }
+          setBackgroundTask((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  active: false,
+                  isComplete: true,
+                  progress: 100,
+                  statusText: "¡Descargado! Confirma la copia en biblioteca.",
+                }
+              : prev
+          );
           setExporting(false);
           return;
         } else {
@@ -1377,14 +1613,43 @@ export function TipTapPDFExporter({
       if (shouldDownload) {
         doc.save(`${fileName}.pdf`);
         ComicAudio.playPowerUp();
-        toast.success("💥 ¡BAM! Tu apunte se descargó exitosamente");
       }
 
-      setShowExportModal(false);
+      setBackgroundTask({
+        active: false,
+        title: taskTitle,
+        progress: 100,
+        statusText: "¡Descarga completada con éxito!",
+        isComplete: true,
+        error: null,
+        abortController: null,
+      });
+
+      toast.success("💥 ¡BAM! Tu apunte se descargó exitosamente");
       onExported?.();
-    } catch (error) {
-      console.error("Error exporting PDF:", error);
-      toast.error("Error al exportar el PDF: " + ((error as any)?.message || "Desconocido"));
+
+      // Auto-ocultar widget tras 5 segundos
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = setTimeout(() => {
+        setBackgroundTask(null);
+      }, 5000);
+    } catch (error: any) {
+      if (error?.message === "EXPORT_CANCELLED" || abortController.signal.aborted) {
+        console.log("PDF export was cancelled by user");
+        setBackgroundTask(null);
+      } else {
+        console.error("Error exporting PDF:", error);
+        setBackgroundTask({
+          active: false,
+          title: taskTitle,
+          progress: 0,
+          statusText: "Error: " + (error?.message || "Desconocido"),
+          isComplete: false,
+          error: error?.message || "Ocurrió un error al generar el PDF",
+          abortController: null,
+        });
+        toast.error("Error al exportar el PDF: " + (error?.message || "Desconocido"));
+      }
     } finally {
       setExporting(false);
     }
@@ -1394,14 +1659,20 @@ export function TipTapPDFExporter({
     <div className="flex items-center">
       {/* Comic styled PDF export button group */}
       <div className="inline-flex items-center rounded-lg border-2 border-black dark:border-white shadow-[2.5px_2.5px_0_0_#000] dark:shadow-[2.5px_2.5px_0_0_#fff] overflow-hidden transition-all hover:-translate-y-0.5 active:translate-y-0.5">
-        {/* Main button: DIRECT DOWNLOAD */}
+        {/* Main button: DIRECT BACKGROUND DOWNLOAD */}
         <button
           onClick={() => exportToPDF({ forceDownload: true })}
-          disabled={exporting}
-          title="Descargar PDF en tu equipo (1-click)"
+          disabled={exporting && !backgroundTask?.active}
+          title="Descargar PDF en tu equipo (Descarga en segundo plano)"
           className="flex items-center gap-1.5 px-3 py-1 bg-[#FFE600] hover:bg-[#FFD600] text-black font-black text-xs uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer select-none"
         >
-          {exporting ? (
+          {backgroundTask?.active ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin stroke-[2.5]" />
+              <span className="hidden sm:inline">Descargando ({backgroundTask.progress}%)</span>
+              <span className="sm:hidden">{backgroundTask.progress}%</span>
+            </>
+          ) : exporting ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin stroke-[2.5]" />
               <span className="hidden sm:inline">Generando...</span>
@@ -1421,7 +1692,7 @@ export function TipTapPDFExporter({
             ComicAudio.playPop();
             setShowExportModal(true);
           }}
-          disabled={exporting}
+          disabled={exporting && !backgroundTask?.active}
           title="Opciones de exportación cómic (portada, biblioteca)"
           className="px-1.5 py-1 bg-[#FFE600] hover:bg-[#FFD600] text-black border-l-2 border-black transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center"
         >
@@ -1447,7 +1718,7 @@ export function TipTapPDFExporter({
               💥 EXPORTAR APUNTE
             </DialogTitle>
             <DialogDescription className="text-black/80 font-bold text-xs uppercase mt-0.5">
-              Descargá tu apunte con estilo directo a tu dispositivo
+              Descargá tu apunte en segundo plano mientras seguís usando Tabe
             </DialogDescription>
           </div>
 
@@ -1463,7 +1734,7 @@ export function TipTapPDFExporter({
                 </h4>
                 <p className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mt-0.5">
                   <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block border border-black" />
-                  Listo para imprimir o compartir
+                  Descarga fluida sin trabas
                 </p>
               </div>
             </div>
@@ -1507,18 +1778,26 @@ export function TipTapPDFExporter({
               )}
             </div>
 
+            {/* Hint cómic no bloqueante */}
+            <div className="p-2.5 rounded-lg bg-muted/50 border border-black/10 dark:border-white/10 text-[11px] text-muted-foreground flex items-center gap-2">
+              <span className="text-base">⚡</span>
+              <span>
+                <strong>Descarga en segundo plano:</strong> Podés cerrar esta ventana y seguir leyendo o editando notas mientras tu archivo se prepara.
+              </span>
+            </div>
+
             {/* Action Buttons */}
             <div className="pt-2 space-y-2">
               <button
                 type="button"
                 onClick={() => exportToPDF({ forceDownload: true, forceLibrary: saveToLibrary })}
-                disabled={exporting}
+                disabled={exporting && !backgroundTask?.active}
                 className="w-full bg-[#FFE600] text-black hover:bg-[#FFD600] font-black text-sm uppercase py-3 border-2 border-black shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
               >
-                {exporting ? (
+                {backgroundTask?.active ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin stroke-[2.5]" />
-                    <span>¡GENERANDO TU PDF...!</span>
+                    <span>DESCARGANDO ({backgroundTask.progress}%)...</span>
                   </>
                 ) : (
                   <>
@@ -1532,7 +1811,7 @@ export function TipTapPDFExporter({
                 <button
                   type="button"
                   onClick={() => exportToPDF({ forceLibrary: true, forceDownload: false })}
-                  disabled={exporting}
+                  disabled={exporting && !backgroundTask?.active}
                   className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-black text-xs uppercase py-2.5 border-2 border-black dark:border-white shadow-[2.5px_2.5px_0_0_#000] dark:shadow-[2.5px_2.5px_0_0_#fff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
@@ -1586,6 +1865,123 @@ export function TipTapPDFExporter({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Widget Flotante de Descarga Cómic en Segundo Plano (Estilo Chrome / Google Docs) ─── */}
+      {backgroundTask && (
+        <div className="fixed bottom-5 right-5 z-[9999] max-w-sm w-[92vw] sm:w-96 pointer-events-auto transition-all duration-300 animate-in fade-in slide-in-from-bottom-4">
+          <div className="comic-panel bg-card border-[3px] border-black dark:border-white shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] overflow-hidden rounded-2xl">
+            {/* Header del widget con halftone cómic */}
+            <div
+              className={`relative px-4 py-2.5 border-b-[3px] border-black flex items-center justify-between overflow-hidden ${
+                backgroundTask.isComplete
+                  ? "bg-[#00FF66] text-black"
+                  : backgroundTask.error
+                  ? "bg-[#FF2E93] text-white"
+                  : "bg-[#FFE600] text-black"
+              }`}
+            >
+              <div className="absolute inset-0 comic-dots-overlay opacity-25 pointer-events-none" />
+              <div className="relative z-10 flex items-center gap-2">
+                {backgroundTask.isComplete ? (
+                  <CheckCircle2 className="w-4 h-4 stroke-[3]" />
+                ) : backgroundTask.error ? (
+                  <AlertCircle className="w-4 h-4 stroke-[3]" />
+                ) : (
+                  <Loader2 className="w-4 h-4 animate-spin stroke-[3]" />
+                )}
+                <span className="font-black text-xs uppercase tracking-wider">
+                  {backgroundTask.isComplete
+                    ? "¡Descarga Lista!"
+                    : backgroundTask.error
+                    ? "Error en descarga"
+                    : "Descarga en segundo plano"}
+                </span>
+              </div>
+
+              {/* Botón de cerrar o cancelar */}
+              <button
+                type="button"
+                onClick={backgroundTask.isComplete || backgroundTask.error ? dismissTask : cancelExport}
+                className="relative z-10 w-6 h-6 rounded-md bg-black/10 hover:bg-black/20 text-current flex items-center justify-center font-bold text-xs cursor-pointer transition-colors"
+                title={backgroundTask.isComplete ? "Cerrar notificación" : "Cancelar descarga"}
+              >
+                <X className="w-3.5 h-3.5 stroke-[3]" />
+              </button>
+            </div>
+
+            {/* Contenido del widget */}
+            <div className="p-4 space-y-3 bg-background">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-[#00E5FF] text-black border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center text-lg shrink-0 select-none">
+                  {documentEmoji || "📝"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h5 className="font-black text-xs text-foreground truncate">
+                    {backgroundTask.title}
+                  </h5>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mt-0.5">
+                    <span
+                      className={`w-2 h-2 rounded-full inline-block border border-black ${
+                        backgroundTask.isComplete
+                          ? "bg-[#00FF66]"
+                          : backgroundTask.error
+                          ? "bg-[#FF2E93]"
+                          : "bg-[#FFE600] animate-pulse"
+                      }`}
+                    />
+                    {backgroundTask.statusText}
+                  </p>
+                </div>
+                <span className="font-black text-xs text-foreground font-mono">
+                  {backgroundTask.progress}%
+                </span>
+              </div>
+
+              {/* Barra de progreso Cómic */}
+              <div className="relative w-full h-3.5 bg-muted rounded-full border-2 border-black dark:border-white overflow-hidden p-[1px]">
+                <div
+                  className={`h-full rounded-full transition-all duration-200 border-r border-black ${
+                    backgroundTask.isComplete
+                      ? "bg-[#00FF66]"
+                      : backgroundTask.error
+                      ? "bg-[#FF2E93]"
+                      : "bg-[#00E5FF]"
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(5, backgroundTask.progress))}%` }}
+                />
+              </div>
+
+              {/* Footer info o acciones */}
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-[10px] font-medium text-muted-foreground italic truncate max-w-[210px]">
+                  {backgroundTask.isComplete
+                    ? "🎉 Guardado en tu carpeta de descargas"
+                    : backgroundTask.error
+                    ? "Podés reintentar cuando gustes"
+                    : "⚡ Podés seguir usando Tabe con fluidez"}
+                </p>
+                {!backgroundTask.isComplete && !backgroundTask.error ? (
+                  <button
+                    type="button"
+                    onClick={cancelExport}
+                    className="text-[10px] font-black text-red-500 hover:text-red-600 uppercase underline cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={dismissTask}
+                    className="text-[10px] font-black text-foreground hover:underline uppercase cursor-pointer"
+                  >
+                    Cerrar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
