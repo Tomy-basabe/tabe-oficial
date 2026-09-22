@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { ComicBadge } from "@/components/comic/ComicBadge";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { sanitizeMermaidCode } from "./extensions/CodeBlockExtension";
+import { getIconById, TabeIconRenderer } from "./TabeIcons";
 
 interface TipTapPDFExporterProps {
   documentTitle: string;
@@ -124,10 +125,26 @@ function countTotalNodes(nodes: JSONContent[]): number {
 }
 
 /**
+ * Resuelve el identificador de icono de Tabe o emoji a un caracter Unicode válido para jsPDF.
+ * Ejemplo: "lightning" -> "⚡", "book" -> "📖", o conserva el emoji original.
+ */
+function resolveSafeEmoji(iconIdOrEmoji?: string | null): string {
+  if (!iconIdOrEmoji) return "📝";
+  const custom = getIconById(iconIdOrEmoji);
+  if (custom?.fallback) return custom.fallback;
+  if (iconIdOrEmoji === "lightning") return "⚡";
+  if (iconIdOrEmoji.length > 4 && !/\p{Emoji}/u.test(iconIdOrEmoji)) {
+    return "📝";
+  }
+  return iconIdOrEmoji;
+}
+
+/**
  * Renderiza emojis a imagen PNG para que no se corrompan en jsPDF.
  */
 function renderEmojiToDataUrl(emoji: string): string | null {
-  if (!emoji) return null;
+  const safeEmoji = resolveSafeEmoji(emoji);
+  if (!safeEmoji) return null;
   try {
     const canvas = document.createElement("canvas");
     canvas.width = 64;
@@ -137,7 +154,7 @@ function renderEmojiToDataUrl(emoji: string): string | null {
     ctx.font = "44px 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif";
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillText(emoji, 32, 35);
+    ctx.fillText(safeEmoji, 32, 35);
     return canvas.toDataURL("image/png");
   } catch {
     return null;
@@ -334,101 +351,185 @@ async function fetchImageDataUrl(
 }
 
 /**
+ * Convierte un SVG (elemento o string) a imagen JPEG de forma ultra rápida (10-30ms)
+ * usando Canvas nativo en vez de html2canvas. Esto evita por completo clonar el DOM
+ * y elimina los cuelgues en documentos de 90.000+ palabras.
+ */
+async function svgToDataUrl(
+  svgContent: SVGElement | string
+): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  try {
+    let svgString = typeof svgContent === "string"
+      ? svgContent
+      : new XMLSerializer().serializeToString(svgContent);
+
+    if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      svgString = svgString.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, "image/svg+xml");
+    const svgEl = doc.querySelector("svg");
+    if (!svgEl) return null;
+
+    const viewBox = svgEl.getAttribute("viewBox");
+    let width = 800;
+    let height = 600;
+
+    if (viewBox) {
+      const parts = viewBox.trim().split(/[\s,]+/).map(Number);
+      if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
+        width = parts[2];
+        height = parts[3];
+      }
+    } else {
+      const wAttr = parseFloat(svgEl.getAttribute("width") || "0");
+      const hAttr = parseFloat(svgEl.getAttribute("height") || "0");
+      if (wAttr > 0 && hAttr > 0) {
+        width = wAttr;
+        height = hAttr;
+      }
+    }
+
+    const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    return await new Promise((resolve) => {
+      const img = new Image();
+      const timeout = setTimeout(() => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      }, 2500);
+
+      img.onload = () => {
+        clearTimeout(timeout);
+        try {
+          const scale = 2;
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.min(2200, Math.max(300, Math.round(width * scale)));
+          canvas.height = Math.min(2200, Math.max(200, Math.round(height * scale)));
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            URL.revokeObjectURL(url);
+            resolve(null);
+            return;
+          }
+
+          ctx.fillStyle = "#18181b";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          URL.revokeObjectURL(url);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
+          resolve({ dataUrl, width: canvas.width, height: canvas.height });
+        } catch {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        }
+      };
+
+      img.onerror = () => {
+        clearTimeout(timeout);
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+
+      img.src = url;
+    });
+  } catch (err) {
+    console.warn("svgToDataUrl error:", err);
+    return null;
+  }
+}
+
+/**
  * Renderiza diagramas Mermaid a imagen de alta resolución para incrustar en el PDF.
- * Soporta diagramas ya visibles en el DOM (renderizado instantáneo)
- * o renderizado offscreen si no se encuentra en el DOM.
+ * Procesa SVG de forma nativa sin html2canvas, con timeout estricto de 3.5 segundos
+ * para asegurar que nunca se congele el proceso.
  */
 async function renderMermaidDiagramToImage(
-  code: string
+  code: string,
+  abortSignal?: AbortSignal
 ): Promise<{ dataUrl: string; widthMm: number; heightMm: number } | null> {
   if (!code || !code.trim()) return null;
+  if (abortSignal?.aborted) return null;
 
-  try {
-    const cleanCode = sanitizeMermaidCode(code);
-    const html2canvas = (await import("html2canvas")).default;
+  const renderPromise = (async () => {
+    try {
+      const cleanCode = sanitizeMermaidCode(code);
 
-    // 1. Intentar capturar desde el DOM del editor si ya está renderizado (súper veloz, <25ms)
-    const mermaidContainers = Array.from(document.querySelectorAll(".mermaid-rendered"));
-    for (const container of mermaidContainers) {
-      const svg = container.querySelector("svg");
-      if (svg) {
-        const parentBlock = container.closest(".code-block-wrapper");
-        const codeText = parentBlock?.querySelector("pre code")?.textContent?.trim();
-        const rawText = parentBlock?.textContent || "";
-        if (
-          (codeText && (codeText === code.trim() || codeText === cleanCode)) ||
-          rawText.includes(cleanCode.slice(0, 30))
-        ) {
-          const canvas = await html2canvas(container as HTMLElement, {
-            backgroundColor: "#18181b",
-            scale: 2,
-            logging: false,
-            useCORS: true,
-          });
+      // 1. Intentar capturar desde el SVG ya renderizado en el DOM del editor (<10ms)
+      const mermaidContainers = Array.from(document.querySelectorAll(".mermaid-rendered"));
+      for (const container of mermaidContainers) {
+        if (abortSignal?.aborted) return null;
+        const svg = container.querySelector("svg");
+        if (svg) {
+          const parentBlock = container.closest(".code-block-wrapper");
+          const codeText = parentBlock?.querySelector("pre code")?.textContent?.trim();
+          const rawText = parentBlock?.textContent || "";
+          if (
+            (codeText && (codeText === code.trim() || codeText === cleanCode)) ||
+            rawText.includes(cleanCode.slice(0, 30))
+          ) {
+            const res = await svgToDataUrl(svg as SVGElement);
+            if (res) {
+              let widthMm = CONTENT_W;
+              let heightMm = (res.height / res.width) * widthMm;
+              const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
+              if (heightMm > maxH) {
+                heightMm = maxH;
+                widthMm = (res.width / res.height) * heightMm;
+              }
+              return { dataUrl: res.dataUrl, widthMm, heightMm };
+            }
+          }
+        }
+      }
 
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
+      // 2. Si no está en el DOM, renderizar con mermaid directamente offscreen (sin html2canvas)
+      if (abortSignal?.aborted) return null;
+      const mermaid = (await import("mermaid")).default;
+      const id = `mmd_pdf_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+
+      const tempContainer = document.createElement("div");
+      tempContainer.id = "c_" + id;
+      tempContainer.style.position = "fixed";
+      tempContainer.style.top = "-9999px";
+      tempContainer.style.left = "-9999px";
+      document.body.appendChild(tempContainer);
+
+      try {
+        const { svg } = await mermaid.render(id, cleanCode, tempContainer);
+        const res = await svgToDataUrl(svg);
+        if (res) {
           let widthMm = CONTENT_W;
-          let heightMm = (canvas.height / canvas.width) * widthMm;
-
+          let heightMm = (res.height / res.width) * widthMm;
           const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
           if (heightMm > maxH) {
             heightMm = maxH;
-            widthMm = (canvas.width / canvas.height) * heightMm;
+            widthMm = (res.width / res.height) * heightMm;
           }
-
-          return { dataUrl, widthMm, heightMm };
+          return { dataUrl: res.dataUrl, widthMm, heightMm };
         }
+      } finally {
+        tempContainer.remove();
       }
+    } catch (err) {
+      console.warn("Mermaid rendering for PDF failed:", err);
+      return null;
     }
-
-    // 2. Si no está en el DOM, renderizar con mermaid directamente en un contenedor offscreen
-    const mermaid = (await import("mermaid")).default;
-    const id = `mmd_pdf_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
-
-    const tempContainer = document.createElement("div");
-    tempContainer.id = "c_" + id;
-    tempContainer.className = "mermaid-rendered";
-    tempContainer.style.position = "fixed";
-    tempContainer.style.top = "-9999px";
-    tempContainer.style.left = "-9999px";
-    tempContainer.style.background = "#18181b";
-    tempContainer.style.padding = "24px 16px";
-    tempContainer.style.display = "inline-block";
-    tempContainer.style.visibility = "visible";
-    tempContainer.style.zIndex = "-9999";
-    tempContainer.style.fontSize = "13px";
-    tempContainer.style.lineHeight = "1.3";
-    document.body.appendChild(tempContainer);
-
-    try {
-      const { svg } = await mermaid.render(id, cleanCode, tempContainer);
-      tempContainer.innerHTML = svg;
-
-      const canvas = await html2canvas(tempContainer, {
-        backgroundColor: "#18181b",
-        scale: 2,
-        logging: false,
-        useCORS: true,
-      });
-
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
-      let widthMm = CONTENT_W;
-      let heightMm = (canvas.height / canvas.width) * widthMm;
-
-      const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
-      if (heightMm > maxH) {
-        heightMm = maxH;
-        widthMm = (canvas.width / canvas.height) * heightMm;
-      }
-
-      return { dataUrl, widthMm, heightMm };
-    } finally {
-      tempContainer.remove();
-    }
-  } catch (err) {
-    console.warn("Mermaid rendering for PDF failed:", err);
     return null;
-  }
+  })();
+
+  // Timeout de seguridad total de 3.5 segundos: si un diagrama se demora, continúa fluidamente
+  const timeoutPromise = new Promise<{ dataUrl: string; widthMm: number; heightMm: number } | null>((resolve) => {
+    setTimeout(() => {
+      console.warn("Mermaid render timed out after 3.5s, skipping to code block fallback");
+      resolve(null);
+    }, 3500);
+  });
+
+  return Promise.race([renderPromise, timeoutPromise]);
 }
 
 interface RenderedCodeChunk {
@@ -1056,7 +1157,7 @@ class PDFRenderer {
       this.onProgress?.(this.getCurrentProgressPct(), "Renderizando diagrama...");
       await yieldToMainThread();
       try {
-        const diagram = await renderMermaidDiagramToImage(code);
+        const diagram = await renderMermaidDiagramToImage(code, this.abortSignal);
         this.checkAbort();
         if (diagram) {
           this.ensureSpace(diagram.heightMm + 6);
@@ -1077,6 +1178,7 @@ class PDFRenderer {
 
     for (const chunk of chunks) {
       this.checkAbort();
+      await yieldToMainThread();
       this.ensureSpace(chunk.heightMm + 4);
       this.doc.addImage(chunk.dataUrl, "JPEG", MARGIN_L, this.y, chunk.widthMm, chunk.heightMm);
       this.y += chunk.heightMm + 4;
@@ -1543,7 +1645,8 @@ export function TipTapPDFExporter({
       });
 
       // Header del documento (título, emoji y portada si existe)
-      await renderer.renderHeader(documentTitle, documentEmoji, includeCover ? coverUrl : null);
+      const safeEmoji = resolveSafeEmoji(documentEmoji);
+      await renderer.renderHeader(documentTitle, safeEmoji, includeCover ? coverUrl : null);
 
       // Renderizar todos los nodos del contenido asíncronamente con yielding cooperativo
       await renderer.processNodes(content.content);
@@ -1725,8 +1828,8 @@ export function TipTapPDFExporter({
           <div className="p-5 space-y-4">
             {/* Preview Card */}
             <div className="comic-panel bg-card p-3.5 rounded-xl flex items-center gap-3 border-2 border-black dark:border-white shadow-[3px_3px_0_0_#000] dark:shadow-[3px_3px_0_0_#fff]">
-              <div className="w-12 h-12 bg-[#00E5FF] text-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center text-2xl shrink-0 select-none">
-                {documentEmoji || "📝"}
+              <div className="w-12 h-12 bg-[#00E5FF] text-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center shrink-0 select-none overflow-hidden">
+                <TabeIconRenderer iconId={documentEmoji || "lightning"} size={26} />
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-black text-sm text-foreground truncate">
@@ -1912,8 +2015,8 @@ export function TipTapPDFExporter({
             {/* Contenido del widget */}
             <div className="p-4 space-y-3 bg-background">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-[#00E5FF] text-black border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center text-lg shrink-0 select-none">
-                  {documentEmoji || "📝"}
+                <div className="w-9 h-9 rounded-lg bg-[#00E5FF] text-black border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center shrink-0 select-none overflow-hidden">
+                  <TabeIconRenderer iconId={documentEmoji || "lightning"} size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h5 className="font-black text-xs text-foreground truncate">
