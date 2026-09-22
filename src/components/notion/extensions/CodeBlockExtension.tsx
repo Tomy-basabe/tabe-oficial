@@ -71,6 +71,14 @@ async function getMermaid() {
       securityLevel: "loose",
       suppressErrorRendering: true,
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      fontSize: 13,
+      flowchart: {
+        htmlLabels: true,
+        curve: "basis",
+        padding: 20,
+        nodeSpacing: 50,
+        rankSpacing: 50,
+      },
       themeVariables: {
         darkMode: true,
         background: "#18181b",
@@ -88,6 +96,7 @@ async function getMermaid() {
         clusterBkg: "#1f1f23",
         clusterBorder: "#3f3f46",
         titleColor: "#f4f4f5",
+        fontSize: "13px",
       },
     });
     mermaidInitialized = true;
@@ -95,11 +104,132 @@ async function getMermaid() {
   return mermaidInstance;
 }
 
+/**
+ * Sanitizes and normalizes Mermaid syntax so that user-edited or pasted text
+ * containing special characters (parentheses, dots, colons, question marks, commas)
+ * does not trigger parser syntax errors.
+ */
+export function sanitizeMermaidCode(raw: string): string {
+  if (!raw) return "";
+
+  // 1. Strip markdown code block fences if present
+  let code = raw.trim();
+  code = code.replace(/^```(?:mermaid)?\s*\n?/i, "");
+  code = code.replace(/\n?```\s*$/i, "");
+
+  // 2. Process line by line
+  const lines = code.split("\n");
+  const processed = lines.map((line) => {
+    // Remove trailing commas on line endings (common paste artifact, e.g. D -->|No| B,)
+    let l = line.replace(/,\s*$/, "");
+
+    // Skip directive or flowchart declaration lines
+    if (
+      /^\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|journey|mindmap|timeline|subgraph|end)\b/i.test(
+        l
+      )
+    ) {
+      return l;
+    }
+
+    const nodePrefix =
+      '(^|;|\\&|[-=.]{2,}>?|[-=.]{1,2}\\.[-=.]{1,2}>?)(?:\\s*\\|[^|\\r\\n]*\\|)?\\s*';
+
+    // Stadium: ID([ ... ])
+    l = l.replace(
+      new RegExp(`${nodePrefix}([A-Za-z0-9_-]+)\\s*\\(\\s*\\[\\s*(?!")(.*?)(?<!")\\s*\\]\\s*\\)`, "g"),
+      (match, prefix, id, content) => {
+        return match.replace(
+          new RegExp(`([A-Za-z0-9_-]+)\\s*\\(\\s*\\[\\s*(?!")(.*?)(?<!")\\s*\\]\\s*\\)`),
+          `${id}(["${content.replace(/"/g, "'")}"])`
+        );
+      }
+    );
+
+    // Subroutine: ID[[ ... ]]
+    l = l.replace(
+      new RegExp(`${nodePrefix}([A-Za-z0-9_-]+)\\s*\\[\\s*\\[\\s*(?!")(.*?)(?<!")\\s*\\]\\s*\\]`, "g"),
+      (match, prefix, id, content) => {
+        return match.replace(
+          new RegExp(`([A-Za-z0-9_-]+)\\s*\\[\\s*\\[\\s*(?!")(.*?)(?<!")\\s*\\]\\s*\\]`),
+          `${id}[["${content.replace(/"/g, "'")}"]]`
+        );
+      }
+    );
+
+    // Hexagon: ID{{ ... }}
+    l = l.replace(
+      new RegExp(`${nodePrefix}([A-Za-z0-9_-]+)\\s*\\{\\s*\\{\\s*(?!")(.*?)(?<!")\\s*\\}\\s*\\}`, "g"),
+      (match, prefix, id, content) => {
+        return match.replace(
+          new RegExp(`([A-Za-z0-9_-]+)\\s*\\{\\s*\\{\\s*(?!")(.*?)(?<!")\\s*\\}\\s*\\}`),
+          `${id}{{"${content.replace(/"/g, "'")}}"}}`
+        );
+      }
+    );
+
+    // Circle: ID(( ... ))
+    l = l.replace(
+      new RegExp(`${nodePrefix}([A-Za-z0-9_-]+)\\s*\\(\\s*\\(\\s*(?!")(.*?)(?<!")\\s*\\)\\s*\\)`, "g"),
+      (match, prefix, id, content) => {
+        return match.replace(
+          new RegExp(`([A-Za-z0-9_-]+)\\s*\\(\\s*\\(\\s*(?!")(.*?)(?<!")\\s*\\)\\s*\\)`),
+          `${id}(("${content.replace(/"/g, "'")}"))`
+        );
+      }
+    );
+
+    // Rhombus / Decision: ID{ ... }
+    l = l.replace(
+      new RegExp(`${nodePrefix}([A-Za-z0-9_-]+)\\s*\\{\\s*(?![{"])(.*?)(?<![}"])\\s*\\}`, "g"),
+      (match, prefix, id, content) => {
+        return match.replace(
+          new RegExp(`([A-Za-z0-9_-]+)\\s*\\{\\s*(?![{"])(.*?)(?<![}"])\\s*\\}`),
+          `${id}{"${content.replace(/"/g, "'")}"}`
+        );
+      }
+    );
+
+    // Standard Rect: ID[ ... ]
+    l = l.replace(
+      new RegExp(`${nodePrefix}([A-Za-z0-9_-]+)\\s*\\[\\s*(?![\\["])(.*?)(?<![\\]"])\\s*\\]`, "g"),
+      (match, prefix, id, content) => {
+        return match.replace(
+          new RegExp(`([A-Za-z0-9_-]+)\\s*\\[\\s*(?![\\["])(.*?)(?<![\\]"])\\s*\\]`),
+          `${id}["${content.replace(/"/g, "'")}"]`
+        );
+      }
+    );
+
+    // Rounded Rect: ID( ... )
+    l = l.replace(
+      new RegExp(`${nodePrefix}([A-Za-z0-9_-]+)\\s*\\(\\s*(?![([|"])(.*?)(?<![)|"])\\s*\\)`, "g"),
+      (match, prefix, id, content) => {
+        return match.replace(
+          new RegExp(`([A-Za-z0-9_-]+)\\s*\\(\\s*(?![([|"])(.*?)(?<![)|"])\\s*\\)`),
+          `${id}("${content.replace(/"/g, "'")}")`
+        );
+      }
+    );
+
+    return l;
+  });
+
+  return processed.join("\n").trim();
+}
+
 // Mermaid preview component
-function MermaidPreview({ code }: { code: string }) {
+function MermaidPreview({
+  code,
+  onEditCode,
+}: {
+  code: string;
+  onEditCode?: () => void;
+}) {
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
+  const lastValidSvgRef = useRef<string>("");
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -124,17 +254,7 @@ function MermaidPreview({ code }: { code: string }) {
         const mermaid = await getMermaid();
         // Safe identifier for CSS and D3 query selectors
         const id = `mmd_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
-
-        // Clean code: strip markdown code block fences if present
-        let cleanCode = code.trim();
-        cleanCode = cleanCode.replace(/^```(?:mermaid)?\s*\n?/i, '');
-        cleanCode = cleanCode.replace(/\n?```\s*$/i, '');
-        // Remove trailing commas on line endings (common paste artifact)
-        cleanCode = cleanCode
-          .split('\n')
-          .map(line => line.replace(/,\s*$/, ''))
-          .join('\n')
-          .trim();
+        const cleanCode = sanitizeMermaidCode(code);
 
         // Render sequentially in an isolated offscreen container to prevent DOM conflicts
         const renderedSvg = await runInMermaidQueue(async () => {
@@ -144,6 +264,10 @@ function MermaidPreview({ code }: { code: string }) {
           tempContainer.style.top = "-9999px";
           tempContainer.style.left = "-9999px";
           tempContainer.style.visibility = "hidden";
+          tempContainer.style.fontFamily =
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          tempContainer.style.fontSize = "13px";
+          tempContainer.style.lineHeight = "1.35";
           document.body.appendChild(tempContainer);
 
           try {
@@ -155,14 +279,14 @@ function MermaidPreview({ code }: { code: string }) {
         });
 
         if (isMountedRef.current) {
+          lastValidSvgRef.current = renderedSvg;
           setSvg(renderedSvg);
           setError("");
           setLoading(false);
         }
       } catch (err: any) {
-        console.error("Mermaid render error:", err);
+        console.warn("Mermaid render error:", err);
         if (isMountedRef.current) {
-          setSvg("");
           setError(err?.message || "Error al renderizar diagrama");
           setLoading(false);
         }
@@ -173,11 +297,47 @@ function MermaidPreview({ code }: { code: string }) {
     return () => clearTimeout(timer);
   }, [code]);
 
+  // If there's an error but we have a previously valid render, show the valid diagram with a warning banner
+  if (error && lastValidSvgRef.current) {
+    return (
+      <div className="mermaid-wrapper-with-fallback" contentEditable={false}>
+        <div className="mermaid-error-banner flex items-center justify-between text-xs">
+          <span>⚠️ Error de sintaxis en la edición. Mostrando última versión válida.</span>
+          {onEditCode && (
+            <button
+              type="button"
+              onClick={onEditCode}
+              className="text-xs underline hover:text-amber-300 ml-2 font-medium"
+            >
+              Corregir código
+            </button>
+          )}
+        </div>
+        <div
+          className="mermaid-rendered opacity-90"
+          dangerouslySetInnerHTML={{ __html: lastValidSvgRef.current }}
+        />
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="mermaid-error" contentEditable={false}>
-        <div className="font-semibold text-rose-400">⚠️ Error en diagrama Mermaid</div>
+        <div className="font-semibold text-rose-400">⚠️ Error de sintaxis en diagrama Mermaid</div>
         <small>{error}</small>
+        <div className="text-xs text-rose-300/70 mt-1">
+          💡 Consejo: Si agregás textos con paréntesis, puntos o signos, asegúrate de encerrarlos entre comillas dobles. Ejemplo: <code className="bg-rose-950/60 px-1 py-0.5 rounded text-rose-200">A["Texto (con detalle)"]</code>
+        </div>
+        {onEditCode && (
+          <button
+            type="button"
+            onClick={onEditCode}
+            className="mt-2 text-xs text-left text-blue-400 hover:underline inline-flex items-center gap-1"
+          >
+            Editar código del diagrama →
+          </button>
+        )}
       </div>
     );
   }
@@ -319,7 +479,7 @@ function CodeBlockView({ node, updateAttributes, extension }: any) {
             <button
               className="code-block-copy-btn"
               onClick={() => setShowMermaidCode(!showMermaidCode)}
-              title={showMermaidCode ? "Ver diagrama" : "Ver código"}
+              title={showMermaidCode ? "Ver solo diagrama" : "Editar código"}
               type="button"
             >
               {showMermaidCode ? (
@@ -346,13 +506,29 @@ function CodeBlockView({ node, updateAttributes, extension }: any) {
 
       {/* Mermaid preview */}
       {isMermaid && !showMermaidCode && (
-        <MermaidPreview code={node.textContent} />
+        <MermaidPreview
+          code={node.textContent}
+          onEditCode={() => setShowMermaidCode(true)}
+        />
       )}
 
       {/* Code content - hidden when showing mermaid preview */}
       <pre style={isMermaid && !showMermaidCode ? { height: 0, overflow: "hidden", margin: 0, padding: 0 } : undefined}>
         <NodeViewContent as="code" />
       </pre>
+
+      {/* Mermaid live preview while editing */}
+      {isMermaid && showMermaidCode && (
+        <div className="mermaid-live-preview-container" contentEditable={false}>
+          <div className="mermaid-live-preview-header">
+            <span>Vista previa en vivo</span>
+          </div>
+          <MermaidPreview
+            code={node.textContent}
+            onEditCode={() => setShowMermaidCode(true)}
+          />
+        </div>
+      )}
     </NodeViewWrapper>
   );
 }

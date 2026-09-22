@@ -1073,7 +1073,7 @@
 
 /* === MERMAID DIAGRAM STYLES === */
 .code-block-mermaid {
-    border: 1px solid rgba(137, 180, 250, 0.2) !important;
+    border: 1px solid rgba(137, 180, 250, 0.25) !important;
 }
 
 .code-block-header-actions {
@@ -1086,32 +1086,98 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px 16px;
+    padding: 24px 16px;
     overflow-x: auto;
-    background: rgba(30, 30, 46, 0.5);
+    background: #18181b;
     border-radius: 0 0 8px 8px;
+    font-size: 13px !important;
+    line-height: 1.3 !important;
 }
 
 .mermaid-rendered svg {
     max-width: 100%;
     height: auto;
+    display: block;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Ensure foreignObject inside Mermaid does not clip multi-line text */
+.mermaid-rendered foreignObject {
+    overflow: visible !important;
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+}
+
+.mermaid-rendered foreignObject div,
+.mermaid-rendered foreignObject span,
+.mermaid-rendered foreignObject p {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: center;
+}
+
+.mermaid-rendered .label,
+.mermaid-rendered .nodeLabel,
+.mermaid-rendered .edgeLabel {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 13px !important;
+    line-height: 1.35 !important;
 }
 
 .mermaid-error {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 16px;
+    gap: 6px;
+    padding: 14px 16px;
     background: rgba(243, 139, 168, 0.08);
     border-radius: 0 0 8px 8px;
     color: #f38ba8;
     font-size: 13px;
+    border-top: 1px solid rgba(243, 139, 168, 0.2);
 }
 
 .mermaid-error small {
-    opacity: 0.7;
+    opacity: 0.85;
     font-size: 11px;
     word-break: break-word;
+    font-family: monospace;
+}
+
+.mermaid-error-banner {
+    padding: 8px 14px;
+    background: rgba(245, 158, 11, 0.12);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+    color: #fbbf24;
+}
+
+.mermaid-wrapper-with-fallback {
+    display: flex;
+    flex-direction: column;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+}
+
+.mermaid-live-preview-container {
+    border-top: 1px dashed rgba(255, 255, 255, 0.12);
+    background: #18181b;
+}
+
+.mermaid-live-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(205, 214, 244, 0.6);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
 }
 
 .mermaid-loading {
@@ -1119,7 +1185,7 @@
     justify-content: center;
     align-items: center;
     padding: 24px 16px;
-    background: rgba(30, 30, 46, 0.5);
+    background: #18181b;
     border-radius: 0 0 8px 8px;
     color: rgba(205, 214, 244, 0.5);
     font-size: 13px;
