@@ -47,6 +47,15 @@ const LANGUAGES = [
 ];
 
 // Lazy-loaded mermaid renderer
+// Sequential queue to guarantee mermaid renders never conflict in the DOM
+let mermaidRenderQueue = Promise.resolve();
+function runInMermaidQueue<T>(task: () => Promise<T>): Promise<T> {
+  const next = mermaidRenderQueue.then(task, task);
+  mermaidRenderQueue = next.catch(() => {}) as Promise<any>;
+  return next;
+}
+
+// Lazy-loaded mermaid renderer
 let mermaidInstance: any = null;
 let mermaidInitialized = false;
 
@@ -60,6 +69,7 @@ async function getMermaid() {
       startOnLoad: false,
       theme: "base",
       securityLevel: "loose",
+      suppressErrorRendering: true,
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       themeVariables: {
         darkMode: true,
@@ -87,75 +97,92 @@ async function getMermaid() {
 
 // Mermaid preview component
 function MermaidPreview({ code }: { code: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const renderIdRef = useRef(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    if (!code.trim()) {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!code || !code.trim()) {
       setSvg("");
       setError("");
+      setLoading(false);
       return;
     }
 
-    const currentId = ++renderIdRef.current;
+    setLoading(true);
 
     const render = async () => {
       try {
         const mermaid = await getMermaid();
-        const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        // Safe identifier for CSS and D3 query selectors
+        const id = `mmd_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
 
-        // Clean code: remove accidental trailing commas on lines (e.g. from copy-pasting sentences)
-        const cleanCode = code
-          .trim()
+        // Clean code: strip markdown code block fences if present
+        let cleanCode = code.trim();
+        cleanCode = cleanCode.replace(/^```(?:mermaid)?\s*\n?/i, '');
+        cleanCode = cleanCode.replace(/\n?```\s*$/i, '');
+        // Remove trailing commas on line endings (common paste artifact)
+        cleanCode = cleanCode
           .split('\n')
           .map(line => line.replace(/,\s*$/, ''))
-          .join('\n');
+          .join('\n')
+          .trim();
 
-        const { svg: renderedSvg } = await mermaid.render(id, cleanCode);
+        // Render sequentially in an isolated offscreen container to prevent DOM conflicts
+        const renderedSvg = await runInMermaidQueue(async () => {
+          const tempContainer = document.createElement("div");
+          tempContainer.id = "c_" + id;
+          tempContainer.style.position = "absolute";
+          tempContainer.style.top = "-9999px";
+          tempContainer.style.left = "-9999px";
+          tempContainer.style.visibility = "hidden";
+          document.body.appendChild(tempContainer);
 
-        // Remove temporary elements that mermaid might inject into document.body
-        const tempEl = document.getElementById(id);
-        if (tempEl) tempEl.remove();
-        const tempD = document.getElementById(`d${id}`);
-        if (tempD) tempD.remove();
-
-        if (currentId === renderIdRef.current) {
-          setSvg(renderedSvg);
-          setError("");
-        }
-      } catch (err: any) {
-        // Clean up any rogue mermaid error elements from document.body
-        const ghostElements = document.querySelectorAll(`[id^="dmermaid-"], [id^="mermaid-"]`);
-        ghostElements.forEach(el => {
-          if (!containerRef.current?.contains(el)) {
-            el.remove();
+          try {
+            const result = await mermaid.render(id, cleanCode, tempContainer);
+            return result.svg;
+          } finally {
+            tempContainer.remove();
           }
         });
 
-        if (currentId === renderIdRef.current) {
+        if (isMountedRef.current) {
+          setSvg(renderedSvg);
+          setError("");
+          setLoading(false);
+        }
+      } catch (err: any) {
+        console.error("Mermaid render error:", err);
+        if (isMountedRef.current) {
           setSvg("");
           setError(err?.message || "Error al renderizar diagrama");
+          setLoading(false);
         }
       }
     };
 
-    // Debounce rendering to avoid excessive re-renders while typing
-    const timer = setTimeout(render, 300);
+    const timer = setTimeout(render, 150);
     return () => clearTimeout(timer);
   }, [code]);
 
   if (error) {
     return (
       <div className="mermaid-error" contentEditable={false}>
-        <span>⚠️ Error en diagrama Mermaid</span>
+        <div className="font-semibold text-rose-400">⚠️ Error en diagrama Mermaid</div>
         <small>{error}</small>
       </div>
     );
   }
 
-  if (!svg) {
+  if (loading && !svg) {
     return (
       <div className="mermaid-loading" contentEditable={false}>
         <span>Cargando diagrama...</span>
@@ -165,7 +192,6 @@ function MermaidPreview({ code }: { code: string }) {
 
   return (
     <div
-      ref={containerRef}
       className="mermaid-rendered"
       contentEditable={false}
       dangerouslySetInnerHTML={{ __html: svg }}
