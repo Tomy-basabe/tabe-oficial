@@ -22,7 +22,7 @@ export function PDFExporter({
   onExported 
 }: PDFExporterProps) {
   const [exporting, setExporting] = useState(false);
-  const [saveToLibrary, setSaveToLibrary] = useState(true);
+  const [saveToLibrary, setSaveToLibrary] = useState(false);
 
   const convertToHtml = (data: OutputData): string => {
     if (!data || !data.blocks) return "";

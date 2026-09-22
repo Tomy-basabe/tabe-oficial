@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Download, Loader2, Library } from "lucide-react";
+import { Download, Loader2, Library, ChevronDown, FileText, Sparkles, Check, Settings2, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { JSONContent } from "@tiptap/core";
 import jsPDF from "jspdf";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { ComicBadge } from "@/components/comic/ComicBadge";
+import { ComicAudio } from "@/components/comic/ComicAudio";
 
 interface TipTapPDFExporterProps {
   documentTitle: string;
@@ -1067,7 +1068,9 @@ export function TipTapPDFExporter({
   onExported
 }: TipTapPDFExporterProps) {
   const [exporting, setExporting] = useState(false);
-  const [saveToLibrary, setSaveToLibrary] = useState(true);
+  const [saveToLibrary, setSaveToLibrary] = useState(false);
+  const [includeCover, setIncludeCover] = useState(true);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
   const [pendingFile, setPendingFile] = useState<{ blob: Blob; fileName: string } | null>(null);
 
@@ -1118,7 +1121,7 @@ export function TipTapPDFExporter({
 
       if (dbError) throw dbError;
 
-      toast.success(upsert ? "Archivo actualizado exitosamente" : "Guardado en biblioteca exitosamente");
+      toast.success(upsert ? "Archivo actualizado en Biblioteca" : "Guardado en biblioteca exitosamente");
       onExported?.();
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -1160,7 +1163,10 @@ export function TipTapPDFExporter({
     }
   };
 
-  const exportToPDF = async () => {
+  const exportToPDF = async (options?: { forceLibrary?: boolean; forceDownload?: boolean }) => {
+    const shouldSaveToLibrary = options?.forceLibrary ?? (options?.forceDownload ? false : saveToLibrary);
+    const shouldDownload = options?.forceDownload ?? !options?.forceLibrary;
+
     const content = getContent();
     if (!content || !content.content || content.content.length === 0) {
       toast.error("El documento está vacío");
@@ -1168,12 +1174,13 @@ export function TipTapPDFExporter({
     }
 
     setExporting(true);
+    ComicAudio.playPop();
 
     try {
       const renderer = new PDFRenderer();
 
       // Header del documento (título, emoji y portada si existe)
-      await renderer.renderHeader(documentTitle, documentEmoji, coverUrl);
+      await renderer.renderHeader(documentTitle, documentEmoji, includeCover ? coverUrl : null);
 
       // Renderizar todos los nodos del contenido asíncronamente
       await renderer.processNodes(content.content);
@@ -1187,10 +1194,9 @@ export function TipTapPDFExporter({
         .trim() || "apunte";
       const fileName = cleanTitle;
 
-      if (saveToLibrary && subjectId) {
+      // Si el usuario eligió guardar una copia en la biblioteca
+      if (shouldSaveToLibrary && subjectId) {
         const pdfBlob = doc.output("blob");
-
-        console.log("PDF generado para biblioteca:", pdfBlob?.size, "bytes");
 
         const { data: existingFiles } = await supabase.storage
           .from("library-files")
@@ -1204,74 +1210,229 @@ export function TipTapPDFExporter({
         if (exists) {
           setPendingFile({ blob: pdfBlob, fileName });
           setShowOverwriteDialog(true);
+          // Si también correspondía descargar a la PC, descargamos el archivo de inmediato
+          if (shouldDownload) {
+            doc.save(`${fileName}.pdf`);
+            ComicAudio.playPowerUp();
+            toast.success("💥 ¡BAM! Tu apunte se descargó exitosamente");
+          }
           setExporting(false);
+          return;
         } else {
           await uploadFile(pdfBlob, fileName, false);
         }
-      } else {
-        doc.save(`${fileName}.pdf`);
-        toast.success("PDF descargado exitosamente");
-        setExporting(false);
       }
+
+      // ACCIÓN PRINCIPAL Y POR DEFECTO: Descargar el archivo al equipo del usuario
+      if (shouldDownload) {
+        doc.save(`${fileName}.pdf`);
+        ComicAudio.playPowerUp();
+        toast.success("💥 ¡BAM! Tu apunte se descargó exitosamente");
+      }
+
+      setShowExportModal(false);
+      onExported?.();
     } catch (error) {
       console.error("Error exporting PDF:", error);
       toast.error("Error al exportar el PDF: " + ((error as any)?.message || "Desconocido"));
+    } finally {
       setExporting(false);
     }
   };
 
   return (
-    <div className="flex items-center gap-2">
-      {subjectId && (
-        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-          <input
-            type="checkbox"
-            checked={saveToLibrary}
-            onChange={(e) => setSaveToLibrary(e.target.checked)}
-            className="w-4 h-4 rounded border-border bg-secondary accent-primary"
-          />
-          <Library className="w-4 h-4" />
-          <span className="hidden sm:inline">Guardar en Biblioteca</span>
-        </label>
-      )}
+    <div className="flex items-center">
+      {/* Comic styled PDF export button group */}
+      <div className="inline-flex items-center rounded-lg border-2 border-black dark:border-white shadow-[2.5px_2.5px_0_0_#000] dark:shadow-[2.5px_2.5px_0_0_#fff] overflow-hidden transition-all hover:-translate-y-0.5 active:translate-y-0.5">
+        {/* Main button: DIRECT DOWNLOAD */}
+        <button
+          onClick={() => exportToPDF({ forceDownload: true })}
+          disabled={exporting}
+          title="Descargar PDF en tu equipo (1-click)"
+          className="flex items-center gap-1.5 px-3 py-1 bg-[#FFE600] hover:bg-[#FFD600] text-black font-black text-xs uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer select-none"
+        >
+          {exporting ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin stroke-[2.5]" />
+              <span className="hidden sm:inline">Generando...</span>
+            </>
+          ) : (
+            <>
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Exportar PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </>
+          )}
+        </button>
 
-      <button
-        onClick={exportToPDF}
-        disabled={exporting}
-        className="flex items-center gap-2 px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-      >
-        {exporting ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Exportando...
-          </>
-        ) : (
-          <>
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Exportar PDF</span>
-          </>
-        )}
-      </button>
+        {/* Options trigger button: OPENS COMIC EXPORT MODAL */}
+        <button
+          onClick={() => {
+            ComicAudio.playPop();
+            setShowExportModal(true);
+          }}
+          disabled={exporting}
+          title="Opciones de exportación cómic (portada, biblioteca)"
+          className="px-1.5 py-1 bg-[#FFE600] hover:bg-[#FFD600] text-black border-l-2 border-black transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center"
+        >
+          <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+        </button>
+      </div>
 
+      {/* Comic Export Modal */}
+      <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+        <DialogContent className="comic-panel max-w-md bg-background border-[3px] border-black dark:border-white shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] p-0 overflow-hidden rounded-2xl">
+          {/* Header con Halftone Comic */}
+          <div className="relative bg-[#FFE600] border-b-[3px] border-black p-5 text-black overflow-hidden">
+            <div className="absolute inset-0 comic-dots-overlay opacity-30 pointer-events-none" />
+            <div className="relative z-10 flex items-center justify-between mb-2">
+              <ComicBadge variant="pink" rotate="left" size="sm">
+                ¡COMIC EDITION!
+              </ComicBadge>
+              <ComicBadge variant="cyan" rotate="right" size="sm">
+                A4 • ALTA CALIDAD
+              </ComicBadge>
+            </div>
+            <DialogTitle className="comic-title text-2xl text-black tracking-wide">
+              💥 EXPORTAR APUNTE
+            </DialogTitle>
+            <DialogDescription className="text-black/80 font-bold text-xs uppercase mt-0.5">
+              Descargá tu apunte con estilo directo a tu dispositivo
+            </DialogDescription>
+          </div>
+
+          <div className="p-5 space-y-4">
+            {/* Preview Card */}
+            <div className="comic-panel bg-card p-3.5 rounded-xl flex items-center gap-3 border-2 border-black dark:border-white shadow-[3px_3px_0_0_#000] dark:shadow-[3px_3px_0_0_#fff]">
+              <div className="w-12 h-12 bg-[#00E5FF] text-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center text-2xl shrink-0 select-none">
+                {documentEmoji || "📝"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-black text-sm text-foreground truncate">
+                  {documentTitle || "Apunte sin título"}
+                </h4>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mt-0.5">
+                  <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block border border-black" />
+                  Listo para imprimir o compartir
+                </p>
+              </div>
+            </div>
+
+            {/* Opciones */}
+            <div className="space-y-2.5">
+              {coverUrl && (
+                <label className="flex items-center justify-between p-3 rounded-xl border-2 border-border hover:border-black dark:hover:border-white transition-all cursor-pointer bg-card/60">
+                  <div className="flex items-center gap-2.5">
+                    <Sparkles className="w-4 h-4 text-[#FFE600]" />
+                    <div>
+                      <p className="text-xs font-black text-foreground">Incluir portada del apunte</p>
+                      <p className="text-[10px] text-muted-foreground font-medium">Añade la imagen de portada al inicio del PDF</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={includeCover}
+                    onChange={(e) => setIncludeCover(e.target.checked)}
+                    className="w-4 h-4 rounded border-2 border-black accent-[#FFE600] cursor-pointer"
+                  />
+                </label>
+              )}
+
+              {subjectId && (
+                <label className="flex items-center justify-between p-3 rounded-xl border-2 border-border hover:border-black dark:hover:border-white transition-all cursor-pointer bg-card/60">
+                  <div className="flex items-center gap-2.5">
+                    <Library className="w-4 h-4 text-[#00E5FF]" />
+                    <div>
+                      <p className="text-xs font-black text-foreground">Guardar copia en mi Biblioteca</p>
+                      <p className="text-[10px] text-muted-foreground font-medium">Sube también una copia a la nube de Tabe</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={saveToLibrary}
+                    onChange={(e) => setSaveToLibrary(e.target.checked)}
+                    className="w-4 h-4 rounded border-2 border-black accent-[#FFE600] cursor-pointer"
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => exportToPDF({ forceDownload: true, forceLibrary: saveToLibrary })}
+                disabled={exporting}
+                className="w-full bg-[#FFE600] text-black hover:bg-[#FFD600] font-black text-sm uppercase py-3 border-2 border-black shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
+              >
+                {exporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin stroke-[2.5]" />
+                    <span>¡GENERANDO TU PDF...!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 stroke-[2.5]" />
+                    <span>💥 ¡DESCARGAR PDF A MI EQUIPO!</span>
+                  </>
+                )}
+              </button>
+
+              {subjectId && (
+                <button
+                  type="button"
+                  onClick={() => exportToPDF({ forceLibrary: true, forceDownload: false })}
+                  disabled={exporting}
+                  className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-black text-xs uppercase py-2.5 border-2 border-black dark:border-white shadow-[2.5px_2.5px_0_0_#000] dark:shadow-[2.5px_2.5px_0_0_#fff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Solo guardar en la Biblioteca</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comic Overwrite Confirmation Dialog */}
       <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
-        <DialogContent>
+        <DialogContent className="comic-panel max-w-md bg-background border-[3px] border-black dark:border-white shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] p-6 rounded-2xl">
           <DialogHeader>
-            <DialogTitle>El archivo ya existe</DialogTitle>
-            <DialogDescription>
-              Ya tienes un archivo llamado "{pendingFile?.fileName}.pdf" en tu biblioteca.
-              ¿Qué deseas hacer?
+            <div className="flex items-center gap-2 mb-1">
+              <ComicBadge variant="orange" size="sm" rotate="left">
+                ¡ATENCIÓN!
+              </ComicBadge>
+            </div>
+            <DialogTitle className="comic-title text-xl text-foreground">
+              ⚠️ EL ARCHIVO YA EXISTE
+            </DialogTitle>
+            <DialogDescription className="font-medium text-xs text-muted-foreground mt-2">
+              Ya tienes un archivo llamado <strong className="text-foreground">"{pendingFile?.fileName}.pdf"</strong> en tu biblioteca. ¿Qué deseas hacer con la copia en la nube?
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="secondary" onClick={() => setShowOverwriteDialog(false)}>
+
+          <DialogFooter className="gap-2 sm:gap-2 mt-4 flex-col sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setShowOverwriteDialog(false)}
+              className="px-3 py-2 bg-secondary hover:bg-secondary/80 font-black text-xs uppercase border-2 border-black dark:border-white shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] rounded-lg active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+            >
               Cancelar
-            </Button>
-            <Button variant="outline" onClick={handleSaveAsCopy}>
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAsCopy}
+              className="px-3 py-2 bg-[#00E5FF] text-black font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0_0_#000] rounded-lg hover:bg-[#00cbeb] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+            >
               Guardar Copia
-            </Button>
-            <Button onClick={handleOverwrite}>
+            </button>
+            <button
+              type="button"
+              onClick={handleOverwrite}
+              className="px-3 py-2 bg-[#FF2E93] text-white font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0_0_#000] rounded-lg hover:bg-[#e02680] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+            >
               Sobrescribir
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
