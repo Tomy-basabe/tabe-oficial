@@ -337,7 +337,68 @@ export function AdvancedNotionEditor({
               return true;
             }
           }
+        }
 
+        // === DETECT MARKDOWN CODE BLOCKS (```lang ... ```) including mermaid ===
+        // When text contains markdown code blocks, intercept them so they become proper codeBlock nodes
+        // (even if the browser wrapped them in basic <p> tags in text/html).
+        const rawText = event.clipboardData?.getData('text/plain') || '';
+        const normalizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const codeBlockRegex = /```([a-zA-Z0-9_-]*)[^\S\n]*\n([\s\S]*?)```/g;
+
+        if (!editor?.isActive('codeBlock') && codeBlockRegex.test(normalizedText) && (!html || !html.includes('<pre'))) {
+          const parts: { type: 'text' | 'code', content: string, language?: string }[] = [];
+          let lastIndex = 0;
+          codeBlockRegex.lastIndex = 0; // reset regex
+          let match;
+          while ((match = codeBlockRegex.exec(normalizedText)) !== null) {
+            // Text before the code block
+            if (match.index > lastIndex) {
+              const before = normalizedText.slice(lastIndex, match.index).trim();
+              if (before) parts.push({ type: 'text', content: before });
+            }
+            parts.push({
+              type: 'code',
+              language: match[1] || 'plain',
+              content: match[2].replace(/\n$/, ''), // remove trailing newline
+            });
+            lastIndex = match.index + match[0].length;
+          }
+          // Remaining text after last code block
+          if (lastIndex < normalizedText.length) {
+            const after = normalizedText.slice(lastIndex).trim();
+            if (after) parts.push({ type: 'text', content: after });
+          }
+
+          // Build TipTap JSON content
+          const tiptapContent: any[] = [];
+          parts.forEach(part => {
+            if (part.type === 'code') {
+              tiptapContent.push({
+                type: 'codeBlock',
+                attrs: { language: part.language || 'plain' },
+                content: part.content ? [{ type: 'text', text: part.content }] : [],
+              });
+            } else {
+              // Split text into paragraphs
+              part.content.split('\n').filter(Boolean).forEach(line => {
+                tiptapContent.push({
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: line.trim() }],
+                });
+              });
+            }
+          });
+
+          if (tiptapContent.length > 0) {
+            view.dispatch(view.state.tr.deleteSelection());
+            editor?.commands.insertContent(tiptapContent);
+            event.preventDefault();
+            return true;
+          }
+        }
+
+        if (html) {
           // When HTML is present (internal copy/cut or rich paste from other apps),
           // let TipTap handle it natively to preserve all structure:
           // math formulas, images, highlights, text colors, sizes, etc.
@@ -345,7 +406,7 @@ export function AdvancedNotionEditor({
         }
 
         // === TEXT PASTE AND PDF CLEANUP ===
-        const text = event.clipboardData?.getData('text/plain');
+        const text = rawText;
         if (!text) return false;
 
         // If we are already inside a code block, we should NOT perform PDF cleanup/merging.

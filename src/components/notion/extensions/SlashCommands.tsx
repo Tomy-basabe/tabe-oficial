@@ -388,6 +388,21 @@ const getSuggestionItems = (): CommandItem[] => [
     },
   },
   {
+    title: "Diagrama Mermaid",
+    description: "Crear un diagrama o flujo visual interactivo con Mermaid",
+    icon: <BarChart3 className="w-4 h-4 text-emerald-400" />,
+    category: "Media",
+    shortcut: "/mermaid",
+    keywords: ["mermaid", "diagrama", "flujo", "flowchart", "mapa", "esquema", "chart"],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent({
+        type: "codeBlock",
+        attrs: { language: "mermaid" },
+        content: [{ type: "text", text: "flowchart TD\n    A[Inicio] --> B[Proceso]\n    B --> C[Fin]" }],
+      }).run();
+    },
+  },
+  {
     title: "Archivo",
     description: "Adjuntar un archivo (subida)",
     icon: <Paperclip className="w-4 h-4 text-gray-400" />,
