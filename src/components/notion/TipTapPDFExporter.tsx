@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ComicBadge } from "@/components/comic/ComicBadge";
 import { ComicAudio } from "@/components/comic/ComicAudio";
+import { sanitizeMermaidCode } from "./extensions/CodeBlockExtension";
 
 interface TipTapPDFExporterProps {
   documentTitle: string;
@@ -148,27 +149,51 @@ function compressImageToDataUrl(
   return { dataUrl, width: w, height: h, format: "JPEG" };
 }
 
+const imageCache = new Map<string, { dataUrl: string; width: number; height: number; format: "JPEG" }>();
+
 /**
  * Carga una imagen real y la comprime para incrustarla liviana en jsPDF.
+ * Incluye optimizaciones de caché en memoria y reuso del DOM para velocidad instantánea.
  */
 async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width: number; height: number; format: "JPEG" } | null> {
   if (!src) return null;
+  if (imageCache.has(src)) return imageCache.get(src)!;
+
+  // 0. Si la imagen ya está cargada en el DOM de la aplicación, reusarla al instante sin red (0ms)
+  try {
+    const existingImg = Array.from(document.images).find(
+      (img) => (img.src === src || img.currentSrc === src) && img.complete && img.naturalWidth > 0
+    );
+    if (existingImg) {
+      const res = compressImageToDataUrl(existingImg);
+      imageCache.set(src, res);
+      return res;
+    }
+  } catch {
+    // Continuar si hay restricción de canvas
+  }
 
   // 1. Data URL
   if (src.startsWith("data:image/")) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        resolve(compressImageToDataUrl(img));
+        const res = compressImageToDataUrl(img);
+        imageCache.set(src, res);
+        resolve(res);
       };
       img.onerror = () => resolve(null);
       img.src = src;
     });
   }
 
-  // 2. Fetch Blob (Supabase Storage y URLs CORS)
+  // 2. Fetch con timeout de 3.5 segundos para evitar cuelgues
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3500);
+
   try {
-    const res = await fetch(src, { mode: "cors" });
+    const res = await fetch(src, { mode: "cors", signal: controller.signal });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const blob = await res.blob();
       const dataUrl = await new Promise<string>((resBlob, rejBlob) => {
@@ -180,13 +205,19 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
 
       return new Promise((resolve) => {
         const img = new Image();
-        img.onload = () => resolve(compressImageToDataUrl(img));
+        img.onload = () => {
+          const compressed = compressImageToDataUrl(img);
+          imageCache.set(src, compressed);
+          resolve(compressed);
+        };
         img.onerror = () => resolve(null);
         img.src = dataUrl;
       });
     }
   } catch (err) {
-    console.warn("Fetch blob failed, trying HTMLImageElement fallback:", err);
+    console.warn("Fetch image failed, trying Image fallback:", err);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   // 3. Fallback con new Image() y Canvas
@@ -195,7 +226,9 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
     img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
-        resolve(compressImageToDataUrl(img));
+        const res = compressImageToDataUrl(img);
+        imageCache.set(src, res);
+        resolve(res);
       } catch (e) {
         console.warn("Image compression failed:", e);
         resolve(null);
@@ -204,6 +237,104 @@ async function fetchImageDataUrl(src: string): Promise<{ dataUrl: string; width:
     img.onerror = () => resolve(null);
     img.src = src;
   });
+}
+
+/**
+ * Renderiza diagramas Mermaid a imagen de alta resolución para incrustar en el PDF.
+ * Soporta diagramas ya visibles en el DOM (renderizado instantáneo)
+ * o renderizado offscreen si no se encuentra en el DOM.
+ */
+async function renderMermaidDiagramToImage(
+  code: string
+): Promise<{ dataUrl: string; widthMm: number; heightMm: number } | null> {
+  if (!code || !code.trim()) return null;
+
+  try {
+    const cleanCode = sanitizeMermaidCode(code);
+    const html2canvas = (await import("html2canvas")).default;
+
+    // 1. Intentar capturar desde el DOM del editor si ya está renderizado (súper veloz, <25ms)
+    const mermaidContainers = Array.from(document.querySelectorAll(".mermaid-rendered"));
+    for (const container of mermaidContainers) {
+      const svg = container.querySelector("svg");
+      if (svg) {
+        const parentBlock = container.closest(".code-block-wrapper");
+        const codeText = parentBlock?.querySelector("pre code")?.textContent?.trim();
+        const rawText = parentBlock?.textContent || "";
+        if (
+          (codeText && (codeText === code.trim() || codeText === cleanCode)) ||
+          rawText.includes(cleanCode.slice(0, 30))
+        ) {
+          const canvas = await html2canvas(container as HTMLElement, {
+            backgroundColor: "#18181b",
+            scale: 2,
+            logging: false,
+            useCORS: true,
+          });
+
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
+          let widthMm = CONTENT_W;
+          let heightMm = (canvas.height / canvas.width) * widthMm;
+
+          const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
+          if (heightMm > maxH) {
+            heightMm = maxH;
+            widthMm = (canvas.width / canvas.height) * heightMm;
+          }
+
+          return { dataUrl, widthMm, heightMm };
+        }
+      }
+    }
+
+    // 2. Si no está en el DOM, renderizar con mermaid directamente en un contenedor offscreen
+    const mermaid = (await import("mermaid")).default;
+    const id = `mmd_pdf_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+
+    const tempContainer = document.createElement("div");
+    tempContainer.id = "c_" + id;
+    tempContainer.className = "mermaid-rendered";
+    tempContainer.style.position = "fixed";
+    tempContainer.style.top = "-9999px";
+    tempContainer.style.left = "-9999px";
+    tempContainer.style.background = "#18181b";
+    tempContainer.style.padding = "24px 16px";
+    tempContainer.style.display = "inline-block";
+    tempContainer.style.visibility = "visible";
+    tempContainer.style.zIndex = "-9999";
+    tempContainer.style.fontSize = "13px";
+    tempContainer.style.lineHeight = "1.3";
+    document.body.appendChild(tempContainer);
+
+    try {
+      const { svg } = await mermaid.render(id, cleanCode, tempContainer);
+      tempContainer.innerHTML = svg;
+
+      const canvas = await html2canvas(tempContainer, {
+        backgroundColor: "#18181b",
+        scale: 2,
+        logging: false,
+        useCORS: true,
+      });
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
+      let widthMm = CONTENT_W;
+      let heightMm = (canvas.height / canvas.width) * widthMm;
+
+      const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
+      if (heightMm > maxH) {
+        heightMm = maxH;
+        widthMm = (canvas.width / canvas.height) * heightMm;
+      }
+
+      return { dataUrl, widthMm, heightMm };
+    } finally {
+      tempContainer.remove();
+    }
+  } catch (err) {
+    console.warn("Mermaid rendering for PDF failed:", err);
+    return null;
+  }
 }
 
 interface RenderedCodeChunk {
@@ -315,7 +446,7 @@ class PDFRenderer {
       orientation: "portrait",
       unit: "mm",
       format: "a4",
-      compress: true, // Compresión interna zlib
+      compress: false, // Ultra rápido: evita bloqueo de CPU por zlib en imágenes JPEG ya comprimidas
     });
     this.y = MARGIN_T;
     this.pageNum = 1;
@@ -589,7 +720,7 @@ class PDFRenderer {
         await this.renderBlockquote(node);
         break;
       case "codeBlock":
-        this.renderCodeBlock(node);
+        await this.renderCodeBlock(node);
         break;
       case "horizontalRule":
         this.renderHR();
@@ -775,18 +906,37 @@ class PDFRenderer {
     this.y = Math.max(this.y, startY + blockH) + 3;
   }
 
-  /* ── Bloque de código con alta fidelidad gráfica ── */
-  private renderCodeBlock(node: JSONContent) {
+  /* ── Bloque de código con soporte para diagramas Mermaid y alta fidelidad gráfica ── */
+  private async renderCodeBlock(node: JSONContent) {
     const code = node.content?.[0]?.text || "";
     const language = node.attrs?.language || "text";
 
-    // Usar motor de canvas 2x para renderizar exactamente el bloque de código
+    // Si es un bloque Mermaid o sintaxis de diagrama reconocida
+    const isMermaidSyntax = /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|journey|mindmap|timeline)\b/i.test(code.trim());
+    const isMermaid = language === "mermaid" || isMermaidSyntax;
+
+    if (isMermaid && code.trim()) {
+      try {
+        const diagram = await renderMermaidDiagramToImage(code);
+        if (diagram) {
+          this.ensureSpace(diagram.heightMm + 6);
+          const x = MARGIN_L + (CONTENT_W - diagram.widthMm) / 2;
+          this.doc.addImage(diagram.dataUrl, "JPEG", x, this.y, diagram.widthMm, diagram.heightMm);
+          this.y += diagram.heightMm + 6;
+          return;
+        }
+      } catch (err) {
+        console.warn("Fallback to code block for mermaid:", err);
+      }
+    }
+
+    // Usar motor de canvas 2x para renderizar bloques de código normales
     const chunks = renderCodeBlockToImages(code, language);
     if (chunks.length === 0) return;
 
     for (const chunk of chunks) {
       this.ensureSpace(chunk.heightMm + 4);
-      this.doc.addImage(chunk.dataUrl, "PNG", MARGIN_L, this.y, chunk.widthMm, chunk.heightMm);
+      this.doc.addImage(chunk.dataUrl, "JPEG", MARGIN_L, this.y, chunk.widthMm, chunk.heightMm);
       this.y += chunk.heightMm + 4;
     }
   }
