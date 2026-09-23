@@ -55,7 +55,9 @@ export function MainLayout() {
   }); // Desktop state
   const location = useLocation();
   const navigate = useNavigate();
-  const isAIPage = location.pathname === "/TABEAI" || location.pathname === "/asistente";
+  const isAIPage = location.pathname.startsWith("/TABEAI") || location.pathname.startsWith("/asistente");
+  const isApuntesPage = location.pathname.startsWith("/apuntes") || location.pathname.startsWith("/notion");
+  const isFullScreenPage = isAIPage || isApuntesPage;
   const { user, isGuest, profile } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
@@ -342,7 +344,7 @@ export function MainLayout() {
       >
         {/* Neo-Brutalism Pattern Background */}
         {/* Mobile Header (El usuario especificó: sin panel vertical, todo en la barra horizontal de abajo) */}
-        {!isAIPage && (
+        {!isFullScreenPage && (
           <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-[calc(4rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-card/95 backdrop-blur-md border-b-2 border-foreground/30 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.06)] flex items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <TabeLogo size={38} className="shrink-0" />
@@ -369,7 +371,7 @@ export function MainLayout() {
         )}
 
         {/* Sidebar (Desktop Only: en móvil todo está en la barra horizontal de abajo) */}
-        {!isAIPage && (
+        {!isFullScreenPage && (
           <aside
             className={cn(
               "hidden lg:flex fixed top-0 left-0 h-full border-r-4 border-foreground transition-all duration-300 flex-col bg-card shadow-[4px_0_0_0_hsl(var(--foreground))] z-40",
@@ -804,7 +806,7 @@ export function MainLayout() {
       {/* Main Content */}
       <main className={cn(
         "min-h-screen transition-all duration-300 relative z-[1]",
-        isAIPage 
+        isFullScreenPage 
           ? "w-full p-0 m-0" 
           : cn("pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pt-0 lg:pb-0", isCollapsed ? "lg:ml-20" : "lg:ml-64")
       )}>
@@ -812,13 +814,13 @@ export function MainLayout() {
       </main>
 
       {/* Global Widgets */}
-      {!isAIPage && <GlobalPomodoroWidget />}
-      {!isAIPage && <AIBubbleWidget />}
+      {!isFullScreenPage && <GlobalPomodoroWidget />}
+      {!isFullScreenPage && <AIBubbleWidget />}
       <GuestModeBanner />
       <GlobalNotificationManager />
       
       {/* Mobile Navigation Bar */}
-      {!isAIPage && <MobileNavbar />}
+      {!isFullScreenPage && <MobileNavbar />}
     </div>
   </ComicEffectsProvider>
   );

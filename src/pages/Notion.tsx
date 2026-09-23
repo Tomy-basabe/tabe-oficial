@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
-  Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users
+  Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft
 } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
+import { ComicAudio } from "@/components/comic/ComicAudio";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -1513,6 +1515,21 @@ export default function Notion() {
         {/* Top bar */}
         <div className="notion-topbar">
           <div className="notion-topbar-left">
+            {/* Back link — available on mobile & desktop like in TABE AI */}
+            <Link
+              to="/dashboard"
+              onClick={() => {
+                try {
+                  ComicAudio.playPop();
+                } catch {}
+              }}
+              className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-3 md:py-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group mr-2"
+              title="Volver al Dashboard"
+              aria-label="Volver al Dashboard"
+            >
+              <ArrowLeft className="w-4 h-4 md:w-3.5 md:h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+              <span className="hidden md:inline">Volver</span>
+            </Link>
 
             {activeDocument ? (() => {
               const parentDoc = activeDocument.parent_id
@@ -1538,7 +1555,12 @@ export default function Notion() {
                 />
               );
             })() : (
-              <span style={{ fontWeight: 500 }}>Apuntes</span>
+              <span className="font-black text-sm md:text-base uppercase tracking-wider text-foreground flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-[#FFE600] text-black border border-black shadow-[1px_1px_0_0_#000] flex items-center justify-center text-xs">
+                  📝
+                </span>
+                Apuntes
+              </span>
             )}
           </div>
 
