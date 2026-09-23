@@ -82,9 +82,9 @@ function cssColorToHex(color: string): string {
 function cleanTextForPdf(text: string): string {
   if (!text) return "";
   return text
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/[\u2018\u2019\u0060\u00B4]/g, "'")
+    .replace(/[\u201C\u201D\u00AB\u00BB]/g, '"')
+    .replace(/[\u2013\u2014\u2015]/g, "-")
     .replace(/\u2026/g, "...")
     .replace(/\u00A0/g, " ")
     .replace(/→/g, "->")
@@ -92,7 +92,30 @@ function cleanTextForPdf(text: string): string {
     .replace(/↔/g, "<->")
     .replace(/⇒/g, "=>")
     .replace(/⇐/g, "<=")
-    .replace(/•/g, "-");
+    .replace(/•/g, "-")
+    .replace(/▶/g, ">")
+    .replace(/▼/g, "v")
+    .replace(/▲/g, "^")
+    .replace(/►/g, ">")
+    .replace(/◄/g, "<")
+    .replace(/≥/g, ">=")
+    .replace(/≤/g, "<=")
+    .replace(/≠/g, "!=")
+    .replace(/±/g, "+/-")
+    .replace(/×/g, "x")
+    .replace(/÷/g, "/")
+    .replace(/√/g, "sqrt")
+    .replace(/∞/g, "inf")
+    .replace(/°/g, "deg")
+    .replace(/©/g, "(c)")
+    .replace(/®/g, "(R)")
+    .replace(/™/g, "(TM)")
+    .replace(/\u200B/g, "") // zero-width space
+    .replace(/\u200C/g, "") // zero-width non-joiner
+    .replace(/\u200D/g, "") // zero-width joiner
+    .replace(/\uFEFF/g, "") // BOM
+    // Eliminar caracteres de control y Unicode no imprimibles que corrompen la fuente courier
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "");
 }
 
 /**
@@ -883,20 +906,27 @@ class PDFRenderer {
     }
 
     // Emoji del documento renderizado en canvas para evitar basura Unicode
+    // Se renderiza en la misma línea que el título para evitar superposición
+    let titleOffsetX = 0;
     if (emoji) {
       const emojiDataUrl = renderEmojiToDataUrl(emoji);
       if (emojiDataUrl) {
         this.doc.addImage(emojiDataUrl, "PNG", MARGIN_L, this.y, 10, 10);
-        this.y += 12;
+        titleOffsetX = 12; // Desplazar título a la derecha del emoji
       }
     }
 
-    this.writeText(title || "Sin título", MARGIN_L, CONTENT_W, {
+    this.writeText(title || "Sin título", MARGIN_L + titleOffsetX, CONTENT_W - titleOffsetX, {
       fontSize: 22,
       fontStyle: "bold",
       color: C.text,
       lineHeight: 1.3,
     });
+
+    // Si hubo emoji, asegurar que y avance lo suficiente para no solaparse
+    if (titleOffsetX > 0) {
+      this.y = Math.max(this.y, (this.y > MARGIN_T + 12 ? this.y : MARGIN_T + 12));
+    }
 
     this.y += 2;
 
@@ -1166,15 +1196,34 @@ class PDFRenderer {
     this.doc.setFont("courier", "normal");
     this.doc.setFontSize(fontSize);
 
-    // Envolver líneas largas para evitar desbordes fuera de la página
+    // Calcular ancho real de un caracter en courier (monoespaciada)
+    const charW = this.doc.getTextWidth("M");
+    const maxCharsPerLine = Math.max(10, Math.floor(maxTextW / charW));
+
+    // Envolver líneas largas manualmente para evitar el bug de splitTextToSize
+    // que rompe carácter por carácter con courier
     const wrappedLines: string[] = [];
     for (const line of rawLines) {
-      if (!line) {
-        wrappedLines.push("");
+      if (!line || line.length <= maxCharsPerLine) {
+        wrappedLines.push(line || "");
         continue;
       }
-      const split = this.doc.splitTextToSize(line, maxTextW);
-      wrappedLines.push(...split);
+      // Partir la línea en trozos del tamaño máximo
+      let remaining = line;
+      while (remaining.length > maxCharsPerLine) {
+        // Buscar un buen punto de corte (espacio, coma, punto, punto y coma, paréntesis)
+        let breakAt = maxCharsPerLine;
+        for (let i = maxCharsPerLine; i >= maxCharsPerLine * 0.6; i--) {
+          const ch = remaining[i];
+          if (ch === " " || ch === "," || ch === ";" || ch === ")" || ch === "]" || ch === "}") {
+            breakAt = i + 1;
+            break;
+          }
+        }
+        wrappedLines.push(remaining.substring(0, breakAt));
+        remaining = "  " + remaining.substring(breakAt); // indentar continuación
+      }
+      if (remaining) wrappedLines.push(remaining);
     }
 
     const totalTextH = wrappedLines.length * lineH;
@@ -1213,7 +1262,7 @@ class PDFRenderer {
       this.doc.setTextColor(244, 244, 245);
 
       for (const l of wrappedLines) {
-        this.doc.text(l, MARGIN_L + padX, curY + lineH * 0.72);
+        if (l) this.doc.text(l, MARGIN_L + padX, curY + lineH * 0.72);
         curY += lineH;
       }
 
@@ -1268,7 +1317,7 @@ class PDFRenderer {
         this.doc.setTextColor(244, 244, 245);
 
         for (const l of chunkLines) {
-          this.doc.text(l, MARGIN_L + padX, curY + lineH * 0.72);
+          if (l) this.doc.text(l, MARGIN_L + padX, curY + lineH * 0.72);
           curY += lineH;
         }
 
