@@ -9,13 +9,38 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { cn } from "@/lib/utils";
 
+import { toast } from "sonner";
+import { ComicAudio } from "@/components/comic/ComicAudio";
+import { GameAuthModal } from "@/components/games/GameAuthRequired";
+
 export default function Games() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const isTestUser = !user || isGuest;
   const { stats, matchHistory, loading, userCarrera, submitCareerRequest, updateUserCarrera } = useGames();
   const [showCareerModal, setShowCareerModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [selectedGameTitle, setSelectedGameTitle] = useState("");
+
+  const handleOpenGame = (gamePath: string, gameTitle: string) => {
+    if (isTestUser) {
+      try { ComicAudio.playPop(); } catch {}
+      toast.error("¡Tienes que estar logueado para usar los juegos!");
+      setSelectedGameTitle(gameTitle);
+      setShowAuthModal(true);
+      return;
+    }
+    navigate(gamePath);
+  };
 
   const handlePlayPenales = () => {
+    if (isTestUser) {
+      try { ComicAudio.playPop(); } catch {}
+      toast.error("¡Tienes que estar logueado para usar los juegos!");
+      setSelectedGameTitle("Tanda de Penales");
+      setShowAuthModal(true);
+      return;
+    }
     if (!userCarrera) {
       setShowCareerModal(true);
       return;
@@ -106,7 +131,7 @@ export default function Games() {
           {/* Karts */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => navigate("/juegos/karts")}
+            onClick={() => handleOpenGame("/juegos/karts", "Carrera de Karts")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#FF5C5C] flex items-center justify-center">
@@ -132,7 +157,7 @@ export default function Games() {
           {/* Batalla RPG */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => navigate("/juegos/batalla")}
+            onClick={() => handleOpenGame("/juegos/batalla", "Batalla RPG")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#C688EB] flex items-center justify-center">
@@ -158,7 +183,7 @@ export default function Games() {
           {/* La Bomba */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => navigate("/juegos/bomba")}
+            onClick={() => handleOpenGame("/juegos/bomba", "La Bomba")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#FF9B71] flex items-center justify-center">
@@ -184,7 +209,7 @@ export default function Games() {
           {/* Ta-Te-Ti */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => navigate("/juegos/tateti")}
+            onClick={() => handleOpenGame("/juegos/tateti", "Ta-Te-Ti Táctico")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#00E5FF] flex items-center justify-center">
@@ -210,7 +235,7 @@ export default function Games() {
           {/* Ajedrez */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => navigate("/juegos/ajedrez")}
+            onClick={() => handleOpenGame("/juegos/ajedrez", "Ajedrez")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#FFF7E6] flex items-center justify-center">
@@ -326,6 +351,13 @@ export default function Games() {
         onClose={() => setShowCareerModal(false)}
         onCareerSelected={handleCareerSelected}
         onRequestCareer={submitCareerRequest}
+      />
+
+      {/* Auth Required Modal */}
+      <GameAuthModal
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        gameTitle={selectedGameTitle}
       />
     </div>
   );

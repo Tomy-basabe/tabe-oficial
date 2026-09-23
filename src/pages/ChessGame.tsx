@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useMatchmaking, getMatchSession } from "@/hooks/useMatchmaking";
 import { recordGameMatch } from "@/lib/gameStorage";
+import { GameAuthGate } from "@/components/games/GameAuthRequired";
 
 // ======================================
 // ELO SYSTEM (Local Storage)
@@ -139,7 +140,7 @@ const formatTime = (seconds: number) => {
 // ======================================
 export default function ChessGame() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   
   // Matchmaking
   const { status: mmStatus, matchId, opponentName, joinQueue, leaveQueue, setStatus: setMmStatus, setMatchId } = useMatchmaking();
@@ -671,6 +672,10 @@ export default function ChessGame() {
   // ========================
   // MENU PHASE
   // ========================
+  if (!user || isGuest) {
+    return <GameAuthGate gameTitle="Ajedrez" />;
+  }
+
   if (phase === "menu") {
     return (
       <div className="min-h-screen p-4 md:p-6 flex flex-col items-center justify-center relative overflow-hidden">

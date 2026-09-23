@@ -13,6 +13,7 @@ import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PremiumGoal, PremiumBall, KeeperBot, KeeperPlayer } from "@/components/games/GameAssets";
+import { GameAuthGate } from "@/components/games/GameAuthRequired";
 
 interface QuizDeck {
   id: string;
@@ -33,7 +34,7 @@ type Direction = 'left' | 'center' | 'right';
 
 export default function PenaltyGame() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { userCarrera, submitCareerRequest, updateUserCarrera } = useGames();
   const { status, matchId, opponentName, timeLeft, joinQueue, leaveQueue, setStatus, setMatchId } = useMatchmaking();
 
@@ -304,6 +305,10 @@ export default function PenaltyGame() {
   // ============================================
   // RENDER
   // ============================================
+
+  if (!user || isGuest) {
+    return <GameAuthGate gameTitle="Tanda de Penales" />;
+  }
 
   // PHASE 1: Select Deck
   if (gamePhase === 'select_deck') {

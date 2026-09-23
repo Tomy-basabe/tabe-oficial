@@ -11,6 +11,7 @@ import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { cn } from "@/lib/utils";
+import { GameAuthGate } from "@/components/games/GameAuthRequired";
 
 interface QuizDeck { id: string; nombre: string; total_questions: number; }
 interface QuizQuestion { id: string; pregunta: string; explicacion: string | null; options: { id: string; texto: string; es_correcta: boolean }[]; }
@@ -36,7 +37,7 @@ function checkWin(board: CellValue[]): { winner: CellValue; line: number[] | nul
 
 export default function TicTacToeGame() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { userCarrera, submitCareerRequest, updateUserCarrera } = useGames();
   const { status, matchId, opponentName, timeLeft, joinQueue, leaveQueue, setStatus, setMatchId } = useMatchmaking();
 
@@ -348,6 +349,10 @@ export default function TicTacToeGame() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [gamePhase, isPlayerTurn, pendingCell, board]);
+
+  if (!user || isGuest) {
+    return <GameAuthGate gameTitle="Ta-Te-Ti Táctico" />;
+  }
 
   if (gamePhase === "select_deck") {
     return (

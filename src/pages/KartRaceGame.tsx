@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { GameAuthGate } from "@/components/games/GameAuthRequired";
 
 // ============================================================
 // TYPES & CONSTANTS
@@ -87,7 +88,7 @@ function KartSVG({ color, turbo, position, isPlayer }: { color: string; turbo: b
 
 export default function KartRaceGame() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
 
   // ---- Profile ----
   const [myDisplayName, setMyDisplayName] = useState("Jugador");
@@ -526,6 +527,10 @@ export default function KartRaceGame() {
   // ============================================================
   // RENDER: SELECT DECK
   // ============================================================
+
+  if (!user || isGuest) {
+    return <GameAuthGate gameTitle="Carrera de Karts" />;
+  }
 
   if (gamePhase === "select_deck") {
     return (

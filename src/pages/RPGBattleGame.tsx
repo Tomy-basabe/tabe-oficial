@@ -10,6 +10,7 @@ import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { cn } from "@/lib/utils";
+import { GameAuthGate } from "@/components/games/GameAuthRequired";
 
 interface QuizDeck { id: string; nombre: string; total_questions: number; }
 interface QuizQuestion { id: string; pregunta: string; explicacion: string | null; options: { id: string; texto: string; es_correcta: boolean }[]; }
@@ -93,7 +94,7 @@ function BotCharacter({ hp, maxHp, shake }: { hp: number; maxHp: number; shake: 
 
 export default function RPGBattleGame() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { userCarrera, submitCareerRequest, updateUserCarrera } = useGames();
   const { status, matchId, opponentName, timeLeft: searchTimeLeft, joinQueue, leaveQueue, setStatus, setMatchId } = useMatchmaking();
 
@@ -380,6 +381,10 @@ export default function RPGBattleGame() {
       channelRef.current = null;
     }
   };
+
+  if (!user || isGuest) {
+    return <GameAuthGate gameTitle="Batalla RPG" />;
+  }
 
   if (gamePhase === "select_deck") {
     return (
