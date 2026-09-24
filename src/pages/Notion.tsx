@@ -802,12 +802,12 @@ export default function Notion() {
     [updateDocument, user]
   );
 
-  // Trigger auto-save on content changes
+  // Trigger auto-save on content changes (Continuo, silencioso y optimizado para plan Free)
   const scheduleAutoSave = useCallback(() => {
     isDirtyRef.current = true;
     setSaveError(null); // Clear previous error indicator as user continues editing
 
-    // 1. Debounce timer (2.5s of inactivity gives the browser time to layout pasted text)
+    // 1. Debounce timer: 1.2s tras dejar de escribir (inmediatez percibida sin saturar peticiones)
     if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = window.setTimeout(() => {
       saveDocument(true);
@@ -815,14 +815,14 @@ export default function Notion() {
         window.clearTimeout(forceSaveTimerRef.current);
         forceSaveTimerRef.current = null;
       }
-    }, 2500);
+    }, 1200);
 
-    // 2. Continuous typing periodic save (10s prevents network saturation)
+    // 2. Continuous typing periodic save: cada 6s si el usuario tipea sin parar (máx ~10 reqs/minuto)
     if (!forceSaveTimerRef.current) {
       forceSaveTimerRef.current = window.setTimeout(() => {
         saveDocument(true);
         forceSaveTimerRef.current = null;
-      }, 10000); 
+      }, 6000); 
     }
   }, [saveDocument]);
 
@@ -973,16 +973,23 @@ export default function Notion() {
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') handleSaveOnExit();
     };
+    const onBlur = () => {
+      handleSaveOnExit();
+    };
     window.addEventListener('visibilitychange', onVisibilityChange);
     window.addEventListener('beforeunload', handleSaveOnExit);
+    window.addEventListener('pagehide', handleSaveOnExit);
+    window.addEventListener('blur', onBlur);
     return () => {
       window.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('beforeunload', handleSaveOnExit);
+      window.removeEventListener('pagehide', handleSaveOnExit);
+      window.removeEventListener('blur', onBlur);
       handleSaveOnExit();
     };
   }, [handleSaveOnExit]);
 
-  // Global shortcuts: Ctrl+S save, Ctrl+/ shortcuts panel
+  // Global shortcuts: Ctrl+/ shortcuts panel, intercept Ctrl+S to prevent browser native dialog
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       lastActivityRef.current = Date.now();
@@ -993,7 +1000,8 @@ export default function Notion() {
       }
       if (activeDocument && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        saveDocument(false);
+        // Guardado continuo y silencioso sin toasts intrusivos
+        saveDocument(true);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -1567,18 +1575,11 @@ export default function Notion() {
           <div className="notion-topbar-right">
             {activeDocument && (
               <>
-                {/* Save indicator */}
-                {/* Silent Save indicator (Red indicator on error) */}
+                {/* Save indicator: solo visible en caso de error para no interferir */}
                 {saveError && (
                   <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive/10 text-destructive rounded-md animate-in fade-in duration-300" title={saveError}>
                     <AlertCircle className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-medium uppercase tracking-wider">Error de Guardado</span>
-                  </div>
-                )}
-                {saveInProgress && !saveError && (
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary text-muted-foreground rounded-md animate-in fade-in duration-300">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span className="text-[10px] font-medium uppercase tracking-wider">Guardando...</span>
                   </div>
                 )}
 

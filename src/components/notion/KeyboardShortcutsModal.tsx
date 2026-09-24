@@ -26,7 +26,6 @@ const shortcutCategories: ShortcutCategory[] = [
         name: "Esenciales",
         shortcuts: [
             { keys: [mod, "N"], description: "Crear nueva página" },
-            { keys: [mod, "S"], description: "Guardar (manual)" },
             { keys: [mod, "/"], description: "Abrir atajos de teclado" },
             { keys: [mod, "K"], description: "Insertar enlace" },
             { keys: [mod, "Z"], description: "Deshacer" },
