@@ -270,35 +270,41 @@ export function useMarketplace() {
     isAnonymous: boolean = false
   ) => {
     const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
+    const typeLabel = type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : type === "apunte" ? "Apunte" : "Carpeta";
+    
     const { error } = await supabase
       .from(table as any)
       .update({ is_public: true, description, category, is_anonymous: isAnonymous } as any)
       .eq("id", id);
 
     if (error) {
-      toast.error(`Error al publicar ${type}`);
+      console.error(`Error al publicar ${type}:`, error);
+      toast.error(`Error al publicar ${typeLabel.toLowerCase()}: ${error.message || ""}`);
       return false;
     }
 
-    toast.success(`¡${type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : "Carpeta"} publicado en el marketplace${isAnonymous ? " de forma anónima" : ""}!`);
-    await fetchMyPublicDecks();
+    toast.success(`¡${typeLabel} publicado en el marketplace${isAnonymous ? " de forma anónima" : ""}!`);
+    await Promise.all([fetchMyPublicDecks(), fetchPublicResources()]);
     return true;
   };
 
   const unpublishResource = async (type: "deck" | "file" | "folder" | "quiz" | "apunte", id: string) => {
     const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
+    const typeLabel = type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : type === "apunte" ? "Apunte" : "Carpeta";
+
     const { error } = await supabase
       .from(table as any)
       .update({ is_public: false, is_anonymous: false } as any)
       .eq("id", id);
 
     if (error) {
-      toast.error(`Error al despublicar ${type}`);
+      console.error(`Error al despublicar ${type}:`, error);
+      toast.error(`Error al despublicar ${typeLabel.toLowerCase()}: ${error.message || ""}`);
       return false;
     }
 
-    toast.success(`${type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : "Carpeta"} retirado del marketplace`);
-    await fetchMyPublicDecks();
+    toast.success(`${typeLabel} retirado del marketplace`);
+    await Promise.all([fetchMyPublicDecks(), fetchPublicResources()]);
     return true;
   };
 
@@ -396,15 +402,19 @@ export function useMarketplace() {
   };
 
   const getCategories = useCallback(async () => {
-    const [decks, files, folders] = await Promise.all([
+    const [decks, files, folders, quizzes, apuntes] = await Promise.all([
       (supabase.from("flashcard_decks") as any).select("category").eq("is_public", true).not("category", "is", null),
       (supabase.from("library_files") as any).select("category").eq("is_public", true).not("category", "is", null),
-      (supabase.from("library_folders") as any).select("category").eq("is_public", true).not("category", "is", null)
+      (supabase.from("library_folders") as any).select("category").eq("is_public", true).not("category", "is", null),
+      (supabase.from("quiz_decks") as any).select("category").eq("is_public", true).not("category", "is", null),
+      (supabase.from("notion_documents") as any).select("category").eq("is_public", true).not("category", "is", null)
     ]);
     const categories = [
       ...(decks.data || []).map(d => d.category),
       ...(files.data || []).map(f => f.category),
-      ...(folders.data || []).map(f => f.category)
+      ...(folders.data || []).map(f => f.category),
+      ...(quizzes.data || []).map(q => q.category),
+      ...(apuntes.data || []).map(a => a.category)
     ];
     return [...new Set(categories.filter(Boolean))] as string[];
   }, []);

@@ -81,7 +81,8 @@ export default function Marketplace() {
   
   // Publish Modal State
   const [publishSelectOpen, setPublishSelectOpen] = useState(false);
-  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: 'deck' | 'file' | 'folder' | 'quiz' | 'apunte'; nombre: string } | null>(null);
+  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: 'deck' | 'file' | 'folder' | 'quiz' | 'apunte'; nombre: string; description?: string; category?: string } | null>(null);
+  const [publishSearch, setPublishSearch] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -108,15 +109,23 @@ export default function Marketplace() {
           supabase.from("library_files").select("*").eq("user_id", user.id),
           supabase.from("library_folders").select("*").eq("user_id", user.id),
           supabase.from("quiz_decks").select("*").eq("user_id", user.id),
-          supabase.from("notion_documents").select("*").eq("user_id", user.id)
+          supabase.from("notion_documents").select("id, titulo, emoji, subject_id, parent_id, is_public, description, category, is_anonymous, created_at").eq("user_id", user.id)
         ]);
 
+        const subjectsById = new Map((subjectsData || []).map((s: any) => [s.id, { id: s.id, nombre: s.nombre, year: s.año }]));
+
         setMyResources([
-          ...(decksRes.data || []).map(d => ({ ...d, type: 'deck' })),
-          ...(filesRes.data || []).map(f => ({ ...f, type: 'file' })),
-          ...(foldersRes.data || []).map(f => ({ ...f, type: 'folder' })),
-          ...(quizzesRes.data || []).map(q => ({ ...q, type: 'quiz' })),
-          ...(apuntesRes.data || []).map(a => ({ ...a, type: 'apunte', nombre: a.titulo }))
+          ...(decksRes.data || []).map(d => ({ ...d, type: 'deck', year: subjectsById.get(d.subject_id)?.year, subject_name: subjectsById.get(d.subject_id)?.nombre })),
+          ...(filesRes.data || []).map(f => ({ ...f, type: 'file', year: subjectsById.get(f.subject_id)?.year, subject_name: subjectsById.get(f.subject_id)?.nombre })),
+          ...(foldersRes.data || []).map(f => ({ ...f, type: 'folder', year: subjectsById.get(f.subject_id)?.year, subject_name: subjectsById.get(f.subject_id)?.nombre })),
+          ...(quizzesRes.data || []).map(q => ({ ...q, type: 'quiz', year: subjectsById.get(q.subject_id)?.year, subject_name: subjectsById.get(q.subject_id)?.nombre })),
+          ...(apuntesRes.data || []).map(a => ({
+            ...a,
+            type: 'apunte',
+            nombre: a.titulo || 'Sin título',
+            year: subjectsById.get(a.subject_id)?.year,
+            subject_name: subjectsById.get(a.subject_id)?.nombre
+          }))
         ]);
       }
     };
@@ -164,9 +173,17 @@ export default function Marketplace() {
   };
 
   const handlePublish = async () => {
-    if (!resourceToPublish || !description.trim() || !category.trim()) return;
+    if (!resourceToPublish) return;
+    if (!description.trim()) {
+      toast.error("Por favor ingresa una descripción para el recurso");
+      return;
+    }
+    if (!category.trim()) {
+      toast.error("Por favor indica una categoría o materia");
+      return;
+    }
     setIsPublishing(true);
-    const success = await publishResource(resourceToPublish.type, resourceToPublish.id, description, category, isAnonymous);
+    const success = await publishResource(resourceToPublish.type, resourceToPublish.id, description.trim(), category.trim(), isAnonymous);
     if (success) {
       setPublishSelectOpen(false);
       setResourceToPublish(null);
@@ -448,12 +465,17 @@ export default function Marketplace() {
                           </span>
                         )}
                       </div>
-                      <span className="font-bold text-muted-foreground text-xs uppercase">{resource.type}</span>
+                      <span className="font-bold text-muted-foreground text-xs uppercase">{resource.type === 'apunte' ? 'Apunte' : resource.type}</span>
                     </div>
                   </div>
                   <Button 
                     className="bg-[#FF5C5C] text-black border-2 border-foreground hover:bg-[#e64c4c] hover:shadow-[0_0_0_0_#000] hover:translate-y-[2px] transition-all font-black uppercase rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] w-full sm:w-auto" 
-                    onClick={() => unpublishResource(resource.type as any, resource.id)}
+                    onClick={async () => {
+                      const success = await unpublishResource(resource.type as any, resource.id);
+                      if (success) {
+                        window.location.reload();
+                      }
+                    }}
                   >
                     <X className="w-4 h-4 mr-2" strokeWidth={3} /> Retirar
                   </Button>
@@ -537,6 +559,7 @@ export default function Marketplace() {
           setSelectedPublishType(null);
           setPublishYear(null);
           setPublishSubject(null);
+          setPublishSearch("");
           setCurrentFolderId(null);
           setFolderHistory([{id: null, name: 'Raíz'}]);
           setIsAnonymous(false);
@@ -591,13 +614,14 @@ export default function Marketplace() {
             {publishStep === 'filter' && (
               <div className="space-y-6">
                 <div className="space-y-4">
-                  <p className="text-sm font-bold text-muted-foreground uppercase">Filtra por año y materia para encontrar tus recursos:</p>
+                  <p className="text-sm font-bold text-muted-foreground uppercase">Filtra por año y materia para encontrar tus recursos (opcional):</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-xs font-black uppercase text-foreground">Año</label>
-                      <Select value={publishYear?.toString()} onValueChange={(v) => { setPublishYear(parseInt(v)); setPublishSubject(null); }}>
-                        <SelectTrigger className="h-12 bg-background text-foreground border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold"><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <Select value={publishYear?.toString() || "all"} onValueChange={(v) => { setPublishYear(v === "all" ? null : parseInt(v)); setPublishSubject(null); }}>
+                        <SelectTrigger className="h-12 bg-background text-foreground border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold"><SelectValue placeholder="Todos los años" /></SelectTrigger>
                         <SelectContent className="bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl">
+                          <SelectItem value="all" className="font-bold focus:bg-muted">Todos los años</SelectItem>
                           {[1, 2, 3, 4, 5, 6].map(y => <SelectItem key={y} value={y.toString()} className="font-bold focus:bg-muted">{y}° Año</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -607,14 +631,16 @@ export default function Marketplace() {
                        <Select 
                         value={publishSubject || "all"} 
                         onValueChange={(v) => setPublishSubject(v === "all" ? null : v)}
-                        disabled={!publishYear}
                       >
                          <SelectTrigger className="h-12 bg-background text-foreground border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold"><SelectValue placeholder="Todas" /></SelectTrigger>
-                         <SelectContent className="bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl">
-                            <SelectItem value="all" className="font-bold focus:bg-muted">Todas</SelectItem>
-                            {subjects.filter(s => s.year === publishYear).map(s => (
-                              <SelectItem key={s.id} value={s.id} className="font-bold focus:bg-muted">{s.nombre}</SelectItem>
-                            ))}
+                         <SelectContent className="bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl max-h-60 overflow-y-auto">
+                            <SelectItem value="all" className="font-bold focus:bg-muted">Todas las materias</SelectItem>
+                            <SelectItem value="unlinked" className="font-bold focus:bg-muted text-amber-500">Sin materia asignada</SelectItem>
+                            {subjects
+                              .filter(s => !publishYear || s.year === publishYear)
+                              .map(s => (
+                                <SelectItem key={s.id} value={s.id} className="font-bold focus:bg-muted">{s.nombre} ({s.year}°)</SelectItem>
+                              ))}
                          </SelectContent>
                        </Select>
                     </div>
@@ -628,7 +654,17 @@ export default function Marketplace() {
             )}
 
             {publishStep === 'select' && (
-              <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" strokeWidth={2.5} />
+                  <Input 
+                    placeholder="Buscar por nombre..."
+                    value={publishSearch}
+                    onChange={(e) => setPublishSearch(e.target.value)}
+                    className="pl-10 h-12 bg-background text-foreground border-4 border-foreground rounded-xl font-bold shadow-[2px_2px_0_0_hsl(var(--foreground))] focus-visible:ring-0"
+                  />
+                </div>
+
                 {selectedPublishType === 'file' && (
                    <div className="space-y-2">
                      <div className="flex items-center gap-2 overflow-x-auto pb-2 text-sm bg-muted/50 border-2 border-foreground p-2 rounded-lg">
@@ -651,16 +687,19 @@ export default function Marketplace() {
                    </div>
                 )}
 
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2">
                   {(() => {
                     let filtered = myResources.filter(r => !r.is_public);
                     
                     if (selectedPublishType === 'file') {
                       // Filter for folders and files
                       filtered = filtered.filter(r => r.type === 'file' || r.type === 'folder');
-                      
-                      // Filter by subject if selected
-                      if (publishSubject) {
+                      if (publishYear) {
+                        filtered = filtered.filter(r => r.year === publishYear);
+                      }
+                      if (publishSubject === 'unlinked') {
+                        filtered = filtered.filter(r => !r.subject_id);
+                      } else if (publishSubject) {
                         filtered = filtered.filter(r => r.subject_id === publishSubject);
                       }
                       
@@ -671,15 +710,37 @@ export default function Marketplace() {
                         return false;
                       });
                     } else {
-                      // Filter for decks or quizzes
+                      // Filter for decks, quizzes or apuntes
                       filtered = filtered.filter(r => r.type === selectedPublishType);
-                      if (publishSubject) {
+                      if (publishYear) {
+                        filtered = filtered.filter(r => r.year === publishYear);
+                      }
+                      if (publishSubject === 'unlinked') {
+                        filtered = filtered.filter(r => !r.subject_id);
+                      } else if (publishSubject) {
                         filtered = filtered.filter(r => r.subject_id === publishSubject);
                       }
                     }
 
+                    if (publishSearch.trim()) {
+                      const q = publishSearch.toLowerCase();
+                      filtered = filtered.filter(r => (r.nombre || "").toLowerCase().includes(q));
+                    }
+
                     if (filtered.length === 0) {
-                      return <div className="text-center py-12 text-muted-foreground font-black uppercase text-xl border-4 border-dashed border-border rounded-xl">No se encontraron recursos.</div>;
+                      return (
+                        <div className="text-center py-10 px-4 text-muted-foreground border-4 border-dashed border-border rounded-xl space-y-3">
+                          <p className="font-black uppercase text-base">No se encontraron recursos con los filtros seleccionados.</p>
+                          {(publishYear || publishSubject || publishSearch) && (
+                            <Button 
+                              onClick={() => { setPublishYear(null); setPublishSubject(null); setPublishSearch(""); }}
+                              className="bg-foreground text-background font-black uppercase px-4 py-2 rounded-lg text-sm"
+                            >
+                              Mostrar todos mis {selectedPublishType === 'apunte' ? 'apuntes' : 'recursos'}
+                            </Button>
+                          )}
+                        </div>
+                      );
                     }
 
                     return filtered.map(r => (
@@ -691,25 +752,53 @@ export default function Marketplace() {
                             setCurrentFolderId(r.id);
                             setFolderHistory([...folderHistory, { id: r.id, name: r.nombre }]);
                           } else {
-                            setResourceToPublish({ id: r.id, type: r.type as any, nombre: r.nombre });
+                            const defaultCat = r.category || r.subject_name || (r.type === 'apunte' ? 'Apuntes' : '');
+                            const defaultDesc = r.description || '';
+                            setResourceToPublish({ 
+                              id: r.id, 
+                              type: r.type as any, 
+                              nombre: r.nombre,
+                              description: defaultDesc,
+                              category: defaultCat
+                            });
+                            setDescription(defaultDesc);
+                            setCategory(defaultCat);
                             setPublishStep('details');
                           }
                         }}
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
                           <div className={cn(
-                            "w-12 h-12 rounded-lg border-2 border-black flex items-center justify-center shadow-[2px_2px_0_0_#000]",
+                            "w-12 h-12 rounded-lg border-2 border-black flex items-center justify-center shadow-[2px_2px_0_0_#000] shrink-0 text-xl font-bold",
                             r.type === 'deck' ? "bg-[#C688EB]" : r.type === 'file' ? "bg-[#00E5FF]" : r.type === 'folder' ? "bg-[#FFD700]" : r.type === 'quiz' ? "bg-[#FFD700]" : "bg-[#FF9B71]"
                           )}>
                             {r.type === 'deck' && <Layers className="w-6 h-6 text-black" strokeWidth={2.5} />}
                             {r.type === 'file' && <FileText className="w-6 h-6 text-black" strokeWidth={2.5} />}
                             {r.type === 'folder' && <Folder className="w-6 h-6 text-black" strokeWidth={2.5} />}
                             {r.type === 'quiz' && <HelpCircle className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                            {r.type === 'apunte' && <GraduationCap className="w-6 h-6 text-black" strokeWidth={2.5} />}
+                            {r.type === 'apunte' && (r.emoji || <GraduationCap className="w-6 h-6 text-black" strokeWidth={2.5} />)}
                           </div>
-                          <span className="font-black text-lg uppercase text-foreground">{r.nombre}</span>
+                          <div className="min-w-0 flex-1">
+                            <span className="font-black text-lg uppercase text-foreground block truncate">{r.nombre}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {r.subject_name ? (
+                                <span className="text-[10px] font-bold uppercase bg-muted text-foreground border border-foreground/30 px-1.5 py-0.5 rounded">
+                                  {r.subject_name}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold uppercase bg-muted/60 text-muted-foreground px-1.5 py-0.5 rounded">
+                                  Sin materia
+                                </span>
+                              )}
+                              {r.year && (
+                                <span className="text-[10px] font-bold text-muted-foreground">
+                                  {r.year}° Año
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        {r.type === 'folder' ? <ChevronRight className="w-6 h-6 text-foreground" strokeWidth={3} /> : <span className="bg-foreground text-background px-3 py-1 text-xs font-black uppercase rounded">Seleccionar</span>}
+                        {r.type === 'folder' ? <ChevronRight className="w-6 h-6 text-foreground shrink-0 ml-2" strokeWidth={3} /> : <span className="bg-foreground text-background px-3 py-1 text-xs font-black uppercase rounded shrink-0 ml-2">Seleccionar</span>}
                       </div>
                     ));
                   })()}
@@ -734,7 +823,7 @@ export default function Marketplace() {
                     </div>
                     <div>
                       <span className="font-black text-lg block uppercase leading-tight text-foreground">{resourceToPublish.nombre}</span>
-                      <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">{resourceToPublish.type}</span>
+                      <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">{resourceToPublish.type === 'apunte' ? 'Apunte' : resourceToPublish.type}</span>
                     </div>
                    </div>
                    <Button className="bg-card text-foreground border-2 border-foreground hover:bg-muted font-black uppercase h-10 px-4 rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))]" onClick={() => setPublishStep('select')}>Cambiar</Button>
@@ -753,7 +842,7 @@ export default function Marketplace() {
                 <div className="space-y-2">
                   <label className="text-sm font-black text-foreground uppercase tracking-tight">Categoría / Etiquetas</label>
                   <Input 
-                    placeholder="Ej: Medicina, Ingeniería, Resúmenes..."
+                    placeholder="Ej: Medicina, Fisiología, Resúmenes..."
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="h-14 bg-background text-foreground border-4 border-foreground focus-visible:ring-0 rounded-xl font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] px-4 text-lg"
@@ -796,7 +885,7 @@ export default function Marketplace() {
                   <Button 
                     className="flex-1 bg-[#BFFF00] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#a6e600] hover:translate-y-[2px] hover:shadow-[0_0_0_0_hsl(var(--foreground))] transition-all font-black uppercase h-14 rounded-xl text-lg"
                     onClick={handlePublish}
-                    disabled={isPublishing || !description.trim() || !category.trim()}
+                    disabled={isPublishing}
                   >
                     {isPublishing ? <Loader2 className="w-6 h-6 animate-spin" /> : "Publicar Ahora"}
                   </Button>

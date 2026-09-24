@@ -738,13 +738,20 @@ export type Database = {
       }
       notion_documents: {
         Row: {
+          category: string | null
           contenido: Json | null
           cover_url: string | null
           created_at: string
+          description: string | null
+          download_count: number | null
           emoji: string | null
           id: string
+          is_anonymous: boolean | null
           is_favorite: boolean | null
+          is_public: boolean | null
           parent_id: string | null
+          rating_count: number | null
+          rating_sum: number | null
           subject_id: string | null
           titulo: string
           total_time_seconds: number | null
@@ -752,13 +759,20 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           contenido?: Json | null
           cover_url?: string | null
           created_at?: string
+          description?: string | null
+          download_count?: number | null
           emoji?: string | null
           id?: string
+          is_anonymous?: boolean | null
           is_favorite?: boolean | null
+          is_public?: boolean | null
           parent_id?: string | null
+          rating_count?: number | null
+          rating_sum?: number | null
           subject_id?: string | null
           titulo?: string
           total_time_seconds?: number | null
@@ -766,13 +780,20 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           contenido?: Json | null
           cover_url?: string | null
           created_at?: string
+          description?: string | null
+          download_count?: number | null
           emoji?: string | null
           id?: string
+          is_anonymous?: boolean | null
           is_favorite?: boolean | null
+          is_public?: boolean | null
           parent_id?: string | null
+          rating_count?: number | null
+          rating_sum?: number | null
           subject_id?: string | null
           titulo?: string
           total_time_seconds?: number | null
