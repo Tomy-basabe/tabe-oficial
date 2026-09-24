@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { toLocalDateStr } from "@/lib/utils";
+import { broadcastNotionDocUpdate, broadcastNotionDocDeleted, subscribeNotionSync } from "@/lib/notionSync";
 
 export interface NotionDocument {
   id: string;
@@ -41,7 +42,39 @@ export function useNotionDocuments() {
   // Persistent content cache - survives refetches
   const contentCacheRef = useRef<Map<string, any>>(new Map());
 
-  const friendDocsLoadedRef = useRef(false);
+  // Escuchar sincronización de otras pestañas en tiempo real (0ms, 0 requests)
+  useEffect(() => {
+    const unsubscribe = subscribeNotionSync((msg) => {
+      if (msg.type === "DOC_UPDATED") {
+        if (msg.content) {
+          contentCacheRef.current.set(msg.docId, msg.content);
+          try {
+            sessionStorage.setItem(`tabe_doc_content_${msg.docId}`, JSON.stringify(msg.content));
+          } catch (e) {}
+        }
+        setDocuments((prev) =>
+          prev.map((d) =>
+            d.id === msg.docId
+              ? {
+                  ...d,
+                  titulo: msg.title !== undefined ? msg.title : d.titulo,
+                  emoji: msg.emoji !== undefined ? msg.emoji : d.emoji,
+                  updated_at: msg.updatedAt || new Date().toISOString(),
+                }
+              : d
+          )
+        );
+      } else if (msg.type === "DOC_DELETED") {
+        contentCacheRef.current.delete(msg.docId);
+        try {
+          sessionStorage.removeItem(`tabe_doc_content_${msg.docId}`);
+        } catch (e) {}
+        setDocuments((prev) => prev.filter((d) => d.id !== msg.docId && d.parent_id !== msg.docId));
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   const fetchDocuments = useCallback(async () => {
     if (!user && !isGuest) {
@@ -88,57 +121,71 @@ export function useNotionDocuments() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("notion_documents")
-      .select(`
-        id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
-        owner:profiles(nombre, avatar_url, username),
-        subject:subjects(id, nombre, codigo, año)
-      `)
-      .order("updated_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching documents:", error.message, error.details, error.hint);
-      toast.error("Error al cargar documentos");
-    } else if (data) {
-      // Cache subjects from join
-      data.forEach((d: any) => {
-        if (d.subject && d.subject_id) {
-          subjectsMapRef.current[d.subject_id] = {
-            id: d.subject.id,
-            nombre: d.subject.nombre,
-            codigo: d.subject.codigo,
-            year: d.subject.año,
-            año: d.subject.año,
-          };
-          cachedSubjectIdsRef.current.add(d.subject_id);
-        }
+    try {
+      // Timeout de seguridad de 6 segundos para evitar pantallas de carga infinitas
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: "FETCH_DOCUMENTS_TIMEOUT" } }), 6000);
       });
 
-      const subjectsMap = subjectsMapRef.current;
+      const fetchPromise = supabase
+        .from("notion_documents")
+        .select(`
+          id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+          owner:profiles(nombre, avatar_url, username),
+          subject:subjects(id, nombre, codigo, año)
+        `)
+        .order("updated_at", { ascending: false })
+        .limit(100);
 
-      const mapped = data.map((d: any) => {
-        const sub = d.subject
-          ? {
+      const res = await Promise.race([fetchPromise, timeoutPromise]);
+      const { data, error } = res as any;
+
+      if (error && error.message !== "FETCH_DOCUMENTS_TIMEOUT") {
+        console.error("Error fetching documents:", error.message);
+      } else if (data) {
+        // Cache subjects from join
+        data.forEach((d: any) => {
+          if (d.subject && d.subject_id) {
+            subjectsMapRef.current[d.subject_id] = {
               id: d.subject.id,
               nombre: d.subject.nombre,
               codigo: d.subject.codigo,
               year: d.subject.año,
               año: d.subject.año,
-            }
-          : (d.subject_id ? subjectsMap[d.subject_id] : undefined);
+            };
+            cachedSubjectIdsRef.current.add(d.subject_id);
+          }
+        });
 
-        return {
-          ...d,
-          subject: sub,
-          contenido: contentCacheRef.current.get(d.id) || undefined,
-        };
-      }) as NotionDocument[];
+        const subjectsMap = subjectsMapRef.current;
 
-      setDocuments(mapped);
+        const mapped = data.map((d: any) => {
+          const sub = d.subject
+            ? {
+                id: d.subject.id,
+                nombre: d.subject.nombre,
+                codigo: d.subject.codigo,
+                year: d.subject.año,
+                año: d.subject.año,
+              }
+            : (d.subject_id ? subjectsMap[d.subject_id] : undefined);
+
+          return {
+            ...d,
+            subject: sub,
+            contenido: contentCacheRef.current.get(d.id) || undefined,
+          };
+        }) as NotionDocument[];
+
+        setDocuments(mapped);
+      }
+    } catch (err) {
+      console.warn("Exception during fetchDocuments:", err);
+    } finally {
+      // Garantizar SIEMPRE que loading pase a false para nunca dejar la pantalla trabada
+      setLoading(false);
     }
-    setLoading(false);
-  }, [user]);
+  }, [user, isGuest]);
 
   useEffect(() => {
     if (user || isGuest) {
@@ -229,9 +276,20 @@ export function useNotionDocuments() {
     // Do NOT put heavy 'contenido' into the global documents list state!
     // The documents list only needs metadata (titulo, emoji, cover, etc.)
     const { contenido, ...metaUpdates } = updates;
+    const nowIso = new Date().toISOString();
     setDocuments(prev =>
-      prev.map(doc => doc.id === id ? { ...doc, ...metaUpdates, updated_at: new Date().toISOString() } : doc)
+      prev.map(doc => doc.id === id ? { ...doc, ...metaUpdates, updated_at: nowIso } : doc)
     );
+
+    // Notificar a las demás pestañas instantáneamente (0ms, 0 requests a Supabase)
+    broadcastNotionDocUpdate({
+      docId: id,
+      content: updates.contenido,
+      title: updates.titulo,
+      emoji: updates.emoji,
+      updatedAt: nowIso,
+    });
+
     return true;
   };
 
@@ -264,6 +322,10 @@ export function useNotionDocuments() {
       sessionStorage.removeItem(`tabe_doc_content_${id}`);
     } catch (e) {}
     setDocuments(prev => prev.filter(doc => doc.id !== id && doc.parent_id !== id));
+    
+    // Notificar a las demás pestañas para que cierren el documento si lo tenían abierto
+    broadcastNotionDocDeleted(id);
+
     toast.success("Documento eliminado");
     return true;
   };
@@ -296,42 +358,56 @@ export function useNotionDocuments() {
         });
 
       if (error) throw error;
-      
-      // Removed noisy toasts for auto-saves. 
-      // Manual/Exit saves usually show feedback elsewhere if needed.
     } catch (error) {
       console.error("Error saving notion study session:", error);
     }
   };
 
-  const fetchDocumentContent = async (docId: string): Promise<any> => {
-    // 1. Return from memory cache if available (0ms)
-    const cached = contentCacheRef.current.get(docId);
-    if (cached) {
-      return cached;
+  const fetchDocumentContent = async (docId: string, forceFresh: boolean = false): Promise<any> => {
+    if (!forceFresh) {
+      // 1. Return from memory cache if available (0ms)
+      const cached = contentCacheRef.current.get(docId);
+      if (cached) {
+        return cached;
+      }
+
+      // 2. Return from sessionStorage cache if available (0ms)
+      try {
+        const stored = sessionStorage.getItem(`tabe_doc_content_${docId}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          contentCacheRef.current.set(docId, parsed);
+          return parsed;
+        }
+      } catch (e) {}
     }
 
-    // 2. Return from sessionStorage cache if available (0ms)
     try {
-      const stored = sessionStorage.getItem(`tabe_doc_content_${docId}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        contentCacheRef.current.set(docId, parsed);
-        return parsed;
-      }
-    } catch (e) {}
+      // Timeout de seguridad de 5 segundos para que la apertura de un apunte nunca se quede colgada
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: "FETCH_CONTENT_TIMEOUT" } }), 5000);
+      });
 
-    try {
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from("notion_documents")
         .select("contenido")
         .eq("id", docId)
         .single();
 
-      if (error) throw error;
+      const res = await Promise.race([fetchPromise, timeoutPromise]);
+      const { data, error } = res as any;
+
+      if (error) {
+        if (error.message === "FETCH_CONTENT_TIMEOUT") {
+          console.warn("fetchDocumentContent timed out, checking fallback cache");
+          const fallback = contentCacheRef.current.get(docId);
+          if (fallback) return fallback;
+        }
+        throw error;
+      }
       
       // Store in memory and persistent session cache
-      if (data.contenido) {
+      if (data && data.contenido) {
         contentCacheRef.current.set(docId, data.contenido);
         try {
           sessionStorage.setItem(`tabe_doc_content_${docId}`, JSON.stringify(data.contenido));
@@ -339,12 +415,15 @@ export function useNotionDocuments() {
       }
 
       setDocuments(prev => prev.map(doc => 
-        doc.id === docId ? { ...doc, contenido: data.contenido } : doc
+        doc.id === docId ? { ...doc, contenido: data?.contenido } : doc
       ));
 
-      return data.contenido;
+      return data?.contenido || null;
     } catch (error: any) {
       console.error("Error fetching document content:", error);
+      // Fallback a caché si la red falló
+      const fallback = contentCacheRef.current.get(docId);
+      if (fallback) return fallback;
       toast.error("Error al cargar el contenido del documento");
       return null;
     }

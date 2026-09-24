@@ -37,6 +37,7 @@ import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { useAudioBook } from "@/hooks/useAudioBook";
 import { AudioBookPlayer } from "@/components/notion/AudioBookPlayer";
 import { resolveDocSubject, normalizeSubjectName } from "@/lib/notionSubjectHelper";
+import { subscribeNotionSync, broadcastNotionDocUpdate } from "@/lib/notionSync";
 
 interface Subject {
   id: string;
@@ -778,6 +779,13 @@ export default function Notion() {
             setActiveDocument((prev) => (prev ? { ...prev, titulo: currentTitle } : null));
           }
           setLastSaved(new Date());
+          // Notificar a las demás pestañas abiertas en tiempo real (0ms, 0 costo servidor)
+          broadcastNotionDocUpdate({
+            docId: docToSave.id,
+            content: contentToSave,
+            title: currentTitle,
+            updatedAt: new Date().toISOString(),
+          });
           if (!silent) toast.success("Apunte guardado");
           return true;
         } else {
@@ -1066,6 +1074,9 @@ export default function Notion() {
     setActiveDocument(doc);
     activeDocumentRef.current = doc;
     setLastSaved(null);
+    try {
+      sessionStorage.setItem("tabe_active_doc_id", doc.id);
+    } catch (e) {}
 
     // Add to tabs if not already present
     setOpenTabs(prev => {
@@ -1085,8 +1096,13 @@ export default function Notion() {
     }
     if (!rawContent) {
       setIsOpeningDoc(true);
-      rawContent = await fetchDocumentContent(doc.id);
-      setIsOpeningDoc(false);
+      const safetyTimer = setTimeout(() => setIsOpeningDoc(false), 5000);
+      try {
+        rawContent = await fetchDocumentContent(doc.id, true);
+      } finally {
+        clearTimeout(safetyTimer);
+        setIsOpeningDoc(false);
+      }
     }
 
     // If active document changed while awaiting DB fetch, discard stale response
@@ -1125,6 +1141,9 @@ export default function Notion() {
       saveDocument(true);
     }
     handleSaveOnExit();
+    try {
+      sessionStorage.removeItem("tabe_active_doc_id");
+    } catch (e) {}
     setActiveDocument(null);
     setEditorContent(null);
     editorContentRef.current = null;
@@ -1176,6 +1195,76 @@ export default function Notion() {
     const doc = documents.find(d => d.id === tabId);
     if (doc) openDocument(doc);
   }, [activeDocument, documents, openDocument]);
+
+  // 1. Sincronización en tiempo real entre pestañas abiertas (BroadcastChannel, 0ms, 0 costo)
+  useEffect(() => {
+    const unsubscribe = subscribeNotionSync((msg) => {
+      if (msg.type === "DOC_UPDATED") {
+        const curDoc = activeDocumentRef.current;
+        if (curDoc && curDoc.id === msg.docId) {
+          // Si esta pestaña no tiene cambios locales sin guardar, actualizamos el editor en vivo
+          if (!isDirtyRef.current && msg.content) {
+            editorContentRef.current = msg.content;
+            lastSavedContentRef.current = JSON.stringify(msg.content);
+            setEditorContent(msg.content);
+            if (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed) {
+              tiptapEditorInstance.commands.setContent(msg.content, false);
+            }
+            if (msg.title) {
+              setLocalTitle(msg.title);
+              localTitleRef.current = msg.title;
+            }
+            toast.info("Apunte sincronizado desde otra pestaña", { duration: 2500 });
+          }
+        }
+      } else if (msg.type === "DOC_DELETED") {
+        if (activeDocumentRef.current?.id === msg.docId) {
+          closeDocument();
+          toast.info("El apunte fue eliminado en otra pestaña");
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [tiptapEditorInstance, closeDocument]);
+
+  // 2. Revalidar apunte al volver a enfocar la pestaña (Pestaña B -> Pestaña A)
+  useEffect(() => {
+    const onWindowFocus = async () => {
+      const curDoc = activeDocumentRef.current;
+      if (!curDoc || isDirtyRef.current) return;
+
+      try {
+        const stored = sessionStorage.getItem(`tabe_doc_content_${curDoc.id}`);
+        if (stored && stored !== lastSavedContentRef.current) {
+          const parsed = JSON.parse(stored);
+          editorContentRef.current = parsed;
+          lastSavedContentRef.current = stored;
+          setEditorContent(parsed);
+          if (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed) {
+            tiptapEditorInstance.commands.setContent(parsed, false);
+          }
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener("focus", onWindowFocus);
+    return () => window.removeEventListener("focus", onWindowFocus);
+  }, [tiptapEditorInstance]);
+
+  // 3. Restaurar automáticamente el último apunte activo tras refresh (F5) para que no se quede colgado
+  useEffect(() => {
+    if (activeDocument || documents.length === 0) return;
+    try {
+      const savedDocId = sessionStorage.getItem("tabe_active_doc_id");
+      if (savedDocId) {
+        const target = documents.find((d) => d.id === savedDocId);
+        if (target) {
+          openDocument(target);
+        }
+      }
+    } catch (e) {}
+  }, [documents, activeDocument, openDocument]);
 
   const handleCreateDocument = useCallback(
     async (subjectId?: string) => {
