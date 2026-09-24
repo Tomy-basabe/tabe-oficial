@@ -7,7 +7,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Search, Calculator } from "lucide-react";
+import { Search, Calculator, X } from "lucide-react";
 
 // Categorized symbols
 export const MATH_SYMBOLS = [
@@ -187,7 +187,7 @@ interface MathMenuProps {
   anchorEl?: DOMRect | null;
 }
 
-export function MathMenu({ onSelect, open, onOpenChange, anchorEl }: MathMenuProps) {
+export function MathMenu({ onSelect, open, onOpenChange }: MathMenuProps) {
   const [search, setSearch] = useState("");
 
   const filteredSymbols = useMemo(() => {
@@ -203,29 +203,37 @@ export function MathMenu({ onSelect, open, onOpenChange, anchorEl }: MathMenuPro
     })).filter((cat) => cat.symbols.length > 0);
   }, [search]);
 
-  // If we have an anchorEl, we position the popover manually or let Radix handle it
-  // In this case, we'll try to use a floating div if no specific anchor is provided via Radix
-  
   return (
     <div 
       className={cn(
-        "fixed z-[100] w-[320px] bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col transition-all duration-200 notion-math-menu-container",
-        open ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+        "fixed z-[100] w-[340px] max-w-[calc(100vw-32px)] bg-card/95 backdrop-blur-md border-2 border-foreground/30 rounded-2xl shadow-[6px_6px_0_0_hsl(var(--foreground)/0.15)] overflow-hidden flex flex-col transition-all duration-200 notion-math-menu-container",
+        open ? "opacity-100 scale-100 pointer-events-auto translate-y-0" : "opacity-0 scale-95 pointer-events-none -translate-y-2"
       )}
       style={{
-        left: anchorEl ? `${anchorEl.left}px` : "50%",
-        top: anchorEl ? `${anchorEl.bottom + 8}px` : "50%",
-        transform: anchorEl ? "none" : "translate(-50%, -50%)",
+        top: "76px",
+        right: "24px",
       }}
     >
-      <div className="p-3 border-b border-border bg-secondary/30 flex items-center gap-2">
-        <Calculator className="w-4 h-4 text-primary" />
-        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex-1">
-          Notación Matemática
-        </span>
-        <kbd className="px-1.5 py-0.5 rounded bg-background border border-border text-[10px] font-mono text-muted-foreground">
-          ESC
-        </kbd>
+      <div className="p-3 border-b border-border bg-secondary/30 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Calculator className="w-4 h-4 text-primary" />
+          <span className="text-xs font-black uppercase tracking-wider text-foreground">
+            Notación Matemática
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <kbd className="px-1.5 py-0.5 rounded bg-background border border-border text-[9px] font-mono text-muted-foreground">
+            ESC
+          </kbd>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title="Cerrar (Esc)"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       <div className="p-2 border-b border-border">

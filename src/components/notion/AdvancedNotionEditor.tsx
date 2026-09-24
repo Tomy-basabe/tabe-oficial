@@ -605,11 +605,6 @@ export function AdvancedNotionEditor({
 
       if (modKey && e.key.toLowerCase() === 'm') {
         e.preventDefault();
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          setMathMenuAnchor(range.getBoundingClientRect());
-        }
         setMathMenuOpen(prev => !prev);
         return;
       }
