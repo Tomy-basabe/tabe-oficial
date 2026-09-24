@@ -669,7 +669,7 @@ export default function Metrics() {
       ) : activeTab === "carrera" ? (
         <CareerAnalytics />
       ) : activeTab === "flashcards" ? (
-        <FlashcardStats />
+        <FlashcardStats dateRange={dateRange} />
       ) : activeTab === "rutinas" ? (
         <RoutineStats dateRange={dateRange} />
       ) : (
