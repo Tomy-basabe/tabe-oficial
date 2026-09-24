@@ -119,6 +119,39 @@ function cleanTextForPdf(text: string): string {
 }
 
 /**
+ * Sanitiza código fuente para que sea 100% ASCII seguro para jsPDF y la fuente Courier.
+ * Esto erradica de raíz el bug donde jsPDF inserta bytes nulos causando letras separadas ("H o l a")
+ * o símbolos corruptos ("%%°"), y permite que el PDF sea 100% vectorial y ultra liviano (< 150 KB).
+ */
+function sanitizeCodeToAscii(text: string): string {
+  if (!text) return "";
+  return text
+    // Flechas y diagramas
+    .replace(/[→⇒▶►]/g, "->")
+    .replace(/[←⇐◀◄]/g, "<-")
+    .replace(/[↔⇔]/g, "<->")
+    // Box drawings (diagramas de flujo tipo javac / JVM)
+    .replace(/[─━┄┅┈┉]/g, "-")
+    .replace(/[│┃┆┇┊┋]/g, "|")
+    .replace(/[┌┏┐┓└┗┘┛├┣┤┫┬┳┴┻┼╋]/g, "+")
+    // Comillas y guiones
+    .replace(/[“”«»]/g, '"')
+    .replace(/[‘’`´]/g, "'")
+    .replace(/[–—―]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/•/g, "*")
+    // Sanitizar cualquier caracter fuera de ASCII 32-126
+    .replace(/[^\x20-\x7E\t\r\n]/g, (match) => {
+      const map: Record<string, string> = {
+        á: "a", é: "e", í: "i", ó: "o", ú: "u", ñ: "n",
+        Á: "A", É: "E", Í: "I", Ó: "O", Ú: "U", Ñ: "N",
+        ü: "u", Ü: "U", "°": "", "©": "(c)", "®": "(R)"
+      };
+      return map[match] || " ";
+    });
+}
+
+/**
  * Cede el control de ejecución al event loop del navegador de manera cooperativa.
  * Esto permite que el navegador procese entradas del usuario (clicks, scroll, teclado),
  * dibuje a 60 FPS y ejecute microtareas mientras la exportación avanza en segundo plano.
@@ -555,124 +588,6 @@ async function renderMermaidDiagramToImage(
   return Promise.race([renderPromise, timeoutPromise]);
 }
 
-interface RenderedCodeChunk {
-  dataUrl: string;
-  widthMm: number;
-  heightMm: number;
-}
-
-/**
- * Renderiza bloques de código usando HTML Canvas optimizado en formato JPEG.
- * Esto garantiza que:
- * 1. Todos los caracteres Unicode (box drawing ┌─┐│└┘, flechas ↑↓→, etc.) se vean perfectos.
- * 2. La fuente sea exactamente monoespaciada con alineación horizontal precisa.
- * 3. Se mantenga el fondo oscuro idéntico al editor de la app.
- * 4. Las líneas largas se envuelven automáticamente sin cortarse jamás en el margen derecho.
- * 5. El tamaño del archivo sea mínimo (utiliza JPEG 82% ultra comprimido).
- */
-function renderCodeBlockToImages(code: string, language: string = "text"): RenderedCodeChunk[] {
-  const rawLines = code.split(/\r?\n/);
-  if (rawLines.length === 0) return [];
-
-  // Envolver líneas largas para que nunca se corten en el margen derecho
-  const maxCharsPerLine = 76;
-  const wrappedLines: string[] = [];
-
-  for (const line of rawLines) {
-    if (!line || line.length <= maxCharsPerLine) {
-      wrappedLines.push(line || "");
-      continue;
-    }
-    let remaining = line;
-    let isFirst = true;
-    while (remaining.length > maxCharsPerLine) {
-      let breakAt = maxCharsPerLine;
-      for (let i = maxCharsPerLine; i >= Math.floor(maxCharsPerLine * 0.6); i--) {
-        const ch = remaining[i];
-        if (ch === " " || ch === "," || ch === ";" || ch === ")" || ch === "}" || ch === "]" || ch === ">") {
-          breakAt = i + 1;
-          break;
-        }
-      }
-      wrappedLines.push((isFirst ? "" : "  ") + remaining.substring(0, breakAt));
-      remaining = remaining.substring(breakAt).trimStart();
-      isFirst = false;
-    }
-    if (remaining) {
-      wrappedLines.push("  " + remaining);
-    }
-  }
-
-  const maxLinesPerChunk = 32;
-  const chunks: RenderedCodeChunk[] = [];
-  const totalChunks = Math.ceil(wrappedLines.length / maxLinesPerChunk);
-
-  const scale = 1.4;
-  const fontSize = 11 * scale;
-  const lineHeight = 16.5 * scale;
-  const padX = 14 * scale;
-  const canvasW = 920; // Ancho óptimo proporcional a CONTENT_W (174mm)
-  const padBottom = 8 * scale;
-
-  for (let c = 0; c < totalChunks; c++) {
-    const start = c * maxLinesPerChunk;
-    const end = Math.min(start + maxLinesPerChunk, wrappedLines.length);
-    const chunkLines = wrappedLines.slice(start, end);
-    const isFirst = c === 0;
-
-    const headerH = isFirst ? (language && language !== "text" ? 24 * scale : 10 * scale) : 8 * scale;
-    const canvasH = Math.round(headerH + chunkLines.length * lineHeight + padBottom);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = canvasW;
-    canvas.height = canvasH;
-    const ctx = canvas.getContext("2d")!;
-
-    // Fondo oscuro (#18181b)
-    ctx.fillStyle = "#18181b";
-    ctx.fillRect(0, 0, canvasW, canvasH);
-
-    // Borde redondeado suave
-    ctx.strokeStyle = "#27272a";
-    ctx.lineWidth = 1 * scale;
-    ctx.strokeRect(0.5, 0.5, canvasW - 1, canvasH - 1);
-
-    // Cabecera en el primer fragmento
-    if (isFirst && language && language !== "text") {
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = `bold ${8.5 * scale}px "Segoe UI", Roboto, sans-serif`;
-      ctx.fillText(language.toUpperCase(), padX, 15 * scale);
-
-      // Línea divisoria suave
-      ctx.strokeStyle = "#27272a";
-      ctx.lineWidth = 1 * scale;
-      ctx.beginPath();
-      ctx.moveTo(padX, headerH - 3 * scale);
-      ctx.lineTo(canvasW - padX, headerH - 3 * scale);
-      ctx.stroke();
-    }
-
-    // Dibujar texto con fuente monoespaciada exacta
-    ctx.fillStyle = "#f4f4f5";
-    ctx.font = `${fontSize}px "Consolas", "Cascadia Code", "Courier New", monospace`;
-    ctx.textBaseline = "middle";
-
-    for (let i = 0; i < chunkLines.length; i++) {
-      const lineText = chunkLines[i];
-      const y = headerH + (i + 0.5) * lineHeight;
-      ctx.fillText(lineText, padX, y);
-    }
-
-    // Exportar como JPEG con calidad 82% (pesa 95% menos que PNG)
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-    const widthMm = CONTENT_W;
-    const heightMm = (canvasH / canvasW) * widthMm;
-
-    chunks.push({ dataUrl, widthMm, heightMm });
-  }
-
-  return chunks;
-}
 
 /**
  * Motor de renderizado PDF directo con jsPDF.
@@ -930,12 +845,12 @@ class PDFRenderer {
     }
 
     // Emoji del documento renderizado en canvas para evitar basura Unicode
-    // Se renderiza arriba del título (estilo Notion oficial) para evitar cualquier superposición
+    // Se renderiza arriba del título (estilo Notion oficial) con espacio vertical garantizado
     if (emoji) {
       const emojiDataUrl = renderEmojiToDataUrl(emoji);
       if (emojiDataUrl) {
-        this.doc.addImage(emojiDataUrl, "PNG", MARGIN_L, this.y, 14, 14);
-        this.y += 17; // Espacio vertical completo y limpio antes del título
+        this.doc.addImage(emojiDataUrl, "PNG", MARGIN_L, this.y, 11, 11);
+        this.y += 22; // Espacio vertical garantizado: previene que la parte superior del título toque el icono
       }
     }
 
@@ -1222,14 +1137,152 @@ class PDFRenderer {
       }
     }
 
-    // Renderizado en Canvas de alta fidelidad: elimina bugs de fuentes Type1 (espaciado H o l a, %%°, etc.)
-    const chunks = renderCodeBlockToImages(code, language);
-    for (const chunk of chunks) {
-      this.ensureSpace(chunk.heightMm + 4);
-      this.doc.addImage(chunk.dataUrl, "JPEG", MARGIN_L, this.y, chunk.widthMm, chunk.heightMm);
-      this.y += chunk.heightMm + 2;
+    // Código nativo vectorial ultra liviano (0 imágenes pesadas, peso < 150 KB, texto 100% copiable)
+    this.renderNativeCodeBlock(code, language);
+  }
+
+  /* ── Bloque de código vectorial nativo ultra liviano (PDF ligero y descarga instantánea) ── */
+  private renderNativeCodeBlock(rawCode: string, language: string = "text") {
+    const code = sanitizeCodeToAscii(rawCode);
+    const rawLines = code.split(/\r?\n/);
+    if (rawLines.length === 0) return;
+
+    // Envolver líneas largas para que nunca se corten (72 caracteres en Courier 8pt)
+    const maxChars = 72;
+    const wrappedLines: string[] = [];
+    for (const line of rawLines) {
+      if (!line || line.length <= maxChars) {
+        wrappedLines.push(line || "");
+        continue;
+      }
+      let rem = line;
+      let isFirst = true;
+      while (rem.length > maxChars) {
+        let breakAt = maxChars;
+        for (let i = maxChars; i >= Math.floor(maxChars * 0.65); i--) {
+          const ch = rem[i];
+          if (ch === " " || ch === "," || ch === ";" || ch === ")" || ch === "}" || ch === "]" || ch === ">") {
+            breakAt = i + 1;
+            break;
+          }
+        }
+        wrappedLines.push((isFirst ? "" : "  ") + rem.substring(0, breakAt));
+        rem = rem.substring(breakAt).trimStart();
+        isFirst = false;
+      }
+      if (rem) wrappedLines.push("  " + rem);
     }
-    this.y += 2;
+
+    const fontSize = 8;
+    const lineH = 3.6; // mm
+    const padX = 4;
+    const padY = 3.5;
+    const hasHeader = language && language !== "text";
+    const headerH = hasHeader ? 6.5 : 2;
+    const totalBlockH = headerH + wrappedLines.length * lineH + padY * 2;
+
+    // Si cabe en la página actual
+    if (this.y + totalBlockH <= PAGE_H - MARGIN_B) {
+      this.ensureSpace(totalBlockH + 3);
+
+      this.doc.setFillColor(24, 24, 27);
+      this.doc.roundedRect(MARGIN_L, this.y, CONTENT_W, totalBlockH, 1.5, 1.5, "F");
+      this.doc.setDrawColor(45, 45, 50);
+      this.doc.setLineWidth(0.2);
+      this.doc.roundedRect(MARGIN_L, this.y, CONTENT_W, totalBlockH, 1.5, 1.5, "S");
+
+      let curY = this.y + padY;
+
+      if (hasHeader) {
+        this.doc.setFont("helvetica", "bold");
+        this.doc.setFontSize(7.5);
+        this.doc.setTextColor(148, 163, 184);
+        this.doc.text(language.toUpperCase(), MARGIN_L + padX, curY + 2.8);
+
+        this.doc.setDrawColor(39, 39, 42);
+        this.doc.setLineWidth(0.15);
+        this.doc.line(MARGIN_L + padX, curY + 4.5, MARGIN_L + CONTENT_W - padX, curY + 4.5);
+
+        curY += headerH;
+      }
+
+      this.doc.setFont("courier", "normal");
+      this.doc.setFontSize(fontSize);
+      this.doc.setTextColor(244, 244, 245);
+
+      for (const line of wrappedLines) {
+        if (line) {
+          this.doc.text(line, MARGIN_L + padX, curY + 2.6);
+        }
+        curY += lineH;
+      }
+
+      this.y += totalBlockH + 3;
+    } else {
+      // Bloque extenso dividido entre páginas
+      let startIdx = 0;
+      let isFirstPage = true;
+
+      while (startIdx < wrappedLines.length) {
+        this.checkAbort();
+        const currentHeaderH = isFirstPage && hasHeader ? headerH : 2;
+        const availH = PAGE_H - MARGIN_B - this.y;
+
+        if (availH < currentHeaderH + lineH * 3 + padY * 2) {
+          this.doc.addPage();
+          this.pageNum++;
+          this.y = MARGIN_T;
+          continue;
+        }
+
+        const linesFit = Math.max(1, Math.floor((availH - currentHeaderH - padY * 2) / lineH));
+        const chunk = wrappedLines.slice(startIdx, startIdx + linesFit);
+        const chunkH = currentHeaderH + chunk.length * lineH + padY * 2;
+
+        this.doc.setFillColor(24, 24, 27);
+        this.doc.roundedRect(MARGIN_L, this.y, CONTENT_W, chunkH, 1.5, 1.5, "F");
+        this.doc.setDrawColor(45, 45, 50);
+        this.doc.setLineWidth(0.2);
+        this.doc.roundedRect(MARGIN_L, this.y, CONTENT_W, chunkH, 1.5, 1.5, "S");
+
+        let curY = this.y + padY;
+
+        if (isFirstPage && hasHeader) {
+          this.doc.setFont("helvetica", "bold");
+          this.doc.setFontSize(7.5);
+          this.doc.setTextColor(148, 163, 184);
+          this.doc.text(language.toUpperCase(), MARGIN_L + padX, curY + 2.8);
+
+          this.doc.setDrawColor(39, 39, 42);
+          this.doc.setLineWidth(0.15);
+          this.doc.line(MARGIN_L + padX, curY + 4.5, MARGIN_L + CONTENT_W - padX, curY + 4.5);
+
+          curY += currentHeaderH;
+          isFirstPage = false;
+        }
+
+        this.doc.setFont("courier", "normal");
+        this.doc.setFontSize(fontSize);
+        this.doc.setTextColor(244, 244, 245);
+
+        for (const line of chunk) {
+          if (line) {
+            this.doc.text(line, MARGIN_L + padX, curY + 2.6);
+          }
+          curY += lineH;
+        }
+
+        startIdx += chunk.length;
+        this.y += chunkH + 2.5;
+
+        if (startIdx < wrappedLines.length) {
+          this.doc.addPage();
+          this.pageNum++;
+          this.y = MARGIN_T;
+        }
+      }
+      this.y += 1.5;
+    }
   }
 
   /* ── Línea horizontal ── */
@@ -1293,15 +1346,54 @@ class PDFRenderer {
     this.y += 4;
   }
 
-  /* ── Tabla ── */
+  /* ── Tabla Proporcional y Estilizada ── */
   private renderTable(node: JSONContent) {
     const rows = node.content || [];
     if (rows.length === 0) return;
 
     const numCols = rows[0]?.content?.length || 1;
-    const colW = CONTENT_W / numCols;
-    const cellPad = 2;
-    const cellFontSize = 9;
+    const cellPad = 2.5;
+    const cellFontSize = 8.5;
+
+    // Calcular proporciones dinámicas de columnas según el largo del texto
+    const colMaxChars = new Array(numCols).fill(1);
+    for (const row of rows) {
+      const cells = row.content || [];
+      for (let ci = 0; ci < numCols; ci++) {
+        const text = cleanTextForPdf(this.flattenText(cells[ci]));
+        colMaxChars[ci] = Math.max(colMaxChars[ci], text.length);
+      }
+    }
+
+    // Ponderación: asegurar un peso mínimo razonable para cada columna
+    const colWeights = colMaxChars.map((chars) => Math.max(chars, 8));
+    const totalWeight = colWeights.reduce((a, b) => a + b, 0);
+
+    // Ancho mínimo por columna según número de columnas
+    const minColW = Math.max(16, CONTENT_W / (numCols * 2.5));
+    let colWidths = colWeights.map((w) => (w / totalWeight) * CONTENT_W);
+
+    // Ajustar columnas que queden por debajo del ancho mínimo
+    let needsAdjustment = false;
+    let allocatedW = 0;
+    for (let ci = 0; ci < numCols; ci++) {
+      if (colWidths[ci] < minColW) {
+        colWidths[ci] = minColW;
+        needsAdjustment = true;
+      }
+      allocatedW += colWidths[ci];
+    }
+    if (needsAdjustment && allocatedW > 0) {
+      colWidths = colWidths.map((w) => (w / allocatedW) * CONTENT_W);
+    }
+
+    // Coordenadas acumuladas X para cada columna
+    const colXPositions: number[] = [];
+    let curXAccum = MARGIN_L;
+    for (let ci = 0; ci < numCols; ci++) {
+      colXPositions.push(curXAccum);
+      curXAccum += colWidths[ci];
+    }
 
     this.y += 2;
 
@@ -1311,38 +1403,55 @@ class PDFRenderer {
       const isHeader = cells.some((c) => c.type === "tableHeader") || ri === 0;
 
       let maxCellH = 6;
-      const cellTexts: string[][] = [];
-      for (const cell of cells) {
+      const cellLinesList: string[][] = [];
+      const cellIsCodeList: boolean[] = [];
+
+      for (let ci = 0; ci < numCols; ci++) {
+        const cell = cells[ci];
         const text = cleanTextForPdf(this.flattenText(cell));
+        const colW = colWidths[ci];
+
+        // Detectar si el texto parece código (%s, System.out, println, etc.)
+        const isCode = text.includes("%") || text.includes("System.") || text.includes("();") || text.includes("println");
+        cellIsCodeList.push(isCode);
+
+        this.doc.setFont(isCode ? "courier" : "helvetica", isHeader ? "bold" : "normal");
         this.doc.setFontSize(cellFontSize);
         const wrapped = this.doc.splitTextToSize(text, colW - cellPad * 2);
-        cellTexts.push(wrapped);
-        const h = wrapped.length * (cellFontSize * 1.4 / 2.835) + cellPad * 2;
+        cellLinesList.push(wrapped);
+
+        const h = wrapped.length * ((cellFontSize * 1.35) / 2.835) + cellPad * 2;
         maxCellH = Math.max(maxCellH, h);
       }
 
       this.ensureSpace(maxCellH + 2);
 
-      for (let ci = 0; ci < cells.length; ci++) {
-        const cx = MARGIN_L + ci * colW;
+      for (let ci = 0; ci < numCols; ci++) {
+        const cx = colXPositions[ci];
+        const cw = colWidths[ci];
 
         if (isHeader) {
           this.doc.setFillColor(...hexToRgb(C.tableHeaderBg));
-          this.doc.rect(cx, this.y - 1, colW, maxCellH, "F");
+          this.doc.rect(cx, this.y, cw, maxCellH, "F");
+        } else if (ri % 2 === 1) {
+          // Fondo cebra muy sutil para facilitar la lectura de filas
+          this.doc.setFillColor(250, 250, 252);
+          this.doc.rect(cx, this.y, cw, maxCellH, "F");
         }
 
         this.doc.setDrawColor(...hexToRgb(C.tableBorderColor));
         this.doc.setLineWidth(0.2);
-        this.doc.rect(cx, this.y - 1, colW, maxCellH, "S");
+        this.doc.rect(cx, this.y, cw, maxCellH, "S");
 
+        const isCode = cellIsCodeList[ci];
+        this.doc.setFont(isCode ? "courier" : "helvetica", isHeader ? "bold" : "normal");
         this.doc.setFontSize(cellFontSize);
-        this.doc.setFont("helvetica", isHeader ? "bold" : "normal");
-        this.doc.setTextColor(...hexToRgb(C.text));
+        this.doc.setTextColor(...hexToRgb(isHeader ? "#0f172a" : isCode ? "#1e293b" : C.text));
 
-        const lines = cellTexts[ci] || [];
-        const lineH = cellFontSize * 1.4 / 2.835;
+        const lines = cellLinesList[ci] || [];
+        const lineH = (cellFontSize * 1.35) / 2.835;
         for (let li = 0; li < lines.length; li++) {
-          this.doc.text(lines[li], cx + cellPad, this.y + cellPad + lineH * (li + 0.7));
+          this.doc.text(lines[li], cx + cellPad, this.y + cellPad + lineH * (li + 0.75));
         }
       }
 
@@ -1363,31 +1472,36 @@ class PDFRenderer {
         this.doc.setFont("helvetica", "bold");
         const lines = this.doc.splitTextToSize(summaryText, CONTENT_W - 14);
         const lineH = (10.5 * 1.3) / 2.835;
-        const summaryH = Math.max(7, lines.length * lineH + 3.5);
+        const summaryH = Math.max(8, lines.length * lineH + 4);
 
         this.ensureSpace(summaryH + 4);
 
+        const boxY = this.y;
+
         // Fondo suave y estilizado
         this.doc.setFillColor(...hexToRgb("#f8fafc"));
-        this.doc.roundedRect(MARGIN_L, this.y - 1.5, CONTENT_W, summaryH, 1, 1, "F");
+        this.doc.roundedRect(MARGIN_L, boxY, CONTENT_W, summaryH, 1.2, 1.2, "F");
         this.doc.setDrawColor(...hexToRgb(C.border));
         this.doc.setLineWidth(0.2);
-        this.doc.roundedRect(MARGIN_L, this.y - 1.5, CONTENT_W, summaryH, 1, 1, "S");
+        this.doc.roundedRect(MARGIN_L, boxY, CONTENT_W, summaryH, 1.2, 1.2, "S");
 
-        // Triángulo hacia abajo ▼ vectorial sutil y bien alineado
+        // Triángulo hacia abajo ▼ vectorial perfectamente centrado con la primera línea de texto
+        // Con texto 10.5pt, la línea base estará en boxY + 5.4. El centro óptico de las letras está en boxY + 4.1.
+        // Un triángulo con base en boxY + 2.9 y punta en boxY + 5.3 tiene su centro en boxY + 4.1.
         const arrowX = MARGIN_L + 3.5;
-        const arrowY = this.y + 0.8;
+        const arrowTop = boxY + 2.9;
         this.doc.setFillColor(...hexToRgb(C.taskCheck));
         this.doc.triangle(
-          arrowX, arrowY,
-          arrowX + 3.2, arrowY,
-          arrowX + 1.6, arrowY + 2.5,
+          arrowX, arrowTop,
+          arrowX + 3.2, arrowTop,
+          arrowX + 1.6, arrowTop + 2.4,
           "F"
         );
 
-        // Texto del título del desplegable
+        // Texto del título del desplegable posicionado con su línea base exacta
+        this.y = boxY + 5.4;
         this.writeRichInline(child.content, MARGIN_L + 9, CONTENT_W - 14, 10.5, C.text, 1.3);
-        this.y += 2;
+        this.y = boxY + summaryH + 2.5;
       } else if (child.type === "detailsContent") {
         // Contenido desplegado (siempre visible en el apunte PDF)
         this.y += 1.5;
