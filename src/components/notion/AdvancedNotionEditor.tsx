@@ -57,6 +57,10 @@ import { ShortcutsGuideModal } from "./ShortcutsGuideModal";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
+lowlight.registerAlias({
+  plaintext: ["plain", "mermaid", "text", "txt", "scala", "dart"],
+  bash: ["powershell", "shell", "dockerfile"],
+});
 
 interface AdvancedNotionEditorProps {
   headerContent?: React.ReactNode;

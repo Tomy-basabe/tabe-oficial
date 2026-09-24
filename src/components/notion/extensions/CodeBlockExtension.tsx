@@ -293,7 +293,7 @@ function MermaidPreview({
       }
     };
 
-    const timer = setTimeout(render, 150);
+    const timer = setTimeout(render, 400);
     return () => clearTimeout(timer);
   }, [code]);
 
@@ -368,16 +368,24 @@ function CodeBlockView({ node, updateAttributes, extension }: any) {
   const searchRef = useRef<HTMLInputElement>(null);
   const language = node.attrs.language || "plain";
 
-  const textContent = node.textContent?.trim() || "";
-  const isMermaidSyntax = /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|journey|mindmap|timeline)\b/i.test(textContent);
-  const isMermaid = language === "mermaid" || (language === "plain" && isMermaidSyntax);
+  const isMermaid = language === "mermaid";
 
-  // Auto-set language to mermaid if detected syntax in plain block
+  // Auto-detectar diagramas Mermaid solo si se pega o escribe una cabecera explícita (flowchart TD, etc.)
+  // con debounce para no re-renderizar ni trabar la escritura de código normal
   useEffect(() => {
-    if (language === "plain" && isMermaidSyntax) {
-      updateAttributes({ language: "mermaid" });
+    if (language === "plain") {
+      const text = node.textContent || "";
+      if (text.length > 8 && text.length < 500) {
+        const firstLine = text.trimStart().split("\n")[0]?.trim() || "";
+        if (/^(flowchart\s+(TD|TB|BT|RL|LR)|sequenceDiagram|classDiagram|erDiagram|gantt|pie|gitGraph|journey|mindmap|timeline)\b/i.test(firstLine)) {
+          const timer = setTimeout(() => {
+            updateAttributes({ language: "mermaid" });
+          }, 600);
+          return () => clearTimeout(timer);
+        }
+      }
     }
-  }, [language, isMermaidSyntax, updateAttributes]);
+  }, [language, node.textContent, updateAttributes]);
 
   const currentLabel =
     LANGUAGES.find((l) => l.value === language)?.label || language || "Texto plano";
@@ -537,17 +545,25 @@ function CodeBlockView({ node, updateAttributes, extension }: any) {
  * Custom input rule for +++ to create a code block.
  * Matches: type "+++" at the start of a line, then press Space or Enter.
  */
-const plusPlusPlusInputRegex = /^\+\+\+\s$/;
+const plusPlusPlusInputRegex = /^\+\+\+[\s\n]$/;
 
-export const CustomCodeBlock = (lowlight: any) =>
-  CodeBlockLowlight.extend({
+export const CustomCodeBlock = (lowlight: any) => {
+  // Asegurar que las fuentes comunes y texto plano estén mapeadas sin activar highlightAuto
+  if (lowlight && typeof lowlight.registerAlias === "function") {
+    lowlight.registerAlias({
+      plaintext: ["plain", "mermaid", "text", "txt", "scala", "dart"],
+      bash: ["powershell", "shell", "dockerfile"],
+    });
+  }
+
+  return CodeBlockLowlight.extend({
     addNodeView() {
       return ReactNodeViewRenderer(CodeBlockView);
     },
 
     addInputRules() {
       return [
-        // Keep default ``` input rule
+        // Mantener regla por defecto ```
         textblockTypeInputRule({
           find: /^```([a-z]*)[\s\n]$/,
           type: this.type,
@@ -555,7 +571,7 @@ export const CustomCodeBlock = (lowlight: any) =>
             language: match[1] || "plain",
           }),
         }),
-        // Add +++ input rule
+        // Regla instantánea para +++
         textblockTypeInputRule({
           find: plusPlusPlusInputRegex,
           type: this.type,
@@ -565,7 +581,46 @@ export const CustomCodeBlock = (lowlight: any) =>
         }),
       ];
     },
+
+    addKeyboardShortcuts() {
+      return {
+        ...this.parent?.(),
+        // Atajo instantáneo: al escribir +++ y presionar Enter
+        Enter: ({ editor }) => {
+          const { state } = editor;
+          const { selection } = state;
+          const { $from } = selection;
+
+          // 1. Si estamos en un párrafo que contiene exactamente "+++" o "```"
+          if ($from.parent.type.name === "paragraph") {
+            const lineText = $from.parent.textContent.trim();
+            if (lineText === "+++" || lineText === "```") {
+              return editor
+                .chain()
+                .focus()
+                .command(({ tr, dispatch }) => {
+                  if (dispatch) {
+                    const from = $from.before();
+                    const to = $from.after();
+                    tr.replaceWith(from, to, this.type.create({ language: "plain" }));
+                  }
+                  return true;
+                })
+                .run();
+            }
+          }
+
+          // 2. Si ya estamos dentro del bloque de código: nueva línea nativa inmediata
+          if ($from.parent.type.name === this.name) {
+            return editor.commands.newlineInCode();
+          }
+
+          return false;
+        },
+      };
+    },
   }).configure({
     lowlight,
     defaultLanguage: "plain",
   });
+};
