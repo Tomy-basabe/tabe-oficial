@@ -48,10 +48,13 @@ export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile state
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem("tabe-sidebar-collapsed");
-      if (saved !== null) return JSON.parse(saved);
+      const sessionToggled = sessionStorage.getItem("tabe-sidebar-user-toggled");
+      if (sessionToggled === "true") {
+        const saved = localStorage.getItem("tabe-sidebar-collapsed");
+        if (saved !== null) return JSON.parse(saved);
+      }
     } catch (e) {}
-    return false;
+    return true; // Por default cerrado al iniciar la app
   }); // Desktop state
   const location = useLocation();
   const navigate = useNavigate();
@@ -287,6 +290,7 @@ export function MainLayout() {
       const next = !prev;
       try {
         localStorage.setItem("tabe-sidebar-collapsed", JSON.stringify(next));
+        sessionStorage.setItem("tabe-sidebar-user-toggled", "true");
       } catch (e) {}
       return next;
     });
@@ -305,6 +309,7 @@ export function MainLayout() {
       setIsCollapsed(false);
       try {
         localStorage.setItem("tabe-sidebar-collapsed", JSON.stringify(false));
+        sessionStorage.setItem("tabe-sidebar-user-toggled", "true");
       } catch (e) {}
       setOpenCategories(prev => {
         const next = { ...prev, [catId]: true };
