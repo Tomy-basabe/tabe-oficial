@@ -197,6 +197,7 @@ export function MobileNavbar() {
           {/* Bottom Sheet containing ALL sections organized by comic category */}
           <SheetContent 
             side="bottom" 
+            hideCloseButton
             className="w-full max-h-[85vh] p-0 rounded-t-[28px] border-t-4 border-x-4 border-foreground bg-card shadow-[0_-12px_40px_rgba(0,0,0,0.35)] flex flex-col z-[1100]"
           >
             {/* Top Comic Pull Bar */}
