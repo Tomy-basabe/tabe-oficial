@@ -567,60 +567,84 @@ interface RenderedCodeChunk {
  * 1. Todos los caracteres Unicode (box drawing ┌─┐│└┘, flechas ↑↓→, etc.) se vean perfectos.
  * 2. La fuente sea exactamente monoespaciada con alineación horizontal precisa.
  * 3. Se mantenga el fondo oscuro idéntico al editor de la app.
- * 4. El tamaño del archivo sea mínimo (utiliza JPEG 82% en lugar de PNG raw).
+ * 4. Las líneas largas se envuelven automáticamente sin cortarse jamás en el margen derecho.
+ * 5. El tamaño del archivo sea mínimo (utiliza JPEG 82% ultra comprimido).
  */
 function renderCodeBlockToImages(code: string, language: string = "text"): RenderedCodeChunk[] {
-  const lines = code.split(/\r?\n/);
-  if (lines.length === 0) return [];
+  const rawLines = code.split(/\r?\n/);
+  if (rawLines.length === 0) return [];
 
-  const maxLinesPerChunk = 34;
+  // Envolver líneas largas para que nunca se corten en el margen derecho
+  const maxCharsPerLine = 76;
+  const wrappedLines: string[] = [];
+
+  for (const line of rawLines) {
+    if (!line || line.length <= maxCharsPerLine) {
+      wrappedLines.push(line || "");
+      continue;
+    }
+    let remaining = line;
+    let isFirst = true;
+    while (remaining.length > maxCharsPerLine) {
+      let breakAt = maxCharsPerLine;
+      for (let i = maxCharsPerLine; i >= Math.floor(maxCharsPerLine * 0.6); i--) {
+        const ch = remaining[i];
+        if (ch === " " || ch === "," || ch === ";" || ch === ")" || ch === "}" || ch === "]" || ch === ">") {
+          breakAt = i + 1;
+          break;
+        }
+      }
+      wrappedLines.push((isFirst ? "" : "  ") + remaining.substring(0, breakAt));
+      remaining = remaining.substring(breakAt).trimStart();
+      isFirst = false;
+    }
+    if (remaining) {
+      wrappedLines.push("  " + remaining);
+    }
+  }
+
+  const maxLinesPerChunk = 32;
   const chunks: RenderedCodeChunk[] = [];
-  const totalChunks = Math.ceil(lines.length / maxLinesPerChunk);
+  const totalChunks = Math.ceil(wrappedLines.length / maxLinesPerChunk);
+
+  const scale = 1.4;
+  const fontSize = 11 * scale;
+  const lineHeight = 16.5 * scale;
+  const padX = 14 * scale;
+  const canvasW = 920; // Ancho óptimo proporcional a CONTENT_W (174mm)
+  const padBottom = 8 * scale;
 
   for (let c = 0; c < totalChunks; c++) {
     const start = c * maxLinesPerChunk;
-    const end = Math.min(start + maxLinesPerChunk, lines.length);
-    const chunkLines = lines.slice(start, end);
+    const end = Math.min(start + maxLinesPerChunk, wrappedLines.length);
+    const chunkLines = wrappedLines.slice(start, end);
     const isFirst = c === 0;
 
-    const scale = 1.3; // Nitidez equilibrada con peso ultra liviano
-    const fontSize = 11.5 * scale;
-    const lineHeight = 17 * scale;
-    const padX = 14 * scale;
-    const headerH = isFirst ? 24 * scale : 8 * scale;
-    const padBottom = 10 * scale;
-
-    const tempCanvas = document.createElement("canvas");
-    const tempCtx = tempCanvas.getContext("2d")!;
-    tempCtx.font = `${fontSize}px "Consolas", "Cascadia Code", "Courier New", monospace`;
-
-    let maxLineW = 0;
-    for (const l of chunkLines) {
-      const w = tempCtx.measureText(l).width;
-      if (w > maxLineW) maxLineW = w;
-    }
-
-    const canvasW = Math.max(700, Math.min(1100, maxLineW + padX * 2));
-    const canvasH = headerH + chunkLines.length * lineHeight + padBottom;
+    const headerH = isFirst ? (language && language !== "text" ? 24 * scale : 10 * scale) : 8 * scale;
+    const canvasH = Math.round(headerH + chunkLines.length * lineHeight + padBottom);
 
     const canvas = document.createElement("canvas");
     canvas.width = canvasW;
     canvas.height = canvasH;
     const ctx = canvas.getContext("2d")!;
 
-    // Fondo oscuro (#18181b - igual al tema dark de Tabe)
+    // Fondo oscuro (#18181b)
     ctx.fillStyle = "#18181b";
     ctx.fillRect(0, 0, canvasW, canvasH);
 
+    // Borde redondeado suave
+    ctx.strokeStyle = "#27272a";
+    ctx.lineWidth = 1 * scale;
+    ctx.strokeRect(0.5, 0.5, canvasW - 1, canvasH - 1);
+
     // Cabecera en el primer fragmento
-    if (isFirst) {
-      ctx.fillStyle = "#71717a";
-      ctx.font = `600 ${10 * scale}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-      const label = language || "text";
-      ctx.fillText(label, padX, 15 * scale);
+    if (isFirst && language && language !== "text") {
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = `bold ${8.5 * scale}px "Segoe UI", Roboto, sans-serif`;
+      ctx.fillText(language.toUpperCase(), padX, 15 * scale);
 
       // Línea divisoria suave
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.strokeStyle = "#27272a";
       ctx.lineWidth = 1 * scale;
       ctx.beginPath();
       ctx.moveTo(padX, headerH - 3 * scale);
@@ -906,27 +930,21 @@ class PDFRenderer {
     }
 
     // Emoji del documento renderizado en canvas para evitar basura Unicode
-    // Se renderiza en la misma línea que el título para evitar superposición
-    let titleOffsetX = 0;
+    // Se renderiza arriba del título (estilo Notion oficial) para evitar cualquier superposición
     if (emoji) {
       const emojiDataUrl = renderEmojiToDataUrl(emoji);
       if (emojiDataUrl) {
-        this.doc.addImage(emojiDataUrl, "PNG", MARGIN_L, this.y, 10, 10);
-        titleOffsetX = 12; // Desplazar título a la derecha del emoji
+        this.doc.addImage(emojiDataUrl, "PNG", MARGIN_L, this.y, 14, 14);
+        this.y += 17; // Espacio vertical completo y limpio antes del título
       }
     }
 
-    this.writeText(title || "Sin título", MARGIN_L + titleOffsetX, CONTENT_W - titleOffsetX, {
+    this.writeText(title || "Sin título", MARGIN_L, CONTENT_W, {
       fontSize: 22,
       fontStyle: "bold",
       color: C.text,
       lineHeight: 1.3,
     });
-
-    // Si hubo emoji, asegurar que y avance lo suficiente para no solaparse
-    if (titleOffsetX > 0) {
-      this.y = Math.max(this.y, (this.y > MARGIN_T + 12 ? this.y : MARGIN_T + 12));
-    }
 
     this.y += 2;
 
@@ -1173,166 +1191,7 @@ class PDFRenderer {
     this.y = Math.max(this.y, startY + blockH) + 3;
   }
 
-  /**
-   * Renderiza bloques de código de forma vectorial nativa con jsPDF.
-   * Ventajas determinantes:
-   * 1. Reduce el peso del archivo un 90-95% (evita incrustar cientos de imágenes JPEG innecesarias).
-   * 2. El código es 100% seleccionable, resaltable y copiable dentro del PDF.
-   * 3. Se procesa a velocidad instantánea (<1ms por bloque de código).
-   * 4. Mantiene el fondo oscuro característico de Tabe (#18181b) y texto monoespaciado nítido.
-   */
-  private renderNativeCodeBlock(code: string, language: string = "text") {
-    const cleanCode = cleanTextForPdf(code);
-    const rawLines = cleanCode.split(/\r?\n/);
-    if (rawLines.length === 0) return;
 
-    const fontSize = 8.5;
-    const lineH = (fontSize * 1.38) / 2.835; // ~4.14 mm por línea
-    const padX = 4;
-    const padY = 3.5;
-    const headerH = language && language !== "text" ? 6 : 2;
-    const maxTextW = CONTENT_W - padX * 2;
-
-    this.doc.setFont("courier", "normal");
-    this.doc.setFontSize(fontSize);
-
-    // Calcular ancho real de un caracter en courier (monoespaciada)
-    const charW = this.doc.getTextWidth("M");
-    const maxCharsPerLine = Math.max(10, Math.floor(maxTextW / charW));
-
-    // Envolver líneas largas manualmente para evitar el bug de splitTextToSize
-    // que rompe carácter por carácter con courier
-    const wrappedLines: string[] = [];
-    for (const line of rawLines) {
-      if (!line || line.length <= maxCharsPerLine) {
-        wrappedLines.push(line || "");
-        continue;
-      }
-      // Partir la línea en trozos del tamaño máximo
-      let remaining = line;
-      while (remaining.length > maxCharsPerLine) {
-        // Buscar un buen punto de corte (espacio, coma, punto, punto y coma, paréntesis)
-        let breakAt = maxCharsPerLine;
-        for (let i = maxCharsPerLine; i >= maxCharsPerLine * 0.6; i--) {
-          const ch = remaining[i];
-          if (ch === " " || ch === "," || ch === ";" || ch === ")" || ch === "]" || ch === "}") {
-            breakAt = i + 1;
-            break;
-          }
-        }
-        wrappedLines.push(remaining.substring(0, breakAt));
-        remaining = "  " + remaining.substring(breakAt); // indentar continuación
-      }
-      if (remaining) wrappedLines.push(remaining);
-    }
-
-    const totalTextH = wrappedLines.length * lineH;
-    const totalBlockH = headerH + totalTextH + padY * 2;
-
-    // Si cabe entero en la página actual
-    if (this.y + totalBlockH <= PAGE_H - MARGIN_B) {
-      // Fondo oscuro (#18181b)
-      this.doc.setFillColor(24, 24, 27);
-      this.doc.roundedRect(MARGIN_L, this.y, CONTENT_W, totalBlockH, 1.5, 1.5, "F");
-
-      // Borde sutil
-      this.doc.setDrawColor(50, 50, 55);
-      this.doc.setLineWidth(0.2);
-      this.doc.roundedRect(MARGIN_L, this.y, CONTENT_W, totalBlockH, 1.5, 1.5, "S");
-
-      let curY = this.y + padY;
-
-      // Encabezado del lenguaje
-      if (language && language !== "text") {
-        this.doc.setFont("helvetica", "bold");
-        this.doc.setFontSize(7.5);
-        this.doc.setTextColor(148, 163, 184); // muted slate
-        this.doc.text(language.toUpperCase(), MARGIN_L + padX, curY + 2.5);
-
-        this.doc.setDrawColor(42, 42, 48);
-        this.doc.setLineWidth(0.15);
-        this.doc.line(MARGIN_L + padX, curY + 4, MARGIN_L + CONTENT_W - padX, curY + 4);
-
-        curY += headerH;
-      }
-
-      // Líneas de código en blanco monoespaciado
-      this.doc.setFont("courier", "normal");
-      this.doc.setFontSize(fontSize);
-      this.doc.setTextColor(244, 244, 245);
-
-      for (const l of wrappedLines) {
-        if (l) this.doc.text(l, MARGIN_L + padX, curY + lineH * 0.72);
-        curY += lineH;
-      }
-
-      this.y += totalBlockH + 3.5;
-    } else {
-      // Si el bloque de código es extenso y abarca múltiples páginas
-      let startIdx = 0;
-      let isFirstChunk = true;
-
-      while (startIdx < wrappedLines.length) {
-        this.checkAbort();
-        const currentHeaderH = isFirstChunk && language && language !== "text" ? headerH : 2;
-        const availH = PAGE_H - MARGIN_B - this.y;
-
-        // Si no queda espacio para al menos 3 líneas de código, saltar de página
-        if (availH < currentHeaderH + lineH * 3 + padY * 2) {
-          this.doc.addPage();
-          this.pageNum++;
-          this.y = MARGIN_T;
-          continue;
-        }
-
-        const maxLinesCanFit = Math.max(1, Math.floor((availH - currentHeaderH - padY * 2) / lineH));
-        const chunkLines = wrappedLines.slice(startIdx, startIdx + maxLinesCanFit);
-        const chunkH = currentHeaderH + chunkLines.length * lineH + padY * 2;
-
-        // Fondo
-        this.doc.setFillColor(24, 24, 27);
-        this.doc.roundedRect(MARGIN_L, this.y, CONTENT_W, chunkH, 1.5, 1.5, "F");
-        this.doc.setDrawColor(50, 50, 55);
-        this.doc.setLineWidth(0.2);
-        this.doc.roundedRect(MARGIN_L, this.y, CONTENT_W, chunkH, 1.5, 1.5, "S");
-
-        let curY = this.y + padY;
-
-        if (isFirstChunk && language && language !== "text") {
-          this.doc.setFont("helvetica", "bold");
-          this.doc.setFontSize(7.5);
-          this.doc.setTextColor(148, 163, 184);
-          this.doc.text(language.toUpperCase(), MARGIN_L + padX, curY + 2.5);
-
-          this.doc.setDrawColor(42, 42, 48);
-          this.doc.setLineWidth(0.15);
-          this.doc.line(MARGIN_L + padX, curY + 4, MARGIN_L + CONTENT_W - padX, curY + 4);
-
-          curY += currentHeaderH;
-          isFirstChunk = false;
-        }
-
-        this.doc.setFont("courier", "normal");
-        this.doc.setFontSize(fontSize);
-        this.doc.setTextColor(244, 244, 245);
-
-        for (const l of chunkLines) {
-          if (l) this.doc.text(l, MARGIN_L + padX, curY + lineH * 0.72);
-          curY += lineH;
-        }
-
-        startIdx += chunkLines.length;
-        this.y += chunkH + 2.5;
-
-        if (startIdx < wrappedLines.length) {
-          this.doc.addPage();
-          this.pageNum++;
-          this.y = MARGIN_T;
-        }
-      }
-      this.y += 1.5;
-    }
-  }
 
   /* ── Bloque de código con soporte para diagramas Mermaid y texto vectorial ultra ligero ── */
   private async renderCodeBlock(node: JSONContent) {
@@ -1363,8 +1222,14 @@ class PDFRenderer {
       }
     }
 
-    // Código nativo vectorial ultra liviano y seleccionable (ahorra hasta 95% de peso)
-    this.renderNativeCodeBlock(code, language);
+    // Renderizado en Canvas de alta fidelidad: elimina bugs de fuentes Type1 (espaciado H o l a, %%°, etc.)
+    const chunks = renderCodeBlockToImages(code, language);
+    for (const chunk of chunks) {
+      this.ensureSpace(chunk.heightMm + 4);
+      this.doc.addImage(chunk.dataUrl, "JPEG", MARGIN_L, this.y, chunk.widthMm, chunk.heightMm);
+      this.y += chunk.heightMm + 2;
+    }
+    this.y += 2;
   }
 
   /* ── Línea horizontal ── */
@@ -1487,47 +1352,52 @@ class PDFRenderer {
     this.y += 4;
   }
 
-  /* ── Desplegables / Details (SIEMPRE ABIERTOS Y CON FLECHA VECTORIAL) ── */
+  /* ── Desplegables / Details (SIEMPRE ABIERTOS Y VISIBLES) ── */
   private async renderDetails(node: JSONContent) {
-    this.ensureSpace(12);
+    this.ensureSpace(10);
 
     for (const child of node.content || []) {
       if (child.type === "detailsSummary") {
         const summaryText = cleanTextForPdf(this.flattenText(child));
-        this.doc.setFontSize(10);
+        this.doc.setFontSize(10.5);
+        this.doc.setFont("helvetica", "bold");
         const lines = this.doc.splitTextToSize(summaryText, CONTENT_W - 14);
-        const summaryH = lines.length * 4.2 + 5;
+        const lineH = (10.5 * 1.3) / 2.835;
+        const summaryH = Math.max(7, lines.length * lineH + 3.5);
 
-        // Fondo de cabecera del desplegable
+        this.ensureSpace(summaryH + 4);
+
+        // Fondo suave y estilizado
         this.doc.setFillColor(...hexToRgb("#f8fafc"));
-        this.doc.roundedRect(MARGIN_L, this.y - 2, CONTENT_W, summaryH, 1.5, 1.5, "F");
+        this.doc.roundedRect(MARGIN_L, this.y - 1.5, CONTENT_W, summaryH, 1, 1, "F");
         this.doc.setDrawColor(...hexToRgb(C.border));
-        this.doc.roundedRect(MARGIN_L, this.y - 2, CONTENT_W, summaryH, 1.5, 1.5, "S");
+        this.doc.setLineWidth(0.2);
+        this.doc.roundedRect(MARGIN_L, this.y - 1.5, CONTENT_W, summaryH, 1, 1, "S");
 
-        // Triángulo desplegado hacia abajo ▼ dibujado como VECTOR (¡adiós al bug de %1/4!)
+        // Triángulo hacia abajo ▼ vectorial sutil y bien alineado
         const arrowX = MARGIN_L + 3.5;
-        const arrowY = this.y - 0.5;
+        const arrowY = this.y + 0.8;
         this.doc.setFillColor(...hexToRgb(C.taskCheck));
         this.doc.triangle(
           arrowX, arrowY,
-          arrowX + 3.4, arrowY,
-          arrowX + 1.7, arrowY + 2.6,
+          arrowX + 3.2, arrowY,
+          arrowX + 1.6, arrowY + 2.5,
           "F"
         );
 
         // Texto del título del desplegable
-        this.writeRichInline(child.content, MARGIN_L + 9, CONTENT_W - 14, 10, C.text, 1.4);
-        this.y += 3;
+        this.writeRichInline(child.content, MARGIN_L + 9, CONTENT_W - 14, 10.5, C.text, 1.3);
+        this.y += 2;
       } else if (child.type === "detailsContent") {
         // Contenido desplegado (siempre visible en el apunte PDF)
-        this.y += 1;
+        this.y += 1.5;
         for (const innerChild of child.content || []) {
           await this.processNode(innerChild);
         }
       }
     }
 
-    this.y += 4;
+    this.y += 3;
   }
 
   /* ── Fórmula matemática ── */
