@@ -24,7 +24,6 @@ import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
 import { ImportFriendNoteModal } from "@/components/notion/ImportFriendNoteModal";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
-import { KeyboardShortcutsModal } from "@/components/notion/KeyboardShortcutsModal";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { useFriends } from "@/hooks/useFriends";
 import { useAchievements } from "@/hooks/useAchievements";
@@ -366,7 +365,6 @@ export default function Notion() {
   const [newDocSubjectId, setNewDocSubjectId] = useState<string | null>(null);
   const [newDocCustomTitle, setNewDocCustomTitle] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<TipTapTemplate>(tipTapTemplates[0]);
-  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [isOpeningDoc, setIsOpeningDoc] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const pendingSaveRef = useRef(false);
@@ -1005,13 +1003,13 @@ export default function Notion() {
     };
   }, [handleSaveOnExit]);
 
-  // Global shortcuts: Ctrl+/ shortcuts panel, intercept Ctrl+S to prevent browser native dialog
+  // Global shortcuts: Ctrl+/ shortcuts guide, intercept Ctrl+S to prevent browser native dialog
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       lastActivityRef.current = Date.now();
       if ((e.ctrlKey || e.metaKey) && e.key === "/") {
         e.preventDefault();
-        setShowShortcutsModal((v) => !v);
+        window.dispatchEvent(new CustomEvent("notion-open-shortcuts-guide"));
         return;
       }
       if (activeDocument && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -1947,11 +1945,6 @@ export default function Notion() {
                       </DropdownMenuItem>
                     )}
 
-                    <DropdownMenuItem onClick={() => setShowShortcutsModal(true)}>
-                      <Keyboard className="w-4 h-4 mr-2" />
-                      Atajos de teclado (Ctrl+/)
-                    </DropdownMenuItem>
-
                     {activeDocument.user_id === user?.id && (
                       <>
                         <DropdownMenuSeparator />
@@ -2703,11 +2696,6 @@ export default function Notion() {
           userId={user.id}
         />
       )}
-      {/* Keyboard Shortcuts Modal */}
-      <KeyboardShortcutsModal
-        open={showShortcutsModal}
-        onClose={() => setShowShortcutsModal(false)}
-      />
       {/* AI Material Generation Modal */}
       <Dialog open={showAIModal} onOpenChange={(val) => !isGeneratingAI && setShowAIModal(val)}>
         <DialogContent className="sm:max-w-[450px] border-primary/20 bg-[#0d0d0d] shadow-[0_0_30px_rgba(168,85,247,0.15)]">
