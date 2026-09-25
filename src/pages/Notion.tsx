@@ -2045,6 +2045,7 @@ export default function Notion() {
                   </div>
                 )}
                 <AdvancedNotionEditor
+                  key={activeDocument.id}
                   headerContent={
                     <>
                       {/* Cover */}

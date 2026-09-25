@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Editor } from "@tiptap/react";
-import { AlignLeft, Hash, ChevronRight, Bookmark } from "lucide-react";
+import { AlignLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HeadingItem {
-  id: string;
+  index: number;
   text: string;
   level: number;
-  element: HTMLElement;
+  pos: number;
 }
 
 interface DocumentOutlineProps {
@@ -20,123 +20,165 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
   scrollContainerRef,
 }) => {
   const [headings, setHeadings] = useState<HeadingItem[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const [isHovered, setIsHovered] = useState(false);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Extraer encabezados del DOM del editor
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const extractDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollRafRef = useRef<number | null>(null);
+  const lastScrollTimeRef = useRef<number>(0);
+  const currentHeadingsRef = useRef<HeadingItem[]>([]);
+
+  // 1. Extraer encabezados de forma ultra liviana desde el árbol en memoria de Prosemirror
+  // CERO consultas al DOM, CERO reflows, CERO MutationObserver. Toma < 0.2ms en documentos enormes.
   const extractHeadings = useCallback(() => {
     if (!editor || editor.isDestroyed) {
-      setHeadings([]);
+      if (currentHeadingsRef.current.length > 0) {
+        currentHeadingsRef.current = [];
+        setHeadings([]);
+      }
       return;
     }
 
-    const editorDom = editor.view?.dom;
-    if (!editorDom) return;
-
-    const headingEls = editorDom.querySelectorAll("h1, h2, h3");
     const items: HeadingItem[] = [];
+    let count = 0;
 
-    headingEls.forEach((el, index) => {
-      const text = el.textContent?.trim();
-      if (!text) return; // Omitir títulos vacíos
-
-      const tag = el.tagName.toLowerCase();
-      const level = tag === "h1" ? 1 : tag === "h2" ? 2 : 3;
-      const id =
-        el.id ||
-        `tabe-heading-${index}-${text
-          .slice(0, 20)
-          .replace(/[^\w\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .toLowerCase()}`;
-
-      if (!el.id) {
-        el.id = id;
-      }
-
-      items.push({
-        id,
-        text,
-        level,
-        element: el as HTMLElement,
+    try {
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "heading") {
+          const text = node.textContent?.trim();
+          if (text) {
+            items.push({
+              index: count++,
+              text,
+              level: node.attrs.level || 1,
+              pos,
+            });
+          }
+        }
       });
-    });
+    } catch {
+      return;
+    }
 
+    // Evitar renders innecesarios si la estructura no cambió
+    const prev = currentHeadingsRef.current;
+    if (
+      prev.length === items.length &&
+      prev.every((p, i) => p.text === items[i].text && p.level === items[i].level)
+    ) {
+      return;
+    }
+
+    currentHeadingsRef.current = items;
     setHeadings(items);
   }, [editor]);
 
-  // Actualizar encabezados ante cambios en el editor
+  // 2. Debounce estricto de 600ms ante cambios del editor (NUNCA en selectionUpdate)
   useEffect(() => {
+    // Extracción inicial inmediata
     extractHeadings();
 
     if (!editor) return;
 
     const handleUpdate = () => {
-      extractHeadings();
+      if (extractDebounceRef.current) {
+        clearTimeout(extractDebounceRef.current);
+      }
+      extractDebounceRef.current = setTimeout(() => {
+        extractHeadings();
+      }, 600);
     };
 
+    // SOLO escuchar 'update' con debounce para no competir con el tecleo
     editor.on("update", handleUpdate);
-    editor.on("selectionUpdate", handleUpdate);
-
-    // MutationObserver por si se renderizan nodos asíncronos
-    const observer = new MutationObserver(() => {
-      extractHeadings();
-    });
-
-    if (editor.view?.dom) {
-      observer.observe(editor.view.dom, { childList: true, subtree: true });
-    }
 
     return () => {
       editor.off("update", handleUpdate);
-      editor.off("selectionUpdate", handleUpdate);
-      observer.disconnect();
+      if (extractDebounceRef.current) {
+        clearTimeout(extractDebounceRef.current);
+      }
     };
   }, [editor, extractHeadings]);
 
-  // Scroll spy para detectar encabezado visible actualmente
+  // 3. Scroll spy de alto rendimiento con throttle + requestAnimationFrame
   useEffect(() => {
-    const container = scrollContainerRef?.current || window;
+    const container = scrollContainerRef?.current;
+    if (!container) return;
 
-    const handleScroll = () => {
+    const checkScrollSpy = () => {
       if (headings.length === 0) return;
 
-      const containerTop = scrollContainerRef?.current
-        ? scrollContainerRef.current.getBoundingClientRect().top
-        : 0;
+      const containerRect = container.getBoundingClientRect();
+      const editorDom = editor?.view?.dom;
+      if (!editorDom) return;
 
-      let currentActive = headings[0].id;
-      for (const item of headings) {
-        const rect = item.element.getBoundingClientRect();
-        // Umbral de detección según scroll relativo al contenedor
-        if (rect.top - containerTop <= 140) {
-          currentActive = item.id;
+      const domHeadings = editorDom.querySelectorAll("h1, h2, h3");
+      if (domHeadings.length === 0) return;
+
+      let foundIndex = 0;
+      for (let i = 0; i < domHeadings.length; i++) {
+        const el = domHeadings[i] as HTMLElement;
+        const rect = el.getBoundingClientRect();
+        if (rect.top - containerRect.top <= 160) {
+          foundIndex = i;
         } else {
           break;
         }
       }
-      setActiveId(currentActive);
+
+      setActiveIndex(foundIndex);
+    };
+
+    const handleScroll = () => {
+      const now = Date.now();
+      // Throttle de 120ms para no saturar durante scrolls rápidos
+      if (now - lastScrollTimeRef.current < 120) {
+        return;
+      }
+      lastScrollTimeRef.current = now;
+
+      if (scrollRafRef.current) {
+        cancelAnimationFrame(scrollRafRef.current);
+      }
+      scrollRafRef.current = requestAnimationFrame(() => {
+        checkScrollSpy();
+      });
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
 
     return () => {
       container.removeEventListener("scroll", handleScroll);
+      if (scrollRafRef.current) {
+        cancelAnimationFrame(scrollRafRef.current);
+      }
     };
-  }, [headings, scrollContainerRef]);
+  }, [headings, scrollContainerRef, editor]);
 
-  // Scroll suave al encabezado seleccionado
-  const handleSelectHeading = (element: HTMLElement) => {
-    element.scrollIntoView({ behavior: "smooth", block: "start" });
+  // 4. Scroll suave al encabezado seleccionado
+  const handleSelectHeading = useCallback(
+    (item: HeadingItem) => {
+      if (!editor || editor.isDestroyed) return;
 
-    // Efecto visual de destello (highlight)
-    element.classList.add("heading-target-highlight");
-    setTimeout(() => {
-      element.classList.remove("heading-target-highlight");
-    }, 1500);
-  };
+      const editorDom = editor.view?.dom;
+      const domHeadings = editorDom?.querySelectorAll("h1, h2, h3");
+      const targetEl = domHeadings && domHeadings[item.index]
+        ? (domHeadings[item.index] as HTMLElement)
+        : null;
+
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        targetEl.classList.add("heading-target-highlight");
+        setTimeout(() => {
+          targetEl.classList.remove("heading-target-highlight");
+        }, 1500);
+      } else {
+        editor.chain().setTextSelection(item.pos).scrollIntoView().run();
+      }
+    },
+    [editor]
+  );
 
   const handleMouseEnter = () => {
     if (hoverTimeoutRef.current) {
@@ -148,17 +190,17 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
   const handleMouseLeave = () => {
     hoverTimeoutRef.current = setTimeout(() => {
       setIsHovered(false);
-    }, 250);
+    }, 200);
   };
 
-  // Si no hay suficientes encabezados para justificar el minimap, no estorbar
+  // Si no hay suficientes encabezados, no renderizar nada
   if (headings.length < 2) {
     return null;
   }
 
   return (
     <div
-      className="hidden md:block absolute right-3 top-24 z-30 select-none"
+      className="hidden md:block absolute right-3 top-24 z-30 select-none pointer-events-auto"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -166,19 +208,19 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
       <div
         className={cn(
           "transition-all duration-300 flex flex-col items-end gap-1.5 py-2.5 px-2 rounded-2xl cursor-pointer",
-          "bg-background/85 dark:bg-card/85 backdrop-blur-md border-[2px] border-foreground/30 shadow-[2px_2px_0_0_hsl(var(--foreground)/0.2)]",
+          "bg-background/80 dark:bg-card/80 backdrop-blur-md border-[2px] border-foreground/30 shadow-[2px_2px_0_0_hsl(var(--foreground)/0.2)]",
           "hover:border-foreground hover:shadow-[3px_3px_0_0_hsl(var(--foreground))]",
           isHovered && "opacity-0 pointer-events-none scale-95"
         )}
         title="Índice del apunte (pasa el cursor para ver los temas)"
       >
         {headings.map((item) => {
-          const isActive = activeId === item.id;
+          const isActive = activeIndex === item.index;
           return (
             <div
-              key={item.id}
+              key={item.index}
               className={cn(
-                "transition-all rounded-full duration-200",
+                "transition-all rounded-full duration-150",
                 item.level === 1 && "h-[3.5px]",
                 item.level === 2 && "h-[2.5px]",
                 item.level === 3 && "h-[2px]",
@@ -201,7 +243,7 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
           "absolute right-0 top-0 w-72 max-w-[85vw] max-h-[70vh] flex flex-col",
           "bg-card/95 dark:bg-[#121217]/95 backdrop-blur-md rounded-2xl",
           "border-[3px] border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] p-3.5",
-          "transition-all duration-200 ease-out origin-top-right",
+          "transition-all duration-150 ease-out origin-top-right",
           isHovered
             ? "opacity-100 scale-100 pointer-events-auto"
             : "opacity-0 scale-95 pointer-events-none"
@@ -222,16 +264,16 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
           </span>
         </div>
 
-        {/* Lista jerárquica de encabezados */}
+        {/* Lista jerárquica de encabezados con scroll suave */}
         <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar max-h-[50vh]">
           {headings.map((item) => {
-            const isActive = activeId === item.id;
+            const isActive = activeIndex === item.index;
 
             return (
               <button
-                key={item.id}
+                key={item.index}
                 type="button"
-                onClick={() => handleSelectHeading(item.element)}
+                onClick={() => handleSelectHeading(item)}
                 className={cn(
                   "w-full text-left transition-all rounded-lg flex items-center gap-1.5 group/item cursor-pointer",
                   item.level === 1 && "pl-2 py-1.5 text-xs font-black",

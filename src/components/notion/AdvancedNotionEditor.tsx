@@ -516,24 +516,37 @@ export function AdvancedNotionEditor({
   // Load content when document changes or arrives
   useEffect(() => {
     if (!editor || !content) return;
+
     const isDocSwitch = documentId && documentId !== lastLoadedDocumentIdRef.current;
-    if (!isDocSwitch && lastLoadedDocumentIdRef.current !== undefined) return;
-
-    lastLoadedDocumentIdRef.current = documentId;
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-      updateTimeoutRef.current = null;
-    }
-    editor.commands.setContent(content, false);
-    editor.commands.setTextSelection(0);
-    editor.setEditable(!readOnly);
-
-    try {
-      const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
-      if (scrollEl) {
-        scrollEl.scrollTo({ top: 0, behavior: 'instant' });
+    if (isDocSwitch) {
+      lastLoadedDocumentIdRef.current = documentId;
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
       }
-    } catch {}
+      editor.commands.setContent(content, false);
+      editor.commands.setTextSelection(0);
+      editor.setEditable(!readOnly);
+
+      try {
+        const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
+        if (scrollEl) {
+          scrollEl.scrollTo({ top: 0, behavior: 'instant' });
+        }
+      } catch {}
+      return;
+    }
+
+    // If editor is currently empty and real content arrived, load it immediately
+    if (editor.isEmpty) {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
+      }
+      editor.commands.setContent(content, false);
+      editor.commands.setTextSelection(0);
+      editor.setEditable(!readOnly);
+    }
   }, [documentId, content, editor, readOnly]);
 
   // Listener to open math menu via custom event (e.g. from SlashCommands)
