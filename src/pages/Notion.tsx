@@ -351,6 +351,8 @@ export default function Notion() {
   // Tabs state
   interface TabItem { id: string; title: string; emoji: string; }
   const [openTabs, setOpenTabs] = useState<TabItem[]>([]);
+  const tabContentCacheRef = useRef<Map<string, any>>(new Map());
+  const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   
   // Rename Modal state
   const [showRenameModal, setShowRenameModal] = useState(false);
@@ -419,7 +421,11 @@ export default function Notion() {
 
   useEffect(() => {
     localTitleRef.current = localTitle;
-  }, [localTitle]);
+    if (titleTextareaRef.current) {
+      titleTextareaRef.current.style.height = "auto";
+      titleTextareaRef.current.style.height = titleTextareaRef.current.scrollHeight + "px";
+    }
+  }, [localTitle, activeDocument?.id]);
 
   // Audio Book handlers (placed AFTER editorContent and editorContentRef)
   const hasTextSelection = useMemo(() => {
@@ -1043,10 +1049,22 @@ export default function Notion() {
       forceSaveTimerRef.current = null;
     }
 
-    // 2. Save current document in the background before switching if there are pending changes
+    // 2. Cache current document content immediately before switching
     const prevDoc = activeDocumentRef.current;
-    if (prevDoc && isDirtyRef.current && prevDoc.id !== doc.id) {
-      saveDocument(true).catch(console.error);
+    if (prevDoc) {
+      const currentDocContent = (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed)
+        ? tiptapEditorInstance.getJSON()
+        : editorContentRef.current;
+      if (currentDocContent) {
+        tabContentCacheRef.current.set(prevDoc.id, currentDocContent);
+        try {
+          sessionStorage.setItem(`tabe_doc_content_${prevDoc.id}`, JSON.stringify(currentDocContent));
+        } catch (e) {}
+      }
+
+      if (isDirtyRef.current && prevDoc.id !== doc.id) {
+        saveDocument(true).catch(console.error);
+      }
     }
 
     // Save study time for the previous document before switching
@@ -1062,15 +1080,64 @@ export default function Notion() {
     audioBook.stop();
     setShowAudioBookPlayer(false);
 
-    // 3. CRITICAL: Clear current editor state immediately so the old document's content is NOT displayed
-    // or passed into the editor for the new document!
-    setEditorContent(null);
-    editorContentRef.current = null;
-    lastSavedContentRef.current = "";
-    isDirtyRef.current = false;
-    pendingSaveRef.current = false;
-    setSaveError(null);
+    // 3. Add to tabs if not already present
+    setOpenTabs(prev => {
+      if (prev.some(t => t.id === doc.id)) return prev;
+      const newTab = { id: doc.id, title: doc.titulo || "Sin título", emoji: doc.emoji || "" };
+      const updated = [...prev, newTab];
+      return updated.length > 10 ? updated.slice(-10) : updated;
+    });
 
+    // 4. FAST PATH: Check memory cache and sessionStorage first (0ms instant switch)
+    let rawContent = doc.contenido || tabContentCacheRef.current.get(doc.id);
+    if (!rawContent) {
+      try {
+        const stored = sessionStorage.getItem(`tabe_doc_content_${doc.id}`);
+        if (stored) {
+          rawContent = JSON.parse(stored);
+          tabContentCacheRef.current.set(doc.id, rawContent);
+        }
+      } catch (e) {}
+    }
+
+    if (rawContent) {
+      let content = ensureTipTapFormat(rawContent);
+      if (!content || !content.content || content.content.length === 0) {
+        content = { type: "doc", content: [{ type: "paragraph" }] };
+      }
+
+      const contentStr = JSON.stringify(content);
+      lastSavedContentRef.current = contentStr;
+      isDirtyRef.current = false;
+      pendingSaveRef.current = false;
+      setSaveError(null);
+      setLocalTitle(doc.titulo);
+      localTitleRef.current = doc.titulo;
+      setActiveDocument(doc);
+      activeDocumentRef.current = doc;
+      setLastSaved(null);
+      try {
+        sessionStorage.setItem("tabe_active_doc_id", doc.id);
+      } catch (e) {}
+
+      setEditorContent(content);
+      editorContentRef.current = content;
+      setIsOpeningDoc(false);
+
+      if (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed) {
+        tiptapEditorInstance.commands.setContent(content, false);
+        tiptapEditorInstance.commands.setTextSelection(0);
+        tiptapEditorInstance.setEditable(doc.user_id === user?.id);
+        try {
+          const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
+          if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'instant' });
+        } catch {}
+      }
+      return;
+    }
+
+    // 5. SLOW PATH: Document not cached anywhere (first time opened from gallery)
+    setIsOpeningDoc(true);
     setLocalTitle(doc.titulo);
     localTitleRef.current = doc.titulo;
     setActiveDocument(doc);
@@ -1080,31 +1147,15 @@ export default function Notion() {
       sessionStorage.setItem("tabe_active_doc_id", doc.id);
     } catch (e) {}
 
-    // Add to tabs if not already present
-    setOpenTabs(prev => {
-      if (prev.some(t => t.id === doc.id)) return prev;
-      const newTab = { id: doc.id, title: doc.titulo || "Sin título", emoji: doc.emoji || "" };
-      const updated = [...prev, newTab];
-      return updated.length > 10 ? updated.slice(-10) : updated;
-    });
-
-    // 4. Fetch content if not already loaded (check sessionStorage cache first for 0ms load)
-    let rawContent = doc.contenido;
-    if (!rawContent) {
-      try {
-        const stored = sessionStorage.getItem(`tabe_doc_content_${doc.id}`);
-        if (stored) rawContent = JSON.parse(stored);
-      } catch (e) {}
-    }
-    if (!rawContent) {
-      setIsOpeningDoc(true);
-      const safetyTimer = setTimeout(() => setIsOpeningDoc(false), 5000);
-      try {
-        rawContent = await fetchDocumentContent(doc.id, true);
-      } finally {
-        clearTimeout(safetyTimer);
-        setIsOpeningDoc(false);
+    const safetyTimer = setTimeout(() => setIsOpeningDoc(false), 5000);
+    try {
+      rawContent = await fetchDocumentContent(doc.id, false);
+      if (rawContent) {
+        tabContentCacheRef.current.set(doc.id, rawContent);
       }
+    } finally {
+      clearTimeout(safetyTimer);
+      setIsOpeningDoc(false);
     }
 
     // If active document changed while awaiting DB fetch, discard stale response
@@ -1119,8 +1170,21 @@ export default function Notion() {
 
     const contentStr = JSON.stringify(content);
     lastSavedContentRef.current = contentStr;
+    isDirtyRef.current = false;
+    pendingSaveRef.current = false;
+    setSaveError(null);
     setEditorContent(content);
     editorContentRef.current = content;
+
+    if (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed) {
+      tiptapEditorInstance.commands.setContent(content, false);
+      tiptapEditorInstance.commands.setTextSelection(0);
+      tiptapEditorInstance.setEditable(doc.user_id === user?.id);
+      try {
+        const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
+        if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'instant' });
+      } catch {}
+    }
 
     // Check for base64 images and migrate them in the background (non-blocking)
     if (contentStr.includes('data:image/')) {
@@ -1130,11 +1194,12 @@ export default function Notion() {
           setEditorContent(cleaned);
           editorContentRef.current = cleaned;
           lastSavedContentRef.current = JSON.stringify(cleaned);
+          tabContentCacheRef.current.set(doc.id, cleaned);
         }
         setSaveInProgress(false);
       });
     }
-  }, [saveDocument, handleSaveOnExit, fetchDocumentContent, migrateBase64Images, updateDocument]);
+  }, [saveDocument, handleSaveOnExit, fetchDocumentContent, migrateBase64Images, user?.id, tiptapEditorInstance]);
 
   const closeDocument = useCallback(() => {
     if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
@@ -1193,10 +1258,10 @@ export default function Notion() {
   }, [activeDocument, documents, openDocument, saveDocument, handleSaveOnExit, refetch]);
 
   const handleTabClick = useCallback((tabId: string) => {
-    if (activeDocument?.id === tabId) return;
+    if (activeDocumentRef.current?.id === tabId) return;
     const doc = documents.find(d => d.id === tabId);
     if (doc) openDocument(doc);
-  }, [activeDocument, documents, openDocument]);
+  }, [documents, openDocument]);
 
   // 1. Sincronización en tiempo real entre pestañas abiertas (BroadcastChannel, 0ms, 0 costo)
   useEffect(() => {
@@ -1922,7 +1987,7 @@ export default function Notion() {
         {/* Editor area */}
         <div className="notion-editor-area overflow-hidden flex flex-col h-full min-h-0 relative">
           {activeDocument ? (
-            isOpeningDoc || !editorContent ? (
+            isOpeningDoc && !editorContent ? (
               <div className="flex flex-col items-center justify-center h-full gap-4">
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
                 <p className="text-muted-foreground animate-pulse font-medium">
@@ -1941,7 +2006,6 @@ export default function Notion() {
                   </div>
                 )}
                 <AdvancedNotionEditor
-                  key={activeDocument.id}
                   headerContent={
                     <>
                       {/* Cover */}
@@ -1959,6 +2023,7 @@ export default function Notion() {
                         />
 
                         <textarea
+                          ref={titleTextareaRef}
                           value={localTitle}
                           onChange={(e) => {
                             handleTitleChange(e.target.value);

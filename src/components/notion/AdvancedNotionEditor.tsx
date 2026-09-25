@@ -509,8 +509,20 @@ export function AdvancedNotionEditor({
     const shouldReload = documentId && documentId !== lastLoadedDocumentIdRef.current;
     if (!shouldReload) return;
     lastLoadedDocumentIdRef.current = documentId;
-    editor.commands.setContent(content);
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = null;
+    }
+    editor.commands.setContent(content, false);
+    editor.commands.setTextSelection(0);
     editor.setEditable(!readOnly);
+
+    try {
+      const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
+      if (scrollEl) {
+        scrollEl.scrollTo({ top: 0, behavior: 'instant' });
+      }
+    } catch {}
   }, [documentId, content, editor, readOnly]);
 
   // Listener to open math menu via custom event (e.g. from SlashCommands)
