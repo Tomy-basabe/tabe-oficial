@@ -10,6 +10,7 @@ import {
   getPushSubscriptionStatus,
   PushSubscriptionStatus 
 } from "@/lib/webPushService";
+import { parseLocalDate, toLocalDateStr } from "@/lib/utils";
 
 export interface NotificationSettings {
   studyReminders: boolean;
@@ -307,8 +308,8 @@ export function useNotifications() {
         .select("id, titulo, fecha, tipo_examen")
         .eq("user_id", user.id)
         .neq("tipo_examen", "Estudio")
-        .gte("fecha", today.toISOString().split("T")[0])
-        .lte("fecha", futureDate.toISOString().split("T")[0]);
+        .gte("fecha", toLocalDateStr(today))
+        .lte("fecha", toLocalDateStr(futureDate));
 
       if (events && events.length > 0) {
         // Sync to IndexedDB
@@ -327,7 +328,7 @@ export function useNotifications() {
         });
 
         events.forEach((event) => {
-          const eventDate = new Date(event.fecha);
+          const eventDate = parseLocalDate(event.fecha);
           const daysUntil = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
           const dayText = daysUntil === 0 ? "¡Hoy!" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
 

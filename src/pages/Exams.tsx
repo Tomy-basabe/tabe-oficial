@@ -14,7 +14,7 @@ import {
   Timer,
   ChevronLeft
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -78,7 +78,7 @@ export default function Exams() {
         
         if (!isExam) return false;
         
-        const eventDate = new Date(e.fecha);
+        const eventDate = parseLocalDate(e.fecha);
         eventDate.setHours(0, 0, 0, 0);
         return eventDate.getTime() >= today.getTime();
       })
@@ -106,7 +106,7 @@ export default function Exams() {
           subject_nombre: subjectNombre,
         };
       })
-      .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+      .sort((a, b) => parseLocalDate(a.fecha).getTime() - parseLocalDate(b.fecha).getTime());
   }, [events, subjects]);
 
   const availableYears = useMemo(() => {
@@ -154,7 +154,7 @@ export default function Exams() {
   }, [upcomingExams, selectedSubject, selectedYear, subjectMap]);
 
   const getDaysRemaining = (targetDateStr: string) => {
-    const target = new Date(targetDateStr);
+    const target = parseLocalDate(targetDateStr);
     target.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -326,7 +326,7 @@ export default function Exams() {
                     <div className="text-right">
                       <span className="text-sm font-black uppercase tracking-widest flex items-center gap-2 md:justify-end">
                         <CalendarIcon className="w-5 h-5 text-foreground" />
-                        {new Date(exam.fecha).toLocaleDateString('es-AR', {
+                        {parseLocalDate(exam.fecha).toLocaleDateString('es-AR', {
                           weekday: 'short',
                           day: 'numeric',
                           month: 'long'
@@ -429,7 +429,7 @@ export default function Exams() {
                             <div className="flex items-center gap-1.5 font-bold">
                               <CalendarIcon className="w-3.5 h-3.5 opacity-80" />
                               <span className="text-[10px] uppercase">
-                                {new Date(exam.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                {parseLocalDate(exam.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                               </span>
                             </div>
                             <span className={cn(

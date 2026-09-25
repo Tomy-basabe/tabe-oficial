@@ -18,3 +18,15 @@ export function toLocalDateStr(date: Date | string | null | undefined = new Date
   return `${y}-${m}-${d}`;
 }
 
+export function parseLocalDate(dateStr: string | null | undefined): Date {
+  if (!dateStr) return new Date();
+  if (dateStr.includes("T")) {
+    return new Date(dateStr);
+  }
+  const parts = dateStr.split("-").map(Number);
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  return new Date(dateStr);
+}
+

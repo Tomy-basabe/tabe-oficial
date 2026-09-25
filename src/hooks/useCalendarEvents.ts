@@ -13,6 +13,7 @@ import {
   cleanupDuplicateEvents,
   buildEventMatchKey,
 } from "@/lib/googleCalendarSync";
+import { toLocalDateStr } from "@/lib/utils";
 export type EventType = "P1" | "P2" | "Global" | "Recuperatorio P1" | "Recuperatorio P2" | "Recuperatorio Global" | "Final" | "Estudio" | "TP" | "Entrega" | "Clase" | "Otro" | string;
 export type RecurrenceRule = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
 
@@ -555,9 +556,7 @@ export function useCalendarEvents() {
   };
 
   const getUpcomingExams = (limit = 5): CalendarEvent[] => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = toLocalDateStr(new Date());
 
     return events
       .filter(event =>

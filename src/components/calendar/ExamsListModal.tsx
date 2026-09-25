@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { CalendarEvent } from "@/hooks/useCalendarEvents";
 import { Subject } from "@/hooks/useSubjects";
 import { Calendar as CalendarIcon, Clock, Filter, AlertCircle, GraduationCap, LayoutPanelLeft, List as ListIcon, CheckCircle2, BookOpen, Timer } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { toast } from "sonner";
 import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
@@ -68,7 +68,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
         if (!EXAM_TYPES.includes(e.tipo_examen)) return false;
         
         // Is it today or in the future?
-        const eventDate = new Date(e.fecha);
+        const eventDate = parseLocalDate(e.fecha);
         eventDate.setHours(0, 0, 0, 0);
         return eventDate.getTime() >= today.getTime();
       })
@@ -95,7 +95,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
           subject_nombre: subjectNombre,
         };
       })
-      .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+      .sort((a, b) => parseLocalDate(a.fecha).getTime() - parseLocalDate(b.fecha).getTime());
   }, [events, subjects]);
 
   // 2. Extract unique years and subjects from upcoming exams for filters
@@ -144,7 +144,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
 
   // Helper to calculate days remaining
   const getDaysRemaining = (targetDateStr: string) => {
-    const target = new Date(targetDateStr);
+    const target = parseLocalDate(targetDateStr);
     target.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -308,7 +308,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                       <div className="flex flex-col items-start md:items-end">
                         <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           <CalendarIcon className="w-4 h-4 opacity-70" />
-                          {new Date(exam.fecha).toLocaleDateString('es-AR', {
+                          {parseLocalDate(exam.fecha).toLocaleDateString('es-AR', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
@@ -406,7 +406,7 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                             <div className="flex items-center justify-between text-[10px] mt-1">
                               <span className="flex items-center gap-1">
                                 <CalendarIcon className="w-3 h-3 opacity-60" />
-                                {new Date(exam.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                {parseLocalDate(exam.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                               </span>
                               <span className={cn(
                                 "font-black uppercase tracking-widest text-[9px] px-1.5 py-0.5 rounded-sm border-2 border-black bg-white",
