@@ -343,7 +343,11 @@ export default function Notion() {
   const audioBook = useAudioBook();
   const [showAudioBookPlayer, setShowAudioBookPlayer] = useState(false);
   const [tiptapEditorInstance, setTiptapEditorInstance] = useState<any>(null);
-
+  const tiptapEditorInstanceRef = useRef<any>(null);
+  const handleEditorReady = useCallback((instance: any) => {
+    setTiptapEditorInstance(instance);
+    tiptapEditorInstanceRef.current = instance;
+  }, []);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState<NotionDocument | null>(null);
 
@@ -712,8 +716,13 @@ export default function Notion() {
 
   // === Auto-save logic ===
   const saveDocument = useCallback(
-    async (silent = true): Promise<boolean> => {
-      const docToSave = activeDocumentRef.current;
+    async (
+      silent = true,
+      explicitDoc?: NotionDocument | null,
+      explicitContent?: JSONContent | null,
+      explicitTitle?: string
+    ): Promise<boolean> => {
+      const docToSave = explicitDoc || activeDocumentRef.current;
       if (!docToSave) return true;
       
       // Safety check: Don't try to save documents that don't belong to the user
@@ -721,22 +730,33 @@ export default function Notion() {
         return true;
       }
       
+      const isCurrentActive = docToSave.id === activeDocumentRef.current?.id;
+
       if (saveInProgressRef.current) {
-        pendingSaveRef.current = true;
+        if (isCurrentActive) {
+          pendingSaveRef.current = true;
+        }
         return true; 
       }
 
-      const contentToSave = (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed)
-        ? tiptapEditorInstance.getJSON()
-        : editorContentRef.current;
+      const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
+      const contentToSave = explicitContent || (
+        (isCurrentActive && editor && !editor.isDestroyed)
+          ? editor.getJSON()
+          : (isCurrentActive ? editorContentRef.current : (docToSave.contenido || null))
+      );
       if (!contentToSave) return true;
-      editorContentRef.current = contentToSave;
+      if (isCurrentActive) {
+        editorContentRef.current = contentToSave;
+      }
       
-      const currentTitle = localTitleRef.current;
+      const currentTitle = explicitTitle !== undefined 
+        ? explicitTitle 
+        : (isCurrentActive ? localTitleRef.current : docToSave.titulo);
       const titleChanged = currentTitle !== docToSave.titulo;
 
       // If not marked dirty and title hasn't changed, skip immediately without stringifying
-      if (!isDirtyRef.current && !titleChanged && !pendingSaveRef.current) {
+      if (isCurrentActive && !isDirtyRef.current && !titleChanged && !pendingSaveRef.current && !explicitContent) {
         return true;
       }
 
@@ -749,18 +769,24 @@ export default function Notion() {
         return false;
       }
 
-      const contentChanged = contentStr !== lastSavedContentRef.current;
+      const contentChanged = isCurrentActive 
+        ? contentStr !== lastSavedContentRef.current 
+        : true;
 
       if (!contentChanged && !titleChanged) {
-        isDirtyRef.current = false;
-        pendingSaveRef.current = false;
+        if (isCurrentActive) {
+          isDirtyRef.current = false;
+          pendingSaveRef.current = false;
+        }
         return true;
       }
 
       setIsSaving(true);
       setSaveInProgress(true);
       saveInProgressRef.current = true;
-      pendingSaveRef.current = false;
+      if (isCurrentActive) {
+        pendingSaveRef.current = false;
+      }
 
       try {
         const updates: { contenido?: JSONContent; titulo?: string } = {};
@@ -776,14 +802,13 @@ export default function Notion() {
         }
 
         if (success) {
-          lastSavedContentRef.current = contentStr;
-          isDirtyRef.current = false;
-          setSaveError(null);
-          // Only update state if we are still on the SAME document
           if (activeDocumentRef.current?.id === docToSave.id) {
+            lastSavedContentRef.current = contentStr;
+            isDirtyRef.current = false;
+            setSaveError(null);
             setActiveDocument((prev) => (prev ? { ...prev, titulo: currentTitle } : null));
+            setLastSaved(new Date());
           }
-          setLastSaved(new Date());
           // Notificar a las demás pestañas abiertas en tiempo real (0ms, 0 costo servidor)
           broadcastNotionDocUpdate({
             docId: docToSave.id,
@@ -805,14 +830,16 @@ export default function Notion() {
         saveInProgressRef.current = false;
         setSaveInProgress(false);
         setIsSaving(false);
-        // If changes were queued while saving, run save again
-        if (pendingSaveRef.current) {
+        // Only run pending save if we are STILL on the expected document
+        if (pendingSaveRef.current && activeDocumentRef.current?.id === docToSave.id) {
           pendingSaveRef.current = false;
           await saveDocument(silent);
+        } else {
+          pendingSaveRef.current = false;
         }
       }
     },
-    [updateDocument, user]
+    [updateDocument, user, tiptapEditorInstance]
   );
 
   // Trigger auto-save on content changes (Continuo, silencioso y optimizado para plan Free)
@@ -1049,9 +1076,10 @@ export default function Notion() {
 
     // 2. Cache current document content immediately before switching
     const prevDoc = activeDocumentRef.current;
-    if (prevDoc) {
-      const currentDocContent = (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed)
-        ? tiptapEditorInstance.getJSON()
+    if (prevDoc && prevDoc.id !== doc.id) {
+      const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
+      const currentDocContent = (editor && !editor.isDestroyed)
+        ? editor.getJSON()
         : editorContentRef.current;
       if (currentDocContent) {
         tabContentCacheRef.current.set(prevDoc.id, currentDocContent);
@@ -1060,8 +1088,9 @@ export default function Notion() {
         } catch (e) {}
       }
 
-      if (isDirtyRef.current && prevDoc.id !== doc.id) {
-        saveDocument(true).catch(console.error);
+      if (isDirtyRef.current) {
+        await saveDocument(true, prevDoc, currentDocContent, localTitleRef.current).catch(console.error);
+        isDirtyRef.current = false;
       }
     }
 
@@ -1122,10 +1151,11 @@ export default function Notion() {
       editorContentRef.current = content;
       setIsOpeningDoc(false);
 
-      if (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed) {
-        tiptapEditorInstance.commands.setContent(content, false);
-        tiptapEditorInstance.commands.setTextSelection(0);
-        tiptapEditorInstance.setEditable(doc.user_id === user?.id);
+      const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
+      if (editor && !editor.isDestroyed) {
+        editor.commands.setContent(content, false);
+        editor.commands.setTextSelection(0);
+        editor.setEditable(doc.user_id === user?.id);
         try {
           const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
           if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'instant' });
@@ -1141,6 +1171,9 @@ export default function Notion() {
     setActiveDocument(doc);
     activeDocumentRef.current = doc;
     setLastSaved(null);
+    // Explicitly reset editor content to avoid stale content being displayed
+    setEditorContent(null);
+    editorContentRef.current = null;
     try {
       sessionStorage.setItem("tabe_active_doc_id", doc.id);
     } catch (e) {}
@@ -1174,10 +1207,11 @@ export default function Notion() {
     setEditorContent(content);
     editorContentRef.current = content;
 
-    if (tiptapEditorInstance && !tiptapEditorInstance.isDestroyed) {
-      tiptapEditorInstance.commands.setContent(content, false);
-      tiptapEditorInstance.commands.setTextSelection(0);
-      tiptapEditorInstance.setEditable(doc.user_id === user?.id);
+    const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
+    if (editor && !editor.isDestroyed) {
+      editor.commands.setContent(content, false);
+      editor.commands.setTextSelection(0);
+      editor.setEditable(doc.user_id === user?.id);
       try {
         const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
         if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'instant' });
@@ -1255,9 +1289,21 @@ export default function Notion() {
     });
   }, [activeDocument, documents, openDocument, saveDocument, handleSaveOnExit, refetch]);
 
-  const handleTabClick = useCallback((tabId: string) => {
+  const handleTabClick = useCallback(async (tabId: string) => {
     if (activeDocumentRef.current?.id === tabId) return;
-    const doc = documents.find(d => d.id === tabId);
+    let doc = documents.find(d => d.id === tabId);
+    if (!doc) {
+      const { data } = await supabase
+        .from("notion_documents")
+        .select(`
+          id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+          owner:profiles(nombre, avatar_url, username),
+          subject:subjects(id, nombre, codigo, año)
+        `)
+        .eq("id", tabId)
+        .maybeSingle();
+      if (data) doc = data as NotionDocument;
+    }
     if (doc) openDocument(doc);
   }, [documents, openDocument]);
 
@@ -2083,11 +2129,15 @@ export default function Notion() {
                   onUpdate={handleContentUpdate}
                   documentId={activeDocument?.id}
                   readOnly={activeDocument?.user_id !== user?.id}
-                  onEditorReady={setTiptapEditorInstance}
+                  onEditorReady={handleEditorReady}
                   onActivity={() => lastActivityRef.current = Date.now()}
                   onSubPageClick={async (pageId, pageTitle, blockId) => {
-                      // 1. If pageId is provided, open that specific document
-                      if (pageId) {
+                      const parent = activeDocumentRef.current;
+                      const parentId = parent?.id || null;
+                      const subjectId = parent?.subject_id || "";
+
+                      // 1. If pageId is provided and valid (not pointing to parent itself)
+                      if (pageId && pageId !== parentId) {
                         let target = documents.find(d => d.id === pageId);
                         if (!target) {
                           const { data } = await supabase
@@ -2097,18 +2147,55 @@ export default function Notion() {
                             .maybeSingle();
                           if (data) target = data as NotionDocument;
                         }
-                        if (target) {
+                        if (target && target.id !== parentId) {
                           openDocument(target);
                           return;
                         }
                       }
 
-                      // 2. If pageId is null (or the document was deleted and not found in DB),
-                      // ALWAYS create a brand new, empty document!
-                      // NEVER search or reuse existing documents by title.
-                      const parent = activeDocumentRef.current;
-                      const parentId = parent?.id || null;
-                      const subjectId = parent?.subject_id || "";
+                      // 2. If pageId is missing, invalid or pointing to self,
+                      // check if there is an existing tab or document with this title!
+                      const normTitle = (pageTitle || "").trim().toLowerCase();
+                      
+                      // Check open tabs first (excluding parent)
+                      const openTabMatch = openTabs.find(t => t.id !== parentId && t.title.trim().toLowerCase() === normTitle);
+                      let existingDoc: NotionDocument | null = null;
+                      if (openTabMatch) {
+                        existingDoc = documents.find(d => d.id === openTabMatch.id) || null;
+                        if (!existingDoc) {
+                          const { data } = await supabase
+                            .from("notion_documents")
+                            .select("*")
+                            .eq("id", openTabMatch.id)
+                            .maybeSingle();
+                          if (data) existingDoc = data as NotionDocument;
+                        }
+                      }
+
+                      // Check subpages under this parent
+                      if (!existingDoc && parentId) {
+                        existingDoc = documents.find(d => d.id !== parentId && d.parent_id === parentId && d.titulo?.trim().toLowerCase() === normTitle) || null;
+                      }
+
+                      // Check documents in the same subject
+                      if (!existingDoc && subjectId) {
+                        existingDoc = documents.find(d => d.id !== parentId && d.subject_id === subjectId && d.titulo?.trim().toLowerCase() === normTitle) || null;
+                      }
+
+                      if (existingDoc && existingDoc.id !== parentId) {
+                        // Link this subpage block to the existing document!
+                        document.dispatchEvent(new CustomEvent("notion-subpage-created", {
+                          detail: { oldTitle: pageTitle, oldPageId: pageId, newPageId: existingDoc.id, blockId },
+                        }));
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                        if (parent && isDirtyRef.current) {
+                          await saveDocument(true);
+                        }
+                        openDocument(existingDoc);
+                        return;
+                      }
+
+                      // 3. If no matching document exists, create a brand new subpage
                       const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
                       if (newDoc) {
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {

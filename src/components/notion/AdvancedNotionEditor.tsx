@@ -54,6 +54,7 @@ import { WordToolbar } from "./WordToolbar";
 import { WordStatusBar } from "./WordStatusBar";
 import { FindReplaceBar } from "./FindReplaceBar";
 import { ShortcutsGuideModal } from "./ShortcutsGuideModal";
+import { DocumentOutline } from "./DocumentOutline";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
@@ -104,6 +105,7 @@ export function AdvancedNotionEditor({
 }: AdvancedNotionEditorProps) {
   const lastLoadedDocumentIdRef = useRef<string | undefined>(undefined);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -503,11 +505,20 @@ export function AdvancedNotionEditor({
     window.print();
   }, []);
 
-  // Load content when document changes
+  // Clear any pending debounced update when documentId changes
+  useEffect(() => {
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = null;
+    }
+  }, [documentId]);
+
+  // Load content when document changes or arrives
   useEffect(() => {
     if (!editor || !content) return;
-    const shouldReload = documentId && documentId !== lastLoadedDocumentIdRef.current;
-    if (!shouldReload) return;
+    const isDocSwitch = documentId && documentId !== lastLoadedDocumentIdRef.current;
+    if (!isDocSwitch && lastLoadedDocumentIdRef.current !== undefined) return;
+
     lastLoadedDocumentIdRef.current = documentId;
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
@@ -1205,8 +1216,9 @@ export function AdvancedNotionEditor({
 
       {/* Editor Content Area with View Mode & Font styling */}
       <div
+        ref={scrollContainerRef}
         className={cn(
-          "flex-1 overflow-y-auto transition-all",
+          "flex-1 overflow-y-auto transition-all relative",
           viewMode === 'word-a4' && "word-a4-wrapper",
           viewMode === 'full' && "word-full-width-wrapper",
           fontFamily === 'serif' ? 'notion-font-serif' : fontFamily === 'mono' ? 'notion-font-mono' : 'notion-font-sans'
@@ -1225,6 +1237,12 @@ export function AdvancedNotionEditor({
           </div>
         )}
       </div>
+
+      {/* Floating Table of Contents / Heading Minimap (Estilo Notion + TABE UI) */}
+      <DocumentOutline
+        editor={editor}
+        scrollContainerRef={scrollContainerRef}
+      />
 
       {/* Bottom Word Status Bar */}
       {!readOnly && (

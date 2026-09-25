@@ -2299,3 +2299,20 @@
         page-break-inside: avoid;
     }
 }
+
+/* === HEADING TARGET FLASH (DOCUMENT OUTLINE) === */
+@keyframes headingTargetFlash {
+    0% {
+        background-color: hsl(var(--primary) / 0.35);
+        box-shadow: 0 0 0 4px hsl(var(--primary) / 0.4);
+        border-radius: 6px;
+    }
+    100% {
+        background-color: transparent;
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+.heading-target-highlight {
+    animation: headingTargetFlash 1.5s ease-out;
+}
