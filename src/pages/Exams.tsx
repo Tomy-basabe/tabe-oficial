@@ -17,7 +17,7 @@ import {
 import { cn, parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -52,6 +52,7 @@ const KANBAN_COLUMNS: { id: KanbanStatus; label: string; icon: any; color: strin
 ];
 
 export default function Exams() {
+  const navigate = useNavigate();
   const { events, loading, updateEvent } = useCalendarEvents();
   const { rawSubjects: subjects } = useSubjects();
   
@@ -290,8 +291,10 @@ export default function Exams() {
               return (
                 <div 
                   key={exam.id}
-                  className="neo-bento-card p-5 bg-muted/30 dark:bg-background transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group"
+                  onClick={() => navigate(`/calendario?editEventId=${exam.id}`)}
+                  className="neo-bento-card p-5 bg-muted/30 dark:bg-background transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group cursor-pointer"
                   style={exam.color ? { backgroundColor: `${exam.color}` } : {}}
+                  title="Click para modificar este examen en el calendario"
                 >
                   <div className="flex-1 space-y-3">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -390,19 +393,24 @@ export default function Exams() {
                       return (
                         <div 
                           key={exam.id}
+                          onClick={() => navigate(`/calendario?editEventId=${exam.id}`)}
                           className={cn(
-                            "bg-background p-4 rounded-xl border-[3px] flex flex-col gap-3 transition-all hover:-translate-y-1 group relative",
+                            "bg-background p-4 rounded-xl border-[3px] flex flex-col gap-3 transition-all hover:-translate-y-1 group relative cursor-pointer",
                             isUrgent ? "border-[#ff4e4e] shadow-[4px_4px_0_0_#ff4e4e]" : "border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]"
                           )}
+                          title="Click para modificar este examen en el calendario"
                         >
                           <div className="flex justify-between items-start gap-2">
                             <span className="text-[9px] font-black tracking-widest opacity-80 uppercase truncate bg-foreground/10 px-2 py-0.5 rounded-sm">
                               {exam.subject_nombre || "General"}
                             </span>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all absolute top-2 right-2">
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all absolute top-2 right-2 z-10">
                               {col.id !== "pending" && (
                                 <button 
-                                  onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1].id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1].id);
+                                  }}
                                   className="w-7 h-7 flex items-center justify-center rounded-md bg-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-0.5 hover:shadow-none text-[12px] font-bold"
                                   title="Mover anterior"
                                 >
@@ -411,7 +419,10 @@ export default function Exams() {
                               )}
                               {col.id !== "done" && (
                                 <button 
-                                  onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id);
+                                  }}
                                   className="w-7 h-7 flex items-center justify-center rounded-md bg-foreground text-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-0.5 hover:shadow-none text-[12px] font-bold"
                                   title="Mover siguiente"
                                 >

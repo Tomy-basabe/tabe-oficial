@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Loader2, ExternalLink, Upload, Link2, Copy, Repeat, GraduationCap, CheckCircle2, Zap, RefreshCw, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +54,9 @@ const months = [
 ];
 
 export default function Calendar() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editEventId = searchParams.get("editEventId");
+
   const { events, loading, createEvent, updateEvent, deleteEvent, duplicateEvent, getEventsForDate, refetch, cleanupDuplicates } = useCalendarEvents();
   const { rawSubjects } = useSubjects();
   const { user, connectGoogleCalendar } = useAuth();
@@ -71,6 +75,28 @@ export default function Calendar() {
   const [isMoodleSyncing, setIsMoodleSyncing] = useState(false);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [showPurgeModal, setShowPurgeModal] = useState(false);
+
+  // Auto-abrir modal para editar evento si viene con ?editEventId=... (ej: desde sección Exámenes)
+  useEffect(() => {
+    if (!editEventId || events.length === 0) return;
+
+    const targetEvent = events.find(
+      (e) => e.id === editEventId || (e.isVirtual && e.id.startsWith(editEventId))
+    );
+
+    if (targetEvent) {
+      const eventDate = parseLocalDate(targetEvent.fecha);
+      setSelectedDate(eventDate);
+      setCurrentDate(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
+      setEventToEdit(targetEvent);
+      setShowAddModal(true);
+
+      // Limpiar el parámetro de la URL para mantenerla limpia
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("editEventId");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [editEventId, events, searchParams, setSearchParams]);
 
   // Auto-sync existing events bidirectionally with Google Calendar on load
   const hasAttemptedInitialSync = useRef(false);
@@ -773,6 +799,10 @@ export default function Calendar() {
         onClose={() => setShowExamsModal(false)}
         events={events}
         subjects={rawSubjects}
+        onEditExam={(event) => {
+          setShowExamsModal(false);
+          handleEditEvent(event);
+        }}
       />
 
       {/* Moodle Sync Modal */}

@@ -13,6 +13,7 @@ interface ExamsListModalProps {
   onClose: () => void;
   events: CalendarEvent[];
   subjects: Subject[];
+  onEditExam?: (event: CalendarEvent) => void;
 }
 
 const EXAM_TYPES = [
@@ -44,7 +45,7 @@ const KANBAN_COLUMNS: { id: KanbanStatus; label: string; icon: any; color: strin
   { id: "done", label: "Rendido", icon: CheckCircle2, color: "text-neon-green" },
 ];
 
-export function ExamsListModal({ open, onClose, events, subjects }: ExamsListModalProps) {
+export function ExamsListModal({ open, onClose, events, subjects, onEditExam }: ExamsListModalProps) {
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
@@ -273,7 +274,12 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                 return (
                   <div 
                     key={exam.id}
-                    className="p-4 bg-card text-foreground rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-4 justify-between"
+                    onClick={() => onEditExam?.(exam)}
+                    className={cn(
+                      "p-4 bg-card text-foreground rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-4 justify-between",
+                      onEditExam && "cursor-pointer"
+                    )}
+                    title={onEditExam ? "Click para modificar este examen" : undefined}
                   >
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -368,19 +374,25 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                         return (
                           <div 
                             key={exam.id}
+                            onClick={() => onEditExam?.(exam)}
                             className={cn(
                               "p-3 rounded-lg border-[3px] border-foreground bg-card text-foreground flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] group shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                              isUrgent && "bg-[#FF6B6B] text-black"
+                              isUrgent && "bg-[#FF6B6B] text-black",
+                              onEditExam && "cursor-pointer"
                             )}
+                            title={onEditExam ? "Click para modificar este examen" : undefined}
                           >
                             <div className="flex justify-between items-start">
                               <span className="text-[10px] font-bold opacity-70 truncate max-w-[80px]">
                                 {exam.subject_nombre || "Sin materia"}
                               </span>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
                                 {col.id !== "todo" && (
                                   <button 
-                                    onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1].id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1].id);
+                                    }}
                                     className="p-1 rounded hover:bg-black/10 text-black border-2 border-transparent hover:border-black transition-all"
                                     title="Mover a etapa anterior"
                                   >
@@ -389,7 +401,10 @@ export function ExamsListModal({ open, onClose, events, subjects }: ExamsListMod
                                 )}
                                 {col.id !== "done" && (
                                   <button 
-                                    onClick={() => updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id);
+                                    }}
                                     className="p-1 rounded hover:bg-black/10 text-black border-2 border-transparent hover:border-black transition-all"
                                     title="Mover a siguiente etapa"
                                   >
