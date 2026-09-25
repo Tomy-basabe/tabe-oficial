@@ -149,8 +149,8 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
 
   return (
     <TooltipProvider delayDuration={150}>
-      <header className="sticky top-0 z-30 border-b border-border/70 bg-card/90 backdrop-blur-md px-2.5 py-1.5 shadow-xs select-none transition-all print:hidden">
-        <div className="flex flex-wrap items-center gap-1">
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-card/95 backdrop-blur-md px-2.5 py-1 shadow-xs select-none transition-all print:hidden">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full">
           {/* UNDO / REDO */}
           <div className="flex items-center gap-0.5">
             <Tooltip>
@@ -431,7 +431,7 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 hidden sm:inline-flex ${editor.isActive('subscript') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={`h-8 w-8 hidden xl:inline-flex ${editor.isActive('subscript') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
                   onClick={() => editor.chain().focus().toggleSubscript().run()}
                 >
                   <Subscript className="w-4 h-4" />
@@ -446,7 +446,7 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 hidden sm:inline-flex ${editor.isActive('superscript') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={`h-8 w-8 hidden xl:inline-flex ${editor.isActive('superscript') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
                   onClick={() => editor.chain().focus().toggleSuperscript().run()}
                 >
                   <Superscript className="w-4 h-4" />
@@ -578,67 +578,62 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
 
           <div className="h-4 w-px bg-border/80 mx-0.5" />
 
-          {/* ALIGNMENT */}
-          <div className="flex items-center gap-0.5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive({ textAlign: 'left' }) ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+          {/* ALIGNMENT DROPDOWN */}
+          <div className="flex items-center">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    >
+                      {editor.isActive({ textAlign: 'center' }) ? (
+                        <AlignCenter className="w-4 h-4 text-primary" />
+                      ) : editor.isActive({ textAlign: 'right' }) ? (
+                        <AlignRight className="w-4 h-4 text-primary" />
+                      ) : editor.isActive({ textAlign: 'justify' }) ? (
+                        <AlignJustify className="w-4 h-4 text-primary" />
+                      ) : (
+                        <AlignLeft className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Alineación del texto</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem
                   onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                  className={editor.isActive({ textAlign: 'left' }) ? 'bg-accent font-semibold' : ''}
                 >
-                  <AlignLeft className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Alinear a la izquierda</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive({ textAlign: 'center' }) ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  <AlignLeft className="w-4 h-4 mr-2" />
+                  Alinear a la izquierda
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                  className={editor.isActive({ textAlign: 'center' }) ? 'bg-accent font-semibold' : ''}
                 >
-                  <AlignCenter className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Centrar texto</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive({ textAlign: 'right' }) ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  <AlignCenter className="w-4 h-4 mr-2" />
+                  Centrar
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                  className={editor.isActive({ textAlign: 'right' }) ? 'bg-accent font-semibold' : ''}
                 >
-                  <AlignRight className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Alinear a la derecha</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive({ textAlign: 'justify' }) ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  <AlignRight className="w-4 h-4 mr-2" />
+                  Alinear a la derecha
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                  className={editor.isActive({ textAlign: 'justify' }) ? 'bg-accent font-semibold' : ''}
                 >
-                  <AlignJustify className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Justificar párrafo</TooltipContent>
-            </Tooltip>
+                  <AlignJustify className="w-4 h-4 mr-2" />
+                  Justificar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="h-4 w-px bg-border/80 mx-0.5" />
@@ -846,22 +841,21 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
           <div className="flex-1" />
 
           {/* RIGHT SIDE: SHORTCUTS GUIDE, FIND & REPLACE & ZEN MODE */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 shrink-0">
             {onOpenShortcutsGuide && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs font-medium gap-1 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                    size="icon"
+                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
                     onClick={onOpenShortcutsGuide}
                   >
-                    <Keyboard className="w-3.5 h-3.5 text-primary" />
-                    <span className="hidden sm:inline">Guía & Atajos</span>
+                    <Keyboard className="w-4 h-4 text-primary" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Ver todos los atajos y comandos (Ctrl + /)</TooltipContent>
+                <TooltipContent side="bottom">Guía y atajos de teclado (Ctrl + /)</TooltipContent>
               </Tooltip>
             )}
 
@@ -870,12 +864,11 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs font-medium gap-1 text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80"
                   onClick={onToggleFindReplace}
                 >
-                  <Search className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">Buscar y reemplazar</span>
+                  <Search className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Buscar y reemplazar en el apunte (Ctrl+F)</TooltipContent>

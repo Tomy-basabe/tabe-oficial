@@ -6,7 +6,8 @@ import {
   Menu, Star, Clock, Trash2, Loader2, Save,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
-  Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft
+  Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
+  GraduationCap, ChevronRight
 } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
@@ -886,6 +887,7 @@ export default function Notion() {
   const handleTitleChange = useCallback(
     (title: string) => {
       setLocalTitle(title);
+      setOpenTabs(prev => prev.map(t => t.id === activeDocumentRef.current?.id ? { ...t, title } : t));
       scheduleAutoSave();
     },
     [scheduleAutoSave]
@@ -1610,9 +1612,10 @@ export default function Notion() {
       {/* Main area */}
       <div className="notion-main">
         {/* Top bar */}
+        {/* Unified Topbar */}
         <div className="notion-topbar">
-          <div className="notion-topbar-left">
-            {/* Back link — available on mobile & desktop like in TABE AI */}
+          <div className="notion-topbar-left flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden mr-2">
+            {/* Back link */}
             <Link
               to="/dashboard"
               onClick={() => {
@@ -1620,7 +1623,7 @@ export default function Notion() {
                   ComicAudio.playPop();
                 } catch {}
               }}
-              className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-3 md:py-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group mr-2"
+              className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-2.5 md:py-1 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group mr-1"
               title="Volver al Dashboard"
               aria-label="Volver al Dashboard"
             >
@@ -1628,30 +1631,86 @@ export default function Notion() {
               <span className="hidden md:inline">Volver</span>
             </Link>
 
-            {activeDocument ? (() => {
-              const parentDoc = activeDocument.parent_id
-                ? documents.find(d => d.id === activeDocument.parent_id)
-                : null;
-              return (
-                <NotionBreadcrumb
-                  subjectCode={activeDocument.subject?.codigo}
-                  subjectName={activeDocument.subject?.nombre}
-                  documentTitle={localTitle || activeDocument.titulo}
-                  documentEmoji={activeDocument.emoji}
-                  parentTitle={parentDoc?.titulo}
-                  parentEmoji={parentDoc?.emoji}
-                  onClickParent={() => parentDoc && openDocument(parentDoc)}
-                  onClickSubject={closeDocument}
-                  onBack={() => {
-                    if (parentDoc) {
-                      openDocument(parentDoc);
-                    } else {
-                      closeDocument();
-                    }
-                  }}
-                />
-              );
-            })() : (
+            {activeDocument ? (
+              <>
+                {/* Subject badge (Click to return to subject notes) */}
+                {activeDocument.subject?.codigo && (
+                  <button
+                    type="button"
+                    onClick={closeDocument}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold border border-border/80 bg-secondary/80 hover:bg-secondary text-foreground transition-colors shrink-0 max-w-[130px] truncate"
+                    title={`Materia: ${activeDocument.subject.nombre || activeDocument.subject.codigo} (clic para ver todos los apuntes)`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="truncate">{activeDocument.subject.codigo}</span>
+                  </button>
+                )}
+
+                {/* Subpage crumb if parentDoc is different from activeDoc */}
+                {(() => {
+                  const parentDoc = (activeDocument.parent_id && activeDocument.parent_id !== activeDocument.id)
+                    ? documents.find(d => d.id === activeDocument.parent_id)
+                    : null;
+                  if (!parentDoc || parentDoc.titulo === (localTitle || activeDocument.titulo)) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => openDocument(parentDoc)}
+                      className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 max-w-[120px] truncate"
+                      title={`Apunte principal: ${parentDoc.titulo}`}
+                    >
+                      <TabeIconRenderer iconId={parentDoc.emoji || "book"} size={13} />
+                      <span className="truncate">{parentDoc.titulo}</span>
+                      <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0 ml-0.5" />
+                    </button>
+                  );
+                })()}
+
+                <div className="h-4 w-px bg-border/80 mx-1 shrink-0 hidden sm:block" />
+
+                {/* Inline Tabs inside the same unified bar */}
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
+                  {openTabs.map(tab => {
+                    const isActive = activeDocument?.id === tab.id;
+                    return (
+                      <div
+                        key={tab.id}
+                        className={cn(
+                          "group relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs cursor-pointer transition-all shrink-0 max-w-[180px]",
+                          isActive
+                            ? "bg-card text-foreground font-bold border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))]"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/70 border border-transparent font-medium"
+                        )}
+                        onClick={() => handleTabClick(tab.id)}
+                        title={tab.title}
+                      >
+                        <span className="shrink-0 flex items-center">
+                          {tab.emoji ? (
+                            <TabeIconRenderer iconId={tab.emoji} size={13} />
+                          ) : (
+                            <FileText className="w-3.5 h-3.5" />
+                          )}
+                        </span>
+                        <span className="truncate">
+                          {isActive ? (localTitle || tab.title || "Sin título") : (tab.title || "Sin título")}
+                        </span>
+                        <button
+                          type="button"
+                          className={cn(
+                            "rounded p-0.5 transition-all ml-0.5 shrink-0 hover:bg-destructive/15 hover:text-destructive",
+                            isActive ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
+                          )}
+                          onClick={(e) => closeTab(tab.id, e)}
+                          title="Cerrar pestaña"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
               <span className="font-black text-sm md:text-base uppercase tracking-wider text-foreground flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-[#FFE600] text-black border border-black shadow-[1px_1px_0_0_#000] flex items-center justify-center text-xs">
                   📝
@@ -1661,33 +1720,37 @@ export default function Notion() {
             )}
           </div>
 
-          <div className="notion-topbar-right">
-            {activeDocument && (
+          <div className="notion-topbar-right flex items-center gap-1 shrink-0">
+            {activeDocument ? (
               <>
-                {/* Save indicator: solo visible en caso de error para no interferir */}
+                {/* Save indicator on error */}
                 {saveError && (
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive/10 text-destructive rounded-md animate-in fade-in duration-300" title={saveError}>
+                  <div className="flex items-center gap-1 px-2 py-1 bg-destructive/10 text-destructive rounded-md animate-in fade-in duration-300" title={saveError}>
                     <AlertCircle className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-medium uppercase tracking-wider">Error de Guardado</span>
+                    <span className="text-[10px] font-medium hidden sm:inline uppercase tracking-wider">Error</span>
                   </div>
                 )}
 
                 {/* Timer Display */}
-                <div className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors bg-secondary text-muted-foreground",
-                  sessionSeconds > 0 && "bg-neon-green/10 text-neon-green"
-                )}>
-                  <Clock className="w-4 h-4" />
-                  <span className="font-mono text-sm tabular-nums">
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors bg-secondary text-muted-foreground text-xs",
+                    sessionSeconds > 0 && "bg-neon-green/10 text-neon-green font-semibold"
+                  )}
+                  title="Tiempo de estudio en este apunte"
+                >
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <span className="font-mono tabular-nums">
                     {Math.floor(sessionSeconds / 60)}:{(sessionSeconds % 60).toString().padStart(2, '0')}
                   </span>
                 </div>
 
                 {/* Favorite */}
                 <button
+                  type="button"
                   className={cn(
-                    "notion-topbar-btn",
-                    activeDocument.is_favorite && "active"
+                    "h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+                    activeDocument.is_favorite && "text-amber-500 hover:text-amber-600"
                   )}
                   onClick={() => handleToggleFavorite(activeDocument)}
                   title={
@@ -1704,15 +1767,16 @@ export default function Notion() {
 
                 {/* Audio Book */}
                 <button
+                  type="button"
                   className={cn(
-                    "notion-topbar-btn transition-all duration-300 relative",
+                    "h-8 w-8 inline-flex items-center justify-center rounded-lg transition-all duration-200",
                     audioBook.isPlaying
-                      ? "text-black bg-[#BFFF00] ring-2 ring-black font-black animate-pulse shadow-[2px_2px_0_0_#000]"
+                      ? "text-black bg-[#BFFF00] border border-black shadow-[1px_1px_0_0_#000] animate-pulse"
                       : audioBook.isPaused
-                      ? "text-black bg-[#FFD700] ring-2 ring-black font-black"
+                      ? "text-black bg-[#FFD700] border border-black"
                       : showAudioBookPlayer
-                      ? "text-primary bg-primary/20 ring-1 ring-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                      ? "text-primary bg-primary/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                   onClick={() => {
                     if (!showAudioBookPlayer) {
@@ -1732,7 +1796,7 @@ export default function Notion() {
                   }}
                   title={
                     audioBook.isPlaying
-                      ? "Pausar audio libro (recordará tu posición)"
+                      ? "Pausar audio libro"
                       : audioBook.isPaused
                       ? "Reanudar audio libro"
                       : "Escuchar audio libro"
@@ -1747,7 +1811,8 @@ export default function Notion() {
 
                 {/* AI Generation */}
                 <button
-                  className="notion-topbar-btn text-primary hover:bg-primary/10"
+                  type="button"
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-primary hover:bg-primary/10 transition-colors"
                   onClick={() => setShowAIModal(true)}
                   title="Generar material de estudio con IA"
                 >
@@ -1766,115 +1831,93 @@ export default function Notion() {
                   />
                 )}
 
-                {/* Import */}
-                <button
-                  className="notion-topbar-btn"
-                  onClick={() => setShowImportModal(true)}
-                  title="Importar documento"
-                >
-                  <FileUp className="w-4 h-4" />
-                </button>
-
-                {/* Import friend doc to my account */}
-                {activeDocument.user_id !== user?.id && (
-                  <button
-                    className="notion-topbar-btn text-black bg-[#BFFF00] hover:bg-[#a6e600] font-black flex items-center gap-1.5 px-3 py-1 rounded shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                    onClick={() => {
-                      setPreselectedFriendNote({
-                        id: activeDocument.id,
-                        titulo: activeDocument.titulo,
-                        emoji: activeDocument.emoji,
-                        subject_id: activeDocument.subject_id,
-                        user_id: activeDocument.user_id,
-                        ownerName: activeDocument.owner?.nombre || activeDocument.owner?.username || "tu amigo",
-                        cover_url: activeDocument.cover_url,
-                        subject: activeDocument.subject
-                      });
-                      setShowImportFriendModal(true);
-                    }}
-                    title="Importar una copia a mis apuntes"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span className="text-xs hidden sm:inline uppercase">Importar Copia</span>
-                  </button>
-                )}
-
-                {/* Keyboard shortcuts */}
-                <button
-                  className="notion-topbar-btn"
-                  onClick={() => setShowShortcutsModal(true)}
-                  title="Atajos de teclado (Ctrl+/)"
-                >
-                  <Keyboard className="w-4 h-4" />
-                </button>
-
-                {/* Management actions - ONLY FOR OWNER */}
-                {activeDocument.user_id === user?.id && (
-                  <>
+                {/* More Options Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <button
-                      className="notion-topbar-btn"
-                      onClick={() => {
-                        setDocToChangeSubject(activeDocument);
-                        setModalYear(null);
-                        setShowChangeSubjectModal(true);
-                      }}
-                      title="Cambiar materia"
+                      type="button"
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      title="Más opciones"
                     >
-                      <ArrowUpDown className="w-4 h-4" />
+                      <MoreHorizontal className="w-4 h-4" />
                     </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {activeDocument.user_id === user?.id && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setDocToChangeSubject(activeDocument);
+                          setModalYear(null);
+                          setShowChangeSubjectModal(true);
+                        }}
+                      >
+                        <ArrowUpDown className="w-4 h-4 mr-2" />
+                        Cambiar materia
+                      </DropdownMenuItem>
+                    )}
 
-                    <button
-                      className="notion-topbar-btn"
-                      onClick={() => {
-                        setDocToDelete(activeDocument);
-                        setShowDeleteModal(true);
-                      }}
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
+                    <DropdownMenuItem onClick={() => setShowImportModal(true)}>
+                      <FileUp className="w-4 h-4 mr-2" />
+                      Importar documento
+                    </DropdownMenuItem>
+
+                    {activeDocument.user_id !== user?.id && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setPreselectedFriendNote({
+                            id: activeDocument.id,
+                            titulo: activeDocument.titulo,
+                            emoji: activeDocument.emoji,
+                            subject_id: activeDocument.subject_id,
+                            user_id: activeDocument.user_id,
+                            ownerName: activeDocument.owner?.nombre || activeDocument.owner?.username || "tu amigo",
+                            cover_url: activeDocument.cover_url,
+                            subject: activeDocument.subject
+                          });
+                          setShowImportFriendModal(true);
+                        }}
+                      >
+                        <Copy className="w-4 h-4 mr-2 text-primary" />
+                        Importar copia a mis apuntes
+                      </DropdownMenuItem>
+                    )}
+
+                    <DropdownMenuItem onClick={() => setShowShortcutsModal(true)}>
+                      <Keyboard className="w-4 h-4 mr-2" />
+                      Atajos de teclado (Ctrl+/)
+                    </DropdownMenuItem>
+
+                    {activeDocument.user_id === user?.id && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:bg-destructive/10 focus:text-destructive font-medium"
+                          onClick={() => {
+                            setDocToDelete(activeDocument);
+                            setShowDeleteModal(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Eliminar apunte
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
-            )}
-
-            {!activeDocument && (
+            ) : (
               <button
-                className="notion-topbar-btn"
+                type="button"
+                className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors shadow-xs"
                 onClick={() => setShowImportModal(true)}
-                title="Importar"
+                title="Importar documento"
               >
-                <FileUp className="w-4 h-4" />
+                <FileUp className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Importar</span>
               </button>
             )}
           </div>
         </div>
-
-        {/* Tabs Bar */}
-        {openTabs.length > 0 && (
-          <div className="notion-tabs-bar">
-            {openTabs.map(tab => (
-              <div
-                key={tab.id}
-                className={cn("notion-tab", activeDocument?.id === tab.id && "active")}
-                onClick={() => handleTabClick(tab.id)}
-                title={tab.title}
-              >
-                <span className="notion-tab-emoji">
-                  {tab.emoji ? <TabeIconRenderer iconId={tab.emoji} size={14} /> : <FileText className="w-3.5 h-3.5" />}
-                </span>
-                <span className="notion-tab-title">{tab.title || "Sin título"}</span>
-                <button
-                  className="notion-tab-close"
-                  onClick={(e) => closeTab(tab.id, e)}
-                  title="Cerrar pestaña"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Editor area */}
         <div className="notion-editor-area overflow-hidden flex flex-col h-full min-h-0 relative">
