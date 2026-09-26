@@ -149,11 +149,30 @@ export function useNotionDocuments() {
         .limit(100);
 
       const res = await Promise.race([fetchPromise, timeoutPromise]);
-      const { data, error } = res as any;
+      let { data, error } = res as any;
 
       if (error && error.message !== "FETCH_DOCUMENTS_TIMEOUT") {
-        console.error("Error fetching documents:", error.message);
-      } else if (data) {
+        console.warn("Initial documents fetch error, attempting fallback without cooperative columns:", error.message);
+        // Fallback inmediato si no existen las columnas de colaboración en Supabase
+        const fallbackRes = await supabase
+          .from("notion_documents")
+          .select(`
+            id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+            owner:profiles(nombre, avatar_url, username),
+            subject:subjects(id, nombre, codigo, año)
+          `)
+          .order("updated_at", { ascending: false })
+          .limit(100);
+
+        if (!fallbackRes.error && fallbackRes.data) {
+          data = fallbackRes.data;
+          error = null;
+        } else {
+          console.error("Error fetching documents on fallback:", fallbackRes.error?.message);
+        }
+      }
+
+      if (data) {
         // Cache subjects from join
         data.forEach((d: any) => {
           if (d.subject && d.subject_id) {
@@ -292,10 +311,24 @@ export function useNotionDocuments() {
       return true;
     }
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from("notion_documents")
       .update(updates)
       .eq("id", id);
+
+    if (error && (updates.is_shared !== undefined || updates.share_token !== undefined || updates.share_permission !== undefined)) {
+      console.warn("Update with cooperative columns failed, retrying without them:", error.message);
+      const { is_shared, share_token, share_permission, ...safeUpdates } = updates;
+      if (Object.keys(safeUpdates).length > 0) {
+        const retryRes = await supabase
+          .from("notion_documents")
+          .update(safeUpdates)
+          .eq("id", id);
+        error = retryRes.error;
+      } else {
+        error = null;
+      }
+    }
 
     if (error) {
       console.error("Error updating document in Supabase:", error, id);
