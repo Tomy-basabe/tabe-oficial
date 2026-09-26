@@ -614,76 +614,6 @@ export default function Notion() {
     return success;
   }, [docToShare, updateDocument, activeDocument]);
 
-  // Check for ?share=TOKEN in URL to automatically join and open shared cooperative note
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const shareToken = params.get("share");
-    if (!shareToken) return;
-
-    let isCancelled = false;
-
-    const joinSharedDocument = async () => {
-      try {
-        const { data: sharedDoc, error } = await supabase
-          .from("notion_documents")
-          .select(`
-            id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
-            is_shared, share_token, share_permission,
-            owner:profiles(nombre, avatar_url, username),
-            subject:subjects(id, nombre, codigo, año)
-          `)
-          .eq("share_token", shareToken)
-          .eq("is_shared", true)
-          .maybeSingle();
-
-        if (error || !sharedDoc) {
-          toast.error("El enlace de colaboración no existe o fue revocado");
-          return;
-        }
-
-        if (isCancelled) return;
-
-        // Si el usuario tiene sesión y no es el dueño, registrarlo como colaborador
-        if (user && user.id !== sharedDoc.user_id) {
-          await supabase
-            .from("notion_document_collaborators")
-            .upsert({
-              document_id: sharedDoc.id,
-              user_id: user.id,
-              permission: sharedDoc.share_permission || "view",
-            }, { onConflict: "document_id,user_id" })
-            .catch(() => {});
-        }
-
-        const mappedDoc: NotionDocument = {
-          ...sharedDoc,
-          subject: sharedDoc.subject ? {
-            id: (sharedDoc.subject as any).id,
-            nombre: (sharedDoc.subject as any).nombre,
-            codigo: (sharedDoc.subject as any).codigo,
-            year: (sharedDoc.subject as any).año,
-          } : undefined,
-          is_collaborator: user?.id ? user.id !== sharedDoc.user_id : true,
-          user_permission: user?.id === sharedDoc.user_id ? 'owner' : (sharedDoc.share_permission as any || 'view'),
-        };
-
-        openDocument(mappedDoc);
-        toast.success(`Abriendo apunte compartido: ${mappedDoc.titulo || "Sin título"}`);
-
-        // Limpiar URL sin recargar
-        window.history.replaceState({}, "", window.location.pathname);
-      } catch (err) {
-        console.error("Error joining shared document:", err);
-      }
-    };
-
-    joinSharedDocument();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [user, openDocument]);
 
   // Fetch subjects
   useEffect(() => {
@@ -1370,7 +1300,14 @@ export default function Notion() {
       if (editor && !editor.isDestroyed) {
         editor.commands.setContent(content, false);
         editor.commands.setTextSelection(0);
-        editor.setEditable(doc.user_id === user?.id);
+        const canEditDoc = doc.user_id === user?.id || (
+          !!user && (
+            (doc.is_shared && doc.share_permission === 'edit') ||
+            doc.user_permission === 'edit' ||
+            (doc.is_collaborator && doc.share_permission === 'edit')
+          )
+        );
+        editor.setEditable(canEditDoc);
         try {
           const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
           if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'instant' });
@@ -1423,7 +1360,14 @@ export default function Notion() {
     if (editor && !editor.isDestroyed) {
       editor.commands.setContent(content, false);
       editor.commands.setTextSelection(0);
-      editor.setEditable(doc.user_id === user?.id);
+      const canEditDoc = doc.user_id === user?.id || (
+        !!user && (
+          (doc.is_shared && doc.share_permission === 'edit') ||
+          doc.user_permission === 'edit' ||
+          (doc.is_collaborator && doc.share_permission === 'edit')
+        )
+      );
+      editor.setEditable(canEditDoc);
       try {
         const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
         if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'instant' });
@@ -1443,7 +1387,78 @@ export default function Notion() {
         setSaveInProgress(false);
       });
     }
-  }, [saveDocument, handleSaveOnExit, fetchDocumentContent, migrateBase64Images, user?.id, tiptapEditorInstance]);
+  }, [saveDocument, handleSaveOnExit, fetchDocumentContent, migrateBase64Images, user, tiptapEditorInstance]);
+
+  // Check for ?share=TOKEN in URL to automatically join and open shared cooperative note
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const shareToken = params.get("share");
+    if (!shareToken) return;
+
+    let isCancelled = false;
+
+    const joinSharedDocument = async () => {
+      try {
+        const { data: sharedDoc, error } = await supabase
+          .from("notion_documents")
+          .select(`
+            id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+            is_shared, share_token, share_permission,
+            owner:profiles(nombre, avatar_url, username),
+            subject:subjects(id, nombre, codigo, año)
+          `)
+          .eq("share_token", shareToken)
+          .eq("is_shared", true)
+          .maybeSingle();
+
+        if (error || !sharedDoc) {
+          toast.error("El enlace de colaboración no existe o fue revocado");
+          return;
+        }
+
+        if (isCancelled) return;
+
+        // Si el usuario tiene sesión y no es el dueño, registrarlo como colaborador
+        if (user && user.id !== sharedDoc.user_id) {
+          await supabase
+            .from("notion_document_collaborators")
+            .upsert({
+              document_id: sharedDoc.id,
+              user_id: user.id,
+              permission: sharedDoc.share_permission || "view",
+            }, { onConflict: "document_id,user_id" })
+            .catch(() => {});
+        }
+
+        const mappedDoc: NotionDocument = {
+          ...sharedDoc,
+          subject: sharedDoc.subject ? {
+            id: (sharedDoc.subject as any).id,
+            nombre: (sharedDoc.subject as any).nombre,
+            codigo: (sharedDoc.subject as any).codigo,
+            year: (sharedDoc.subject as any).año,
+          } : undefined,
+          is_collaborator: user?.id ? user.id !== sharedDoc.user_id : true,
+          user_permission: user?.id === sharedDoc.user_id ? 'owner' : (sharedDoc.share_permission as any || 'view'),
+        };
+
+        openDocument(mappedDoc);
+        toast.success(`Abriendo apunte compartido: ${mappedDoc.titulo || "Sin título"}`);
+
+        // Limpiar URL sin recargar
+        window.history.replaceState({}, "", window.location.pathname);
+      } catch (err) {
+        console.error("Error joining shared document:", err);
+      }
+    };
+
+    joinSharedDocument();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user, openDocument]);
 
   const closeDocument = useCallback(() => {
     if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
