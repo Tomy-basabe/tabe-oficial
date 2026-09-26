@@ -7,7 +7,7 @@ import {
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
   Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
-  GraduationCap, ChevronRight
+  GraduationCap, ChevronRight, Share2
 } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
@@ -23,6 +23,8 @@ import { TabeIconRenderer } from "@/components/notion/TabeIcons";
 import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
 import { ImportFriendNoteModal } from "@/components/notion/ImportFriendNoteModal";
+import { ShareDocumentModal } from "@/components/notion/ShareDocumentModal";
+import { useNotionCollab } from "@/hooks/useNotionCollab";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { getTrashItems, restoreFromTrash, moveToTrash, extractSubPageIds, permanentlyDelete, TrashItem } from "@/lib/notionTrash";
@@ -93,7 +95,8 @@ const GalleryCard = ({
   onDelete,
   onHover,
   currentUserId,
-  onImportFriendDoc
+  onImportFriendDoc,
+  onShare,
 }: { 
   doc: NotionDocument; 
   userSubjects?: Subject[]; 
@@ -104,6 +107,7 @@ const GalleryCard = ({
   onHover?: (doc: NotionDocument) => void;
   currentUserId?: string;
   onImportFriendDoc?: (doc: NotionDocument) => void;
+  onShare?: (doc: NotionDocument) => void;
 }) => {
   const hasCover = !!doc.cover_url;
   
@@ -135,6 +139,17 @@ const GalleryCard = ({
                  </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
+                 <DropdownMenuItem
+                    className="font-bold cursor-pointer focus:bg-accent focus:text-foreground"
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       onShare && onShare(doc);
+                    }}
+                 >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Compartir
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator className="bg-foreground/20 h-0.5" />
                  <DropdownMenuItem
                     className="font-bold cursor-pointer focus:bg-accent focus:text-foreground"
                     onClick={(e) => {
@@ -225,6 +240,11 @@ const GalleryCard = ({
           ) : (
             <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-muted text-foreground border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
               Sin materia
+            </span>
+          )}
+          {doc.is_shared && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-black bg-[#BFFF00] text-black border-2 border-foreground uppercase tracking-tight shadow-[1px_1px_0_0_hsl(var(--foreground))]">
+              <Users className="w-3 h-3" /> Cooperativo
             </span>
           )}
         </div>
@@ -531,8 +551,12 @@ export default function Notion() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterYear, setFilterYear] = useState<string>("all");
-  const [filterOwner, setFilterOwner] = useState<"all" | "mine" | "friends">("all");
+  const [filterOwner, setFilterOwner] = useState<"all" | "mine" | "collaborative" | "friends">("all");
   const [sortBy, setSortBy] = useState<"updated" | "alpha_asc" | "alpha_desc">("updated");
+
+  // Share Modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [docToShare, setDocToShare] = useState<NotionDocument | null>(null);
 
   const uniqueYears = useMemo(() => {
     const years = new Set<number>();
@@ -543,6 +567,123 @@ export default function Notion() {
     });
     return Array.from(years).sort((a, b) => a - b);
   }, [subjects, documents]);
+
+  // Realtime collaboration hook for the currently active document
+  const isCollabActive = Boolean(
+    activeDocument &&
+    (activeDocument.is_shared || activeDocument.is_collaborator || activeDocument.share_token)
+  );
+
+  const { activeCollaborators, isConnected: isCollabConnected, broadcastContent } = useNotionCollab({
+    documentId: activeDocument?.id,
+    user,
+    userProfile: user?.user_metadata ? {
+      nombre: user.user_metadata.nombre || user.user_metadata.full_name,
+      avatar_url: user.user_metadata.avatar_url,
+    } : null,
+    enabled: isCollabActive && !!user,
+    onRemoteContentChange: useCallback((remoteContent: any) => {
+      if (tiptapEditorInstanceRef.current && remoteContent) {
+        try {
+          isDirtyRef.current = false;
+          tiptapEditorInstanceRef.current.commands.setContent(remoteContent, false);
+          setEditorContent(remoteContent);
+          editorContentRef.current = remoteContent;
+          lastSavedContentRef.current = JSON.stringify(remoteContent);
+        } catch (e) {
+          console.warn("Error applying remote collaborative content:", e);
+        }
+      }
+    }, []),
+  });
+
+  // Handle sharing updates from ShareDocumentModal
+  const handleUpdateSharing = useCallback(async (updates: {
+    is_shared: boolean;
+    share_permission: "view" | "edit";
+    share_token: string | null;
+  }) => {
+    if (!docToShare) return false;
+    const success = await updateDocument(docToShare.id, updates);
+    if (success) {
+      setDocToShare(prev => prev ? { ...prev, ...updates } : null);
+      if (activeDocument && activeDocument.id === docToShare.id) {
+        setActiveDocument(prev => prev ? { ...prev, ...updates } : null);
+      }
+    }
+    return success;
+  }, [docToShare, updateDocument, activeDocument]);
+
+  // Check for ?share=TOKEN in URL to automatically join and open shared cooperative note
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const shareToken = params.get("share");
+    if (!shareToken) return;
+
+    let isCancelled = false;
+
+    const joinSharedDocument = async () => {
+      try {
+        const { data: sharedDoc, error } = await supabase
+          .from("notion_documents")
+          .select(`
+            id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+            is_shared, share_token, share_permission,
+            owner:profiles(nombre, avatar_url, username),
+            subject:subjects(id, nombre, codigo, año)
+          `)
+          .eq("share_token", shareToken)
+          .eq("is_shared", true)
+          .maybeSingle();
+
+        if (error || !sharedDoc) {
+          toast.error("El enlace de colaboración no existe o fue revocado");
+          return;
+        }
+
+        if (isCancelled) return;
+
+        // Si el usuario tiene sesión y no es el dueño, registrarlo como colaborador
+        if (user && user.id !== sharedDoc.user_id) {
+          await supabase
+            .from("notion_document_collaborators")
+            .upsert({
+              document_id: sharedDoc.id,
+              user_id: user.id,
+              permission: sharedDoc.share_permission || "view",
+            }, { onConflict: "document_id,user_id" })
+            .catch(() => {});
+        }
+
+        const mappedDoc: NotionDocument = {
+          ...sharedDoc,
+          subject: sharedDoc.subject ? {
+            id: (sharedDoc.subject as any).id,
+            nombre: (sharedDoc.subject as any).nombre,
+            codigo: (sharedDoc.subject as any).codigo,
+            year: (sharedDoc.subject as any).año,
+          } : undefined,
+          is_collaborator: user?.id ? user.id !== sharedDoc.user_id : true,
+          user_permission: user?.id === sharedDoc.user_id ? 'owner' : (sharedDoc.share_permission as any || 'view'),
+        };
+
+        openDocument(mappedDoc);
+        toast.success(`Abriendo apunte compartido: ${mappedDoc.titulo || "Sin título"}`);
+
+        // Limpiar URL sin recargar
+        window.history.replaceState({}, "", window.location.pathname);
+      } catch (err) {
+        console.error("Error joining shared document:", err);
+      }
+    };
+
+    joinSharedDocument();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user, openDocument]);
 
   // Fetch subjects
   useEffect(() => {
@@ -760,8 +901,12 @@ export default function Notion() {
       const docToSave = explicitDoc || activeDocumentRef.current;
       if (!docToSave) return true;
       
-      // Safety check: Don't try to save documents that don't belong to the user
-      if (user && docToSave.user_id !== user.id) {
+      // Safety check: Don't try to save documents that don't belong to the user unless they have edit permission
+      const canEditShared = Boolean(
+        docToSave.is_shared && docToSave.share_permission === "edit"
+      ) || docToSave.user_permission === "edit";
+
+      if (user && docToSave.user_id !== user.id && !canEditShared) {
         return true;
       }
       
@@ -968,11 +1113,14 @@ export default function Notion() {
       if (!activeDocument) return;
       lastActivityRef.current = Date.now();
       editorContentRef.current = content;
+      if (isCollabActive) {
+        broadcastContent(content);
+      }
       // No actualizamos editorContent vía state aquí para evitar re-renders innecesarios durante la escritura.
       // El editor de Tiptap ya maneja su propio estado interno y Notion guarda usando la ref.
       scheduleAutoSave();
     },
-    [activeDocument, scheduleAutoSave]
+    [activeDocument, isCollabActive, broadcastContent, scheduleAutoSave]
   );
 
   // Title update handler (also triggers auto-save)
@@ -1761,8 +1909,10 @@ export default function Notion() {
     // Filter by owner
     if (filterOwner === "mine" && user) {
       result = result.filter(doc => doc.user_id === user.id);
+    } else if (filterOwner === "collaborative" && user) {
+      result = result.filter(doc => doc.user_id !== user.id && (doc.is_shared || doc.is_collaborator));
     } else if (filterOwner === "friends" && user) {
-      result = result.filter(doc => doc.user_id !== user.id);
+      result = result.filter(doc => doc.user_id !== user.id && !doc.is_shared && !doc.is_collaborator);
     }
 
     // Filter by search query (accent-insensitive)
@@ -2081,6 +2231,42 @@ export default function Notion() {
                   />
                 )}
 
+                {/* Active Collaborators Presence */}
+                {activeCollaborators.length > 0 && (
+                  <div className="flex items-center -space-x-2 mr-1">
+                    {activeCollaborators.slice(0, 3).map((collab) => (
+                      <div
+                        key={collab.user_id}
+                        className="w-7 h-7 rounded-full border-2 border-foreground bg-primary text-black font-black text-[11px] flex items-center justify-center overflow-hidden shadow-xs shrink-0"
+                        title={`En línea: ${collab.name}`}
+                      >
+                        {collab.avatar_url ? (
+                          <img src={collab.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          collab.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Cooperative Share Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDocToShare(activeDocument);
+                    setShowShareModal(true);
+                  }}
+                  className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border-2 border-foreground bg-[#FFD700] hover:bg-[#FFC000] text-black font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all active:translate-x-[1px] active:translate-y-[1px]"
+                  title="Compartir apunte cooperativo"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Compartir</span>
+                  {activeDocument.is_shared && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                  )}
+                </button>
+
                 {/* More Options Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -2255,20 +2441,31 @@ export default function Notion() {
                       </div>
 
                       {/* Author indicator in editor */}
-                      {activeDocument.user_id !== user?.id && activeDocument.owner && (
+                      {activeDocument.user_id !== user?.id && (
                         <div className="notion-author-badge flex flex-wrap items-center justify-between gap-3 px-8 md:px-14 mb-4 animate-in fade-in slide-in-from-left-2 duration-500">
                           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
-                            {activeDocument.owner.avatar_url ? (
+                            {activeDocument.owner?.avatar_url ? (
                               <img src={activeDocument.owner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
                             ) : (
                               <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
-                                {(activeDocument.owner.nombre || activeDocument.owner.username || "A").charAt(0)}
+                                {(activeDocument.owner?.nombre || activeDocument.owner?.username || "C").charAt(0)}
                               </div>
                             )}
                             <span className="text-xs font-semibold tracking-tight">
-                              Apunte de {activeDocument.owner.nombre || activeDocument.owner.username || "un amigo"}
+                              {activeDocument.is_collaborator || activeDocument.is_shared
+                                ? `Apunte colaborativo${activeDocument.owner?.nombre ? ` de ${activeDocument.owner.nombre}` : ""}`
+                                : `Apunte de ${activeDocument.owner?.nombre || activeDocument.owner?.username || "un amigo"}`}
                             </span>
-                            <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary/20 ml-1">Solo lectura</span>
+                            <span className={cn(
+                              "text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ml-1",
+                              (activeDocument.share_permission === "edit" || activeDocument.user_permission === "edit")
+                                ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                : "bg-primary/20"
+                            )}>
+                              {(activeDocument.share_permission === "edit" || activeDocument.user_permission === "edit")
+                                ? "Edición colaborativa"
+                                : "Solo lectura"}
+                            </span>
                           </div>
 
                           <button
@@ -2297,7 +2494,15 @@ export default function Notion() {
                   content={editorContent}
                   onUpdate={handleContentUpdate}
                   documentId={activeDocument?.id}
-                  readOnly={activeDocument?.user_id !== user?.id}
+                  readOnly={
+                    activeDocument?.user_id !== user?.id &&
+                    !(
+                      !!user &&
+                      ((activeDocument?.is_shared && activeDocument?.share_permission === "edit") ||
+                        activeDocument?.user_permission === "edit" ||
+                        (activeDocument?.is_collaborator && activeDocument?.share_permission === "edit"))
+                    )
+                  }
                   onEditorReady={handleEditorReady}
                   onActivity={() => lastActivityRef.current = Date.now()}
                   onSubPageClick={async (pageId, pageTitle, blockId, copyFromPageId) => {
@@ -2475,6 +2680,7 @@ export default function Notion() {
                     {[
                       { id: "all", label: "Todos" },
                       { id: "mine", label: "Mis Apuntes" },
+                      { id: "collaborative", label: "Compartidos" },
                       { id: "friends", label: "De Amigos" }
                     ].map(tab => (
                       <button
@@ -2572,6 +2778,10 @@ export default function Notion() {
                           setShowDeleteModal(true);
                         }}
                         currentUserId={user?.id}
+                        onShare={(d) => {
+                          setDocToShare(d);
+                          setShowShareModal(true);
+                        }}
                         onImportFriendDoc={(d) => {
                           setPreselectedFriendNote({
                             id: d.id,
@@ -3156,6 +3366,19 @@ export default function Notion() {
         mySubjects={subjects}
         onImport={handleImportFriendNote}
         preselectedNote={preselectedFriendNote}
+      />
+
+      {/* Share Document Modal */}
+      <ShareDocumentModal
+        isOpen={showShareModal}
+        onClose={() => {
+          setShowShareModal(false);
+          setDocToShare(null);
+        }}
+        document={docToShare || activeDocument}
+        onUpdateSharing={handleUpdateSharing}
+        activeCollaborators={activeCollaborators}
+        isOwner={docToShare ? docToShare.user_id === user?.id : (activeDocument?.user_id === user?.id)}
       />
     </div>
   );

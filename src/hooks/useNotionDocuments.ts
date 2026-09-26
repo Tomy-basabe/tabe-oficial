@@ -31,6 +31,11 @@ export interface NotionDocument {
     avatar_url: string | null;
     username: string | null;
   };
+  is_shared?: boolean;
+  share_token?: string | null;
+  share_permission?: 'view' | 'edit';
+  user_permission?: 'view' | 'edit' | 'owner';
+  is_collaborator?: boolean;
 }
 
 export function useNotionDocuments() {
@@ -136,6 +141,7 @@ export function useNotionDocuments() {
         .from("notion_documents")
         .select(`
           id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+          is_shared, share_token, share_permission,
           owner:profiles(nombre, avatar_url, username),
           subject:subjects(id, nombre, codigo, año)
         `)
@@ -269,7 +275,7 @@ export function useNotionDocuments() {
 
   const updateDocument = async (
     id: string,
-    updates: Partial<Pick<NotionDocument, "titulo" | "contenido" | "emoji" | "cover_url" | "is_favorite" | "total_time_seconds">>
+    updates: Partial<Pick<NotionDocument, "titulo" | "contenido" | "emoji" | "cover_url" | "is_favorite" | "total_time_seconds" | "is_shared" | "share_token" | "share_permission">>
   ) => {
     // Si es modo invitado o documento de prueba / mock, guardar únicamente en memoria y sesión sin error
     if (isGuest || id.startsWith("mock-") || !id) {
