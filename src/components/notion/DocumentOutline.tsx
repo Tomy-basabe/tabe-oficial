@@ -223,6 +223,9 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
                   tr.setNodeMarkup(p, undefined, { ...node.attrs, open: true });
                 }
               }
+              tr.setMeta("addToHistory", false);
+              tr.setMeta("isToggleOnly", true);
+              tr.setMeta("preventAutosave", true);
               return true;
             });
           }
@@ -246,7 +249,6 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
               const details = cur as HTMLDetailsElement;
               if (!details.open) {
                 details.open = true;
-                details.dispatchEvent(new Event("toggle", { bubbles: true }));
                 openedAny = true;
               }
             }

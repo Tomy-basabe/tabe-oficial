@@ -228,7 +228,11 @@ export function AdvancedNotionEditor({
     ],
     content,
     editable: !readOnly,
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor, transaction }) => {
+      // Ignorar mutaciones de interfaz como abrir o cerrar un toggle colapsable para lectura
+      if (transaction?.getMeta("isToggleOnly") || transaction?.getMeta("preventAutosave")) {
+        return;
+      }
       if (onActivity) onActivity();
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);

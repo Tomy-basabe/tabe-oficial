@@ -247,13 +247,26 @@ export const Details = Node.create<DetailsOptions>({
 
       dom.addEventListener("toggle", (e) => {
         if (typeof getPos === 'function') {
-          editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(getPos(), undefined, {
-              ...node.attrs,
-              open: dom.open,
-            })
-            return true
-          })
+          try {
+            const pos = getPos();
+            if (typeof pos === 'number') {
+              editor.commands.command(({ tr }) => {
+                const currentNode = tr.doc.nodeAt(pos);
+                if (currentNode && currentNode.type.name === this.name) {
+                  tr.setNodeMarkup(pos, undefined, {
+                    ...currentNode.attrs,
+                    open: dom.open,
+                  });
+                  tr.setMeta("addToHistory", false);
+                  tr.setMeta("isToggleOnly", true);
+                  tr.setMeta("preventAutosave", true);
+                }
+                return true;
+              });
+            }
+          } catch (err) {
+            // Node might have been unmounted/lifted
+          }
         }
       });
 

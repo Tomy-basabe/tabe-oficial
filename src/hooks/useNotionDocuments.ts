@@ -259,13 +259,28 @@ export function useNotionDocuments() {
     id: string,
     updates: Partial<Pick<NotionDocument, "titulo" | "contenido" | "emoji" | "cover_url" | "is_favorite" | "total_time_seconds">>
   ) => {
+    // Si es modo invitado o documento de prueba / mock, guardar únicamente en memoria y sesión sin error
+    if (isGuest || id.startsWith("mock-") || !id) {
+      if (updates.contenido) {
+        contentCacheRef.current.set(id, updates.contenido);
+        try {
+          sessionStorage.setItem(`tabe_doc_content_${id}`, JSON.stringify(updates.contenido));
+        } catch (e) {}
+      }
+      const { contenido, ...metaUpdates } = updates;
+      setDocuments(prev =>
+        prev.map(doc => doc.id === id ? { ...doc, ...metaUpdates, updated_at: new Date().toISOString() } : doc)
+      );
+      return true;
+    }
+
     const { error } = await supabase
       .from("notion_documents")
       .update(updates)
       .eq("id", id);
 
     if (error) {
-      console.error("Error updating document:", error);
+      console.error("Error updating document in Supabase:", error, id);
       return false;
     }
 
