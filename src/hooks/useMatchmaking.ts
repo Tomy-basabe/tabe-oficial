@@ -196,6 +196,10 @@ export function useMatchmaking(initialGameType?: string) {
         }
       }
 
+      // @AI-CRITICAL-INSTRUCTION: PROTECCIÓN DE LÍMITES DE REALTIME (CONEXIONES CONCURRENTES)
+      // Siempre asegúrate de que este useEffect limpie la conexión (channel.unsubscribe()) al desmontar.
+      // Nunca instancies múltiples canales en bucles o dependencias inestables, o agotarás el límite
+      // de conexiones concurrentes del tier gratuito de Supabase.
       // Realtime channel for instant presence & peer-to-peer matchmaking
       const channelName = `tabe_matchmaking_${gameType}`;
       const channel = supabase.channel(channelName, {

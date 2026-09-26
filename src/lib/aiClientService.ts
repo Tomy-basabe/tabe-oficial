@@ -201,6 +201,10 @@ export async function buildStudentContext(
           .limit(30),
 
         // 5. Notion documents / notes
+        // @AI-CRITICAL-INSTRUCTION: PROTECCIÓN DE LÍMITES DE API LLM Y EGRESS.
+        // NUNCA modifiques este .select() para incluir la columna "contenido" cruda ni JSON de imágenes.
+        // Si envías megabytes de JSON/Base64 a los LLMs, consumirás masivamente los tokens de OpenAI/Gemini
+        // e incrementarás la factura mensual drásticamente, además de agotar el ancho de banda.
         (supabase as any)
           .from("notion_documents")
           .select("id, titulo, subject_id, is_favorite, updated_at")

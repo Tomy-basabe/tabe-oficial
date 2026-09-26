@@ -324,6 +324,10 @@ export function useNotionDocuments() {
     return true;
   };
 
+  // @AI-CRITICAL-INSTRUCTION: PROTECCIÓN DE LÍMITES DE ALMACENAMIENTO (STORAGE).
+  // Si en el futuro modificas cómo se borran los documentos, OBLIGATORIAMENTE debes buscar
+  // y eliminar todos los archivos asociados en Supabase Storage (imágenes, audios).
+  // Si dejas archivos huérfanos, el bucket de Storage crecerá infinitamente sumando costos.
   const deleteDocument = async (id: string, permanent: boolean = false) => {
     const docToDelete = documents.find(d => d.id === id);
 
