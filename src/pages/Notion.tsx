@@ -493,33 +493,6 @@ export default function Notion() {
     };
   }, [user]);
 
-  // Auto-restaurar si el usuario está en una página Backend vacía
-  useEffect(() => {
-    if (!recoveredJavaDoc || !activeDocument) return;
-
-    const normActiveTitle = (activeDocument.titulo || "").toLowerCase();
-    const isBackendPage = normActiveTitle.includes("backend") || normActiveTitle.includes("desarrollo");
-
-    const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
-    const isCurrentlyEmpty = editor ? editor.isEmpty : (!editorContent || !editorContent.content || editorContent.content.length === 0 || (editorContent.content.length === 1 && (!editorContent.content[0].content || editorContent.content[0].content.length === 0)));
-
-    if (isBackendPage && isCurrentlyEmpty) {
-      const content = ensureTipTapFormat(recoveredJavaDoc.contenido);
-      setEditorContent(content);
-      editorContentRef.current = content;
-      lastSavedContentRef.current = JSON.stringify(content);
-      tabContentCacheRef.current.set(activeDocument.id, content);
-      try {
-        sessionStorage.setItem(`tabe_doc_content_${activeDocument.id}`, JSON.stringify(content));
-      } catch (e) {}
-      if (editor && !editor.isDestroyed) {
-        editor.commands.setContent(content, false);
-      }
-      saveDocument(true, activeDocument, content);
-      toast.success("¡Tus notas de Java y lenguajes se han restaurado automáticamente!");
-    }
-  }, [recoveredJavaDoc, activeDocument, tiptapEditorInstance, saveDocument]);
-
   // Sync state to refs to avoid stale closures in callbacks
   useEffect(() => {
     activeDocumentRef.current = activeDocument;
@@ -945,6 +918,33 @@ export default function Notion() {
     },
     [updateDocument, user, tiptapEditorInstance]
   );
+
+  // Auto-restaurar si el usuario está en una página Backend vacía
+  useEffect(() => {
+    if (!recoveredJavaDoc || !activeDocument) return;
+
+    const normActiveTitle = (activeDocument.titulo || "").toLowerCase();
+    const isBackendPage = normActiveTitle.includes("backend") || normActiveTitle.includes("desarrollo");
+
+    const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
+    const isCurrentlyEmpty = editor ? editor.isEmpty : (!editorContent || !editorContent.content || editorContent.content.length === 0 || (editorContent.content.length === 1 && (!editorContent.content[0].content || editorContent.content[0].content.length === 0)));
+
+    if (isBackendPage && isCurrentlyEmpty) {
+      const content = ensureTipTapFormat(recoveredJavaDoc.contenido);
+      setEditorContent(content);
+      editorContentRef.current = content;
+      lastSavedContentRef.current = JSON.stringify(content);
+      tabContentCacheRef.current.set(activeDocument.id, content);
+      try {
+        sessionStorage.setItem(`tabe_doc_content_${activeDocument.id}`, JSON.stringify(content));
+      } catch (e) {}
+      if (editor && !editor.isDestroyed) {
+        editor.commands.setContent(content, false);
+      }
+      saveDocument(true, activeDocument, content);
+      toast.success("¡Tus notas de Java y lenguajes se han restaurado automáticamente!");
+    }
+  }, [recoveredJavaDoc, activeDocument, tiptapEditorInstance, saveDocument]);
 
   // Trigger auto-save on content changes (Continuo, silencioso y optimizado para plan Free)
   const scheduleAutoSave = useCallback(() => {
