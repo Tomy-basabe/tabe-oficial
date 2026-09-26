@@ -47,41 +47,6 @@ interface Subject {
   año: number;
 }
 
-// Helper to extract plain text snippet from generic tipap JSON content
-const extractTextSnippet = (content: any): string => {
-  if (!content) return '';
-  
-  try {
-    let parsedContent = content;
-    if (typeof content === 'string') {
-      try {
-        parsedContent = JSON.parse(content);
-      } catch {
-        return content.substring(0, 150);
-      }
-    }
-
-    let text = '';
-    const extractNodes = (node: any) => {
-      if (node?.type === 'text' && node?.text) {
-        text += node.text + ' ';
-      }
-      if (node?.content && Array.isArray(node.content)) {
-        for (const child of node.content) {
-          extractNodes(child);
-          if (text.length > 200) break; // Early exit for performance
-        }
-      }
-    };
-
-    extractNodes(parsedContent);
-    const result = text.trim();
-    if (!result) return '';
-    return result.substring(0, 150) + (result.length > 150 ? '...' : '');
-  } catch (e) {
-    return '';
-  }
-};
 
 const extractFullText = (content: any): string => {
   if (!content) return '';
@@ -142,9 +107,6 @@ const GalleryCard = ({
 }) => {
   const hasCover = !!doc.cover_url;
   
-  // Memoize snippet extraction so it only runs when content changes
-  const textSnippet = useMemo(() => extractTextSnippet(doc.contenido), [doc.contenido]);
-
   const isOwner = !currentUserId || doc.user_id === currentUserId;
 
   // Resolver materia y año del documento (propio o de amigos)
@@ -158,7 +120,7 @@ const GalleryCard = ({
       onClick={() => onClick(doc)}
       className="group flex flex-col bg-card border-4 border-foreground rounded-none overflow-hidden transition-all duration-300 cursor-pointer shadow-[8px_8px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-x-[4px] hover:translate-y-[4px] h-[300px]"
     >
-      {/* Top Area: Cover Image or Content Snippet */}
+      {/* Top Area: Cover Image or Clean Tabe Logo */}
       <div className={cn("h-40 w-full relative border-b-4 border-foreground bg-muted/30 overflow-hidden", !hasCover && "p-5")}>
         {/* Card Actions Overlay (Dropdown) - ONLY FOR OWNER */}
         {isOwner && (
@@ -226,27 +188,11 @@ const GalleryCard = ({
 
       {hasCover ? (
         <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full relative">
-            {textSnippet ? (
-              <>
-                {/* Simulated mini page header line */}
-                <div className="w-12 h-2 bg-foreground mb-3" />
-                <div className="opacity-80">
-                  <p className="text-[11px] text-foreground font-bold leading-[1.7] line-clamp-5 text-left">
-                    {textSnippet}
-                  </p>
-                </div>
-                {/* Gradient fade to hide text bottom */}
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
-              </>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <TabeLogo size={52} className="opacity-40 group-hover:opacity-85 group-hover:scale-110 transition-all duration-300 drop-shadow-sm select-none" />
-              </div>
-            )}
-          </div>
-        )}
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <TabeLogo size={52} className="opacity-40 group-hover:opacity-85 group-hover:scale-110 transition-all duration-300 drop-shadow-sm select-none" />
+        </div>
+      )}
       </div>
       
       {/* Info Area */}
@@ -351,6 +297,77 @@ export default function Notion() {
     window.addEventListener("tabe-trash-updated", handler);
     return () => window.removeEventListener("tabe-trash-updated", handler);
   }, []);
+
+  // Escuchar solicitudes de clonación automática en segundo plano cuando se copia y pega una subpágina (Ctrl+C -> Ctrl+V)
+  useEffect(() => {
+    const handleCloneRequest = async (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const { copyFromPageId, title, blockId } = detail || {};
+      if (!copyFromPageId || !blockId) return;
+
+      const parent = activeDocumentRef.current;
+      const parentId = parent?.id || null;
+      const subjectId = parent?.subject_id || "";
+
+      try {
+        let sourceContent = await fetchDocumentContent(copyFromPageId);
+        let sourceEmoji = "📝";
+        let sourceTitle = title || "Sin título";
+
+        const existingDoc = documents.find((d) => d.id === copyFromPageId);
+        if (existingDoc) {
+          sourceEmoji = existingDoc.emoji || "📝";
+          if (!title || title === "Sin título") {
+            sourceTitle = existingDoc.titulo || "Sin título";
+          }
+        } else {
+          const { data } = await supabase
+            .from("notion_documents")
+            .select("titulo, emoji")
+            .eq("id", copyFromPageId)
+            .maybeSingle();
+          if (data) {
+            sourceEmoji = data.emoji || "📝";
+            if (!title || title === "Sin título") {
+              sourceTitle = data.titulo || "Sin título";
+            }
+          }
+        }
+
+        const clonedContent = sourceContent
+          ? JSON.parse(JSON.stringify(sourceContent))
+          : { type: "doc", content: [{ type: "paragraph" }] };
+
+        // Crear una subpágina COMPLETAMENTE NUEVA e independiente
+        const newDoc = await createDocument(
+          subjectId,
+          sourceTitle,
+          parentId,
+          clonedContent,
+          sourceEmoji
+        );
+
+        if (newDoc) {
+          // Asignar el nuevo pageId independiente al bloque y limpiar copyFromPageId
+          document.dispatchEvent(
+            new CustomEvent("notion-subpage-created", {
+              detail: {
+                blockId,
+                newPageId: newDoc.id,
+                oldPageId: copyFromPageId,
+                newTitle: sourceTitle,
+              },
+            })
+          );
+        }
+      } catch (err) {
+        console.error("Error al clonar subpágina copiada:", err);
+      }
+    };
+
+    document.addEventListener("notion-subpage-clone-request", handleCloneRequest);
+    return () => document.removeEventListener("notion-subpage-clone-request", handleCloneRequest);
+  }, [createDocument, fetchDocumentContent, documents]);
 
   // Audio Book state & instance
   const audioBook = useAudioBook();
@@ -2278,12 +2295,55 @@ export default function Notion() {
                   readOnly={activeDocument?.user_id !== user?.id}
                   onEditorReady={handleEditorReady}
                   onActivity={() => lastActivityRef.current = Date.now()}
-                  onSubPageClick={async (pageId, pageTitle, blockId) => {
+                  onSubPageClick={async (pageId, pageTitle, blockId, copyFromPageId) => {
                       const parent = activeDocumentRef.current;
                       const parentId = parent?.id || null;
                       const subjectId = parent?.subject_id || "";
 
-                      // 1. Si pageId es provisto (es un apunte existente o fue copiado/pegado con Ctrl+C o Ctrl+X)
+                      // Si proviene de una copia (copyFromPageId) y aún no tiene nuevo pageId asignado (o coincide con copyFromPageId):
+                      if (copyFromPageId && (!pageId || pageId === copyFromPageId)) {
+                        let sourceContent = await fetchDocumentContent(copyFromPageId);
+                        let sourceEmoji = "📝";
+                        let sourceTitle = pageTitle || "Sin título";
+                        const existingDoc = documents.find(d => d.id === copyFromPageId);
+                        if (existingDoc) {
+                          sourceEmoji = existingDoc.emoji || "📝";
+                          if (!pageTitle || pageTitle === "Sin título") {
+                            sourceTitle = existingDoc.titulo || "Sin título";
+                          }
+                        }
+
+                        const clonedContent = sourceContent
+                          ? JSON.parse(JSON.stringify(sourceContent))
+                          : { type: "doc", content: [{ type: "paragraph" }] };
+
+                        const newDoc = await createDocument(
+                          subjectId,
+                          sourceTitle,
+                          parentId,
+                          clonedContent,
+                          sourceEmoji
+                        );
+
+                        if (newDoc) {
+                          document.dispatchEvent(new CustomEvent("notion-subpage-created", {
+                            detail: { oldTitle: sourceTitle, oldPageId: copyFromPageId, newPageId: newDoc.id, blockId },
+                          }));
+                          await new Promise(resolve => setTimeout(resolve, 50));
+                          if (parent && isDirtyRef.current) {
+                            await saveDocument(true);
+                          }
+                          const fullDoc: NotionDocument = {
+                            ...newDoc,
+                            parent_id: parentId,
+                            contenido: clonedContent,
+                          };
+                          openDocument(fullDoc);
+                          return;
+                        }
+                      }
+
+                      // 1. Si pageId es provisto (es un apunte existente o fue movido con Ctrl+X)
                       if (pageId && pageId !== parentId) {
                         // Si estaba en la papelera (por haber sido cortado con Ctrl+X o borrado temporalmente), recuperarlo
                         restoreFromTrash(pageId);
@@ -2313,7 +2373,7 @@ export default function Notion() {
                         }
 
                         if (target && target.id !== parentId) {
-                          // Si se pegó en otro apunte padre (ej. vía Ctrl+X o Ctrl+C y pegar), asociarlo a este padre si correspondía
+                          // Si se pegó en otro apunte padre (ej. vía Ctrl+X y pegar), asociarlo a este padre si correspondía
                           if (target.parent_id && target.parent_id !== parentId) {
                             updateDocument(target.id, { parent_id: parentId } as any).catch(() => {});
                             target = { ...target, parent_id: parentId };

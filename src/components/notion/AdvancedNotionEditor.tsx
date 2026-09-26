@@ -259,9 +259,85 @@ export function AdvancedNotionEditor({
         spellcheck: "true",
         lang: "es",
       },
+      handleDOMEvents: {
+        copy: () => {
+          lastClipboardAction = 'copy';
+          return false;
+        },
+        cut: () => {
+          lastClipboardAction = 'cut';
+          return false;
+        },
+      },
       transformPastedText(text) {
         // Normalize line endings and remove excessive whitespace
         return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\t/g, ' ');
+      },
+      transformPastedHTML(html: string) {
+        const isCut = lastClipboardAction === 'cut';
+        if (!isCut && html.includes('data-type="sub-page"')) {
+          try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const subpages = doc.querySelectorAll('div[data-type="sub-page"]');
+            if (subpages.length > 0) {
+              subpages.forEach(el => {
+                const pageId = el.getAttribute('data-page-id');
+                const copyFrom = el.getAttribute('data-copy-from-page-id') || pageId;
+                if (copyFrom) {
+                  el.setAttribute('data-copy-from-page-id', copyFrom);
+                  el.removeAttribute('data-page-id');
+                  const newBlockId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+                  el.setAttribute('data-block-id', newBlockId);
+                }
+              });
+              return doc.body.innerHTML;
+            }
+          } catch (e) {
+            console.warn("Error transforming pasted subpage HTML:", e);
+          }
+        }
+        return html;
+      },
+      transformPasted(slice: Slice) {
+        const isCut = lastClipboardAction === 'cut';
+
+        function transformFragment(fragment: Fragment): Fragment {
+          const newNodes: any[] = [];
+          fragment.forEach((childNode) => {
+            if (childNode.type.name === 'subPage') {
+              const newBlockId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+              if (isCut) {
+                // Cortar y pegar: mover el bloque (conservar pageId, nuevo blockId)
+                newNodes.push(childNode.type.create({
+                  ...childNode.attrs,
+                  blockId: newBlockId,
+                  copyFromPageId: null,
+                }));
+              } else {
+                // Copiar y pegar: duplicar subpágina como copia independiente
+                const sourcePageId = childNode.attrs.pageId || childNode.attrs.copyFromPageId;
+                newNodes.push(childNode.type.create({
+                  ...childNode.attrs,
+                  pageId: null,
+                  copyFromPageId: sourcePageId,
+                  blockId: newBlockId,
+                }));
+              }
+            } else if (childNode.content && childNode.content.size > 0) {
+              newNodes.push(childNode.copy(transformFragment(childNode.content)));
+            } else {
+              newNodes.push(childNode);
+            }
+          });
+          return Fragment.from(newNodes);
+        }
+
+        const newSlice = new Slice(transformFragment(slice.content), slice.openStart, slice.openEnd);
+        if (isCut) {
+          lastClipboardAction = 'copy';
+        }
+        return newSlice;
       },
       handlePaste: (view, event) => {
         // === IMAGE HANDLING (Storage) ===
@@ -600,8 +676,8 @@ export function AdvancedNotionEditor({
     if (!onSubPageClick) return;
     const handleSubPageClick = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.pageId || detail?.title) {
-        onSubPageClick(detail.pageId, detail.title, detail.blockId);
+      if (detail?.pageId || detail?.title || detail?.copyFromPageId) {
+        onSubPageClick(detail.pageId, detail.title, detail.blockId, detail.copyFromPageId);
       }
     };
     document.addEventListener("notion-subpage-click", handleSubPageClick);
