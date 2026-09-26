@@ -416,83 +416,6 @@ export default function Notion() {
   const saveInProgressRef = useRef(false);
   const isDirtyRef = useRef(false);
 
-  // Recovery state for user notes (Java / Backend)
-  const [recoveredJavaDoc, setRecoveredJavaDoc] = useState<{
-    id: string;
-    titulo: string;
-    contenido: JSONContent;
-    source: "session" | "db";
-  } | null>(null);
-
-  // Escanear periódicamente / al montar para recuperar notas de Java o lenguajes que pudieran haberse perdido o desvinculado
-  useEffect(() => {
-    if (!user) return;
-
-    let isCancelled = false;
-
-    const scanAndRecover = async () => {
-      // 1. Escanear en sessionStorage (todas las claves de contenido)
-      try {
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          if (key && key.startsWith("tabe_doc_content_")) {
-            const raw = sessionStorage.getItem(key);
-            if (raw) {
-              const lower = raw.toLowerCase();
-              if (lower.includes("java") || lower.includes("lenguaje") || lower.includes("spring") || lower.includes("public class") || lower.includes("system.out")) {
-                try {
-                  const parsed = JSON.parse(raw);
-                  const docId = key.replace("tabe_doc_content_", "");
-                  if (!isCancelled) {
-                    setRecoveredJavaDoc({
-                      id: docId,
-                      titulo: "Backend (Notas de Java)",
-                      contenido: parsed,
-                      source: "session",
-                    });
-                    return;
-                  }
-                } catch (e) {}
-              }
-            }
-          }
-        }
-      } catch (e) {}
-
-      // 2. Escanear en Supabase notion_documents para este usuario
-      try {
-        const { data: userDocs } = await supabase
-          .from("notion_documents")
-          .select("id, titulo, parent_id, contenido, updated_at")
-          .eq("user_id", user.id)
-          .order("updated_at", { ascending: false });
-
-        if (userDocs && userDocs.length > 0 && !isCancelled) {
-          for (const doc of userDocs) {
-            if (doc.contenido) {
-              const str = JSON.stringify(doc.contenido).toLowerCase();
-              if (str.includes("java") || str.includes("lenguaje") || str.includes("spring") || str.includes("public class") || str.includes("system.out")) {
-                setRecoveredJavaDoc({
-                  id: doc.id,
-                  titulo: doc.titulo || "Backend (Notas de Java)",
-                  contenido: doc.contenido,
-                  source: "db",
-                });
-                return;
-              }
-            }
-          }
-        }
-      } catch (e) {}
-    };
-
-    scanAndRecover();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [user]);
-
   // Sync state to refs to avoid stale closures in callbacks
   useEffect(() => {
     activeDocumentRef.current = activeDocument;
@@ -918,33 +841,6 @@ export default function Notion() {
     },
     [updateDocument, user, tiptapEditorInstance]
   );
-
-  // Auto-restaurar si el usuario está en una página Backend vacía
-  useEffect(() => {
-    if (!recoveredJavaDoc || !activeDocument) return;
-
-    const normActiveTitle = (activeDocument.titulo || "").toLowerCase();
-    const isBackendPage = normActiveTitle.includes("backend") || normActiveTitle.includes("desarrollo");
-
-    const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
-    const isCurrentlyEmpty = editor ? editor.isEmpty : (!editorContent || !editorContent.content || editorContent.content.length === 0 || (editorContent.content.length === 1 && (!editorContent.content[0].content || editorContent.content[0].content.length === 0)));
-
-    if (isBackendPage && isCurrentlyEmpty) {
-      const content = ensureTipTapFormat(recoveredJavaDoc.contenido);
-      setEditorContent(content);
-      editorContentRef.current = content;
-      lastSavedContentRef.current = JSON.stringify(content);
-      tabContentCacheRef.current.set(activeDocument.id, content);
-      try {
-        sessionStorage.setItem(`tabe_doc_content_${activeDocument.id}`, JSON.stringify(content));
-      } catch (e) {}
-      if (editor && !editor.isDestroyed) {
-        editor.commands.setContent(content, false);
-      }
-      saveDocument(true, activeDocument, content);
-      toast.success("¡Tus notas de Java y lenguajes se han restaurado automáticamente!");
-    }
-  }, [recoveredJavaDoc, activeDocument, tiptapEditorInstance, saveDocument]);
 
   // Trigger auto-save on content changes (Continuo, silencioso y optimizado para plan Free)
   const scheduleAutoSave = useCallback(() => {
@@ -1721,47 +1617,6 @@ export default function Notion() {
     [subjects, newDocSubjectId]
   );
 
-  const isContentClonedFromParent = useMemo(() => {
-    if (!activeDocument || !editorContent?.content || !Array.isArray(editorContent.content)) return false;
-    const blocks = editorContent.content;
-    if (blocks.length === 0) return false;
-
-    const currentTitle = (activeDocument.titulo || "").trim().toLowerCase();
-
-    // 1. Contiene un bloque subPage autorreferencial (ej. Backend dentro de Backend)
-    const selfRef = blocks.find((b: any) => 
-      b.type === "subPage" && (
-        (b.attrs?.pageId && b.attrs.pageId === activeDocument.id) ||
-        ((b.attrs?.title || "").trim().toLowerCase() === currentTitle && currentTitle.length > 0)
-      )
-    );
-    if (selfRef) return true;
-
-    // 2. Si es una subpágina (tiene parent_id) y todos sus bloques no vacíos son solo sub-páginas
-    const meaningfulBlocks = blocks.filter((b: any) => {
-      if (b.type === "paragraph" && (!b.content || b.content.length === 0)) return false;
-      return true;
-    });
-    if (activeDocument.parent_id && meaningfulBlocks.length > 0 && meaningfulBlocks.every((b: any) => b.type === "subPage")) {
-      return true;
-    }
-
-    return false;
-  }, [activeDocument, editorContent]);
-
-  const matchingRootDoc = useMemo(() => {
-    if (!activeDocument) return null;
-    const normTitle = (activeDocument.titulo || "").trim().toLowerCase();
-    if (!normTitle) return null;
-    return documents.find(d => 
-      d.id !== activeDocument.id &&
-      d.id !== activeDocument.parent_id &&
-      !d.parent_id &&
-      (d.titulo || "").trim().toLowerCase() === normTitle &&
-      (!user || d.user_id === user.id)
-    ) || null;
-  }, [activeDocument, documents, user]);
-
   // --- Gallery View Derived State ---
   const docIdSet = useMemo(() => new Set(documents.map((d) => d.id)), [documents]);
 
@@ -2269,65 +2124,6 @@ export default function Notion() {
                           </button>
                         </div>
                       )}
-
-                      {/* Banner de recuperación si se detectaron notas de Java / lenguajes */}
-                      {recoveredJavaDoc && (
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 mx-8 md:mx-14 mb-4 bg-emerald-500/15 border-2 border-emerald-500/50 rounded-xl text-emerald-950 dark:text-emerald-200 animate-in fade-in">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <Sparkles className="w-5 h-5 text-emerald-500 shrink-0" />
-                            <div className="text-xs">
-                              <span className="font-bold">¡Notas de Java encontradas!</span> Hemos recuperado tus apuntes de Java y otros lenguajes ({recoveredJavaDoc.titulo}).
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const content = ensureTipTapFormat(recoveredJavaDoc.contenido);
-                                setEditorContent(content);
-                                editorContentRef.current = content;
-                                lastSavedContentRef.current = JSON.stringify(content);
-                                if (activeDocument) {
-                                  tabContentCacheRef.current.set(activeDocument.id, content);
-                                  try {
-                                    sessionStorage.setItem(`tabe_doc_content_${activeDocument.id}`, JSON.stringify(content));
-                                  } catch (e) {}
-                                  const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
-                                  if (editor && !editor.isDestroyed) {
-                                    editor.commands.setContent(content, false);
-                                  }
-                                  await saveDocument(true, activeDocument, content);
-                                  toast.success("¡Notas de Java restauradas en esta página!");
-                                }
-                              }}
-                              className="px-3.5 py-1.5 bg-[#BFFF00] hover:bg-[#aee600] text-black font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] transition-all rounded-lg"
-                            >
-                              Restaurar notas de Java aquí
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const targetDoc = documents.find(d => d.id === recoveredJavaDoc.id);
-                                if (targetDoc) {
-                                  openDocument(targetDoc);
-                                } else {
-                                  supabase
-                                    .from("notion_documents")
-                                    .select("*")
-                                    .eq("id", recoveredJavaDoc.id)
-                                    .maybeSingle()
-                                    .then(({ data }) => {
-                                      if (data) openDocument(data as NotionDocument);
-                                    });
-                                }
-                              }}
-                              className="px-3 py-1.5 bg-[#00E5FF] hover:bg-[#00cce6] text-black font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] transition-all rounded-lg"
-                            >
-                              Abrir apunte original
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </>
                   }
                   content={editorContent}
@@ -2359,31 +2155,7 @@ export default function Notion() {
                         }
                       }
 
-                      // 2. Si hay un apunte recuperado con notas de Java y el título coincide con Backend
-                      if (recoveredJavaDoc && normTitle.includes("backend")) {
-                        let target = documents.find(d => d.id === recoveredJavaDoc.id);
-                        if (!target) {
-                          const { data } = await supabase
-                            .from("notion_documents")
-                            .select("*")
-                            .eq("id", recoveredJavaDoc.id)
-                            .maybeSingle();
-                          if (data) target = data as NotionDocument;
-                        }
-                        if (target && target.id !== parentId) {
-                          document.dispatchEvent(new CustomEvent("notion-subpage-created", {
-                            detail: { oldTitle: pageTitle, oldPageId: pageId, newPageId: target.id, blockId },
-                          }));
-                          await new Promise(resolve => setTimeout(resolve, 50));
-                          if (parent && isDirtyRef.current) {
-                            await saveDocument(true);
-                          }
-                          openDocument(target);
-                          return;
-                        }
-                      }
-
-                      // 3. Revisar pestañas abiertas con ese título (excluyendo el padre)
+                      // 2. Revisar pestañas abiertas con ese título (excluyendo el padre)
                       const openTabMatch = openTabs.find(t => t.id !== parentId && t.title.trim().toLowerCase() === normTitle);
                       let existingDoc: NotionDocument | null = null;
                       if (openTabMatch) {
@@ -2420,7 +2192,7 @@ export default function Notion() {
                         return;
                       }
 
-                      // 4. Si no existe ningún apunte, crear una subpágina limpia
+                      // 3. Si no existe ningún apunte, crear una subpágina limpia
                       const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
                       if (newDoc) {
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {
