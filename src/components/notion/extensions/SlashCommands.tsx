@@ -229,16 +229,17 @@ const getSuggestionItems = (): CommandItem[] => [
   // ========== 2. BLOQUES ESTRUCTURALES Y PÁGINAS ==========
   {
     title: "Página",
-    description: "Crear sub-página enlazada",
+    description: "Crear sub-página",
     icon: <FileTextIcon className="w-4 h-4 text-blue-400" />,
     category: "Estructural",
-    keywords: ["page", "subpage", "pagina", "subpagina", "apunte", "nota", "enlace"],
+    keywords: ["page", "subpage", "pagina", "subpagina", "apunte", "nota"],
     command: ({ editor, range }) => {
       const title = window.prompt("Título de la sub-página:", "Sub-página");
       if (title) {
+        const blockId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "blk_" + Math.random().toString(36).substring(2);
         editor.chain().focus().deleteRange(range).insertContent({
           type: "subPage",
-          attrs: { title, pageId: null },
+          attrs: { title, pageId: null, blockId },
         }).run();
       }
     },
@@ -301,22 +302,6 @@ const getSuggestionItems = (): CommandItem[] => [
     keywords: ["table", "tabla", "cuadricula", "filas", "columnas"],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
-    },
-  },
-  {
-    title: "Enlace a página",
-    description: "Insertar enlace interno a otra página",
-    icon: <Link2 className="w-4 h-4 text-blue-400" />,
-    category: "Estructural",
-    keywords: ["link", "enlace", "conectar", "subpagina", "pagina"],
-    command: ({ editor, range }) => {
-      const title = window.prompt("Título de la página a enlazar:");
-      if (title) {
-        editor.chain().focus().deleteRange(range).insertContent({
-          type: "subPage",
-          attrs: { title, pageId: null },
-        }).run();
-      }
     },
   },
 

@@ -918,7 +918,13 @@ export default function Notion() {
   const handleTitleChange = useCallback(
     (title: string) => {
       setLocalTitle(title);
-      setOpenTabs(prev => prev.map(t => t.id === activeDocumentRef.current?.id ? { ...t, title } : t));
+      const curId = activeDocumentRef.current?.id;
+      setOpenTabs(prev => prev.map(t => t.id === curId ? { ...t, title } : t));
+      if (curId) {
+        document.dispatchEvent(new CustomEvent("notion-subpage-renamed", {
+          detail: { pageId: curId, newTitle: title },
+        }));
+      }
       scheduleAutoSave();
     },
     [scheduleAutoSave]
@@ -1457,15 +1463,62 @@ export default function Notion() {
 
   const handleDeleteDocument = useCallback(async () => {
     if (!docToDelete) return;
-    await deleteDocument(docToDelete.id);
-    if (activeDocument?.id === docToDelete.id) {
-      setActiveDocument(null);
-      setEditorContent(null);
-    }
-    setOpenTabs(prev => prev.filter(t => t.id !== docToDelete.id));
+    const parentId = docToDelete.parent_id;
+    const deletedId = docToDelete.id;
+
+    await deleteDocument(deletedId);
+
+    // Clean up caches
+    tabContentCacheRef.current.delete(deletedId);
+    try {
+      sessionStorage.removeItem(`tabe_doc_content_${deletedId}`);
+    } catch (e) {}
+
+    setOpenTabs(prev => prev.filter(t => t.id !== deletedId));
     setShowDeleteModal(false);
+
+    // If active document was deleted, navigate back to parent or clear
+    if (activeDocument?.id === deletedId) {
+      if (parentId) {
+        const parentDoc = documents.find(d => d.id === parentId);
+        if (parentDoc) {
+          openDocument(parentDoc);
+        } else {
+          setActiveDocument(null);
+          setEditorContent(null);
+        }
+      } else {
+        setActiveDocument(null);
+        setEditorContent(null);
+      }
+    }
+
+    // Clean up subpage block reference from parent document content if applicable
+    if (parentId) {
+      const parentDoc = documents.find(d => d.id === parentId);
+      if (parentDoc && parentDoc.contenido) {
+        const removeSubPage = (node: any): any => {
+          if (!node) return node;
+          if (Array.isArray(node)) {
+            return node.filter((c: any) => !(c?.type === "subPage" && c?.attrs?.pageId === deletedId)).map(removeSubPage);
+          }
+          if (node.content && Array.isArray(node.content)) {
+            return {
+              ...node,
+              content: node.content
+                .filter((c: any) => !(c?.type === "subPage" && c?.attrs?.pageId === deletedId))
+                .map(removeSubPage)
+            };
+          }
+          return node;
+        };
+        const cleaned = removeSubPage(parentDoc.contenido);
+        await updateDocument(parentId, { contenido: cleaned });
+      }
+    }
+
     setDocToDelete(null);
-  }, [docToDelete, activeDocument, deleteDocument]);
+  }, [docToDelete, activeDocument, deleteDocument, documents, openDocument, updateDocument]);
 
   const handleToggleFavorite = useCallback(
     async (doc: NotionDocument) => {
@@ -1763,7 +1816,7 @@ export default function Notion() {
                   const parentDoc = (activeDocument.parent_id && activeDocument.parent_id !== activeDocument.id)
                     ? documents.find(d => d.id === activeDocument.parent_id)
                     : null;
-                  if (!parentDoc || parentDoc.titulo === (localTitle || activeDocument.titulo)) return null;
+                  if (!parentDoc || parentDoc.id === activeDocument.id) return null;
                   return (
                     <button
                       type="button"
@@ -2139,9 +2192,8 @@ export default function Notion() {
                       const parent = activeDocumentRef.current;
                       const parentId = parent?.id || null;
                       const subjectId = parent?.subject_id || "";
-                      const normTitle = (pageTitle || "").trim().toLowerCase();
 
-                      // 1. Si pageId es provisto y válido (no apunta al padre)
+                      // 1. Si pageId es provisto y válido (no apunta al padre mismo)
                       if (pageId && pageId !== parentId) {
                         let target = documents.find(d => d.id === pageId);
                         if (!target) {
@@ -2153,75 +2205,20 @@ export default function Notion() {
                           if (data) target = data as NotionDocument;
                         }
                         if (target && target.id !== parentId) {
-                          const targetTitle = (target.titulo || "").trim().toLowerCase();
-                          // Si el título del bloque y el apunte son completamente distintos (ej. bloque "backend" vs doc "front"),
-                          // el ID estaba cruzado o corrupto. No abrir el documento equivocado.
-                          const isMismatched = normTitle.length > 0 && targetTitle.length > 0 &&
-                            !targetTitle.includes(normTitle) &&
-                            !normTitle.includes(targetTitle);
-
-                          if (!isMismatched) {
+                          // Si target tiene parent_id asignado, DEBE pertenecer a este padre.
+                          // Si target.parent_id pertenece a otro documento (ej. un enlace cruzado erróneo), no reutilizarlo!
+                          if (target.parent_id && target.parent_id !== parentId) {
+                            target = null;
+                          } else {
                             openDocument(target);
                             return;
                           }
                         }
                       }
 
-                      // 2. Buscar apunte que coincida con el título (excluyendo el padre)
-                      let existingDoc: NotionDocument | null = null;
-
-                      // 2a. Pestañas abiertas
-                      const openTabMatch = openTabs.find(t => t.id !== parentId && t.title.trim().toLowerCase() === normTitle);
-                      if (openTabMatch) {
-                        existingDoc = documents.find(d => d.id === openTabMatch.id) || null;
-                        if (!existingDoc) {
-                          const { data } = await supabase
-                            .from("notion_documents")
-                            .select("*")
-                            .eq("id", openTabMatch.id)
-                            .maybeSingle();
-                          if (data) existingDoc = data as NotionDocument;
-                        }
-                      }
-
-                      // 2b. Sub-páginas de este padre
-                      if (!existingDoc && parentId) {
-                        existingDoc = documents.find(d => d.id !== parentId && d.parent_id === parentId && (d.titulo || "").trim().toLowerCase() === normTitle) || null;
-                      }
-
-                      // 2c. Apuntes en la misma materia
-                      if (!existingDoc && subjectId) {
-                        existingDoc = documents.find(d => d.id !== parentId && d.subject_id === subjectId && (d.titulo || "").trim().toLowerCase() === normTitle) || null;
-                      }
-
-                      // 2d. Apuntes del mismo usuario con ese título
-                      if (!existingDoc && user) {
-                        existingDoc = documents.find(d => d.id !== parentId && d.user_id === user.id && (d.titulo || "").trim().toLowerCase() === normTitle) || null;
-                        if (!existingDoc) {
-                          const { data } = await supabase
-                            .from("notion_documents")
-                            .select("*")
-                            .eq("user_id", user.id)
-                            .ilike("titulo", (pageTitle || "").trim())
-                            .neq("id", parentId || "")
-                            .maybeSingle();
-                          if (data) existingDoc = data as NotionDocument;
-                        }
-                      }
-
-                      if (existingDoc && existingDoc.id !== parentId) {
-                        document.dispatchEvent(new CustomEvent("notion-subpage-created", {
-                          detail: { oldTitle: pageTitle, oldPageId: pageId, newPageId: existingDoc.id, blockId },
-                        }));
-                        await new Promise(resolve => setTimeout(resolve, 50));
-                        if (parent && isDirtyRef.current) {
-                          await saveDocument(true);
-                        }
-                        openDocument(existingDoc);
-                        return;
-                      }
-
-                      // 3. Si no existe ningún apunte, crear una subpágina limpia
+                      // 2. Si no tiene pageId válido, o el documento apuntado fue eliminado, o pertenecía a otro padre:
+                      // CREAR SIEMPRE UNA NUEVA SUBPÁGINA LIMPIA Y EXCLUSIVA PARA ESTE PADRE.
+                      // NUNCA buscar ni reutilizar documentos existentes por título en la base de datos o en otros apuntes!
                       const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
                       if (newDoc) {
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {

@@ -38,9 +38,9 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       const currentBlockId = node?.attrs?.blockId || blockId;
-      const matchesBlockId = detail?.blockId && detail.blockId === currentBlockId;
-      const matchesOldPageId = detail?.oldPageId && node?.attrs?.pageId === detail.oldPageId;
-      const matchesTitle = !node?.attrs?.pageId && detail?.oldTitle && detail.oldTitle.trim().toLowerCase() === title.trim().toLowerCase();
+      const matchesBlockId = Boolean(detail?.blockId && detail.blockId === currentBlockId);
+      const matchesOldPageId = Boolean(detail?.oldPageId && node?.attrs?.pageId && node?.attrs?.pageId === detail.oldPageId);
+      const matchesTitle = !node?.attrs?.pageId && !detail?.blockId && detail?.oldTitle && detail.oldTitle.trim().toLowerCase() === title.trim().toLowerCase();
 
       if ((matchesBlockId || matchesOldPageId || matchesTitle) && detail?.newPageId && updateAttributes) {
         updateAttributes({ pageId: detail.newPageId });
@@ -49,6 +49,18 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
     document.addEventListener("notion-subpage-created", handler);
     return () => document.removeEventListener("notion-subpage-created", handler);
   }, [node?.attrs?.pageId, node?.attrs?.blockId, blockId, title, updateAttributes]);
+
+  // Listen for title updates of the linked subpage
+  React.useEffect(() => {
+    const handleRename = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.pageId && detail.pageId === node?.attrs?.pageId && detail?.newTitle && updateAttributes) {
+        updateAttributes({ title: detail.newTitle });
+      }
+    };
+    document.addEventListener("notion-subpage-renamed", handleRename);
+    return () => document.removeEventListener("notion-subpage-renamed", handleRename);
+  }, [node?.attrs?.pageId, updateAttributes]);
 
   React.useEffect(() => {
     const el = containerRef.current;
