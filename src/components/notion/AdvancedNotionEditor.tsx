@@ -19,8 +19,20 @@ import { CustomCodeBlock } from "./extensions/CodeBlockExtension";
 import BulletList from "@tiptap/extension-bullet-list";
 import Blockquote from "@tiptap/extension-blockquote";
 import { wrappingInputRule, PasteRule } from "@tiptap/core";
+import { Slice, Fragment } from "@tiptap/pm/model";
 import { common, createLowlight } from "lowlight";
 import { useEffect, useCallback, useRef, useState } from "react";
+
+// Rastreador global de acciones del portapapeles para diferenciar Cortar (mover) de Copiar (clonar independiente)
+let lastClipboardAction: 'copy' | 'cut' | null = null;
+if (typeof window !== 'undefined') {
+  window.addEventListener('copy', () => {
+    lastClipboardAction = 'copy';
+  });
+  window.addEventListener('cut', () => {
+    lastClipboardAction = 'cut';
+  });
+}
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,7 +80,7 @@ interface AdvancedNotionEditorProps {
   content: any;
   onUpdate: (content: any) => void;
   onActivity?: () => void;
-  onSubPageClick?: (pageId: string | null, title: string, blockId?: string | null) => void;
+  onSubPageClick?: (pageId: string | null, title: string, blockId?: string | null, copyFromPageId?: string | null) => void;
   placeholder?: string;
   documentId?: string;
   readOnly?: boolean;

@@ -197,10 +197,17 @@ export function useNotionDocuments() {
     }
   }, [user, isGuest, fetchDocuments]);
 
-  const createDocument = async (subjectId: string, titulo: string = "Sin título", parentId: string | null = null) => {
+  const createDocument = async (
+    subjectId: string,
+    titulo: string = "Sin título",
+    parentId: string | null = null,
+    initialContent?: any,
+    emoji?: string
+  ) => {
     if (!user) return null;
 
-    const initialContent = { type: "doc", content: [{ type: "paragraph" }] };
+    const docContent = initialContent ? JSON.parse(JSON.stringify(initialContent)) : { type: "doc", content: [{ type: "paragraph" }] };
+    const docEmoji = emoji || "📝";
 
     const { data, error } = await supabase
       .from("notion_documents")
@@ -209,7 +216,8 @@ export function useNotionDocuments() {
         subject_id: subjectId || null,
         parent_id: parentId,
         titulo,
-        contenido: initialContent,
+        contenido: docContent,
+        emoji: docEmoji,
       })
       .select()
       .single();
@@ -241,14 +249,14 @@ export function useNotionDocuments() {
 
     const newDoc: NotionDocument = {
       ...data,
-      contenido: initialContent,
+      contenido: docContent,
       subject: subjectInfo
     };
 
     // Cache initial content immediately so opening it is instantaneous
-    contentCacheRef.current.set(newDoc.id, initialContent);
+    contentCacheRef.current.set(newDoc.id, docContent);
     try {
-      sessionStorage.setItem(`tabe_doc_content_${newDoc.id}`, JSON.stringify(initialContent));
+      sessionStorage.setItem(`tabe_doc_content_${newDoc.id}`, JSON.stringify(docContent));
     } catch (e) {}
 
     setDocuments(prev => [newDoc, ...prev]);

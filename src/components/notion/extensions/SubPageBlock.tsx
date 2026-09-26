@@ -10,7 +10,7 @@ import { FileText, ChevronRight } from "lucide-react";
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     subPage: {
-      insertSubPage: (attrs: { title: string; pageId: string | null }) => ReturnType;
+      insertSubPage: (attrs: { title: string; pageId: string | null; copyFromPageId?: string | null }) => ReturnType;
     };
   }
 }
@@ -19,6 +19,7 @@ declare module "@tiptap/core" {
 const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
   const title = (node?.attrs?.title || "Sin título").toString();
   const pageId = node?.attrs?.pageId || null;
+  const copyFromPageId = node?.attrs?.copyFromPageId || null;
   const defaultBlockIdRef = React.useRef<string | null>(null);
   if (!defaultBlockIdRef.current) {
     defaultBlockIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
@@ -33,22 +34,33 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
     }
   }, [node?.attrs?.blockId, blockId, updateAttributes]);
 
+  // Si tiene copyFromPageId y no tiene pageId asignado aún, disparar clonación automática de inmediato
+  React.useEffect(() => {
+    if (copyFromPageId && !pageId) {
+      const event = new CustomEvent("notion-subpage-clone-request", {
+        detail: { copyFromPageId, title, blockId: node?.attrs?.blockId || blockId },
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+    }
+  }, [copyFromPageId, pageId, title, node?.attrs?.blockId, blockId]);
+
   // Listen for the creation event to update this block's pageId
   React.useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       const currentBlockId = node?.attrs?.blockId || blockId;
       const matchesBlockId = Boolean(detail?.blockId && detail.blockId === currentBlockId);
-      const matchesOldPageId = Boolean(detail?.oldPageId && node?.attrs?.pageId && node?.attrs?.pageId === detail.oldPageId);
+      const matchesOldPageId = Boolean(detail?.oldPageId && ((node?.attrs?.pageId && node?.attrs?.pageId === detail.oldPageId) || (copyFromPageId && copyFromPageId === detail.oldPageId)));
       const matchesTitle = !node?.attrs?.pageId && !detail?.blockId && detail?.oldTitle && detail.oldTitle.trim().toLowerCase() === title.trim().toLowerCase();
 
       if ((matchesBlockId || matchesOldPageId || matchesTitle) && detail?.newPageId && updateAttributes) {
-        updateAttributes({ pageId: detail.newPageId });
+        updateAttributes({ pageId: detail.newPageId, copyFromPageId: null });
       }
     };
     document.addEventListener("notion-subpage-created", handler);
     return () => document.removeEventListener("notion-subpage-created", handler);
-  }, [node?.attrs?.pageId, node?.attrs?.blockId, blockId, title, updateAttributes]);
+  }, [node?.attrs?.pageId, node?.attrs?.blockId, copyFromPageId, blockId, title, updateAttributes]);
 
   // Listen for title updates of the linked subpage
   React.useEffect(() => {
@@ -71,7 +83,12 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
       e.stopPropagation();
       
       const event = new CustomEvent("notion-subpage-click", {
-        detail: { pageId: node?.attrs?.pageId || null, title, blockId: node?.attrs?.blockId || blockId },
+        detail: {
+          pageId: node?.attrs?.pageId || null,
+          title,
+          blockId: node?.attrs?.blockId || blockId,
+          copyFromPageId: node?.attrs?.copyFromPageId || null,
+        },
         bubbles: true,
       });
       document.dispatchEvent(event);
@@ -79,7 +96,7 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
 
     el.addEventListener("click", handleClick);
     return () => el.removeEventListener("click", handleClick);
-  }, [node?.attrs?.pageId, node?.attrs?.blockId, title, blockId]);
+  }, [node?.attrs?.pageId, node?.attrs?.blockId, node?.attrs?.copyFromPageId, title, blockId]);
 
   return (
     <NodeViewWrapper className="notion-subpage-wrapper" contentEditable={false}>
@@ -87,6 +104,7 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
         ref={containerRef}
         className={`notion-subpage-block ${selected ? "selected" : ""}`}
         data-page-id={pageId || ""}
+        data-copy-from-page-id={copyFromPageId || ""}
       >
         <FileText className="notion-subpage-icon" />
         <span className="notion-subpage-title">{title}</span>
@@ -111,8 +129,13 @@ export const SubPage = Node.create({
       },
       pageId: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-page-id"),
-        renderHTML: (attributes) => ({ "data-page-id": attributes.pageId }),
+        parseHTML: (element) => element.getAttribute("data-page-id") || null,
+        renderHTML: (attributes) => attributes.pageId ? ({ "data-page-id": attributes.pageId }) : {},
+      },
+      copyFromPageId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-copy-from-page-id") || null,
+        renderHTML: (attributes) => attributes.copyFromPageId ? ({ "data-copy-from-page-id": attributes.copyFromPageId }) : {},
       },
       blockId: {
         default: null,
