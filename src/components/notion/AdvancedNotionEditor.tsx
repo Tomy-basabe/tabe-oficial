@@ -1348,13 +1348,13 @@ export function AdvancedNotionEditor({
           <div className="word-a4-page relative">
             {headerContent}
             <EditorContent editor={editor} />
-            <RemoteCursorsOverlay editor={editor} remoteCursors={remoteCursors || {}} containerRef={scrollContainerRef} />
+            <RemoteCursorsOverlay editor={editor} remoteCursors={remoteCursors || {}} containerRef={scrollContainerRef} currentPageId={documentId} />
           </div>
         ) : (
           <div className="notion-editor-wrapper relative">
             {headerContent}
             <EditorContent editor={editor} />
-            <RemoteCursorsOverlay editor={editor} remoteCursors={remoteCursors || {}} containerRef={scrollContainerRef} />
+            <RemoteCursorsOverlay editor={editor} remoteCursors={remoteCursors || {}} containerRef={scrollContainerRef} currentPageId={documentId} />
           </div>
         )}
       </div>

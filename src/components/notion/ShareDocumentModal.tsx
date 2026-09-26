@@ -32,6 +32,7 @@ interface ShareDocumentModalProps {
     is_shared: boolean;
     share_permission: "view" | "edit";
     share_token: string | null;
+    is_public?: boolean;
   }) => Promise<boolean>;
   activeCollaborators?: CollabUser[];
   isOwner: boolean;
@@ -62,12 +63,13 @@ export function ShareDocumentModal({
   if (!document) return null;
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const shareUrl = shareToken ? `${origin}/notion?share=${shareToken}` : "";
+  const tokenToUse = shareToken || document.id;
+  const shareUrl = `${origin}/apuntes?share=${tokenToUse}`;
 
   const handleToggleShare = async (checked: boolean) => {
     if (!isOwner) return;
 
-    let token = shareToken;
+    let token = shareToken || document.id;
     if (checked && !token) {
       token = typeof crypto !== "undefined" && crypto.randomUUID
         ? crypto.randomUUID()
@@ -81,6 +83,7 @@ export function ShareDocumentModal({
       is_shared: checked,
       share_permission: permission,
       share_token: checked ? token : shareToken,
+      is_public: checked,
     });
     setSaving(false);
 

@@ -6,6 +6,7 @@ interface RemoteCursorsOverlayProps {
   editor: Editor | null;
   remoteCursors: Record<string, RemoteCursor>;
   containerRef?: React.RefObject<HTMLDivElement | null>;
+  currentPageId?: string;
 }
 
 interface RenderedCursor {
@@ -21,6 +22,7 @@ export const RemoteCursorsOverlay: React.FC<RemoteCursorsOverlayProps> = ({
   editor,
   remoteCursors,
   containerRef,
+  currentPageId,
 }) => {
   const [renderedCursors, setRenderedCursors] = useState<RenderedCursor[]>([]);
   const animFrameRef = useRef<number | null>(null);
@@ -33,7 +35,7 @@ export const RemoteCursorsOverlay: React.FC<RemoteCursorsOverlayProps> = ({
 
     const now = Date.now();
     const activeCursors = Object.values(remoteCursors).filter(
-      (c) => now - c.updatedAt < 35000 // Mantener hasta 35 segundos de inactividad
+      (c) => (now - c.updatedAt < 35000) && (!currentPageId || !c.pageId || c.pageId === currentPageId)
     );
 
     if (activeCursors.length === 0) {

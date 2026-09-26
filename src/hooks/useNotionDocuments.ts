@@ -36,6 +36,7 @@ export interface NotionDocument {
   share_permission?: 'view' | 'edit';
   user_permission?: 'view' | 'edit' | 'owner';
   is_collaborator?: boolean;
+  is_public?: boolean;
 }
 
 export function useNotionDocuments() {
@@ -210,7 +211,13 @@ export function useNotionDocuments() {
           };
         }) as NotionDocument[];
 
-        setDocuments(mapped);
+        setDocuments((prev) => {
+          // Preservar cualquier documento compartido / colaborativo que ya se haya inyectado por URL
+          const sharedDocs = prev.filter(
+            (p) => (p.is_shared || p.is_collaborator) && !mapped.some((m) => m.id === p.id)
+          );
+          return [...mapped, ...sharedDocs];
+        });
       }
     } catch (err) {
       console.warn("Exception during fetchDocuments:", err);
@@ -294,7 +301,7 @@ export function useNotionDocuments() {
 
   const updateDocument = async (
     id: string,
-    updates: Partial<Pick<NotionDocument, "titulo" | "contenido" | "emoji" | "cover_url" | "is_favorite" | "total_time_seconds" | "is_shared" | "share_token" | "share_permission">>
+    updates: Partial<Pick<NotionDocument, "titulo" | "contenido" | "emoji" | "cover_url" | "is_favorite" | "total_time_seconds" | "is_shared" | "share_token" | "share_permission" | "is_public">>
   ) => {
     // Si es un documento de prueba / mock o ID inválido, guardar únicamente en memoria y sesión
     if (id.startsWith("mock-") || !id) {
@@ -518,6 +525,7 @@ export function useNotionDocuments() {
 
   return {
     documents,
+    setDocuments,
     loading,
     createDocument,
     updateDocument,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -288,8 +288,10 @@ const MemoizedGalleryCard = React.memo(GalleryCard);
 
 export default function Notion() {
   const { user } = useAuth();
+  const location = useLocation();
   const {
     documents,
+    setDocuments,
     loading,
     createDocument,
     updateDocument,
@@ -568,11 +570,32 @@ export default function Notion() {
     return Array.from(years).sort((a, b) => a - b);
   }, [subjects, documents]);
 
-  // Realtime collaboration hook for the currently active document
+  // Helper to find root document id so all subpages remain in the same collaboration room
+  const getRootDocumentId = useCallback((doc: NotionDocument | null): string | undefined => {
+    if (!doc) return undefined;
+    let curr: NotionDocument | undefined = doc;
+    const visited = new Set<string>();
+    while (curr?.parent_id && !visited.has(curr.id)) {
+      visited.add(curr.id);
+      const parent = documents.find(d => d.id === curr?.parent_id);
+      if (parent) {
+        curr = parent;
+      } else {
+        break;
+      }
+    }
+    return curr?.id || doc.id;
+  }, [documents]);
+
+  const rootCollabDocId = useMemo(() => getRootDocumentId(activeDocument), [activeDocument, getRootDocumentId]);
+
+  // Realtime collaboration hook for the currently active document or its subpages
   const isCollabActive = Boolean(
     activeDocument &&
     (activeDocument.is_shared || activeDocument.is_collaborator || activeDocument.share_token)
   );
+
+  const isRemoteUpdateRef = useRef(false);
 
   const {
     activeCollaborators,
@@ -582,21 +605,47 @@ export default function Notion() {
     broadcastCursor,
     currentUser: collabUser,
   } = useNotionCollab({
-    documentId: activeDocument?.id,
+    documentId: rootCollabDocId,
+    currentPageId: activeDocument?.id,
     user,
     userProfile: user?.user_metadata ? {
       nombre: user.user_metadata.nombre || user.user_metadata.full_name,
       avatar_url: user.user_metadata.avatar_url,
     } : null,
     enabled: isCollabActive,
-    onRemoteContentChange: useCallback((remoteContent: any) => {
-      if (tiptapEditorInstanceRef.current && remoteContent) {
+    onRemoteContentChange: useCallback((remoteContent: any, senderId: string, pageId?: string) => {
+      const currentDoc = activeDocumentRef.current;
+      if (!currentDoc) return;
+
+      // Si el cambio pertenece a otra subpágina, guardar en la caché sin alterar el editor activo
+      if (pageId && pageId !== currentDoc.id) {
+        tabContentCacheRef.current.set(pageId, remoteContent);
         try {
-          isDirtyRef.current = false;
-          tiptapEditorInstanceRef.current.commands.setContent(remoteContent, false);
+          sessionStorage.setItem(`tabe_doc_content_${pageId}`, JSON.stringify(remoteContent));
+        } catch (e) {}
+        return;
+      }
+
+      const editor = tiptapEditorInstanceRef.current;
+      if (editor && !editor.isDestroyed && remoteContent) {
+        try {
+          const currentJson = JSON.stringify(editor.getJSON());
+          const remoteJson = JSON.stringify(remoteContent);
+          if (currentJson === remoteJson) return;
+
+          const { from } = editor.state.selection;
+
+          isRemoteUpdateRef.current = true;
+          editor.commands.setContent(remoteContent, false);
           setEditorContent(remoteContent);
           editorContentRef.current = remoteContent;
-          lastSavedContentRef.current = JSON.stringify(remoteContent);
+          lastSavedContentRef.current = remoteJson;
+
+          // Restaurar cursor para no perder la posición de escritura
+          try {
+            const docSize = editor.state.doc.content.size;
+            editor.commands.setTextSelection(Math.min(from, docSize));
+          } catch (e) {}
         } catch (e) {
           console.warn("Error applying remote collaborative content:", e);
         }
@@ -609,6 +658,7 @@ export default function Notion() {
     is_shared: boolean;
     share_permission: "view" | "edit";
     share_token: string | null;
+    is_public?: boolean;
   }) => {
     if (!docToShare) return false;
     const success = await updateDocument(docToShare.id, updates);
@@ -1048,10 +1098,14 @@ export default function Notion() {
   const handleContentUpdate = useCallback(
     (content: JSONContent) => {
       if (!activeDocument) return;
+      if (isRemoteUpdateRef.current) {
+        isRemoteUpdateRef.current = false;
+        return;
+      }
       lastActivityRef.current = Date.now();
       editorContentRef.current = content;
       if (isCollabActive) {
-        broadcastContent(content);
+        broadcastContent(content, activeDocument.id);
       }
       // No actualizamos editorContent vía state aquí para evitar re-renders innecesarios durante la escritura.
       // El editor de Tiptap ya maneja su propio estado interno y Notion guarda usando la ref.
@@ -1395,7 +1449,8 @@ export default function Notion() {
   // Check for ?share=TOKEN in URL to automatically join and open shared cooperative note
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
+    const searchStr = location.search || window.location.search;
+    const params = new URLSearchParams(searchStr);
     const shareToken = params.get("share");
     if (!shareToken) return;
 
@@ -1403,7 +1458,10 @@ export default function Notion() {
 
     const joinSharedDocument = async () => {
       try {
-        const { data: sharedDoc, error } = await supabase
+        let sharedDoc: any = null;
+
+        // 1. Buscar primero por share_token
+        const tokenRes = await supabase
           .from("notion_documents")
           .select(`
             id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
@@ -1412,10 +1470,43 @@ export default function Notion() {
             subject:subjects(id, nombre, codigo, año)
           `)
           .eq("share_token", shareToken)
-          .eq("is_shared", true)
           .maybeSingle();
 
-        if (error || !sharedDoc) {
+        if (tokenRes.data) {
+          sharedDoc = tokenRes.data;
+        } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shareToken)) {
+          // 2. Si no se encontró por token y el parámetro es un UUID, buscar por ID
+          const idRes = await supabase
+            .from("notion_documents")
+            .select(`
+              id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+              is_shared, share_token, share_permission,
+              owner:profiles(nombre, avatar_url, username),
+              subject:subjects(id, nombre, codigo, año)
+            `)
+            .eq("id", shareToken)
+            .maybeSingle();
+
+          if (idRes.data) {
+            sharedDoc = idRes.data;
+          } else {
+            // Fallback resiliente por si las columnas is_shared/share_token no existen en la tabla
+            const fallbackRes = await supabase
+              .from("notion_documents")
+              .select(`
+                id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+                owner:profiles(nombre, avatar_url, username),
+                subject:subjects(id, nombre, codigo, año)
+              `)
+              .eq("id", shareToken)
+              .maybeSingle();
+            if (fallbackRes.data) {
+              sharedDoc = fallbackRes.data;
+            }
+          }
+        }
+
+        if (!sharedDoc) {
           toast.error("El enlace de colaboración no existe o fue revocado");
           return;
         }
@@ -1429,7 +1520,7 @@ export default function Notion() {
             .upsert({
               document_id: sharedDoc.id,
               user_id: user.id,
-              permission: sharedDoc.share_permission || "view",
+              permission: sharedDoc.share_permission || "edit",
             }, { onConflict: "document_id,user_id" })
             .catch(() => {});
         }
@@ -1442,11 +1533,52 @@ export default function Notion() {
             codigo: (sharedDoc.subject as any).codigo,
             year: (sharedDoc.subject as any).año,
           } : undefined,
+          is_shared: true,
+          share_permission: (sharedDoc.share_permission as any) || "edit",
           is_collaborator: user?.id ? user.id !== sharedDoc.user_id : true,
-          user_permission: user?.id === sharedDoc.user_id ? 'owner' : (sharedDoc.share_permission as any || 'view'),
+          user_permission: user?.id === sharedDoc.user_id ? "owner" : ((sharedDoc.share_permission as any) || "edit"),
         };
 
-        openDocument(mappedDoc);
+        // Agregar de inmediato a la lista de documentos para que esté visible en pestañas y navegación
+        setDocuments((prev) => {
+          if (prev.some((d) => d.id === mappedDoc.id)) {
+            return prev.map((d) => (d.id === mappedDoc.id ? mappedDoc : d));
+          }
+          return [mappedDoc, ...prev];
+        });
+
+        // Cargar también posibles subpáginas del apunte para que funcionen los enlaces internos
+        try {
+          const { data: subPages } = await supabase
+            .from("notion_documents")
+            .select(`
+              id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+              is_shared, share_token, share_permission,
+              owner:profiles(nombre, avatar_url, username),
+              subject:subjects(id, nombre, codigo, año)
+            `)
+            .eq("parent_id", mappedDoc.id);
+
+          if (subPages && subPages.length > 0) {
+            const mappedSubs = subPages.map((sub: any) => ({
+              ...sub,
+              is_shared: true,
+              share_permission: mappedDoc.share_permission,
+              is_collaborator: mappedDoc.is_collaborator,
+              user_permission: mappedDoc.user_permission,
+            })) as NotionDocument[];
+
+            setDocuments((prev) => {
+              const existingIds = new Set(prev.map((d) => d.id));
+              const newSubs = mappedSubs.filter((s) => !existingIds.has(s.id));
+              return [...prev, ...newSubs];
+            });
+          }
+        } catch (e) {
+          console.warn("Could not prefetch subpages for shared document:", e);
+        }
+
+        await openDocument(mappedDoc);
         toast.success(`Abriendo apunte compartido: ${mappedDoc.titulo || "Sin título"}`);
 
         // Limpiar URL sin recargar
@@ -1461,7 +1593,7 @@ export default function Notion() {
     return () => {
       isCancelled = true;
     };
-  }, [user, openDocument]);
+  }, [user, location.search, openDocument, setDocuments]);
 
   const closeDocument = useCallback(() => {
     if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
@@ -2252,19 +2384,34 @@ export default function Notion() {
                 {/* Active Collaborators Presence */}
                 {activeCollaborators.length > 0 && (
                   <div className="flex items-center -space-x-2 mr-1">
-                    {activeCollaborators.slice(0, 3).map((collab) => (
-                      <div
-                        key={collab.user_id}
-                        className="w-7 h-7 rounded-full border-2 border-foreground bg-primary text-black font-black text-[11px] flex items-center justify-center overflow-hidden shadow-xs shrink-0"
-                        title={`En línea: ${collab.name}`}
-                      >
-                        {collab.avatar_url ? (
-                          <img src={collab.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          collab.name.charAt(0).toUpperCase()
-                        )}
+                    {activeCollaborators.slice(0, 4).map((collab) => {
+                      const isCurrentPage = !collab.currentPageId || collab.currentPageId === activeDocument?.id;
+                      return (
+                        <div
+                          key={collab.user_id}
+                          className={cn(
+                            "w-7 h-7 rounded-full border-2 text-white font-black text-[11px] flex items-center justify-center overflow-hidden shadow-xs shrink-0 transition-all",
+                            !isCurrentPage ? "opacity-60 grayscale-[30%]" : "ring-2 ring-background"
+                          )}
+                          style={{
+                            backgroundColor: collab.color || "#3B82F6",
+                            borderColor: collab.color || "#3B82F6",
+                          }}
+                          title={`${collab.name} ${isCurrentPage ? "(en esta página)" : "(en otra subpágina del apunte)"}`}
+                        >
+                          {collab.avatar_url ? (
+                            <img src={collab.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            collab.name.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                      );
+                    })}
+                    {activeCollaborators.length > 4 && (
+                      <div className="w-7 h-7 rounded-full border-2 border-foreground bg-muted text-foreground font-black text-[10px] flex items-center justify-center shrink-0">
+                        +{activeCollaborators.length - 4}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
 
@@ -2521,7 +2668,7 @@ export default function Notion() {
                     )
                   }
                   remoteCursors={remoteCursors}
-                  onCursorChange={broadcastCursor}
+                  onCursorChange={(pos) => broadcastCursor(pos, activeDocument?.id)}
                   onEditorReady={handleEditorReady}
                   onActivity={() => lastActivityRef.current = Date.now()}
                   onSubPageClick={async (pageId, pageTitle, blockId, copyFromPageId) => {

@@ -8,6 +8,7 @@ export interface CollabUser {
   avatar_url?: string | null;
   color: string;
   isGuest?: boolean;
+  currentPageId?: string;
   joined_at: number;
 }
 
@@ -16,6 +17,7 @@ export interface RemoteCursor {
   name: string;
   color: string;
   pos: number;
+  pageId?: string;
   updatedAt: number;
 }
 
@@ -64,14 +66,16 @@ export const getOrCreateGuestIdentity = () => {
 
 interface UseNotionCollabProps {
   documentId?: string;
+  currentPageId?: string;
   user?: any;
   userProfile?: { nombre?: string | null; username?: string | null; avatar_url?: string | null } | null;
-  onRemoteContentChange?: (content: any, senderId: string) => void;
+  onRemoteContentChange?: (content: any, senderId: string, pageId?: string) => void;
   enabled?: boolean;
 }
 
 export function useNotionCollab({
   documentId,
+  currentPageId,
   user,
   userProfile,
   onRemoteContentChange,
@@ -116,7 +120,7 @@ export function useNotionCollab({
   const currentUserName = activeIdentity.current.name;
   const currentUserColor = getCollabColor(currentUserId);
 
-  // Subscribe to Realtime channel
+  // Subscribe to Realtime channel (scoped to root documentId so subpages stay in the same room)
   useEffect(() => {
     if (!enabled || !documentId || !currentUserId) {
       if (channelRef.current) {
@@ -159,6 +163,7 @@ export function useNotionCollab({
                 avatar_url: p.avatar_url || null,
                 color: p.color || getCollabColor(p.user_id),
                 isGuest: Boolean(p.isGuest),
+                currentPageId: p.currentPageId,
                 joined_at: p.joined_at || Date.now(),
               });
             }
@@ -182,7 +187,7 @@ export function useNotionCollab({
     // 2. Broadcast: receive remote content changes with zero DB cost
     channel.on("broadcast", { event: "content_change" }, ({ payload }) => {
       if (payload && payload.senderId !== currentUserId && onRemoteContentChange) {
-        onRemoteContentChange(payload.content, payload.senderId);
+        onRemoteContentChange(payload.content, payload.senderId, payload.pageId);
       }
     });
 
@@ -196,6 +201,7 @@ export function useNotionCollab({
             name: payload.name || "Compañero",
             color: payload.color || getCollabColor(payload.userId),
             pos: typeof payload.pos === "number" ? payload.pos : 0,
+            pageId: payload.pageId,
             updatedAt: Date.now(),
           },
         }));
@@ -212,6 +218,7 @@ export function useNotionCollab({
           avatar_url: activeIdentity.current.avatarUrl,
           color: currentUserColor,
           isGuest: activeIdentity.current.isGuest,
+          currentPageId,
           joined_at: Date.now(),
         });
       } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
@@ -237,12 +244,27 @@ export function useNotionCollab({
     };
   }, [documentId, currentUserId, currentUserName, currentUserColor, enabled, onRemoteContentChange]);
 
+  // Actualizar página activa en presence cuando el usuario cambia de subpágina sin desconectar la sala
+  useEffect(() => {
+    if (channelRef.current && isConnected) {
+      channelRef.current.track({
+        user_id: currentUserId,
+        name: currentUserName,
+        avatar_url: activeIdentity.current.avatarUrl,
+        color: currentUserColor,
+        isGuest: activeIdentity.current.isGuest,
+        currentPageId,
+        joined_at: Date.now(),
+      }).catch(() => {});
+    }
+  }, [currentPageId, isConnected, currentUserId, currentUserName, currentUserColor]);
+
   // Transmit content changes to other active collaborators with intelligent throttle (600ms)
   const broadcastContent = useCallback(
-    (content: any) => {
+    (content: any, pageId?: string) => {
       if (!channelRef.current || !isConnected || !currentUserId) return;
 
-      pendingBroadcastRef.current = content;
+      pendingBroadcastRef.current = { content, pageId: pageId || currentPageId };
       const now = Date.now();
       const elapsed = now - lastBroadcastTimeRef.current;
       const THROTTLE_MS = 600;
@@ -253,7 +275,8 @@ export function useNotionCollab({
           type: "broadcast",
           event: "content_change",
           payload: {
-            content: pendingBroadcastRef.current,
+            content: pendingBroadcastRef.current.content,
+            pageId: pendingBroadcastRef.current.pageId,
             senderId: currentUserId,
             timestamp: Date.now(),
           },
@@ -277,12 +300,12 @@ export function useNotionCollab({
         }
       }
     },
-    [isConnected, currentUserId]
+    [isConnected, currentUserId, currentPageId]
   );
 
   // Transmit live cursor position (Google Docs style) with 50ms throttle
   const broadcastCursor = useCallback(
-    (pos: number) => {
+    (pos: number, pageId?: string) => {
       if (!channelRef.current || !isConnected || !currentUserId || pos === lastCursorPosRef.current) return;
       lastCursorPosRef.current = pos;
 
@@ -299,12 +322,13 @@ export function useNotionCollab({
             name: currentUserName,
             color: currentUserColor,
             pos: lastCursorPosRef.current,
+            pageId: pageId || currentPageId,
             timestamp: Date.now(),
           },
         });
       }, 50);
     },
-    [isConnected, currentUserId, currentUserName, currentUserColor]
+    [isConnected, currentUserId, currentUserName, currentUserColor, currentPageId]
   );
 
   return {
@@ -317,6 +341,7 @@ export function useNotionCollab({
       color: currentUserColor,
       avatar_url: activeIdentity.current.avatarUrl,
       isGuest: activeIdentity.current.isGuest,
+      currentPageId,
       joined_at: Date.now(),
     },
     broadcastContent,

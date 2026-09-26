@@ -4,7 +4,7 @@ import { GlobalDiscordVoiceWidget } from "@/components/discord/GlobalDiscordVoic
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
@@ -82,12 +82,17 @@ const queryClient = new QueryClient({
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isGuest } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <LoadingScreen fullScreen message="Cargando T.A.B.E..." submessage="Verificando sesión académica..." />;
   }
 
-  if (!user && !isGuest) {
+  const isSharedNote =
+    (location.pathname === "/apuntes" || location.pathname === "/notion") &&
+    location.search.includes("share=");
+
+  if (!user && !isGuest && !isSharedNote) {
     return <Navigate to="/registro" replace />;
   }
 
@@ -175,7 +180,7 @@ const AppRoutes = () => (
       <Route path="/marketplace" element={<PremiumGate feature="Marketplace"><Marketplace /></PremiumGate>} />
       <Route path="/biblioteca" element={<Library />} />
       <Route path="/logros" element={<Achievements />} />
-      <Route path="/notion" element={<Navigate to="/apuntes" replace />} />
+      <Route path="/notion" element={<Notion />} />
       <Route path="/apuntes" element={<Notion />} />
       <Route path="/examenes" element={<Exams />} />
       <Route path="/amigos" element={<Friends />} />
