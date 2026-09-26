@@ -1617,6 +1617,47 @@ export default function Notion() {
     [subjects, newDocSubjectId]
   );
 
+  const isContentClonedFromParent = useMemo(() => {
+    if (!activeDocument || !editorContent?.content || !Array.isArray(editorContent.content)) return false;
+    const blocks = editorContent.content;
+    if (blocks.length === 0) return false;
+
+    const currentTitle = (activeDocument.titulo || "").trim().toLowerCase();
+
+    // 1. Contiene un bloque subPage autorreferencial (ej. Backend dentro de Backend)
+    const selfRef = blocks.find((b: any) => 
+      b.type === "subPage" && (
+        (b.attrs?.pageId && b.attrs.pageId === activeDocument.id) ||
+        ((b.attrs?.title || "").trim().toLowerCase() === currentTitle && currentTitle.length > 0)
+      )
+    );
+    if (selfRef) return true;
+
+    // 2. Si es una subpágina (tiene parent_id) y todos sus bloques no vacíos son solo sub-páginas
+    const meaningfulBlocks = blocks.filter((b: any) => {
+      if (b.type === "paragraph" && (!b.content || b.content.length === 0)) return false;
+      return true;
+    });
+    if (activeDocument.parent_id && meaningfulBlocks.length > 0 && meaningfulBlocks.every((b: any) => b.type === "subPage")) {
+      return true;
+    }
+
+    return false;
+  }, [activeDocument, editorContent]);
+
+  const matchingRootDoc = useMemo(() => {
+    if (!activeDocument) return null;
+    const normTitle = (activeDocument.titulo || "").trim().toLowerCase();
+    if (!normTitle) return null;
+    return documents.find(d => 
+      d.id !== activeDocument.id &&
+      d.id !== activeDocument.parent_id &&
+      !d.parent_id &&
+      (d.titulo || "").trim().toLowerCase() === normTitle &&
+      (!user || d.user_id === user.id)
+    ) || null;
+  }, [activeDocument, documents, user]);
+
   // --- Gallery View Derived State ---
   const docIdSet = useMemo(() => new Set(documents.map((d) => d.id)), [documents]);
 
@@ -2124,6 +2165,52 @@ export default function Notion() {
                           </button>
                         </div>
                       )}
+
+                      {/* Banner de contenido heredado si el sub-apunte tiene los bloques clonados del padre */}
+                      {isContentClonedFromParent && activeDocument.user_id === user?.id && (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 mx-8 md:mx-14 mb-4 bg-amber-500/10 border-2 border-amber-500/40 rounded-xl text-amber-950 dark:text-amber-200 animate-in fade-in">
+                          <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 sm:mt-0" />
+                            <div className="text-xs">
+                              <span className="font-bold">Contenido heredado del apunte principal:</span> Esta página contiene los bloques duplicados del apunte padre.
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            {matchingRootDoc && (
+                              <button
+                                type="button"
+                                onClick={() => openDocument(matchingRootDoc)}
+                                className="px-3 py-1.5 bg-[#00E5FF] hover:bg-[#00cce6] text-black font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] transition-all rounded-lg"
+                                title="Abrir tu apunte principal"
+                              >
+                                Abrir apunte '{matchingRootDoc.titulo}'
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const emptyContent = { type: "doc", content: [{ type: "paragraph" }] };
+                                setEditorContent(emptyContent);
+                                editorContentRef.current = emptyContent;
+                                lastSavedContentRef.current = JSON.stringify(emptyContent);
+                                tabContentCacheRef.current.set(activeDocument.id, emptyContent);
+                                try {
+                                  sessionStorage.setItem(`tabe_doc_content_${activeDocument.id}`, JSON.stringify(emptyContent));
+                                } catch (e) {}
+                                const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
+                                if (editor && !editor.isDestroyed) {
+                                  editor.commands.setContent(emptyContent, false);
+                                }
+                                await saveDocument(true, activeDocument, emptyContent);
+                                toast.success("Página limpiada con éxito. Ya puedes escribir tus notas.");
+                              }}
+                              className="px-3 py-1.5 bg-[#BFFF00] hover:bg-[#aee600] text-black font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] transition-all rounded-lg"
+                            >
+                              Limpiar página
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </>
                   }
                   content={editorContent}
@@ -2136,8 +2223,32 @@ export default function Notion() {
                       const parent = activeDocumentRef.current;
                       const parentId = parent?.id || null;
                       const subjectId = parent?.subject_id || "";
+                      const normTitle = (pageTitle || "").trim().toLowerCase();
 
-                      // 1. If pageId is provided and valid (not pointing to parent itself)
+                      // 1. Si el usuario ya tiene un apunte raíz / independiente con este título (ej: "Backend")
+                      // lo vinculamos directamente para abrir su apunte real
+                      const rootDocMatch = documents.find(d => 
+                        d.id !== parentId &&
+                        !d.parent_id &&
+                        (d.titulo || "").trim().toLowerCase() === normTitle &&
+                        (!user || d.user_id === user.id)
+                      );
+
+                      if (rootDocMatch) {
+                        if (pageId !== rootDocMatch.id) {
+                          document.dispatchEvent(new CustomEvent("notion-subpage-created", {
+                            detail: { oldTitle: pageTitle, oldPageId: pageId, newPageId: rootDocMatch.id, blockId },
+                          }));
+                          await new Promise(resolve => setTimeout(resolve, 50));
+                          if (parent && isDirtyRef.current) {
+                            await saveDocument(true);
+                          }
+                        }
+                        openDocument(rootDocMatch);
+                        return;
+                      }
+
+                      // 2. Si pageId es provisto y válido (no apunta al padre)
                       if (pageId && pageId !== parentId) {
                         let target = documents.find(d => d.id === pageId);
                         if (!target) {
@@ -2154,11 +2265,7 @@ export default function Notion() {
                         }
                       }
 
-                      // 2. If pageId is missing, invalid or pointing to self,
-                      // check if there is an existing tab or document with this title!
-                      const normTitle = (pageTitle || "").trim().toLowerCase();
-                      
-                      // Check open tabs first (excluding parent)
+                      // 3. Revisar pestañas abiertas con ese título (excluyendo el padre)
                       const openTabMatch = openTabs.find(t => t.id !== parentId && t.title.trim().toLowerCase() === normTitle);
                       let existingDoc: NotionDocument | null = null;
                       if (openTabMatch) {
@@ -2173,18 +2280,17 @@ export default function Notion() {
                         }
                       }
 
-                      // Check subpages under this parent
+                      // Revisar sub-páginas de este padre
                       if (!existingDoc && parentId) {
                         existingDoc = documents.find(d => d.id !== parentId && d.parent_id === parentId && d.titulo?.trim().toLowerCase() === normTitle) || null;
                       }
 
-                      // Check documents in the same subject
+                      // Revisar apuntes en la misma materia
                       if (!existingDoc && subjectId) {
                         existingDoc = documents.find(d => d.id !== parentId && d.subject_id === subjectId && d.titulo?.trim().toLowerCase() === normTitle) || null;
                       }
 
                       if (existingDoc && existingDoc.id !== parentId) {
-                        // Link this subpage block to the existing document!
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {
                           detail: { oldTitle: pageTitle, oldPageId: pageId, newPageId: existingDoc.id, blockId },
                         }));
@@ -2196,7 +2302,7 @@ export default function Notion() {
                         return;
                       }
 
-                      // 3. If no matching document exists, create a brand new subpage
+                      // 4. Si no existe ningún apunte, crear una subpágina limpia
                       const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
                       if (newDoc) {
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {
