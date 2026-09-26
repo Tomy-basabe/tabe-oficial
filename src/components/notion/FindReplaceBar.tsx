@@ -91,7 +91,18 @@ export function FindReplaceBar({ editor, isOpen = true, onClose }: FindReplaceBa
       if (!editor || editor.isDestroyed || matchArray.length === 0 || index < 0 || index >= matchArray.length) return;
       const match = matchArray[index];
       try {
-        editor.chain().focus().setTextSelection({ from: match.from, to: match.to }).scrollIntoView().run();
+        editor.chain().command(({ tr }) => {
+          // Abrir desplegables cerrados (details) si la coincidencia está dentro de ellos
+          const $pos = tr.doc.resolve(match.from);
+          for (let i = $pos.depth; i > 0; i--) {
+            const node = $pos.node(i);
+            if (node.type.name === 'details' && !node.attrs.open) {
+              const nodePos = $pos.before(i);
+              tr.setNodeMarkup(nodePos, undefined, { ...node.attrs, open: true });
+            }
+          }
+          return true;
+        }).setTextSelection({ from: match.from, to: match.to }).scrollIntoView().run();
       } catch (err) {
         console.warn("Error resaltando coincidencia:", err);
       }
@@ -118,7 +129,7 @@ export function FindReplaceBar({ editor, isOpen = true, onClose }: FindReplaceBa
     const current = matches[currentMatchIndex];
     if (!current) return;
 
-    editor.chain().focus().setTextSelection({ from: current.from, to: current.to }).insertContent(replaceTerm).run();
+    editor.chain().setTextSelection({ from: current.from, to: current.to }).insertContent(replaceTerm).run();
     toast.success("Palabra reemplazada");
 
     setTimeout(() => {
@@ -135,7 +146,7 @@ export function FindReplaceBar({ editor, isOpen = true, onClose }: FindReplaceBa
     if (!editor || editor.isDestroyed || matches.length === 0) return;
     const total = matches.length;
 
-    editor.chain().focus().command(({ tr }) => {
+    editor.chain().command(({ tr }) => {
       for (let i = matches.length - 1; i >= 0; i--) {
         tr.insertText(replaceTerm, matches[i].from, matches[i].to);
       }
