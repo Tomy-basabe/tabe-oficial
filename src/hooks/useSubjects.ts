@@ -280,7 +280,11 @@ export function useSubjects() {
       setSubjects(newSubs);
       setUserStatuses(newStatuses);
       setDependencies(newDeps);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === "AbortError" || error?.message?.includes("aborted")) {
+        // Abort normal por navegación o desmontaje de componente
+        return;
+      }
       console.error("Error fetching subjects:", error);
       if (retries > 0) {
         console.log(`Retrying fetchData... (${retries} left)`);

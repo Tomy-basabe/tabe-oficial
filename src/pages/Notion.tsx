@@ -574,14 +574,21 @@ export default function Notion() {
     (activeDocument.is_shared || activeDocument.is_collaborator || activeDocument.share_token)
   );
 
-  const { activeCollaborators, isConnected: isCollabConnected, broadcastContent } = useNotionCollab({
+  const {
+    activeCollaborators,
+    remoteCursors,
+    isConnected: isCollabConnected,
+    broadcastContent,
+    broadcastCursor,
+    currentUser: collabUser,
+  } = useNotionCollab({
     documentId: activeDocument?.id,
     user,
     userProfile: user?.user_metadata ? {
       nombre: user.user_metadata.nombre || user.user_metadata.full_name,
       avatar_url: user.user_metadata.avatar_url,
     } : null,
-    enabled: isCollabActive && !!user,
+    enabled: isCollabActive,
     onRemoteContentChange: useCallback((remoteContent: any) => {
       if (tiptapEditorInstanceRef.current && remoteContent) {
         try {
@@ -1301,11 +1308,9 @@ export default function Notion() {
         editor.commands.setContent(content, false);
         editor.commands.setTextSelection(0);
         const canEditDoc = doc.user_id === user?.id || (
-          !!user && (
-            (doc.is_shared && doc.share_permission === 'edit') ||
-            doc.user_permission === 'edit' ||
-            (doc.is_collaborator && doc.share_permission === 'edit')
-          )
+          (doc.is_shared && doc.share_permission === 'edit') ||
+          doc.user_permission === 'edit' ||
+          (doc.is_collaborator && doc.share_permission === 'edit')
         );
         editor.setEditable(canEditDoc);
         try {
@@ -1361,11 +1366,9 @@ export default function Notion() {
       editor.commands.setContent(content, false);
       editor.commands.setTextSelection(0);
       const canEditDoc = doc.user_id === user?.id || (
-        !!user && (
-          (doc.is_shared && doc.share_permission === 'edit') ||
-          doc.user_permission === 'edit' ||
-          (doc.is_collaborator && doc.share_permission === 'edit')
-        )
+        (doc.is_shared && doc.share_permission === 'edit') ||
+        doc.user_permission === 'edit' ||
+        (doc.is_collaborator && doc.share_permission === 'edit')
       );
       editor.setEditable(canEditDoc);
       try {
@@ -2512,12 +2515,13 @@ export default function Notion() {
                   readOnly={
                     activeDocument?.user_id !== user?.id &&
                     !(
-                      !!user &&
-                      ((activeDocument?.is_shared && activeDocument?.share_permission === "edit") ||
-                        activeDocument?.user_permission === "edit" ||
-                        (activeDocument?.is_collaborator && activeDocument?.share_permission === "edit"))
+                      (activeDocument?.is_shared && activeDocument?.share_permission === "edit") ||
+                      activeDocument?.user_permission === "edit" ||
+                      (activeDocument?.is_collaborator && activeDocument?.share_permission === "edit")
                     )
                   }
+                  remoteCursors={remoteCursors}
+                  onCursorChange={broadcastCursor}
                   onEditorReady={handleEditorReady}
                   onActivity={() => lastActivityRef.current = Date.now()}
                   onSubPageClick={async (pageId, pageTitle, blockId, copyFromPageId) => {

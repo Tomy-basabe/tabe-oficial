@@ -296,8 +296,8 @@ export function useNotionDocuments() {
     id: string,
     updates: Partial<Pick<NotionDocument, "titulo" | "contenido" | "emoji" | "cover_url" | "is_favorite" | "total_time_seconds" | "is_shared" | "share_token" | "share_permission">>
   ) => {
-    // Si es modo invitado o documento de prueba / mock, guardar únicamente en memoria y sesión sin error
-    if (isGuest || id.startsWith("mock-") || !id) {
+    // Si es un documento de prueba / mock o ID inválido, guardar únicamente en memoria y sesión
+    if (id.startsWith("mock-") || !id) {
       if (updates.contenido) {
         contentCacheRef.current.set(id, updates.contenido);
         try {

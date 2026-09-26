@@ -67,6 +67,7 @@ import { WordStatusBar } from "./WordStatusBar";
 import { FindReplaceBar } from "./FindReplaceBar";
 import { ShortcutsGuideModal } from "./ShortcutsGuideModal";
 import { DocumentOutline } from "./DocumentOutline";
+import { RemoteCursorsOverlay } from "./RemoteCursorsOverlay";
 import "tippy.js/dist/tippy.css";
 
 const lowlight = createLowlight(common);
@@ -85,6 +86,8 @@ interface AdvancedNotionEditorProps {
   documentId?: string;
   readOnly?: boolean;
   onEditorReady?: (editor: any) => void;
+  remoteCursors?: Record<string, any>;
+  onCursorChange?: (pos: number) => void;
 }
 
 // Bubble menu button
@@ -114,6 +117,8 @@ export function AdvancedNotionEditor({
   documentId,
   readOnly = false,
   onEditorReady,
+  remoteCursors,
+  onCursorChange,
 }: AdvancedNotionEditorProps) {
   const lastLoadedDocumentIdRef = useRef<string | undefined>(undefined);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -240,7 +245,11 @@ export function AdvancedNotionEditor({
     ],
     content,
     editable: !readOnly,
+    onSelectionUpdate: ({ editor }) => {
+      onCursorChange?.(editor.state.selection.from);
+    },
     onUpdate: ({ editor, transaction }) => {
+      onCursorChange?.(editor.state.selection.from);
       // Ignorar mutaciones de interfaz como abrir o cerrar un toggle colapsable para lectura
       if (transaction?.getMeta("isToggleOnly") || transaction?.getMeta("preventAutosave")) {
         return;
@@ -1336,14 +1345,16 @@ export function AdvancedNotionEditor({
         style={{ zoom: zoom !== 100 ? `${zoom}%` : undefined }}
       >
         {viewMode === 'word-a4' ? (
-          <div className="word-a4-page">
+          <div className="word-a4-page relative">
             {headerContent}
             <EditorContent editor={editor} />
+            <RemoteCursorsOverlay editor={editor} remoteCursors={remoteCursors || {}} containerRef={scrollContainerRef} />
           </div>
         ) : (
-          <div className="notion-editor-wrapper">
+          <div className="notion-editor-wrapper relative">
             {headerContent}
             <EditorContent editor={editor} />
+            <RemoteCursorsOverlay editor={editor} remoteCursors={remoteCursors || {}} containerRef={scrollContainerRef} />
           </div>
         )}
       </div>
