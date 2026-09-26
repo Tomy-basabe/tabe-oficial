@@ -260,7 +260,7 @@ export function AdvancedNotionEditor({
       }
       updateTimeoutRef.current = setTimeout(() => {
         onUpdate(editor.getJSON());
-      }, 400);
+      }, 120);
     },
     editorProps: {
       attributes: {
@@ -641,18 +641,7 @@ export function AdvancedNotionEditor({
       } catch {}
       return;
     }
-
-    // If editor is currently empty and real content arrived, load it immediately
-    if (editor.isEmpty) {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-        updateTimeoutRef.current = null;
-      }
-      editor.commands.setContent(content, false);
-      editor.commands.setTextSelection(0);
-      editor.setEditable(!readOnly);
-    }
-  }, [documentId, content, editor, readOnly]);
+  }, [documentId, editor, readOnly]);
 
   // Listener to open math menu via custom event (e.g. from SlashCommands)
   useEffect(() => {

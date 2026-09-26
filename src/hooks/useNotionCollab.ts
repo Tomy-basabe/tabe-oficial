@@ -267,7 +267,7 @@ export function useNotionCollab({
       pendingBroadcastRef.current = { content, pageId: pageId || currentPageId };
       const now = Date.now();
       const elapsed = now - lastBroadcastTimeRef.current;
-      const THROTTLE_MS = 600;
+      const THROTTLE_MS = 180;
 
       const doSend = () => {
         if (!channelRef.current || !pendingBroadcastRef.current) return;

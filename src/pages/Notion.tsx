@@ -633,11 +633,17 @@ export default function Notion() {
           const remoteJson = JSON.stringify(remoteContent);
           if (currentJson === remoteJson) return;
 
+          // Si el usuario local está escribiendo activamente, no pisar su texto local
+          const timeSinceLocalActivity = Date.now() - lastActivityRef.current;
+          if (editor.isFocused && timeSinceLocalActivity < 1200) {
+            return;
+          }
+
           const { from } = editor.state.selection;
 
           isRemoteUpdateRef.current = true;
           editor.commands.setContent(remoteContent, false);
-          setEditorContent(remoteContent);
+          isRemoteUpdateRef.current = false;
           editorContentRef.current = remoteContent;
           lastSavedContentRef.current = remoteJson;
 
@@ -1447,12 +1453,20 @@ export default function Notion() {
   }, [saveDocument, handleSaveOnExit, fetchDocumentContent, migrateBase64Images, user, tiptapEditorInstance]);
 
   // Check for ?share=TOKEN in URL to automatically join and open shared cooperative note
+  const processedShareTokenRef = useRef<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const searchStr = location.search || window.location.search;
     const params = new URLSearchParams(searchStr);
     const shareToken = params.get("share");
     if (!shareToken) return;
+    if (processedShareTokenRef.current === shareToken) return;
+    processedShareTokenRef.current = shareToken;
+
+    // Limpiar URL sin recargar para evitar re-ejecuciones accidentales
+    try {
+      window.history.replaceState({}, "", window.location.pathname);
+    } catch {}
 
     let isCancelled = false;
 
@@ -1580,9 +1594,6 @@ export default function Notion() {
 
         await openDocument(mappedDoc);
         toast.success(`Abriendo apunte compartido: ${mappedDoc.titulo || "Sin título"}`);
-
-        // Limpiar URL sin recargar
-        window.history.replaceState({}, "", window.location.pathname);
       } catch (err) {
         console.error("Error joining shared document:", err);
       }
