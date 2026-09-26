@@ -1189,9 +1189,6 @@ export default function Notion() {
       setActiveDocument(doc);
       activeDocumentRef.current = doc;
       setLastSaved(null);
-      try {
-        sessionStorage.setItem("tabe_active_doc_id", doc.id);
-      } catch (e) {}
 
       setEditorContent(content);
       editorContentRef.current = content;
@@ -1220,9 +1217,6 @@ export default function Notion() {
     // Explicitly reset editor content to avoid stale content being displayed
     setEditorContent(null);
     editorContentRef.current = null;
-    try {
-      sessionStorage.setItem("tabe_active_doc_id", doc.id);
-    } catch (e) {}
 
     const safetyTimer = setTimeout(() => setIsOpeningDoc(false), 5000);
     try {
@@ -1409,19 +1403,12 @@ export default function Notion() {
     return () => window.removeEventListener("focus", onWindowFocus);
   }, [tiptapEditorInstance]);
 
-  // 3. Restaurar automáticamente el último apunte activo tras refresh (F5) para que no se quede colgado
+  // Limpiar cualquier referencia residual al montar para asegurar que siempre abra en la selección de apuntes
   useEffect(() => {
-    if (activeDocument || documents.length === 0) return;
     try {
-      const savedDocId = sessionStorage.getItem("tabe_active_doc_id");
-      if (savedDocId) {
-        const target = documents.find((d) => d.id === savedDocId);
-        if (target) {
-          openDocument(target);
-        }
-      }
+      sessionStorage.removeItem("tabe_active_doc_id");
     } catch (e) {}
-  }, [documents, activeDocument, openDocument]);
+  }, []);
 
   const handleCreateDocument = useCallback(
     async (subjectId?: string) => {
@@ -1825,20 +1812,38 @@ export default function Notion() {
         <div className="notion-topbar">
           <div className="notion-topbar-left flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden mr-2">
             {/* Back link */}
-            <Link
-              to="/dashboard"
-              onClick={() => {
-                try {
-                  ComicAudio.playPop();
-                } catch {}
-              }}
-              className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-2.5 md:py-1 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group mr-1"
-              title="Volver al Dashboard"
-              aria-label="Volver al Dashboard"
-            >
-              <ArrowLeft className="w-4 h-4 md:w-3.5 md:h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="hidden md:inline">Volver</span>
-            </Link>
+            {activeDocument ? (
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    ComicAudio.playPop();
+                  } catch {}
+                  closeDocument();
+                }}
+                className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-2.5 md:py-1 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group mr-1 cursor-pointer"
+                title="Volver a la selección de apuntes"
+                aria-label="Volver a la selección de apuntes"
+              >
+                <ArrowLeft className="w-4 h-4 md:w-3.5 md:h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                <span className="hidden md:inline">Apuntes</span>
+              </button>
+            ) : (
+              <Link
+                to="/dashboard"
+                onClick={() => {
+                  try {
+                    ComicAudio.playPop();
+                  } catch {}
+                }}
+                className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-2.5 md:py-1 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group mr-1"
+                title="Volver al Dashboard"
+                aria-label="Volver al Dashboard"
+              >
+                <ArrowLeft className="w-4 h-4 md:w-3.5 md:h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                <span className="hidden md:inline">Volver</span>
+              </Link>
+            )}
 
             {activeDocument ? (
               <>
