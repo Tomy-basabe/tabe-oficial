@@ -1860,12 +1860,22 @@ export default function Notion() {
                   </button>
                 )}
 
-                {/* Subpage crumb if parentDoc is different from activeDoc */}
+                {/* Subpage crumb if parentDoc is different from activeDoc and not already in tabs */}
                 {(() => {
                   const parentDoc = (activeDocument.parent_id && activeDocument.parent_id !== activeDocument.id)
                     ? documents.find(d => d.id === activeDocument.parent_id)
                     : null;
                   if (!parentDoc || parentDoc.id === activeDocument.id) return null;
+
+                  // Evitar duplicación: Si el apunte padre ya está abierto en las pestañas a la derecha, no mostrar el crumb redundante
+                  const isParentAlreadyInTabs = openTabs.some(t => t.id === parentDoc.id);
+                  if (isParentAlreadyInTabs) return null;
+
+                  // Evitar duplicación si el título del padre es idéntico a la materia que ya se muestra en el badge
+                  const subjectNameNorm = (activeDocument.subject?.nombre || "").toLowerCase().trim();
+                  const parentTitleNorm = (parentDoc.titulo || "").toLowerCase().trim();
+                  if (subjectNameNorm && parentTitleNorm === subjectNameNorm) return null;
+
                   return (
                     <button
                       type="button"
@@ -1884,7 +1894,9 @@ export default function Notion() {
 
                 {/* Inline Tabs inside the same unified bar */}
                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
-                  {openTabs.map(tab => {
+                  {openTabs
+                    .filter((tab, index, self) => self.findIndex(t => t.id === tab.id) === index)
+                    .map(tab => {
                     const isActive = activeDocument?.id === tab.id;
                     return (
                       <div

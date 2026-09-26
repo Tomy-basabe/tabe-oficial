@@ -1013,6 +1013,7 @@ export function AdvancedNotionEditor({
           {showFindReplace && (
             <FindReplaceBar
               editor={editor}
+              isOpen={showFindReplace}
               onClose={() => setShowFindReplace(false)}
             />
           )}
