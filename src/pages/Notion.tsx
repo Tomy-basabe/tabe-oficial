@@ -801,6 +801,8 @@ export default function Notion() {
         pendingSaveRef.current = false;
       }
 
+      const updates: { contenido?: JSONContent; titulo?: string } = {};
+
       try {
         if (contentChanged) {
           updates.contenido = contentToSave;
