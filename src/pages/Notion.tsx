@@ -988,25 +988,28 @@ export default function Notion() {
       savedSecondsRef.current = totalSecondsRef.current;
     }
 
-    // 2. Save Document Content (Best effort on exit)
-    const contentToSave = editorContentRef.current;
-    if (contentToSave) {
-      const contentStr = JSON.stringify(contentToSave);
-      const currentTitle = localTitleRef.current;
-      const contentChanged = contentStr !== lastSavedContentRef.current;
-      const titleChanged = currentTitle !== doc.titulo;
+    // 2. Save Document Content (Best effort on exit ONLY if dirty)
+    if (isDirtyRef.current) {
+      const contentToSave = editorContentRef.current;
+      if (contentToSave) {
+        const contentStr = JSON.stringify(contentToSave);
+        const currentTitle = localTitleRef.current;
+        const contentChanged = contentStr !== lastSavedContentRef.current;
+        const titleChanged = currentTitle !== doc.titulo;
 
-      if (contentChanged || titleChanged) {
-        const updates: { contenido?: JSONContent; titulo?: string } = {};
-        if (contentChanged) updates.contenido = contentToSave;
-        if (titleChanged) updates.titulo = currentTitle;
+        if (contentChanged || titleChanged) {
+          const updates: { contenido?: JSONContent; titulo?: string } = {};
+          if (contentChanged) updates.contenido = contentToSave;
+          if (titleChanged) updates.titulo = currentTitle;
 
-        // Use a "fire and forget" update with lower priority/background
-        supabase.from("notion_documents")
-          .update(updates)
-          .eq("id", doc.id)
-          .then(); // Just fire it
+          // Use a "fire and forget" update with lower priority/background
+          supabase.from("notion_documents")
+            .update(updates)
+            .eq("id", doc.id)
+            .then();
+        }
       }
+      isDirtyRef.current = false;
     }
   }, [user]);
 
@@ -2150,14 +2153,25 @@ export default function Notion() {
                           if (data) target = data as NotionDocument;
                         }
                         if (target && target.id !== parentId) {
-                          openDocument(target);
-                          return;
+                          const targetTitle = (target.titulo || "").trim().toLowerCase();
+                          // Si el título del bloque y el apunte son completamente distintos (ej. bloque "backend" vs doc "front"),
+                          // el ID estaba cruzado o corrupto. No abrir el documento equivocado.
+                          const isMismatched = normTitle.length > 0 && targetTitle.length > 0 &&
+                            !targetTitle.includes(normTitle) &&
+                            !normTitle.includes(targetTitle);
+
+                          if (!isMismatched) {
+                            openDocument(target);
+                            return;
+                          }
                         }
                       }
 
-                      // 2. Revisar pestañas abiertas con ese título (excluyendo el padre)
-                      const openTabMatch = openTabs.find(t => t.id !== parentId && t.title.trim().toLowerCase() === normTitle);
+                      // 2. Buscar apunte que coincida con el título (excluyendo el padre)
                       let existingDoc: NotionDocument | null = null;
+
+                      // 2a. Pestañas abiertas
+                      const openTabMatch = openTabs.find(t => t.id !== parentId && t.title.trim().toLowerCase() === normTitle);
                       if (openTabMatch) {
                         existingDoc = documents.find(d => d.id === openTabMatch.id) || null;
                         if (!existingDoc) {
@@ -2170,14 +2184,29 @@ export default function Notion() {
                         }
                       }
 
-                      // Revisar sub-páginas de este padre
+                      // 2b. Sub-páginas de este padre
                       if (!existingDoc && parentId) {
-                        existingDoc = documents.find(d => d.id !== parentId && d.parent_id === parentId && d.titulo?.trim().toLowerCase() === normTitle) || null;
+                        existingDoc = documents.find(d => d.id !== parentId && d.parent_id === parentId && (d.titulo || "").trim().toLowerCase() === normTitle) || null;
                       }
 
-                      // Revisar apuntes en la misma materia
+                      // 2c. Apuntes en la misma materia
                       if (!existingDoc && subjectId) {
-                        existingDoc = documents.find(d => d.id !== parentId && d.subject_id === subjectId && d.titulo?.trim().toLowerCase() === normTitle) || null;
+                        existingDoc = documents.find(d => d.id !== parentId && d.subject_id === subjectId && (d.titulo || "").trim().toLowerCase() === normTitle) || null;
+                      }
+
+                      // 2d. Apuntes del mismo usuario con ese título
+                      if (!existingDoc && user) {
+                        existingDoc = documents.find(d => d.id !== parentId && d.user_id === user.id && (d.titulo || "").trim().toLowerCase() === normTitle) || null;
+                        if (!existingDoc) {
+                          const { data } = await supabase
+                            .from("notion_documents")
+                            .select("*")
+                            .eq("user_id", user.id)
+                            .ilike("titulo", (pageTitle || "").trim())
+                            .neq("id", parentId || "")
+                            .maybeSingle();
+                          if (data) existingDoc = data as NotionDocument;
+                        }
                       }
 
                       if (existingDoc && existingDoc.id !== parentId) {

@@ -17,33 +17,38 @@ declare module "@tiptap/core" {
 
 // React component for the sub-page block
 const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
-  const title = node.attrs.title || "Sin título";
-  const pageId = node.attrs.pageId;
-  const blockId = node.attrs.blockId || React.useMemo(() => crypto.randomUUID(), []);
+  const title = (node?.attrs?.title || "Sin título").toString();
+  const pageId = node?.attrs?.pageId || null;
+  const defaultBlockIdRef = React.useRef<string | null>(null);
+  if (!defaultBlockIdRef.current) {
+    defaultBlockIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+  }
+  const blockId = node?.attrs?.blockId || defaultBlockIdRef.current;
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Initialize blockId if missing
   React.useEffect(() => {
-    if (!node.attrs.blockId && blockId) {
+    if (node?.attrs && !node.attrs.blockId && blockId && updateAttributes) {
       updateAttributes({ blockId });
     }
-  }, [node.attrs.blockId, blockId, updateAttributes]);
+  }, [node?.attrs?.blockId, blockId, updateAttributes]);
 
   // Listen for the creation event to update this block's pageId
   React.useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      const matchesBlockId = detail?.blockId && detail.blockId === (node.attrs.blockId || blockId);
-      const matchesOldPageId = detail?.oldPageId && node.attrs.pageId === detail.oldPageId;
-      const matchesTitle = !node.attrs.pageId && detail?.oldTitle === node.attrs.title;
+      const currentBlockId = node?.attrs?.blockId || blockId;
+      const matchesBlockId = detail?.blockId && detail.blockId === currentBlockId;
+      const matchesOldPageId = detail?.oldPageId && node?.attrs?.pageId === detail.oldPageId;
+      const matchesTitle = !node?.attrs?.pageId && detail?.oldTitle && detail.oldTitle.trim().toLowerCase() === title.trim().toLowerCase();
 
-      if ((matchesBlockId || matchesOldPageId || matchesTitle) && detail?.newPageId) {
+      if ((matchesBlockId || matchesOldPageId || matchesTitle) && detail?.newPageId && updateAttributes) {
         updateAttributes({ pageId: detail.newPageId });
       }
     };
     document.addEventListener("notion-subpage-created", handler);
     return () => document.removeEventListener("notion-subpage-created", handler);
-  }, [node.attrs.pageId, node.attrs.title, node.attrs.blockId, blockId, updateAttributes]);
+  }, [node?.attrs?.pageId, node?.attrs?.blockId, blockId, title, updateAttributes]);
 
   React.useEffect(() => {
     const el = containerRef.current;
@@ -54,7 +59,7 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
       e.stopPropagation();
       
       const event = new CustomEvent("notion-subpage-click", {
-        detail: { pageId: node.attrs.pageId, title, blockId: node.attrs.blockId || blockId },
+        detail: { pageId: node?.attrs?.pageId || null, title, blockId: node?.attrs?.blockId || blockId },
         bubbles: true,
       });
       document.dispatchEvent(event);
@@ -62,14 +67,14 @@ const SubPageComponent = ({ node, updateAttributes, selected }: any) => {
 
     el.addEventListener("click", handleClick);
     return () => el.removeEventListener("click", handleClick);
-  }, [node.attrs.pageId, node.attrs.blockId, title, blockId]);
+  }, [node?.attrs?.pageId, node?.attrs?.blockId, title, blockId]);
 
   return (
     <NodeViewWrapper className="notion-subpage-wrapper" contentEditable={false}>
       <div
         ref={containerRef}
         className={`notion-subpage-block ${selected ? "selected" : ""}`}
-        data-page-id={pageId}
+        data-page-id={pageId || ""}
       >
         <FileText className="notion-subpage-icon" />
         <span className="notion-subpage-title">{title}</span>
@@ -116,7 +121,6 @@ export const SubPage = Node.create({
         "data-type": "sub-page",
         class: "notion-subpage-block",
       }),
-      0,
     ];
   },
 
@@ -134,7 +138,6 @@ export const SubPage = Node.create({
 
   addNodeView() {
     return ReactNodeViewRenderer(SubPageComponent, {
-      contentDOMElementTag: 'div',
       stopEvent: ({ event }) => {
         // Prevent ProseMirror from handling clicks on this node view, allowing the React onClick handler to take over
         if (event.type === 'click' || event.type === 'mousedown' || event.type === 'pointerdown') {
