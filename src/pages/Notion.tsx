@@ -633,13 +633,13 @@ export default function Notion() {
           const remoteJson = JSON.stringify(remoteContent);
           if (currentJson === remoteJson) return;
 
-          // Si el usuario local está escribiendo activamente, no pisar su texto local
+          // Si el usuario local pulsó una tecla en los últimos 150ms, esperar al siguiente ciclo para no cortar la tecla actual
           const timeSinceLocalActivity = Date.now() - lastActivityRef.current;
-          if (editor.isFocused && timeSinceLocalActivity < 1200) {
+          if (editor.isFocused && timeSinceLocalActivity < 150) {
             return;
           }
 
-          const { from } = editor.state.selection;
+          const { from, to } = editor.state.selection;
 
           isRemoteUpdateRef.current = true;
           editor.commands.setContent(remoteContent, false);
@@ -647,10 +647,13 @@ export default function Notion() {
           editorContentRef.current = remoteContent;
           lastSavedContentRef.current = remoteJson;
 
-          // Restaurar cursor para no perder la posición de escritura
+          // Restaurar cursor y selección para no perder la posición de escritura
           try {
             const docSize = editor.state.doc.content.size;
-            editor.commands.setTextSelection(Math.min(from, docSize));
+            editor.commands.setTextSelection({
+              from: Math.min(from, docSize),
+              to: Math.min(to, docSize),
+            });
           } catch (e) {}
         } catch (e) {
           console.warn("Error applying remote collaborative content:", e);

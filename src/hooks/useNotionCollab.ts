@@ -267,7 +267,7 @@ export function useNotionCollab({
       pendingBroadcastRef.current = { content, pageId: pageId || currentPageId };
       const now = Date.now();
       const elapsed = now - lastBroadcastTimeRef.current;
-      const THROTTLE_MS = 180;
+      const THROTTLE_MS = 25;
 
       const doSend = () => {
         if (!channelRef.current || !pendingBroadcastRef.current) return;
@@ -303,7 +303,7 @@ export function useNotionCollab({
     [isConnected, currentUserId, currentPageId]
   );
 
-  // Transmit live cursor position (Google Docs style) with 50ms throttle
+  // Transmit live cursor position (Google Docs style) with 16ms (60fps)
   const broadcastCursor = useCallback(
     (pos: number, pageId?: string) => {
       if (!channelRef.current || !isConnected || !currentUserId || pos === lastCursorPosRef.current) return;
@@ -326,7 +326,7 @@ export function useNotionCollab({
             timestamp: Date.now(),
           },
         });
-      }, 50);
+      }, 16);
     },
     [isConnected, currentUserId, currentUserName, currentUserColor, currentPageId]
   );

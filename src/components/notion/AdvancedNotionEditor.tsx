@@ -255,12 +255,7 @@ export function AdvancedNotionEditor({
         return;
       }
       if (onActivity) onActivity();
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-      updateTimeoutRef.current = setTimeout(() => {
-        onUpdate(editor.getJSON());
-      }, 120);
+      onUpdate(editor.getJSON());
     },
     editorProps: {
       attributes: {
