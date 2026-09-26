@@ -102,7 +102,25 @@ export function FindReplaceBar({ editor, isOpen = true, onClose }: FindReplaceBa
             }
           }
           return true;
-        }).setTextSelection({ from: match.from, to: match.to }).scrollIntoView().run();
+        }).setTextSelection({ from: match.from, to: match.to }).run();
+
+        // Scroll manual garantizado hacia la coincidencia incluso si el editor no tiene el foco principal
+        setTimeout(() => {
+          if (!editor || editor.isDestroyed) return;
+          try {
+            const domPos = editor.view.domAtPos(match.from);
+            let domNode = domPos.node;
+            if (domNode.nodeType === Node.TEXT_NODE) {
+              domNode = domNode.parentElement || domNode;
+            }
+            if (domNode instanceof Element) {
+              domNode.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          } catch (e) {
+            console.warn("Scroll manual falló:", e);
+          }
+        }, 50);
+
       } catch (err) {
         console.warn("Error resaltando coincidencia:", err);
       }
