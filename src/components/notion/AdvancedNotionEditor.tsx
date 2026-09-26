@@ -383,6 +383,10 @@ export function AdvancedNotionEditor({
           }
         }
 
+        // @AI-CRITICAL-INSTRUCTION: MANEJO DE IMÁGENES Y LÍMITES DE DB.
+        // Las imágenes SIEMPRE deben subirse a Supabase Storage (bucket 'notion-images') para obtener una URL pública.
+        // ESTÁ ESTRICTAMENTE PROHIBIDO guardar imágenes en Base64 ('data:image/...') dentro del JSON de TipTap.
+        // Las imágenes en Base64 pesan megabytes y al intentar guardarlas o leerlas destruyen el ancho de banda (Egress) y la base de datos del usuario.
         // === INTERNAL HTML PASTE & BASE64 INTERCEPTION ===
         const html = event.clipboardData?.getData('text/html');
         if (html) {

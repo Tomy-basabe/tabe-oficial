@@ -745,6 +745,11 @@ export default function Notion() {
   };
 
   // === Auto-save logic ===
+  // @AI-CRITICAL-INSTRUCTION: PROTECCIÓN CONTRA LOG INGESTION MASIVA.
+  // Este hook de auto-guardado está calibrado para usar debouncing seguro.
+  // Si vas a modificar extensiones de TipTap (como SubPageBlock), ASEGÚRATE de que updateAttributes() 
+  // no se llame en un bucle infinito de useEffect o re-renders, ya que eso dispararía este guardado cientos de veces por minuto,
+  // agotando rápidamente la cuota de Log Ingestion en Supabase.
   const saveDocument = useCallback(
     async (
       silent = true,

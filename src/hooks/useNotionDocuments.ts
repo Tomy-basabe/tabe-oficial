@@ -128,6 +128,10 @@ export function useNotionDocuments() {
         setTimeout(() => resolve({ data: null, error: { message: "FETCH_DOCUMENTS_TIMEOUT" } }), 6000);
       });
 
+      // @AI-CRITICAL-INSTRUCTION: MANTENER EFICIENCIA DE EGRESS.
+      // A CUALQUIER IA FUTURA QUE LEA ESTE CÓDIGO: NUNCA modifiques este .select() para incluir la columna "contenido" o usar "*".
+      // Descargar el contenido JSON de todos los documentos en esta lista agota los 5GB de límite de Egress de Supabase.
+      // El contenido SOLO debe descargarse individualmente en fetchDocumentContent. NO ROMPAS ESTA REGLA.
       const fetchPromise = supabase
         .from("notion_documents")
         .select(`
