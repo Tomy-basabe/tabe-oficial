@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Menu, Star, Clock, Trash2, Loader2, Save,
+  Menu, Star, Clock, Trash2, Loader2, Save, RotateCcw,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
   Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
@@ -25,6 +25,7 @@ import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
 import { ImportFriendNoteModal } from "@/components/notion/ImportFriendNoteModal";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
+import { getTrashItems, restoreFromTrash, moveToTrash, extractSubPageIds, permanentlyDelete, TrashItem } from "@/lib/notionTrash";
 import { useFriends } from "@/hooks/useFriends";
 import { useAchievements } from "@/hooks/useAchievements";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -327,6 +328,8 @@ export default function Notion() {
     createDocument,
     updateDocument,
     deleteDocument,
+    restoreDocument,
+    permanentlyDeleteDocument,
     addStudyTime,
     fetchDocumentContent,
     prefetchDocumentContent,
@@ -339,6 +342,16 @@ export default function Notion() {
   const [activeDocument, setActiveDocument] = useState<NotionDocument | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   
+  // Trash modal & items state (30 min recovery grace period)
+  const [showTrashModal, setShowTrashModal] = useState(false);
+  const [trashItems, setTrashItems] = useState<TrashItem[]>(() => getTrashItems());
+
+  useEffect(() => {
+    const handler = () => setTrashItems(getTrashItems());
+    window.addEventListener("tabe-trash-updated", handler);
+    return () => window.removeEventListener("tabe-trash-updated", handler);
+  }, []);
+
   // Audio Book state & instance
   const audioBook = useAudioBook();
   const [showAudioBookPlayer, setShowAudioBookPlayer] = useState(false);
@@ -789,8 +802,32 @@ export default function Notion() {
       }
 
       try {
-        const updates: { contenido?: JSONContent; titulo?: string } = {};
-        if (contentChanged) updates.contenido = contentToSave;
+        if (contentChanged) {
+          updates.contenido = contentToSave;
+          try {
+            const oldSubpageIds = extractSubPageIds(docToSave.contenido || null);
+            const newSubpageIds = extractSubPageIds(contentToSave);
+            const removedIds = oldSubpageIds.filter(id => !newSubpageIds.includes(id));
+            const addedIds = newSubpageIds.filter(id => !oldSubpageIds.includes(id));
+
+            for (const removedId of removedIds) {
+              const subDoc = documents.find(d => d.id === removedId);
+              moveToTrash({
+                id: removedId,
+                titulo: subDoc?.titulo || "Sub-página",
+                parent_id: docToSave.id,
+                subject_id: docToSave.subject_id,
+                emoji: subDoc?.emoji || "📝"
+              });
+            }
+
+            for (const addedId of addedIds) {
+              restoreFromTrash(addedId);
+            }
+          } catch (e) {
+            console.warn("Error tracking subpage changes:", e);
+          }
+        }
         if (titleChanged) updates.titulo = currentTitle;
 
         let success = await updateDocument(docToSave.id, updates);
@@ -1517,8 +1554,15 @@ export default function Notion() {
       }
     }
 
+    toast("Apunte en la papelera (tienes 30 min para recuperarlo)", {
+      action: {
+        label: "Deshacer",
+        onClick: () => restoreDocument(deletedId),
+      },
+    });
+
     setDocToDelete(null);
-  }, [docToDelete, activeDocument, deleteDocument, documents, openDocument, updateDocument]);
+  }, [docToDelete, activeDocument, deleteDocument, documents, openDocument, updateDocument, restoreDocument]);
 
   const handleToggleFavorite = useCallback(
     async (doc: NotionDocument) => {
@@ -2047,9 +2091,19 @@ export default function Notion() {
                       </DropdownMenuItem>
                     )}
 
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setTrashItems(getTrashItems());
+                        setShowTrashModal(true);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2 text-amber-500" />
+                      Ver papelera ({trashItems.length})
+                    </DropdownMenuItem>
+
                     {activeDocument.user_id === user?.id && (
                       <>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive focus:bg-destructive/10 focus:text-destructive font-medium"
                           onClick={() => {
@@ -2066,15 +2120,32 @@ export default function Notion() {
                 </DropdownMenu>
               </>
             ) : (
-              <button
-                type="button"
-                className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors shadow-xs"
-                onClick={() => setShowImportModal(true)}
-                title="Importar documento"
-              >
-                <FileUp className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Importar</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors shadow-xs relative"
+                  onClick={() => {
+                    setTrashItems(getTrashItems());
+                    setShowTrashModal(true);
+                  }}
+                  title="Papelera (30 min para recuperar)"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="hidden sm:inline">Papelera</span>
+                  {trashItems.length > 0 && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors shadow-xs"
+                  onClick={() => setShowImportModal(true)}
+                  title="Importar documento"
+                >
+                  <FileUp className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Importar</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -2193,26 +2264,43 @@ export default function Notion() {
                       const parentId = parent?.id || null;
                       const subjectId = parent?.subject_id || "";
 
-                      // 1. Si pageId es provisto y válido (no apunta al padre mismo)
+                      // 1. Si pageId es provisto (es un apunte existente o fue copiado/pegado con Ctrl+C o Ctrl+X)
                       if (pageId && pageId !== parentId) {
+                        // Si estaba en la papelera (por haber sido cortado con Ctrl+X o borrado temporalmente), recuperarlo
+                        restoreFromTrash(pageId);
+
                         let target = documents.find(d => d.id === pageId);
                         if (!target) {
                           const { data } = await supabase
                             .from("notion_documents")
-                            .select("*")
+                            .select(`
+                              id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+                              owner:profiles(nombre, avatar_url, username),
+                              subject:subjects(id, nombre, codigo, año)
+                            `)
                             .eq("id", pageId)
                             .maybeSingle();
-                          if (data) target = data as NotionDocument;
-                        }
-                        if (target && target.id !== parentId) {
-                          // Si target tiene parent_id asignado, DEBE pertenecer a este padre.
-                          // Si target.parent_id pertenece a otro documento (ej. un enlace cruzado erróneo), no reutilizarlo!
-                          if (target.parent_id && target.parent_id !== parentId) {
-                            target = null;
-                          } else {
-                            openDocument(target);
-                            return;
+                          if (data) {
+                            target = {
+                              ...data,
+                              subject: data.subject ? {
+                                id: (data.subject as any).id,
+                                nombre: (data.subject as any).nombre,
+                                codigo: (data.subject as any).codigo,
+                                year: (data.subject as any).año,
+                              } : undefined
+                            } as NotionDocument;
                           }
+                        }
+
+                        if (target && target.id !== parentId) {
+                          // Si se pegó en otro apunte padre (ej. vía Ctrl+X o Ctrl+C y pegar), asociarlo a este padre si correspondía
+                          if (target.parent_id && target.parent_id !== parentId) {
+                            updateDocument(target.id, { parent_id: parentId } as any).catch(() => {});
+                            target = { ...target, parent_id: parentId };
+                          }
+                          openDocument(target);
+                          return;
                         }
                       }
 
@@ -2774,10 +2862,10 @@ export default function Notion() {
             <DialogTitle>Eliminar Página</DialogTitle>
           </DialogHeader>
 
-          <p className="text-muted-foreground">
-            ¿Estás seguro de eliminar "
-            {docToDelete?.titulo || "Sin título"}"? Esta acción no se puede
-            deshacer.
+          <p className="text-muted-foreground text-sm">
+            ¿Estás seguro de mover a la papelera "
+            <span className="font-semibold text-foreground">{docToDelete?.titulo || "Sin título"}</span>"?
+            Tendrás <span className="text-amber-500 font-bold">30 minutos</span> para recuperarla antes de que se elimine definitivamente de la base de datos.
           </p>
 
           <div className="flex gap-3 mt-4">
@@ -2791,8 +2879,77 @@ export default function Notion() {
               onClick={handleDeleteDocument}
               className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium transition-colors"
             >
-              Eliminar
+              Mover a papelera
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Trash Modal (30 min recovery grace period) */}
+      <Dialog open={showTrashModal} onOpenChange={setShowTrashModal}>
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-amber-500" />
+              Papelera (30 min para recuperar)
+            </DialogTitle>
+          </DialogHeader>
+
+          <p className="text-xs text-muted-foreground">
+            Los apuntes eliminados o cortados se conservan durante 30 minutos antes de eliminarse automáticamente de la base de datos.
+          </p>
+
+          <div className="flex-1 overflow-y-auto space-y-2 my-3 max-h-[50vh] pr-1">
+            {trashItems.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                La papelera está vacía
+              </div>
+            ) : (
+              trashItems.map((item) => {
+                const minutesLeft = Math.max(1, Math.ceil((item.expiresAt - Date.now()) / (60 * 1000)));
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-secondary/30 hover:bg-secondary/50 transition-colors gap-2"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <span className="text-lg shrink-0">{item.emoji || "📝"}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{item.title}</p>
+                        <p className="text-xs text-amber-500/90 flex items-center gap-1 font-mono">
+                          <Clock className="w-3 h-3 inline" />
+                          Expira en {minutesLeft} min
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={async () => {
+                          await restoreDocument(item.id);
+                          setTrashItems(getTrashItems());
+                        }}
+                        className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1 shadow-xs"
+                        title="Restaurar apunte"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Restaurar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await permanentlyDeleteDocument(item.id);
+                          setTrashItems(getTrashItems());
+                        }}
+                        className="p-1.5 text-xs rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Eliminar definitivamente ahora"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </DialogContent>
       </Dialog>

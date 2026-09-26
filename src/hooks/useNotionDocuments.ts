@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { toLocalDateStr } from "@/lib/utils";
 import { broadcastNotionDocUpdate, broadcastNotionDocDeleted, subscribeNotionSync } from "@/lib/notionSync";
+import { isDocumentInTrash, moveToTrash, restoreFromTrash, purgeExpiredTrash, permanentlyDelete } from "@/lib/notionTrash";
 
 export interface NotionDocument {
   id: string;
@@ -157,9 +158,12 @@ export function useNotionDocuments() {
           }
         });
 
-        const subjectsMap = subjectsMapRef.current;
+        // Purgar de la base de datos elementos de papelera cuya gracia de 30 min expiró
+        purgeExpiredTrash(supabase);
 
-        const mapped = data.map((d: any) => {
+        const mapped = data
+          .filter((d: any) => !isDocumentInTrash(d.id))
+          .map((d: any) => {
           const sub = d.subject
             ? {
                 id: d.subject.id,
@@ -293,28 +297,25 @@ export function useNotionDocuments() {
     return true;
   };
 
-  const deleteDocument = async (id: string) => {
-    // Clean up cover image if stored in notion-images to prevent storage bloat
+  const deleteDocument = async (id: string, permanent: boolean = false) => {
     const docToDelete = documents.find(d => d.id === id);
-    if (docToDelete?.cover_url && docToDelete.cover_url.includes('notion-images')) {
-      const fileName = docToDelete.cover_url.split('/').pop()?.split('?')[0];
-      if (fileName) {
-        supabase.storage.from('notion-images').remove([fileName]).catch(console.error);
+
+    if (permanent) {
+      if (docToDelete?.cover_url && docToDelete.cover_url.includes('notion-images')) {
+        const fileName = docToDelete.cover_url.split('/').pop()?.split('?')[0];
+        if (fileName) {
+          supabase.storage.from('notion-images').remove([fileName]).catch(console.error);
+        }
       }
-    }
 
-    // Clean up child subpages as well to prevent orphaned records in database
-    await supabase.from("notion_documents").delete().eq("parent_id", id);
-
-    const { error } = await supabase
-      .from("notion_documents")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      console.error("Error deleting document:", error);
-      toast.error("Error al eliminar documento");
-      return false;
+      await permanentlyDelete(id, supabase);
+    } else {
+      // Período de gracia de 30 min: se almacena en papelera y se mantiene en BD hasta que expiren los 30 min
+      if (docToDelete) {
+        moveToTrash(docToDelete);
+      } else {
+        moveToTrash({ id });
+      }
     }
 
     contentCacheRef.current.delete(id);
@@ -326,8 +327,18 @@ export function useNotionDocuments() {
     // Notificar a las demás pestañas para que cierren el documento si lo tenían abierto
     broadcastNotionDocDeleted(id);
 
-    toast.success("Documento eliminado");
+    if (permanent) {
+      toast.success("Documento eliminado definitivamente");
+    } else {
+      toast.info("Apunte en la papelera (tienes 30 min para recuperarlo)");
+    }
     return true;
+  };
+
+  const restoreDocument = async (id: string) => {
+    restoreFromTrash(id);
+    await fetchDocuments();
+    toast.success("Apunte restaurado con éxito");
   };
 
   // Save study time and update document - ALWAYS save to metrics for plant growth
@@ -441,6 +452,8 @@ export function useNotionDocuments() {
     createDocument,
     updateDocument,
     deleteDocument,
+    restoreDocument,
+    permanentlyDeleteDocument: (id: string) => deleteDocument(id, true),
     addStudyTime,
     fetchDocumentContent,
     prefetchDocumentContent,
