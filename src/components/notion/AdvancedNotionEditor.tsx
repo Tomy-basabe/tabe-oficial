@@ -991,7 +991,7 @@ export function AdvancedNotionEditor({
 
   return (
     <div className={cn(
-      "notion-advanced-editor flex flex-col h-full min-h-[500px] relative bg-background",
+      "notion-advanced-editor flex flex-col h-full min-h-0 overflow-hidden relative bg-background",
       isZenMode && "fixed inset-0 z-50 bg-background"
     )}>
       {!readOnly && (

@@ -381,7 +381,7 @@
 /* === EDITOR AREA === */
 .notion-editor-area {
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     background: var(--notion-main-bg);
