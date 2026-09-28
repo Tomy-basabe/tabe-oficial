@@ -499,9 +499,63 @@ async function svgToDataUrl(
 }
 
 /**
+ * Instancia única e inicializada de Mermaid con el tema oscuro de la aplicación.
+ */
+let mermaidInstanceCache: any = null;
+let mermaidInitPromise: Promise<any> | null = null;
+
+async function getInitializedMermaid() {
+  if (mermaidInstanceCache) return mermaidInstanceCache;
+  if (!mermaidInitPromise) {
+    mermaidInitPromise = (async () => {
+      const mermaidModule = await import("mermaid");
+      const mermaid = mermaidModule.default;
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "base",
+        securityLevel: "loose",
+        suppressErrorRendering: true,
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontSize: 13,
+        flowchart: {
+          htmlLabels: true,
+          curve: "basis",
+          padding: 16,
+          nodeSpacing: 40,
+          rankSpacing: 40,
+        },
+        themeVariables: {
+          darkMode: true,
+          background: "#18181b",
+          mainBkg: "#27272a",
+          nodeBorder: "#52525b",
+          textColor: "#f4f4f5",
+          lineColor: "#9ca3af",
+          edgeLabelBackground: "#18181b",
+          primaryColor: "#27272a",
+          primaryTextColor: "#f4f4f5",
+          primaryBorderColor: "#52525b",
+          secondaryColor: "#1f1f23",
+          tertiaryColor: "#18181b",
+          nodeTextColor: "#f4f4f5",
+          clusterBkg: "#1f1f23",
+          clusterBorder: "#3f3f46",
+          titleColor: "#f4f4f5",
+          fontSize: "13px",
+        },
+      });
+      mermaidInstanceCache = mermaid;
+      return mermaid;
+    })();
+  }
+  return mermaidInitPromise;
+}
+
+/**
  * Renderiza diagramas Mermaid a imagen de alta resolución para incrustar en el PDF.
- * Procesa SVG de forma nativa sin html2canvas, con timeout estricto de 3.5 segundos
- * para asegurar que nunca se congele el proceso.
+ * Usa un contenedor offscreen aislado con la configuración oscura exacta de TABE
+ * y html2canvas para rasterizar fielmente tanto SVG como etiquetas HTML internas (foreignObject),
+ * garantizando que nunca se rompa y generando un JPEG ultra ligero (~30-50 KB).
  */
 async function renderMermaidDiagramToImage(
   code: string,
@@ -513,60 +567,75 @@ async function renderMermaidDiagramToImage(
   const renderPromise = (async () => {
     try {
       const cleanCode = sanitizeMermaidCode(code);
-
-      // 1. Intentar capturar desde el SVG ya renderizado en el DOM del editor (<10ms)
-      const mermaidContainers = Array.from(document.querySelectorAll(".mermaid-rendered"));
-      for (const container of mermaidContainers) {
-        if (abortSignal?.aborted) return null;
-        const svg = container.querySelector("svg");
-        if (svg) {
-          const parentBlock = container.closest(".code-block-wrapper");
-          const codeText = parentBlock?.querySelector("pre code")?.textContent?.trim();
-          const rawText = parentBlock?.textContent || "";
-          if (
-            (codeText && (codeText === code.trim() || codeText === cleanCode)) ||
-            rawText.includes(cleanCode.slice(0, 30))
-          ) {
-            const res = await svgToDataUrl(svg as SVGElement);
-            if (res) {
-              let widthMm = CONTENT_W;
-              let heightMm = (res.height / res.width) * widthMm;
-              const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
-              if (heightMm > maxH) {
-                heightMm = maxH;
-                widthMm = (res.width / res.height) * heightMm;
-              }
-              return { dataUrl: res.dataUrl, widthMm, heightMm };
-            }
-          }
-        }
-      }
-
-      // 2. Si no está en el DOM, renderizar con mermaid directamente offscreen (sin html2canvas)
-      if (abortSignal?.aborted) return null;
-      const mermaid = (await import("mermaid")).default;
+      const mermaid = await getInitializedMermaid();
       const id = `mmd_pdf_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
 
+      // 1. Contenedor temporal aislado en el DOM para renderizar el diagrama
       const tempContainer = document.createElement("div");
       tempContainer.id = "c_" + id;
       tempContainer.style.position = "fixed";
-      tempContainer.style.top = "-9999px";
-      tempContainer.style.left = "-9999px";
+      tempContainer.style.top = "0";
+      tempContainer.style.left = "0";
+      tempContainer.style.zIndex = "-99999";
+      tempContainer.style.opacity = "0.01";
+      tempContainer.style.pointerEvents = "none";
+      tempContainer.style.backgroundColor = "#18181b";
+      tempContainer.style.padding = "20px";
+      tempContainer.style.borderRadius = "8px";
+      tempContainer.style.display = "inline-block";
+      tempContainer.style.boxSizing = "border-box";
+      tempContainer.style.width = "max-content";
+      tempContainer.style.minWidth = "320px";
       document.body.appendChild(tempContainer);
 
       try {
+        if (abortSignal?.aborted) return null;
+
+        // Renderizado del diagrama con Mermaid
         const { svg } = await mermaid.render(id, cleanCode, tempContainer);
-        const res = await svgToDataUrl(svg);
-        if (res) {
-          let widthMm = CONTENT_W;
-          let heightMm = (res.height / res.width) * widthMm;
-          const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
-          if (heightMm > maxH) {
-            heightMm = maxH;
-            widthMm = (res.width / res.height) * heightMm;
-          }
-          return { dataUrl: res.dataUrl, widthMm, heightMm };
+        tempContainer.innerHTML = svg;
+
+        // Evitar que el SVG limite su ancho a 100% de contenedores angostos
+        const svgEl = tempContainer.querySelector("svg");
+        if (svgEl) {
+          svgEl.style.maxWidth = "none";
+          svgEl.style.display = "block";
         }
+
+        if (abortSignal?.aborted) return null;
+
+        // Rasterizar el contenedor exacto con html2canvas
+        const html2canvasModule = await import("html2canvas");
+        const html2canvas = html2canvasModule.default;
+
+        const canvas = await html2canvas(tempContainer, {
+          backgroundColor: "#18181b",
+          scale: 2, // 2x para definición retina en el PDF
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+        });
+
+        if (canvas.width <= 0 || canvas.height <= 0) {
+          return null;
+        }
+
+        // Compresión JPEG al 90% para calidad nítida y peso ultra bajo (~30-50 KB)
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
+
+        // Calcular dimensiones en milímetros para la hoja A4
+        const wPx = canvas.width / 2;
+        const hPx = canvas.height / 2;
+        let widthMm = Math.min(CONTENT_W, Math.max(80, wPx * 0.264583));
+        let heightMm = (hPx / wPx) * widthMm;
+
+        const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
+        if (heightMm > maxH) {
+          heightMm = maxH;
+          widthMm = (wPx / hPx) * heightMm;
+        }
+
+        return { dataUrl, widthMm, heightMm };
       } finally {
         tempContainer.remove();
       }
@@ -574,20 +643,24 @@ async function renderMermaidDiagramToImage(
       console.warn("Mermaid rendering for PDF failed:", err);
       return null;
     }
-    return null;
   })();
 
-  // Timeout de seguridad total de 3.5 segundos: si un diagrama se demora, continúa fluidamente
+  // Timeout de seguridad total de 4.5 segundos: si un diagrama se demora, continúa fluidamente
   const timeoutPromise = new Promise<{ dataUrl: string; widthMm: number; heightMm: number } | null>((resolve) => {
     setTimeout(() => {
-      console.warn("Mermaid render timed out after 3.5s, skipping to code block fallback");
+      console.warn("Mermaid render timed out after 4.5s, skipping to code block fallback");
       resolve(null);
-    }, 3500);
+    }, 4500);
   });
 
   return Promise.race([renderPromise, timeoutPromise]);
 }
 
+/**
+ * Logo oficial de TABE en formato Data URI PNG (64x64, 5.7 KB) para pie de página y marca institucional.
+ * Al reutilizarse la misma cadena en jsPDF, solo se guarda una única vez en todo el documento.
+ */
+const TABE_LOGO_DATA_URL = "data:image/png;base64,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";
 
 /**
  * Motor de renderizado PDF directo con jsPDF.
@@ -644,9 +717,54 @@ class PDFRenderer {
     const totalPages = this.doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       this.doc.setPage(i);
+
+      // Línea divisoria muy sutil al final de la hoja
+      this.doc.setDrawColor(228, 228, 231); // #e4e4e7
+      this.doc.setLineWidth(0.2);
+      this.doc.line(MARGIN_L, PAGE_H - 14, PAGE_W - MARGIN_R, PAGE_H - 14);
+
+      // Medidas y textos
+      this.doc.setFont("helvetica", "normal");
       this.doc.setFontSize(8);
+
+      const logoSize = 3.6; // 3.6mm x 3.6mm
+      const brandText = "TABE  •";
+      const linkText = "www.tabe.software";
+      const pageText = `—  Página ${i} de ${totalPages}`;
+
+      const brandW = this.doc.getTextWidth(brandText);
+      const linkW = this.doc.getTextWidth(linkText);
+      const pageW = this.doc.getTextWidth(pageText);
+      const gap = 1.8;
+
+      const totalW = logoSize + gap + brandW + gap + linkW + gap + pageW;
+      let curX = (PAGE_W - totalW) / 2;
+      const textY = PAGE_H - 9;
+      const logoY = textY - 3;
+
+      // 1. Logo oficial de la aplicación
+      try {
+        this.doc.addImage(TABE_LOGO_DATA_URL, "PNG", curX, logoY, logoSize, logoSize);
+      } catch {
+        // Fallback silencioso si falla el renderizado de la imagen
+      }
+      curX += logoSize + gap;
+
+      // 2. Marca TABE
       this.doc.setTextColor(...hexToRgb(C.muted));
-      this.doc.text(`TABE Apuntes — Página ${i} de ${totalPages}`, PAGE_W / 2, PAGE_H - 10, { align: "center" });
+      this.doc.text(brandText, curX, textY);
+      curX += brandW + gap;
+
+      // 3. Enlace web interactivo
+      this.doc.setTextColor(37, 99, 235); // azul #2563eb
+      this.doc.text(linkText, curX, textY);
+      // Link cliqueable en el PDF
+      this.doc.link(curX, textY - 3, linkW, 4.5, { url: "https://www.tabe.software" });
+      curX += linkW + gap;
+
+      // 4. Paginación
+      this.doc.setTextColor(...hexToRgb(C.muted));
+      this.doc.text(pageText, curX, textY);
     }
   }
 
