@@ -570,14 +570,14 @@ async function renderMermaidDiagramToImage(
       const mermaid = await getInitializedMermaid();
       const id = `mmd_pdf_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
 
-      // 1. Contenedor temporal aislado en el DOM para renderizar el diagrama
+      // 1. Contenedor temporal en el DOM detrás de la app (zIndex: -99999) con 100% opacidad para captura nítida
       const tempContainer = document.createElement("div");
       tempContainer.id = "c_" + id;
       tempContainer.style.position = "fixed";
       tempContainer.style.top = "0";
       tempContainer.style.left = "0";
       tempContainer.style.zIndex = "-99999";
-      tempContainer.style.opacity = "0.01";
+      tempContainer.style.opacity = "1"; // 100% visible para que html2canvas no lo haga transparente
       tempContainer.style.pointerEvents = "none";
       tempContainer.style.backgroundColor = "#18181b";
       tempContainer.style.padding = "20px";
@@ -604,9 +604,12 @@ async function renderMermaidDiagramToImage(
 
         if (abortSignal?.aborted) return null;
 
-        // Rasterizar el contenedor exacto con html2canvas
+        // Rasterizar rápidamente acotando solo al área del contenedor (sin recorrer todo el DOM)
         const html2canvasModule = await import("html2canvas");
         const html2canvas = html2canvasModule.default;
+
+        const cw = Math.max(320, tempContainer.offsetWidth || 600);
+        const ch = Math.max(100, tempContainer.offsetHeight || 400);
 
         const canvas = await html2canvas(tempContainer, {
           backgroundColor: "#18181b",
@@ -614,6 +617,12 @@ async function renderMermaidDiagramToImage(
           logging: false,
           useCORS: true,
           allowTaint: true,
+          width: cw,
+          height: ch,
+          windowWidth: cw + 100,
+          windowHeight: ch + 100,
+          x: 0,
+          y: 0,
         });
 
         if (canvas.width <= 0 || canvas.height <= 0) {
@@ -645,12 +654,12 @@ async function renderMermaidDiagramToImage(
     }
   })();
 
-  // Timeout de seguridad total de 4.5 segundos: si un diagrama se demora, continúa fluidamente
+  // Timeout de seguridad de 2.5 segundos para que la descarga sea siempre rápida
   const timeoutPromise = new Promise<{ dataUrl: string; widthMm: number; heightMm: number } | null>((resolve) => {
     setTimeout(() => {
-      console.warn("Mermaid render timed out after 4.5s, skipping to code block fallback");
+      console.warn("Mermaid render timed out after 2.5s, skipping to code block fallback");
       resolve(null);
-    }, 4500);
+    }, 2500);
   });
 
   return Promise.race([renderPromise, timeoutPromise]);
