@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { Link } from "react-router-dom";
+
 export function ForestWidget() {
   const { currentPlant, plantNewTree, plantTypes, loading, studyActivity } = useForest();
   const [selectedSeed, setSelectedSeed] = useState("oak");
@@ -38,10 +40,17 @@ export function ForestWidget() {
         <div className="w-1.5 h-1.5 rounded-full bg-foreground"></div>
       </div>
 
-      <div className="flex items-center gap-2 mb-4 relative z-10">
-        <h3 className="font-black text-xl text-foreground bg-white px-3 py-1 rounded-full border-2 border-foreground uppercase tracking-widest -rotate-2">
-          TABE-Gotchi
-        </h3>
+      <div className="flex items-center justify-between mb-4 relative z-10">
+        <Link
+          to="/bosque"
+          className="font-black text-xl text-foreground bg-white hover:bg-amber-100 px-3 py-1 rounded-full border-2 border-foreground uppercase tracking-widest -rotate-2 shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-transform inline-flex items-center gap-1.5"
+          title="Ver mi bosque completo"
+        >
+          <span>TABE-Gotchi</span>
+          <span className="text-xs bg-[#BFFF00] text-black px-1.5 py-0.5 rounded-full font-black border border-black">
+            ↗
+          </span>
+        </Link>
       </div>
 
       {/* "LCD" Screen */}

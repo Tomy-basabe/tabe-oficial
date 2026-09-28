@@ -117,4 +117,86 @@ export const ComicAudio = {
       // Ignore audio errors gracefully
     }
   },
+
+  // Play a cheerful magical sprout sound
+  playSprout: () => {
+    if (isAudioMuted) return;
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(700, now + 0.18);
+
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } catch {}
+  },
+
+  // Play a fresh water droplet sound
+  playWater: () => {
+    if (isAudioMuted) return;
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(900, now);
+      osc.frequency.exponentialRampToValueAtTime(350, now + 0.12);
+
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.14);
+    } catch {}
+  },
+
+  // Play a triumphant fanfare for tree completion
+  playFanfare: () => {
+    if (isAudioMuted) return;
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const chords = [
+        { f: 523.25, t: 0 },    // C5
+        { f: 659.25, t: 0.08 }, // E5
+        { f: 783.99, t: 0.16 }, // G5
+        { f: 1046.5, t: 0.26 }, // C6
+      ];
+      const now = ctx.currentTime;
+
+      chords.forEach(({ f, t }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(f, now + t);
+        gain.gain.setValueAtTime(0.12, now + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + t);
+        osc.stop(now + t + 0.25);
+      });
+    } catch {}
+  },
 };
