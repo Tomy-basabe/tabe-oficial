@@ -472,35 +472,92 @@ function sanitizeSvgForImageRendering(svgContent: SVGElement | string): { svg: s
     // Convertimos cada foreignObject en elementos <text> SVG nativos idénticos con sus tspans.
     const foreignObjects = Array.from(doc.querySelectorAll("foreignObject"));
     for (const fo of foreignObjects) {
-      const textNodes = Array.from(fo.querySelectorAll("div, span, p, td, th, li"))
-        .map((el) => el.textContent?.trim() || "")
-        .filter((t) => t.length > 0);
+      const foW = parseFloat(fo.getAttribute("width") || "0") || 100;
+      const foH = parseFloat(fo.getAttribute("height") || "0") || 24;
 
-      const rawText = fo.textContent?.trim() || "";
-      if (!rawText && textNodes.length === 0) {
+      // Obtener exclusivamente los elementos terminales/hoja (sin hijos) para no duplicar divs contenedores
+      const allElements = Array.from(fo.querySelectorAll("*"));
+      const leafElements = allElements.filter(
+        (el) => el.children.length === 0 && Boolean(el.textContent?.trim())
+      );
+
+      let lines: string[] = [];
+      if (leafElements.length > 0) {
+        // Usar un Set ordenado para evitar cualquier duplicado exacto dentro del mismo bloque
+        const seen = new Set<string>();
+        for (const leaf of leafElements) {
+          const text = leaf.textContent?.trim();
+          if (text && !seen.has(text)) {
+            seen.add(text);
+            lines.push(text);
+          }
+        }
+      } else {
+        const raw = fo.textContent?.trim() || "";
+        lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      }
+
+      if (lines.length === 0) {
         fo.remove();
         continue;
       }
 
-      const lines = textNodes.length > 0 ? textNodes : rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      // Detectar si es título de clase, etiqueta de relación/flecha o lista de miembros
+      const isMember = lines.some((l) => /^[-+*#~]\s*/.test(l) || l.includes(":") || l.includes("()"));
+      const isSingleLine = lines.length === 1;
 
       const textEl = doc.createElementNS("http://www.w3.org/2000/svg", "text");
-      textEl.setAttribute("x", "6");
-      textEl.setAttribute("y", "14");
-      textEl.setAttribute("fill", "#f4f4f5");
-      textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
-      textEl.setAttribute("font-size", "12px");
 
-      let isFirst = true;
-      for (const line of lines) {
-        const tspan = doc.createElementNS("http://www.w3.org/2000/svg", "tspan");
-        tspan.setAttribute("x", "6");
-        if (!isFirst) {
-          tspan.setAttribute("dy", "1.35em");
+      if (isMember) {
+        // Atributos y métodos: alineados a la izquierda con sangría prolija y fuente monospace
+        textEl.setAttribute("text-anchor", "start");
+        textEl.setAttribute("x", "10");
+        textEl.setAttribute("y", "14");
+        textEl.setAttribute("fill", "#f4f4f5");
+        textEl.setAttribute("font-family", "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace");
+        textEl.setAttribute("font-size", "11px");
+
+        let isFirst = true;
+        for (const line of lines) {
+          const tspan = doc.createElementNS("http://www.w3.org/2000/svg", "tspan");
+          tspan.setAttribute("x", "10");
+          if (!isFirst) {
+            tspan.setAttribute("dy", "1.45em");
+          }
+          tspan.textContent = line;
+          textEl.appendChild(tspan);
+          isFirst = false;
         }
-        tspan.textContent = line;
-        textEl.appendChild(tspan);
-        isFirst = false;
+      } else if (isSingleLine) {
+        // Títulos de clase o etiquetas de relación (crea, construye): centrados en la caja
+        textEl.setAttribute("text-anchor", "middle");
+        textEl.setAttribute("x", String(Math.round(foW / 2)));
+        textEl.setAttribute("y", String(Math.round(foH / 2) + 4));
+        textEl.setAttribute("fill", "#ffffff");
+        textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+        textEl.setAttribute("font-size", "12.5px");
+        textEl.setAttribute("font-weight", "600");
+        textEl.textContent = lines[0];
+      } else {
+        // Varias líneas centradas
+        textEl.setAttribute("text-anchor", "middle");
+        textEl.setAttribute("x", String(Math.round(foW / 2)));
+        textEl.setAttribute("y", "14");
+        textEl.setAttribute("fill", "#f4f4f5");
+        textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+        textEl.setAttribute("font-size", "12px");
+
+        let isFirst = true;
+        for (const line of lines) {
+          const tspan = doc.createElementNS("http://www.w3.org/2000/svg", "tspan");
+          tspan.setAttribute("x", String(Math.round(foW / 2)));
+          if (!isFirst) {
+            tspan.setAttribute("dy", "1.4em");
+          }
+          tspan.textContent = line;
+          textEl.appendChild(tspan);
+          isFirst = false;
+        }
       }
 
       fo.parentNode?.replaceChild(textEl, fo);
