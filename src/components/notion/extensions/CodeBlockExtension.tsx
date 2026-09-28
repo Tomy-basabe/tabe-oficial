@@ -375,12 +375,12 @@ function CodeBlockView({ node, updateAttributes, extension }: any) {
   useEffect(() => {
     if (language === "plain") {
       const text = node.textContent || "";
-      if (text.length > 8 && text.length < 500) {
+      if (text.length > 8 && text.length < 30000) {
         const firstLine = text.trimStart().split("\n")[0]?.trim() || "";
         if (/^(flowchart\s+(TD|TB|BT|RL|LR)|sequenceDiagram|classDiagram|erDiagram|gantt|pie|gitGraph|journey|mindmap|timeline)\b/i.test(firstLine)) {
           const timer = setTimeout(() => {
             updateAttributes({ language: "mermaid" });
-          }, 600);
+          }, 400);
           return () => clearTimeout(timer);
         }
       }
