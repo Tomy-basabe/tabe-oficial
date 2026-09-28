@@ -434,14 +434,14 @@ function sanitizeSvgForImageRendering(svgContent: SVGElement | string): { svg: s
 
     if (viewBox) {
       const parts = viewBox.trim().split(/[\s,]+/).map(Number);
-      if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
+      if (parts.length >= 4 && parts[2] > 20 && parts[3] > 20) {
         width = Math.round(parts[2]);
         height = Math.round(parts[3]);
       }
     } else {
       const wAttr = parseFloat(svgEl.getAttribute("width") || "0");
       const hAttr = parseFloat(svgEl.getAttribute("height") || "0");
-      if (wAttr > 0 && hAttr > 0) {
+      if (wAttr > 20 && hAttr > 20) {
         width = Math.round(wAttr);
         height = Math.round(hAttr);
       }
@@ -450,60 +450,60 @@ function sanitizeSvgForImageRendering(svgContent: SVGElement | string): { svg: s
     // Inyectar ancho y alto explícitos en el tag raíz <svg> para el motor de rasterización
     svgEl.setAttribute("width", String(width));
     svgEl.setAttribute("height", String(height));
-    svgEl.setAttribute("style", "background-color: #18181b;");
+    if (!svgEl.getAttribute("viewBox")) {
+      svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    }
+
+    // Inyectar estilos CSS embebidos para colores oscuros garantizados y contraste perfecto
+    const styleEl = doc.createElementNS("http://www.w3.org/2000/svg", "style");
+    styleEl.textContent = `
+      svg { background-color: #18181b; }
+      rect { fill: #27272a !important; stroke: #52525b !important; stroke-width: 1.5px !important; }
+      .outer { fill: #27272a !important; stroke: #52525b !important; }
+      line { stroke: #52525b !important; stroke-width: 1.5px !important; }
+      path { stroke: #9ca3af !important; stroke-width: 1.5px !important; fill: none !important; }
+      text { fill: #f4f4f5 !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; font-size: 12px !important; }
+      tspan { fill: #f4f4f5 !important; }
+      .nodeLabel, .classTitle { font-weight: bold !important; fill: #60a5fa !important; }
+    `;
+    svgEl.insertBefore(styleEl, svgEl.firstChild);
 
     // Limpieza de foreignObject: los navegadores bloquean new Image().src si contiene <foreignObject>.
-    // Convertimos cada foreignObject en elementos <text> SVG nativos idénticos.
+    // Convertimos cada foreignObject en elementos <text> SVG nativos idénticos con sus tspans.
     const foreignObjects = Array.from(doc.querySelectorAll("foreignObject"));
     for (const fo of foreignObjects) {
-      const x = parseFloat(fo.getAttribute("x") || "0");
-      const y = parseFloat(fo.getAttribute("y") || "0");
-      const w = parseFloat(fo.getAttribute("width") || "0");
-      const h = parseFloat(fo.getAttribute("height") || "0");
+      const textNodes = Array.from(fo.querySelectorAll("div, span, p, td, th, li"))
+        .map((el) => el.textContent?.trim() || "")
+        .filter((t) => t.length > 0);
 
-      const textNodes = Array.from(fo.querySelectorAll("div, span, p, td, th")).filter(el => el.textContent?.trim());
       const rawText = fo.textContent?.trim() || "";
-      if (!rawText) {
+      if (!rawText && textNodes.length === 0) {
         fo.remove();
         continue;
       }
 
-      if (textNodes.length > 1) {
-        const textEl = doc.createElementNS("http://www.w3.org/2000/svg", "text");
-        textEl.setAttribute("x", String(Math.round(x + 4)));
-        textEl.setAttribute("y", String(Math.round(y + 12)));
-        textEl.setAttribute("fill", "#f4f4f5");
-        textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
-        textEl.setAttribute("font-size", "11px");
+      const lines = textNodes.length > 0 ? textNodes : rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
-        let lineIdx = 0;
-        for (const tn of textNodes) {
-          const tText = tn.textContent?.trim();
-          if (tText) {
-            const tspan = doc.createElementNS("http://www.w3.org/2000/svg", "tspan");
-            tspan.setAttribute("x", String(Math.round(x + 4)));
-            if (lineIdx > 0) {
-              tspan.setAttribute("dy", "1.3em");
-            }
-            tspan.textContent = tText;
-            textEl.appendChild(tspan);
-            lineIdx++;
-          }
+      const textEl = doc.createElementNS("http://www.w3.org/2000/svg", "text");
+      textEl.setAttribute("x", "6");
+      textEl.setAttribute("y", "14");
+      textEl.setAttribute("fill", "#f4f4f5");
+      textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+      textEl.setAttribute("font-size", "12px");
+
+      let isFirst = true;
+      for (const line of lines) {
+        const tspan = doc.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        tspan.setAttribute("x", "6");
+        if (!isFirst) {
+          tspan.setAttribute("dy", "1.35em");
         }
-        fo.parentNode?.replaceChild(textEl, fo);
-      } else {
-        const textEl = doc.createElementNS("http://www.w3.org/2000/svg", "text");
-        textEl.setAttribute("x", String(Math.round(x + w / 2)));
-        textEl.setAttribute("y", String(Math.round(y + h / 2)));
-        textEl.setAttribute("text-anchor", "middle");
-        textEl.setAttribute("dominant-baseline", "central");
-        textEl.setAttribute("fill", "#f4f4f5");
-        textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
-        textEl.setAttribute("font-size", "12px");
-        textEl.setAttribute("font-weight", "500");
-        textEl.textContent = rawText;
-        fo.parentNode?.replaceChild(textEl, fo);
+        tspan.textContent = line;
+        textEl.appendChild(tspan);
+        isFirst = false;
       }
+
+      fo.parentNode?.replaceChild(textEl, fo);
     }
 
     const cleanSvg = new XMLSerializer().serializeToString(doc.documentElement);
@@ -520,17 +520,32 @@ async function svgToRasterImage(
   svgContent: SVGElement | string
 ): Promise<{ dataUrl: string; width: number; height: number } | null> {
   const sanitized = sanitizeSvgForImageRendering(svgContent);
-  if (!sanitized) return null;
+  if (!sanitized || sanitized.width < 20 || sanitized.height < 20) return null;
 
   const dataUri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(sanitized.svg);
 
   return new Promise((resolve) => {
     const img = new Image();
-    const timeout = setTimeout(() => resolve(null), 1500);
+    let isSettled = false;
+
+    const timeout = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        resolve(null);
+      }
+    }, 1500);
 
     img.onload = () => {
+      if (isSettled) return;
+      isSettled = true;
       clearTimeout(timeout);
+
       try {
+        if (!img.naturalWidth || !img.naturalHeight || img.naturalWidth < 20) {
+          resolve(null);
+          return;
+        }
+
         const scale = 2; // Alta resolución
         const canvas = document.createElement("canvas");
         canvas.width = Math.min(2400, Math.max(300, Math.round(sanitized.width * scale)));
@@ -550,8 +565,10 @@ async function svgToRasterImage(
     };
 
     img.onerror = () => {
+      if (isSettled) return;
+      isSettled = true;
       clearTimeout(timeout);
-      resolve(null);
+      resolve(null); // ¡NUNCA devolver un canvas negro si la imagen falló!
     };
 
     img.src = dataUri;
@@ -600,12 +617,16 @@ async function renderMermaidDiagramToImage(
     }
 
     // 2. Si no está en el DOM, renderizar con mermaid directamente offscreen de forma nativa
+    // ¡IMPORTANTE!: Usar position: absolute y visibility: hidden (NUNCA display: none para que getBBox no colapse a 0)
     if (abortSignal?.aborted) return null;
     const mermaid = (await import("mermaid")).default;
     const id = `mmd_p_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
 
     const tempDiv = document.createElement("div");
-    tempDiv.style.display = "none";
+    tempDiv.style.position = "absolute";
+    tempDiv.style.top = "-9999px";
+    tempDiv.style.left = "-9999px";
+    tempDiv.style.visibility = "hidden";
     document.body.appendChild(tempDiv);
 
     try {
