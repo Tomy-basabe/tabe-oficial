@@ -8,7 +8,7 @@ import jsPDF from "jspdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ComicBadge } from "@/components/comic/ComicBadge";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { sanitizeMermaidCode } from "./extensions/CodeBlockExtension";
+import { sanitizeMermaidCode, runInMermaidQueue } from "./extensions/CodeBlockExtension";
 import { getIconById, TabeIconRenderer } from "./TabeIcons";
 
 interface TipTapPDFExporterProps {
@@ -409,8 +409,8 @@ async function fetchImageDataUrl(
 /**
 /**
  * Sanitiza un SVG de Mermaid para permitir su rasterización directa e instantánea (5-15ms)
- * en Canvas nativo sin html2canvas ni dependencias externas.
- * Reemplaza <foreignObject> por elementos <text> SVG puros e inyecta dimensiones explícitas.
+ * en Canvas nativo de alta resolución.
+ * Asegura fondo oscuro #18181b, dimensiones explícitas y maneja cualquier foreignObject residual.
  */
 function sanitizeSvgForImageRendering(svgContent: SVGElement | string): { svg: string; width: number; height: number } | null {
   try {
@@ -454,111 +454,68 @@ function sanitizeSvgForImageRendering(svgContent: SVGElement | string): { svg: s
       svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
     }
 
-    // Inyectar estilos CSS embebidos para colores oscuros garantizados y contraste perfecto
+    // Asegurar fondo oscuro uniforme #18181b
+    svgEl.setAttribute("style", `background-color: #18181b; ${svgEl.getAttribute("style") || ""}`);
+
+    // Inyectar un rect de fondo como primer elemento para garantizar color oscuro en el canvas
+    const bgRect = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
+    bgRect.setAttribute("width", "100%");
+    bgRect.setAttribute("height", "100%");
+    bgRect.setAttribute("fill", "#18181b");
+    svgEl.insertBefore(bgRect, svgEl.firstChild);
+
+    // Tipografía limpia y nítida
     const styleEl = doc.createElementNS("http://www.w3.org/2000/svg", "style");
     styleEl.textContent = `
       svg { background-color: #18181b; }
-      rect { fill: #27272a !important; stroke: #52525b !important; stroke-width: 1.5px !important; }
-      .outer { fill: #27272a !important; stroke: #52525b !important; }
-      line { stroke: #52525b !important; stroke-width: 1.5px !important; }
-      path { stroke: #9ca3af !important; stroke-width: 1.5px !important; fill: none !important; }
-      text { fill: #f4f4f5 !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; font-size: 12px !important; }
-      tspan { fill: #f4f4f5 !important; }
-      .nodeLabel, .classTitle { font-weight: bold !important; fill: #60a5fa !important; }
+      text, tspan { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; }
     `;
     svgEl.insertBefore(styleEl, svgEl.firstChild);
 
-    // Limpieza de foreignObject: los navegadores bloquean new Image().src si contiene <foreignObject>.
-    // Convertimos cada foreignObject en elementos <text> SVG nativos idénticos con sus tspans.
+    // Si aún existiera algún foreignObject residual, convertirlo preservando saltos de línea (<br>)
     const foreignObjects = Array.from(doc.querySelectorAll("foreignObject"));
     for (const fo of foreignObjects) {
-      const foW = parseFloat(fo.getAttribute("width") || "0") || 100;
-      const foH = parseFloat(fo.getAttribute("height") || "0") || 24;
+      const foX = parseFloat(fo.getAttribute("x") || "0");
+      const foY = parseFloat(fo.getAttribute("y") || "0");
+      const foW = parseFloat(fo.getAttribute("width") || "0") || 120;
+      const foH = parseFloat(fo.getAttribute("height") || "0") || 30;
 
-      // Obtener exclusivamente los elementos terminales/hoja (sin hijos) para no duplicar divs contenedores
-      const allElements = Array.from(fo.querySelectorAll("*"));
-      const leafElements = allElements.filter(
-        (el) => el.children.length === 0 && Boolean(el.textContent?.trim())
-      );
+      const clone = fo.cloneNode(true) as Element;
+      clone.querySelectorAll("br").forEach((br) => br.replaceWith("\n"));
+      clone.querySelectorAll("p, div").forEach((b) => {
+        b.prepend("\n");
+        b.append("\n");
+      });
 
-      let lines: string[] = [];
-      if (leafElements.length > 0) {
-        // Usar un Set ordenado para evitar cualquier duplicado exacto dentro del mismo bloque
-        const seen = new Set<string>();
-        for (const leaf of leafElements) {
-          const text = leaf.textContent?.trim();
-          if (text && !seen.has(text)) {
-            seen.add(text);
-            lines.push(text);
-          }
-        }
-      } else {
-        const raw = fo.textContent?.trim() || "";
-        lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      }
+      const raw = clone.textContent || "";
+      const lines = raw
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
 
       if (lines.length === 0) {
         fo.remove();
         continue;
       }
 
-      // Detectar si es título de clase, etiqueta de relación/flecha o lista de miembros
-      const isMember = lines.some((l) => /^[-+*#~]\s*/.test(l) || l.includes(":") || l.includes("()"));
-      const isSingleLine = lines.length === 1;
-
       const textEl = doc.createElementNS("http://www.w3.org/2000/svg", "text");
+      textEl.setAttribute("text-anchor", "middle");
+      textEl.setAttribute("fill", "#f4f4f5");
+      textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+      textEl.setAttribute("font-size", "12px");
 
-      if (isMember) {
-        // Atributos y métodos: alineados a la izquierda con sangría prolija y fuente monospace
-        textEl.setAttribute("text-anchor", "start");
-        textEl.setAttribute("x", "10");
-        textEl.setAttribute("y", "14");
-        textEl.setAttribute("fill", "#f4f4f5");
-        textEl.setAttribute("font-family", "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace");
-        textEl.setAttribute("font-size", "11px");
+      const lineH = 14;
+      const totalH = lines.length * lineH;
+      const startY = foY + Math.max(12, (foH - totalH) / 2 + 10);
+      const centerX = foX + foW / 2;
 
-        let isFirst = true;
-        for (const line of lines) {
-          const tspan = doc.createElementNS("http://www.w3.org/2000/svg", "tspan");
-          tspan.setAttribute("x", "10");
-          if (!isFirst) {
-            tspan.setAttribute("dy", "1.45em");
-          }
-          tspan.textContent = line;
-          textEl.appendChild(tspan);
-          isFirst = false;
-        }
-      } else if (isSingleLine) {
-        // Títulos de clase o etiquetas de relación (crea, construye): centrados en la caja
-        textEl.setAttribute("text-anchor", "middle");
-        textEl.setAttribute("x", String(Math.round(foW / 2)));
-        textEl.setAttribute("y", String(Math.round(foH / 2) + 4));
-        textEl.setAttribute("fill", "#ffffff");
-        textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
-        textEl.setAttribute("font-size", "12.5px");
-        textEl.setAttribute("font-weight", "600");
-        textEl.textContent = lines[0];
-      } else {
-        // Varias líneas centradas
-        textEl.setAttribute("text-anchor", "middle");
-        textEl.setAttribute("x", String(Math.round(foW / 2)));
-        textEl.setAttribute("y", "14");
-        textEl.setAttribute("fill", "#f4f4f5");
-        textEl.setAttribute("font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
-        textEl.setAttribute("font-size", "12px");
-
-        let isFirst = true;
-        for (const line of lines) {
-          const tspan = doc.createElementNS("http://www.w3.org/2000/svg", "tspan");
-          tspan.setAttribute("x", String(Math.round(foW / 2)));
-          if (!isFirst) {
-            tspan.setAttribute("dy", "1.4em");
-          }
-          tspan.textContent = line;
-          textEl.appendChild(tspan);
-          isFirst = false;
-        }
-      }
+      lines.forEach((line, idx) => {
+        const tspan = doc.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        tspan.setAttribute("x", String(Math.round(centerX)));
+        tspan.setAttribute("y", String(Math.round(startY + idx * lineH)));
+        tspan.textContent = line;
+        textEl.appendChild(tspan);
+      });
 
       fo.parentNode?.replaceChild(textEl, fo);
     }
@@ -590,7 +547,7 @@ async function svgToRasterImage(
         isSettled = true;
         resolve(null);
       }
-    }, 1500);
+    }, 3000);
 
     img.onload = () => {
       if (isSettled) return;
@@ -603,7 +560,7 @@ async function svgToRasterImage(
           return;
         }
 
-        const scale = 2; // Alta resolución
+        const scale = 2; // Alta resolución (2x) para nitidez en el documento PDF
         const canvas = document.createElement("canvas");
         canvas.width = Math.min(2400, Math.max(300, Math.round(sanitized.width * scale)));
         canvas.height = Math.min(2400, Math.max(150, Math.round(sanitized.height * scale)));
@@ -625,7 +582,7 @@ async function svgToRasterImage(
       if (isSettled) return;
       isSettled = true;
       clearTimeout(timeout);
-      resolve(null); // ¡NUNCA devolver un canvas negro si la imagen falló!
+      resolve(null);
     };
 
     img.src = dataUri;
@@ -634,7 +591,8 @@ async function svgToRasterImage(
 
 /**
  * Renderiza diagramas Mermaid a imagen de alta resolución para incrustar en el PDF.
- * Usa captura nativa instantánea sin html2canvas para no ralentizar el editor ni la descarga.
+ * Usa renderizado nativo SVG con htmlLabels: false para que nunca use foreignObject,
+ * permitiendo una rasterización instantánea (10-20ms) y visualmente idéntica al editor.
  */
 async function renderMermaidDiagramToImage(
   code: string,
@@ -646,12 +604,12 @@ async function renderMermaidDiagramToImage(
   try {
     const cleanCode = sanitizeMermaidCode(code);
 
-    // 1. Intentar capturar desde el SVG que ya está renderizado en el editor del usuario (<5ms)
+    // 1. Si en el DOM ya existe un SVG renderizado sin foreignObject, reutilizarlo de inmediato (<5ms)
     const mermaidContainers = Array.from(document.querySelectorAll(".mermaid-rendered"));
     for (const container of mermaidContainers) {
       if (abortSignal?.aborted) return null;
       const svg = container.querySelector("svg");
-      if (svg) {
+      if (svg && !svg.querySelector("foreignObject")) {
         const parentBlock = container.closest(".code-block-wrapper");
         const rawText = parentBlock?.textContent || "";
         if (
@@ -673,35 +631,95 @@ async function renderMermaidDiagramToImage(
       }
     }
 
-    // 2. Si no está en el DOM, renderizar con mermaid directamente offscreen de forma nativa
-    // ¡IMPORTANTE!: Usar position: absolute y visibility: hidden (NUNCA display: none para que getBBox no colapse a 0)
+    // 2. Renderizado dedicado para PDF con htmlLabels: false (SVG 100% nativo sin foreignObject)
+    // Se ejecuta secuencialmente en la cola para prevenir colisiones en el DOM
     if (abortSignal?.aborted) return null;
     const mermaid = (await import("mermaid")).default;
-    const id = `mmd_p_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
 
-    const tempDiv = document.createElement("div");
-    tempDiv.style.position = "absolute";
-    tempDiv.style.top = "-9999px";
-    tempDiv.style.left = "-9999px";
-    tempDiv.style.visibility = "hidden";
-    document.body.appendChild(tempDiv);
+    return await runInMermaidQueue(async () => {
+      if (abortSignal?.aborted) return null;
 
-    try {
-      const { svg } = await mermaid.render(id, cleanCode, tempDiv);
-      const res = await svgToRasterImage(svg);
-      if (res) {
-        let widthMm = Math.min(CONTENT_W, Math.max(90, (res.width / 2) * 0.264583));
-        let heightMm = (res.height / res.width) * widthMm;
-        const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
-        if (heightMm > maxH) {
-          heightMm = maxH;
-          widthMm = (res.width / res.height) * heightMm;
-        }
-        return { dataUrl: res.dataUrl, widthMm, heightMm };
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: "loose",
+        theme: "dark",
+        htmlLabels: false,
+        flowchart: {
+          htmlLabels: false,
+          useMaxWidth: false,
+        },
+        themeVariables: {
+          darkMode: true,
+          background: "#18181b",
+          mainBkg: "#27272a",
+          nodeBorder: "#52525b",
+          textColor: "#f4f4f5",
+          lineColor: "#9ca3af",
+          edgeLabelBackground: "#18181b",
+          primaryColor: "#27272a",
+          primaryTextColor: "#f4f4f5",
+          primaryBorderColor: "#52525b",
+          secondaryColor: "#1f1f23",
+          tertiaryColor: "#18181b",
+          nodeTextColor: "#f4f4f5",
+          clusterBkg: "#1f1f23",
+          clusterBorder: "#3f3f46",
+          titleColor: "#f4f4f5",
+          fontSize: "13px",
+        },
+      });
+
+      // Asegurar directiva para que el diagrama individual fuerce htmlLabels: false
+      let renderCode = cleanCode;
+      if (renderCode.includes("%%{init:")) {
+        renderCode = renderCode.replace(
+          /%%\{init:\s*(\{.*?\})\s*\}%%/s,
+          (_, json) => {
+            try {
+              const cfg = JSON.parse(json);
+              cfg.htmlLabels = false;
+              cfg.flowchart = { ...(cfg.flowchart || {}), htmlLabels: false };
+              cfg.theme = cfg.theme || "dark";
+              return `%%{init: ${JSON.stringify(cfg)}}%%`;
+            } catch {
+              return `%%{init: {"theme": "dark", "htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%\n${_}`;
+            }
+          }
+        );
+      } else {
+        renderCode = `%%{init: {"theme": "dark", "htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%\n${renderCode}`;
       }
-    } finally {
-      tempDiv.remove();
-    }
+
+      const id = `mmd_p_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+      const tempDiv = document.createElement("div");
+      tempDiv.id = "c_" + id;
+      tempDiv.style.position = "fixed";
+      tempDiv.style.top = "0";
+      tempDiv.style.left = "-9999px";
+      tempDiv.style.width = "1200px";
+      tempDiv.style.height = "auto";
+      tempDiv.style.opacity = "0";
+      tempDiv.style.pointerEvents = "none";
+      document.body.appendChild(tempDiv);
+
+      try {
+        const { svg } = await mermaid.render(id, renderCode, tempDiv);
+        const res = await svgToRasterImage(svg);
+        if (res) {
+          let widthMm = Math.min(CONTENT_W, Math.max(90, (res.width / 2) * 0.264583));
+          let heightMm = (res.height / res.width) * widthMm;
+          const maxH = PAGE_H - MARGIN_T - MARGIN_B - 25;
+          if (heightMm > maxH) {
+            heightMm = maxH;
+            widthMm = (res.width / res.height) * heightMm;
+          }
+          return { dataUrl: res.dataUrl, widthMm, heightMm };
+        }
+      } finally {
+        tempDiv.remove();
+      }
+      return null;
+    });
   } catch (err) {
     console.warn("Mermaid rendering for PDF:", err);
   }

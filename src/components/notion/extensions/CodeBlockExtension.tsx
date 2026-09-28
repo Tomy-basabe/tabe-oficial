@@ -49,7 +49,7 @@ const LANGUAGES = [
 // Lazy-loaded mermaid renderer
 // Sequential queue to guarantee mermaid renders never conflict in the DOM
 let mermaidRenderQueue = Promise.resolve();
-function runInMermaidQueue<T>(task: () => Promise<T>): Promise<T> {
+export function runInMermaidQueue<T>(task: () => Promise<T>): Promise<T> {
   const next = mermaidRenderQueue.then(task, task);
   mermaidRenderQueue = next.catch(() => {}) as Promise<any>;
   return next;
