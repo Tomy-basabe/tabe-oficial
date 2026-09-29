@@ -633,7 +633,7 @@ export default function Routines() {
         ))}
       </div>
 
-            {loading ? (
+            {loading && routines.length === 0 ? (
                 <LoadingScreen message="Cargando Rutinas..." submessage="Organizando tus bloques semanales..." />
             ) : (
                 <>
@@ -708,7 +708,7 @@ export default function Routines() {
                         </div>
                     </div>
                     {/* Routine List */}
-                    {routines.length > 0 && (
+                    {routines.length > 0 ? (
                         <div>
                             <h2 className="text-2xl font-display font-black uppercase tracking-widest mb-6 flex items-center gap-3 text-foreground">
                                 <TrendingUp className="w-8 h-8 text-foreground" /> Mis Rutinas
@@ -777,6 +777,23 @@ export default function Routines() {
                                     );
                                 })}
                             </div>
+                        </div>
+                    ) : (
+                        <div className="bg-card rounded-2xl border-4 border-foreground p-8 text-center shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col items-center justify-center gap-4">
+                            <div className="w-16 h-16 rounded-2xl bg-[#FFE66D] border-4 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center justify-center rotate-[-4deg]">
+                                <CalendarDays className="w-8 h-8 text-black" />
+                            </div>
+                            <h3 className="text-xl sm:text-2xl font-black uppercase text-foreground">¡Tu semana está lista para organizar!</h3>
+                            <p className="text-muted-foreground text-sm max-w-md font-bold">
+                                No tienes rutinas activas todavía. Agrega tus horarios de cursada, estudio o hábitos personales para visualizarlos en tu grilla.
+                            </p>
+                            <button
+                                onClick={() => { setEditRoutine(null); setFormOpen(true); }}
+                                className="px-6 py-3 rounded-xl bg-[#00FFAA] text-black border-4 border-foreground font-black uppercase tracking-wider shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Crear mi primera rutina
+                            </button>
                         </div>
                     )}
                 </>

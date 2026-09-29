@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -93,10 +93,52 @@ export const TIME_BLOCKS = [
     "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00",
 ];
 
+// ────────────────────────────── Cache & Equality ───────────────────
+
+let _cachedUserId: string | null = null;
+let _cachedRoutines: Routine[] | null = null;
+let _cachedOverrides: RoutineOverride[] | null = null;
+let _cachedLogs: RoutineLog[] | null = null;
+
+function getStoredRoutines(userId: string): { routines: Routine[]; overrides: RoutineOverride[] } | null {
+    try {
+        const raw = localStorage.getItem(`tabe_routines_cache_${userId}`);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+function setStoredRoutines(userId: string, routines: Routine[], overrides: RoutineOverride[]) {
+    try {
+        localStorage.setItem(`tabe_routines_cache_${userId}`, JSON.stringify({ routines, overrides }));
+    } catch {}
+}
+
+function areRoutinesEqual(a: Routine[], b: Routine[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        if (a[i].id !== b[i].id || a[i].name !== b[i].name || a[i].start_time !== b[i].start_time || a[i].end_time !== b[i].end_time) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function areLogsEqual(a: RoutineLog[], b: RoutineLog[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        if (a[i].id !== b[i].id || a[i].completed !== b[i].completed || a[i].completion_percentage !== b[i].completion_percentage) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // ────────────────────────────── Helpers ────────────────────────────
 
 function resolveRoutineForDate(routine: Routine, overrides: RoutineOverride[], dateStr: string): ResolvedRoutine | null {
-    // Find the most recent override whose effective_from <= dateStr
     const applicable = overrides
         .filter(o => o.routine_id === routine.id && o.effective_from <= dateStr)
         .sort((a, b) => b.effective_from.localeCompare(a.effective_from));
@@ -117,77 +159,131 @@ function resolveRoutineForDate(routine: Routine, overrides: RoutineOverride[], d
     return resolved;
 }
 
-function timeToMinutes(t: string): number {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + (m || 0);
-}
-
 // ────────────────────────────── Hook ───────────────────────────────
 
 export function useRoutines() {
     const { user } = useAuth();
-    const [routines, setRoutines] = useState<Routine[]>([]);
-    const [overrides, setOverrides] = useState<RoutineOverride[]>([]);
-    const [logs, setLogs] = useState<RoutineLog[]>([]);
+    const userId = user?.id;
+
+    // Reset module cache if user changed
+    if (userId && userId !== _cachedUserId) {
+        _cachedUserId = userId;
+        _cachedRoutines = null;
+        _cachedOverrides = null;
+        _cachedLogs = null;
+    }
+
+    // Hydrate from localStorage if memory cache is empty
+    if (userId && !_cachedRoutines) {
+        const stored = getStoredRoutines(userId);
+        if (stored) {
+            _cachedRoutines = stored.routines;
+            _cachedOverrides = stored.overrides;
+        }
+    }
+
+    const [routines, setRoutines] = useState<Routine[]>(_cachedRoutines || []);
+    const [overrides, setOverrides] = useState<RoutineOverride[]>(_cachedOverrides || []);
+    const [logs, setLogs] = useState<RoutineLog[]>(_cachedLogs || []);
     const [historyLogs, setHistoryLogs] = useState<RoutineLog[]>([]);
-    const [loading, setLoading] = useState(true);
+    
+    // If we have cached routines or user is guest/empty, avoid initial full-screen loading flash
+    const hasLoadedRef = useRef<boolean>(!!_cachedRoutines);
+    const [loading, setLoading] = useState<boolean>(!_cachedRoutines);
+
     const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() =>
         startOfWeek(new Date(), { weekStartsOn: 1 })
     );
 
+    // Keep refs for active state
+    const routinesRef = useRef(routines);
+    routinesRef.current = routines;
+    const logsRef = useRef(logs);
+    logsRef.current = logs;
+
     // ─── Fetch ────────────────────────────────────
 
     const fetchRoutines = useCallback(async () => {
-        if (!user) return;
+        if (!userId) return;
         try {
-            const rRes = await supabase.from("routines").select("*").eq("user_id", user.id).eq("is_active", true).order("start_time");
-            if (rRes.error) { console.error(rRes.error); return; }
+            const rRes = await supabase
+                .from("routines")
+                .select("*")
+                .eq("user_id", userId)
+                .eq("is_active", true)
+                .order("start_time");
+
+            if (rRes.error) {
+                console.error("Error fetching routines:", rRes.error);
+                return;
+            }
 
             const routinesData = (rRes.data as Routine[]) || [];
-            setRoutines(routinesData);
 
+            let overridesData: RoutineOverride[] = [];
             if (routinesData.length > 0) {
                 const routineIds = routinesData.map(r => r.id);
-                const oRes = await supabase.from("routine_overrides").select("*").in("routine_id", routineIds);
-                if (oRes.error) { console.error(oRes.error); }
-                setOverrides((oRes.data as RoutineOverride[]) || []);
-            } else {
-                setOverrides([]);
+                const oRes = await supabase
+                    .from("routine_overrides")
+                    .select("*")
+                    .in("routine_id", routineIds);
+
+                if (!oRes.error && oRes.data) {
+                    overridesData = oRes.data as RoutineOverride[];
+                }
             }
+
+            _cachedRoutines = routinesData;
+            _cachedOverrides = overridesData;
+            setStoredRoutines(userId, routinesData, overridesData);
+
+            setRoutines(prev => areRoutinesEqual(prev, routinesData) ? prev : routinesData);
+            setOverrides(overridesData);
         } catch (error) {
             console.error("Error fetching routines:", error);
         }
-    }, [user]);
+    }, [userId]);
 
     const fetchLogsForWeek = useCallback(async (weekStart: Date) => {
-        if (!user) return;
+        if (!userId) return;
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
         const past60Days = format(addDays(new Date(), -60), "yyyy-MM-dd");
-        const [weekRes, histRes] = await Promise.all([
-            supabase
-                .from("routine_logs")
-                .select("*")
-                .eq("user_id", user.id)
-                .gte("log_date", format(weekStart, "yyyy-MM-dd"))
-                .lte("log_date", format(weekEnd, "yyyy-MM-dd")),
-            supabase
-                .from("routine_logs")
-                .select("*")
-                .eq("user_id", user.id)
-                .gte("log_date", past60Days)
-        ]);
-        if (weekRes.error) { console.error(weekRes.error); return; }
-        setLogs((weekRes.data as RoutineLog[]) || []);
-        if (histRes.data) setHistoryLogs(histRes.data as RoutineLog[]);
-    }, [user]);
+
+        try {
+            const [weekRes, histRes] = await Promise.all([
+                supabase
+                    .from("routine_logs")
+                    .select("*")
+                    .eq("user_id", userId)
+                    .gte("log_date", format(weekStart, "yyyy-MM-dd"))
+                    .lte("log_date", format(weekEnd, "yyyy-MM-dd")),
+                supabase
+                    .from("routine_logs")
+                    .select("*")
+                    .eq("user_id", userId)
+                    .gte("log_date", past60Days)
+            ]);
+
+            if (weekRes.data) {
+                const newLogs = weekRes.data as RoutineLog[];
+                _cachedLogs = newLogs;
+                setLogs(prev => areLogsEqual(prev, newLogs) ? prev : newLogs);
+            }
+            if (histRes.data) {
+                setHistoryLogs(histRes.data as RoutineLog[]);
+            }
+        } catch (error) {
+            console.error("Error fetching routine logs:", error);
+        }
+    }, [userId]);
 
     // ─── CRUD ─────────────────────────────────────
 
     const createRoutine = async (formData: RoutineFormData) => {
-        if (!user) return;
+        if (!userId) return;
         try {
             const { error } = await supabase.from("routines").insert({
-                user_id: user.id,
+                user_id: userId,
                 name: formData.name,
                 description: formData.description || null,
                 category: formData.category,
@@ -209,9 +305,9 @@ export function useRoutines() {
     };
 
     const updateRoutine = async (id: string, formData: Partial<RoutineFormData>) => {
-        if (!user) return;
+        if (!userId) return;
         try {
-            const { error } = await supabase.from("routines").update(formData as any).eq("id", id).eq("user_id", user.id);
+            const { error } = await supabase.from("routines").update(formData as any).eq("id", id).eq("user_id", userId);
             if (error) throw error;
             toast.success("Rutina actualizada");
             await fetchRoutines();
@@ -221,9 +317,8 @@ export function useRoutines() {
         }
     };
 
-    /** Create an override that applies changes only from a given date forward */
     const editRoutineFromDate = async (routineId: string, changes: Partial<RoutineFormData>, fromDate: string) => {
-        if (!user) return;
+        if (!userId) return;
         try {
             const { error } = await supabase.from("routine_overrides").insert({
                 routine_id: routineId,
@@ -244,10 +339,10 @@ export function useRoutines() {
     };
 
     const stopRoutine = async (id: string) => {
-        if (!user) return;
+        if (!userId) return;
         const today = format(new Date(), "yyyy-MM-dd");
         try {
-            const { error } = await supabase.from("routines").update({ end_date: today }).eq("id", id).eq("user_id", user.id);
+            const { error } = await supabase.from("routines").update({ end_date: today }).eq("id", id).eq("user_id", userId);
             if (error) throw error;
             toast.success("⏹️ Rutina cortada");
             await fetchRoutines();
@@ -258,9 +353,9 @@ export function useRoutines() {
     };
 
     const deleteRoutine = async (id: string) => {
-        if (!user) return;
+        if (!userId) return;
         try {
-            const { error } = await supabase.from("routines").update({ is_active: false }).eq("id", id).eq("user_id", user.id);
+            const { error } = await supabase.from("routines").update({ is_active: false }).eq("id", id).eq("user_id", userId);
             if (error) throw error;
             toast.success("Rutina eliminada");
             await Promise.all([
@@ -276,11 +371,11 @@ export function useRoutines() {
     // ─── Logging ──────────────────────────────────
 
     const logRoutine = async (routineId: string, logDate: string, logData: LogFormData) => {
-        if (!user) return;
+        if (!userId) return;
         try {
             const { error } = await supabase.from("routine_logs").upsert({
                 routine_id: routineId,
-                user_id: user.id,
+                user_id: userId,
                 log_date: logDate,
                 completed: logData.completed,
                 completion_percentage: logData.completed ? 100 : logData.completion_percentage,
@@ -358,9 +453,8 @@ export function useRoutines() {
                 if (log && (log.completed || log.completion_percentage > 0)) {
                     streak++;
                 } else if (i === 0) {
-                    // Today is scheduled but not finished yet: don't break streak, allow user to complete today!
+                    // Today is scheduled but not finished yet: don't break streak
                 } else {
-                    // Missed a previous scheduled day: break streak
                     break;
                 }
             }
@@ -371,36 +465,68 @@ export function useRoutines() {
 
     // ─── Navigation ───────────────────────────────
 
-    const goToPrevWeek = () => { const p = addDays(currentWeekStart, -7); setCurrentWeekStart(p); fetchLogsForWeek(p); };
-    const goToNextWeek = () => { const n = addDays(currentWeekStart, 7); setCurrentWeekStart(n); fetchLogsForWeek(n); };
-    const goToCurrentWeek = () => { const now = startOfWeek(new Date(), { weekStartsOn: 1 }); setCurrentWeekStart(now); fetchLogsForWeek(now); };
+    const goToPrevWeek = useCallback(() => {
+        const p = addDays(currentWeekStart, -7);
+        setCurrentWeekStart(p);
+        fetchLogsForWeek(p);
+    }, [currentWeekStart, fetchLogsForWeek]);
 
-    // ─── Init ─────────────────────────────────────
+    const goToNextWeek = useCallback(() => {
+        const n = addDays(currentWeekStart, 7);
+        setCurrentWeekStart(n);
+        fetchLogsForWeek(n);
+    }, [currentWeekStart, fetchLogsForWeek]);
+
+    const goToCurrentWeek = useCallback(() => {
+        const now = startOfWeek(new Date(), { weekStartsOn: 1 });
+        setCurrentWeekStart(now);
+        fetchLogsForWeek(now);
+    }, [fetchLogsForWeek]);
+
+    // ─── Init (Stable Effect) ──────────────────────
+
+    const weekKey = format(currentWeekStart, "yyyy-MM-dd");
 
     useEffect(() => {
-        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        if (!userId) {
+            setLoading(false);
+            return;
+        }
+
+        let isMounted = true;
+
         const load = async () => {
-            setLoading(true);
-            timeoutId = setTimeout(() => {
-                setLoading(false);
-            }, 4000);
+            // Only set loading to true if we haven't loaded yet and have no cached routines
+            if (!hasLoadedRef.current && routinesRef.current.length === 0) {
+                setLoading(true);
+            }
 
             try {
-                await Promise.all([fetchRoutines(), fetchLogsForWeek(currentWeekStart)]);
+                await Promise.all([
+                    fetchRoutines(),
+                    fetchLogsForWeek(currentWeekStart)
+                ]);
             } catch (error) {
                 console.error("Error initializing routines:", error);
             } finally {
-                if (timeoutId) clearTimeout(timeoutId);
-                setLoading(false);
+                if (isMounted) {
+                    hasLoadedRef.current = true;
+                    setLoading(false);
+                }
             }
         };
-        if (user) load();
-        else setLoading(false);
+
+        load();
+
+        const failsafeTimer = setTimeout(() => {
+            if (isMounted) setLoading(false);
+        }, 3000);
 
         return () => {
-            if (timeoutId) clearTimeout(timeoutId);
+            isMounted = false;
+            clearTimeout(failsafeTimer);
         };
-    }, [user, fetchRoutines, fetchLogsForWeek, currentWeekStart]);
+    }, [userId, weekKey, fetchRoutines, fetchLogsForWeek]);
 
     return {
         routines, overrides, logs, loading, currentWeekStart,
