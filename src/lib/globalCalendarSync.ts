@@ -1,9 +1,32 @@
 import { toast } from "sonner";
-import { isGoogleCalendarConnected, performGoogleAutoSync } from "@/lib/googleCalendarSync";
+import { isGoogleCalendarConnected, performGoogleAutoSync, isAutoSyncEnabled } from "@/lib/googleCalendarSync";
 import { isMoodleConnected, performMoodleAutoSync } from "@/lib/moodleService";
 
 let _isGlobalSyncRunning = false;
 let _lastGlobalSyncTime = 0;
+
+/**
+ * Retorna true si hoy es miércoles (día 3 en getDay(), donde 0 es Domingo y 3 es Miércoles).
+ */
+export function isWednesdaySyncDay(): boolean {
+  return new Date().getDay() === 3;
+}
+
+/**
+ * Retorna true si ya se realizó la sincronización automática este miércoles para el usuario dado.
+ */
+export function hasSyncedThisWednesday(userId: string): boolean {
+  if (typeof window === "undefined" || !userId) return false;
+  const todayStr = new Date().toISOString().split("T")[0];
+  const lastWednesday = localStorage.getItem(`tabe_last_wednesday_sync_${userId}`);
+  return lastWednesday === todayStr;
+}
+
+export function markSyncedThisWednesday(userId: string): void {
+  if (typeof window === "undefined" || !userId) return;
+  const todayStr = new Date().toISOString().split("T")[0];
+  localStorage.setItem(`tabe_last_wednesday_sync_${userId}`, todayStr);
+}
 
 export interface GlobalSyncResult {
   google?: {
@@ -24,7 +47,10 @@ export interface GlobalSyncResult {
  * Performs a global background synchronization of all connected academic calendars
  * (Google Calendar and Moodle Campus Virtual).
  *
- * Runs automatically upon app entry and tab visibility change without blocking UI.
+ * POLICY:
+ * - Runs automatically in background ONLY on Wednesdays if the user has auto-sync enabled.
+ * - Sinks at most once per Wednesday to prevent database and API saturation.
+ * - If invoked manually with { force: true }, runs immediately regardless of day/cooldown.
  */
 export async function performGlobalCalendarSync(
   user: any,
@@ -36,9 +62,32 @@ export async function performGlobalCalendarSync(
     return {};
   }
 
+  const isForce = options?.force === true;
+
+  // Política de sincronización automática semanal en background (solo los miércoles)
+  if (!isForce) {
+    // 1. Si el usuario desactivó la sincronización automática, omitir
+    if (!isAutoSyncEnabled()) {
+      console.log("[GlobalCalendarSync] Auto-sincronización deshabilitada por el usuario.");
+      return {};
+    }
+
+    // 2. Solo sincronizar en segundo plano los miércoles (día 3)
+    if (!isWednesdaySyncDay()) {
+      console.log("[GlobalCalendarSync] Sincronización semanal programada solo para los miércoles. Hoy no es miércoles.");
+      return {};
+    }
+
+    // 3. Si ya se sincronizó este miércoles, omitir para no saturar la base de datos
+    if (hasSyncedThisWednesday(user.id)) {
+      console.log("[GlobalCalendarSync] Ya se sincronizó hoy miércoles.");
+      return {};
+    }
+  }
+
   const now = Date.now();
-  // Cooldown: at least 30 minutes between automatic sync runs unless explicitly forced
-  if (!options?.force && now - _lastGlobalSyncTime < 30 * 60 * 1000) {
+  // Cooldown de seguridad: mínimo 10 minutos entre ejecuciones manuales consecutivas
+  if (!isForce && now - _lastGlobalSyncTime < 10 * 60 * 1000) {
     return {};
   }
 
@@ -99,6 +148,9 @@ export async function performGlobalCalendarSync(
     }
 
     await Promise.allSettled(promises);
+    if (isWednesdaySyncDay()) {
+      markSyncedThisWednesday(user.id);
+    }
     return results;
   } catch (e) {
     console.warn("[GlobalCalendarSync] Error in global sync:", e);

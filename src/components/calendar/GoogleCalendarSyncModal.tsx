@@ -366,7 +366,7 @@ export function GoogleCalendarSyncModal({
                             <div className="p-3 bg-muted/40 border-2 border-foreground rounded-xl flex items-center justify-between shadow-[2px_2px_0_0_hsl(var(--foreground))]">
                                 <div>
                                     <p className="font-black text-xs uppercase tracking-wider text-foreground">Auto-Sincro</p>
-                                    <p className="text-[11px] font-bold text-muted-foreground">Cada 3 minutos en segundo plano</p>
+                                    <p className="text-[11px] font-bold text-muted-foreground">Los miércoles automáticamente</p>
                                 </div>
                                 <button
                                     type="button"

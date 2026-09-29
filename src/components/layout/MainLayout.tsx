@@ -37,7 +37,7 @@ import { MobileNavbar } from "@/components/layout/MobileNavbar";
 import { ComicEffectsProvider } from "@/components/comic/ComicEffectsProvider";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { preloadRoute } from "@/lib/routePreload";
-import { performGlobalCalendarSync } from "@/lib/globalCalendarSync";
+import { performGlobalCalendarSync, isWednesdaySyncDay } from "@/lib/globalCalendarSync";
 
 interface UserStats {
   xp_total: number;
@@ -121,44 +121,28 @@ export function MainLayout() {
   const navItems = baseNavItems;
   const userId = user?.id;
   
-  // Auto-sync academic calendars (Google Calendar & Moodle Campus) in background silently
+  // Auto-sync academic calendars (Google Calendar & Moodle Campus) weekly on Wednesdays
   useEffect(() => {
     if (!userId || isGuest) return;
 
-    let lastSyncTime = 0;
-    const SYNC_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes cooldown to save bandwidth & quota
+    // Solo programar sincronización automática en background los días miércoles
+    if (!isWednesdaySyncDay()) return;
 
-    // Run background sync once shortly after entry so initial rendering is ultra-fast
+    // Ejecutar una sola vez en background tras ingresar los miércoles
     const timer = setTimeout(() => {
-      lastSyncTime = Date.now();
       performGlobalCalendarSync(user, { silent: true });
     }, 4000);
 
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        const now = Date.now();
-        if (now - lastSyncTime > SYNC_COOLDOWN_MS) {
-          lastSyncTime = now;
-          performGlobalCalendarSync(user, { silent: true });
-        }
+      if (document.visibilityState === "visible" && isWednesdaySyncDay()) {
+        performGlobalCalendarSync(user, { silent: true });
       }
     };
 
-    const interval = setInterval(() => {
-      const now = Date.now();
-      if (now - lastSyncTime > SYNC_COOLDOWN_MS) {
-        lastSyncTime = now;
-        performGlobalCalendarSync(user, { silent: true });
-      }
-    }, 30 * 60 * 1000); // Check at most every 30 minutes
-
     document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("focus", handleVisibility);
     return () => {
       clearTimeout(timer);
-      clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("focus", handleVisibility);
     };
   }, [userId, isGuest]);
 

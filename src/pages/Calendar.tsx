@@ -197,24 +197,15 @@ export default function Calendar() {
     const conn = isGoogleCalendarConnected(user);
     setIsGCalConnected(conn);
 
-    if (!loading && user && conn && isAutoSyncEnabled() && !hasAttemptedInitialSync.current) {
+    if (!loading && user && (conn || isMoodleConnected(user.user_metadata)) && isAutoSyncEnabled() && !hasAttemptedInitialSync.current) {
       hasAttemptedInitialSync.current = true;
-      performGlobalCalendarSync(user, { silent: true }).then(() => {
-        refetch();
-      }).catch(err => {
-        console.warn("Auto-sync error on calendar load:", err);
-      });
-    }
-
-    // Auto-sync de Moodle al cargar el calendario (silencioso en background)
-    if (!loading && user && isMoodleConnected(user.user_metadata) && !hasAttemptedMoodleSync.current) {
-      hasAttemptedMoodleSync.current = true;
-      performMoodleAutoSync(user.id, user.user_metadata).then((res) => {
-        if (res.success && (res.added > 0 || res.updated > 0)) {
+      performGlobalCalendarSync(user, { silent: true }).then((res) => {
+        if ((res.google && (res.google.added > 0 || res.google.updated > 0)) ||
+            (res.moodle && (res.moodle.added > 0 || res.moodle.updated > 0))) {
           refetch();
         }
-      }).catch((err) => {
-        console.warn("Error en auto-sync de Moodle:", err);
+      }).catch(err => {
+        console.warn("Auto-sync error on calendar load:", err);
       });
     }
   }, [loading, user]);
