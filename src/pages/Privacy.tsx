@@ -395,7 +395,7 @@ export default function Privacy() {
                       D. Contenido del Estudiante (Apuntes, Flashcards y Documentos)
                     </h3>
                     <p className="text-xs">
-                      Archivos de texto y PDFs subidos para procesamiento, contenido de apuntes y notas creadas en el editor (bloques Notion-style, títulos, textos, ecuaciones matemáticas en KaTeX), mazos de flashcards con sus preguntas y respuestas, y estadísticas del algoritmo de repetición espaciada (intervalos de repaso, factor de facilidad y aciertos).
+                      Archivos de texto y PDFs subidos para procesamiento, contenido de apuntes y notas creadas en el editor (bloques enriquecidos, títulos, textos, ecuaciones matemáticas en KaTeX), mazos de flashcards con sus preguntas y respuestas, y estadísticas del algoritmo de repetición espaciada (intervalos de repaso, factor de facilidad y aciertos).
                     </p>
                   </div>
 

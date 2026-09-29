@@ -24,7 +24,7 @@ const slides = [
         description: "Un espacio de trabajo completo para tomar tus apuntes integrados.",
         icon: BookOpen,
         color: "from-slate-300 to-slate-500",
-        image: "/screenshots/notion.png"
+        image: "/screenshots/apuntes.png"
     },
     {
         id: 4,

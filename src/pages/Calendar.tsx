@@ -762,6 +762,10 @@ export default function Calendar() {
             await createEvent(data as CreateEventData);
           }
         }}
+        onDelete={async (id) => {
+          await deleteEvent(id);
+          toast.success("Evento eliminado");
+        }}
         subjects={rawSubjects}
         initialDate={selectedDate || undefined}
         editEvent={eventToEdit}

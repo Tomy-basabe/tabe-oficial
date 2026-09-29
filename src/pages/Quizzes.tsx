@@ -340,6 +340,18 @@ export default function Quizzes() {
     const [selectedYear, setSelectedYear] = useState<number | null>(null);
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
+    const activeYears = useMemo(() => {
+        const unique = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+        return unique.filter(year => subjects.some(s => Number(s.año) === year));
+    }, [subjects]);
+
+    useEffect(() => {
+        if (selectedYear !== null && !activeYears.includes(selectedYear)) {
+            setSelectedYear(null);
+            setSelectedSubject(null);
+        }
+    }, [activeYears, selectedYear]);
+
     const loadInitialData = useCallback(async () => {
         if (!user && !isGuest) {
             setLoading(false);
@@ -1767,7 +1779,7 @@ export default function Quizzes() {
                         >
                             Todos
                         </button>
-                        {[1, 2, 3, 4, 5, 6].map(y => (
+                        {activeYears.map(y => (
                             <button
                                 key={y}
                                 onClick={() => { setSelectedYear(y); setSelectedSubject(null); }}
@@ -1887,7 +1899,7 @@ export default function Quizzes() {
                         <div>
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Seleccionar Año *</Label>
                             <div className="flex gap-2 mt-2">
-                                {[1, 2, 3, 4, 5, 6].map(year => (
+                                {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                                     <button
                                         key={year}
                                         onClick={() => { setNewDeckYear(year); setNewDeckSubject(""); }}

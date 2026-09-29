@@ -85,8 +85,6 @@ const folderColors = [
   { name: "Red", value: "#ef4444" },
 ];
 
-const years = [1, 2, 3, 4, 5, 6];
-
 let libraryFoldersCache: LibraryFolder[] | null = null;
 let libraryFilesCache: LibraryFile[] | null = null;
 let librarySubjectsCache: Subject[] | null = null;
@@ -102,9 +100,25 @@ export default function Library() {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<LibraryFolder[]>([]);
 
+  // Only years with actual subjects
+  const activeYears = useMemo(() => {
+    const unique = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+    return unique.filter(year => subjects.some(s => Number(s.año) === year));
+  }, [subjects]);
+
+  const selectableYears = useMemo(() => {
+    return activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6];
+  }, [activeYears]);
+
   // Filters
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedYear !== null && !activeYears.includes(selectedYear)) {
+      setSelectedYear(null);
+    }
+  }, [activeYears, selectedYear]);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -1507,7 +1521,7 @@ export default function Library() {
               >
                 TODOS
               </button>
-              {years.map(year => (
+              {activeYears.map(year => (
                 <button
                   key={year}
                   onClick={() => setSelectedYear(year)}
@@ -2150,7 +2164,7 @@ export default function Library() {
                   </SelectTrigger>
                   <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
                     <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
-                    {years.map(y => (
+                    {selectableYears.map(y => (
                       <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
                     ))}
                   </SelectContent>
@@ -2236,7 +2250,7 @@ export default function Library() {
                   </SelectTrigger>
                   <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
                     <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
-                    {years.map(y => (
+                    {selectableYears.map(y => (
                       <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
                     ))}
                   </SelectContent>
@@ -2320,7 +2334,7 @@ export default function Library() {
                   </SelectTrigger>
                   <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
                     <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
-                    {years.map(y => (
+                    {selectableYears.map(y => (
                       <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
                     ))}
                   </SelectContent>
@@ -2466,7 +2480,7 @@ export default function Library() {
                   </SelectTrigger>
                   <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
                     <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
-                    {years.map(y => (
+                    {selectableYears.map(y => (
                       <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
                     ))}
                   </SelectContent>

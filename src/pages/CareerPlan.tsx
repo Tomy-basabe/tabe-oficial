@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award } from "lucide-react";
+import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award, Sparkles } from "lucide-react";
 import { SubjectCard } from "@/components/dashboard/SubjectCard";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { AddSubjectModal } from "@/components/subjects/AddSubjectModal";
 import { EditSubjectModal } from "@/components/subjects/EditSubjectModal";
 import { EditDependenciesModal } from "@/components/subjects/EditDependenciesModal";
 import { ImportCareerModal } from "@/components/subjects/ImportCareerModal";
+import { AICareerImportModal } from "@/components/subjects/AICareerImportModal";
 import { useSubjects, SubjectWithStatus, SubjectStatus } from "@/hooks/useSubjects";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -36,6 +37,7 @@ export default function CareerPlan() {
     updateSubjectDependencies,
     deleteSubject,
     importCareerPlan,
+    importCustomCareerPlan,
     deleteAllSubjects,
     getYears
   } = useSubjects();
@@ -56,8 +58,16 @@ export default function CareerPlan() {
   const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);
   const [showDepsModal, setShowDepsModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showAiImportModal, setShowAiImportModal] = useState(false);
 
   const years = getYears();
+
+  // Auto-reset selectedYear if that year no longer exists
+  useEffect(() => {
+    if (selectedYear !== null && !years.includes(selectedYear)) {
+      setSelectedYear(null);
+    }
+  }, [years, selectedYear]);
 
   // Memoize filtered subjects
   const filteredSubjects = useMemo(() => {
@@ -73,12 +83,14 @@ export default function CareerPlan() {
     });
   }, [subjects, selectedYear, selectedStatus, searchQuery, hideApproved]);
 
-  // Memoize subjects grouped by year
+  // Memoize subjects grouped by year (exclude empty years)
   const subjectsByYear = useMemo(() => {
-    return years.map((year) => ({
-      year,
-      subjects: filteredSubjects.filter((s) => s.año === year),
-    }));
+    return years
+      .map((year) => ({
+        year,
+        subjects: filteredSubjects.filter((s) => s.año === year),
+      }))
+      .filter(({ subjects: yearSubjects }) => yearSubjects.length > 0);
   }, [years, filteredSubjects]);
 
   // Helper to extract numeric grade from subject (nota, final_examen, global)
@@ -181,16 +193,14 @@ export default function CareerPlan() {
           </p>
         </div>
         <div className="relative flex flex-wrap items-center gap-1.5 sm:gap-2">
-          {!isGuestMode && (
-            <Button
-              onClick={handleOpenAddModal}
-              size="sm"
-              className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 tour-career-add text-xs sm:text-sm font-black"
-            >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
-              Agregar Materia
-            </Button>
-          )}
+          <Button
+            onClick={handleOpenAddModal}
+            size="sm"
+            className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 tour-career-add text-xs sm:text-sm font-black"
+          >
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+            Agregar Materia
+          </Button>
           <Button
             onClick={() => navigate("/consultas")}
             variant="secondary"
@@ -209,34 +219,33 @@ export default function CareerPlan() {
             <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 text-[#ffd21c]" />
             Ver Mapa
           </Button>
-          {!isGuestMode && (
-            <>
-              <Button
-                onClick={() => setShowImportModal(true)}
-                variant="outline"
-                size="sm"
-                className="text-xs sm:text-sm font-bold"
-              >
-                <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
-                Importar Plan
-              </Button>
-              <Button
-                onClick={() => {
-                  const confirm1 = window.confirm("¿Estás SEGURO de que quieres borrar TODAS tus materias y progreso?");
-                  if (confirm1) {
-                    const confirm2 = window.confirm("ESTA ACCIÓN ES IRREVERSIBLE. ¿Realmente quieres eliminar todo?");
-                    if (confirm2) {
-                      deleteAllSubjects();
-                    }
+
+          <Button
+            onClick={() => setShowImportModal(true)}
+            variant="outline"
+            size="sm"
+            className="text-xs sm:text-sm font-bold"
+          >
+            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+            Importar Plan
+          </Button>
+          {subjects.length > 0 && (
+            <Button
+              onClick={() => {
+                const confirm1 = window.confirm("¿Estás SEGURO de que quieres borrar TODAS tus materias y progreso?");
+                if (confirm1) {
+                  const confirm2 = window.confirm("ESTA ACCIÓN ES IRREVERSIBLE. ¿Realmente quieres eliminar todo?");
+                  if (confirm2) {
+                    deleteAllSubjects();
                   }
-                }}
-                variant="destructive"
-                size="sm"
-                className="text-xs sm:text-sm font-bold"
-              >
-                Borrar Todo
-              </Button>
-            </>
+                }
+              }}
+              variant="destructive"
+              size="sm"
+              className="text-xs sm:text-sm font-bold"
+            >
+              Borrar Todo
+            </Button>
           )}
           {/* Promedio Header Badge */}
           <div className="bg-[#ffd21c] text-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 sm:gap-2">
@@ -297,33 +306,35 @@ export default function CareerPlan() {
         </div>
 
         {/* Year Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
-            <span className="text-xs font-black uppercase tracking-wider sm:hidden">Filtrar por año:</span>
-          </div>
-          <div className="flex gap-1.5 flex-wrap">
-            <Button
-              onClick={() => setSelectedYear(null)}
-              variant={selectedYear === null ? "default" : "outline"}
-              size="sm"
-              className="text-xs font-bold"
-            >
-              Todos
-            </Button>
-            {years.map((year) => (
+        {years.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+              <span className="text-xs font-black uppercase tracking-wider sm:hidden">Filtrar por año:</span>
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
               <Button
-                key={year}
-                onClick={() => setSelectedYear(year)}
-                variant={selectedYear === year ? "default" : "outline"}
+                onClick={() => setSelectedYear(null)}
+                variant={selectedYear === null ? "default" : "outline"}
                 size="sm"
                 className="text-xs font-bold"
               >
-                Año {year}
+                Todos
               </Button>
-            ))}
+              {years.map((year) => (
+                <Button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  variant={selectedYear === year ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs font-bold"
+                >
+                  Año {year}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Status Filter Pills */}
@@ -352,6 +363,48 @@ export default function CareerPlan() {
           {hideApproved ? "Mostrando Pendientes" : "Ocultar Aprobadas"}
         </Button>
       </div>
+
+      {/* Empty State Banner if no subjects */}
+      {subjects.length === 0 && (
+        <div className="neo-bento-card p-6 sm:p-10 pb-8 sm:pb-10 text-center bg-card border-[3px] border-foreground rounded-2xl space-y-6 shadow-[8px_8px_0_0_hsl(var(--foreground))] max-w-3xl w-full h-auto min-h-fit overflow-visible mx-auto my-6">
+          <div className="w-16 h-16 rounded-2xl bg-[#ffd21c] border-[3px] border-foreground mx-auto flex items-center justify-center shadow-[4px_4px_0_0_#000]">
+            <Sparkles className="w-8 h-8 text-black fill-black" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-black text-2xl uppercase tracking-wider text-foreground">
+              ¡Tu Plan de Carrera está vacío!
+            </h3>
+            <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wide max-w-lg mx-auto">
+              Cargá tu plan en segundos subiendo un archivo Excel, PDF o fotos con nuestra Inteligencia Artificial.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 pt-2 overflow-visible">
+            <Button
+              onClick={() => setShowAiImportModal(true)}
+              className="w-full sm:w-auto bg-[#25d06c] hover:bg-[#25d06c]/90 text-black border-[2px] border-foreground shadow-[3px_3px_0_0_#000] font-black uppercase text-xs sm:text-sm transition-all hover:-translate-y-0.5 shrink-0"
+            >
+              <Sparkles className="w-4 h-4 mr-1.5 fill-black" />
+              Cargar con IA (Excel, PDF, Fotos)
+            </Button>
+            <Button
+              onClick={() => setShowImportModal(true)}
+              variant="outline"
+              className="w-full sm:w-auto border-[2px] border-foreground font-black uppercase text-xs sm:text-sm shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0"
+            >
+              <BookOpen className="w-4 h-4 mr-1.5" />
+              Planes Oficiales
+            </Button>
+            <Button
+              onClick={handleOpenAddModal}
+              variant="secondary"
+              className="w-full sm:w-auto border-[2px] border-foreground font-black uppercase text-xs sm:text-sm shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Cargar Manual
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Subjects Grid by Year */}
       <div className="space-y-8">
@@ -438,6 +491,14 @@ export default function CareerPlan() {
         open={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={importCareerPlan}
+        onOpenAiImport={() => setShowAiImportModal(true)}
+      />
+
+      <AICareerImportModal
+        open={showAiImportModal}
+        onClose={() => setShowAiImportModal(false)}
+        onImport={importCustomCareerPlan}
+        existingSubjectsCount={rawSubjects.length}
       />
     </div>
   );

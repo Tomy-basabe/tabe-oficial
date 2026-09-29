@@ -21,6 +21,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { AddEventModal } from "@/components/calendar/AddEventModal";
 
 const EXAM_TYPES = [
   "P1",
@@ -53,12 +54,19 @@ const KANBAN_COLUMNS: { id: KanbanStatus; label: string; icon: any; color: strin
 
 export default function Exams() {
   const navigate = useNavigate();
-  const { events, loading, updateEvent } = useCalendarEvents();
+  const { events, loading, updateEvent, deleteEvent } = useCalendarEvents();
   const { rawSubjects: subjects } = useSubjects();
   
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const handleExamClick = (exam: CalendarEvent) => {
+    setEventToEdit(exam);
+    setShowEditModal(true);
+  };
 
   const subjectMap = useMemo(() => {
     const map = new Map<string, Subject>();
@@ -198,12 +206,12 @@ export default function Exams() {
               <ChevronLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-black font-display uppercase tracking-widest flex items-center gap-2">
+          <div className="select-none cursor-default outline-none">
+            <h1 className="text-2xl lg:text-3xl font-black font-display uppercase tracking-widest flex items-center gap-2 select-none cursor-default outline-none">
               <GraduationCap className="w-8 h-8 text-[#ff4e4e]" />
               Gestión de Exámenes
             </h1>
-            <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
+            <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1 select-none cursor-default outline-none">
               Organiza tu estudio y sigue tu progreso
             </p>
           </div>
@@ -291,10 +299,10 @@ export default function Exams() {
               return (
                 <div 
                   key={exam.id}
-                  onClick={() => navigate(`/calendario?editEventId=${exam.id}`)}
+                  onClick={() => handleExamClick(exam)}
                   className="neo-bento-card p-5 bg-muted/30 dark:bg-background transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group cursor-pointer"
                   style={exam.color ? { backgroundColor: `${exam.color}` } : {}}
-                  title="Click para modificar este examen en el calendario"
+                  title="Click para ver o modificar este examen"
                 >
                   <div className="flex-1 space-y-3">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -393,12 +401,12 @@ export default function Exams() {
                       return (
                         <div 
                           key={exam.id}
-                          onClick={() => navigate(`/calendario?editEventId=${exam.id}`)}
+                          onClick={() => handleExamClick(exam)}
                           className={cn(
                             "bg-background p-4 rounded-xl border-[3px] flex flex-col gap-3 transition-all hover:-translate-y-1 group relative cursor-pointer",
                             isUrgent ? "border-[#ff4e4e] shadow-[4px_4px_0_0_#ff4e4e]" : "border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]"
                           )}
-                          title="Click para modificar este examen en el calendario"
+                          title="Click para ver o modificar este examen"
                         >
                           <div className="flex justify-between items-start gap-2">
                             <span className="text-[9px] font-black tracking-widest opacity-80 uppercase truncate bg-foreground/10 px-2 py-0.5 rounded-sm">
@@ -459,6 +467,29 @@ export default function Exams() {
           </div>
         )}
       </div>
+
+      {/* Edit Exam Modal */}
+      <AddEventModal
+        open={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEventToEdit(null);
+        }}
+        onSubmit={async (data) => {
+          if (eventToEdit) {
+            const { id, ...updateData } = data as any;
+            await updateEvent(id || eventToEdit.id, updateData);
+            toast.success("Examen actualizado correctamente");
+          }
+        }}
+        onDelete={async (id) => {
+          await deleteEvent(id);
+          toast.success("Examen eliminado correctamente");
+        }}
+        subjects={subjects}
+        initialDate={eventToEdit ? parseLocalDate(eventToEdit.fecha) : undefined}
+        editEvent={eventToEdit}
+      />
     </div>
   );
 }

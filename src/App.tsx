@@ -58,6 +58,7 @@ const Tasks = lazy(() => import("@/pages/Tasks"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
+import { CareerPlanOnboardingModal } from "@/components/onboarding/CareerPlanOnboardingModal";
 import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
 import { extractAndStoreTokenFromUrl } from "@/lib/googleCalendarSync";
 import { preloadCoreRoutes } from "@/lib/routePreload";
@@ -163,6 +164,7 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <TutorialTour />
+          <CareerPlanOnboardingModal />
           <MainLayout />
         </ProtectedRoute>
       }
@@ -180,7 +182,7 @@ const AppRoutes = () => (
       <Route path="/marketplace" element={<PremiumGate feature="Marketplace"><Marketplace /></PremiumGate>} />
       <Route path="/biblioteca" element={<Library />} />
       <Route path="/logros" element={<Achievements />} />
-      <Route path="/notion" element={<Notion />} />
+      <Route path="/notion" element={<Navigate to="/apuntes" replace />} />
       <Route path="/apuntes" element={<Notion />} />
       <Route path="/examenes" element={<Exams />} />
       <Route path="/amigos" element={<Friends />} />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Store, Search, Download, Star, User, Tag, Eye, ChevronLeft, ChevronRight,
   Layers, Upload, X, GraduationCap, Calendar, FileText, Folder, Loader2,
-  HelpCircle, ShieldCheck, Check
+  HelpCircle, ShieldCheck, Check, ArrowUpDown
 } from "lucide-react";
 import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz } from "@/hooks/useMarketplace";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +51,10 @@ export default function Marketplace() {
     setYearFilter,
     subjectFilter,
     setSubjectFilter,
+    sortBy,
+    setSortBy,
+    userRatings,
+    rateResource,
     getCategories,
     publishResource,
     unpublishResource,
@@ -203,13 +207,71 @@ export default function Marketplace() {
     return item.rating_sum / item.rating_count;
   };
 
-  const renderStars = (rating: number) => (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star key={star} className={cn("w-3 h-3", star <= rating ? "fill-neon-gold text-neon-gold" : "text-muted-foreground")} />
-      ))}
-    </div>
-  );
+  const InteractiveRating = ({ item, type }: { item: any; type: "deck" | "file" | "folder" | "apunte" | "quiz" }) => {
+    const [hoverRating, setHoverRating] = useState<number | null>(null);
+    const avg = getAverageRating(item);
+    const userVote = userRatings[item.id];
+    const canRate = type === "apunte" || type === "deck";
+
+    return (
+      <div 
+        className="flex items-center gap-1.5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div 
+          className="flex items-center gap-0.5"
+          onMouseLeave={() => setHoverRating(null)}
+        >
+          {[1, 2, 3, 4, 5].map((star) => {
+            const isFilled = hoverRating !== null 
+              ? star <= hoverRating 
+              : userVote 
+                ? star <= userVote 
+                : star <= Math.round(avg);
+            return (
+              <button
+                key={star}
+                type="button"
+                disabled={!canRate}
+                title={canRate ? (userVote ? `Cambiar mi calificación a ${star} ★` : `Calificar con ${star} ★`) : undefined}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!canRate) return;
+                  rateResource(type, item.id, star);
+                }}
+                onMouseEnter={() => canRate && setHoverRating(star)}
+                className={cn(
+                  "p-0.5 transition-transform",
+                  canRate ? "hover:scale-125 cursor-pointer focus:outline-none" : "cursor-default"
+                )}
+                aria-label={`Calificar con ${star} estrellas`}
+              >
+                <Star
+                  className={cn(
+                    "w-3.5 h-3.5 transition-colors",
+                    isFilled 
+                      ? "fill-neon-gold text-neon-gold drop-shadow-[0_0_2px_rgba(255,215,0,0.6)]" 
+                      : "text-muted-foreground/40"
+                  )}
+                />
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-xs font-black text-foreground">
+          {avg > 0 ? avg.toFixed(1) : "-"}
+        </span>
+        <span className="text-[10px] font-bold text-muted-foreground">
+          ({item.rating_count || 0})
+        </span>
+        {userVote && (
+          <span className="text-[9px] font-black uppercase bg-neon-gold/20 text-neon-gold px-1 py-0.5 rounded border border-neon-gold/40">
+            Tu voto: {userVote}★
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const ResourceCard = ({ item, type }: { item: any, type: "deck" | "file" | "folder" | "apunte" | "quiz" }) => {
     const Icon = type === 'deck' ? Layers : type === 'quiz' ? HelpCircle : type === 'file' ? FileText : type === 'apunte' ? GraduationCap : Folder;
@@ -257,7 +319,7 @@ export default function Marketplace() {
               <Download className="w-4 h-4 text-foreground" strokeWidth={3} />
               <span>{item.download_count}</span>
             </div>
-            {renderStars(getAverageRating(item))}
+            <InteractiveRating item={item} type={type} />
           </div>
 
           {item.creator && (
@@ -369,6 +431,19 @@ export default function Marketplace() {
             <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
               <SelectItem value="all" className="font-bold focus:bg-muted">Todas</SelectItem>
               {categories.map(cat => <SelectItem key={cat} value={cat} className="font-bold focus:bg-muted">{cat}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+            <SelectTrigger className="w-full md:w-56 h-14 bg-background text-foreground border-4 border-foreground rounded-xl font-bold text-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:ring-0">
+              <div className="flex items-center gap-2 truncate">
+                <ArrowUpDown className="w-4 h-4 text-foreground shrink-0" strokeWidth={3} />
+                <SelectValue placeholder="Ordenar por" />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+              <SelectItem value="downloads" className="font-bold focus:bg-muted">Más descargados</SelectItem>
+              <SelectItem value="rating" className="font-bold focus:bg-muted">Mejor calificados</SelectItem>
+              <SelectItem value="recent" className="font-bold focus:bg-muted">Más recientes</SelectItem>
             </SelectContent>
           </Select>
         </div>

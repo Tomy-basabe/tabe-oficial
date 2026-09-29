@@ -116,6 +116,18 @@ export default function Flashcards() {
   const [decks, setDecks] = useState<Deck[]>(() => getCachedFlashcardDecks());
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+
+  const activeYears = useMemo(() => {
+    const unique = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+    return unique.filter(year => subjects.some(s => Number(s.año) === year));
+  }, [subjects]);
+
+  useEffect(() => {
+    if (selectedYear !== null && !activeYears.includes(selectedYear)) {
+      setSelectedYear(null);
+      setSelectedSubject(null);
+    }
+  }, [activeYears, selectedYear]);
   const { publishResource } = useMarketplace();
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishingDeck, setPublishingDeck] = useState<Deck | null>(null);
@@ -945,7 +957,7 @@ export default function Flashcards() {
           >
             TODOS
           </button>
-          {[1, 2, 3, 4, 5, 6].map(year => (
+          {activeYears.map(year => (
             <button
               key={year}
               onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
@@ -1031,7 +1043,7 @@ export default function Flashcards() {
             <div>
               <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Seleccionar Año</label>
               <div className="flex gap-2 mt-2">
-                {[1, 2, 3, 4, 5, 6].map(year => (
+                {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                   <button
                     key={year}
                     onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
@@ -1284,7 +1296,7 @@ export default function Flashcards() {
                   >
                     Todos
                   </button>
-                  {[1, 2, 3, 4, 5, 6].map(year => (
+                  {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                     <button
                       key={year}
                       onClick={() => { setImportSourceYear(year); setImportSourceSubject(null); }}
@@ -1475,7 +1487,7 @@ export default function Flashcards() {
                   >
                     Todos
                   </button>
-                  {[1, 2, 3, 4, 5, 6].map(year => (
+                  {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                     <button
                       key={year}
                       onClick={() => { setMergeSourceYearFilter(year); setMergeSourceSubjectFilter(null); }}
@@ -1557,7 +1569,7 @@ export default function Flashcards() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Año</label>
                   <div className="flex gap-2 overflow-x-auto pb-1">
-                    {[1, 2, 3, 4, 5, 6].map(year => (
+                    {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                       <button
                         key={year}
                         type="button"

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Clock, BookOpen, MapPin, Palette, ChevronDown } from "lucide-react";
+import { CalendarIcon, Clock, BookOpen, MapPin, Palette, ChevronDown, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn, toLocalDateStr } from "@/lib/utils";
@@ -17,6 +17,7 @@ interface AddEventModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: CreateEventData | (Partial<CreateEventData> & { id: string })) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
   subjects: Subject[];
   initialDate?: Date;
   editEvent?: CalendarEvent | null; // If provided, we are in Edit Mode
@@ -43,7 +44,7 @@ const PRESET_COLORS = [
   "#ec4899", "#3b82f6", "#f97316", "#14b8a6", "#6366f1"
 ];
 
-export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, editEvent }: AddEventModalProps) {
+export function AddEventModal({ open, onClose, onSubmit, onDelete, subjects, initialDate, editEvent }: AddEventModalProps) {
   const [titulo, setTitulo] = useState("");
   const [fecha, setFecha] = useState<Date | undefined>(new Date());
   const [hora, setHora] = useState("");
@@ -500,6 +501,21 @@ export function AddEventModal({ open, onClose, onSubmit, subjects, initialDate, 
 
             {/* Buttons */}
             <div className="flex gap-3 pt-2">
+              {editEvent && onDelete && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (confirm("¿Estás seguro de eliminar este examen/evento?")) {
+                      await onDelete(editEvent.id);
+                      handleClose();
+                    }
+                  }}
+                  className="px-4 py-3 bg-[#FF3366] text-black border-[3px] border-foreground rounded-lg font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center cursor-pointer"
+                  title="Eliminar evento"
+                >
+                  <Trash2 className="w-5 h-5 text-black stroke-[2.5]" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleClose}

@@ -248,19 +248,6 @@ export function useSubjects() {
       if (statusResult.error) throw statusResult.error;
       if (depsResult.error) throw depsResult.error;
 
-      // Fallback: If user has no subjects specifically with user_id, check for global legacy subjects
-      if (user && (!subjectsResult.data || subjectsResult.data.length === 0)) {
-        const fallbackSubs = await supabase
-          .from("subjects")
-          .select("*")
-          .is("user_id", null)
-          .order("año", { ascending: true })
-          .order("numero_materia", { ascending: true });
-        if (fallbackSubs.data && fallbackSubs.data.length > 0) {
-          subjectsResult = fallbackSubs;
-        }
-      }
-
       const newSubs = subjectsResult.data || [];
       const newStatuses = (statusResult.data || []).map(s => ({
         ...s,
@@ -273,8 +260,14 @@ export function useSubjects() {
       _cachedDependencies = newDeps;
       _cachedUserId = user ? user.id : null;
 
-      if (user && newSubs.length > 0) {
-        setStoredDailySubjects(user.id, newSubs, newStatuses, newDeps);
+      if (user) {
+        if (newSubs.length > 0) {
+          setStoredDailySubjects(user.id, newSubs, newStatuses, newDeps);
+        } else {
+          try {
+            localStorage.removeItem(SUBJECTS_DAILY_CACHE_KEY);
+          } catch (e) {}
+        }
       }
 
       setSubjects(newSubs);
@@ -939,8 +932,8 @@ export function useSubjects() {
   };
 
   const getYears = useCallback((): number[] => {
-    const years = [...new Set(subjects.map(s => s.año))].sort((a, b) => a - b);
-    return years.length > 0 ? years : [1, 2, 3, 4, 5, 6];
+    const validYears = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+    return validYears.filter(year => subjects.some(s => Number(s.año) === year));
   }, [subjects]);
 
   const importCareerPlan = async (careerId: string) => {
@@ -1049,10 +1042,219 @@ export function useSubjects() {
     }
   };
 
+  const importCustomCareerPlan = async (data: {
+    careerName?: string;
+    facultad?: string;
+    subjects: Array<{
+      nombre: string;
+      codigo: string;
+      año: number;
+      numero_materia?: number;
+      requiere_regular?: string[];
+      requiere_aprobada?: string[];
+    }>;
+    replaceExisting?: boolean;
+  }) => {
+    if (!user) {
+      if (isGuest) {
+        try {
+          const guestSubs = data.subjects.map((s, idx) => ({
+            id: `guest-${idx + 1}-${Date.now()}`,
+            nombre: s.nombre,
+            codigo: s.codigo,
+            año: s.año,
+            numero_materia: s.numero_materia || (idx + 1),
+            user_id: "guest",
+            dependencies: [],
+            status: "cursable" as const,
+          }));
+          localStorage.setItem("tabe_guest_subjects", JSON.stringify(guestSubs));
+          toast.success("¡Plan de carrera cargado en modo invitado!");
+          await fetchData(false);
+        } catch (e) {
+          toast.error("Error al guardar materias en modo invitado");
+        }
+      }
+      return;
+    }
+
+    try {
+      setLoading(true);
+      toast.loading("Guardando tu nuevo plan de carrera...", { id: "import-custom-plan" });
+
+      if (data.replaceExisting) {
+        // Delete previous dependencies
+        await supabase.from("subject_dependencies").delete().eq("user_id", user.id);
+        // Delete previous statuses
+        await supabase.from("user_subject_status").delete().eq("user_id", user.id);
+        // Delete previous subjects
+        await supabase.from("subjects").delete().eq("user_id", user.id);
+      }
+
+      // Map to track IDs by code, clean code, normalized name, and subject number
+      const idMap = new Map<string, string>();
+      const normStr = (str: string) =>
+        str
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+
+      const newSubjects = data.subjects.map((s, index) => {
+        const newId = generateId();
+        const cleanCode = s.codigo.toUpperCase().trim();
+        const num = s.numero_materia || index + 1;
+
+        idMap.set(cleanCode, newId);
+        idMap.set(cleanCode.replace(/[^A-Z0-9]/g, ""), newId);
+        idMap.set(normStr(s.nombre), newId);
+        idMap.set(String(num), newId);
+        idMap.set(String(num).padStart(2, "0"), newId);
+        idMap.set(`materia ${num}`, newId);
+        idMap.set(`asignatura ${num}`, newId);
+        idMap.set(`#${num}`, newId);
+        idMap.set(`n° ${num}`, newId);
+        idMap.set(`n ${num}`, newId);
+        idMap.set(String(index + 1), newId);
+
+        return {
+          id: newId,
+          nombre: s.nombre.trim(),
+          codigo: cleanCode,
+          año: Number(s.año) || 1,
+          numero_materia: num,
+          user_id: user.id,
+        };
+      });
+
+      // Insert all subjects
+      const { error: subError } = await supabase.from("subjects").insert(newSubjects);
+      if (subError) throw subError;
+
+      // Smart helper to resolve any prerequisite string to a valid subject_id
+      const findSubjectId = (reqRaw: string): string | undefined => {
+        if (!reqRaw) return undefined;
+        const req = reqRaw.trim();
+        if (!req) return undefined;
+
+        // 1. Direct code or uppercase
+        const upper = req.toUpperCase();
+        if (idMap.has(upper)) return idMap.get(upper);
+
+        // 2. Without symbols
+        const cleanNoSym = upper.replace(/[^A-Z0-9]/g, "");
+        if (cleanNoSym && idMap.has(cleanNoSym)) return idMap.get(cleanNoSym);
+
+        // 3. Normalized name
+        const norm = normStr(req);
+        if (idMap.has(norm)) return idMap.get(norm);
+
+        // 4. Number match (if req is a number or contains number e.g. "1", "01", "Materia 1", "N° 1")
+        const numOnly = req.replace(/[^0-9]/g, "");
+        if (numOnly && idMap.has(numOnly)) return idMap.get(numOnly);
+
+        // 5. Partial name match
+        for (const [key, val] of idMap.entries()) {
+          if (key.length > 5 && (norm.includes(key) || key.includes(norm))) {
+            return val;
+          }
+        }
+
+        return undefined;
+      };
+
+      // Build dependencies (both regular and aprobada)
+      const newDeps: Array<{
+        subject_id: string;
+        requiere_regular: string | null;
+        requiere_aprobada: string | null;
+        user_id: string;
+      }> = [];
+
+      data.subjects.forEach((s) => {
+        const targetId =
+          idMap.get(s.codigo.toUpperCase().trim()) ||
+          idMap.get(normStr(s.nombre));
+        if (!targetId) return;
+
+        // 1. Regulares (para cursar)
+        (s.requiere_regular || []).forEach((req) => {
+          const parts = String(req)
+            .split(/[,;\n/&]|\by\b|\be\b/i)
+            .map((r) => r.trim())
+            .filter(Boolean);
+
+          parts.forEach((p) => {
+            const depId = findSubjectId(p);
+            if (depId && depId !== targetId) {
+              newDeps.push({
+                subject_id: targetId,
+                requiere_regular: depId,
+                requiere_aprobada: null,
+                user_id: user.id,
+              });
+            }
+          });
+        });
+
+        // 2. Aprobadas (para rendir / finales)
+        (s.requiere_aprobada || []).forEach((req) => {
+          const parts = String(req)
+            .split(/[,;\n/&]|\by\b|\be\b/i)
+            .map((r) => r.trim())
+            .filter(Boolean);
+
+          parts.forEach((p) => {
+            const depId = findSubjectId(p);
+            if (depId && depId !== targetId) {
+              newDeps.push({
+                subject_id: targetId,
+                requiere_regular: null,
+                requiere_aprobada: depId,
+                user_id: user.id,
+              });
+            }
+          });
+        });
+      });
+
+      if (newDeps.length > 0) {
+        const { error: depError } = await supabase.from("subject_dependencies").insert(newDeps);
+        if (depError) console.warn("Error inserting dependencies:", depError);
+      }
+
+      // Update profile carrera if provided
+      if (data.careerName) {
+        await supabase
+          .from("profiles")
+          .update({
+            carrera: data.careerName,
+            ...(data.facultad ? { facultad: data.facultad } : {}),
+          })
+          .eq("user_id", user.id);
+      }
+
+      toast.success("¡Plan de carrera importado con éxito!", { id: "import-custom-plan" });
+      await fetchData(false);
+    } catch (error: any) {
+      console.error("Error importing custom plan:", error);
+      toast.error(`Error al importar plan: ${error.message}`, { id: "import-custom-plan" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const deleteAllSubjects = async () => {
     if (!user) {
       if (isGuest) {
-        toast.error("No puedes borrar todas las materias en modo invitado");
+        try {
+          localStorage.removeItem("tabe_guest_subjects");
+        } catch (e) {}
+        setSubjects([]);
+        setUserStatuses([]);
+        setDependencies([]);
+        toast.success("Todas las materias han sido eliminadas correctamente");
         return;
       }
       return;
@@ -1061,28 +1263,40 @@ export function useSubjects() {
     try {
       setLoading(true);
 
-      // Delete all dependencies for this user
+      // 1. Delete all dependencies for this user
       const { error: depError } = await supabase
         .from("subject_dependencies")
         .delete()
         .eq("user_id", user.id);
-      if (depError) throw depError;
+      if (depError) console.warn("Error deleting dependencies:", depError);
 
-      // Delete all statuses for this user
+      // 2. Delete all statuses for this user
       const { error: statusError } = await supabase
         .from("user_subject_status")
         .delete()
         .eq("user_id", user.id);
-      if (statusError) throw statusError;
+      if (statusError) console.warn("Error deleting statuses:", statusError);
 
-      // Delete all subjects for this user
+      // 3. Delete all subjects for this user
       const { error: subError } = await supabase
         .from("subjects")
         .delete()
         .eq("user_id", user.id);
       if (subError) throw subError;
 
-      await fetchData(false);
+      // 4. Invalidate all caches immediately
+      _cachedSubjects = [];
+      _cachedUserStatuses = [];
+      _cachedDependencies = [];
+      try {
+        localStorage.removeItem(SUBJECTS_DAILY_CACHE_KEY);
+      } catch (e) {}
+
+      // 5. Update local state immediately
+      setSubjects([]);
+      setUserStatuses([]);
+      setDependencies([]);
+
       toast.success("Todas las materias han sido eliminadas correctamente");
     } catch (error: any) {
       console.error("Error deleting all subjects:", error);
@@ -1104,6 +1318,7 @@ export function useSubjects() {
     updateSubjectDependencies,
     deleteSubject,
     importCareerPlan,
+    importCustomCareerPlan,
     deleteAllSubjects,
     refetch: fetchData,
     getYears,

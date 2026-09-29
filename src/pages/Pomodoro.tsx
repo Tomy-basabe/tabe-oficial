@@ -99,6 +99,18 @@ export default function Pomodoro() {
       }));
   }, [careerSubjects]);
 
+  const activeYears = useMemo(() => {
+    const all = [...activeSubjects, ...approvedSubjects];
+    const unique = [...new Set(all.map(s => Number(s.year)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+    return unique.filter(year => all.some(s => Number(s.year) === year));
+  }, [activeSubjects, approvedSubjects]);
+
+  useEffect(() => {
+    if (yearFilter !== "all" && !activeYears.includes(Number(yearFilter))) {
+      setYearFilter("all");
+    }
+  }, [activeYears, yearFilter]);
+
   // Parse query parameters (?subject=...&task=...)
   useEffect(() => {
     const subParam = searchParams.get("subject");
@@ -402,14 +414,15 @@ export default function Pomodoro() {
                   >
                     Todos
                   </button>
-                  {[1, 2, 3, 4, 5, 6].map((year) => (
+                  {activeYears.map((year) => (
                     <button
                       key={year}
                       onClick={() => {
                         const val = year.toString();
                         setYearFilter(val);
                         if (selectedSubject) {
-                          const subj = subjects.find(s => s.id === selectedSubject);
+                          const all = [...activeSubjects, ...approvedSubjects];
+                          const subj = all.find(s => s.id === selectedSubject);
                           if (subj && subj.year.toString() !== val) {
                             setSelectedSubject(null);
                           }

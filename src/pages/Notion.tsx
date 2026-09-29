@@ -3118,7 +3118,7 @@ export default function Notion() {
                       >
                         Todos
                       </button>
-                      {[1, 2, 3, 4, 5, 6].map((year) => (
+                      {(uniqueYears.length > 0 ? uniqueYears : [1, 2, 3, 4, 5, 6]).map((year) => (
                         <button
                           key={year}
                           type="button"
@@ -3277,7 +3277,7 @@ export default function Notion() {
                 >
                   Todos
                 </button>
-                {[1, 2, 3, 4, 5, 6].map((year) => (
+                {(uniqueYears.length > 0 ? uniqueYears : [1, 2, 3, 4, 5, 6]).map((year) => (
                   <button
                     key={year}
                     type="button"

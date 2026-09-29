@@ -72,10 +72,12 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
     }
   };
 
-  const subjectsByYear = years.map(y => ({
-    year: y,
-    subjects: existingSubjects.filter(s => s.año === y),
-  }));
+  const subjectsByYear = years
+    .map(y => ({
+      year: y,
+      subjects: existingSubjects.filter(s => s.año === y),
+    }))
+    .filter(({ subjects }) => subjects.length > 0);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
@@ -123,9 +125,7 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
                     <SelectValue placeholder="SELECCIONE" />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl font-black uppercase tracking-widest">
-                    {years.length > 0 ? years.map(y => (
-                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">AÑO {y}</SelectItem>
-                    )) : [1, 2, 3, 4, 5, 6].map(y => (
+                    {Array.from(new Set([1, 2, 3, 4, 5, 6, ...years])).sort((a, b) => a - b).map(y => (
                       <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">AÑO {y}</SelectItem>
                     ))}
                   </SelectContent>

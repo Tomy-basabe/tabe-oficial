@@ -95,10 +95,10 @@ export const WordStatusBar: React.FC<WordStatusBarProps> = ({
                   }`}
                 >
                   <Layout className="w-3 h-3" />
-                  <span className="hidden md:inline">Notion</span>
+                  <span className="hidden md:inline">Fluida</span>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top">Vista fluida tipo Notion</TooltipContent>
+              <TooltipContent side="top">Vista fluida de notas</TooltipContent>
             </Tooltip>
 
             <Tooltip>

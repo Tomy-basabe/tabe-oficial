@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3, Clock, BookOpen,
-  Timer, Layers, Video, Calendar, Library,
+  Timer, Layers, Calendar, Library,
   ChevronLeft, ChevronRight, Plus, GraduationCap
 } from "lucide-react";
 import { 
@@ -63,7 +63,7 @@ export default function Metrics() {
     if (isGuest) {
       const today = new Date();
       const mockSessions: StudySession[] = [];
-      const types = ["pomodoro", "flashcard", "estudio", "videocall"];
+      const types = ["pomodoro", "flashcard", "estudio"];
 
       // Deterministic demo sessions based on day index
       for (let i = 0; i < 30; i++) {
@@ -300,7 +300,6 @@ export default function Metrics() {
   const totalHours = sessions.reduce((acc, s) => acc + s.duracion_segundos / 3600, 0);
   const totalPomodoros = sessions.filter(s => s.tipo === 'pomodoro').length;
   const totalFlashcardSessions = sessions.filter(s => s.tipo === 'flashcard').length;
-  const totalVideocallSessions = sessions.filter(s => s.tipo === 'videocall').length;
   const studiedSubjects = new Set(sessions.map(s => s.subject_id).filter(Boolean)).size;
   const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
 
@@ -319,7 +318,6 @@ export default function Metrics() {
     const labels: Record<string, string> = {
       pomodoro: "Pomodoro",
       flashcard: "Flashcards",
-      videocall: "Videollamadas",
       estudio: "Estudio Libre",
       apuntes: "Apuntes",
       biblioteca: "Biblioteca",
@@ -450,7 +448,7 @@ export default function Metrics() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 tour-metrics-overview">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 tour-metrics-overview">
             <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 bg-[#00E5FF] border-2 border-foreground rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
@@ -486,15 +484,6 @@ export default function Metrics() {
               </div>
               <p className="text-3xl font-black text-foreground tracking-tighter">{totalFlashcardSessions}</p>
               <p className="text-xs font-bold text-muted-foreground uppercase">Flashcards</p>
-            </div>
-            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#C688EB] border-2 border-foreground rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
-                  <Video className="w-5 h-5 text-black" strokeWidth={2.5} />
-                </div>
-              </div>
-              <p className="text-3xl font-black text-foreground tracking-tighter">{totalVideocallSessions}</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase">Videollamadas</p>
             </div>
           </div>
 
@@ -606,9 +595,8 @@ export default function Metrics() {
                   pomodoro: { label: "Pomodoro", icon: Timer, color: "#FFD700" },
                   flashcard: { label: "Flashcards", icon: Layers, color: "#00E5FF" },
                   cuestionario: { label: "Cuestionarios & Quizzes", icon: BookOpen, color: "#FF5C5C" },
-                  apuntes: { label: "Apuntes & Notion", icon: BookOpen, color: "#BFFF00" },
+                  apuntes: { label: "Apuntes & Documentos", icon: BookOpen, color: "#BFFF00" },
                   biblioteca: { label: "Biblioteca", icon: Library, color: "#3B82F6" },
-                  videocall: { label: "Videollamadas", icon: Video, color: "#C688EB" },
                   manual: { label: "Tiempo Manual", icon: Clock, color: "#00E5FF" },
                   estudio: { label: "Estudio Libre & Focus", icon: BookOpen, color: "#FF9B71" },
                 };
@@ -624,6 +612,7 @@ export default function Metrics() {
                 const typeCounts: Record<string, { count: number; seconds: number }> = {};
                 sessions.forEach(s => {
                   const key = canonicalType(s.tipo);
+                  if (key === "videocall") return;
                   if (!typeCounts[key]) {
                     typeCounts[key] = { count: 0, seconds: 0 };
                   }
@@ -632,7 +621,8 @@ export default function Metrics() {
                 });
 
                 // Renderizar los tipos conocidos que tengan actividad + los predeterminados
-                const renderedKeys = Array.from(new Set([...Object.keys(knownTypes), ...Object.keys(typeCounts)]));
+                const renderedKeys = Array.from(new Set([...Object.keys(knownTypes), ...Object.keys(typeCounts)]))
+                  .filter(k => k !== "videocall");
 
                 return renderedKeys.map((key) => {
                   const meta = knownTypes[key] || {

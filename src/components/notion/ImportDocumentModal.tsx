@@ -62,6 +62,11 @@ export function ImportDocumentModal({
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+
+  const activeYears = useMemo(() => {
+    const unique = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+    return unique.filter(year => subjects.some(s => Number(s.año) === year));
+  }, [subjects]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<LibraryFolder[]>([]);
 
@@ -401,7 +406,7 @@ export function ImportDocumentModal({
               ) : (
                 <>
                   <FileUp className="w-4 h-4" />
-                  Importar a Notion
+                  Importar a Apuntes
                 </>
               )}
             </button>
@@ -420,7 +425,7 @@ export function ImportDocumentModal({
                 {/* Year Selection */}
                 {!selectedYear && (
                   <div className="grid grid-cols-3 gap-2 py-4">
-                    {[1, 2, 3, 4, 5, 6].map(year => (
+                    {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                       <button
                         key={year}
                         onClick={() => setSelectedYear(year)}
@@ -568,7 +573,7 @@ export function ImportDocumentModal({
                   ) : (
                     <>
                       <FileUp className="w-4 h-4" />
-                      Importar a Notion
+                      Importar a Apuntes
                     </>
                   )}
                 </button>
@@ -579,7 +584,7 @@ export function ImportDocumentModal({
 
         {/* Info */}
         <p className="text-xs text-muted-foreground text-center">
-          El contenido del documento se convertirá en bloques editables de Notion
+          El contenido del documento se convertirá en bloques editables en tus Apuntes
         </p>
       </DialogContent>
     </Dialog>

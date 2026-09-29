@@ -79,7 +79,7 @@ const getSuggestionItems = (): CommandItem[] => [
   // ========== 1. BLOQUES BÁSICOS ==========
   {
     title: "Guía de Atajos y Comandos",
-    description: "Ver todos los atajos de teclado y comandos de Word y Notion",
+    description: "Ver todos los atajos de teclado y comandos del editor",
     icon: <Keyboard className="w-4 h-4 text-primary" />,
     category: "Básico",
     shortcut: "/ayuda",

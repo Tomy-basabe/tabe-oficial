@@ -24,7 +24,7 @@ import {
   ChevronUp,
   CheckSquare
 } from "lucide-react";
-import { NotionIcon } from "@/components/icons/NotionIcon";
+import { ApuntesIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { preloadRoute } from "@/lib/routePreload";
@@ -68,7 +68,8 @@ export const ALL_MOBILE_NAV_ITEMS: {
     icon: "🎓",
     items: [
       { icon: GraduationCap, label: "Carrera", path: "/carrera", color: "text-[#48bd22]", bgActive: "bg-[#48bd22] text-white" },
-      { icon: NotionIcon, label: "Apuntes", path: "/apuntes", color: "text-foreground", bgActive: "bg-foreground text-background" },
+      { icon: GraduationCap, label: "Exámenes", path: "/examenes", color: "text-[#ff4e4e]", bgActive: "bg-[#ff4e4e] text-white" },
+      { icon: ApuntesIcon, label: "Apuntes", path: "/apuntes", color: "text-foreground", bgActive: "bg-foreground text-background" },
       { icon: Layers, label: "Flashcards", path: "/flashcards", color: "text-[#A855F7]", bgActive: "bg-[#A855F7] text-white" },
       { icon: ClipboardList, label: "Quizzes", path: "/cuestionarios", color: "text-[#EAB308]", bgActive: "bg-[#EAB308] text-black" },
       { icon: Clock, label: "Consultas", path: "/consultas", color: "text-[#6366F1]", bgActive: "bg-[#6366F1] text-white" },

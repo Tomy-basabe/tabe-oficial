@@ -213,6 +213,7 @@ serve(async (req) => {
       power_level = "medio",
       system_prompt: clientSystemPrompt,
       image, // { data: string, mime_type: string }
+      images, // Array<{ data: string, mime_type: string }>
     } = reqBody;
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -870,18 +871,29 @@ serve(async (req) => {
 
     groqMessages.unshift({ role: "system", content: truncatedSysPrompt });
 
-    // Inyectar imagen al último mensaje del usuario si existe
-    const hasImage = Boolean(image && image.data);
+    // Inyectar imágenes al último mensaje del usuario si existen
+    const allImages: Array<{ data: string; mime_type: string }> = [];
+    if (image && image.data) allImages.push(image);
+    if (Array.isArray(images)) {
+      images.forEach((img: any) => {
+        if (img && img.data) allImages.push(img);
+      });
+    }
+
+    const hasImage = allImages.length > 0;
     if (hasImage) {
-      const cleanBase64 = image.data.includes(",") ? image.data.split(",")[1] : image.data;
-      const dataUrl = `data:${image.mime_type || "image/jpeg"};base64,${cleanBase64}`;
       const lastUserIdx = groqMessages.map((m: any) => m.role).lastIndexOf("user");
       if (lastUserIdx !== -1) {
         const textContent = typeof groqMessages[lastUserIdx].content === "string" ? groqMessages[lastUserIdx].content : "";
-        groqMessages[lastUserIdx].content = [
-          { type: "text", text: textContent || "Analiza esta imagen y ayúdame con todo su contenido académico:" },
-          { type: "image_url", image_url: { url: dataUrl } }
+        const parts: any[] = [
+          { type: "text", text: textContent || "Analiza minuciosamente todo el contenido de las imágenes adjuntas:" }
         ];
+        allImages.forEach((img) => {
+          const cleanBase64 = img.data.includes(",") ? img.data.split(",")[1] : img.data;
+          const dataUrl = `data:${img.mime_type || "image/jpeg"};base64,${cleanBase64}`;
+          parts.push({ type: "image_url", image_url: { url: dataUrl } });
+        });
+        groqMessages[lastUserIdx].content = parts;
       }
     }
 
@@ -891,9 +903,9 @@ serve(async (req) => {
 
     // ── Si el mensaje tiene imagen, usar Google Gemini Vision con soporte de Tools ──
     if (hasImage && GEMINI_API_KEY) {
-      console.log("[AI] Mensaje con imagen detectado. Transmitiendo con Gemini Vision...");
-      for (const geminiModel of ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.5-flash"]) {
+      for (const geminiModel of ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]) {
         try {
+          const isCareerImport = context_page === "CAREER_PLAN_IMPORT";
           streamRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
             method: "POST",
             headers: {
@@ -903,9 +915,9 @@ serve(async (req) => {
             body: JSON.stringify({
               model: geminiModel,
               messages: groqMessages,
-              tools: tools,
-              tool_choice: "auto",
-              temperature: 0.4,
+              tools: isCareerImport ? undefined : tools,
+              tool_choice: isCareerImport ? undefined : "auto",
+              temperature: 0.2,
               max_tokens: 8192,
               stream: true
             })

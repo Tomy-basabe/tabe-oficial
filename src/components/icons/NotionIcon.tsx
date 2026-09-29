@@ -8,7 +8,7 @@ interface ApuntesIconProps {
  * Custom "Apuntes" icon (replaces Notion logo).
  * A notebook with a pencil — represents notes & documents.
  */
-export function NotionIcon({ className }: ApuntesIconProps) {
+export function ApuntesIcon({ className }: ApuntesIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -29,3 +29,5 @@ export function NotionIcon({ className }: ApuntesIconProps) {
     </svg>
   );
 }
+
+export const NotionIcon = ApuntesIcon;

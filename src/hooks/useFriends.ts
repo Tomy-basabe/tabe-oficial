@@ -41,8 +41,18 @@ interface FriendStats {
   level: number;
 }
 
+const areFriendshipsEqual = (a: FriendWithProfile[], b: FriendWithProfile[]) => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].id !== b[i]?.id || a[i].status !== b[i]?.status) return false;
+  }
+  return true;
+};
+
 export function useFriends() {
   const { user, isGuest } = useAuth();
+  const userId = user?.id;
+
   const [friends, setFriends] = useState<FriendWithProfile[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendWithProfile[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendWithProfile[]>([]);
@@ -50,194 +60,50 @@ export function useFriends() {
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchMyProfile = useCallback(async () => {
-    if (!user) return;
+  const hasLoadedRef = useRef(false);
+  const profileRef = useRef<Profile | null>(null);
+  const friendsRef = useRef<FriendWithProfile[]>([]);
+
+  // Sincronizar refs
+  useEffect(() => {
+    profileRef.current = myProfile;
+  }, [myProfile]);
+
+  useEffect(() => {
+    friendsRef.current = friends;
+  }, [friends]);
+
+  const fetchMyProfile = useCallback(async (): Promise<Profile | null> => {
+    if (!userId) return null;
 
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("user_id, username, display_id, nombre, avatar_url")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (!error && data) {
-        setMyProfile(data as Profile);
+        const prof = data as Profile;
+        setMyProfile(prof);
+        profileRef.current = prof;
+        return prof;
       }
     } catch (err) {
       console.warn("fetchMyProfile error:", err);
     }
-  }, [user]);
+    return null;
+  }, [userId]);
 
-  const hasLoadedRef = useRef(false);
-
-  const fetchFriendships = useCallback(async () => {
-    if (!user && !isGuest) {
-      setLoading(false);
-      return;
-    }
-
-    if (isGuest) {
-      setMyProfile({
-        user_id: "guest",
-        username: "invitado_pro",
-        display_id: 999,
-        nombre: "Invitado Pro",
-        avatar_url: null
-      });
-      setFriends([
-        {
-          id: "mock-friend-1",
-          requester_id: "guest",
-          addressee_id: "f1",
-          status: "accepted",
-          created_at: new Date().toISOString(),
-          friend: { user_id: "f1", username: "lucianamed", display_id: 101, nombre: "Luciana M.", avatar_url: null }
-        },
-        {
-          id: "mock-friend-2",
-          requester_id: "guest",
-          addressee_id: "f2",
-          status: "accepted",
-          created_at: new Date().toISOString(),
-          friend: { user_id: "f2", username: "matias_eng", display_id: 102, nombre: "Matías", avatar_url: null }
-        }
-      ]);
-      setPendingRequests([
-        {
-          id: "mock-pend-1",
-          requester_id: "f3",
-          addressee_id: "guest",
-          status: "pending",
-          created_at: new Date().toISOString(),
-          friend: { user_id: "f3", username: "sofia_arq", display_id: 103, nombre: "Sofía", avatar_url: null }
-        }
-      ]);
-      setSentRequests([]);
-      hasLoadedRef.current = true;
-      setLoading(false);
-      return;
-    }
-
-    if (!hasLoadedRef.current) {
-      setLoading(true);
-    }
-
-    try {
-      // Fetch all friendships where user is involved
-      const { data: friendshipsRaw, error } = await supabase
-        .from("friendships")
-        .select("*")
-        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
-
-      if (error) {
-        console.error("Error fetching friendships:", error);
-        setLoading(false);
-        return;
-      }
-
-      const friendships: Friendship[] = (friendshipsRaw || []).map((f: FriendshipRaw) => ({
-        ...f,
-        status: f.status as 'pending' | 'accepted' | 'rejected'
-      }));
-
-      // Get all unique user IDs we need profiles for
-      const userIds = new Set<string>();
-      friendships.forEach((f) => {
-        if (f.requester_id !== user.id) userIds.add(f.requester_id);
-        if (f.addressee_id !== user.id) userIds.add(f.addressee_id);
-      });
-
-      // Fetch profiles for these users using secure RPC function with direct fallback
-      let profiles: Profile[] = [];
-      if (userIds.size > 0) {
-        const idList = Array.from(userIds);
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .rpc('get_friend_profiles', { friend_user_ids: idList });
-
-          if (!profileError && profileData && (profileData as Profile[]).length > 0) {
-            profiles = profileData as Profile[];
-          } else {
-            // Fallback direct query on public_profiles
-            const { data: directProfiles } = await supabase
-              .from("public_profiles" as any)
-              .select("user_id, username, display_id, nombre, avatar_url")
-              .in("user_id", idList);
-            profiles = (directProfiles as Profile[]) || [];
-          }
-        } catch (err) {
-          const { data: directProfiles } = await supabase
-            .from("public_profiles" as any)
-            .select("user_id, username, display_id, nombre, avatar_url")
-            .in("user_id", idList);
-          profiles = (directProfiles as Profile[]) || [];
-        }
-      }
-
-    const profileMap = new Map(profiles.map(p => [
-      p.user_id,
-      {
-        ...p,
-        nombre: p.nombre || p.username || `Usuario #${p.display_id}`,
-        username: p.username || null
-      }
-    ]));
-
-    // Categorize friendships
-    const accepted: FriendWithProfile[] = [];
-    const pending: FriendWithProfile[] = [];
-    const sent: FriendWithProfile[] = [];
-
-    friendships.forEach((f) => {
-      const friendId = f.requester_id === user.id ? f.addressee_id : f.requester_id;
-      const friendProfile = profileMap.get(friendId);
-
-      // If profile is missing (RLS or other error), use fallback
-      const finalProfile = friendProfile || {
-        user_id: friendId,
-        username: "Usuario Desconocido",
-        display_id: 0,
-        nombre: "Usuario Desconocido",
-        avatar_url: null
-      };
-
-      const friendWithProfile: FriendWithProfile = {
-        ...f,
-        friend: finalProfile
-      };
-
-      if (f.status === 'accepted') {
-        accepted.push(friendWithProfile);
-      } else if (f.status === 'pending') {
-        if (f.addressee_id === user.id) {
-          pending.push(friendWithProfile);
-        } else {
-          sent.push(friendWithProfile);
-        }
-      }
-    });
-
-    setFriends(accepted);
-    setPendingRequests(pending);
-    setSentRequests(sent);
-    setLoading(false);
-  } catch (err) {
-    console.error("Error fetching friends:", err);
-    setLoading(false);
-  }
-}, [user, isGuest]);
-
-  const fetchFriendStats = useCallback(async () => {
-    if ((!user && !isGuest) || friends.length === 0) {
-      setFriendStats([]);
-      return;
-    }
-
+  const fetchFriendStatsInternal = useCallback(async (
+    targetFriends: FriendWithProfile[],
+    currentProfile: Profile | null
+  ) => {
     if (isGuest) {
       setFriendStats([
         {
           user_id: "guest",
-          profile: myProfile || { user_id: "guest", username: "invitado_pro", display_id: 999, nombre: "Invitado Pro", avatar_url: null },
+          profile: currentProfile || { user_id: "guest", username: "invitado_pro", display_id: 999, nombre: "Invitado Pro", avatar_url: null },
           weekly_xp: 4150,
           weekly_pomodoro_hours: 42,
           weekly_study_hours: 312,
@@ -266,68 +132,300 @@ export function useFriends() {
       return;
     }
 
-    const friendIds = friends.map(f => f.friend.user_id);
-    const allUserIds = [user.id, ...friendIds];
-
-    // Fetch general stats using new RPC
-    const { data: socialStats, error: statsError } = await supabase
-      .rpc('get_social_stats_general', { target_user_ids: allUserIds });
-
-    if (statsError) {
-      console.error("Error fetching social stats general:", statsError);
-    }
-    
-    // Fallback: If RPC doesn't exist yet, we can try to use the old one to not break completely
-    let fallbackStats = [];
-    if (statsError) {
-      const { data: oldStats } = await supabase.rpc('get_social_stats', { target_user_ids: allUserIds });
-      fallbackStats = oldStats || [];
+    if (!userId) {
+      setFriendStats([]);
+      return;
     }
 
-    // Reuse profiles from state instead of fetching again (avoids RLS issues)
-    const profileMap = new Map<string, Profile>();
-    if (myProfile) profileMap.set(myProfile.user_id, myProfile);
-    friends.forEach(f => profileMap.set(f.friend.user_id, f.friend));
+    const friendIds = targetFriends.map(f => f.friend.user_id);
+    const allUserIds = [userId, ...friendIds];
 
-    const statsMap = new Map(((socialStats || fallbackStats as any[]) || []).map(s => [s.user_id, s]));
+    try {
+      const { data: socialStats, error: statsError } = await supabase
+        .rpc('get_social_stats_general', { target_user_ids: allUserIds });
 
-    const friendStatsData: FriendStats[] = allUserIds.map(userId => {
-      const profile = profileMap.get(userId);
-      const stats = statsMap.get(userId);
+      let fallbackStats: any[] = [];
+      if (statsError) {
+        const { data: oldStats } = await supabase.rpc('get_social_stats', { target_user_ids: allUserIds });
+        fallbackStats = oldStats || [];
+      }
 
-      // Improved fallback if profile is missing in map
-      const finalProfile = profile || {
-        user_id: userId,
-        username: "Usuario Desconocido",
-        display_id: 0,
-        nombre: "Usuario Desconocido",
+      const profileMap = new Map<string, Profile>();
+      if (currentProfile) profileMap.set(currentProfile.user_id, currentProfile);
+      targetFriends.forEach(f => profileMap.set(f.friend.user_id, f.friend));
+
+      const statsMap = new Map(((socialStats || fallbackStats) as any[] || []).map(s => [s.user_id, s]));
+
+      const friendStatsData: FriendStats[] = allUserIds.map(uid => {
+        const profile = profileMap.get(uid) || {
+          user_id: uid,
+          username: "Usuario Desconocido",
+          display_id: 0,
+          nombre: "Usuario Desconocido",
+          avatar_url: null
+        };
+
+        const stats = statsMap.get(uid);
+        const xp = stats?.xp_total ?? 0;
+        const computedLevel = Math.floor(xp / 100) + 1;
+
+        return {
+          user_id: uid,
+          profile,
+          weekly_xp: xp,
+          weekly_pomodoro_hours: (stats?.weekly_pomodoro_seconds || 0) / 3600,
+          weekly_study_hours: (stats?.weekly_study_seconds || 0) / 3600,
+          current_streak: stats?.racha_actual || 0,
+          level: computedLevel
+        };
+      });
+
+      setFriendStats(friendStatsData);
+    } catch (err) {
+      console.warn("fetchFriendStatsInternal error:", err);
+    }
+  }, [userId, isGuest]);
+
+  const fetchFriendships = useCallback(async (existingProfile?: Profile | null) => {
+    if (!userId && !isGuest) {
+      setLoading(false);
+      return;
+    }
+
+    if (isGuest) {
+      const guestProf: Profile = {
+        user_id: "guest",
+        username: "invitado_pro",
+        display_id: 999,
+        nombre: "Invitado Pro",
         avatar_url: null
       };
+      setMyProfile(guestProf);
+      profileRef.current = guestProf;
 
-      const xp = stats?.xp_total ?? 0;
-      // Recalculate level dynamically just like MainLayout does to avoid desync
-      const computedLevel = Math.floor(xp / 100) + 1;
+      const mockFriends: FriendWithProfile[] = [
+        {
+          id: "mock-friend-1",
+          requester_id: "guest",
+          addressee_id: "f1",
+          status: "accepted",
+          created_at: new Date().toISOString(),
+          friend: { user_id: "f1", username: "lucianamed", display_id: 101, nombre: "Luciana M.", avatar_url: null }
+        },
+        {
+          id: "mock-friend-2",
+          requester_id: "guest",
+          addressee_id: "f2",
+          status: "accepted",
+          created_at: new Date().toISOString(),
+          friend: { user_id: "f2", username: "matias_eng", display_id: 102, nombre: "Matías", avatar_url: null }
+        }
+      ];
 
-      return {
-        user_id: userId,
-        profile: finalProfile,
-        weekly_xp: xp,
-        // The RPC returns aggregated seconds, convert to hours
-        weekly_pomodoro_hours: (stats?.weekly_pomodoro_seconds || 0) / 3600,
-        weekly_study_hours: (stats?.weekly_study_seconds || 0) / 3600,
-        current_streak: stats?.racha_actual || 0,
-        level: computedLevel
-      };
-    });
+      setFriends(mockFriends);
+      setPendingRequests([
+        {
+          id: "mock-pend-1",
+          requester_id: "f3",
+          addressee_id: "guest",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          friend: { user_id: "f3", username: "sofia_arq", display_id: 103, nombre: "Sofía", avatar_url: null }
+        }
+      ]);
+      setSentRequests([]);
+      hasLoadedRef.current = true;
+      setLoading(false);
+      await fetchFriendStatsInternal(mockFriends, guestProf);
+      return;
+    }
 
-    setFriendStats(friendStatsData);
-  }, [user, friends, myProfile, isGuest]);
+    // Si aún no cargó la primera vez, mostrar loading inicial.
+    // Si ya cargó, actualizar en silencio en background para evitar parpadeos
+    if (!hasLoadedRef.current) {
+      setLoading(true);
+    }
+
+    try {
+      const { data: friendshipsRaw, error } = await supabase
+        .from("friendships")
+        .select("*")
+        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+
+      if (error) {
+        console.error("Error fetching friendships:", error);
+        hasLoadedRef.current = true;
+        setLoading(false);
+        return;
+      }
+
+      const friendships: Friendship[] = (friendshipsRaw || []).map((f: FriendshipRaw) => ({
+        ...f,
+        status: f.status as 'pending' | 'accepted' | 'rejected'
+      }));
+
+      const userIds = new Set<string>();
+      friendships.forEach((f) => {
+        if (f.requester_id !== userId) userIds.add(f.requester_id);
+        if (f.addressee_id !== userId) userIds.add(f.addressee_id);
+      });
+
+      let profiles: Profile[] = [];
+      if (userIds.size > 0) {
+        const idList = Array.from(userIds);
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .rpc('get_friend_profiles', { friend_user_ids: idList });
+
+          if (!profileError && profileData && (profileData as Profile[]).length > 0) {
+            profiles = profileData as Profile[];
+          } else {
+            const { data: directProfiles } = await supabase
+              .from("public_profiles" as any)
+              .select("user_id, username, display_id, nombre, avatar_url")
+              .in("user_id", idList);
+            profiles = (directProfiles as Profile[]) || [];
+          }
+        } catch {
+          const { data: directProfiles } = await supabase
+            .from("public_profiles" as any)
+            .select("user_id, username, display_id, nombre, avatar_url")
+            .in("user_id", idList);
+          profiles = (directProfiles as Profile[]) || [];
+        }
+      }
+
+      const profileMap = new Map(profiles.map(p => [
+        p.user_id,
+        {
+          ...p,
+          nombre: p.nombre || p.username || `Usuario #${p.display_id}`,
+          username: p.username || null
+        }
+      ]));
+
+      const accepted: FriendWithProfile[] = [];
+      const pending: FriendWithProfile[] = [];
+      const sent: FriendWithProfile[] = [];
+
+      friendships.forEach((f) => {
+        const friendId = f.requester_id === userId ? f.addressee_id : f.requester_id;
+        const friendProfile = profileMap.get(friendId);
+
+        const finalProfile = friendProfile || {
+          user_id: friendId,
+          username: "Usuario Desconocido",
+          display_id: 0,
+          nombre: "Usuario Desconocido",
+          avatar_url: null
+        };
+
+        const friendWithProfile: FriendWithProfile = {
+          ...f,
+          friend: finalProfile
+        };
+
+        if (f.status === 'accepted') {
+          accepted.push(friendWithProfile);
+        } else if (f.status === 'pending') {
+          if (f.addressee_id === userId) {
+            pending.push(friendWithProfile);
+          } else {
+            sent.push(friendWithProfile);
+          }
+        }
+      });
+
+      // Actualizar estados sólo si cambiaron para no gatillar re-renders espurios
+      setFriends(prev => areFriendshipsEqual(prev, accepted) ? prev : accepted);
+      setPendingRequests(prev => areFriendshipsEqual(prev, pending) ? prev : pending);
+      setSentRequests(prev => areFriendshipsEqual(prev, sent) ? prev : sent);
+
+      hasLoadedRef.current = true;
+      setLoading(false);
+
+      // Calcular stats inmediatamente
+      const activeProf = existingProfile !== undefined ? existingProfile : profileRef.current;
+      await fetchFriendStatsInternal(accepted, activeProf);
+    } catch (err) {
+      console.error("Error in fetchFriendships:", err);
+      hasLoadedRef.current = true;
+      setLoading(false);
+    }
+  }, [userId, isGuest, fetchFriendStatsInternal]);
+
+  // Carga inicial al montar o cambiar usuario
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!userId && !isGuest) {
+        setLoading(false);
+        return;
+      }
+
+      const prof = await fetchMyProfile();
+      if (!isMounted) return;
+      await fetchFriendships(prof);
+    };
+
+    loadData();
+
+    const failsafe = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 2500);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(failsafe);
+    };
+  }, [userId, isGuest, fetchMyProfile, fetchFriendships]);
+
+  // Realtime subscription debounced
+  useEffect(() => {
+    if (!userId || isGuest) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchFriendships(profileRef.current);
+      }, 500);
+    };
+
+    const channel = supabase
+      .channel(`friendships-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friendships',
+          filter: `requester_id=eq.${userId}`
+        },
+        () => debouncedFetch()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friendships',
+          filter: `addressee_id=eq.${userId}`
+        },
+        () => debouncedFetch()
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [userId, isGuest, fetchFriendships]);
 
   const sendFriendRequest = async (identifier: string) => {
-    if (!user) return { error: "No autenticado" };
+    if (!userId) return { error: "No autenticado" };
 
-    // Normalize input: users often paste "#123" or "@username"
-    // Our RPC expects either a pure number (display_id) or the raw username.
     const normalizedIdentifier = identifier
       .trim()
       .replace(/^\s+|\s+$/g, "")
@@ -338,7 +436,6 @@ export function useFriends() {
 
     let targetUser: any = null;
 
-    // 1. Try secure RPC
     try {
       const { data: users, error: findError } = await supabase
         .rpc('find_user_for_friend_request', { identifier: normalizedIdentifier });
@@ -349,7 +446,6 @@ export function useFriends() {
       console.warn("RPC find_user_for_friend_request error, trying fallback:", err);
     }
 
-    // 2. Direct fallback on profiles table
     if (!targetUser) {
       const isNum = /^\d+$/.test(normalizedIdentifier);
       if (isNum) {
@@ -374,15 +470,14 @@ export function useFriends() {
       return { error: "Usuario no encontrado. Verifica el ID o username e intenta de nuevo." };
     }
 
-    if (targetUser.user_id === user.id) {
+    if (targetUser.user_id === userId) {
       return { error: "No puedes agregarte a ti mismo" };
     }
 
-    // Check if friendship already exists
     const { data: existing } = await supabase
       .from("friendships")
       .select("id, status")
-      .or(`and(requester_id.eq.${user.id},addressee_id.eq.${targetUser.user_id}),and(requester_id.eq.${targetUser.user_id},addressee_id.eq.${user.id})`)
+      .or(`and(requester_id.eq.${userId},addressee_id.eq.${targetUser.user_id}),and(requester_id.eq.${targetUser.user_id},addressee_id.eq.${userId})`)
       .maybeSingle();
 
     if (existing) {
@@ -396,7 +491,7 @@ export function useFriends() {
     const { error: insertError } = await supabase
       .from("friendships")
       .insert({
-        requester_id: user.id,
+        requester_id: userId,
         addressee_id: targetUser.user_id
       });
 
@@ -404,7 +499,7 @@ export function useFriends() {
       return { error: "Error al enviar solicitud" };
     }
 
-    await fetchFriendships();
+    await fetchFriendships(profileRef.current);
     return { error: null };
   };
 
@@ -432,7 +527,7 @@ export function useFriends() {
     }
 
     toast.success(accept ? "¡Solicitud aceptada!" : "Solicitud rechazada");
-    await fetchFriendships();
+    await fetchFriendships(profileRef.current);
   };
 
   const removeFriend = async (friendshipId: string) => {
@@ -453,11 +548,11 @@ export function useFriends() {
     }
 
     toast.success("Amigo eliminado");
-    await fetchFriendships();
+    await fetchFriendships(profileRef.current);
   };
 
   const updateUsername = async (newUsername: string) => {
-    if (!user) return { error: "No autenticado" };
+    if (!userId) return { error: "No autenticado" };
 
     if (newUsername.length < 3 || newUsername.length > 20) {
       return { error: "El username debe tener entre 3 y 20 caracteres" };
@@ -475,7 +570,7 @@ export function useFriends() {
     const { error } = await supabase
       .from("profiles")
       .update({ username: newUsername.toLowerCase() })
-      .eq("user_id", user.id);
+      .eq("user_id", userId);
 
     if (error) {
       if (error.code === '23505') {
@@ -484,71 +579,10 @@ export function useFriends() {
       return { error: "Error al actualizar username" };
     }
 
-    await fetchMyProfile();
+    const prof = await fetchMyProfile();
+    await fetchFriendships(prof);
     return { error: null };
   };
-
-  useEffect(() => {
-    fetchMyProfile();
-    fetchFriendships();
-
-    // Failsafe: never leave loading screen stuck
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [fetchMyProfile, fetchFriendships]);
-
-  useEffect(() => {
-    fetchFriendStats();
-  }, [fetchFriendStats]);
-
-  const fetchFriendshipsRef = useRef(fetchFriendships);
-  useEffect(() => {
-    fetchFriendshipsRef.current = fetchFriendships;
-  }, [fetchFriendships]);
-
-  // Realtime subscription
-  useEffect(() => {
-    if (!user) return;
-
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    const debouncedFetch = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        fetchFriendshipsRef.current?.();
-      }, 300);
-    };
-
-    const channel = supabase
-      .channel(`friendships-changes-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'friendships',
-          filter: `requester_id=eq.${user.id}`
-        },
-        () => debouncedFetch()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'friendships',
-          filter: `addressee_id=eq.${user.id}`
-        },
-        () => debouncedFetch()
-      )
-      .subscribe();
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id]);
 
   return {
     friends,

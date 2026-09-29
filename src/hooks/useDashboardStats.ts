@@ -367,17 +367,18 @@ export function useDashboardStats() {
     return weekData;
   };
 
-  // Calculate progress by year
+  // Calculate progress by year (only include years with subjects)
   const getYearProgress = () => {
-    const years = [...new Set(subjects.map(s => s.año))].sort((a, b) => a - b);
-    return years.map(year => {
-      const yearSubjects = subjects.filter(s => s.año === year);
-      const yearApproved = yearSubjects.filter(s => s.status === "aprobada").length;
-      const percentage = yearSubjects.length > 0
-        ? Math.round((yearApproved / yearSubjects.length) * 100)
-        : 0;
-      return { year, total: yearSubjects.length, approved: yearApproved, percentage };
-    });
+    const years = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+    return years
+      .map(year => {
+        const yearSubjects = subjects.filter(s => Number(s.año) === year);
+        if (yearSubjects.length === 0) return null;
+        const yearApproved = yearSubjects.filter(s => s.status === "aprobada").length;
+        const percentage = Math.round((yearApproved / yearSubjects.length) * 100);
+        return { year, total: yearSubjects.length, approved: yearApproved, percentage };
+      })
+      .filter((item): item is { year: number; total: number; approved: number; percentage: number } => item !== null);
   };
 
   // Get recent subjects (mix of approved and in-progress)

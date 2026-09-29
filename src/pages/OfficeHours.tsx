@@ -103,6 +103,12 @@ export default function OfficeHours() {
 
   const years = getYears();
 
+  useEffect(() => {
+    if (selectedYear !== null && !years.includes(selectedYear)) {
+      setSelectedYear(null);
+    }
+  }, [years, selectedYear]);
+
   const subjects = useMemo(() => {
     if (!allSubjects) return [];
     return allSubjects.filter(s => selectedYear === null || s.año === selectedYear);

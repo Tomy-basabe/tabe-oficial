@@ -23,7 +23,7 @@ import {
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare,
   Search, Compass
 } from "lucide-react";
-import { NotionIcon } from "@/components/icons/NotionIcon";
+import { ApuntesIcon, NotionIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 
 export interface NavItem {
@@ -48,8 +48,7 @@ export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
-  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2, CheckSquare,
-  NotionIcon, TabeAIIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous
+  ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);
@@ -58,7 +57,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/dashboard": "LayoutDashboard",
   "/carrera": "GraduationCap",
   "/consultas": "Clock",
-  "/apuntes": "NotionIcon",
+  "/apuntes": "ApuntesIcon",
   "/flashcards": "Layers",
   "/cuestionarios": "ClipboardList",
   "/marketplace": "Store",
@@ -102,7 +101,8 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     iconName: "GraduationCap",
     items: [
       { id: "item-/carrera", path: "/carrera", label: "Plan de Carrera", type: "item", iconName: "GraduationCap" },
-      { id: "item-/apuntes", path: "/apuntes", label: "Apuntes", type: "item", iconName: "NotionIcon" },
+      { id: "item-/examenes", path: "/examenes", label: "Exámenes", type: "item", iconName: "GraduationCap" },
+      { id: "item-/apuntes", path: "/apuntes", label: "Apuntes", type: "item", iconName: "ApuntesIcon" },
       { id: "item-/flashcards", path: "/flashcards", label: "Flashcards", type: "item", iconName: "Layers" },
       { id: "item-/cuestionarios", path: "/cuestionarios", label: "Cuestionarios", type: "item", iconName: "ClipboardList" },
       { id: "item-/consultas", path: "/consultas", label: "Consultas", type: "item", iconName: "Clock" },
@@ -155,8 +155,9 @@ export const baseNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
   { icon: TabeAIIcon, label: "TABE IA", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
   { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
+  { icon: GraduationCap, label: "Exámenes", path: "/examenes", tourClass: "tour-sidebar-examenes" },
   { icon: Clock, label: "Consultas", path: "/consultas", tourClass: "tour-sidebar-consultas" },
-  { icon: NotionIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-notion" },
+  { icon: ApuntesIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-apuntes tour-sidebar-notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
   { icon: Store, label: "Marketplace", path: "/marketplace", tourClass: "tour-sidebar-marketplace" },
@@ -268,6 +269,42 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
         firstCat.items.push(tareasItem);
       } else {
         cleaned.push(tareasItem);
+      }
+    }
+  }
+
+  // Ensure /examenes is present in the sidebar
+  if (!hasItemRecursively(cleaned, "/examenes")) {
+    const examenesItem: CustomSidebarItem = {
+      id: "item-/examenes",
+      path: "/examenes",
+      label: "Exámenes",
+      type: "item",
+      iconName: "GraduationCap"
+    };
+
+    // Find "Académico" category (id: "cat-academico")
+    const acadCat = cleaned.find(i => 
+      i.type === "category" && 
+      (i.id === "cat-academico" || 
+       i.label?.toLowerCase().includes("académ") || 
+       i.label?.toLowerCase().includes("academ") ||
+       (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/carrera" || (sub.path || sub.id) === "/apuntes")))
+    );
+
+    if (acadCat && acadCat.items) {
+      const carreraIdx = acadCat.items.findIndex((sub: any) => (sub.path || sub.id) === "/carrera" || sub.id === "item-/carrera");
+      if (carreraIdx !== -1) {
+        acadCat.items.splice(carreraIdx + 1, 0, examenesItem);
+      } else {
+        acadCat.items.unshift(examenesItem);
+      }
+    } else {
+      const firstCat = cleaned.find(i => i.type === "category" && i.items);
+      if (firstCat && firstCat.items) {
+        firstCat.items.push(examenesItem);
+      } else {
+        cleaned.push(examenesItem);
       }
     }
   }

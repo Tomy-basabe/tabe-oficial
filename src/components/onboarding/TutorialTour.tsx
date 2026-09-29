@@ -38,6 +38,23 @@ export function TutorialTour() {
                 disableScrolling: true,
             }
         ],
+        "/apuntes": [
+            {
+                target: '.tour-notion-create',
+                content: 'Usa este botón para crear tu primer apunte enriquecido.',
+                placement: 'right',
+                locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente' },
+                disableBeacon: true,
+                disableScrolling: true,
+            },
+            {
+                target: '.tour-notion-list',
+                content: 'Al abrir un apunte, podrás seleccionarle cualquier texto y usar el menú flotante para preguntarle a la IA.',
+                placement: 'right',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableScrolling: true,
+            }
+        ],
         "/notion": [
             {
                 target: '.tour-notion-create',

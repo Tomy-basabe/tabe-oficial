@@ -144,9 +144,39 @@ export function useMarketplace() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<number | null>(null);
   const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"downloads" | "rating" | "recent">("downloads");
+  const [userRatings, setUserRatings] = useState<Record<string, number>>({});
   const [userInventory, setUserInventory] = useState<InventoryItem[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const hasLoadedOnceRef = useRef(false);
+
+  const fetchUserRatings = useCallback(async () => {
+    if (!user) {
+      setUserRatings({});
+      return;
+    }
+    try {
+      const [deckRatingsRes, apunteRatingsRes] = await Promise.all([
+        supabase.from("deck_ratings").select("deck_id, rating").eq("user_id", user.id),
+        supabase.from("apunte_ratings" as any).select("apunte_id, rating").eq("user_id", user.id) as any,
+      ]);
+
+      const ratingsMap: Record<string, number> = {};
+      (deckRatingsRes.data || []).forEach((r: any) => {
+        if (r.deck_id) ratingsMap[r.deck_id] = r.rating;
+      });
+      (apunteRatingsRes.data || []).forEach((r: any) => {
+        if (r.apunte_id) ratingsMap[r.apunte_id] = r.rating;
+      });
+      setUserRatings(ratingsMap);
+    } catch (err) {
+      console.error("Error fetching user ratings:", err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchUserRatings();
+  }, [fetchUserRatings]);
 
   const fetchPublicResources = useCallback(async () => {
     if (!hasLoadedOnceRef.current) {
@@ -237,7 +267,21 @@ export function useMarketplace() {
         if (categoryFilter) filtered = filtered.filter(d => d.category === categoryFilter);
         if (yearFilter) filtered = filtered.filter(d => d.subject?.year === yearFilter);
         if (subjectFilter) filtered = filtered.filter(d => d.subject_id === subjectFilter);
-        return filtered;
+
+        return [...filtered].sort((a, b) => {
+          if (sortBy === "rating") {
+            const countA = Number(a.rating_count || 0);
+            const countB = Number(b.rating_count || 0);
+            const avgA = countA > 0 ? Number(a.rating_sum || 0) / countA : 0;
+            const avgB = countB > 0 ? Number(b.rating_sum || 0) / countB : 0;
+            if (avgB !== avgA) return avgB - avgA;
+            return countB - countA;
+          }
+          if (sortBy === "recent") {
+            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+          }
+          return (Number(b.download_count) || 0) - (Number(a.download_count) || 0);
+        });
       };
 
       setPublicDecks(filter((decksRes.data || []).map(enrich)));
@@ -252,7 +296,7 @@ export function useMarketplace() {
       hasLoadedOnceRef.current = true;
       setLoading(false);
     }
-  }, [categoryFilter, searchTerm, yearFilter, subjectFilter]);
+  }, [categoryFilter, searchTerm, yearFilter, subjectFilter, sortBy]);
 
   const fetchMyPublicDecks = useCallback(async () => {
     if (!user) return;
@@ -539,19 +583,122 @@ export function useMarketplace() {
   };
 
   const rateDeck = async (deckId: string, rating: number) => {
-    if (!user) return;
-    const { data: existing } = await supabase.from("deck_ratings").select("id, rating").eq("deck_id", deckId).eq("user_id", user.id).single();
-    if (existing) {
-      const diff = rating - existing.rating;
-      await supabase.from("deck_ratings").update({ rating }).eq("id", existing.id);
-      const { data: deck } = await supabase.from("flashcard_decks").select("rating_sum").eq("id", deckId).single();
-      if (deck) await supabase.from("flashcard_decks").update({ rating_sum: Number(deck.rating_sum) + diff }).eq("id", deckId);
-    } else {
-      await supabase.from("deck_ratings").insert({ deck_id: deckId, user_id: user.id, rating });
-      const { data: deck } = await supabase.from("flashcard_decks").select("rating_sum, rating_count").eq("id", deckId).single();
-      if (deck) await supabase.from("flashcard_decks").update({ rating_sum: Number(deck.rating_sum) + rating, rating_count: deck.rating_count + 1 }).eq("id", deckId);
+    if (!user) {
+      toast.error("Debes iniciar sesión para calificar este mazo");
+      return;
     }
-    await fetchPublicResources();
+    if (rating < 1 || rating > 5) return;
+
+    setUserRatings((prev) => ({ ...prev, [deckId]: rating }));
+
+    try {
+      const { data: existing } = await supabase
+        .from("deck_ratings")
+        .select("id, rating")
+        .eq("deck_id", deckId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        const diff = rating - existing.rating;
+        await supabase.from("deck_ratings").update({ rating }).eq("id", existing.id);
+        const { data: deck } = await supabase.from("flashcard_decks").select("rating_sum").eq("id", deckId).single();
+        if (deck) {
+          await supabase.from("flashcard_decks").update({ rating_sum: Math.max(0, Number(deck.rating_sum || 0) + diff) }).eq("id", deckId);
+        }
+        toast.success(`Calificación actualizada a ${rating} ★`);
+      } else {
+        await supabase.from("deck_ratings").insert({ deck_id: deckId, user_id: user.id, rating });
+        const { data: deck } = await supabase.from("flashcard_decks").select("rating_sum, rating_count").eq("id", deckId).single();
+        if (deck) {
+          await supabase.from("flashcard_decks").update({
+            rating_sum: Number(deck.rating_sum || 0) + rating,
+            rating_count: Number(deck.rating_count || 0) + 1
+          }).eq("id", deckId);
+        }
+        toast.success(`¡Calificaste este mazo con ${rating} ★!`);
+      }
+      await fetchPublicResources();
+      await fetchUserRatings();
+    } catch (err: any) {
+      console.error("Error rating deck:", err);
+      toast.error("Error al guardar la calificación");
+      await fetchUserRatings();
+    }
+  };
+
+  const rateApunte = async (apunteId: string, rating: number) => {
+    if (!user) {
+      toast.error("Debes iniciar sesión para calificar este apunte");
+      return;
+    }
+    if (rating < 1 || rating > 5) return;
+
+    setUserRatings((prev) => ({ ...prev, [apunteId]: rating }));
+
+    try {
+      const { data: existing } = await (supabase
+        .from("apunte_ratings" as any)
+        .select("id, rating")
+        .eq("apunte_id", apunteId)
+        .eq("user_id", user.id)
+        .maybeSingle() as any);
+
+      if (existing) {
+        const diff = rating - existing.rating;
+        await (supabase
+          .from("apunte_ratings" as any)
+          .update({ rating })
+          .eq("id", existing.id) as any);
+
+        const { data: apunte } = await supabase
+          .from("notion_documents")
+          .select("rating_sum")
+          .eq("id", apunteId)
+          .single();
+
+        if (apunte) {
+          await supabase
+            .from("notion_documents")
+            .update({ rating_sum: Math.max(0, Number(apunte.rating_sum || 0) + diff) })
+            .eq("id", apunteId);
+        }
+        toast.success(`Calificación actualizada a ${rating} ★`);
+      } else {
+        await (supabase
+          .from("apunte_ratings" as any)
+          .insert({ apunte_id: apunteId, user_id: user.id, rating }) as any);
+
+        const { data: apunte } = await supabase
+          .from("notion_documents")
+          .select("rating_sum, rating_count")
+          .eq("id", apunteId)
+          .single();
+
+        if (apunte) {
+          await supabase
+            .from("notion_documents")
+            .update({
+              rating_sum: Number(apunte.rating_sum || 0) + rating,
+              rating_count: Number(apunte.rating_count || 0) + 1,
+            })
+            .eq("id", apunteId);
+        }
+        toast.success(`¡Calificaste este apunte con ${rating} ★!`);
+      }
+      await fetchPublicResources();
+      await fetchUserRatings();
+    } catch (err: any) {
+      console.error("Error rating apunte:", err);
+      toast.error("No se pudo registrar la calificación");
+      await fetchUserRatings();
+    }
+  };
+
+  const rateResource = async (type: "deck" | "apunte" | "quiz" | "file" | "folder", id: string, rating: number) => {
+    if (type === "apunte") return rateApunte(id, rating);
+    if (type === "deck") return rateDeck(id, rating);
+    toast.info("La calificación para este tipo de recurso estará disponible próximamente");
   };
 
   const fetchInventory = useCallback(async () => {
@@ -633,6 +780,11 @@ export function useMarketplace() {
     importApunte,
     getDeckPreview,
     rateDeck,
+    rateApunte,
+    rateResource,
+    sortBy,
+    setSortBy,
+    userRatings,
     userInventory,
     fetchInventory,
     useItem,
