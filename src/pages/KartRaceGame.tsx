@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Flag, Gauge, Medal, Users, Loader2, Wifi, WifiOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { GameAuthGate } from "@/components/games/GameAuthRequired";
+import { getRandomDefaultQuestion } from "@/data/defaultGameQuestions";
 
 // ============================================================
 // TYPES & CONSTANTS
@@ -93,9 +94,14 @@ export default function KartRaceGame() {
   // ---- Profile ----
   const [myDisplayName, setMyDisplayName] = useState("Jugador");
 
+  const [searchParams] = useSearchParams();
+  const roomCode = searchParams.get("room");
+  const modeParam = searchParams.get("mode");
+
   // ---- Deck selection ----
-  const [decks, setDecks] = useState<QuizDeck[]>([]);
-  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(null);
+  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "📚 Mazo General TABE", total_questions: 15 };
+  const [decks, setDecks] = useState<QuizDeck[]>([DEFAULT_DECK]);
+  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(DEFAULT_DECK);
   const [gamePhase, setGamePhase] = useState<GamePhase>("select_deck");
 
   // ---- Lobby ----
@@ -147,37 +153,82 @@ export default function KartRaceGame() {
       .eq("user_id", user.id)
       .gt("total_questions", 0)
       .then(({ data }) => {
-        if (data) setDecks(data as unknown as QuizDeck[]);
+        if (data && data.length > 0) {
+          const userDecks = data as unknown as QuizDeck[];
+          setDecks([DEFAULT_DECK, ...userDecks]);
+          setSelectedDeck(userDecks[0] || DEFAULT_DECK);
+        }
       });
   }, [user]);
+
+  // Auto-start si viene con bot o sala
+  useEffect(() => {
+    if (!user) return;
+    if (modeParam === "bot") {
+      startSoloRace();
+    } else if (roomCode) {
+      enterLobby(roomCode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modeParam, roomCode, user]);
 
   // ============================================================
   // QUIZ QUESTION FETCHER
   // ============================================================
 
   const fetchRandomQuestion = useCallback(async () => {
-    if (!selectedDeck) return null;
-    const { data: questions } = await supabase
-      .from("quiz_questions")
-      .select("id, pregunta, explicacion")
-      .eq("deck_id", selectedDeck.id);
-    if (!questions || questions.length === 0) return null;
+    if (!selectedDeck || selectedDeck.id === "default_tabe_deck") {
+      const def = getRandomDefaultQuestion(questionsUsed);
+      setQuestionsUsed(prev => new Set(prev).add(def.id));
+      return {
+        id: def.id,
+        pregunta: def.pregunta,
+        explicacion: def.explicacion,
+        options: def.options
+      } as QuizQuestion;
+    }
 
-    const available = questions.filter((q) => !questionsUsed.has(q.id));
-    const pool = available.length > 0 ? available : questions;
-    if (available.length === 0) setQuestionsUsed(new Set());
+    try {
+      const { data: questions } = await supabase
+        .from("quiz_questions")
+        .select("id, pregunta, explicacion")
+        .eq("deck_id", selectedDeck.id);
+      if (!questions || questions.length === 0) {
+        const def = getRandomDefaultQuestion(questionsUsed);
+        setQuestionsUsed(prev => new Set(prev).add(def.id));
+        return {
+          id: def.id,
+          pregunta: def.pregunta,
+          explicacion: def.explicacion,
+          options: def.options
+        } as QuizQuestion;
+      }
 
-    const q = pool[Math.floor(Math.random() * pool.length)];
-    const { data: options } = await supabase
-      .from("quiz_options")
-      .select("id, texto, es_correcta")
-      .eq("question_id", q.id);
+      const available = questions.filter((q) => !questionsUsed.has(q.id));
+      const pool = available.length > 0 ? available : questions;
+      if (available.length === 0) setQuestionsUsed(new Set());
 
-    setQuestionsUsed((prev) => new Set(prev).add(q.id));
-    return {
-      ...q,
-      options: (options || []) as { id: string; texto: string; es_correcta: boolean }[],
-    } as QuizQuestion;
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      const { data: options } = await supabase
+        .from("quiz_options")
+        .select("id, texto, es_correcta")
+        .eq("question_id", q.id);
+
+      setQuestionsUsed((prev) => new Set(prev).add(q.id));
+      return {
+        ...q,
+        options: (options || []) as { id: string; texto: string; es_correcta: boolean }[],
+      } as QuizQuestion;
+    } catch {
+      const def = getRandomDefaultQuestion(questionsUsed);
+      setQuestionsUsed(prev => new Set(prev).add(def.id));
+      return {
+        id: def.id,
+        pregunta: def.pregunta,
+        explicacion: def.explicacion,
+        options: def.options
+      } as QuizQuestion;
+    }
   }, [selectedDeck, questionsUsed]);
 
   const loadNextQuestion = useCallback(async () => {
@@ -192,8 +243,8 @@ export default function KartRaceGame() {
   // LOBBY – ENTER / LEAVE
   // ============================================================
 
-  const enterLobby = () => {
-    if (!selectedDeck || !user) return;
+  const enterLobby = (customRoomCode?: string) => {
+    if (!user) return;
     raceStartedRef.current = false;
     setGamePhase("lobby");
     setLobbyTimer(0);
@@ -201,7 +252,8 @@ export default function KartRaceGame() {
     const me: LobbyPlayer = { userId: user.id, displayName: myDisplayName };
     setLobbyPlayers([me]);
 
-    const channel = supabase.channel(LOBBY_CHANNEL, {
+    const channelName = customRoomCode ? `game_room_${customRoomCode}` : LOBBY_CHANNEL;
+    const channel = supabase.channel(channelName, {
       config: { broadcast: { self: false } },
     });
 

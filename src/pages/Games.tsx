@@ -12,17 +12,24 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { GameAuthModal } from "@/components/games/GameAuthRequired";
+import { GameModeModal } from "@/components/games/GameModeModal";
+import { useGameRoom } from "@/hooks/useGameRoom";
 
 export default function Games() {
   const navigate = useNavigate();
   const { user, isGuest } = useAuth();
   const isTestUser = !user || isGuest;
   const { stats, matchHistory, loading, userCarrera, submitCareerRequest, updateUserCarrera } = useGames();
+  const { createRoom, joinRoom, sendFriendChallenge } = useGameRoom();
+
   const [showCareerModal, setShowCareerModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedGameTitle, setSelectedGameTitle] = useState("");
+  const [selectedGameType, setSelectedGameType] = useState("penales");
+  const [selectedGamePath, setSelectedGamePath] = useState("/juegos/penales");
+  const [modeModalOpen, setModeModalOpen] = useState(false);
 
-  const handleOpenGame = (gamePath: string, gameTitle: string) => {
+  const handleOpenGame = (gamePath: string, gameTitle: string, gameType: string) => {
     if (isTestUser) {
       try { ComicAudio.playPop(); } catch {}
       toast.error("¡Tienes que estar logueado para usar los juegos!");
@@ -30,22 +37,14 @@ export default function Games() {
       setShowAuthModal(true);
       return;
     }
-    navigate(gamePath);
+    setSelectedGameTitle(gameTitle);
+    setSelectedGamePath(gamePath);
+    setSelectedGameType(gameType);
+    setModeModalOpen(true);
   };
 
   const handlePlayPenales = () => {
-    if (isTestUser) {
-      try { ComicAudio.playPop(); } catch {}
-      toast.error("¡Tienes que estar logueado para usar los juegos!");
-      setSelectedGameTitle("Tanda de Penales");
-      setShowAuthModal(true);
-      return;
-    }
-    if (!userCarrera) {
-      setShowCareerModal(true);
-      return;
-    }
-    navigate("/juegos/penales");
+    handleOpenGame("/juegos/penales", "Tanda de Penales", "penales");
   };
 
   const handleCareerSelected = async (carrera: string, facultad: string) => {
@@ -131,7 +130,7 @@ export default function Games() {
           {/* Karts */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => handleOpenGame("/juegos/karts", "Carrera de Karts")}
+            onClick={() => handleOpenGame("/juegos/karts", "Carrera de Karts", "karts")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#FF5C5C] flex items-center justify-center">
@@ -157,7 +156,7 @@ export default function Games() {
           {/* Batalla RPG */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => handleOpenGame("/juegos/batalla", "Batalla RPG")}
+            onClick={() => handleOpenGame("/juegos/batalla", "Batalla RPG", "batalla")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#C688EB] flex items-center justify-center">
@@ -183,7 +182,7 @@ export default function Games() {
           {/* La Bomba */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => handleOpenGame("/juegos/bomba", "La Bomba")}
+            onClick={() => handleOpenGame("/juegos/bomba", "La Bomba", "bomba")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#FF9B71] flex items-center justify-center">
@@ -209,7 +208,7 @@ export default function Games() {
           {/* Ta-Te-Ti */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => handleOpenGame("/juegos/tateti", "Ta-Te-Ti Táctico")}
+            onClick={() => handleOpenGame("/juegos/tateti", "Ta-Te-Ti Táctico", "tateti")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#00E5FF] flex items-center justify-center">
@@ -235,7 +234,7 @@ export default function Games() {
           {/* Ajedrez */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"
-            onClick={() => handleOpenGame("/juegos/ajedrez", "Ajedrez")}
+            onClick={() => handleOpenGame("/juegos/ajedrez", "Ajedrez", "ajedrez")}
           >
             <div className="relative">
               <div className="h-40 border-b-4 border-foreground bg-[#FFF7E6] flex items-center justify-center">
@@ -358,6 +357,38 @@ export default function Games() {
         open={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         gameTitle={selectedGameTitle}
+      />
+
+      {/* Game Mode Selection Modal */}
+      <GameModeModal
+        open={modeModalOpen}
+        onClose={() => setModeModalOpen(false)}
+        gameTitle={selectedGameTitle}
+        gameType={selectedGameType}
+        onSelectQuickMatch={() => {
+          setModeModalOpen(false);
+          navigate(`${selectedGamePath}?mode=quick`);
+        }}
+        onSelectBotMatch={() => {
+          setModeModalOpen(false);
+          navigate(`${selectedGamePath}?mode=bot`);
+        }}
+        onCreateRoom={async () => {
+          const res = await createRoom(selectedGameType);
+          return res.code;
+        }}
+        onJoinRoom={async (code) => {
+          const res = await joinRoom(code);
+          if (res.room) {
+            navigate(`${selectedGamePath}?room=${code}`);
+            return true;
+          }
+          if (res.error) toast.error(res.error);
+          return false;
+        }}
+        onInviteFriend={async (friendId, code) => {
+          await sendFriendChallenge(friendId, selectedGameType, code);
+        }}
       />
     </div>
   );

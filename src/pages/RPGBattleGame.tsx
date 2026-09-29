@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Swords, Shield, Heart, Flame, Gamepad2, Loader2, Bot, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { cn } from "@/lib/utils";
 import { GameAuthGate } from "@/components/games/GameAuthRequired";
+import { getRandomDefaultQuestion } from "@/data/defaultGameQuestions";
 
 interface QuizDeck { id: string; nombre: string; total_questions: number; }
 interface QuizQuestion { id: string; pregunta: string; explicacion: string | null; options: { id: string; texto: string; es_correcta: boolean }[]; }
@@ -101,8 +102,13 @@ export default function RPGBattleGame() {
   // Career modal
   const [showCareerModal, setShowCareerModal] = useState(false);
 
-  const [decks, setDecks] = useState<QuizDeck[]>([]);
-  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(null);
+  const [searchParams] = useSearchParams();
+  const roomCode = searchParams.get("room");
+  const modeParam = searchParams.get("mode");
+
+  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "📚 Mazo General TABE", total_questions: 15 };
+  const [decks, setDecks] = useState<QuizDeck[]>([DEFAULT_DECK]);
+  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(DEFAULT_DECK);
   const [gamePhase, setGamePhase] = useState<GamePhase>("select_deck");
 
   const maxHP = 100;
@@ -128,8 +134,26 @@ export default function RPGBattleGame() {
   useEffect(() => {
     if (!user) return;
     supabase.from("quiz_decks").select("id, nombre, total_questions").eq("user_id", user.id).gt("total_questions", 0)
-      .then(({ data }) => { if (data) setDecks(data as unknown as QuizDeck[]); });
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const userDecks = data as unknown as QuizDeck[];
+          setDecks([DEFAULT_DECK, ...userDecks]);
+          setSelectedDeck(userDecks[0] || DEFAULT_DECK);
+        }
+      });
   }, [user]);
+
+  // Si entra por sala o modo bot directo
+  useEffect(() => {
+    if (modeParam === "bot") {
+      setIsOnline(false);
+      startBattle();
+    } else if (roomCode) {
+      setIsOnline(true);
+      const isHost = searchParams.get("isHost") === "true";
+      setupOnlineMatch(roomCode, isHost);
+    }
+  }, [modeParam, roomCode]);
 
   // Record game result when finished
   useEffect(() => {
@@ -144,14 +168,14 @@ export default function RPGBattleGame() {
         player2Score: isWinner ? 0 : 1,
         isBotMatch: !isOnline,
         xpReward: xp,
-        matchId,
+        matchId: roomCode || matchId,
         userId: user?.id,
       });
     }
     if (gamePhase !== "result") {
       hasSavedMatchRef.current = false;
     }
-  }, [gamePhase, winner, isOnline, matchId, user]);
+  }, [gamePhase, winner, isOnline, matchId, user, roomCode]);
 
   // Handle matchmaking status changes
   useEffect(() => {
@@ -165,22 +189,31 @@ export default function RPGBattleGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  const setupOnlineMatch = async () => {
-    if (!matchId || !user) return;
-    const session = getMatchSession(matchId);
-    let amPlayer1 = session ? session.player1_id === user.id : true;
-    if (!session) {
-      try {
-        const { data } = await supabase.from("game_matches" as any).select("player1_id").eq("id", matchId).maybeSingle();
-        if (data && (data as any).player1_id) {
-          amPlayer1 = (data as any).player1_id === user.id;
+  const setupOnlineMatch = async (customRoomCode?: string, isHostParam?: boolean) => {
+    const effectiveMatchId = customRoomCode || matchId;
+    if (!effectiveMatchId) return;
+
+    let amPlayer1 = true;
+    if (isHostParam !== undefined) {
+      amPlayer1 = isHostParam;
+    } else {
+      const session = getMatchSession(effectiveMatchId);
+      if (session) {
+        amPlayer1 = session.player1_id === user?.id;
+      } else if (user) {
+        try {
+          const { data } = await supabase.from("game_matches" as any).select("player1_id").eq("id", effectiveMatchId).maybeSingle();
+          if (data && (data as any).player1_id) {
+            amPlayer1 = (data as any).player1_id === user.id;
+          }
+        } catch {
+          // Fallback
         }
-      } catch {
-        // Fallback
       }
     }
 
-    const channel = supabase.channel(`rpg_match_${matchId}`, {
+    const channelName = customRoomCode ? `game_room_${customRoomCode}` : `rpg_match_${effectiveMatchId}`;
+    const channel = supabase.channel(channelName, {
       config: { broadcast: { self: false } }
     });
 
@@ -233,16 +266,46 @@ export default function RPGBattleGame() {
   }, []);
 
   const fetchRandomQuestion = useCallback(async () => {
-    if (!selectedDeck) return null;
-    const { data: questions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", selectedDeck.id);
-    if (!questions || questions.length === 0) return null;
-    const available = questions.filter((q) => !questionsUsed.has(q.id));
-    const pool = available.length > 0 ? available : questions;
-    if (available.length === 0) setQuestionsUsed(new Set());
-    const q = pool[Math.floor(Math.random() * pool.length)];
-    const { data: options } = await supabase.from("quiz_options").select("id, texto, es_correcta").eq("question_id", q.id);
-    setQuestionsUsed((prev) => new Set(prev).add(q.id));
-    return { ...q, options: (options || []) as { id: string; texto: string; es_correcta: boolean }[] } as QuizQuestion;
+    if (!selectedDeck || selectedDeck.id === "default_tabe_deck") {
+      const def = getRandomDefaultQuestion(questionsUsed);
+      setQuestionsUsed(prev => new Set(prev).add(def.id));
+      return {
+        id: def.id,
+        pregunta: def.pregunta,
+        explicacion: def.explicacion,
+        options: def.options
+      } as QuizQuestion;
+    }
+
+    try {
+      const { data: questions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", selectedDeck.id);
+      if (!questions || questions.length === 0) {
+        const def = getRandomDefaultQuestion(questionsUsed);
+        setQuestionsUsed(prev => new Set(prev).add(def.id));
+        return {
+          id: def.id,
+          pregunta: def.pregunta,
+          explicacion: def.explicacion,
+          options: def.options
+        } as QuizQuestion;
+      }
+      const available = questions.filter((q) => !questionsUsed.has(q.id));
+      const pool = available.length > 0 ? available : questions;
+      if (available.length === 0) setQuestionsUsed(new Set());
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      const { data: options } = await supabase.from("quiz_options").select("id, texto, es_correcta").eq("question_id", q.id);
+      setQuestionsUsed((prev) => new Set(prev).add(q.id));
+      return { ...q, options: (options || []) as { id: string; texto: string; es_correcta: boolean }[] } as QuizQuestion;
+    } catch {
+      const def = getRandomDefaultQuestion(questionsUsed);
+      setQuestionsUsed(prev => new Set(prev).add(def.id));
+      return {
+        id: def.id,
+        pregunta: def.pregunta,
+        explicacion: def.explicacion,
+        options: def.options
+      } as QuizQuestion;
+    }
   }, [selectedDeck, questionsUsed]);
 
   const startBattle = async () => {

@@ -211,6 +211,7 @@ const AppRoutes = () => (
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
 import { AIChatProvider } from "@/contexts/AIChatContext";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
+import { IncomingChallengeModal } from "@/components/games/IncomingChallengeModal";
 import { useTheme } from "@/hooks/useTheme";
 
 const App = () => {
@@ -230,6 +231,7 @@ const App = () => {
                 <AppRoutes />
                 <GlobalDiscordVoiceWidget />
                 <PWAInstallBanner />
+                <IncomingChallengeModal />
               </DiscordVoiceProvider>
             </BrowserRouter>
           </AIChatProvider>

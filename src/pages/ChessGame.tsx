@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Crown, RotateCcw, Swords, Bot, BookOpen, Clock, Palette, Shield, Flag, Users, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMatchmaking, getMatchSession } from "@/hooks/useMatchmaking";
 import { recordGameMatch } from "@/lib/gameStorage";
 import { GameAuthGate } from "@/components/games/GameAuthRequired";
+import { getRandomDefaultQuestion } from "@/data/defaultGameQuestions";
 
 // ======================================
 // ELO SYSTEM (Local Storage)
@@ -145,9 +146,14 @@ export default function ChessGame() {
   // Matchmaking
   const { status: mmStatus, matchId, opponentName, joinQueue, leaveQueue, setStatus: setMmStatus, setMatchId } = useMatchmaking();
 
+  const [searchParams] = useSearchParams();
+  const roomCode = searchParams.get("room");
+  const modeParam = searchParams.get("mode");
+
   // Decks
-  const [decks, setDecks] = useState<QuizDeck[]>([]);
-  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(null);
+  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "📚 Mazo General TABE", total_questions: 15 };
+  const [decks, setDecks] = useState<QuizDeck[]>([DEFAULT_DECK]);
+  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(DEFAULT_DECK);
 
   // Game config
   const [phase, setPhase] = useState<"menu" | "playing">("menu");
@@ -190,12 +196,36 @@ export default function ChessGame() {
   useEffect(() => {
     if (!user) return;
     supabase.from("quiz_decks").select("id, nombre, total_questions").eq("user_id", user.id).gt("total_questions", 0)
-      .then(({ data }) => { if (data) setDecks(data as unknown as QuizDeck[]); });
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const userDecks = data as unknown as QuizDeck[];
+          setDecks([DEFAULT_DECK, ...userDecks]);
+          setSelectedDeck(userDecks[0] || DEFAULT_DECK);
+        }
+      });
   }, [user]);
+
+  // Si entra por sala o modo bot directo
+  useEffect(() => {
+    if (!user) return;
+    if (modeParam === "bot") {
+      setPlayMode("bot");
+      setMyColor("w");
+      startNewMatch();
+    } else if (roomCode) {
+      setPlayMode("online");
+      const isHost = searchParams.get("isHost") === "true";
+      const color: Color = isHost ? "w" : "b";
+      setMyColor(color);
+      initMatchChannel(roomCode, color);
+      startNewMatch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modeParam, roomCode, user]);
 
   const hasSavedMatchRef = useRef(false);
 
-  // Setup Online Match when found
+  // Setup Online Match when found via matchmaking
   useEffect(() => {
     if (playMode === "online" && mmStatus === "found" && matchId && phase === "menu") {
       // Determine color
@@ -263,7 +293,8 @@ export default function ChessGame() {
   const initMatchChannel = (mId: string, color: Color) => {
     if (realtimeChannel.current) { supabase.removeChannel(realtimeChannel.current); }
     
-    const channel = supabase.channel(`chess_match_${mId}`, {
+    const channelName = roomCode ? `game_room_${mId}` : `chess_match_${mId}`;
+    const channel = supabase.channel(channelName, {
       config: { broadcast: { self: false } }
     });
 
@@ -419,19 +450,49 @@ export default function ChessGame() {
 
   // ---- Questions ----
   const fetchRandomQuestion = useCallback(async () => {
-    if (!selectedDeck) return null;
-    const { data: questions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", selectedDeck.id);
-    if (!questions || questions.length === 0) return null;
+    if (!selectedDeck || selectedDeck.id === "default_tabe_deck") {
+      const def = getRandomDefaultQuestion(questionsUsed);
+      setQuestionsUsed(prev => new Set(prev).add(def.id));
+      return {
+        id: def.id,
+        pregunta: def.pregunta,
+        explicacion: def.explicacion,
+        options: def.options
+      } as QuizQuestion;
+    }
 
-    const available = questions.filter((q) => !questionsUsed.has(q.id));
-    const pool = available.length > 0 ? available : questions;
-    if (available.length === 0) setQuestionsUsed(new Set());
+    try {
+      const { data: questions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", selectedDeck.id);
+      if (!questions || questions.length === 0) {
+        const def = getRandomDefaultQuestion(questionsUsed);
+        setQuestionsUsed(prev => new Set(prev).add(def.id));
+        return {
+          id: def.id,
+          pregunta: def.pregunta,
+          explicacion: def.explicacion,
+          options: def.options
+        } as QuizQuestion;
+      }
 
-    const q = pool[Math.floor(Math.random() * pool.length)];
-    const { data: options } = await supabase.from("quiz_options").select("id, texto, es_correcta").eq("question_id", q.id);
+      const available = questions.filter((q) => !questionsUsed.has(q.id));
+      const pool = available.length > 0 ? available : questions;
+      if (available.length === 0) setQuestionsUsed(new Set());
 
-    setQuestionsUsed((prev) => new Set(prev).add(q.id));
-    return { ...q, options: (options || []) as { id: string; texto: string; es_correcta: boolean }[] } as QuizQuestion;
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      const { data: options } = await supabase.from("quiz_options").select("id, texto, es_correcta").eq("question_id", q.id);
+
+      setQuestionsUsed((prev) => new Set(prev).add(q.id));
+      return { ...q, options: (options || []) as { id: string; texto: string; es_correcta: boolean }[] } as QuizQuestion;
+    } catch {
+      const def = getRandomDefaultQuestion(questionsUsed);
+      setQuestionsUsed(prev => new Set(prev).add(def.id));
+      return {
+        id: def.id,
+        pregunta: def.pregunta,
+        explicacion: def.explicacion,
+        options: def.options
+      } as QuizQuestion;
+    }
   }, [selectedDeck, questionsUsed]);
 
   const triggerRandomQuestion = async () => {

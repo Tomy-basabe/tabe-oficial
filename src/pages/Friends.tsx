@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Users, UserPlus, Trophy, Clock, Flame, Zap, Search, Copy, Check, Bell, UserX, Crown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, UserPlus, Trophy, Clock, Flame, Zap, Search, Copy, Check, Bell, UserX, Crown, Swords, Gamepad2 } from "lucide-react";
 import { useFriends } from "@/hooks/useFriends";
+import { useGameRoom } from "@/hooks/useGameRoom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,8 @@ export default function Friends() {
     updateUsername
   } = useFriends();
 
+  const navigate = useNavigate();
+  const { createRoom, sendFriendChallenge } = useGameRoom();
   const [activeTab, setActiveTab] = useState("ranking");
   const [rankingPeriod, setRankingPeriod] = useState<"weekly" | "monthly" | "all">("weekly");
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,6 +42,25 @@ export default function Friends() {
   const [editingUsername, setEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [leaderboardType, setLeaderboardType] = useState<'xp' | 'pomodoro' | 'study' | 'streak'>('xp');
+  const [challengeTarget, setChallengeTarget] = useState<any | null>(null);
+  const [challenging, setChallenging] = useState(false);
+
+  const handleLaunchChallenge = async (gameType: string) => {
+    if (!challengeTarget) return;
+    setChallenging(true);
+    const { code, error } = await createRoom(gameType);
+    if (code) {
+      await sendFriendChallenge(challengeTarget.user_id, gameType, code);
+      toast.success(`Desafío enviado a ${challengeTarget.nombre || challengeTarget.username}`);
+      const targetUser = challengeTarget;
+      setChallengeTarget(null);
+      setChallenging(false);
+      navigate(`/juegos/${gameType}?room=${code}&isHost=true`);
+    } else {
+      setChallenging(false);
+      toast.error(error || "No se pudo crear la sala");
+    }
+  };
 
   if (loading && friends.length === 0 && friendStats.length === 0 && !myProfile) {
     return <LoadingScreen message="Cargando Amigos..." submessage="Buscando compañeros de estudio..." />;
@@ -452,15 +475,26 @@ export default function Friends() {
                             <p className="font-bold text-muted-foreground text-sm mt-0.5">#{friendship.friend.display_id}</p>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-foreground bg-card border-2 border-foreground rounded-lg hover:bg-[#FF5C5C] hover:text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-colors h-8 w-8"
-                          onClick={() => removeFriend(friendship.id)}
-                          title="Eliminar amigo"
-                        >
-                          <UserX className="w-4 h-4" strokeWidth={2.5} />
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-black bg-[#FFD700] border-2 border-foreground rounded-lg hover:bg-[#e6c200] shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all h-8 w-8"
+                            onClick={() => setChallengeTarget(friendship.friend)}
+                            title="Desafiar a un juego"
+                          >
+                            <Swords className="w-4 h-4" strokeWidth={2.5} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-foreground bg-card border-2 border-foreground rounded-lg hover:bg-[#FF5C5C] hover:text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-colors h-8 w-8"
+                            onClick={() => removeFriend(friendship.id)}
+                            title="Eliminar amigo"
+                          >
+                            <UserX className="w-4 h-4" strokeWidth={2.5} />
+                          </Button>
+                        </div>
                       </div>
 
                       {stat && (
@@ -510,6 +544,47 @@ export default function Friends() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Modal para elegir minijuego al desafiar a un amigo */}
+      <Dialog open={!!challengeTarget} onOpenChange={(v) => !v && setChallengeTarget(null)}>
+        <DialogContent className="bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase text-xl flex items-center gap-2 border-b-4 border-foreground pb-3 text-foreground">
+              <Swords className="w-6 h-6 text-[#FFD700]" />
+              Desafiar a {challengeTarget?.nombre || challengeTarget?.username}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-xs font-black uppercase text-muted-foreground">Elegí el minijuego para el duelo:</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { type: "penales", name: "Penales", icon: "⚽", color: "#BFFF00" },
+                { type: "tateti", name: "Ta-Te-Ti", icon: "❌", color: "#00E5FF" },
+                { type: "bomba", name: "La Bomba", icon: "💣", color: "#FF9B71" },
+                { type: "batalla", name: "Batalla RPG", icon: "⚔️", color: "#C688EB" },
+                { type: "karts", name: "Karts", icon: "🏎️", color: "#FF5C5C" },
+                { type: "ajedrez", name: "Ajedrez", icon: "👑", color: "#FFF7E6" },
+              ].map((g) => (
+                <button
+                  key={g.type}
+                  disabled={challenging}
+                  onClick={() => handleLaunchChallenge(g.type)}
+                  className="p-3 bg-muted/40 border-2 border-foreground rounded-xl shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_hsl(var(--foreground))] transition-all flex flex-col items-center gap-1.5 font-black uppercase text-xs text-foreground text-center"
+                  style={{ borderLeftColor: g.color, borderLeftWidth: "6px" }}
+                >
+                  <span className="text-2xl">{g.icon}</span>
+                  <span>{g.name}</span>
+                </button>
+              ))}
+            </div>
+            {challenging && (
+              <p className="text-xs font-bold text-center text-muted-foreground animate-pulse">
+                Creando sala y enviando invitación...
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

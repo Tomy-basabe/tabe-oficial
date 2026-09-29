@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Grid3X3, X, Circle, Gamepad2, Loader2, Bot, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
 import { cn } from "@/lib/utils";
 import { GameAuthGate } from "@/components/games/GameAuthRequired";
+import { getRandomDefaultQuestion } from "@/data/defaultGameQuestions";
 
 interface QuizDeck { id: string; nombre: string; total_questions: number; }
 interface QuizQuestion { id: string; pregunta: string; explicacion: string | null; options: { id: string; texto: string; es_correcta: boolean }[]; }
@@ -41,11 +42,16 @@ export default function TicTacToeGame() {
   const { userCarrera, submitCareerRequest, updateUserCarrera } = useGames();
   const { status, matchId, opponentName, timeLeft, joinQueue, leaveQueue, setStatus, setMatchId } = useMatchmaking();
 
+  const [searchParams] = useSearchParams();
+  const roomCode = searchParams.get("room");
+  const modeParam = searchParams.get("mode");
+
   // Career modal
   const [showCareerModal, setShowCareerModal] = useState(false);
 
-  const [decks, setDecks] = useState<QuizDeck[]>([]);
-  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(null);
+  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "📚 Mazo General TABE", total_questions: 15 };
+  const [decks, setDecks] = useState<QuizDeck[]>([DEFAULT_DECK]);
+  const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(DEFAULT_DECK);
   const [gamePhase, setGamePhase] = useState<GamePhase>("select_deck");
 
   const [board, setBoard] = useState<CellValue[]>(Array(9).fill(null));
@@ -67,8 +73,26 @@ export default function TicTacToeGame() {
   useEffect(() => {
     if (!user) return;
     supabase.from("quiz_decks").select("id, nombre, total_questions").eq("user_id", user.id).gt("total_questions", 0)
-      .then(({ data }) => { if (data) setDecks(data as unknown as QuizDeck[]); });
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const userDecks = data as unknown as QuizDeck[];
+          setDecks([DEFAULT_DECK, ...userDecks]);
+          setSelectedDeck(userDecks[0] || DEFAULT_DECK);
+        }
+      });
   }, [user]);
+
+  // Si entra por sala o modo bot
+  useEffect(() => {
+    if (modeParam === "bot") {
+      setIsOnline(false);
+      startGame();
+    } else if (roomCode) {
+      setIsOnline(true);
+      setMatchId(roomCode);
+      setupOnlineMatch();
+    }
+  }, [modeParam, roomCode]);
 
   // Record game result when finished
   useEffect(() => {
@@ -172,16 +196,46 @@ export default function TicTacToeGame() {
   }, []);
 
   const fetchRandomQuestion = useCallback(async () => {
-    if (!selectedDeck) return null;
-    const { data: questions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", selectedDeck.id);
-    if (!questions || questions.length === 0) return null;
-    const available = questions.filter((q) => !questionsUsed.has(q.id));
-    const pool = available.length > 0 ? available : questions;
-    if (available.length === 0) setQuestionsUsed(new Set());
-    const q = pool[Math.floor(Math.random() * pool.length)];
-    const { data: options } = await supabase.from("quiz_options").select("id, texto, es_correcta").eq("question_id", q.id);
-    setQuestionsUsed((prev) => new Set(prev).add(q.id));
-    return { ...q, options: (options || []) as { id: string; texto: string; es_correcta: boolean }[] } as QuizQuestion;
+    if (!selectedDeck || selectedDeck.id === "default_tabe_deck") {
+      const def = getRandomDefaultQuestion(questionsUsed);
+      setQuestionsUsed((prev) => new Set(prev).add(def.id));
+      return {
+        id: def.id,
+        pregunta: def.pregunta,
+        explicacion: def.explicacion,
+        options: def.options
+      } as QuizQuestion;
+    }
+
+    try {
+      const { data: questions } = await supabase.from("quiz_questions").select("id, pregunta, explicacion").eq("deck_id", selectedDeck.id);
+      if (!questions || questions.length === 0) {
+        const def = getRandomDefaultQuestion(questionsUsed);
+        setQuestionsUsed((prev) => new Set(prev).add(def.id));
+        return {
+          id: def.id,
+          pregunta: def.pregunta,
+          explicacion: def.explicacion,
+          options: def.options
+        } as QuizQuestion;
+      }
+      const available = questions.filter((q) => !questionsUsed.has(q.id));
+      const pool = available.length > 0 ? available : questions;
+      if (available.length === 0) setQuestionsUsed(new Set());
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      const { data: options } = await supabase.from("quiz_options").select("id, texto, es_correcta").eq("question_id", q.id);
+      setQuestionsUsed((prev) => new Set(prev).add(q.id));
+      return { ...q, options: (options || []) as { id: string; texto: string; es_correcta: boolean }[] } as QuizQuestion;
+    } catch {
+      const def = getRandomDefaultQuestion(questionsUsed);
+      setQuestionsUsed((prev) => new Set(prev).add(def.id));
+      return {
+        id: def.id,
+        pregunta: def.pregunta,
+        explicacion: def.explicacion,
+        options: def.options
+      } as QuizQuestion;
+    }
   }, [selectedDeck, questionsUsed]);
 
   const startGame = () => {
