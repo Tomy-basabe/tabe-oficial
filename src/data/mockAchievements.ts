@@ -352,5 +352,24 @@ export const guestMockAchievements: Achievement[] = [
     { "id": "rut-24", "nombre": "Cuerpo y Mente", "descripcion": "Tené al menos una rutina activa de deporte", "icono": "dumbbell", "categoria": "uso", "condicion_tipo": "rutina_categoria_deporte", "condicion_valor": 1, "xp_reward": 80 },
     { "id": "rut-25", "nombre": "Estudiante Disciplinado", "descripcion": "Tené al menos una rutina activa de estudio", "icono": "book-open", "categoria": "uso", "condicion_tipo": "rutina_categoria_estudio", "condicion_valor": 1, "xp_reward": 80 },
     { "id": "rut-26", "nombre": "Estilo de Vida Completo", "descripcion": "Tené rutinas de 3 categorías diferentes simultáneamente", "icono": "globe", "categoria": "uso", "condicion_tipo": "rutinas_multiples_categorias", "condicion_valor": 3, "xp_reward": 250 },
-    { "id": "rut-27", "nombre": "Vida en Balance", "descripcion": "Tené rutinas de 4 categorías diferentes simultáneamente", "icono": "scale", "categoria": "uso", "condicion_tipo": "rutinas_multiples_categorias", "condicion_valor": 4, "xp_reward": 400 }
+    { "id": "rut-27", "nombre": "Vida en Balance", "descripcion": "Tené rutinas de 4 categorías diferentes simultáneamente", "icono": "scale", "categoria": "uso", "condicion_tipo": "rutinas_multiples_categorias", "condicion_valor": 4, "xp_reward": 400 },
+    // Marketplace
+    { "id": "mkt-1", "nombre": "Primer Aporte", "descripcion": "Publicaste tu primer apunte comunitario en el Marketplace", "icono": "shopping-bag", "categoria": "uso", "condicion_tipo": "apuntes_publicados", "condicion_valor": 1, "xp_reward": 100 },
+    { "id": "mkt-2", "nombre": "Colaborador Activo", "descripcion": "Publicaste 3 apuntes en el Marketplace", "icono": "shopping-bag", "categoria": "uso", "condicion_tipo": "apuntes_publicados", "condicion_valor": 3, "xp_reward": 200 },
+    { "id": "mkt-3", "nombre": "Crítico Académico", "descripcion": "Calificaste un apunte en el Marketplace", "icono": "star", "categoria": "uso", "condicion_tipo": "apuntes_calificados", "condicion_valor": 1, "xp_reward": 50 },
+    { "id": "mkt-4", "nombre": "Evaluador Experto", "descripcion": "Calificaste 5 apuntes de la comunidad", "icono": "star", "categoria": "uso", "condicion_tipo": "apuntes_calificados", "condicion_valor": 5, "xp_reward": 150 },
+    // Juegos
+    { "id": "game-1", "nombre": "Primer Desafío", "descripcion": "Jugaste tu primera partida en los juegos de TABE", "icono": "gamepad-2", "categoria": "juegos", "condicion_tipo": "partidas_jugadas", "condicion_valor": 1, "xp_reward": 75 },
+    { "id": "game-2", "nombre": "Primera Victoria", "descripcion": "Ganaste tu primera partida en un juego", "icono": "trophy", "categoria": "juegos", "condicion_tipo": "partidas_ganadas", "condicion_valor": 1, "xp_reward": 100 },
+    { "id": "game-3", "nombre": "En Racha Ganadora", "descripcion": "Ganaste 5 partidas en los juegos", "icono": "trophy", "categoria": "juegos", "condicion_tipo": "partidas_ganadas", "condicion_valor": 5, "xp_reward": 200 },
+    { "id": "game-4", "nombre": "Campeón del Campus", "descripcion": "Ganaste 10 partidas en los juegos", "icono": "crown", "categoria": "juegos", "condicion_tipo": "partidas_ganadas", "condicion_valor": 10, "xp_reward": 400 },
+    { "id": "game-5", "nombre": "Anfitrión de Duelos", "descripcion": "Creaste tu primera sala de juego con código", "icono": "swords", "categoria": "juegos", "condicion_tipo": "salas_creadas", "condicion_valor": 1, "xp_reward": 75 },
+    { "id": "game-6", "nombre": "Gran Maestro de Ajedrez", "descripcion": "Ganaste una partida de ajedrez", "icono": "crown", "categoria": "juegos", "condicion_tipo": "partidas_ajedrez_ganadas", "condicion_valor": 1, "xp_reward": 150 },
+    { "id": "game-7", "nombre": "Piloto Veloz", "descripcion": "Ganaste una carrera de Karts", "icono": "flag", "categoria": "juegos", "condicion_tipo": "partidas_karts_ganadas", "condicion_valor": 1, "xp_reward": 120 },
+    { "id": "game-8", "nombre": "Goleador Implacable", "descripcion": "Ganaste un duelo de penales", "icono": "target", "categoria": "juegos", "condicion_tipo": "partidas_penales_ganadas", "condicion_valor": 1, "xp_reward": 100 },
+    { "id": "game-9", "nombre": "Estratega del Tateti", "descripcion": "Ganaste una partida de Tateti", "icono": "layers", "categoria": "juegos", "condicion_tipo": "partidas_tateti_ganadas", "condicion_valor": 1, "xp_reward": 100 },
+    // Plan de Carrera y Voz
+    { "id": "car-1", "nombre": "Rumbo Claro", "descripcion": "Configuraste tu carrera en tu perfil universitario", "icono": "compass", "categoria": "academico", "condicion_tipo": "carrera_configurada", "condicion_valor": 1, "xp_reward": 50 },
+    { "id": "car-2", "nombre": "Malla Trazada", "descripcion": "Cargaste tus materias en el plan de estudios interactivo", "icono": "book-open", "categoria": "academico", "condicion_tipo": "plan_carrera_importado", "condicion_valor": 5, "xp_reward": 150 },
+    { "id": "vox-1", "nombre": "En Sintonía", "descripcion": "Te conectaste a un canal de voz para estudiar en grupo", "icono": "mic", "categoria": "uso", "condicion_tipo": "canales_voz_unido", "condicion_valor": 1, "xp_reward": 75 }
 ];

@@ -10,7 +10,7 @@ export interface Achievement {
   nombre: string;
   descripcion: string;
   icono: string;
-  categoria: "academico" | "estudio" | "uso";
+  categoria: "academico" | "estudio" | "uso" | "juegos";
   condicion_tipo: string;
   condicion_valor: number;
   xp_reward: number;

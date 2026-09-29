@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import {
   Trophy, GraduationCap, Star, Clock, BookOpen, Flame,
   Layers, Compass, FilePlus, Library, Lock, Sparkles, RefreshCw,
-  Target, Users, MessageCircle, FolderOpen, Sprout, Brain, Calendar, CheckCircle2
+  Target, Users, MessageCircle, FolderOpen, Sprout, Brain, Calendar, CheckCircle2,
+  Gamepad2, Swords, ShoppingBag, Award, Mic, Flag, Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAchievements } from "@/hooks/useAchievements";
@@ -26,9 +27,16 @@ const iconMap: Record<string, any> = {
   sprout: Sprout,
   brain: Brain,
   calendar: Calendar,
+  "gamepad-2": Gamepad2,
+  swords: Swords,
+  "shopping-bag": ShoppingBag,
+  award: Award,
+  mic: Mic,
+  flag: Flag,
+  crown: Crown,
 };
 
-const categoryConfig = {
+const categoryConfig: Record<string, { label: string; colorHex: string; bgColor: string; borderColor: string }> = {
   academico: {
     label: "Académicos",
     colorHex: "#BFFF00",
@@ -46,6 +54,12 @@ const categoryConfig = {
     colorHex: "#FF9B71",
     bgColor: "bg-[#FF9B71]",
     borderColor: "border-[#FF9B71]",
+  },
+  juegos: {
+    label: "Juegos",
+    colorHex: "#FFD000",
+    bgColor: "bg-[#FFD000]",
+    borderColor: "border-[#FFD000]",
   },
 };
 
@@ -89,6 +103,7 @@ export default function Achievements() {
     academico: filteredAchievements.filter(a => a.categoria === "academico"),
     estudio: filteredAchievements.filter(a => a.categoria === "estudio"),
     uso: filteredAchievements.filter(a => a.categoria === "uso"),
+    juegos: filteredAchievements.filter(a => a.categoria === "juegos"),
   };
 
   return (
@@ -148,7 +163,7 @@ export default function Achievements() {
         </div>
 
         {/* Category breakdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 relative z-10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 relative z-10">
           {Object.entries(categoryConfig).map(([key, config]) => {
             const categoryAchievements = achievements.filter(a => a.categoria === key);
             const unlockedCount = categoryAchievements.filter(a => isUnlocked(a.id)).length;
@@ -263,8 +278,11 @@ export default function Achievements() {
                       >
                         <div className="relative z-10 flex-1 flex flex-col">
                           <div className="flex items-start justify-between mb-4">
-                            <div className="w-14 h-14 rounded-xl border-4 border-foreground/30 flex items-center justify-center bg-muted text-foreground/70 shadow-[2px_2px_0_0_hsl(var(--foreground)/0.15)]">
-                              <Lock className="w-7 h-7 text-muted-foreground" />
+                            <div className="w-14 h-14 rounded-xl border-4 border-foreground/30 flex items-center justify-center bg-muted text-foreground/50 shadow-[2px_2px_0_0_hsl(var(--foreground)/0.15)] relative">
+                              <Icon className="w-7 h-7 text-muted-foreground/60" />
+                              <span className="absolute -bottom-1 -right-1 bg-background border-2 border-foreground/40 rounded-full p-0.5">
+                                <Lock className="w-3 h-3 text-muted-foreground" />
+                              </span>
                             </div>
                             <div className="px-3 py-1 text-xs font-black uppercase border-2 border-foreground/30 rotate-[5deg] bg-muted text-muted-foreground shadow-[2px_2px_0_0_hsl(var(--foreground)/0.15)]">
                               +{achievement.xp_reward} XP
@@ -278,9 +296,16 @@ export default function Achievements() {
                             {achievement.descripcion}
                           </p>
 
-                          <div className="text-xs mt-4 font-black uppercase flex items-center gap-1.5 text-muted-foreground/60 pt-3 border-t border-border/40">
-                            <Lock className="w-3.5 h-3.5" />
-                            <span>Bloqueado</span>
+                          <div className="text-xs mt-4 font-black uppercase flex items-center justify-between text-muted-foreground/60 pt-3 border-t border-border/40">
+                            <span className="flex items-center gap-1.5">
+                              <Lock className="w-3.5 h-3.5" />
+                              <span>Bloqueado</span>
+                            </span>
+                            {achievement.condicion_valor > 0 && (
+                              <span className="font-bold text-[11px] bg-muted/80 px-2 py-0.5 rounded border border-border/50">
+                                Meta: {achievement.condicion_valor}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

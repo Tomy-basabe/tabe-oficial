@@ -184,12 +184,11 @@ export async function recordGameMatch(params: SaveMatchParams): Promise<GameMatc
     window.dispatchEvent(new CustomEvent(GAME_STATS_EVENT, { detail: newMatch }));
   }
 
-  // 3. Gracefully attempt to insert into Supabase if table exists (non-blocking)
+  // 3. Gracefully attempt to insert into Supabase (non-blocking) and check achievements
   if (params.userId && params.userId !== "guest") {
     supabase
       .from("game_matches" as any)
       .insert({
-        id: newMatch.id.length === 36 ? newMatch.id : undefined,
         game_type: params.gameType,
         status: "finished",
         player1_id: params.userId,
@@ -201,10 +200,15 @@ export async function recordGameMatch(params: SaveMatchParams): Promise<GameMatc
         xp_reward: params.xpReward,
         finished_at: newMatch.finished_at,
       } as any)
-      .then(({ error }) => {
-        if (error) {
-          // Table might not exist or constraint issue; localStorage ensures data safety
-          console.debug("Remote game_matches persistence skipped:", error.message);
+      .then(async ({ error }) => {
+        if (!error && params.userId) {
+          try {
+            await supabase.rpc('check_and_unlock_achievements', { p_user_id: params.userId });
+          } catch {
+            // Silently ignore background achievement check error
+          }
+        } else if (error) {
+          console.debug("Remote game_matches persistence notice:", error.message);
         }
       })
       .catch(() => {});
