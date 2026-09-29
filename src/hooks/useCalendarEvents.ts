@@ -97,6 +97,25 @@ function advanceDate(date: Date, rule: RecurrenceRule) {
 // Module-level cache for instantaneous navigation between pages (stale-while-revalidate)
 let _cachedEvents: CalendarEvent[] | null = null;
 let _cachedUserId: string | null = null;
+let _inflightEventsPromise: Promise<CalendarEvent[] | null> | null = null;
+let _lastCalendarErrorToastTime = 0;
+const CALENDAR_CACHE_KEY_PREFIX = "tabe_calendar_events_cache_";
+
+function getStoredCalendarEvents(userId: string): CalendarEvent[] | null {
+  try {
+    const raw = localStorage.getItem(`${CALENDAR_CACHE_KEY_PREFIX}${userId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+  return null;
+}
+
+function setStoredCalendarEvents(userId: string, events: CalendarEvent[]) {
+  try {
+    localStorage.setItem(`${CALENDAR_CACHE_KEY_PREFIX}${userId}`, JSON.stringify(events));
+  } catch {}
+}
 
 export const isExamType = (tipo: string): boolean => {
   if (!tipo) return false;
@@ -117,19 +136,26 @@ export const isExamType = (tipo: string): boolean => {
 
 export function useCalendarEvents() {
   const { user, isGuest } = useAuth();
+  const userId = user?.id;
 
-  // Invalidate cache if user changes
-  if (user && user.id !== _cachedUserId) {
+  // Invalidate memory cache if user changes
+  if (userId && userId !== _cachedUserId) {
     _cachedEvents = null;
-    _cachedUserId = user.id;
+    _cachedUserId = userId;
+  }
+
+  // Restore from persistent localStorage cache if memory cache is empty
+  if (!_cachedEvents && userId) {
+    _cachedEvents = getStoredCalendarEvents(userId);
   }
 
   const [rawEvents, setRawEvents] = useState<CalendarEvent[]>(_cachedEvents || []);
-  const [loading, setLoading] = useState<boolean>(!_cachedEvents);
-  const isInitialLoadDone = useRef(!!_cachedEvents);
+  const [loading, setLoading] = useState<boolean>(!_cachedEvents && !isGuest);
+  const isInitialLoadDone = useRef(!!_cachedEvents || isGuest);
+  const hasLoadedForUserRef = useRef<string | null>(_cachedEvents ? userId || null : null);
 
-  const fetchEvents = useCallback(async (retries = 2) => {
-    if (!user && !isGuest) return;
+  const fetchEvents = useCallback(async (retries = 1, options?: { silent?: boolean }) => {
+    if (!userId && !isGuest) return;
 
     if (isGuest) {
       setLoading(false);
@@ -177,91 +203,142 @@ export function useCalendarEvents() {
       return;
     }
 
-    try {
-      // Only show full loading on initial load; subsequent updates are seamless
-      if (!isInitialLoadDone.current) {
-        setLoading(true);
-      }
+    if (!userId || typeof userId !== "string" || userId.trim().length < 10) {
+      return;
+    }
 
-      const { data: eventsData, error } = await supabase
-        .from("calendar_events")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("fecha", { ascending: true });
-
-      if (error) throw error;
-
-      // Fetch subject names
-      const subjectIds = [...new Set(eventsData?.filter(e => e.subject_id).map(e => e.subject_id))];
-
-      let subjectsMap: Record<string, { nombre: string; codigo: string }> = {};
-
-      if (subjectIds.length > 0) {
-        const { data: subjectsData } = await supabase
-          .from("subjects")
-          .select("id, nombre, codigo")
-          .in("id", subjectIds);
-
-        if (subjectsData) {
-          subjectsMap = subjectsData.reduce((acc, s) => {
-            acc[s.id] = { nombre: s.nombre, codigo: s.codigo };
-            return acc;
-          }, {} as Record<string, { nombre: string; codigo: string }>);
+    // Deduplicate concurrent fetch requests
+    if (_inflightEventsPromise) {
+      try {
+        const events = await _inflightEventsPromise;
+        if (events) {
+          setRawEvents(events);
+          isInitialLoadDone.current = true;
         }
-      }
+      } catch {}
+      return;
+    }
 
-      const eventsWithSubjects = (eventsData || []).map(event => {
-        let subjectNombre = event.subject_id ? subjectsMap[event.subject_id]?.nombre : undefined;
-        let subjectCodigo = event.subject_id ? subjectsMap[event.subject_id]?.codigo : undefined;
+    const task = (async () => {
+      try {
+        // Only show full loading on initial load; subsequent updates are seamless
+        if (!isInitialLoadDone.current && rawEvents.length === 0) {
+          setLoading(true);
+        }
 
-        // Fallback: infer subject from [Materia] tag in notas if subject_id is null (e.g. from Google Calendar sync)
-        if (!subjectNombre && event.notas) {
-          const tagMatch = event.notas.match(/^\[([^\]]+)\]/);
-          if (tagMatch && !tagMatch[1].startsWith("gcal_id:") && !tagMatch[1].startsWith("status:")) {
-            subjectNombre = tagMatch[1].trim();
+        const { data: eventsData, error } = await supabase
+          .from("calendar_events")
+          .select("*")
+          .eq("user_id", userId)
+          .order("fecha", { ascending: true });
+
+        if (error) throw error;
+
+        // Fetch subject names with safe UUID filtering
+        const subjectIds = [
+          ...new Set(
+            (eventsData || [])
+              .filter((e) => e.subject_id && typeof e.subject_id === "string" && e.subject_id.length > 20)
+              .map((e) => e.subject_id)
+          ),
+        ];
+
+        let subjectsMap: Record<string, { nombre: string; codigo: string }> = {};
+
+        if (subjectIds.length > 0) {
+          try {
+            const { data: subjectsData } = await supabase
+              .from("subjects")
+              .select("id, nombre, codigo")
+              .in("id", subjectIds);
+
+            if (subjectsData) {
+              subjectsMap = subjectsData.reduce((acc, s) => {
+                acc[s.id] = { nombre: s.nombre, codigo: s.codigo };
+                return acc;
+              }, {} as Record<string, { nombre: string; codigo: string }>);
+            }
+          } catch (subjErr) {
+            console.warn("Could not fetch subject metadata for calendar events:", subjErr);
           }
         }
 
-        return {
-          ...event,
-          tipo_examen: event.tipo_examen as EventType,
-          recurrence_rule: (event.recurrence_rule || null) as RecurrenceRule,
-          hora: (event.hora as string | null) || null,
-          hora_fin: (event.hora_fin as string | null) || null,
-          color: event.color as string,
-          subject_nombre: subjectNombre,
-          subject_codigo: subjectCodigo,
-        };
-      });
+        const eventsWithSubjects = (eventsData || []).map((event) => {
+          let subjectNombre = event.subject_id ? subjectsMap[event.subject_id]?.nombre : undefined;
+          let subjectCodigo = event.subject_id ? subjectsMap[event.subject_id]?.codigo : undefined;
 
-      _cachedEvents = eventsWithSubjects;
-      setRawEvents(eventsWithSubjects);
-      isInitialLoadDone.current = true;
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      if (retries > 0) {
-        console.log(`Retrying fetchEvents... (${retries} left)`);
-        await new Promise(r => setTimeout(r, 1000));
-        return fetchEvents(retries - 1);
+          // Fallback: infer subject from [Materia] tag in notas if subject_id is null (e.g. from Google Calendar sync)
+          if (!subjectNombre && event.notas) {
+            const tagMatch = event.notas.match(/^\[([^\]]+)\]/);
+            if (tagMatch && !tagMatch[1].startsWith("gcal_id:") && !tagMatch[1].startsWith("status:")) {
+              subjectNombre = tagMatch[1].trim();
+            }
+          }
+
+          return {
+            ...event,
+            tipo_examen: event.tipo_examen as EventType,
+            recurrence_rule: (event.recurrence_rule || null) as RecurrenceRule,
+            hora: (event.hora as string | null) || null,
+            hora_fin: (event.hora_fin as string | null) || null,
+            color: event.color as string,
+            subject_nombre: subjectNombre,
+            subject_codigo: subjectCodigo,
+          };
+        });
+
+        _cachedEvents = eventsWithSubjects;
+        setStoredCalendarEvents(userId, eventsWithSubjects);
+        setRawEvents(eventsWithSubjects);
+        isInitialLoadDone.current = true;
+        hasLoadedForUserRef.current = userId;
+        return eventsWithSubjects;
+      } catch (error: any) {
+        if (error?.name === "AbortError" || error?.message?.includes("aborted")) {
+          return null;
+        }
+        console.error("Error fetching events:", error);
+        if (retries > 0) {
+          console.log(`Retrying fetchEvents... (${retries} left)`);
+          await new Promise((r) => setTimeout(r, 1000));
+          return fetchEvents(retries - 1, options);
+        }
+
+        // Only show toast if user doesn't have cached events, it's not silent, and not spammed
+        const now = Date.now();
+        const hasExistingEvents = rawEvents.length > 0 || (_cachedEvents && _cachedEvents.length > 0);
+        if (!options?.silent && !hasExistingEvents && now - _lastCalendarErrorToastTime > 60000) {
+          _lastCalendarErrorToastTime = now;
+          toast.error("Error al cargar los eventos");
+        }
+        return null;
+      } finally {
+        setLoading(false);
       }
-      toast.error("Error al cargar los eventos");
+    })();
+
+    _inflightEventsPromise = task;
+    try {
+      await task;
     } finally {
-      setLoading(false);
+      _inflightEventsPromise = null;
     }
-  }, [user, isGuest]);
+  }, [userId, isGuest, rawEvents.length]);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    if (hasLoadedForUserRef.current !== userId) {
+      fetchEvents();
+    }
+  }, [userId, fetchEvents]);
 
   // Realtime subscription
   useRealtimeSubscription({
     table: "calendar_events",
-    filter: user ? `user_id=eq.${user.id}` : undefined,
+    filter: userId ? `user_id=eq.${userId}` : undefined,
     onChange: useCallback(() => {
-      fetchEvents();
+      fetchEvents(0, { silent: true });
     }, [fetchEvents]),
-    enabled: !!user,
+    enabled: !!userId,
   });
 
   // Generate all events including recurrence instances

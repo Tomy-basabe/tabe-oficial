@@ -290,9 +290,15 @@ export function disconnectGoogleCalendar() {
  * Returns the new token or null if refresh failed.
  */
 let _refreshPromise: Promise<string | null> | null = null;
+let _lastRefreshFailedTime = 0;
 export async function refreshGoogleToken(): Promise<string | null> {
   // Deduplicate concurrent refresh calls
   if (_refreshPromise) return _refreshPromise;
+
+  // Cooldown on recent failure (at least 60s)
+  if (Date.now() - _lastRefreshFailedTime < 60000) {
+    return null;
+  }
 
   _refreshPromise = (async () => {
     try {
@@ -330,7 +336,9 @@ export async function refreshGoogleToken(): Promise<string | null> {
       // Check if session in storage was refreshed
       const recovered = extractAndStoreTokenFromUrl();
       if (recovered) return recovered;
+      _lastRefreshFailedTime = Date.now();
     } catch (e) {
+      _lastRefreshFailedTime = Date.now();
       console.warn("Google token refresh failed:", e);
     }
     return null;

@@ -119,10 +119,11 @@ export function MainLayout() {
   });
 
   const navItems = baseNavItems;
+  const userId = user?.id;
   
   // Auto-sync academic calendars (Google Calendar & Moodle Campus) in background silently
   useEffect(() => {
-    if (!user || isGuest) return;
+    if (!userId || isGuest) return;
 
     let lastSyncTime = 0;
     const SYNC_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes cooldown to save bandwidth & quota
@@ -131,7 +132,7 @@ export function MainLayout() {
     const timer = setTimeout(() => {
       lastSyncTime = Date.now();
       performGlobalCalendarSync(user, { silent: true });
-    }, 3500);
+    }, 4000);
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
@@ -159,24 +160,25 @@ export function MainLayout() {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", handleVisibility);
     };
-  }, [user, isGuest]);
+  }, [userId, isGuest]);
 
   useEffect(() => {
-    if (!user && !isGuest) return;
+    if (!userId && !isGuest) return;
 
     if (isGuest) {
       setUserStats({ xp_total: 4150, nivel: 42 });
       return;
     }
 
+    if (!userId) return;
+
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const fetchUserStats = async () => {
-      if (!user) return;
       const { data } = await supabase
         .from("user_stats")
         .select("xp_total, nivel")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .maybeSingle();
       if (data) {
         setUserStats(prev => {
@@ -190,10 +192,10 @@ export function MainLayout() {
     fetchUserStats();
 
     const channel = supabase
-      .channel(`sidebar-user-stats-${user.id}`)
+      .channel(`sidebar-user-stats-${userId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "user_stats", filter: `user_id=eq.${user.id}` },
+        { event: "*", schema: "public", table: "user_stats", filter: `user_id=eq.${userId}` },
         () => {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
@@ -207,7 +209,7 @@ export function MainLayout() {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [user, isGuest]);
+  }, [userId, isGuest]);
 
   const xpData = (() => {
     if (!userStats) return { currentXp: 0, level: 1, progress: 0, xpForNext: 100 };
