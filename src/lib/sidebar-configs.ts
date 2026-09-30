@@ -130,12 +130,18 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     iconName: "Gamepad2",
     items: [
       { id: "item-/amigos", path: "/amigos", label: "Amigos", type: "item", iconName: "Users" },
-      { id: "item-/tabetalk", path: "/tabetalk", label: "Tabetalk", type: "item", iconName: "MessageSquare" },
       { id: "item-/bosque", path: "/bosque", label: "Mi Bosque", type: "item", iconName: "TreeDeciduous" },
       { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Gamepad2" },
       { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
       { id: "item-/marketplace", path: "/marketplace", label: "Marketplace", type: "item", iconName: "Store" }
     ]
+  },
+  {
+    id: "item-/tabetalk",
+    path: "/tabetalk",
+    label: "Tabetalk",
+    type: "item",
+    iconName: "MessageSquare"
   },
   {
     id: "item-/metricas",
@@ -331,8 +337,23 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
 
   const migrated = replaceDiscordWithTabetalk(cleaned);
 
-  // Ensure /tabetalk is present in the sidebar
-  if (!hasItemRecursively(migrated, "/tabetalk")) {
+  // Remove Tabetalk from any category items so it becomes an independent root item
+  const cleanTabetalkFromCategories = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
+    return list.map(item => {
+      if (item.type === "category" && item.items) {
+        return {
+          ...item,
+          items: item.items.filter(sub => (sub.path || sub.id) !== "/tabetalk" && sub.id !== "item-/tabetalk")
+        };
+      }
+      return item;
+    });
+  };
+
+  const rootCleaned = cleanTabetalkFromCategories(migrated);
+
+  // Ensure /tabetalk is present at the root level of the sidebar
+  if (!rootCleaned.some(i => (i.path || i.id) === "/tabetalk" || i.id === "item-/tabetalk")) {
     const tabetalkItem: CustomSidebarItem = {
       id: "item-/tabetalk",
       path: "/tabetalk",
@@ -341,30 +362,19 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
       iconName: "MessageSquare"
     };
 
-    // Find "Comunidad & Juegos" category (id: "cat-comunidad")
-    const comCat = migrated.find(i => 
-      i.type === "category" && 
-      (i.id === "cat-comunidad" || 
-       i.label?.toLowerCase().includes("comunidad") || 
-       (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/amigos" || (sub.path || sub.id) === "/bosque")))
-    );
-
-    if (comCat && comCat.items) {
-      const amigosIdx = comCat.items.findIndex((sub: any) => (sub.path || sub.id) === "/amigos" || sub.id === "item-/amigos");
-      if (amigosIdx !== -1) {
-        comCat.items.splice(amigosIdx + 1, 0, tabetalkItem);
-      } else {
-        comCat.items.unshift(tabetalkItem);
-      }
+    // Insert after cat-comunidad if present, else before metricas or at end
+    const comCatIdx = rootCleaned.findIndex(i => i.id === "cat-comunidad" || i.label?.toLowerCase().includes("comunidad"));
+    if (comCatIdx !== -1) {
+      rootCleaned.splice(comCatIdx + 1, 0, tabetalkItem);
     } else {
-      const firstCat = migrated.find(i => i.type === "category" && i.items);
-      if (firstCat && firstCat.items) {
-        firstCat.items.push(tabetalkItem);
+      const metricasIdx = rootCleaned.findIndex(i => (i.path || i.id) === "/metricas" || i.id === "item-/metricas");
+      if (metricasIdx !== -1) {
+        rootCleaned.splice(metricasIdx, 0, tabetalkItem);
       } else {
-        migrated.push(tabetalkItem);
+        rootCleaned.push(tabetalkItem);
       }
     }
   }
 
-  return migrated;
+  return rootCleaned;
 }

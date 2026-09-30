@@ -1,16 +1,18 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { DiscordServerList } from "@/components/discord/DiscordServerList";
 import { DiscordChannelSidebar } from "@/components/discord/DiscordChannelSidebar";
 import { DiscordTextChannel } from "@/components/discord/DiscordTextChannel";
 import { DiscordVoiceChannel } from "@/components/discord/DiscordVoiceChannel";
-import { ArrowLeft, Hash, Volume2 } from "lucide-react";
+import { ArrowLeft, Hash, Volume2, Home } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 // Mobile view states: which panel is shown on small screens
 type MobileView = "servers" | "channels" | "main";
 
 export default function Tabetalk() {
+  const navigate = useNavigate();
   const discord = useDiscordVoice();
   const [mobileView, setMobileView] = useState<MobileView>("servers");
 
@@ -61,6 +63,18 @@ export default function Tabetalk() {
     remoteMediaStates,
   } = discord;
 
+  // Desconexión limpia de llamada WebRTC y retorno al Dashboard
+  const handleGoBack = async () => {
+    if (inVoiceChannel) {
+      try {
+        await leaveVoiceChannel();
+      } catch (err) {
+        console.error("Error al desconectar canal de voz al salir de Tabetalk:", err);
+      }
+    }
+    navigate("/dashboard");
+  };
+
   // When selecting a server on mobile, auto-navigate to channels
   const handleSelectServer = (server: any) => {
     setCurrentServer(server);
@@ -100,6 +114,7 @@ export default function Tabetalk() {
             onJoinByCode={joinServerByCode}
             onCreateInvite={createInvite}
             hasCurrentServer={!!currentServer}
+            onGoBack={handleGoBack}
           />
         </div>
       </div>

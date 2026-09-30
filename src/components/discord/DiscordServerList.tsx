@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Plus, Compass, Download, Trash2, LogOut } from "lucide-react";
+import { Plus, Compass, Download, Trash2, LogOut, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TabeLogo } from "@/components/ui/TabeLogo";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ interface DiscordServerListProps {
   onJoinByCode?: (code: string) => Promise<boolean>;
   onCreateInvite?: () => Promise<string | null>;
   hasCurrentServer?: boolean;
+  onGoBack?: () => void;
 }
 
 export function DiscordServerList({
@@ -42,7 +44,8 @@ export function DiscordServerList({
   onLeaveServer,
   onJoinByCode,
   onCreateInvite,
-  hasCurrentServer
+  hasCurrentServer,
+  onGoBack
 }: DiscordServerListProps) {
   const { user } = useAuth();
   const [showCreateServer, setShowCreateServer] = useState(false);
@@ -73,7 +76,27 @@ export function DiscordServerList({
   };
   return (
     <div className="md:w-[72px] w-full bg-background/95 backdrop-blur border-r md:border-r border-border md:py-3 py-3 flex md:flex-col flex-row items-center md:gap-2 gap-3 overflow-x-auto md:overflow-y-auto md:overflow-x-hidden discord-scrollbar shrink-0 z-50 px-3 md:px-0">
-      {/* Home Button (Direct Messages) */}
+      {/* Botón de Retorno al Dashboard principal */}
+      {onGoBack && (
+        <div className="relative group mb-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onGoBack}
+                className="w-12 h-12 rounded-[24px] hover:rounded-[16px] transition-all duration-200 flex items-center justify-center mx-3 bg-secondary text-foreground hover:bg-destructive hover:text-white border border-border/50 shadow-lg shadow-black/20"
+                aria-label="Volver al Dashboard"
+              >
+                <Home className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
+              Volver al Dashboard
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
+
+      {/* Logo Oficial Tabetalk / Inicio */}
       <div className="relative group mb-1">
         <div className={cn(
           "absolute left-0 top-1/2 -translate-y-1/2 w-[4px] bg-primary rounded-r-lg transition-all duration-200",
@@ -86,18 +109,15 @@ export function DiscordServerList({
               className={cn(
                 "w-12 h-12 rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 flex items-center justify-center mx-3 overflow-hidden shadow-lg shadow-black/20",
                 !currentServer
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+                  ? "bg-primary/20 border-2 border-primary text-primary"
+                  : "bg-card text-muted-foreground hover:bg-primary/20 hover:text-primary"
               )}
             >
-              <img src="/favicon.svg" alt="Comunidad" className="w-7 h-7" onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.2 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.09.22.17.33.26c.04.03.04.09-.01.11c-.53.31-1.07.57-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.02c1.68-.53 3.4-1.33 5.2-2.65c.02-.01.03-.03.03-.05c.44-4.52-.6-9.67-4.43-14.12c-.01-.01-.02-.01-.03-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.85 2.12-1.89 2.12z"/></svg>';
-              }} />
+              <TabeLogo size={28} className="shrink-0" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
-            Mensajes directos
+            Tabetalk (Inicio)
           </TooltipContent>
         </Tooltip>
       </div>
