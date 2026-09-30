@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { Analytics } from "@vercel/analytics/react";
+import { ConditionalAnalytics } from "./components/legal/ConditionalAnalytics";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { initSecurityProtection } from "./lib/security";
@@ -68,6 +68,6 @@ if (typeof window !== "undefined" && "serviceWorker" in navigator) {
 createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
         <App />
-        <Analytics />
+        <ConditionalAnalytics />
     </ErrorBoundary>
 );

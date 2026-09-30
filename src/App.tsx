@@ -214,6 +214,7 @@ import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget
 import { IncomingChallengeModal } from "@/components/games/IncomingChallengeModal";
 import { useTheme } from "@/hooks/useTheme";
 import { DynamicTitleWatcher } from "@/hooks/useDynamicTitle";
+import { CookieConsent } from "@/components/legal/CookieConsent";
 
 const App = () => {
   useTheme();
@@ -233,6 +234,7 @@ const App = () => {
                 <GlobalDiscordVoiceWidget />
                 <PWAInstallBanner />
                 <IncomingChallengeModal />
+                <CookieConsent />
               </DiscordVoiceProvider>
             </BrowserRouter>
           </AIChatProvider>

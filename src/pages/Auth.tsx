@@ -57,6 +57,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
+  const [acceptLegal, setAcceptLegal] = useState(false);
   const { signIn, signUp, signInWithGoogle, loginAsGuest } = useAuth();
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -180,6 +181,10 @@ export default function Auth() {
         return;
       }
     } else {
+      if (!acceptLegal) {
+        toast.error("Debes aceptar los Términos de Servicio y la Política de Privacidad para registrarte");
+        return;
+      }
       const parsed = signupSchema.safeParse({ email, password, nombre });
       if (!parsed.success) {
         toast.error(parsed.error.errors[0]?.message || "Datos inválidos");
@@ -956,6 +961,43 @@ export default function Auth() {
                               </button>
                             </div>
                           </div>
+
+                          {/* Informed Consent Checkbox (Only for Registration) */}
+                          {!isLogin && (
+                            <div className="pt-2">
+                              <label className="flex items-start gap-2.5 text-xs font-bold text-foreground cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={acceptLegal}
+                                  onChange={(e) => setAcceptLegal(e.target.checked)}
+                                  className="mt-0.5 w-4 h-4 rounded border-2 border-foreground accent-[#0066FF] cursor-pointer shrink-0"
+                                  required
+                                />
+                                <span className="leading-tight text-muted-foreground text-[11px] sm:text-xs">
+                                  He leído y acepto los{" "}
+                                  <a
+                                    href="/terminos"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-foreground font-black underline underline-offset-2 hover:text-[#0066FF]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Términos de Servicio
+                                  </a>{" "}
+                                  y la{" "}
+                                  <a
+                                    href="/privacidad"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-foreground font-black underline underline-offset-2 hover:text-[#0066FF]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Política de Privacidad
+                                  </a>.
+                                </span>
+                              </label>
+                            </div>
+                          )}
 
                           {/* Submit Button */}
                           <button 

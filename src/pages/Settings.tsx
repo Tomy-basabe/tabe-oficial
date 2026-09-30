@@ -22,10 +22,17 @@ import {
   Unlink,
   GraduationCap,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Shield,
+  FileText,
+  Cookie,
+  AlertOctagon
 } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
+import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
+import { resetCookieConsent } from "@/components/legal/CookieConsent";
 import { getStoredMoodleSession, MoodleSession } from "@/lib/moodleService";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
@@ -69,6 +76,7 @@ export default function Settings() {
   const [unlinkingGoogle, setUnlinkingGoogle] = useState(false);
   const [showMoodleModal, setShowMoodleModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [hasGoogleFeed, setHasGoogleFeed] = useState<boolean>(() => !!getStoredGoogleFeedUrl());
   const [moodleSession, setMoodleSession] = useState<MoodleSession | null>(() => getStoredMoodleSession());
 
@@ -1032,6 +1040,90 @@ export default function Settings() {
         </div>
       )}
 
+      {/* Sección Legal, Privacidad y Cookies */}
+      <div className="space-y-3 pt-2">
+        <h3 className="font-black uppercase text-lg text-foreground flex items-center gap-2">
+          <Shield className="w-5 h-5 text-[#0066FF]" />
+          <span>Legal y Privacidad</span>
+        </h3>
+        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4">
+          <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+            Consulta los acuerdos normativos de TABE y gestiona tus preferencias de privacidad conforme a la Ley 25.326 y estándares internacionales.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <RouterLink
+              to="/terminos"
+              className="p-3.5 border-2 border-foreground rounded-xl bg-muted/30 hover:bg-muted font-black text-xs uppercase flex items-center justify-between shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all"
+            >
+              <span className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#FF6600]" />
+                <span>Términos de Servicio</span>
+              </span>
+              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+            </RouterLink>
+
+            <RouterLink
+              to="/privacidad"
+              className="p-3.5 border-2 border-foreground rounded-xl bg-muted/30 hover:bg-muted font-black text-xs uppercase flex items-center justify-between shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all"
+            >
+              <span className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[#48BD22]" />
+                <span>Política de Privacidad</span>
+              </span>
+              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+            </RouterLink>
+          </div>
+
+          <div className="pt-2 border-t-2 border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="text-xs">
+              <p className="font-black text-foreground">Preferencias de Cookies</p>
+              <p className="font-bold text-muted-foreground text-[11px]">
+                Configura si permites analíticas opcionales para la plataforma.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                resetCookieConsent();
+                toast.info("Abre el banner flotante para elegir tu preferencia de cookies.");
+              }}
+              className="px-3.5 py-2 rounded-xl border-2 border-foreground bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-1.5 shrink-0"
+            >
+              <Cookie className="w-3.5 h-3.5" />
+              <span>Cambiar cookies</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Zona de Peligro: Derecho de Supresión (Eliminar cuenta y datos) */}
+      {!isGuest && (
+        <div className="space-y-3 pt-4">
+          <h3 className="font-black uppercase text-lg text-destructive flex items-center gap-2">
+            <AlertOctagon className="w-5 h-5 text-destructive" />
+            <span>Zona de Peligro / Derecho al Olvido</span>
+          </h3>
+          <div className="bg-destructive/10 border-4 border-destructive shadow-[4px_4px_0_0_hsl(var(--destructive))] rounded-xl p-5 space-y-3">
+            <div>
+              <p className="font-black text-sm uppercase text-foreground">
+                Eliminar mi cuenta y todos mis datos
+              </p>
+              <p className="font-bold text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Esta acción es inmediata, irreversible y definitiva. Se purgarán tus apuntes, notas, archivos en storage, materias, flashcards y credenciales según la Ley 25.326.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="py-3 px-4 bg-[#FF5C5C] text-black border-2 border-foreground rounded-xl font-black text-xs uppercase tracking-wider shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:bg-[#ff4d4d] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center gap-2"
+            >
+              <AlertOctagon className="w-4 h-4" />
+              <span>Eliminar mi cuenta y todos mis datos</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Logout */}
       <button
         onClick={handleLogout}
@@ -1066,6 +1158,12 @@ export default function Settings() {
           setHasGoogleFeed(!!getStoredGoogleFeedUrl(user?.user_metadata));
         }}
         onOpenImport={() => {}}
+      />
+
+      {/* Modal Derecho de Supresión (Eliminar cuenta) */}
+      <DeleteAccountModal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
       />
     </div>
   );
