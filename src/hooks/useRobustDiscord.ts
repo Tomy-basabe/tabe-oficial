@@ -77,6 +77,8 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const cameraStreamRef = useRef<MediaStream | null>(null);
     const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
     const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+    const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
+    const remoteScreenStreamsRef = useRef<Map<string, MediaStream>>(new Map());
     const sigRef = useRef<RealtimeChannel | null>(null);
     const channelIdRef = useRef<string | null>(null);
     const userIdRef = useRef<string | null>(null);
@@ -128,6 +130,8 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             pcsRef.current.delete(id);
         }
         pendingCandidatesRef.current.delete(id);
+        remoteStreamsRef.current.delete(id);
+        remoteScreenStreamsRef.current.delete(id);
         setRemoteStreams(p => { const m = new Map(p); m.delete(id); return m; });
         setRemoteScreenStreams(p => { const m = new Map(p); m.delete(id); return m; });
         setRemoteMediaStates(p => { const m = new Map(p); m.delete(id); return m; });
@@ -165,6 +169,8 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         });
         pcsRef.current.clear();
         pendingCandidatesRef.current.clear();
+        remoteStreamsRef.current.clear();
+        remoteScreenStreamsRef.current.clear();
         setRemoteStreams(new Map());
         setRemoteScreenStreams(new Map());
         setRemoteMediaStates(new Map());
@@ -211,6 +217,42 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         });
     }, []);
 
+    // ─── Renegotiation Helper ───
+    const renegotiateWith = useCallback(async (targetId: string, pc: RTCPeerConnection) => {
+        const myId = userIdRef.current;
+        if (!myId || !sigRef.current) return;
+        try {
+            if (pc.signalingState !== 'stable') {
+                log(`Signaling state is ${pc.signalingState} with ${targetId.slice(0, 8)}, retrying in 300ms`);
+                setTimeout(() => {
+                    const currentPC = pcsRef.current.get(targetId);
+                    if (currentPC && currentPC.signalingState === 'stable') {
+                        renegotiateWith(targetId, currentPC);
+                    }
+                }, 300);
+                return;
+            }
+            log(`Initiating renegotiation offer to ${targetId.slice(0, 8)}`);
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+            if (pc.signalingState !== 'stable') return;
+            await pc.setLocalDescription(offer);
+            sigRef.current.send({
+                type: 'broadcast',
+                event: 'signaling',
+                payload: { type: 'offer', offer: pc.localDescription, from: myId, to: targetId },
+            });
+            log(`Renegotiation offer sent to ${targetId.slice(0, 8)}`);
+        } catch (e: any) {
+            log(`Renegotiation error with ${targetId.slice(0, 8)}: ${e.message}`);
+        }
+    }, [log]);
+
+    const renegotiateAllPeers = useCallback(() => {
+        pcsRef.current.forEach((pc, targetId) => {
+            renegotiateWith(targetId, pc);
+        });
+    }, [renegotiateWith]);
+
     // ─── Peer Connection Factory ───
     const makePC = useCallback((targetId: string, stream: MediaStream): RTCPeerConnection => {
         const old = pcsRef.current.get(targetId);
@@ -244,26 +286,52 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             pc.addTransceiver('video', { direction: 'sendrecv' });
         }
 
+        pc.onnegotiationneeded = () => {
+            log(`onnegotiationneeded event fired for ${targetId.slice(0, 8)}`);
+            renegotiateWith(targetId, pc);
+        };
+
         pc.ontrack = (ev) => {
             log(`Track received from ${targetId.slice(0, 8)}: kind=${ev.track.kind}, id=${ev.track.id}`);
-            const rs = ev.streams[0] || new MediaStream([ev.track]);
+            let rStream = remoteStreamsRef.current.get(targetId);
 
-            setRemoteStreams(prev => {
-                const existing = prev.get(targetId);
-                if (existing) {
-                    // Check if existing already has this track kind
-                    const existingTracks = existing.getTracks();
-                    const hasTrack = existingTracks.some(t => t.id === ev.track.id);
-                    if (!hasTrack) {
-                        existing.addTrack(ev.track);
-                        return new Map(prev.set(targetId, new MediaStream(existing.getTracks())));
-                    }
-                    return prev;
+            if (ev.streams && ev.streams[0]) {
+                rStream = ev.streams[0];
+                remoteStreamsRef.current.set(targetId, rStream);
+            } else {
+                if (!rStream) {
+                    rStream = new MediaStream();
+                    remoteStreamsRef.current.set(targetId, rStream);
                 }
-                const m = new Map(prev);
-                m.set(targetId, rs);
-                return m;
-            });
+                const alreadyHasTrack = rStream.getTracks().some(t => t.id === ev.track.id);
+                if (!alreadyHasTrack) {
+                    rStream.addTrack(ev.track);
+                }
+            }
+
+            if (ev.track.kind === 'video') {
+                remoteScreenStreamsRef.current.set(targetId, rStream);
+                setRemoteScreenStreams(new Map(remoteScreenStreamsRef.current));
+            }
+
+            const updateStreams = () => {
+                setRemoteStreams(new Map(remoteStreamsRef.current));
+            };
+
+            ev.track.onended = () => {
+                log(`Track ${ev.track.kind} ended from ${targetId.slice(0, 8)}`);
+                updateStreams();
+            };
+            ev.track.onunmute = () => {
+                log(`Track ${ev.track.kind} unmuted from ${targetId.slice(0, 8)}`);
+                updateStreams();
+            };
+            ev.track.onmute = () => {
+                log(`Track ${ev.track.kind} muted from ${targetId.slice(0, 8)}`);
+                updateStreams();
+            };
+
+            setRemoteStreams(new Map(remoteStreamsRef.current));
         };
 
         pc.onicecandidate = (ev) => {
@@ -291,7 +359,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         };
 
         return pc;
-    }, [log]);
+    }, [log, renegotiateWith]);
 
     // ─── Signaling Handler ───
     const handleSignaling = useCallback(async (payload: any) => {
@@ -313,6 +381,17 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 }
 
                 try {
+                    if (pc.signalingState !== 'stable') {
+                        log(`Signaling glare detected with ${sid.slice(0, 8)}, state=${pc.signalingState}`);
+                        if (myId.localeCompare(sid) > 0) {
+                            try {
+                                await pc.setLocalDescription({ type: 'rollback' } as any);
+                            } catch { }
+                        } else {
+                            return;
+                        }
+                    }
+
                     await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
                     // Drain any candidate that arrived before setRemoteDescription
                     await drainPendingCandidates(sid, pc);
@@ -376,6 +455,16 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                     });
                     return next;
                 });
+
+                if (!payload.isCameraOn && !payload.isScreenSharing) {
+                    const rStream = remoteStreamsRef.current.get(sid);
+                    if (rStream) {
+                        rStream.getVideoTracks().forEach(t => {
+                            try { rStream.removeTrack(t); } catch { }
+                        });
+                        setRemoteStreams(new Map(remoteStreamsRef.current));
+                    }
+                }
                 break;
             }
 
@@ -565,11 +654,15 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         if (isVideoEnabled) {
             // Turning camera OFF
             if (cameraStreamRef.current) {
-                cameraStreamRef.current.getTracks().forEach(t => t.stop());
+                cameraStreamRef.current.getTracks().forEach(t => {
+                    t.enabled = false;
+                    try { t.stop(); } catch { }
+                });
                 cameraStreamRef.current = null;
             }
             mainStream.getVideoTracks().forEach(t => {
-                t.stop();
+                t.enabled = false;
+                try { t.stop(); } catch { }
                 mainStream.removeTrack(t);
             });
 
@@ -585,6 +678,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             setLocalStream(new MediaStream(mainStream.getTracks()));
             broadcastMediaState(false, isScreenSharing, isAudioEnabled);
             log('Camera turned OFF');
+            renegotiateAllPeers();
         } else {
             // Turning camera ON
             try {
@@ -597,12 +691,20 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 cameraStreamRef.current = vs;
 
                 // Add track to local media stream
-                mainStream.getVideoTracks().forEach(t => { t.stop(); mainStream.removeTrack(t); });
+                mainStream.getVideoTracks().forEach(t => {
+                    t.enabled = false;
+                    try { t.stop(); } catch { }
+                    mainStream.removeTrack(t);
+                });
                 mainStream.addTrack(vt);
 
-                // If not currently screen sharing, replaceTrack on all peer connections
+                // If not currently screen sharing, ensure transceiver is sendrecv and replaceTrack / addTrack
                 if (!isScreenSharing) {
                     pcsRef.current.forEach(pc => {
+                        const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
+                        if (transceiver) {
+                            transceiver.direction = 'sendrecv';
+                        }
                         const sender = findVideoSender(pc);
                         if (sender) {
                             sender.replaceTrack(vt);
@@ -616,12 +718,13 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 setLocalStream(new MediaStream(mainStream.getTracks()));
                 broadcastMediaState(true, isScreenSharing, isAudioEnabled);
                 log('Camera turned ON');
+                renegotiateAllPeers();
             } catch (e: any) {
                 log(`Camera error: ${e.message}`);
                 toast({ title: 'No se pudo acceder a la cámara', description: e.message, variant: 'destructive' });
             }
         }
-    }, [isVideoEnabled, isScreenSharing, isAudioEnabled, selectedCameraId, broadcastMediaState, toast, log]);
+    }, [isVideoEnabled, isScreenSharing, isAudioEnabled, selectedCameraId, broadcastMediaState, findVideoSender, renegotiateAllPeers, toast, log]);
 
     // ─── Switch Camera ───
     const switchCamera = useCallback(async (deviceId: string) => {
@@ -634,15 +737,26 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             const newVt = vs.getVideoTracks()[0];
 
             if (cameraStreamRef.current) {
-                cameraStreamRef.current.getTracks().forEach(t => t.stop());
+                cameraStreamRef.current.getTracks().forEach(t => {
+                    t.enabled = false;
+                    try { t.stop(); } catch { }
+                });
             }
             cameraStreamRef.current = vs;
 
-            mainStream.getVideoTracks().forEach(t => { t.stop(); mainStream.removeTrack(t); });
+            mainStream.getVideoTracks().forEach(t => {
+                t.enabled = false;
+                try { t.stop(); } catch { }
+                mainStream.removeTrack(t);
+            });
             mainStream.addTrack(newVt);
 
             if (!isScreenSharing) {
                 pcsRef.current.forEach(pc => {
+                    const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
+                    if (transceiver) {
+                        transceiver.direction = 'sendrecv';
+                    }
                     const sender = findVideoSender(pc);
                     if (sender) sender.replaceTrack(newVt);
                 });
@@ -650,16 +764,20 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
             setLocalStream(new MediaStream(mainStream.getTracks()));
             log(`Camera switched to ${deviceId}`);
+            renegotiateAllPeers();
         } catch (e: any) {
             toast({ title: 'Error al cambiar cámara', description: e.message, variant: 'destructive' });
         }
-    }, [isVideoEnabled, isScreenSharing, toast, log]);
+    }, [isVideoEnabled, isScreenSharing, findVideoSender, renegotiateAllPeers, toast, log]);
 
     // ─── Screen Share (using replaceTrack for dynamic seamless switch) ───
     const stopScreenShare = useCallback(async () => {
         const screen = screenStreamRef.current;
         if (screen) {
-            screen.getTracks().forEach(t => t.stop());
+            screen.getTracks().forEach(t => {
+                t.enabled = false;
+                try { t.stop(); } catch { }
+            });
             screenStreamRef.current = null;
         }
 
@@ -677,7 +795,8 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
         broadcastMediaState(isVideoEnabled, false, isAudioEnabled);
         log('Screen share ended, restored camera track');
-    }, [isVideoEnabled, isAudioEnabled, broadcastMediaState, log]);
+        renegotiateAllPeers();
+    }, [isVideoEnabled, isAudioEnabled, broadcastMediaState, findVideoSender, renegotiateAllPeers, log]);
 
     const startScreenShare = useCallback(async () => {
         try {
@@ -692,6 +811,10 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
             // Dynamically replace video track on all peer connections
             pcsRef.current.forEach(pc => {
+                const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
+                if (transceiver) {
+                    transceiver.direction = 'sendrecv';
+                }
                 const sender = findVideoSender(pc);
                 if (sender) {
                     sender.replaceTrack(screenTrack);
@@ -703,6 +826,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             setIsScreenSharing(true);
             broadcastMediaState(isVideoEnabled, true, isAudioEnabled);
             log('Screen share started using replaceTrack');
+            renegotiateAllPeers();
 
             // Handle when user stops sharing from browser's native floating bar
             screenTrack.onended = () => {
@@ -711,7 +835,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         } catch (e: any) {
             log(`Screen share cancelled or error: ${e.message}`);
         }
-    }, [isVideoEnabled, isAudioEnabled, stopScreenShare, broadcastMediaState, log]);
+    }, [isVideoEnabled, isAudioEnabled, stopScreenShare, broadcastMediaState, findVideoSender, renegotiateAllPeers, log]);
 
     return {
         localStream,

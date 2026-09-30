@@ -245,24 +245,33 @@ function VideoTile({
   isVideoEnabled?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [trackCount, setTrackCount] = useState(0);
+  const [, setTrackUpdate] = useState(0);
+
+  const videoTracks = stream ? stream.getVideoTracks() : [];
+  const hasLiveVideo = videoTracks.some(t => t.enabled && t.readyState === 'live');
+  const showVideo = Boolean((isVideoEnabled || hasLiveVideo) && videoTracks.length > 0 && stream);
 
   // Assign srcObject and listen for track changes
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !stream) {
-      if (el) el.srcObject = null;
-      setTrackCount(0);
+    if (!el) return;
+
+    if (!stream || !showVideo) {
+      el.srcObject = null;
       return;
     }
 
     el.srcObject = stream;
-    setTrackCount(stream.getVideoTracks().length);
 
     const onTrackChange = () => {
-      setTrackCount(stream.getVideoTracks().length);
-      // Re-assign srcObject to force browser to pick up new tracks
-      if (el) el.srcObject = stream;
+      setTrackUpdate(n => n + 1);
+      if (el) {
+        if (stream.getVideoTracks().length === 0) {
+          el.srcObject = null;
+        } else {
+          el.srcObject = stream;
+        }
+      }
     };
 
     stream.addEventListener('addtrack', onTrackChange);
@@ -272,14 +281,7 @@ function VideoTile({
       stream.removeEventListener('addtrack', onTrackChange);
       stream.removeEventListener('removetrack', onTrackChange);
     };
-  }, [stream]);
-
-  const hasLiveVideo = Boolean(
-    stream &&
-    trackCount > 0 &&
-    stream.getVideoTracks().some(t => t.enabled && t.readyState === 'live')
-  );
-  const showVideo = (isVideoEnabled || hasLiveVideo) && Boolean(stream);
+  }, [stream, showVideo]);
 
   return (
     <div className={cn(
@@ -287,18 +289,15 @@ function VideoTile({
       isSpeaking && "ring-2 ring-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]",
       !isScreenShare && "aspect-video max-h-full"
     )}>
-      <video
-        ref={videoRef}
-        autoPlay
-        muted={true}
-        playsInline
-        className={cn(
-          "w-full h-full object-cover",
-          isLocal && !isScreenShare && "scale-x-[-1]",
-          !showVideo && "hidden"
-        )}
-      />
-      {!showVideo && (
+      {showVideo ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted={true}
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
           <Avatar className={cn(
             "transition-all duration-300 ring-4 ring-transparent",
@@ -314,7 +313,7 @@ function VideoTile({
       )}
 
       {/* Overlays */}
-      <div className="absolute bottom-3 left-3 bg-black/60 px-3 py-1.5 rounded-full text-white text-sm font-medium flex items-center gap-2 backdrop-blur-sm border border-white/10">
+      <div className="absolute bottom-3 left-3 bg-black/60 px-3 py-1.5 rounded-full text-white text-sm font-medium flex items-center gap-2 backdrop-blur-sm border border-white/10 z-10">
         {isSpeaking ? (
           <Volume2 className="w-4 h-4 text-green-400 animate-pulse" />
         ) : participant.is_muted ? (
@@ -329,7 +328,7 @@ function VideoTile({
 
       {/* Speaking Visualizer (Sound Waves) */}
       {isSpeaking && (
-        <div className="absolute top-3 right-3 discord-sound-wave">
+        <div className="absolute top-3 right-3 discord-sound-wave z-10">
           <div className="bar" />
           <div className="bar" />
           <div className="bar" />
@@ -353,22 +352,32 @@ function SmallTile({
   isLocal: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [trackCount, setTrackCount] = useState(0);
+  const [, setTrackUpdate] = useState(0);
+
+  const videoTracks = stream ? stream.getVideoTracks() : [];
+  const hasLiveVideo = videoTracks.some(t => t.enabled && t.readyState === 'live');
+  const showVideo = Boolean((isVideoEnabled || hasLiveVideo) && videoTracks.length > 0 && stream);
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !stream) {
-      if (el) el.srcObject = null;
-      setTrackCount(0);
+    if (!el) return;
+
+    if (!stream || !showVideo) {
+      el.srcObject = null;
       return;
     }
 
     el.srcObject = stream;
-    setTrackCount(stream.getVideoTracks().length);
 
     const onTrackChange = () => {
-      setTrackCount(stream.getVideoTracks().length);
-      if (el) el.srcObject = stream;
+      setTrackUpdate(n => n + 1);
+      if (el) {
+        if (stream.getVideoTracks().length === 0) {
+          el.srcObject = null;
+        } else {
+          el.srcObject = stream;
+        }
+      }
     };
 
     stream.addEventListener('addtrack', onTrackChange);
@@ -378,28 +387,22 @@ function SmallTile({
       stream.removeEventListener('addtrack', onTrackChange);
       stream.removeEventListener('removetrack', onTrackChange);
     };
-  }, [stream]);
-
-  const hasLiveVideo = Boolean(
-    stream &&
-    trackCount > 0 &&
-    stream.getVideoTracks().some(t => t.enabled && t.readyState === 'live')
-  );
-  const showVideo = (isVideoEnabled || hasLiveVideo) && Boolean(stream);
+  }, [stream, showVideo]);
 
   return (
     <div className={cn(
       "aspect-video bg-card rounded-lg overflow-hidden relative border border-border shadow-md transition-all hover:scale-105 cursor-pointer",
       isSpeaking && "ring-2 ring-green-500"
     )}>
-      <video
-        ref={videoRef}
-        autoPlay
-        muted={true}
-        playsInline
-        className={cn("w-full h-full object-cover", !showVideo && "hidden")}
-      />
-      {!showVideo && (
+      {showVideo ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted={true}
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      ) : (
         <div className="w-full h-full flex items-center justify-center bg-muted/30">
           <Avatar className="w-10 h-10">
             <AvatarImage src={participant.profile?.avatar_url || undefined} />
