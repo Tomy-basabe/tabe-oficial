@@ -97,7 +97,7 @@ export function DiscordServerList({
       )}
 
       {/* Logo Oficial Tabetalk / Inicio */}
-      <div className="relative group mb-1">
+      <div className="relative group mb-1.5">
         <div className={cn(
           "absolute left-0 top-1/2 -translate-y-1/2 w-[4px] bg-primary rounded-r-lg transition-all duration-200",
           !currentServer ? "h-10" : "h-2 group-hover:h-5 opacity-0 group-hover:opacity-100"
@@ -107,16 +107,16 @@ export function DiscordServerList({
             <button
               onClick={() => onSelectServer(null)}
               className={cn(
-                "w-12 h-12 rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 flex items-center justify-center mx-3 overflow-hidden shadow-lg shadow-black/20",
+                "w-14 h-14 rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 flex items-center justify-center mx-2 overflow-hidden shadow-xl shadow-black/25 p-1",
                 !currentServer
-                  ? "bg-primary/20 border-2 border-primary text-primary"
+                  ? "bg-primary/20 border-2 border-primary text-primary scale-105"
                   : "bg-card text-muted-foreground hover:bg-primary/20 hover:text-primary"
               )}
             >
               <img 
                 src="/tabe-talk.png" 
                 alt="Tabetalk" 
-                className="w-7 h-7 object-contain shrink-0" 
+                className="w-10 h-10 object-contain shrink-0 transition-transform duration-200 group-hover:scale-110" 
                 onError={(e) => { e.currentTarget.src = "/logo.png"; }}
               />
             </button>

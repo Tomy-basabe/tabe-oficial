@@ -344,6 +344,7 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
       if (item.type === "category" && item.items) {
         return {
           ...item,
+          iconName: (item.id === "cat-comunidad" || item.label?.toLowerCase().includes("comunidad") || item.label?.toLowerCase().includes("juego")) ? "Gamepad2" : item.iconName,
           items: item.items.filter(sub => (sub.path || sub.id) !== "/tabetalk" && sub.id !== "item-/tabetalk")
         };
       }

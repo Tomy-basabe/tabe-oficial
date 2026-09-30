@@ -1,16 +1,46 @@
+import React from "react";
 import { cn } from "@/lib/utils";
 
-export function TabetalkIcon({ className = "", size = 20 }: { className?: string; size?: number }) {
+export interface TabetalkIconProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+  size?: number | string;
+  style?: React.CSSProperties;
+}
+
+/**
+ * Tabetalk official logo icon for Sidebar and UI elements.
+ */
+export function TabetalkIcon({
+  className,
+  size,
+  style,
+  ...props
+}: TabetalkIconProps) {
+  const sizeStyle = size
+    ? { width: size, height: size, minWidth: size, minHeight: size, ...style }
+    : style;
+
   return (
-    <img
-      src="/tabe-talk.png"
-      alt="Tabetalk"
-      className={cn("object-contain shrink-0", className)}
-      style={{ width: size, height: size }}
-      onError={(e) => {
-        // Fallback to logo.png if tabe-talk.png fails
-        e.currentTarget.src = "/logo.png";
-      }}
-    />
+    <div
+      className={cn(
+        "relative inline-flex items-center justify-center shrink-0 select-none overflow-visible",
+        !size && !className?.includes("w-") && "w-5 h-5 sm:w-5.5 sm:h-5.5",
+        className
+      )}
+      style={sizeStyle}
+      {...props}
+    >
+      <img
+        src="/tabe-talk.png"
+        alt="Tabetalk"
+        className="w-full h-full object-contain pointer-events-none transition-transform duration-200 group-hover:scale-110"
+        loading="eager"
+        onError={(e) => {
+          e.currentTarget.src = "/logo.png";
+        }}
+      />
+    </div>
   );
 }
+
+export default TabetalkIcon;
