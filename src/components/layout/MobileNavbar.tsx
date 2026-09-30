@@ -22,7 +22,8 @@ import {
   LayoutGrid, 
   X, 
   ChevronUp,
-  CheckSquare
+  CheckSquare,
+  MessageSquare
 } from "lucide-react";
 import { ApuntesIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
@@ -94,6 +95,7 @@ export const ALL_MOBILE_NAV_ITEMS: {
     categoryLabel: "Comunidad & Juegos",
     icon: "🎮",
     items: [
+      { icon: MessageSquare, label: "Tabetalk", path: "/tabetalk", badge: "VOZ", color: "text-[#1475e5]", bgActive: "bg-[#1475e5] text-white" },
       { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", color: "text-[#10B981]", bgActive: "bg-[#10B981] text-white" },
       { icon: Gamepad2, label: "Juegos", path: "/juegos", badge: "HOT", color: "text-[#F97316]", bgActive: "bg-[#F97316] text-white" },
       { icon: Users, label: "Amigos", path: "/amigos", color: "text-[#06B6D4]", bgActive: "bg-[#06B6D4] text-black" },

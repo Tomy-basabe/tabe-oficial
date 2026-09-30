@@ -148,6 +148,8 @@ export default function Tabetalk() {
                 onToggleAudio={toggleAudio}
                 onToggleDeafen={toggleDeafen}
                 onLeaveVoice={leaveVoiceChannel}
+                onDeleteServer={deleteServer}
+                onLeaveServer={leaveServer}
               />
             </div>
           </div>

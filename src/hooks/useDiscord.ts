@@ -379,19 +379,45 @@ export function useDiscord() {
     }
   };
 
-  // Delete a server
+  // Delete a server with complete cascade
   const deleteServer = async (serverId: string) => {
     if (!user) return;
 
     try {
-      // First verify ownership
-      const serverToDelete = servers.find(s => s.id === serverId);
-      if (!serverToDelete) return;
+      // 1. Fetch channel IDs belonging to this server
+      const { data: channelRows } = await supabase
+        .from("discord_channels")
+        .select("id")
+        .eq("server_id", serverId);
 
-      // In a real app with RLS, the DB would prevent non-owners from deleting
-      // But we can check locally too for better UX
-      // (assuming created_by or owner_id field exists - based on createServer it's owner_id)
+      const channelIds = (channelRows || []).map((c: any) => c.id);
 
+      // 2. Cascade delete messages and voice participants
+      if (channelIds.length > 0) {
+        await supabase
+          .from("discord_messages")
+          .delete()
+          .in("channel_id", channelIds);
+
+        await supabase
+          .from("discord_voice_participants")
+          .delete()
+          .in("channel_id", channelIds);
+
+        // 3. Delete channels
+        await supabase
+          .from("discord_channels")
+          .delete()
+          .eq("server_id", serverId);
+      }
+
+      // 4. Delete server members
+      await supabase
+        .from("discord_server_members")
+        .delete()
+        .eq("server_id", serverId);
+
+      // 5. Delete the server itself
       const { error } = await supabase
         .from("discord_servers")
         .delete()
@@ -399,18 +425,18 @@ export function useDiscord() {
 
       if (error) throw error;
 
-      toast({ title: "Servidor eliminado", description: "El servidor ha sido eliminado permanentemente" });
-
-      // If current server was deleted, clear selection
+      // 6. Optimistic update
+      setServers(prev => prev.filter(s => s.id !== serverId));
       if (currentServer?.id === serverId) {
         setCurrentServer(null);
         setInternalCurrentChannel(null);
       }
 
+      toast({ title: "Servidor eliminado", description: "El servidor y todo su contenido fueron eliminados permanentemente." });
       await fetchServers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting server:", error);
-      toast({ title: "Error", description: "No se pudo eliminar el servidor", variant: "destructive" });
+      toast({ title: "Error", description: error?.message || "No se pudo eliminar el servidor", variant: "destructive" });
     }
   };
 

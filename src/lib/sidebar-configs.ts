@@ -312,5 +312,59 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
     }
   }
 
-  return cleaned;
+  // Replace legacy /discord references with /tabetalk
+  const replaceDiscordWithTabetalk = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
+    return list.map(item => {
+      let updated = { ...item };
+      if (updated.path === "/discord" || updated.id === "item-/discord") {
+        updated.path = "/tabetalk";
+        updated.id = "item-/tabetalk";
+        updated.label = "Tabetalk";
+        updated.iconName = "MessageSquare";
+      }
+      if (updated.items && updated.items.length > 0) {
+        updated.items = replaceDiscordWithTabetalk(updated.items);
+      }
+      return updated;
+    });
+  };
+
+  const migrated = replaceDiscordWithTabetalk(cleaned);
+
+  // Ensure /tabetalk is present in the sidebar
+  if (!hasItemRecursively(migrated, "/tabetalk")) {
+    const tabetalkItem: CustomSidebarItem = {
+      id: "item-/tabetalk",
+      path: "/tabetalk",
+      label: "Tabetalk",
+      type: "item",
+      iconName: "MessageSquare"
+    };
+
+    // Find "Comunidad & Juegos" category (id: "cat-comunidad")
+    const comCat = migrated.find(i => 
+      i.type === "category" && 
+      (i.id === "cat-comunidad" || 
+       i.label?.toLowerCase().includes("comunidad") || 
+       (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/amigos" || (sub.path || sub.id) === "/bosque")))
+    );
+
+    if (comCat && comCat.items) {
+      const amigosIdx = comCat.items.findIndex((sub: any) => (sub.path || sub.id) === "/amigos" || sub.id === "item-/amigos");
+      if (amigosIdx !== -1) {
+        comCat.items.splice(amigosIdx + 1, 0, tabetalkItem);
+      } else {
+        comCat.items.unshift(tabetalkItem);
+      }
+    } else {
+      const firstCat = migrated.find(i => i.type === "category" && i.items);
+      if (firstCat && firstCat.items) {
+        firstCat.items.push(tabetalkItem);
+      } else {
+        migrated.push(tabetalkItem);
+      }
+    }
+  }
+
+  return migrated;
 }

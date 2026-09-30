@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Hash, Volume2, Plus, ChevronDown, ChevronRight, Settings, Trash2, Users, Mic, MicOff, Headphones, HeadphoneOff, Signal, PhoneOff } from "lucide-react";
+import { Hash, Volume2, Plus, ChevronDown, ChevronRight, Settings, Trash2, Users, Mic, MicOff, Headphones, HeadphoneOff, Signal, PhoneOff, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import type {
@@ -50,6 +50,8 @@ interface DiscordChannelSidebarProps {
   onToggleDeafen: () => void;
   onLeaveVoice: () => void;
   isSpeaking?: boolean;
+  onDeleteServer?: (serverId: string) => Promise<void>;
+  onLeaveServer?: (serverId: string) => Promise<void>;
 }
 
 export function DiscordChannelSidebar({
@@ -73,6 +75,8 @@ export function DiscordChannelSidebar({
   onToggleDeafen,
   onLeaveVoice,
   isSpeaking,
+  onDeleteServer,
+  onLeaveServer,
 }: DiscordChannelSidebarProps) {
   const { user } = useAuth();
   const { canUse, incrementUsage, isPremium } = useUsageLimits();
@@ -145,10 +149,31 @@ export function DiscordChannelSidebar({
             Ajustes del servidor
           </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-border" />
-          {/* <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer hover:bg-destructive/10 focus:bg-destructive/10">
-            <Trash2 className="w-4 h-4 mr-2" />
-            Eliminar Servidor
-          </DropdownMenuItem> - Moved to Server List Context Menu */}
+          {user?.id === server.owner_id && onDeleteServer ? (
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer hover:bg-destructive/10 transition-colors font-medium"
+              onClick={async () => {
+                if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el servidor "${server.name}" y todos sus canales y mensajes? Esta acción no se puede deshacer.`)) {
+                  await onDeleteServer(server.id);
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar Servidor
+            </DropdownMenuItem>
+          ) : onLeaveServer ? (
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer hover:bg-destructive/10 transition-colors font-medium"
+              onClick={async () => {
+                if (window.confirm(`¿Deseas salir del servidor "${server.name}"?`)) {
+                  await onLeaveServer(server.id);
+                }
+              }}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Salir del Servidor
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 

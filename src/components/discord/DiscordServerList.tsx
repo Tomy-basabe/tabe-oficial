@@ -160,7 +160,11 @@ export function DiscordServerList({
               {user?.id === server.owner_id && onDeleteServer ? (
                 <ContextMenuItem
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer group"
-                  onClick={() => onDeleteServer(server.id)}
+                  onClick={async () => {
+                    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el servidor "${server.name}" y todos sus canales y mensajes? Esta acción no se puede deshacer.`)) {
+                      await onDeleteServer(server.id);
+                    }
+                  }}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Eliminar Servidor
@@ -168,7 +172,11 @@ export function DiscordServerList({
               ) : (
                 <ContextMenuItem
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer group"
-                  onClick={() => onLeaveServer?.(server.id)}
+                  onClick={async () => {
+                    if (window.confirm(`¿Deseas salir del servidor "${server.name}"?`)) {
+                      await onLeaveServer?.(server.id);
+                    }
+                  }}
                   disabled={!onLeaveServer}
                 >
                   <LogOut className="w-4 h-4 mr-2" />
