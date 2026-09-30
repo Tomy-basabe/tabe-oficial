@@ -68,7 +68,7 @@ async function getMermaid() {
     mermaidInstance.initialize({
       startOnLoad: false,
       theme: "base",
-      securityLevel: "loose",
+      securityLevel: "strict",
       suppressErrorRendering: true,
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       fontSize: 13,
