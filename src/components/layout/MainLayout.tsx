@@ -60,7 +60,8 @@ export function MainLayout() {
   const navigate = useNavigate();
   const isAIPage = location.pathname.startsWith("/TABEAI") || location.pathname.startsWith("/asistente");
   const isApuntesPage = location.pathname.startsWith("/apuntes") || location.pathname.startsWith("/notion");
-  const isFullScreenPage = isAIPage || isApuntesPage;
+  const isTabetalkPage = location.pathname.startsWith("/tabetalk") || location.pathname.startsWith("/discord");
+  const isFullScreenPage = isAIPage || isApuntesPage || isTabetalkPage;
   const { user, isGuest, profile } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 

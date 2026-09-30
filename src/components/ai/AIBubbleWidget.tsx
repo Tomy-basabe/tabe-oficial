@@ -40,7 +40,8 @@ const PAGE_CONTEXT_MAP: Record<string, string> = {
     "/amigos": "Amigos - Red social",
     "/configuracion": "Configuración - Ajustes de la cuenta",
     "/bosque": "Mi Bosque - Gamificación con plantas",
-    "/discord": "Discord - Chat y comunidad",
+    "/tabetalk": "Tabetalk - Chat y llamadas",
+    "/discord": "Tabetalk - Chat y llamadas",
 };
 
 export function AIBubbleWidget() {

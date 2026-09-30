@@ -38,7 +38,7 @@ const Calendar = lazy(() => import("@/pages/Calendar"));
 const Pomodoro = lazy(() => import("@/pages/Pomodoro"));
 const CareerPlan = lazy(() => import("@/pages/CareerPlan"));
 const Forest = lazy(() => import("@/pages/Forest"));
-const Discord = lazy(() => import("@/pages/Discord"));
+const Tabetalk = lazy(() => import("@/pages/Tabetalk"));
 const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 const Friends = lazy(() => import("@/pages/Friends"));
 const Marketplace = lazy(() => import("@/pages/Marketplace"));
@@ -191,7 +191,8 @@ const AppRoutes = () => (
       <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       <Route path="/bosque" element={<Forest />} />
       <Route path="/rutinas" element={<Routines />} />
-      <Route path="/discord" element={<Discord />} />
+      <Route path="/tabetalk" element={<Tabetalk />} />
+      <Route path="/discord" element={<Navigate to="/tabetalk" replace />} />
       <Route path="/mapa" element={<CorrelativityMap />} />
       <Route path="/consultas" element={<OfficeHours />} />
       <Route path="/juegos" element={<Games />} />

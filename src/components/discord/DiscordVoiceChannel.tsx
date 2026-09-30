@@ -28,6 +28,7 @@ interface DiscordVoiceChannelProps {
   onSwitchCamera?: (deviceId: string) => void;
   screenStream?: MediaStream | null;
   remoteScreenStreams?: Map<string, MediaStream>;
+  remoteMediaStates?: Map<string, any>;
 }
 
 export function DiscordVoiceChannel({
@@ -50,6 +51,7 @@ export function DiscordVoiceChannel({
   onSwitchCamera,
   screenStream,
   remoteScreenStreams = new Map(),
+  remoteMediaStates = new Map(),
 }: DiscordVoiceChannelProps) {
   const { user } = useAuth();
   const localUserId = user?.id || "";
@@ -58,8 +60,21 @@ export function DiscordVoiceChannel({
   // Normalize participants
   const activeParticipants = voiceParticipants || participants || [];
 
-  // Find screen sharer
-  const screenSharer = activeParticipants.find(p => p.is_screen_sharing);
+  // Find screen sharer (either locally or via remoteMediaState or DB)
+  const screenSharer = isScreenSharing
+    ? activeParticipants.find(p => p.user_id === localUserId) || {
+        id: "me",
+        channel_id: channel.id,
+        user_id: localUserId,
+        is_muted: !isAudioEnabled,
+        is_deafened: isDeafened,
+        is_camera_on: isVideoEnabled,
+        is_screen_sharing: true,
+        is_speaking: speakingUsers.has(localUserId),
+        joined_at: new Date().toISOString(),
+        profile: user?.user_metadata || { nombre: "Tú", username: "Tú" }
+      }
+    : activeParticipants.find(p => p.is_screen_sharing || remoteMediaStates.get(p.user_id)?.isScreenSharing);
 
   // Theme: Deep Blue
   // Main BG: bg-background (since main container is bg-background)
@@ -237,6 +252,13 @@ function VideoTile({
     }
   }, [stream]);
 
+  const hasLiveVideo = Boolean(
+    stream &&
+    stream.getVideoTracks().length > 0 &&
+    stream.getVideoTracks().some(t => t.enabled && t.readyState === 'live')
+  );
+  const showVideo = (isVideoEnabled || hasLiveVideo) && Boolean(stream);
+
   return (
     <div className={cn(
       "relative bg-card rounded-xl overflow-hidden w-full h-full flex items-center justify-center transition-all duration-300 shadow-xl border border-border group",
@@ -246,12 +268,15 @@ function VideoTile({
       <video
         ref={videoRef}
         autoPlay
-        // Always mute video element because AudioRenderer handles sound
         muted={true}
         playsInline
-        className={cn("w-full h-full object-cover", isLocal && "scale-x-[-1]", (!isVideoEnabled || !stream) && "hidden")}
+        className={cn(
+          "w-full h-full object-cover",
+          isLocal && !isScreenShare && "scale-x-[-1]",
+          !showVideo && "hidden"
+        )}
       />
-      {(!isVideoEnabled || !stream) && (
+      {!showVideo && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
           <Avatar className={cn(
             "transition-all duration-300 ring-4 ring-transparent",
@@ -313,6 +338,13 @@ function SmallTile({
     }
   }, [stream]);
 
+  const hasLiveVideo = Boolean(
+    stream &&
+    stream.getVideoTracks().length > 0 &&
+    stream.getVideoTracks().some(t => t.enabled && t.readyState === 'live')
+  );
+  const showVideo = (isVideoEnabled || hasLiveVideo) && Boolean(stream);
+
   return (
     <div className={cn(
       "aspect-video bg-card rounded-lg overflow-hidden relative border border-border shadow-md transition-all hover:scale-105 cursor-pointer",
@@ -322,9 +354,9 @@ function SmallTile({
         ref={videoRef}
         autoPlay
         muted={true}
-        className={cn("w-full h-full object-cover", (!isVideoEnabled || !stream) && "hidden")}
+        className={cn("w-full h-full object-cover", !showVideo && "hidden")}
       />
-      {(!isVideoEnabled || !stream) && (
+      {!showVideo && (
         <div className="w-full h-full flex items-center justify-center bg-muted/30">
           <Avatar className="w-10 h-10">
             <AvatarImage src={participant.profile?.avatar_url || undefined} />

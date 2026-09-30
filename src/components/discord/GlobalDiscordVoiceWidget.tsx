@@ -14,8 +14,8 @@ export function GlobalDiscordVoiceWidget() {
     const { inVoiceChannel, currentChannel, isAudioEnabled, isSpeaking, leaveVoiceChannel, toggleAudio } = useDiscordVoice();
     const { timeLeft, isActive, mode } = usePomodoro();
 
-    // Don't show the widget if on the Discord page or not in a voice channel
-    if (location.pathname === "/discord" || !inVoiceChannel || !currentChannel) {
+    // Don't show the widget if on the Tabetalk page or not in a voice channel
+    if (location.pathname.startsWith("/tabetalk") || location.pathname.startsWith("/discord") || !inVoiceChannel || !currentChannel) {
         return null;
     }
 
@@ -31,7 +31,7 @@ export function GlobalDiscordVoiceWidget() {
             <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl shadow-black/30 p-3 flex items-center gap-3 min-w-[220px]">
                 {/* Speaking indicator + channel name */}
                 <button
-                    onClick={() => navigate("/discord")}
+                    onClick={() => navigate("/tabetalk")}
                     className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
                 >
                     <div className={cn(

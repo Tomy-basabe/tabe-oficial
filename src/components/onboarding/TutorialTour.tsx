@@ -152,6 +152,16 @@ export function TutorialTour() {
                 disableScrolling: true,
             }
         ],
+        "/tabetalk": [
+            {
+                target: '.tour-discord-connect',
+                content: 'Únete a las salas de voz para estudiar chill con personas reales escuchando Lofi.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: '¡Entendido!' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
         "/discord": [
             {
                 target: '.tour-discord-connect',

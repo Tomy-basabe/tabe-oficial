@@ -76,6 +76,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/examenes": "GraduationCap",
   "/juegos": "Gamepad2",
   "/mapa": "Compass",
+  "/tabetalk": "MessageSquare",
   "/discord": "MessageSquare"
 };
 
@@ -129,6 +130,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     iconName: "Gamepad2",
     items: [
       { id: "item-/amigos", path: "/amigos", label: "Amigos", type: "item", iconName: "Users" },
+      { id: "item-/tabetalk", path: "/tabetalk", label: "Tabetalk", type: "item", iconName: "MessageSquare" },
       { id: "item-/bosque", path: "/bosque", label: "Mi Bosque", type: "item", iconName: "TreeDeciduous" },
       { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Gamepad2" },
       { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
@@ -170,6 +172,7 @@ export const baseNavItems: NavItem[] = [
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
+  { icon: MessageSquare, label: "Tabetalk", path: "/tabetalk", tourClass: "tour-sidebar-tabetalk" },
   { icon: Gamepad2, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];

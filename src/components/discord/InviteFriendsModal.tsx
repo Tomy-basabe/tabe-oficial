@@ -34,7 +34,7 @@ export function InviteFriendsModal({
 
   // Generate invite code (simple version - just the server ID for now)
   const inviteCode = `STUDYAPP-${serverId.slice(0, 8).toUpperCase()}`;
-  const inviteLink = `${window.location.origin}/discord?invite=${inviteCode}`;
+  const inviteLink = `${window.location.origin}/tabetalk?invite=${inviteCode}`;
 
   // Filter friends who are not already members
   const availableFriends = friends.filter(
