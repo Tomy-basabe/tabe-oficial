@@ -13,12 +13,18 @@ interface ForestIslandProps {
   plants: Plant[];
   onRemoveDeadPlant?: (plantId: string) => void;
   onPlantNewTree?: () => void;
+  studyActivity?: {
+    studyMinutesToday: number;
+    studyMinutesThisWeek: number;
+    totalStudyMinutesAllTime?: number;
+  };
 }
 
 export const ForestIsland: React.FC<ForestIslandProps> = ({
   plants,
   onRemoveDeadPlant,
   onPlantNewTree,
+  studyActivity,
 }) => {
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
   const [selectedLevel, setSelectedLevel] = useState<number | "all">("all");
@@ -53,13 +59,24 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
   const growingTrees = filteredPlants.filter((p) => p.is_alive && !p.is_completed);
   const deadTrees = filteredPlants.filter((p) => !p.is_alive);
 
-  // Calculate estimated focus minutes from filtered trees based on each plant's difficulty
+  // Calculate focus minutes based on real study sessions or filtered trees
   const totalStudyMinutes = useMemo(() => {
+    if (selectedLevel === "all") {
+      if (timeRange === "today" && studyActivity?.studyMinutesToday !== undefined && studyActivity.studyMinutesToday > 0) {
+        return studyActivity.studyMinutesToday;
+      }
+      if (timeRange === "week" && studyActivity?.studyMinutesThisWeek !== undefined && studyActivity.studyMinutesThisWeek > 0) {
+        return studyActivity.studyMinutesThisWeek;
+      }
+      if (timeRange === "all" && studyActivity?.totalStudyMinutesAllTime !== undefined && studyActivity.totalStudyMinutesAllTime > 0) {
+        return studyActivity.totalStudyMinutesAllTime;
+      }
+    }
     return filteredPlants.reduce((acc, p) => {
       const typeInfo = PLANT_TYPES.find((t) => t.id === p.plant_type) || PLANT_TYPES[0];
       return acc + Math.round((p.growth_percentage / 100) * (typeInfo.requiredMinutes || 120));
     }, 0);
-  }, [filteredPlants]);
+  }, [filteredPlants, timeRange, selectedLevel, studyActivity]);
 
   const successRate = useMemo(() => {
     const totalFinished = healthyTrees.length + deadTrees.length;

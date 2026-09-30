@@ -204,6 +204,7 @@ export default function Forest() {
       {activeTab === "island" && (
         <ForestIsland
           plants={plants}
+          studyActivity={studyActivity}
           onRemoveDeadPlant={removeDeadPlant}
           onPlantNewTree={() => setIsPlantModalOpen(true)}
         />

@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
 import { toast } from "sonner";
 import { toLocalDateStr } from "@/lib/utils";
+import { startOfWeek } from "date-fns";
+import { es } from "date-fns/locale";
 
 export interface Plant {
   id: string;
@@ -20,12 +22,13 @@ export interface Plant {
   growth_multiplier?: number | null;
 }
 
-interface StudyActivity {
+export interface StudyActivity {
   hasStudiedToday: boolean;
   hasStudiedThisWeek: boolean;
   daysSinceLastStudy: number;
   studyMinutesToday: number;
   studyMinutesThisWeek: number;
+  totalStudyMinutesAllTime: number;
 }
 
 export type PlantDifficulty = "muy_facil" | "facil" | "normal" | "dificil" | "epico" | "legendario";
@@ -54,7 +57,6 @@ let _cachedPlants: Plant[] | null = null;
 let _cachedCurrentPlant: Plant | null = null;
 let _cachedStudyActivity: StudyActivity | null = null;
 let _cachedForestUserId: string | null = null;
-let _hasRunInitialGrowthCheck = false;
 
 // Exactly 50 Mock plants for guest / demo mode history covering all innovative themes
 export function getGuestMockPlants(): Plant[] {
@@ -246,7 +248,6 @@ export function useForest() {
     _cachedCurrentPlant = null;
     _cachedStudyActivity = null;
     _cachedForestUserId = user.id;
-    _hasRunInitialGrowthCheck = false;
   }
 
   const [plants, setPlants] = useState<Plant[]>(() => {
@@ -277,6 +278,7 @@ export function useForest() {
         daysSinceLastStudy: 0,
         studyMinutesToday: 65,
         studyMinutesThisWeek: 480,
+        totalStudyMinutesAllTime: 1250,
       };
       _cachedStudyActivity = mockActivity;
       return mockActivity;
@@ -287,6 +289,7 @@ export function useForest() {
       daysSinceLastStudy: 0,
       studyMinutesToday: 0,
       studyMinutesThisWeek: 0,
+      totalStudyMinutesAllTime: 0,
     };
   });
 
@@ -339,6 +342,7 @@ export function useForest() {
         daysSinceLastStudy: 0,
         studyMinutesToday: 65,
         studyMinutesThisWeek: 340,
+        totalStudyMinutesAllTime: 1250,
       };
       _cachedStudyActivity = mockActivity;
       setStudyActivity(mockActivity);
@@ -347,76 +351,87 @@ export function useForest() {
 
     try {
       const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayStr = toLocalDateStr(now);
+      const weekStart = startOfWeek(now, { locale: es, weekStartsOn: 1 });
+      const weekStartStr = toLocalDateStr(weekStart);
 
-      const weekAgo = new Date(today);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-
-      // Fetch study sessions from the last 7 days for totals
-      const { data: sessions, error } = await supabase
+      // 1. Obtener sesiones desde el inicio de la semana actual (igual que Métricas)
+      const { data: weekSessionsData, error: weekError } = await supabase
         .from("study_sessions")
         .select("fecha, duracion_segundos, created_at")
         .eq("user_id", user.id)
-        .gte("fecha", weekAgo.toISOString().split('T')[0])
+        .gte("fecha", weekStartStr)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (weekError) throw weekError;
 
-      const todayStr = toLocalDateStr(today);
-      const todaySessions = sessions?.filter(s => {
-          if (!s.fecha) return false;
-          // Compare fecha string directly - avoid new Date(dateString) UTC parsing bug
-          return s.fecha === todayStr;
-      }) || [];
-      const weekSessions = sessions || [];
+      // Normalizar fecha (igual que en Metrics.tsx con split("T")[0])
+      const normalizedWeekSessions = (weekSessionsData || []).map((s) => ({
+        ...s,
+        fecha: s.fecha ? s.fecha.split("T")[0] : "",
+      }));
+
+      const todaySessions = normalizedWeekSessions.filter((s) => s.fecha === todayStr);
 
       const studySecToday = todaySessions.reduce((acc, s) => acc + (s.duracion_segundos || 0), 0);
-      const studySecThisWeek = weekSessions.reduce((acc, s) => acc + (s.duracion_segundos || 0), 0);
+      const studySecThisWeek = normalizedWeekSessions.reduce((acc, s) => acc + (s.duracion_segundos || 0), 0);
 
       const studyMinutesToday = Math.floor(studySecToday / 60);
       const studyMinutesThisWeek = Math.floor(studySecThisWeek / 60);
 
-      // BUG FIX: query the MOST RECENT session of all time (not just last 7 days)
-      // to accurately calculate daysSinceLastStudy even after 7+ days of inactivity
-      let daysSinceLastStudy = 999; // default = never studied
-      if (weekSessions.length > 0) {
-        // Has session in the last 7 days — use the most recent one
-        const lastStudyTimestamp = new Date(weekSessions[0].created_at);
+      // 2. Obtener total histórico de estudio (igual que Métricas totalHours)
+      const { data: allSessionsData } = await supabase
+        .from("study_sessions")
+        .select("duracion_segundos")
+        .eq("user_id", user.id);
+
+      const totalStudySecAllTime = (allSessionsData || []).reduce(
+        (acc, s) => acc + (s.duracion_segundos || 0),
+        0
+      );
+      const totalStudyMinutesAllTime = Math.floor(totalStudySecAllTime / 60);
+
+      // 3. Calcular días desde el último estudio
+      let daysSinceLastStudy = 999;
+      if (normalizedWeekSessions.length > 0) {
+        const lastStudyTimestamp = new Date(normalizedWeekSessions[0].created_at || normalizedWeekSessions[0].fecha);
         const diffTime = now.getTime() - lastStudyTimestamp.getTime();
-        daysSinceLastStudy = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        daysSinceLastStudy = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
       } else {
-        // No session in last 7 days — query for the most recent session ever
         const { data: lastSession } = await supabase
           .from("study_sessions")
-          .select("created_at")
+          .select("created_at, fecha")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (lastSession) {
-          const lastStudyTimestamp = new Date(lastSession.created_at);
+          const lastStudyTimestamp = new Date(lastSession.created_at || lastSession.fecha);
           const diffTime = now.getTime() - lastStudyTimestamp.getTime();
-          daysSinceLastStudy = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          daysSinceLastStudy = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
         }
-        // If lastSession is null → user never studied → daysSinceLastStudy stays 999
       }
 
-      // Require at least 5 minutes of study to count as "watered today" (avoids 1s clicks inflating status)
-      const hasStudiedToday = studyMinutesToday >= 5;
-      const hasStudiedThisWeek = studyMinutesThisWeek >= 5;
+      // Al menos 1 segundo cuenta como estudio hoy/esta semana
+      const hasStudiedToday = studyMinutesToday >= 1;
+      const hasStudiedThisWeek = studyMinutesThisWeek >= 1;
 
-      setStudyActivity({
+      const updatedActivity: StudyActivity = {
         hasStudiedToday,
         hasStudiedThisWeek,
         daysSinceLastStudy,
         studyMinutesToday,
         studyMinutesThisWeek,
-      });
+        totalStudyMinutesAllTime,
+      };
+
+      _cachedStudyActivity = updatedActivity;
+      setStudyActivity(updatedActivity);
     } catch (error) {
       console.error("Error fetching study activity:", error);
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   const isCheckingRef = useRef(false);
 
@@ -456,39 +471,47 @@ export function useForest() {
         return;
       }
 
-      // Plant growth based strictly on study sessions conducted AFTER this plant was planted
+      // Crecimiento de la planta: se calcula con las sesiones de estudio desde la fecha en que se plantó (igual que Métricas)
       if (plant.is_alive && !plant.is_completed) {
+        const plantDateStr = toLocalDateStr(plantedDate);
+
+        // Consultar sesiones de estudio desde la fecha de plantación
         const { data: plantSessions, error } = await supabase
           .from("study_sessions")
           .select("fecha, duracion_segundos, created_at")
           .eq("user_id", user.id)
-          .gte("created_at", plant.planted_at)
+          .gte("fecha", plantDateStr)
           .order("created_at", { ascending: true });
 
         if (error) throw error;
 
-        const dailyMinutesMap: Record<string, number> = {};
+        let totalSecondsStudied = 0;
         (plantSessions || []).forEach(session => {
-          const sec = session.duracion_segundos || 0;
-          if (sec < 60) return;
-          const day = session.fecha || session.created_at?.split("T")[0] || "unknown";
-          dailyMinutesMap[day] = (dailyMinutesMap[day] || 0) + (sec / 60);
+          totalSecondsStudied += (session.duracion_segundos || 0);
         });
 
+        // Incluir también cualquier sesión que por timezone o fecha tenga created_at >= plant.planted_at
+        const { data: extraSessions } = await supabase
+          .from("study_sessions")
+          .select("fecha, duracion_segundos, created_at")
+          .eq("user_id", user.id)
+          .lt("fecha", plantDateStr)
+          .gte("created_at", plant.planted_at);
+
+        (extraSessions || []).forEach(session => {
+          totalSecondsStudied += (session.duracion_segundos || 0);
+        });
+
+        const totalMinutesStudied = totalSecondsStudied / 60;
         const plantTypeInfo = PLANT_TYPES.find(t => t.id === plant.plant_type) || PLANT_TYPES[0];
         const reqMinutes = plantTypeInfo.requiredMinutes || 120;
         const hasFertilizer = plant.fertilizer_ends_at && new Date(plant.fertilizer_ends_at) > now;
         const multiplier = hasFertilizer ? (plant.growth_multiplier || 2) : 1;
 
-        let totalMinutesStudied = 0;
-        Object.values(dailyMinutesMap).forEach(minutesInDay => {
-          totalMinutesStudied += minutesInDay;
-        });
+        const calculatedGrowth = Math.floor((totalMinutesStudied / reqMinutes) * 100 * multiplier);
+        const newGrowthPercentage = Math.min(100, Math.max(plant.growth_percentage || 0, calculatedGrowth));
 
-        const calculatedGrowth = (totalMinutesStudied / reqMinutes) * 100 * multiplier;
-        const newGrowthPercentage = Math.min(100, Math.floor(calculatedGrowth));
-
-        // Only update if growth actually increased
+        // Solo actualizar si el porcentaje de crecimiento aumentó
         if (newGrowthPercentage > plant.growth_percentage) {
           const delta = newGrowthPercentage - plant.growth_percentage;
           const isCompleted = newGrowthPercentage >= 100;
@@ -514,19 +537,19 @@ export function useForest() {
             if (isCompleted) {
               toast.success("🎉 ¡Tu árbol ha crecido completamente! Puedes plantar uno nuevo.");
             } else if (delta >= 1) {
-              toast.success(`🌱 ¡Tu planta creció ${delta}% con tu sesión de estudio!`);
+              toast.success(`🌱 ¡Tu planta creció ${delta}% (al ${newGrowthPercentage}%) con tu tiempo de estudio!`);
             }
             const updatedPlant = { ...plant, ...updateData } as Plant;
             setCurrentPlant(isCompleted ? null : updatedPlant);
             setPlants(prev => prev.map(p => p.id === plant.id ? updatedPlant : p));
           }
         } else if (studyActivity.hasStudiedToday) {
-          // Update last_watered_at once per day to reset death counter
+          // Actualizar last_watered_at una vez al día para reiniciar contador de marchitado
           const lastWatered = new Date(plant.last_watered_at);
-          const lastWateredDay = new Date(lastWatered.getFullYear(), lastWatered.getMonth(), lastWatered.getDate());
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const lastWateredDay = toLocalDateStr(lastWatered);
+          const todayStr = toLocalDateStr(now);
 
-          if (lastWateredDay.getTime() < todayDate.getTime()) {
+          if (lastWateredDay < todayStr) {
             const nowIso = new Date().toISOString();
             lastLocalUpdateRef.current = Date.now();
             await supabase
@@ -742,12 +765,39 @@ export function useForest() {
 
       lastLocalUpdateRef.current = Date.now();
 
-      // 1. Log actual study session
+      // 1. Registrar sesión de estudio real (igual que Pomodoro y Métricas)
+      const totalSeconds = safeMinutes * 60;
       await supabase.from("study_sessions").insert({
         user_id: user.id,
-        duracion_segundos: safeMinutes * 60,
+        duracion_segundos: totalSeconds,
         fecha: toLocalDateStr(new Date()),
+        tipo: "pomodoro",
+        completada: true,
       });
+
+      // Actualizar stats de usuario (XP, horas, créditos)
+      const hours = Math.floor(totalSeconds / 3600);
+      const xpGained = Math.floor(totalSeconds / 60) * 2;
+      const { data: stats } = await supabase
+        .from("user_stats")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (stats) {
+        const currentStats = stats as any;
+        await supabase
+          .from("user_stats")
+          .update({
+            horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
+            xp_total: (currentStats.xp_total || 0) + xpGained,
+            credits: (currentStats.credits || 0) + Math.floor(totalSeconds / 60),
+            nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1,
+          })
+          .eq("user_id", user.id);
+
+        await supabase.rpc("check_and_unlock_achievements", { p_user_id: user.id });
+      }
 
       // 2. Update plant
       const updateData: Record<string, unknown> = {
@@ -783,37 +833,33 @@ export function useForest() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     const loadData = async () => {
       if (!_cachedPlants) setLoading(true);
       
-      // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs
       const timeoutId = setTimeout(() => {
-        setLoading(current => {
-          if (current) {
-            console.warn("Forest data load timed out, forcing loading to false");
-            return false;
-          }
-          return current;
-        });
+        if (isMounted) setLoading(false);
       }, 8000);
 
       try {
         await Promise.all([fetchPlants(), fetchStudyActivity()]);
       } finally {
         clearTimeout(timeoutId);
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     loadData();
+    return () => {
+      isMounted = false;
+    };
   }, [fetchPlants, fetchStudyActivity]);
 
-  // Run growth check strictly ONCE per user session
+  // Verificar y actualizar crecimiento de la planta activa cuando esté cargada
   useEffect(() => {
-    if (!loading && currentPlant && !_hasRunInitialGrowthCheck) {
-      _hasRunInitialGrowthCheck = true;
+    if (!loading && currentPlant && currentPlant.is_alive && !currentPlant.is_completed) {
       checkAndUpdatePlants(currentPlant);
     }
-  }, [loading, currentPlant, checkAndUpdatePlants]);
+  }, [loading, currentPlant?.id, checkAndUpdatePlants]);
 
   const plantsDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedFetchPlants = useCallback(() => {

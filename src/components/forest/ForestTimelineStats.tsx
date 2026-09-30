@@ -12,6 +12,7 @@ interface ForestTimelineStatsProps {
     studyMinutesToday: number;
     studyMinutesThisWeek: number;
     daysSinceLastStudy: number;
+    totalStudyMinutesAllTime?: number;
   };
   onRemoveDeadPlant?: (plantId: string) => void;
 }
@@ -26,12 +27,15 @@ export const ForestTimelineStats: React.FC<ForestTimelineStatsProps> = ({
   const growingTrees = useMemo(() => plants.filter((p) => p.is_alive && !p.is_completed), [plants]);
 
   const totalStudyMinutesAllTime = useMemo(() => {
+    if (studyActivity.totalStudyMinutesAllTime !== undefined && studyActivity.totalStudyMinutesAllTime > 0) {
+      return studyActivity.totalStudyMinutesAllTime;
+    }
     return plants.reduce((acc, p) => {
       const pInfo = PLANT_TYPES.find((t) => t.id === p.plant_type);
       const req = pInfo?.requiredMinutes || 120;
       return acc + Math.round((p.growth_percentage / 100) * req);
     }, 0);
-  }, [plants]);
+  }, [plants, studyActivity.totalStudyMinutesAllTime]);
 
   const successRate = useMemo(() => {
     const totalFinished = completedTrees.length + deadTrees.length;
