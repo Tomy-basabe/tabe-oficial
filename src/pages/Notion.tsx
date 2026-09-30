@@ -7,7 +7,7 @@ import {
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
   Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
-  GraduationCap, ChevronRight, Share2
+  GraduationCap, ChevronRight, Share2, Play, Pause
 } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
@@ -42,6 +42,7 @@ import { AudioBookPlayer } from "@/components/notion/AudioBookPlayer";
 import { resolveDocSubject, normalizeSubjectName } from "@/lib/notionSubjectHelper";
 import { subscribeNotionSync, broadcastNotionDocUpdate } from "@/lib/notionSync";
 import { usePageTitle } from "@/hooks/useDynamicTitle";
+import { useStudyTimer } from "@/contexts/StudyTimerContext";
 
 interface Subject {
   id: string;
@@ -547,11 +548,20 @@ export default function Notion() {
     handlePlayAudioFromBeginning();
   }, [activeDocument, tiptapEditorInstance, audioBook, handlePlayAudioFromBeginning]);
 
-  // Time tracking state
-  const totalSecondsRef = useRef(0);
-  const savedSecondsRef = useRef(0);
+  // Global Study Timer
+  const {
+    isActive: isStudyTimerActive,
+    isPaused: isStudyTimerPaused,
+    seconds: studyTimerSeconds,
+    startTimer: startStudyTimer,
+    pauseTimer: pauseStudyTimer,
+    resumeTimer: resumeStudyTimer,
+    stopTimer: stopStudyTimer,
+    switchDocument: switchStudyDocument,
+    formatTime: formatStudyTime,
+  } = useStudyTimer();
+
   const lastActivityRef = useRef<number>(Date.now());
-  const [sessionSeconds, setSessionSeconds] = useState(0);
 
   // Gallery view filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -1107,71 +1117,22 @@ export default function Notion() {
     [scheduleAutoSave]
   );
 
-  const handleSaveTime = useCallback(
-    async (seconds: number, docId?: string, subId?: string) => {
-      const targetDocId = docId || activeDocument?.id;
-      const targetSubId = subId || activeDocument?.subject_id;
-      
-      if (!targetDocId) return;
-      await addStudyTime(targetDocId, seconds, targetSubId || null);
-    },
-    [activeDocument, addStudyTime]
-  );
-
-  // Time tracking effect
+  // Synchronize global study timer with activeDocument
   useEffect(() => {
-    if (!activeDocument) {
-      totalSecondsRef.current = 0;
-      savedSecondsRef.current = 0;
-      setSessionSeconds(0);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const inactiveMs = now - lastActivityRef.current;
-      
-      // Stop tracking if inactive for more than 2 minutes
-      if (inactiveMs < 120000) {
-        totalSecondsRef.current += 1;
-        setSessionSeconds(totalSecondsRef.current);
-
-        // Auto-save time to DB every 5 minutes (300s) to avoid hammering database egress
-        const unsaved = totalSecondsRef.current - savedSecondsRef.current;
-        if (unsaved >= 300) {
-          const doc = activeDocumentRef.current;
-          if (doc) {
-            handleSaveTime(unsaved, doc.id, doc.subject_id || undefined);
-          }
-          savedSecondsRef.current = totalSecondsRef.current;
-        }
+    if (activeDocument) {
+      if (!isStudyTimerActive) {
+        startStudyTimer(activeDocument.subject_id || null, activeDocument.id, activeDocument.titulo);
+      } else {
+        switchStudyDocument(activeDocument.subject_id || null, activeDocument.id, activeDocument.titulo);
       }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [activeDocument?.id]);
+    }
+  }, [activeDocument?.id, activeDocument?.subject_id]);
 
   const handleSaveOnExit = useCallback(() => {
     const doc = activeDocumentRef.current;
     if (!doc || !user) return;
 
-    // 1. Save Study Time
-    const unsaved = totalSecondsRef.current - savedSecondsRef.current;
-    if (unsaved > 0) {
-      supabase.from("study_sessions").insert({
-        user_id: user.id,
-        subject_id: doc.subject_id,
-        duracion_segundos: unsaved,
-        tipo: "apuntes",
-        completada: true,
-        fecha: toLocalDateStr(),
-      }).then(({ error }) => {
-        if (error) console.error("Error saving time on exit:", error);
-      });
-      savedSecondsRef.current = totalSecondsRef.current;
-    }
-
-    // 2. Save Document Content (Best effort on exit ONLY if dirty)
+    // Document Content (Best effort on exit ONLY if dirty)
     if (isDirtyRef.current) {
       const contentToSave = editorContentRef.current;
       if (contentToSave) {
@@ -1283,10 +1244,8 @@ export default function Notion() {
     // Save study time for the previous document before switching
     handleSaveOnExit();
 
-    // Reset time tracking state for the new document
-    totalSecondsRef.current = 0;
-    savedSecondsRef.current = 0;
-    setSessionSeconds(0);
+    // Switch study timer context (preserves running session if subpage or same subject!)
+    switchStudyDocument(doc.subject_id || null, doc.id, doc.titulo);
     lastActivityRef.current = Date.now();
 
     // Stop previous audiobook playback on doc switch
@@ -2289,19 +2248,43 @@ export default function Notion() {
                   </div>
                 )}
 
-                {/* Timer Display */}
-                <div
+                {/* Global Study Timer Display & Controls */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isStudyTimerActive && !isStudyTimerPaused) {
+                      pauseStudyTimer();
+                    } else if (isStudyTimerPaused) {
+                      resumeStudyTimer();
+                    } else if (activeDocument) {
+                      startStudyTimer(activeDocument.subject_id || null, activeDocument.id, activeDocument.titulo);
+                    }
+                  }}
                   className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors bg-secondary text-muted-foreground text-xs",
-                    sessionSeconds > 0 && "bg-neon-green/10 text-neon-green font-semibold"
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs font-medium border select-none",
+                    isStudyTimerActive && !isStudyTimerPaused && "bg-neon-green/10 text-neon-green border-neon-green/30 shadow-[0_0_12px_rgba(34,197,94,0.15)]",
+                    isStudyTimerPaused && "bg-amber-500/10 text-amber-500 border-amber-500/30",
+                    !isStudyTimerActive && "bg-secondary text-muted-foreground border-border hover:bg-muted"
                   )}
-                  title="Tiempo de estudio en este apunte"
+                  title={
+                    isStudyTimerActive && !isStudyTimerPaused
+                      ? "Pausar cronómetro de estudio (guarda tu tiempo)"
+                      : isStudyTimerPaused
+                      ? "Reanudar cronómetro de estudio"
+                      : "Iniciar cronómetro de estudio"
+                  }
                 >
-                  <Clock className="w-3.5 h-3.5 shrink-0" />
-                  <span className="font-mono tabular-nums">
-                    {Math.floor(sessionSeconds / 60)}:{(sessionSeconds % 60).toString().padStart(2, '0')}
+                  {isStudyTimerActive && !isStudyTimerPaused ? (
+                    <Pause className="w-3.5 h-3.5 shrink-0 fill-current animate-pulse text-neon-green" />
+                  ) : isStudyTimerPaused ? (
+                    <Play className="w-3.5 h-3.5 shrink-0 fill-current text-amber-500" />
+                  ) : (
+                    <Clock className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="font-mono tabular-nums font-semibold">
+                    {formatStudyTime(studyTimerSeconds)}
                   </span>
-                </div>
+                </button>
 
                 {/* Favorite */}
                 <button
