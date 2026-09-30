@@ -174,7 +174,7 @@ export default function Library() {
       }
       let query = supabase
         .from("subjects")
-        .select("*")
+        .select("id, nombre, codigo, año")
         .order("año", { ascending: true })
         .order("nombre", { ascending: true });
 
@@ -186,7 +186,7 @@ export default function Library() {
       if (user && (!data || data.length === 0)) {
         const fallback = await supabase
           .from("subjects")
-          .select("*")
+          .select("id, nombre, codigo, año")
           .is("user_id", null)
           .order("año", { ascending: true })
           .order("nombre", { ascending: true });
@@ -415,7 +415,7 @@ export default function Library() {
 
       const { data, error } = await supabase
         .from("library_folders")
-        .select("*, subjects(nombre, codigo, año)")
+        .select("id, user_id, subject_id, nombre, color, icon, parent_folder_id, created_at, subjects(nombre, codigo, año)")
         .eq("user_id", user.id)
         .order("nombre", { ascending: true });
 
@@ -428,7 +428,7 @@ export default function Library() {
         // Fallback without relation join if PostgREST cache has quirks
         const { data: rawFolders } = await supabase
           .from("library_folders")
-          .select("*")
+          .select("id, user_id, subject_id, nombre, color, icon, parent_folder_id, created_at")
           .eq("user_id", user.id)
           .order("nombre", { ascending: true });
         if (rawFolders) {
@@ -482,9 +482,10 @@ export default function Library() {
 
       const { data, error } = await supabase
         .from("library_files")
-        .select("*, subjects(nombre, codigo, año)")
+        .select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, created_at, subjects(nombre, codigo, año)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
       if (!error && data) {
         const mapped = data.map((d: any) => ({ ...d, subject: d.subjects })) as LibraryFile[];
@@ -495,9 +496,10 @@ export default function Library() {
         // Fallback without relation join
         const { data: rawFiles } = await supabase
           .from("library_files")
-          .select("*")
+          .select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, created_at")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(100);
         if (rawFiles) {
           const subs = librarySubjectsCache || subjects;
           const mapped = rawFiles.map((d: any) => {
@@ -979,7 +981,7 @@ export default function Library() {
 
       const { error: uploadError } = await supabase.storage
         .from('library-files')
-        .upload(filePath, file);
+        .upload(filePath, file, { cacheControl: '31536000', upsert: false });
 
       if (uploadError) throw uploadError;
 
@@ -1097,7 +1099,7 @@ export default function Library() {
 
         const { error: uploadError } = await supabase.storage
           .from("library-files")
-          .upload(filePath, file);
+          .upload(filePath, file, { cacheControl: '31536000', upsert: false });
 
         if (uploadError) {
           console.error(`Error uploading ${file.name}:`, uploadError);
@@ -1706,7 +1708,7 @@ export default function Library() {
 
               const { error: uploadError } = await supabase.storage
                 .from("library-files")
-                .upload(filePath, file);
+                .upload(filePath, file, { cacheControl: '31536000', upsert: false });
 
               if (uploadError) { console.error(uploadError); continue; }
 
@@ -1802,7 +1804,7 @@ export default function Library() {
                       const fileExt = file.name.split(".").pop();
                       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
                       const filePath = `${user.id}/${fileName}`;
-                      const { error: uploadError } = await supabase.storage.from("library-files").upload(filePath, file);
+                      const { error: uploadError } = await supabase.storage.from("library-files").upload(filePath, file, { cacheControl: '31536000', upsert: false });
                       if (uploadError) { console.error(uploadError); continue; }
                       const signedUrl = await getSignedUrl(filePath);
                       if (!signedUrl) continue;

@@ -165,7 +165,7 @@ export function useDiscord() {
 
       const { data, error } = await supabase
         .from("discord_servers")
-        .select("*")
+        .select("id, name, icon_url, owner_id, created_at")
         .in("id", serverIds)
         .order("created_at", { ascending: true });
 
@@ -186,7 +186,7 @@ export function useDiscord() {
 
     const { data, error } = await supabase
       .from("discord_channels")
-      .select("*")
+      .select("id, server_id, name, type, position, created_at")
       .eq("server_id", currentServer.id)
       .order("position", { ascending: true });
 
@@ -204,7 +204,7 @@ export function useDiscord() {
 
     const { data, error } = await supabase
       .from("discord_server_members")
-      .select("*")
+      .select("id, server_id, user_id, role, joined_at")
       .eq("server_id", currentServer.id);
 
     if (error) {
@@ -235,10 +235,10 @@ export function useDiscord() {
 
     const { data, error } = await supabase
       .from("discord_messages")
-      .select("*")
+      .select("id, channel_id, user_id, content, attachments, created_at")
       .eq("channel_id", currentChannel.id)
       .order("created_at", { ascending: true })
-      .limit(100);
+      .limit(50);
 
     if (error) {
       console.error("Error fetching messages:", error);
@@ -311,7 +311,7 @@ export function useDiscord() {
     const channelIds = serverChannels.map(c => c.id);
     const { data, error } = await supabase
       .from("discord_voice_participants")
-      .select("*")
+      .select("id, channel_id, user_id, joined_at, is_muted, is_deafened, is_speaking")
       .in("channel_id", channelIds);
 
     if (error) {

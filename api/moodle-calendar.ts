@@ -28,6 +28,7 @@ export default async function handler(req: any, res: any) {
 
     const icsText = await response.text();
     res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
     return res.status(200).send(icsText);
   } catch (err: any) {
     return res.status(500).json({ error: err?.message || "Error al obtener el calendario" });

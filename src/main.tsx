@@ -5,6 +5,13 @@ import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { initSecurityProtection } from "./lib/security";
 import "./index.css";
 
+// En producción silenciar logs repetitivos que saturan log ingestion
+if (import.meta.env.PROD) {
+  console.log = () => {};
+  console.debug = () => {};
+  console.info = () => {};
+}
+
 // Iniciar protección global contra inspección, atajos y clic derecho
 initSecurityProtection();
 

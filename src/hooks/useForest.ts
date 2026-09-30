@@ -315,9 +315,10 @@ export function useForest() {
     try {
       const { data, error } = await supabase
         .from("user_plants")
-        .select("*")
+        .select("id, user_id, plant_type, growth_percentage, is_alive, is_completed, planted_at, last_watered_at, completed_at, died_at, fertilizer_ends_at, growth_multiplier")
         .eq("user_id", user.id)
-        .order("planted_at", { ascending: false });
+        .order("planted_at", { ascending: false })
+        .limit(100);
 
       if (error) throw error;
 

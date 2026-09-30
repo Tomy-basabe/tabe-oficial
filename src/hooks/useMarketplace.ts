@@ -185,11 +185,11 @@ export function useMarketplace() {
 
     try {
       const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
-        supabase.from("flashcard_decks").select("*").eq("is_public", true).gt("total_cards", 0).order("download_count", { ascending: false }),
-        supabase.from("library_files").select("*").eq("is_public", true).order("download_count", { ascending: false }),
-        supabase.from("library_folders").select("*").eq("is_public", true).order("download_count", { ascending: false }),
-        supabase.from("quiz_decks").select("*").eq("is_public", true).order("download_count", { ascending: false }),
-        supabase.from("notion_documents").select("id, user_id, subject_id, titulo, description, category, emoji, cover_url, download_count, rating_sum, rating_count, created_at, is_anonymous").eq("is_public", true).order("download_count", { ascending: false })
+        supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, descripcion, total_cards, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).gt("total_cards", 0).order("download_count", { ascending: false }).limit(30),
+        supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(30),
+        supabase.from("library_folders").select("id, user_id, subject_id, nombre, color, icon, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(30),
+        supabase.from("quiz_decks").select("id, user_id, subject_id, titulo, descripcion, total_preguntas, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(30),
+        supabase.from("notion_documents").select("id, user_id, subject_id, titulo, description, category, emoji, cover_url, download_count, rating_sum, rating_count, created_at, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(30)
       ]);
 
       const allResources = [
@@ -301,7 +301,7 @@ export function useMarketplace() {
   const fetchMyPublicDecks = useCallback(async () => {
     if (!user) return;
     const [decks] = await Promise.all([
-      supabase.from("flashcard_decks").select("*").eq("user_id", user.id).eq("is_public", true)
+      supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, descripcion, total_cards, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).eq("is_public", true).limit(50)
     ]);
     setMyPublicDecks((decks.data || []) as PublicDeck[]);
   }, [user]);
@@ -395,7 +395,7 @@ export function useMarketplace() {
     if (!user) return { error: "No autenticado" };
 
     try {
-      const { data: folder } = await supabase.from("library_folders").select("*").eq("id", sourceFolderId).single();
+      const { data: folder } = await supabase.from("library_folders").select("id, nombre, color, subject_id").eq("id", sourceFolderId).single();
       if (!folder) throw new Error("Carpeta no encontrada");
 
       const { data: newFolder, error: folderError } = await supabase
@@ -412,7 +412,7 @@ export function useMarketplace() {
 
       if (folderError || !newFolder) throw new Error("Error al recrear carpeta");
 
-      const { data: files } = await supabase.from("library_files").select("*").eq("folder_id", sourceFolderId);
+      const { data: files } = await supabase.from("library_files").select("id, nombre, tipo, url, storage_path, tamaño_bytes, subject_id").eq("folder_id", sourceFolderId);
       if (files && files.length > 0) {
         const filesToInsert = files.map(f => ({
           user_id: user.id,
@@ -704,7 +704,7 @@ export function useMarketplace() {
   const fetchInventory = useCallback(async () => {
     if (!user) return;
     setLoadingInventory(true);
-    const { data, error } = await supabase.from("user_inventory").select("*").eq("user_id", user.id);
+    const { data, error } = await supabase.from("user_inventory").select("id, user_id, item_id, item_type, purchased_at").eq("user_id", user.id);
     if (!error) setUserInventory(data || []);
     setLoadingInventory(false);
   }, [user]);

@@ -31,10 +31,11 @@ export async function fetchUserTasks(userId: string, subjectId?: string | null):
   try {
     let query = supabase
       .from("study_tasks" as any)
-      .select("*, subjects(id, nombre, codigo)")
+      .select("id, user_id, subject_id, titulo, descripcion, estado, prioridad, fecha_limite, pomodoros_estimados, pomodoros_completados, posicion, created_at, updated_at, subjects(id, nombre, codigo)")
       .eq("user_id", userId)
       .order("posicion", { ascending: true })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);
 
     if (subjectId && subjectId !== "all") {
       query = query.eq("subject_id", subjectId);
@@ -96,7 +97,7 @@ export async function createStudyTask(userId: string, input: CreateTaskInput): P
         pomodoros_completados: 0,
         posicion: 0,
       })
-      .select("*, subjects(id, nombre, codigo)")
+      .select("id, user_id, subject_id, titulo, descripcion, estado, prioridad, fecha_limite, pomodoros_estimados, pomodoros_completados, posicion, created_at, updated_at, subjects(id, nombre, codigo)")
       .single();
 
     if (error) throw error;

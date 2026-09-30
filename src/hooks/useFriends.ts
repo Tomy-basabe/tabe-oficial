@@ -49,7 +49,8 @@ const areFriendshipsEqual = (a: FriendWithProfile[], b: FriendWithProfile[]) => 
   return true;
 };
 
-export function useFriends() {
+export function useFriends(options: { enableRealtime?: boolean } = {}) {
+  const { enableRealtime = false } = options;
   const { user, isGuest } = useAuth();
   const userId = user?.id;
 
@@ -249,7 +250,7 @@ export function useFriends() {
     try {
       const { data: friendshipsRaw, error } = await supabase
         .from("friendships")
-        .select("*")
+        .select("id, requester_id, addressee_id, status, created_at")
         .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
 
       if (error) {
@@ -381,9 +382,9 @@ export function useFriends() {
     };
   }, [userId, isGuest, fetchMyProfile, fetchFriendships]);
 
-  // Realtime subscription debounced
+  // Realtime subscription debounced (solo si enableRealtime está explícitamente activo)
   useEffect(() => {
-    if (!userId || isGuest) return;
+    if (!userId || isGuest || !enableRealtime) return;
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const debouncedFetch = () => {

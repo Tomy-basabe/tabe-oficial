@@ -199,7 +199,7 @@ export default function Flashcards() {
       }
       let query = supabase
         .from("subjects")
-        .select("*")
+        .select("id, nombre, codigo, año")
         .order("año", { ascending: true });
 
       if (user) {
@@ -210,7 +210,7 @@ export default function Flashcards() {
       if (user && (!data || data.length === 0)) {
         const fallback = await supabase
           .from("subjects")
-          .select("*")
+          .select("id, nombre, codigo, año")
           .is("user_id", null)
           .order("año", { ascending: true });
         if (fallback.data && fallback.data.length > 0) {
@@ -250,7 +250,7 @@ export default function Flashcards() {
 
       const { data, error } = await supabase
         .from("flashcard_decks")
-        .select("*, subjects(nombre, codigo, año)")
+        .select("id, user_id, subject_id, nombre, descripcion, total_cards, created_at, subjects(nombre, codigo, año)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -262,7 +262,7 @@ export default function Flashcards() {
         // Fallback in case PostgREST schema cache relationship failed
         const { data: rawData } = await supabase
           .from("flashcard_decks")
-          .select("*")
+          .select("id, user_id, subject_id, nombre, descripcion, total_cards, created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
         if (rawData) {
@@ -347,7 +347,7 @@ export default function Flashcards() {
 
     const { data, error } = await supabase
       .from("flashcards")
-      .select("*")
+      .select("id, deck_id, pregunta, respuesta, opciones, tipo, dificultad, veces_correcta, veces_incorrecta, veces_parcial, created_at")
       .eq("deck_id", deckId)
       .order("created_at", { ascending: true });
 

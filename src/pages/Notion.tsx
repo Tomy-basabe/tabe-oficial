@@ -742,7 +742,7 @@ export default function Notion() {
 
           const { error: uploadError } = await supabase.storage
             .from('notion-images')
-            .upload(fileName, blob);
+            .upload(fileName, blob, { cacheControl: '31536000', upsert: false });
 
           if (uploadError) throw uploadError;
 

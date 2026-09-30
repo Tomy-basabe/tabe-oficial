@@ -109,11 +109,11 @@ export default function Marketplace() {
 
       if (user) {
         const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
-          supabase.from("flashcard_decks").select("*").eq("user_id", user.id).gt("total_cards", 0),
-          supabase.from("library_files").select("*").eq("user_id", user.id),
-          supabase.from("library_folders").select("*").eq("user_id", user.id),
-          supabase.from("quiz_decks").select("*").eq("user_id", user.id),
-          supabase.from("notion_documents").select("id, titulo, emoji, subject_id, parent_id, is_public, description, category, is_anonymous, created_at").eq("user_id", user.id)
+          supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, descripcion, total_cards, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).gt("total_cards", 0).limit(50),
+          supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
+          supabase.from("library_folders").select("id, user_id, subject_id, nombre, color, icon, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
+          supabase.from("quiz_decks").select("id, user_id, subject_id, titulo, descripcion, total_preguntas, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
+          supabase.from("notion_documents").select("id, titulo, emoji, subject_id, parent_id, is_public, description, category, is_anonymous, created_at").eq("user_id", user.id).limit(50)
         ]);
 
         const subjectsById = new Map((subjectsData || []).map((s: any) => [s.id, { id: s.id, nombre: s.nombre, year: s.año }]));

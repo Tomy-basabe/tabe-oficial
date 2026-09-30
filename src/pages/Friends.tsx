@@ -27,7 +27,7 @@ export default function Friends() {
     respondToRequest,
     removeFriend,
     updateUsername
-  } = useFriends();
+  } = useFriends({ enableRealtime: true });
 
   const navigate = useNavigate();
   const { createRoom, sendFriendChallenge } = useGameRoom();
