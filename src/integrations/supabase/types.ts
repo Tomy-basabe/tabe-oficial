@@ -1471,6 +1471,7 @@ export type Database = {
           growth_multiplier: number | null
           growth_percentage: number
           id: string
+          island_id: string | null
           is_alive: boolean
           is_completed: boolean
           last_watered_at: string
@@ -1487,6 +1488,7 @@ export type Database = {
           growth_multiplier?: number | null
           growth_percentage?: number
           id?: string
+          island_id?: string | null
           is_alive?: boolean
           is_completed?: boolean
           last_watered_at?: string
@@ -1503,6 +1505,7 @@ export type Database = {
           growth_multiplier?: number | null
           growth_percentage?: number
           id?: string
+          island_id?: string | null
           is_alive?: boolean
           is_completed?: boolean
           last_watered_at?: string

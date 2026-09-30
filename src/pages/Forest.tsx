@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useForest } from "@/hooks/useForest";
+import { FOREST_ISLANDS, IslandId } from "@/hooks/forestIslandsData";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { ForestIsland } from "@/components/forest/ForestIsland";
 import { ForestFocusStage } from "@/components/forest/ForestFocusStage";
@@ -85,6 +86,8 @@ export default function Forest() {
   } = useForest();
 
   const [activeTab, setActiveTab] = useState<ForestTab>("island");
+  const [activeIslandId, setActiveIslandId] = useState<IslandId>("classic");
+  const [targetIslandForPlant, setTargetIslandForPlant] = useState<IslandId>("classic");
   const [selectedPlantType, setSelectedPlantType] = useState<string>("oak");
   const [isPlantModalOpen, setIsPlantModalOpen] = useState<boolean>(false);
   const [modalFilterLevel, setModalFilterLevel] = useState<number | "all">("all");
@@ -98,11 +101,13 @@ export default function Forest() {
     return plantTypes.find((t) => t.id === selectedPlantType) || plantTypes[0];
   }, [plantTypes, selectedPlantType]);
 
-  const handleConfirmPlant = (typeId?: string) => {
+  const handleConfirmPlant = (typeId?: string, islandId?: IslandId) => {
     const toPlant = typeId || selectedPlantType;
+    const island = islandId || targetIslandForPlant || activeIslandId;
     ComicAudio.playSprout();
-    plantNewTree(toPlant);
+    plantNewTree(toPlant, island);
     setIsPlantModalOpen(false);
+    setActiveIslandId(island);
     setActiveTab("active");
   };
 
@@ -154,10 +159,11 @@ export default function Forest() {
           <button
             onClick={() => {
               ComicAudio.playSprout();
+              setTargetIslandForPlant(activeIslandId);
               setIsPlantModalOpen(true);
             }}
             disabled={forestStats.hasActivePlant}
-            className="w-full md:w-auto px-6 py-3.5 bg-[#BFFF00] hover:bg-[#a6e000] text-black font-black uppercase text-xs sm:text-sm rounded-2xl border-4 border-black shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-[4px_4px_0_0_#000]"
+            className="w-full md:w-auto px-6 py-3.5 bg-[#BFFF00] hover:bg-[#a6e000] text-black font-black uppercase text-xs sm:text-sm rounded-2xl border-4 border-black shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-[4px_4px_0_0_#000] cursor-pointer"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
             <span>Plantar Semilla</span>
@@ -168,7 +174,7 @@ export default function Forest() {
       {/* NAVIGATION TABS (Gaming Comic Pill Navigation) */}
       <div className="flex items-center gap-2 p-1.5 bg-card border-4 border-foreground rounded-2xl shadow-[4px_4px_0_0_hsl(var(--foreground))] overflow-x-auto">
         {[
-          { id: "island", label: "El Bosque (Isla 3D)", icon: Compass },
+          { id: "island", label: "El Bosque (5 Islas)", icon: Compass },
           {
             id: "active",
             label: currentPlant ? `Árbol Activo (${currentPlant.growth_percentage}%)` : "Árbol Activo",
@@ -187,7 +193,7 @@ export default function Forest() {
                 setActiveTab(tab.id as ForestTab);
               }}
               className={cn(
-                "flex-1 min-w-[140px] sm:min-w-fit px-4 py-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 whitespace-nowrap",
+                "flex-1 min-w-[140px] sm:min-w-fit px-4 py-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer",
                 isActive
                   ? "bg-[#BFFF00] text-black border-2 border-foreground shadow-[2.5px_2.5px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -206,7 +212,12 @@ export default function Forest() {
           plants={plants}
           studyActivity={studyActivity}
           onRemoveDeadPlant={removeDeadPlant}
-          onPlantNewTree={() => setIsPlantModalOpen(true)}
+          selectedIslandId={activeIslandId}
+          onSelectIsland={setActiveIslandId}
+          onPlantNewTree={(islandId) => {
+            if (islandId) setTargetIslandForPlant(islandId as IslandId);
+            setIsPlantModalOpen(true);
+          }}
         />
       )}
 
@@ -254,6 +265,46 @@ export default function Forest() {
               </ComicBadge>
             </DialogTitle>
           </DialogHeader>
+
+          {/* Selector de Isla Destino (5 Islas Temáticas) */}
+          <div className="space-y-1.5 p-2.5 bg-muted/30 border-2 border-foreground/30 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                <span>🏝️ Isla Destino:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                  {FOREST_ISLANDS.find((i) => i.id === targetIslandForPlant)?.name}
+                </span>
+              </span>
+              <span className="text-[10px] font-bold text-muted-foreground hidden sm:inline">
+                Elige en cuál de tus 5 islas plantar
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-0.5">
+              {FOREST_ISLANDS.map((island) => {
+                const isSelected = targetIslandForPlant === island.id;
+                return (
+                  <button
+                    key={island.id}
+                    type="button"
+                    onClick={() => {
+                      ComicAudio.playPop();
+                      setTargetIslandForPlant(island.id);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1.5 rounded-xl border-2 font-black text-xs uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                      isSelected
+                        ? "bg-[#BFFF00] text-black border-black shadow-[2px_2px_0_0_#000] scale-[1.02]"
+                        : "bg-card text-foreground border-foreground/30 hover:bg-muted"
+                    )}
+                  >
+                    <span>{island.emoji}</span>
+                    <span className="truncate">{island.shortName}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <p className="text-xs font-bold text-muted-foreground -mt-1">
             Filtra por dificultad para elegir el desafío ideal según las horas que vas a dedicar:
@@ -378,11 +429,13 @@ export default function Forest() {
             </button>
             <button
               type="button"
-              onClick={() => handleConfirmPlant()}
+              onClick={() => handleConfirmPlant(selectedPlantType, targetIslandForPlant)}
               className="flex-1 py-3 bg-[#BFFF00] hover:bg-[#a6e000] text-black font-black uppercase text-xs rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Sprout className="w-4 h-4" />
-              <span>Plantar {selectedTypeInfo?.name || "Semilla"}</span>
+              <span>
+                Plantar {selectedTypeInfo?.name || "Semilla"} en {FOREST_ISLANDS.find((i) => i.id === targetIslandForPlant)?.shortName || "Isla"}
+              </span>
             </button>
           </DialogFooter>
         </DialogContent>

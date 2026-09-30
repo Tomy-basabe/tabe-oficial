@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plant, PLANT_TYPES } from "@/hooks/useForest";
 import { ForestTreeArtwork } from "./ForestTreeArtwork";
 import { ComicBadge } from "@/components/comic/ComicBadge";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { Calendar, Clock, Sparkles, Trophy, Trash2, Heart, Award, Skull } from "lucide-react";
+import { Calendar, Clock, Sparkles, Trophy, Trash2, Heart, Award, Skull, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TreeInspectionModalProps {
@@ -20,6 +20,12 @@ export const TreeInspectionModal: React.FC<TreeInspectionModalProps> = ({
   onClose,
   onRemove,
 }) => {
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
+  useEffect(() => {
+    setIsConfirmingDelete(false);
+  }, [plant?.id, isOpen]);
+
   if (!plant) return null;
 
   const typeInfo = PLANT_TYPES.find((t) => t.id === plant.plant_type) || PLANT_TYPES[0];
@@ -153,24 +159,53 @@ export const TreeInspectionModal: React.FC<TreeInspectionModalProps> = ({
         </div>
 
         <DialogFooter className="mt-4 flex flex-row items-center justify-between gap-2">
-          {!plant.is_alive && onRemove && (
-            <button
-              onClick={() => {
-                ComicAudio.playPop();
-                onRemove(plant.id);
-                onClose();
-              }}
-              className="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-xs uppercase rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center gap-1.5"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Limpiar Terreno
-            </button>
+          {onRemove && (
+            <div>
+              {!isConfirmingDelete ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    ComicAudio.playPop();
+                    setIsConfirmingDelete(true);
+                  }}
+                  className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white font-black text-xs uppercase rounded-xl border-2 border-rose-500/40 hover:border-rose-600 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Eliminar o arrancar esta planta de la isla"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Eliminar Planta</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      ComicAudio.playPop();
+                      onRemove(plant.id);
+                      onClose();
+                    }}
+                    className="px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:scale-105 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>¿Arrancar? Sí</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingDelete(false)}
+                    className="px-2.5 py-2.5 bg-muted hover:bg-muted/80 text-foreground font-black text-xs uppercase rounded-xl border-2 border-foreground transition-all cursor-pointer"
+                  >
+                    No
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           <button
+            type="button"
             onClick={() => {
               ComicAudio.playPop();
               onClose();
             }}
-            className="ml-auto px-5 py-2.5 bg-card hover:bg-muted text-foreground font-black text-xs uppercase rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all"
+            className="ml-auto px-5 py-2.5 bg-card hover:bg-muted text-foreground font-black text-xs uppercase rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all cursor-pointer"
           >
             Cerrar
           </button>

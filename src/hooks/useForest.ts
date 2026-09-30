@@ -11,6 +11,7 @@ export interface Plant {
   id: string;
   user_id: string;
   plant_type: string;
+  island_id?: string | null;
   growth_percentage: number;
   is_alive: boolean;
   is_completed: boolean;
@@ -92,12 +93,22 @@ export function getGuestMockPlants(): Plant[] {
   // Defined dead tree indices (representing abandoned pomodoros across timeline)
   const deadTreeIndices = new Set([6, 17, 29, 44]);
 
+  const resolveIsland = (species: string, index: number): string => {
+    if (species.includes("pizza") || species.includes("cupcake") || species.includes("burger")) return "pizza";
+    if (species.includes("joystick") || species.includes("arcade") || species.includes("soda")) return "gaming";
+    if (species.includes("coffee") || species.includes("comic") || species.includes("matcha")) return "study";
+    if (species.includes("tabe") || species.includes("sakura")) return "cosmic";
+    const fallbackIslands = ["classic", "pizza", "gaming", "study", "cosmic"];
+    return fallbackIslands[index % fallbackIslands.length];
+  };
+
   const plants: Plant[] = [
     // 1. Árbol activo en crecimiento (TABE con fertilizante x2)
     {
       id: "mock-active-1",
       user_id: "guest",
       plant_type: "tabe",
+      island_id: "cosmic",
       growth_percentage: 72,
       is_alive: true,
       is_completed: false,
@@ -113,6 +124,7 @@ export function getGuestMockPlants(): Plant[] {
       id: "mock-today-2",
       user_id: "guest",
       plant_type: "cupcake-fresa",
+      island_id: "pizza",
       growth_percentage: 100,
       is_alive: true,
       is_completed: true,
@@ -125,6 +137,7 @@ export function getGuestMockPlants(): Plant[] {
       id: "mock-today-3",
       user_id: "guest",
       plant_type: "soda-monster",
+      island_id: "gaming",
       growth_percentage: 100,
       is_alive: true,
       is_completed: true,
@@ -137,6 +150,7 @@ export function getGuestMockPlants(): Plant[] {
       id: "mock-today-4",
       user_id: "guest",
       plant_type: "joystick-arcade",
+      island_id: "gaming",
       growth_percentage: 100,
       is_alive: true,
       is_completed: true,
@@ -149,6 +163,7 @@ export function getGuestMockPlants(): Plant[] {
       id: "mock-today-5",
       user_id: "guest",
       plant_type: "comic-pow",
+      island_id: "study",
       growth_percentage: 100,
       is_alive: true,
       is_completed: true,
@@ -161,6 +176,7 @@ export function getGuestMockPlants(): Plant[] {
       id: "mock-today-6",
       user_id: "guest",
       plant_type: "pizza-burger",
+      island_id: "pizza",
       growth_percentage: 100,
       is_alive: true,
       is_completed: true,
@@ -183,6 +199,7 @@ export function getGuestMockPlants(): Plant[] {
       id: `mock-tree-${i}`,
       user_id: "guest",
       plant_type: sp,
+      island_id: resolveIsland(sp, i),
       growth_percentage: isDead ? 35 + (i % 30) : 100,
       is_alive: !isDead,
       is_completed: !isDead,
@@ -205,6 +222,7 @@ export function getGuestMockPlants(): Plant[] {
       id: `mock-tree-${i}`,
       user_id: "guest",
       plant_type: sp,
+      island_id: resolveIsland(sp, i),
       growth_percentage: isDead ? 20 + (i % 40) : 100,
       is_alive: !isDead,
       is_completed: !isDead,
@@ -227,6 +245,7 @@ export function getGuestMockPlants(): Plant[] {
       id: `mock-tree-${i}`,
       user_id: "guest",
       plant_type: sp,
+      island_id: resolveIsland(sp, i),
       growth_percentage: isDead ? 15 + (i % 50) : 100,
       is_alive: !isDead,
       is_completed: !isDead,
@@ -315,7 +334,7 @@ export function useForest() {
     try {
       const { data, error } = await supabase
         .from("user_plants")
-        .select("id, user_id, plant_type, growth_percentage, is_alive, is_completed, planted_at, last_watered_at, completed_at, died_at, fertilizer_ends_at, growth_multiplier")
+        .select("id, user_id, plant_type, island_id, growth_percentage, is_alive, is_completed, planted_at, last_watered_at, completed_at, died_at, fertilizer_ends_at, growth_multiplier")
         .eq("user_id", user.id)
         .order("planted_at", { ascending: false })
         .limit(100);
@@ -472,16 +491,14 @@ export function useForest() {
         return;
       }
 
-      // Crecimiento de la planta: se calcula con las sesiones de estudio desde la fecha en que se plantó (igual que Métricas)
+      // Crecimiento de la planta: se calcula ÚNICAMENTE con sesiones de estudio posteriores a la plantación
       if (plant.is_alive && !plant.is_completed) {
-        const plantDateStr = toLocalDateStr(plantedDate);
-
-        // Consultar sesiones de estudio desde la fecha de plantación
+        // Consultar sesiones creadas estrictamente DESPUÉS del momento exacto de plantación (evita arrastrar tiempo previo)
         const { data: plantSessions, error } = await supabase
           .from("study_sessions")
-          .select("fecha, duracion_segundos, created_at")
+          .select("duracion_segundos, created_at")
           .eq("user_id", user.id)
-          .gte("fecha", plantDateStr)
+          .gte("created_at", plant.planted_at)
           .order("created_at", { ascending: true });
 
         if (error) throw error;
@@ -491,25 +508,15 @@ export function useForest() {
           totalSecondsStudied += (session.duracion_segundos || 0);
         });
 
-        // Incluir también cualquier sesión que por timezone o fecha tenga created_at >= plant.planted_at
-        const { data: extraSessions } = await supabase
-          .from("study_sessions")
-          .select("fecha, duracion_segundos, created_at")
-          .eq("user_id", user.id)
-          .lt("fecha", plantDateStr)
-          .gte("created_at", plant.planted_at);
-
-        (extraSessions || []).forEach(session => {
-          totalSecondsStudied += (session.duracion_segundos || 0);
-        });
-
         const totalMinutesStudied = totalSecondsStudied / 60;
         const plantTypeInfo = PLANT_TYPES.find(t => t.id === plant.plant_type) || PLANT_TYPES[0];
         const reqMinutes = plantTypeInfo.requiredMinutes || 120;
         const hasFertilizer = plant.fertilizer_ends_at && new Date(plant.fertilizer_ends_at) > now;
         const multiplier = hasFertilizer ? (plant.growth_multiplier || 2) : 1;
 
-        const calculatedGrowth = Math.floor((totalMinutesStudied / reqMinutes) * 100 * multiplier);
+        const calculatedGrowth = totalMinutesStudied > 0
+          ? Math.floor((totalMinutesStudied / reqMinutes) * 100 * multiplier)
+          : 0;
         const newGrowthPercentage = Math.min(100, Math.max(plant.growth_percentage || 0, calculatedGrowth));
 
         // Solo actualizar si el porcentaje de crecimiento aumentó
@@ -571,7 +578,7 @@ export function useForest() {
     }
   }, [user, isGuest, studyActivity]);
 
-  const plantNewTree = async (plantType: string = 'oak') => {
+  const plantNewTree = async (plantType: string = "oak", islandId: string = "classic") => {
     if (!user && !isGuest) return;
     if (isPlantingRef.current) return;
 
@@ -582,17 +589,21 @@ export function useForest() {
     }
 
     isPlantingRef.current = true;
+    const nowIso = new Date().toISOString();
+    const targetIsland = islandId || "classic";
+
     try {
       if (isGuest) {
         const newPlant: Plant = {
           id: `guest-${Date.now()}`,
           user_id: "guest",
           plant_type: plantType,
+          island_id: targetIsland,
           growth_percentage: 0,
           is_alive: true,
           is_completed: false,
-          planted_at: new Date().toISOString(),
-          last_watered_at: new Date().toISOString(),
+          planted_at: nowIso,
+          last_watered_at: nowIso,
           completed_at: null,
           died_at: null,
         };
@@ -610,9 +621,12 @@ export function useForest() {
         .insert({
           user_id: user!.id,
           plant_type: plantType,
+          island_id: targetIsland,
           growth_percentage: 0,
           is_alive: true,
           is_completed: false,
+          planted_at: nowIso,
+          last_watered_at: nowIso,
         });
 
       if (error) throw error;
@@ -627,7 +641,7 @@ export function useForest() {
     }
   };
 
-  const removeDeadPlant = async (plantId: string) => {
+  const deletePlant = async (plantId: string) => {
     if (!user && !isGuest) return;
 
     if (isGuest) {
@@ -638,7 +652,7 @@ export function useForest() {
         _cachedCurrentPlant = null;
         setCurrentPlant(null);
       }
-      toast.success("Planta eliminada del jardín");
+      toast.success("Planta eliminada de la isla");
       return;
     }
 
@@ -655,13 +669,15 @@ export function useForest() {
         _cachedCurrentPlant = null;
         setCurrentPlant(null);
       }
-      toast.success("Planta eliminada del jardín");
+      toast.success("Planta eliminada de la isla");
       fetchPlants();
     } catch (error) {
       console.error("Error removing plant:", error);
       toast.error("Error al eliminar planta");
     }
   };
+
+  const removeDeadPlant = deletePlant;
 
   const abandonPlant = async (plantId: string) => {
     if (!user && !isGuest) return;
@@ -913,6 +929,7 @@ export function useForest() {
     forestStats,
     loading,
     plantNewTree,
+    deletePlant,
     removeDeadPlant,
     abandonPlant,
     waterPlantWithStudy,
