@@ -21,6 +21,12 @@ export interface RemoteCursor {
   updatedAt: number;
 }
 
+export interface BlockDelta {
+  index: number;
+  node: any;
+  op: "replace" | "insert" | "delete";
+}
+
 export const COLLAB_COLORS = [
   "#FF2A85", // Rosa Neón
   "#00E5FF", // Cian Neón
@@ -64,12 +70,70 @@ export const getOrCreateGuestIdentity = () => {
   return { id: guestId, name: guestName };
 };
 
+/**
+ * Calcula los bloques modificados entre dos snapshots TipTap JSON para sincronización granular
+ */
+export function computeBlockDeltas(oldContent: any, newContent: any): BlockDelta[] {
+  const oldBlocks = oldContent?.content || [];
+  const newBlocks = newContent?.content || [];
+
+  const deltas: BlockDelta[] = [];
+  const maxLen = Math.max(oldBlocks.length, newBlocks.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    const oldB = oldBlocks[i];
+    const newB = newBlocks[i];
+
+    if (oldB && !newB) {
+      deltas.push({ index: i, node: null, op: "delete" });
+    } else if (!oldB && newB) {
+      deltas.push({ index: i, node: newB, op: "insert" });
+    } else if (JSON.stringify(oldB) !== JSON.stringify(newB)) {
+      deltas.push({ index: i, node: newB, op: "replace" });
+    }
+  }
+
+  return deltas;
+}
+
+/**
+ * Fusiona contenido remoto protegiendo el bloque que el usuario local esté editando en ese instante
+ */
+export function mergeCollaborativeContent(
+  localContent: any,
+  remoteContent: any,
+  localEditingBlockIndex: number,
+  isLocalUserActive: boolean
+): any {
+  if (!remoteContent?.content) return localContent;
+  if (!localContent?.content || !isLocalUserActive || localEditingBlockIndex < 0) {
+    return remoteContent;
+  }
+
+  const localBlocks = [...(localContent.content || [])];
+  const remoteBlocks = [...(remoteContent.content || [])];
+
+  const mergedBlocks = remoteBlocks.map((remoteNode, idx) => {
+    // Si el usuario local está escribiendo en este bloque específico, preservar su trabajo local
+    if (idx === localEditingBlockIndex && localBlocks[idx]) {
+      return localBlocks[idx];
+    }
+    return remoteNode;
+  });
+
+  return {
+    ...remoteContent,
+    content: mergedBlocks,
+  };
+}
+
 interface UseNotionCollabProps {
-  documentId?: string;
+  documentId?: string; // ID dinámico de la página o subpágina activa
   currentPageId?: string;
   user?: any;
   userProfile?: { nombre?: string | null; username?: string | null; avatar_url?: string | null } | null;
   onRemoteContentChange?: (content: any, senderId: string, pageId?: string) => void;
+  onRemoteDeltaChange?: (deltas: BlockDelta[], senderId: string, pageId?: string) => void;
   enabled?: boolean;
 }
 
@@ -79,19 +143,20 @@ export function useNotionCollab({
   user,
   userProfile,
   onRemoteContentChange,
+  onRemoteDeltaChange,
   enabled = true,
 }: UseNotionCollabProps) {
   const [activeCollaborators, setActiveCollaborators] = useState<CollabUser[]>([]);
   const [remoteCursors, setRemoteCursors] = useState<Record<string, RemoteCursor>>({});
   const [isConnected, setIsConnected] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const lastBroadcastTimeRef = useRef<number>(0);
-  const pendingBroadcastRef = useRef<any>(null);
+
   const broadcastThrottleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cursorThrottleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastCursorPosRef = useRef<number>(-1);
+  const lastBroadcastContentRef = useRef<any>(null);
 
-  // Determinar identidad activa (usuario logueado o invitado anónimo)
+  // Determinar identidad activa (usuario registrado o invitado)
   const activeIdentity = useRef<{ id: string; name: string; avatarUrl: string | null; isGuest: boolean }>({
     id: "",
     name: "Invitado",
@@ -120,10 +185,12 @@ export function useNotionCollab({
   const currentUserName = activeIdentity.current.name;
   const currentUserColor = getCollabColor(currentUserId);
 
-  // Subscribe to Realtime channel (scoped to root documentId so subpages stay in the same room)
+  // Inicialización dinámica del canal por página activa (apunte-cooperativo:${documentId})
+  // Al cambiar de página/subpágina se desmonta limpiamente el canal previo y suscribe al nuevo identificador
   useEffect(() => {
     if (!enabled || !documentId || !currentUserId) {
       if (channelRef.current) {
+        channelRef.current.untrack().catch(() => {});
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
         setIsConnected(false);
@@ -133,7 +200,8 @@ export function useNotionCollab({
       return;
     }
 
-    const channelName = `notion_collab:${documentId}`;
+    // Canal único por página activa
+    const channelName = `apunte-cooperativo:${documentId}`;
 
     const channel = supabase.channel(channelName, {
       config: {
@@ -144,7 +212,7 @@ export function useNotionCollab({
 
     channelRef.current = channel;
 
-    // 1. Presence: track who is viewing/editing
+    // 1. Presencia de usuarios en vivo en esta página
     channel
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
@@ -163,7 +231,7 @@ export function useNotionCollab({
                 avatar_url: p.avatar_url || null,
                 color: p.color || getCollabColor(p.user_id),
                 isGuest: Boolean(p.isGuest),
-                currentPageId: p.currentPageId,
+                currentPageId: p.currentPageId || documentId,
                 joined_at: p.joined_at || Date.now(),
               });
             }
@@ -184,16 +252,27 @@ export function useNotionCollab({
         }
       });
 
-    // 2. Broadcast: receive remote content changes with zero DB cost
+    // 2. Broadcast: deltas granulares de bloques modificados
+    channel.on("broadcast", { event: "block_delta" }, ({ payload }) => {
+      if (payload && payload.senderId !== currentUserId && payload.pageId === documentId) {
+        if (onRemoteDeltaChange && payload.deltas) {
+          onRemoteDeltaChange(payload.deltas, payload.senderId, payload.pageId);
+        } else if (onRemoteContentChange && payload.content) {
+          onRemoteContentChange(payload.content, payload.senderId, payload.pageId);
+        }
+      }
+    });
+
+    // 3. Broadcast: sincronización periódica de contenido completo (debounced)
     channel.on("broadcast", { event: "content_change" }, ({ payload }) => {
-      if (payload && payload.senderId !== currentUserId && onRemoteContentChange) {
+      if (payload && payload.senderId !== currentUserId && payload.pageId === documentId && onRemoteContentChange) {
         onRemoteContentChange(payload.content, payload.senderId, payload.pageId);
       }
     });
 
-    // 3. Broadcast: receive remote cursor movements (Google Docs style)
+    // 4. Broadcast: movimiento de cursor remoto en vivo
     channel.on("broadcast", { event: "cursor_move" }, ({ payload }) => {
-      if (payload && payload.userId && payload.userId !== currentUserId) {
+      if (payload && payload.userId && payload.userId !== currentUserId && payload.pageId === documentId) {
         setRemoteCursors((prev) => ({
           ...prev,
           [payload.userId]: {
@@ -208,7 +287,7 @@ export function useNotionCollab({
       }
     });
 
-    // Subscribe and track presence
+    // Suscribirse y trackear presencia en la página activa
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         setIsConnected(true);
@@ -218,7 +297,7 @@ export function useNotionCollab({
           avatar_url: activeIdentity.current.avatarUrl,
           color: currentUserColor,
           isGuest: activeIdentity.current.isGuest,
-          currentPageId,
+          currentPageId: documentId,
           joined_at: Date.now(),
         });
       } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
@@ -233,80 +312,77 @@ export function useNotionCollab({
       if (cursorThrottleTimerRef.current) {
         clearTimeout(cursorThrottleTimerRef.current);
       }
-      if (channel) {
-        channel.untrack().catch(() => {});
-        supabase.removeChannel(channel);
-      }
+      channel.untrack().catch(() => {});
+      supabase.removeChannel(channel);
       channelRef.current = null;
       setIsConnected(false);
       setActiveCollaborators([]);
       setRemoteCursors({});
     };
-  }, [documentId, currentUserId, currentUserName, currentUserColor, enabled, onRemoteContentChange]);
+  }, [documentId, currentUserId, currentUserName, currentUserColor, enabled, onRemoteContentChange, onRemoteDeltaChange]);
 
-  // Actualizar página activa en presence cuando el usuario cambia de subpágina sin desconectar la sala
-  useEffect(() => {
-    if (channelRef.current && isConnected) {
-      channelRef.current.track({
-        user_id: currentUserId,
-        name: currentUserName,
-        avatar_url: activeIdentity.current.avatarUrl,
-        color: currentUserColor,
-        isGuest: activeIdentity.current.isGuest,
-        currentPageId,
-        joined_at: Date.now(),
-      }).catch(() => {});
-    }
-  }, [currentPageId, isConnected, currentUserId, currentUserName, currentUserColor]);
-
-  // Transmit content changes to other active collaborators with intelligent throttle (600ms)
+  // Difundir cambios de contenido con debounce inteligente y cálculo de deltas
+  // (Prohibido sincronizar el HTML/JSON completo en cada pulsación para evitar colisiones)
   const broadcastContent = useCallback(
-    (content: any, pageId?: string) => {
-      if (!channelRef.current || !isConnected || !currentUserId) return;
+    (newContent: any, pageId?: string) => {
+      const targetPageId = pageId || documentId;
+      if (!channelRef.current || !isConnected || !currentUserId || !targetPageId) return;
 
-      pendingBroadcastRef.current = { content, pageId: pageId || currentPageId };
-      const now = Date.now();
-      const elapsed = now - lastBroadcastTimeRef.current;
-      const THROTTLE_MS = 25;
-
-      const doSend = () => {
-        if (!channelRef.current || !pendingBroadcastRef.current) return;
-        channelRef.current.send({
-          type: "broadcast",
-          event: "content_change",
-          payload: {
-            content: pendingBroadcastRef.current.content,
-            pageId: pendingBroadcastRef.current.pageId,
-            senderId: currentUserId,
-            timestamp: Date.now(),
-          },
-        });
-        lastBroadcastTimeRef.current = Date.now();
-        pendingBroadcastRef.current = null;
-      };
-
-      if (elapsed >= THROTTLE_MS) {
-        if (broadcastThrottleTimerRef.current) {
-          clearTimeout(broadcastThrottleTimerRef.current);
-          broadcastThrottleTimerRef.current = null;
-        }
-        doSend();
-      } else {
-        if (!broadcastThrottleTimerRef.current) {
-          broadcastThrottleTimerRef.current = setTimeout(() => {
-            broadcastThrottleTimerRef.current = null;
-            doSend();
-          }, THROTTLE_MS - elapsed);
-        }
+      if (broadcastThrottleTimerRef.current) {
+        clearTimeout(broadcastThrottleTimerRef.current);
       }
+
+      // Debounce de 300ms tras dejar de escribir antes de emitir la actualización
+      broadcastThrottleTimerRef.current = setTimeout(() => {
+        broadcastThrottleTimerRef.current = null;
+        if (!channelRef.current || !isConnected) return;
+
+        const previousContent = lastBroadcastContentRef.current;
+        lastBroadcastContentRef.current = newContent;
+
+        // Calcular si podemos enviar un delta granular
+        const deltas = previousContent ? computeBlockDeltas(previousContent, newContent) : [];
+
+        if (deltas.length > 0 && deltas.length <= 4) {
+          // Difundir delta granular
+          channelRef.current.send({
+            type: "broadcast",
+            event: "block_delta",
+            payload: {
+              deltas,
+              content: newContent,
+              pageId: targetPageId,
+              senderId: currentUserId,
+              senderName: currentUserName,
+              senderColor: currentUserColor,
+              timestamp: Date.now(),
+            },
+          });
+        } else {
+          // Difundir contenido completo debounced
+          channelRef.current.send({
+            type: "broadcast",
+            event: "content_change",
+            payload: {
+              content: newContent,
+              pageId: targetPageId,
+              senderId: currentUserId,
+              senderName: currentUserName,
+              senderColor: currentUserColor,
+              timestamp: Date.now(),
+            },
+          });
+        }
+      }, 300);
     },
-    [isConnected, currentUserId, currentPageId]
+    [isConnected, currentUserId, currentUserName, currentUserColor, documentId]
   );
 
-  // Transmit live cursor position (Google Docs style) with 16ms (60fps)
+  // Difundir cursor en tiempo real (16ms throttle para 60fps)
   const broadcastCursor = useCallback(
     (pos: number, pageId?: string) => {
-      if (!channelRef.current || !isConnected || !currentUserId || pos === lastCursorPosRef.current) return;
+      const targetPageId = pageId || documentId;
+      if (!channelRef.current || !isConnected || !currentUserId || pos === lastCursorPosRef.current || !targetPageId) return;
       lastCursorPosRef.current = pos;
 
       if (cursorThrottleTimerRef.current) return;
@@ -322,13 +398,13 @@ export function useNotionCollab({
             name: currentUserName,
             color: currentUserColor,
             pos: lastCursorPosRef.current,
-            pageId: pageId || currentPageId,
+            pageId: targetPageId,
             timestamp: Date.now(),
           },
         });
       }, 16);
     },
-    [isConnected, currentUserId, currentUserName, currentUserColor, currentPageId]
+    [isConnected, currentUserId, currentUserName, currentUserColor, documentId]
   );
 
   return {
@@ -341,7 +417,7 @@ export function useNotionCollab({
       color: currentUserColor,
       avatar_url: activeIdentity.current.avatarUrl,
       isGuest: activeIdentity.current.isGuest,
-      currentPageId,
+      currentPageId: documentId,
       joined_at: Date.now(),
     },
     broadcastContent,

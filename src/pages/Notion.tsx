@@ -24,7 +24,7 @@ import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
 import { ImportFriendNoteModal } from "@/components/notion/ImportFriendNoteModal";
 import { ShareDocumentModal } from "@/components/notion/ShareDocumentModal";
-import { useNotionCollab } from "@/hooks/useNotionCollab";
+import { useNotionCollab, mergeCollaborativeContent, BlockDelta } from "@/hooks/useNotionCollab";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { getTrashItems, restoreFromTrash, moveToTrash, extractSubPageIds, permanentlyDelete, TrashItem } from "@/lib/notionTrash";
@@ -574,32 +574,47 @@ export default function Notion() {
     return Array.from(years).sort((a, b) => a - b);
   }, [subjects, documents]);
 
-  // Helper to find root document id so all subpages remain in the same collaboration room
-  const getRootDocumentId = useCallback((doc: NotionDocument | null): string | undefined => {
-    if (!doc) return undefined;
+  // Helper to determine if a document or any ancestor in the tree is shared/collaborative
+  const isDocOrAncestorCollaborative = useCallback((doc: NotionDocument | null): boolean => {
+    if (!doc) return false;
+    if (doc.is_shared || doc.is_collaborator || doc.share_token) return true;
     let curr: NotionDocument | undefined = doc;
     const visited = new Set<string>();
     while (curr?.parent_id && !visited.has(curr.id)) {
       visited.add(curr.id);
       const parent = documents.find(d => d.id === curr?.parent_id);
       if (parent) {
+        if (parent.is_shared || parent.is_collaborator || parent.share_token) {
+          return true;
+        }
         curr = parent;
       } else {
         break;
       }
     }
-    return curr?.id || doc.id;
+    return false;
   }, [documents]);
 
-  const rootCollabDocId = useMemo(() => getRootDocumentId(activeDocument), [activeDocument, getRootDocumentId]);
-
   // Realtime collaboration hook for the currently active document or its subpages
-  const isCollabActive = Boolean(
-    activeDocument &&
-    (activeDocument.is_shared || activeDocument.is_collaborator || activeDocument.share_token)
+  const isCollabActive = useMemo(
+    () => isDocOrAncestorCollaborative(activeDocument),
+    [activeDocument, isDocOrAncestorCollaborative]
   );
 
   const isRemoteUpdateRef = useRef(false);
+  const lastRemoteUpdateTimestampRef = useRef<number>(0);
+
+  // Helper para determinar el índice del bloque en foco del usuario local
+  const getActiveBlockIndex = useCallback((editor: any): number => {
+    if (!editor || !editor.state || !editor.state.doc) return -1;
+    try {
+      const selPos = editor.state.selection.from;
+      const resolved = editor.state.doc.resolve(Math.min(selPos, editor.state.doc.content.size));
+      return resolved.index(0);
+    } catch {
+      return -1;
+    }
+  }, []);
 
   const {
     activeCollaborators,
@@ -609,7 +624,7 @@ export default function Notion() {
     broadcastCursor,
     currentUser: collabUser,
   } = useNotionCollab({
-    documentId: rootCollabDocId,
+    documentId: activeDocument?.id,
     currentPageId: activeDocument?.id,
     user,
     userProfile: user?.user_metadata ? {
@@ -637,19 +652,27 @@ export default function Notion() {
           const remoteJson = JSON.stringify(remoteContent);
           if (currentJson === remoteJson) return;
 
-          // Si el usuario local pulsó una tecla en los últimos 150ms, esperar al siguiente ciclo para no cortar la tecla actual
+          lastRemoteUpdateTimestampRef.current = Date.now();
+
+          // Si el usuario local está tipeando activamente (últimos 400ms), fusionar respetando el bloque que está editando
           const timeSinceLocalActivity = Date.now() - lastActivityRef.current;
-          if (editor.isFocused && timeSinceLocalActivity < 150) {
-            return;
-          }
+          const isLocalActive = editor.isFocused && timeSinceLocalActivity < 400;
+
+          const localBlockIdx = isLocalActive ? getActiveBlockIndex(editor) : -1;
+          const mergedContent = mergeCollaborativeContent(
+            editor.getJSON(),
+            remoteContent,
+            localBlockIdx,
+            isLocalActive
+          );
 
           const { from, to } = editor.state.selection;
 
           isRemoteUpdateRef.current = true;
-          editor.commands.setContent(remoteContent, false);
+          editor.commands.setContent(mergedContent, false);
           isRemoteUpdateRef.current = false;
-          editorContentRef.current = remoteContent;
-          lastSavedContentRef.current = remoteJson;
+          editorContentRef.current = mergedContent;
+          lastSavedContentRef.current = JSON.stringify(mergedContent);
 
           // Restaurar cursor y selección para no perder la posición de escritura
           try {
@@ -663,7 +686,7 @@ export default function Notion() {
           console.warn("Error applying remote collaborative content:", e);
         }
       }
-    }, []),
+    }, [getActiveBlockIndex]),
   });
 
   // Handle sharing updates from ShareDocumentModal
@@ -1053,24 +1076,36 @@ export default function Notion() {
     isDirtyRef.current = true;
     setSaveError(null); // Clear previous error indicator as user continues editing
 
-    // 1. Debounce timer: 1.2s tras dejar de escribir (inmediatez percibida sin saturar peticiones)
+    // En sesiones cooperativas usamos un debounce más largo (4.5s) para evitar colisiones de guardado simultáneo
+    const debounceMs = isCollabActive ? 4500 : 1200;
+    const forceSaveMs = isCollabActive ? 15000 : 6000;
+
+    // 1. Debounce timer: tras dejar de escribir
     if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = window.setTimeout(() => {
+      // Si se recibió una actualización remota en los últimos 2.5s, posponer el guardado para evitar sobrescrituras
+      const timeSinceRemote = Date.now() - lastRemoteUpdateTimestampRef.current;
+      if (isCollabActive && timeSinceRemote < 2500) {
+        autoSaveTimerRef.current = window.setTimeout(() => {
+          saveDocument(true);
+        }, 2500);
+        return;
+      }
       saveDocument(true);
       if (forceSaveTimerRef.current) {
         window.clearTimeout(forceSaveTimerRef.current);
         forceSaveTimerRef.current = null;
       }
-    }, 1200);
+    }, debounceMs);
 
-    // 2. Continuous typing periodic save: cada 6s si el usuario tipea sin parar (máx ~10 reqs/minuto)
+    // 2. Continuous typing periodic save:
     if (!forceSaveTimerRef.current) {
       forceSaveTimerRef.current = window.setTimeout(() => {
         saveDocument(true);
         forceSaveTimerRef.current = null;
-      }, 6000); 
+      }, forceSaveMs); 
     }
-  }, [saveDocument]);
+  }, [saveDocument, isCollabActive]);
 
   const handleRenameSubmit = async () => {
     if (!docToRename || !newTitle.trim()) return;
@@ -1374,10 +1409,12 @@ export default function Notion() {
       if (editor && !editor.isDestroyed) {
         editor.commands.setContent(content, false);
         editor.commands.setTextSelection(0);
+        const isCollab = isDocOrAncestorCollaborative(doc);
         const canEditDoc = doc.user_id === user?.id || (
           (doc.is_shared && doc.share_permission === 'edit') ||
           doc.user_permission === 'edit' ||
-          (doc.is_collaborator && doc.share_permission === 'edit')
+          (doc.is_collaborator && doc.share_permission === 'edit') ||
+          isCollab
         );
         editor.setEditable(canEditDoc);
         try {
@@ -1432,10 +1469,12 @@ export default function Notion() {
     if (editor && !editor.isDestroyed) {
       editor.commands.setContent(content, false);
       editor.commands.setTextSelection(0);
+      const isCollab = isDocOrAncestorCollaborative(doc);
       const canEditDoc = doc.user_id === user?.id || (
         (doc.is_shared && doc.share_permission === 'edit') ||
         doc.user_permission === 'edit' ||
-        (doc.is_collaborator && doc.share_permission === 'edit')
+        (doc.is_collaborator && doc.share_permission === 'edit') ||
+        isCollab
       );
       editor.setEditable(canEditDoc);
       try {
@@ -2741,10 +2780,15 @@ export default function Notion() {
                           if (parent && isDirtyRef.current) {
                             await saveDocument(true);
                           }
+                          const isParentCollab = Boolean(parent && (parent.is_shared || parent.is_collaborator || parent.share_token));
                           const fullDoc: NotionDocument = {
                             ...newDoc,
                             parent_id: parentId,
                             contenido: clonedContent,
+                            is_shared: isParentCollab ? (parent.is_shared ?? true) : newDoc.is_shared,
+                            is_collaborator: isParentCollab ? (parent.is_collaborator ?? true) : newDoc.is_collaborator,
+                            share_permission: isParentCollab ? (parent.share_permission || "edit") : newDoc.share_permission,
+                            share_token: isParentCollab ? parent.share_token : newDoc.share_token,
                           };
                           openDocument(fullDoc);
                           return;
@@ -2781,6 +2825,13 @@ export default function Notion() {
                         }
 
                         if (target && target.id !== parentId) {
+                          const isParentCollab = Boolean(parent && (parent.is_shared || parent.is_collaborator || parent.share_token));
+                          if (parent && isParentCollab) {
+                            target.is_shared = parent.is_shared ?? true;
+                            target.is_collaborator = parent.is_collaborator ?? true;
+                            target.share_permission = parent.share_permission || "edit";
+                            target.share_token = parent.share_token;
+                          }
                           // Si se pegó en otro apunte padre (ej. vía Ctrl+X y pegar), asociarlo a este padre si correspondía
                           if (target.parent_id && target.parent_id !== parentId) {
                             updateDocument(target.id, { parent_id: parentId } as any).catch(() => {});
@@ -2803,10 +2854,15 @@ export default function Notion() {
                         if (parent && isDirtyRef.current) {
                           await saveDocument(true);
                         }
+                        const isParentCollab = Boolean(parent && (parent.is_shared || parent.is_collaborator || parent.share_token));
                         const fullDoc: NotionDocument = {
                           ...newDoc,
                           parent_id: parentId,
                           contenido: { type: "doc", content: [{ type: "paragraph" }] },
+                          is_shared: isParentCollab ? (parent.is_shared ?? true) : newDoc.is_shared,
+                          is_collaborator: isParentCollab ? (parent.is_collaborator ?? true) : newDoc.is_collaborator,
+                          share_permission: isParentCollab ? (parent.share_permission || "edit") : newDoc.share_permission,
+                          share_token: isParentCollab ? parent.share_token : newDoc.share_token,
                         };
                         openDocument(fullDoc);
                       }
