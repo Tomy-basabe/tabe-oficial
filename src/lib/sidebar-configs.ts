@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { ApuntesIcon, NotionIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
+import { TabetalkIcon } from "@/components/icons/TabetalkIcon";
 
 export interface NavItem {
   icon: any;
@@ -47,8 +48,8 @@ export interface CustomSidebarItem {
 export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
-  Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
-  ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous
+  Music, Video, Camera, MessageSquare: TabetalkIcon, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
+  ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);
@@ -76,8 +77,8 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/examenes": "GraduationCap",
   "/juegos": "Gamepad2",
   "/mapa": "Compass",
-  "/tabetalk": "MessageSquare",
-  "/discord": "MessageSquare"
+  "/tabetalk": "TabetalkIcon",
+  "/discord": "TabetalkIcon"
 };
 
 export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
@@ -141,7 +142,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     path: "/tabetalk",
     label: "Tabetalk",
     type: "item",
-    iconName: "MessageSquare"
+    iconName: "TabetalkIcon"
   },
   {
     id: "item-/metricas",
@@ -178,7 +179,7 @@ export const baseNavItems: NavItem[] = [
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
-  { icon: MessageSquare, label: "Tabetalk", path: "/tabetalk", tourClass: "tour-sidebar-tabetalk" },
+  { icon: TabetalkIcon, label: "Tabetalk", path: "/tabetalk", tourClass: "tour-sidebar-tabetalk" },
   { icon: Gamepad2, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];

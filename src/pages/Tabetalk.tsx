@@ -250,8 +250,8 @@ export default function Tabetalk() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
           <div className="relative z-10 max-w-md">
             <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(var(--primary),0.3)] animate-float">
-              <img src="/favicon.svg" alt="Tabetalk" className="w-12 h-12 opacity-80" onError={(e) => {
-                e.currentTarget.style.display = 'none';
+              <img src="/tabe-talk.png" alt="Tabetalk" className="w-16 h-16 object-contain" onError={(e) => {
+                e.currentTarget.src = "/logo.png";
               }} />
             </div>
             <h2 className="text-3xl font-bold font-orbitron mb-4 text-primary">Bienvenido a Tabetalk</h2>

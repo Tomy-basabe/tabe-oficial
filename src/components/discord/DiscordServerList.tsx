@@ -113,7 +113,12 @@ export function DiscordServerList({
                   : "bg-card text-muted-foreground hover:bg-primary/20 hover:text-primary"
               )}
             >
-              <TabeLogo size={28} className="shrink-0" />
+              <img 
+                src="/tabe-talk.png" 
+                alt="Tabetalk" 
+                className="w-7 h-7 object-contain shrink-0" 
+                onError={(e) => { e.currentTarget.src = "/logo.png"; }}
+              />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
