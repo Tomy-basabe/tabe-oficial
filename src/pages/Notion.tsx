@@ -24,7 +24,7 @@ import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
 import { ImportFriendNoteModal } from "@/components/notion/ImportFriendNoteModal";
 import { ShareDocumentModal } from "@/components/notion/ShareDocumentModal";
-import { useNotionCollab, mergeCollaborativeContent, BlockDelta } from "@/hooks/useNotionCollab";
+import { useNotionCollab, mergeCollaborativeContent, computeBlockDeltas, BlockDelta } from "@/hooks/useNotionCollab";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { getTrashItems, restoreFromTrash, moveToTrash, extractSubPageIds, permanentlyDelete, TrashItem } from "@/lib/notionTrash";
@@ -616,6 +616,106 @@ export default function Notion() {
     }
   }, []);
 
+  // Aplica deltas granulares a ProseMirror directamente evitando re-renders masivos y pérdida de cursor
+  const applyBlockDeltasToEditor = useCallback(
+    (
+      editor: any,
+      deltas: BlockDelta[],
+      isLocalActive: boolean,
+      localEditingBlockIndex: number
+    ): boolean => {
+      if (!editor || editor.isDestroyed || !deltas || !deltas.length) return false;
+
+      try {
+        const { state, view, schema } = editor;
+        const { doc } = state;
+
+        const currentBlocks: { index: number; pos: number; size: number }[] = [];
+        doc.forEach((node: any, offset: number, index: number) => {
+          currentBlocks.push({ index, pos: offset, size: node.nodeSize });
+        });
+
+        const tr = state.tr;
+        let modified = false;
+
+        for (const delta of deltas) {
+          // PROHIBIDO: Si el usuario local está escribiendo activamente en este bloque, no pisarlo
+          if (isLocalActive && delta.index === localEditingBlockIndex) {
+            continue;
+          }
+
+          if (delta.op === "replace" && currentBlocks[delta.index] && delta.node) {
+            try {
+              const newNode = schema.nodeFromJSON(delta.node);
+              const target = currentBlocks[delta.index];
+              const from = tr.mapping.map(target.pos);
+              const to = tr.mapping.map(target.pos + target.size);
+              if (from >= 0 && to <= tr.doc.content.size && from <= to) {
+                tr.replaceWith(from, to, newNode);
+                modified = true;
+              }
+            } catch (err) {
+              console.warn("Collab: error reemplazando nodo de bloque:", err);
+            }
+          } else if (delta.op === "insert" && delta.node) {
+            try {
+              const newNode = schema.nodeFromJSON(delta.node);
+              let insertPos = tr.doc.content.size;
+              if (currentBlocks[delta.index]) {
+                insertPos = tr.mapping.map(currentBlocks[delta.index].pos);
+              }
+              if (insertPos >= 0 && insertPos <= tr.doc.content.size) {
+                tr.insert(insertPos, newNode);
+                modified = true;
+              }
+            } catch (err) {
+              console.warn("Collab: error insertando nodo de bloque:", err);
+            }
+          } else if (delta.op === "delete" && currentBlocks[delta.index]) {
+            try {
+              const target = currentBlocks[delta.index];
+              const from = tr.mapping.map(target.pos);
+              const to = tr.mapping.map(target.pos + target.size);
+              if (from >= 0 && to <= tr.doc.content.size && from < to) {
+                tr.delete(from, to);
+                modified = true;
+              }
+            } catch (err) {
+              console.warn("Collab: error eliminando nodo de bloque:", err);
+            }
+          }
+        }
+
+        if (modified) {
+          tr.setMeta("preventAutosave", true);
+          tr.setMeta("addToHistory", false);
+          isRemoteUpdateRef.current = true;
+          view.dispatch(tr);
+          isRemoteUpdateRef.current = false;
+          return true;
+        }
+      } catch (err) {
+        console.warn("Collab: error aplicando deltas en ProseMirror:", err);
+      }
+      return false;
+    },
+    []
+  );
+
+  // Cancela temporizadores de guardado del cliente receptor: solo el autor activo persiste en DB
+  const cancelReceiverAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    if (forceSaveTimerRef.current) {
+      window.clearTimeout(forceSaveTimerRef.current);
+      forceSaveTimerRef.current = null;
+    }
+    isDirtyRef.current = false;
+    pendingSaveRef.current = false;
+  }, []);
+
   const {
     activeCollaborators,
     remoteCursors,
@@ -623,6 +723,7 @@ export default function Notion() {
     broadcastContent,
     broadcastCursor,
     currentUser: collabUser,
+    syncCollabBaseline,
   } = useNotionCollab({
     documentId: activeDocument?.id,
     currentPageId: activeDocument?.id,
@@ -632,6 +733,30 @@ export default function Notion() {
       avatar_url: user.user_metadata.avatar_url,
     } : null,
     enabled: isCollabActive,
+    onRemoteDeltaChange: useCallback((deltas: BlockDelta[], senderId: string, pageId?: string) => {
+      const currentDoc = activeDocumentRef.current;
+      if (!currentDoc) return;
+      if (pageId && pageId !== currentDoc.id) return;
+
+      // Cancelar guardado en BD del receptor: solo el autor activo persiste en Supabase
+      cancelReceiverAutoSave();
+
+      const editor = tiptapEditorInstanceRef.current;
+      if (!editor || editor.isDestroyed || !deltas || !deltas.length) return;
+
+      lastRemoteUpdateTimestampRef.current = Date.now();
+      const timeSinceLocalActivity = Date.now() - lastActivityRef.current;
+      const isLocalActive = editor.isFocused || isDirtyRef.current || timeSinceLocalActivity < 1500;
+      const localBlockIdx = isLocalActive ? getActiveBlockIndex(editor) : -1;
+
+      const applied = applyBlockDeltasToEditor(editor, deltas, isLocalActive, localBlockIdx);
+      if (applied) {
+        const updated = editor.getJSON();
+        editorContentRef.current = updated;
+        lastSavedContentRef.current = JSON.stringify(updated);
+        syncCollabBaseline?.(updated);
+      }
+    }, [cancelReceiverAutoSave, getActiveBlockIndex, applyBlockDeltasToEditor, syncCollabBaseline]),
     onRemoteContentChange: useCallback((remoteContent: any, senderId: string, pageId?: string) => {
       const currentDoc = activeDocumentRef.current;
       if (!currentDoc) return;
@@ -645,48 +770,52 @@ export default function Notion() {
         return;
       }
 
+      // Cancelar guardado en BD del receptor: solo el autor activo persiste en Supabase
+      cancelReceiverAutoSave();
+
       const editor = tiptapEditorInstanceRef.current;
-      if (editor && !editor.isDestroyed && remoteContent) {
-        try {
-          const currentJson = JSON.stringify(editor.getJSON());
-          const remoteJson = JSON.stringify(remoteContent);
-          if (currentJson === remoteJson) return;
+      if (!editor || editor.isDestroyed || !remoteContent) return;
 
-          lastRemoteUpdateTimestampRef.current = Date.now();
+      try {
+        const currentContent = editor.getJSON();
+        const currentJson = JSON.stringify(currentContent);
+        const remoteJson = JSON.stringify(remoteContent);
+        if (currentJson === remoteJson) return;
 
-          // Si el usuario local está tipeando activamente (últimos 400ms), fusionar respetando el bloque que está editando
-          const timeSinceLocalActivity = Date.now() - lastActivityRef.current;
-          const isLocalActive = editor.isFocused && timeSinceLocalActivity < 400;
+        lastRemoteUpdateTimestampRef.current = Date.now();
+        const timeSinceLocalActivity = Date.now() - lastActivityRef.current;
+        const isLocalActive = editor.isFocused || isDirtyRef.current || timeSinceLocalActivity < 1500;
+        const localBlockIdx = isLocalActive ? getActiveBlockIndex(editor) : -1;
 
-          const localBlockIdx = isLocalActive ? getActiveBlockIndex(editor) : -1;
-          const mergedContent = mergeCollaborativeContent(
-            editor.getJSON(),
-            remoteContent,
-            localBlockIdx,
-            isLocalActive
-          );
+        const deltas = computeBlockDeltas(currentContent, remoteContent);
 
-          const { from, to } = editor.state.selection;
-
-          isRemoteUpdateRef.current = true;
-          editor.commands.setContent(mergedContent, false);
-          isRemoteUpdateRef.current = false;
-          editorContentRef.current = mergedContent;
-          lastSavedContentRef.current = JSON.stringify(mergedContent);
-
-          // Restaurar cursor y selección para no perder la posición de escritura
-          try {
-            const docSize = editor.state.doc.content.size;
-            editor.commands.setTextSelection({
-              from: Math.min(from, docSize),
-              to: Math.min(to, docSize),
-            });
-          } catch (e) {}
-        } catch (e) {
-          console.warn("Error applying remote collaborative content:", e);
+        if (deltas.length > 0) {
+          if (isLocalActive) {
+            // PROHIBIDO setContent() cuando el usuario local tiene el foco o cambios sin guardar
+            const applied = applyBlockDeltasToEditor(editor, deltas, isLocalActive, localBlockIdx);
+            if (applied) {
+              const updated = editor.getJSON();
+              editorContentRef.current = updated;
+              lastSavedContentRef.current = JSON.stringify(updated);
+              syncCollabBaseline?.(updated);
+            }
+          } else {
+            // Usuario inactivo sin foco ni cambios pendientes:
+            const applied = applyBlockDeltasToEditor(editor, deltas, false, -1);
+            if (!applied) {
+              isRemoteUpdateRef.current = true;
+              editor.commands.setContent(remoteContent, false);
+              isRemoteUpdateRef.current = false;
+            }
+            editorContentRef.current = remoteContent;
+            lastSavedContentRef.current = remoteJson;
+            syncCollabBaseline?.(remoteContent);
+          }
         }
+      } catch (e) {
+        console.warn("Error applying remote collaborative content:", e);
       }
-    }, [getActiveBlockIndex]),
+    }, [cancelReceiverAutoSave, getActiveBlockIndex, applyBlockDeltasToEditor, syncCollabBaseline]),
   });
 
   // Handle sharing updates from ShareDocumentModal
@@ -1150,6 +1279,13 @@ export default function Notion() {
         isRemoteUpdateRef.current = false;
         return;
       }
+
+      const editor = tiptapEditorInstanceRef.current;
+      // Solo el autor con el foco del editor activo emite broadcast y programa guardado en BD
+      if (editor && !editor.isFocused) {
+        return;
+      }
+
       lastActivityRef.current = Date.now();
       editorContentRef.current = content;
       if (isCollabActive) {
@@ -2486,6 +2622,24 @@ export default function Notion() {
                   </div>
                 )}
 
+                {/* Badge persistente de EDICIÓN COLABORATIVA visible en ambos clientes */}
+                {isCollabActive && (
+                  <div
+                    className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase shadow-[2px_2px_0_0_#10B981] select-none shrink-0 animate-in fade-in duration-300"
+                    title={
+                      activeCollaborators.length > 1
+                        ? `Edición colaborativa en vivo (${activeCollaborators.length} usuarios conectados)`
+                        : "Edición colaborativa activa - Listo para recibir colaboradores"
+                    }
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="hidden sm:inline">Edición colaborativa</span>
+                  </div>
+                )}
+
                 {/* Cooperative Share Button */}
                 <button
                   type="button"
@@ -2676,53 +2830,57 @@ export default function Notion() {
                         />
                       </div>
 
-                      {/* Author indicator in editor */}
-                      {activeDocument.user_id !== user?.id && (
+                      {/* Author / Collaboration indicator in editor (visible en ambos clientes) */}
+                      {(isCollabActive || activeDocument.user_id !== user?.id || activeDocument.is_shared || activeDocument.is_collaborator) && (
                         <div className="notion-author-badge flex flex-wrap items-center justify-between gap-3 px-8 md:px-14 mb-4 animate-in fade-in slide-in-from-left-2 duration-500">
-                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
-                            {activeDocument.owner?.avatar_url ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                            {activeDocument.user_id === user?.id ? (
+                              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-300">
+                                ★
+                              </div>
+                            ) : activeDocument.owner?.avatar_url ? (
                               <img src={activeDocument.owner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
                             ) : (
-                              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+                              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] font-bold">
                                 {(activeDocument.owner?.nombre || activeDocument.owner?.username || "C").charAt(0)}
                               </div>
                             )}
-                            <span className="text-xs font-semibold tracking-tight">
-                              {activeDocument.is_collaborator || activeDocument.is_shared
+                            <span className="text-xs font-black tracking-tight text-foreground">
+                              {activeDocument.user_id === user?.id
+                                ? "Tu apunte cooperativo"
+                                : activeDocument.is_collaborator || activeDocument.is_shared
                                 ? `Apunte colaborativo${activeDocument.owner?.nombre ? ` de ${activeDocument.owner.nombre}` : ""}`
                                 : `Apunte de ${activeDocument.owner?.nombre || activeDocument.owner?.username || "un amigo"}`}
                             </span>
-                            <span className={cn(
-                              "text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ml-1",
-                              (activeDocument.share_permission === "edit" || activeDocument.user_permission === "edit")
-                                ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                                : "bg-primary/20"
-                            )}>
-                              {(activeDocument.share_permission === "edit" || activeDocument.user_permission === "edit")
+                            <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full ml-1 bg-emerald-500 text-black flex items-center gap-1 shadow-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
+                              {(activeDocument.user_id === user?.id || activeDocument.share_permission === "edit" || activeDocument.user_permission === "edit")
                                 ? "Edición colaborativa"
                                 : "Solo lectura"}
                             </span>
                           </div>
 
-                          <button
-                            onClick={() => {
-                              setPreselectedFriendNote({
-                                id: activeDocument.id,
-                                titulo: activeDocument.titulo,
-                                emoji: activeDocument.emoji,
-                                subject_id: activeDocument.subject_id,
-                                user_id: activeDocument.user_id,
-                                ownerName: activeDocument.owner?.nombre || activeDocument.owner?.username || "tu amigo",
-                                cover_url: activeDocument.cover_url,
-                                subject: activeDocument.subject
-                              });
-                              setShowImportFriendModal(true);
-                            }}
-                            className="flex items-center gap-2 px-4 py-1.5 bg-[#BFFF00] text-black font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] transition-all rounded-lg"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                            Importar copia a mis apuntes
-                          </button>
+                          {activeDocument.user_id !== user?.id && (
+                            <button
+                              onClick={() => {
+                                setPreselectedFriendNote({
+                                  id: activeDocument.id,
+                                  titulo: activeDocument.titulo,
+                                  emoji: activeDocument.emoji,
+                                  subject_id: activeDocument.subject_id,
+                                  user_id: activeDocument.user_id,
+                                  ownerName: activeDocument.owner?.nombre || activeDocument.owner?.username || "tu amigo",
+                                  cover_url: activeDocument.cover_url,
+                                  subject: activeDocument.subject
+                                });
+                                setShowImportFriendModal(true);
+                              }}
+                              className="flex items-center gap-2 px-4 py-1.5 bg-[#BFFF00] text-black font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] transition-all rounded-lg"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Importar copia a mis apuntes
+                            </button>
+                          )}
                         </div>
                       )}
                     </>

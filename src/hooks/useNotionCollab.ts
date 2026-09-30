@@ -255,6 +255,9 @@ export function useNotionCollab({
     // 2. Broadcast: deltas granulares de bloques modificados
     channel.on("broadcast", { event: "block_delta" }, ({ payload }) => {
       if (payload && payload.senderId !== currentUserId && payload.pageId === documentId) {
+        if (payload.content) {
+          lastBroadcastContentRef.current = payload.content;
+        }
         if (onRemoteDeltaChange && payload.deltas) {
           onRemoteDeltaChange(payload.deltas, payload.senderId, payload.pageId);
         } else if (onRemoteContentChange && payload.content) {
@@ -266,6 +269,9 @@ export function useNotionCollab({
     // 3. Broadcast: sincronización periódica de contenido completo (debounced)
     channel.on("broadcast", { event: "content_change" }, ({ payload }) => {
       if (payload && payload.senderId !== currentUserId && payload.pageId === documentId && onRemoteContentChange) {
+        if (payload.content) {
+          lastBroadcastContentRef.current = payload.content;
+        }
         onRemoteContentChange(payload.content, payload.senderId, payload.pageId);
       }
     });
@@ -407,6 +413,10 @@ export function useNotionCollab({
     [isConnected, currentUserId, currentUserName, currentUserColor, documentId]
   );
 
+  const syncCollabBaseline = useCallback((content: any) => {
+    lastBroadcastContentRef.current = content;
+  }, []);
+
   return {
     activeCollaborators,
     remoteCursors,
@@ -422,5 +432,6 @@ export function useNotionCollab({
     },
     broadcastContent,
     broadcastCursor,
+    syncCollabBaseline,
   };
 }
