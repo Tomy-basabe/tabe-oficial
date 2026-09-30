@@ -22,6 +22,9 @@ import { wrappingInputRule, PasteRule } from "@tiptap/core";
 import { Slice, Fragment } from "@tiptap/pm/model";
 import { common, createLowlight } from "lowlight";
 import { useEffect, useCallback, useRef, useState } from "react";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
+import * as Y from "yjs";
 
 // Rastreador global de acciones del portapapeles para diferenciar Cortar (mover) de Copiar (clonar independiente)
 let lastClipboardAction: 'copy' | 'cut' | null = null;
@@ -88,6 +91,9 @@ interface AdvancedNotionEditorProps {
   onEditorReady?: (editor: any) => void;
   remoteCursors?: Record<string, any>;
   onCursorChange?: (pos: number) => void;
+  ydoc?: Y.Doc | null;
+  provider?: any | null;
+  collabUser?: { name: string; color: string; avatarUrl?: string | null } | null;
 }
 
 // Bubble menu button
@@ -119,6 +125,9 @@ export function AdvancedNotionEditor({
   onEditorReady,
   remoteCursors,
   onCursorChange,
+  ydoc,
+  provider,
+  collabUser,
 }: AdvancedNotionEditorProps) {
   const lastLoadedDocumentIdRef = useRef<string | undefined>(undefined);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -135,6 +144,7 @@ export function AdvancedNotionEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        history: ydoc ? false : undefined,
         heading: { levels: [1, 2, 3] },
         codeBlock: false,
         bulletList: false, // Disable default to use custom one below
@@ -242,6 +252,24 @@ export function AdvancedNotionEditor({
       SubPage,
       MathExtension,
       ChartExtension,
+      ...(ydoc
+        ? [
+            Collaboration.configure({
+              document: ydoc,
+            }),
+            ...(provider?.awareness
+              ? [
+                  CollaborationCursor.configure({
+                    provider,
+                    user: {
+                      name: collabUser?.name || "Compañero",
+                      color: collabUser?.color || "#3B82F6",
+                    },
+                  }),
+                ]
+              : []),
+          ]
+        : []),
     ],
     content,
     editable: !readOnly,
@@ -624,7 +652,11 @@ export function AdvancedNotionEditor({
         clearTimeout(updateTimeoutRef.current);
         updateTimeoutRef.current = null;
       }
-      editor.commands.setContent(content, false);
+      if (!ydoc) {
+        editor.commands.setContent(content, false);
+      } else if (ydoc.getXmlFragment('default').length === 0 && content) {
+        editor.commands.setContent(content, false);
+      }
       editor.commands.setTextSelection(0);
       editor.setEditable(!readOnly);
 

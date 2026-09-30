@@ -24,7 +24,7 @@ import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
 import { ImportFriendNoteModal } from "@/components/notion/ImportFriendNoteModal";
 import { ShareDocumentModal } from "@/components/notion/ShareDocumentModal";
-import { useNotionCollab, mergeCollaborativeContent, computeBlockDeltas, BlockDelta } from "@/hooks/useNotionCollab";
+import { useNotionCollab } from "@/hooks/useNotionCollab";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
 import { getTrashItems, restoreFromTrash, moveToTrash, extractSubPageIds, permanentlyDelete, TrashItem } from "@/lib/notionTrash";
@@ -602,216 +602,22 @@ export default function Notion() {
   );
 
   const isRemoteUpdateRef = useRef(false);
-  const lastRemoteUpdateTimestampRef = useRef<number>(0);
 
-  // Helper para determinar el índice del bloque en foco del usuario local
-  const getActiveBlockIndex = useCallback((editor: any): number => {
-    if (!editor || !editor.state || !editor.state.doc) return -1;
-    try {
-      const selPos = editor.state.selection.from;
-      const resolved = editor.state.doc.resolve(Math.min(selPos, editor.state.doc.content.size));
-      return resolved.index(0);
-    } catch {
-      return -1;
-    }
-  }, []);
-
-  // Aplica deltas granulares a ProseMirror directamente evitando re-renders masivos y pérdida de cursor
-  const applyBlockDeltasToEditor = useCallback(
-    (
-      editor: any,
-      deltas: BlockDelta[],
-      isLocalActive: boolean,
-      localEditingBlockIndex: number
-    ): boolean => {
-      if (!editor || editor.isDestroyed || !deltas || !deltas.length) return false;
-
-      try {
-        const { state, view, schema } = editor;
-        const { doc } = state;
-
-        const currentBlocks: { index: number; pos: number; size: number }[] = [];
-        doc.forEach((node: any, offset: number, index: number) => {
-          currentBlocks.push({ index, pos: offset, size: node.nodeSize });
-        });
-
-        const tr = state.tr;
-        let modified = false;
-
-        for (const delta of deltas) {
-          // PROHIBIDO: Si el usuario local está escribiendo activamente en este bloque, no pisarlo
-          if (isLocalActive && delta.index === localEditingBlockIndex) {
-            continue;
-          }
-
-          if (delta.op === "replace" && currentBlocks[delta.index] && delta.node) {
-            try {
-              const newNode = schema.nodeFromJSON(delta.node);
-              const target = currentBlocks[delta.index];
-              const from = tr.mapping.map(target.pos);
-              const to = tr.mapping.map(target.pos + target.size);
-              if (from >= 0 && to <= tr.doc.content.size && from <= to) {
-                tr.replaceWith(from, to, newNode);
-                modified = true;
-              }
-            } catch (err) {
-              console.warn("Collab: error reemplazando nodo de bloque:", err);
-            }
-          } else if (delta.op === "insert" && delta.node) {
-            try {
-              const newNode = schema.nodeFromJSON(delta.node);
-              let insertPos = tr.doc.content.size;
-              if (currentBlocks[delta.index]) {
-                insertPos = tr.mapping.map(currentBlocks[delta.index].pos);
-              }
-              if (insertPos >= 0 && insertPos <= tr.doc.content.size) {
-                tr.insert(insertPos, newNode);
-                modified = true;
-              }
-            } catch (err) {
-              console.warn("Collab: error insertando nodo de bloque:", err);
-            }
-          } else if (delta.op === "delete" && currentBlocks[delta.index]) {
-            try {
-              const target = currentBlocks[delta.index];
-              const from = tr.mapping.map(target.pos);
-              const to = tr.mapping.map(target.pos + target.size);
-              if (from >= 0 && to <= tr.doc.content.size && from < to) {
-                tr.delete(from, to);
-                modified = true;
-              }
-            } catch (err) {
-              console.warn("Collab: error eliminando nodo de bloque:", err);
-            }
-          }
-        }
-
-        if (modified) {
-          tr.setMeta("preventAutosave", true);
-          tr.setMeta("addToHistory", false);
-          isRemoteUpdateRef.current = true;
-          view.dispatch(tr);
-          isRemoteUpdateRef.current = false;
-          return true;
-        }
-      } catch (err) {
-        console.warn("Collab: error aplicando deltas en ProseMirror:", err);
-      }
-      return false;
-    },
-    []
-  );
-
-  // Cancela temporizadores de guardado del cliente receptor: solo el autor activo persiste en DB
-  const cancelReceiverAutoSave = useCallback(() => {
-    if (autoSaveTimerRef.current) {
-      window.clearTimeout(autoSaveTimerRef.current);
-      autoSaveTimerRef.current = null;
-    }
-    if (forceSaveTimerRef.current) {
-      window.clearTimeout(forceSaveTimerRef.current);
-      forceSaveTimerRef.current = null;
-    }
-    isDirtyRef.current = false;
-    pendingSaveRef.current = false;
-  }, []);
-
+  // Hook colaborativo industrial con Yjs + Supabase Realtime Provider
   const {
+    ydoc,
+    provider: collabProvider,
     activeCollaborators,
-    remoteCursors,
     isConnected: isCollabConnected,
-    broadcastContent,
-    broadcastCursor,
     currentUser: collabUser,
   } = useNotionCollab({
     documentId: activeDocument?.id,
-    currentPageId: activeDocument?.id,
     user,
     userProfile: user?.user_metadata ? {
       nombre: user.user_metadata.nombre || user.user_metadata.full_name,
       avatar_url: user.user_metadata.avatar_url,
     } : null,
     enabled: isCollabActive,
-    onRemoteDeltaChange: useCallback((deltas: BlockDelta[], senderId: string, pageId?: string) => {
-      const currentDoc = activeDocumentRef.current;
-      if (!currentDoc) return;
-      if (pageId && pageId !== currentDoc.id) return;
-
-      // Cancelar guardado en BD del receptor: solo el autor activo persiste en Supabase
-      cancelReceiverAutoSave();
-
-      const editor = tiptapEditorInstanceRef.current;
-      if (!editor || editor.isDestroyed || !deltas || !deltas.length) return;
-
-      lastRemoteUpdateTimestampRef.current = Date.now();
-      const timeSinceLocalActivity = Date.now() - lastActivityRef.current;
-      const isLocalActive = editor.isFocused || isDirtyRef.current || timeSinceLocalActivity < 1500;
-      const localBlockIdx = isLocalActive ? getActiveBlockIndex(editor) : -1;
-
-      const applied = applyBlockDeltasToEditor(editor, deltas, isLocalActive, localBlockIdx);
-      if (applied) {
-        const updated = editor.getJSON();
-        editorContentRef.current = updated;
-        lastSavedContentRef.current = JSON.stringify(updated);
-      }
-    }, [cancelReceiverAutoSave, getActiveBlockIndex, applyBlockDeltasToEditor]),
-    onRemoteContentChange: useCallback((remoteContent: any, senderId: string, pageId?: string) => {
-      const currentDoc = activeDocumentRef.current;
-      if (!currentDoc) return;
-
-      // Si el cambio pertenece a otra subpágina, guardar en la caché sin alterar el editor activo
-      if (pageId && pageId !== currentDoc.id) {
-        tabContentCacheRef.current.set(pageId, remoteContent);
-        try {
-          sessionStorage.setItem(`tabe_doc_content_${pageId}`, JSON.stringify(remoteContent));
-        } catch (e) {}
-        return;
-      }
-
-      // Cancelar guardado en BD del receptor: solo el autor activo persiste en Supabase
-      cancelReceiverAutoSave();
-
-      const editor = tiptapEditorInstanceRef.current;
-      if (!editor || editor.isDestroyed || !remoteContent) return;
-
-      try {
-        const currentContent = editor.getJSON();
-        const currentJson = JSON.stringify(currentContent);
-        const remoteJson = JSON.stringify(remoteContent);
-        if (currentJson === remoteJson) return;
-
-        lastRemoteUpdateTimestampRef.current = Date.now();
-        const timeSinceLocalActivity = Date.now() - lastActivityRef.current;
-        const isLocalActive = editor.isFocused || isDirtyRef.current || timeSinceLocalActivity < 1500;
-        const localBlockIdx = isLocalActive ? getActiveBlockIndex(editor) : -1;
-
-        const deltas = computeBlockDeltas(currentContent, remoteContent);
-
-        if (deltas.length > 0) {
-          if (isLocalActive) {
-            // PROHIBIDO setContent() cuando el usuario local tiene el foco o cambios sin guardar
-            const applied = applyBlockDeltasToEditor(editor, deltas, isLocalActive, localBlockIdx);
-            if (applied) {
-              const updated = editor.getJSON();
-              editorContentRef.current = updated;
-              lastSavedContentRef.current = JSON.stringify(updated);
-            }
-          } else {
-            // Usuario inactivo sin foco ni cambios pendientes:
-            const applied = applyBlockDeltasToEditor(editor, deltas, false, -1);
-            if (!applied) {
-              isRemoteUpdateRef.current = true;
-              editor.commands.setContent(remoteContent, false);
-              isRemoteUpdateRef.current = false;
-            }
-            editorContentRef.current = remoteContent;
-            lastSavedContentRef.current = remoteJson;
-          }
-        }
-      } catch (e) {
-        console.warn("Error applying remote collaborative content:", e);
-      }
-    }, [cancelReceiverAutoSave, getActiveBlockIndex, applyBlockDeltasToEditor]),
   });
 
   // Handle sharing updates from ShareDocumentModal
@@ -1276,22 +1082,13 @@ export default function Notion() {
         return;
       }
 
-      const editor = tiptapEditorInstanceRef.current;
-      // Solo el autor con el foco del editor activo emite broadcast y programa guardado en BD
-      if (editor && !editor.isFocused) {
-        return;
-      }
-
       lastActivityRef.current = Date.now();
       editorContentRef.current = content;
-      if (isCollabActive) {
-        broadcastContent(content, activeDocument.id);
-      }
       // No actualizamos editorContent vía state aquí para evitar re-renders innecesarios durante la escritura.
       // El editor de Tiptap ya maneja su propio estado interno y Notion guarda usando la ref.
       scheduleAutoSave();
     },
-    [activeDocument, isCollabActive, broadcastContent, scheduleAutoSave]
+    [activeDocument, scheduleAutoSave]
   );
 
   // Title update handler (also triggers auto-save)
@@ -2892,8 +2689,9 @@ export default function Notion() {
                       (activeDocument?.is_collaborator && activeDocument?.share_permission === "edit")
                     )
                   }
-                  remoteCursors={remoteCursors}
-                  onCursorChange={(pos) => broadcastCursor(pos, activeDocument?.id)}
+                  ydoc={isCollabActive ? ydoc : null}
+                  provider={isCollabActive ? collabProvider : null}
+                  collabUser={collabUser}
                   onEditorReady={handleEditorReady}
                   onActivity={() => lastActivityRef.current = Date.now()}
                   onSubPageClick={async (pageId, pageTitle, blockId, copyFromPageId) => {
