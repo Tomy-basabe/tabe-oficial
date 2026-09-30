@@ -39,10 +39,15 @@ export interface NotionDocument {
   is_public?: boolean;
 }
 
+// Cache en memoria para navegación instantánea (0ms) en apuntes
+let _notionDocsCache: NotionDocument[] | null = null;
+let _notionDocsLastFetch = 0;
+const NOTION_STALE_TIME = 3 * 60 * 1000; // 3 minutos
+
 export function useNotionDocuments() {
   const { user, isGuest } = useAuth();
-  const [documents, setDocuments] = useState<NotionDocument[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [documents, setDocuments] = useState<NotionDocument[]>(() => _notionDocsCache || []);
+  const [loading, setLoading] = useState(() => !_notionDocsCache);
   // Cache subjects map to avoid refetching on every refetch()
   const subjectsMapRef = useRef<Record<string, { nombre: string; codigo: string; year: number }>>({});
   const cachedSubjectIdsRef = useRef<Set<string>>(new Set());
@@ -83,13 +88,21 @@ export function useNotionDocuments() {
     return unsubscribe;
   }, []);
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchDocuments = useCallback(async (forceLoading = false) => {
     if (!user && !isGuest) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const isFresh = _notionDocsCache && (Date.now() - _notionDocsLastFetch < NOTION_STALE_TIME);
+    if (isFresh && !forceLoading) {
+      setLoading(false);
+      return;
+    }
+
+    if (forceLoading || !_notionDocsCache) {
+      setLoading(true);
+    }
 
     if (isGuest) {
       setDocuments([
@@ -210,6 +223,9 @@ export function useNotionDocuments() {
             contenido: contentCacheRef.current.get(d.id) || undefined,
           };
         }) as NotionDocument[];
+
+        _notionDocsCache = mapped;
+        _notionDocsLastFetch = Date.now();
 
         setDocuments((prev) => {
           // Preservar cualquier documento compartido / colaborativo que ya se haya inyectado por URL

@@ -2139,9 +2139,23 @@ export default function Notion() {
     return list.sort((a, b) => a.año - b.año || a.name.localeCompare(b.name));
   }, [subjects, documents]);
 
-  // Loading
+  // Loading Skeleton
   if (loading && documents.length === 0) {
-    return <LoadingScreen message="Cargando Apuntes..." submessage="Abriendo tu espacio de notas..." />;
+    return (
+      <div className="notion-app p-4 lg:p-8 space-y-6 animate-pulse">
+        <div className="h-12 w-full bg-muted/40 rounded-xl border border-border/40" />
+        <div className="h-32 w-full bg-muted/30 rounded-2xl border border-border/40" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-48 bg-card border-2 border-border/30 rounded-2xl p-4 space-y-3">
+              <div className="w-8 h-8 rounded-lg bg-muted/80" />
+              <div className="w-3/4 h-5 rounded bg-muted/60" />
+              <div className="w-1/2 h-4 rounded bg-muted/40" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

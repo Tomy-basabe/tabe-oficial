@@ -36,13 +36,17 @@ interface SubjectOption {
   year?: number;
 }
 
+// Cache en memoria para navegación instantánea (0ms)
+let _tasksCache: { tasks: StudyTask[]; subjects: SubjectOption[]; timestamp: number } | null = null;
+const TASKS_STALE_TIME = 3 * 60 * 1000; // 3 minutos
+
 export default function Tasks() {
   const { user, isGuest, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [tasks, setTasks] = useState<StudyTask[]>([]);
-  const [subjects, setSubjects] = useState<SubjectOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<StudyTask[]>(() => _tasksCache?.tasks || []);
+  const [subjects, setSubjects] = useState<SubjectOption[]>(() => _tasksCache?.subjects || []);
+  const [loading, setLoading] = useState(() => !_tasksCache);
 
   // View & Filters
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
@@ -59,17 +63,23 @@ export default function Tasks() {
     if (authLoading) return;
 
     let isMounted = true;
-    const safetyTimeout = setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, 4000);
+    const isFresh = _tasksCache && (Date.now() - _tasksCache.timestamp < TASKS_STALE_TIME);
+
+    // Si los datos en caché están frescos, no mostramos ningún spinner
+    if (isFresh) {
+      setLoading(false);
+      return;
+    }
 
     const run = async () => {
-      setLoading(true);
+      // Solo mostrar skeleton si no hay datos previos
+      if (!_tasksCache) {
+        setLoading(true);
+      }
       try {
         await loadAllData();
       } finally {
         if (isMounted) {
-          clearTimeout(safetyTimeout);
           setLoading(false);
         }
       }
@@ -79,49 +89,54 @@ export default function Tasks() {
 
     return () => {
       isMounted = false;
-      clearTimeout(safetyTimeout);
     };
   }, [user, isGuest, authLoading]);
 
   const loadAllData = async () => {
     try {
-      // 1. Fetch user subjects
-      let subData: any[] = [];
-      try {
-        if (user && !isGuest) {
-          const { data } = await supabase
-            .from("subjects")
-            .select("id, nombre, codigo, año")
-            .eq("user_id", user.id)
-            .order("nombre", { ascending: true });
-          if (data && data.length > 0) subData = data;
-        }
-
-        if (subData.length === 0) {
-          const { data } = await supabase
-            .from("subjects")
-            .select("id, nombre, codigo, año")
-            .is("user_id", null)
-            .order("nombre", { ascending: true });
-          if (data) subData = data;
-        }
-      } catch (err) {
-        console.warn("Could not load subjects for tasks:", err);
-      }
-
-      setSubjects(
-        (subData || []).map((s: any) => ({
-          id: s.id,
-          nombre: s.nombre,
-          codigo: s.codigo,
-          year: s.año,
-        }))
-      );
-
-      // 2. Fetch tasks
       const effectiveUserId = user?.id || "guest";
-      const userTasks = await fetchUserTasks(effectiveUserId);
+
+      // Ejecutar la carga de materias y tareas EN PARALELO con Promise.all
+      const [subjectsRes, userTasks] = await Promise.all([
+        (async () => {
+          let subData: any[] = [];
+          if (user && !isGuest) {
+            const { data } = await supabase
+              .from("subjects")
+              .select("id, nombre, codigo, año")
+              .eq("user_id", user.id)
+              .order("nombre", { ascending: true });
+            if (data && data.length > 0) subData = data;
+          }
+
+          if (subData.length === 0) {
+            const { data } = await supabase
+              .from("subjects")
+              .select("id, nombre, codigo, año")
+              .is("user_id", null)
+              .order("nombre", { ascending: true });
+            if (data) subData = data;
+          }
+
+          return (subData || []).map((s: any) => ({
+            id: s.id,
+            nombre: s.nombre,
+            codigo: s.codigo,
+            year: s.año,
+          }));
+        })(),
+        fetchUserTasks(effectiveUserId)
+      ]);
+
+      setSubjects(subjectsRes);
       setTasks(userTasks);
+
+      // Guardar en caché con marca de tiempo
+      _tasksCache = {
+        tasks: userTasks,
+        subjects: subjectsRes,
+        timestamp: Date.now()
+      };
     } catch (e) {
       console.error("Error loading tasks page:", e);
     }
@@ -226,8 +241,21 @@ export default function Tasks() {
     }
   };
 
-  if (loading) {
-    return <LoadingScreen message="Cargando tus tareas..." submessage="Preparando tu tablero de estudio..." />;
+  if (loading && tasks.length === 0) {
+    return (
+      <div className="tabe-page p-3 lg:p-8 space-y-5 pb-24 lg:pb-12 animate-pulse">
+        <div className="h-28 bg-[#00E5FF]/20 border-4 border-foreground/20 rounded-2xl shadow-[4px_4px_0_0_rgba(0,0,0,0.1)]" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((col) => (
+            <div key={col} className="bg-card/50 border-2 border-foreground/20 rounded-2xl p-4 space-y-3 min-h-[350px]">
+              <div className="h-7 w-28 bg-muted rounded-lg" />
+              <div className="h-24 bg-muted/60 rounded-xl border border-border/40" />
+              <div className="h-24 bg-muted/60 rounded-xl border border-border/40" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -1635,7 +1635,15 @@ export default function Library() {
 
       {/* Content Grid */}
       {loading ? (
-        <LoadingScreen message="Cargando biblioteca..." submessage="Organizando tus carpetas y archivos de estudio" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-pulse">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="h-32 bg-card border-[3px] border-foreground/20 shadow-[4px_4px_0_0_rgba(0,0,0,0.06)] p-4 rounded-xl space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-muted/80" />
+              <div className="w-3/4 h-5 rounded bg-muted/60" />
+              <div className="w-1/2 h-3 rounded bg-muted/40" />
+            </div>
+          ))}
+        </div>
       ) : currentFolders.length === 0 && currentFiles.length === 0 ? (
         <div className="text-center py-16 bg-card border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000]">
           <FolderOpen className="w-16 h-16 mx-auto mb-4 text-foreground" />
