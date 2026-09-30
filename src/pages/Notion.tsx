@@ -723,7 +723,6 @@ export default function Notion() {
     broadcastContent,
     broadcastCursor,
     currentUser: collabUser,
-    syncCollabBaseline,
   } = useNotionCollab({
     documentId: activeDocument?.id,
     currentPageId: activeDocument?.id,
@@ -754,9 +753,8 @@ export default function Notion() {
         const updated = editor.getJSON();
         editorContentRef.current = updated;
         lastSavedContentRef.current = JSON.stringify(updated);
-        syncCollabBaseline?.(updated);
       }
-    }, [cancelReceiverAutoSave, getActiveBlockIndex, applyBlockDeltasToEditor, syncCollabBaseline]),
+    }, [cancelReceiverAutoSave, getActiveBlockIndex, applyBlockDeltasToEditor]),
     onRemoteContentChange: useCallback((remoteContent: any, senderId: string, pageId?: string) => {
       const currentDoc = activeDocumentRef.current;
       if (!currentDoc) return;
@@ -797,7 +795,6 @@ export default function Notion() {
               const updated = editor.getJSON();
               editorContentRef.current = updated;
               lastSavedContentRef.current = JSON.stringify(updated);
-              syncCollabBaseline?.(updated);
             }
           } else {
             // Usuario inactivo sin foco ni cambios pendientes:
@@ -809,13 +806,12 @@ export default function Notion() {
             }
             editorContentRef.current = remoteContent;
             lastSavedContentRef.current = remoteJson;
-            syncCollabBaseline?.(remoteContent);
           }
         }
       } catch (e) {
         console.warn("Error applying remote collaborative content:", e);
       }
-    }, [cancelReceiverAutoSave, getActiveBlockIndex, applyBlockDeltasToEditor, syncCollabBaseline]),
+    }, [cancelReceiverAutoSave, getActiveBlockIndex, applyBlockDeltasToEditor]),
   });
 
   // Handle sharing updates from ShareDocumentModal
