@@ -32,6 +32,7 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
         peerStates: voice.peerStates,
         cameras: voice.cameras,
         selectedCameraId: voice.selectedCameraId,
+        switchCamera: voice.switchCamera,
         speakingUsers: voice.speakingUsers && voice.speakingUsers.size > 0 ? voice.speakingUsers : discord.speakingUsers,
         remoteMediaStates: voice.remoteMediaStates,
     };

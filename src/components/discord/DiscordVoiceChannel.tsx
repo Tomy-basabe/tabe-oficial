@@ -123,7 +123,7 @@ export function DiscordVoiceChannel({
                   stream={p.user_id === localUserId ? localStream : remoteStreams.get(p.user_id)}
                   isSpeaking={speakingUsers.has(p.user_id)}
                   isLocal={p.user_id === localUserId}
-                  isVideoEnabled={p.user_id === localUserId ? isVideoEnabled : p.is_camera_on} // Use is_camera_on from DB or local state
+                  isVideoEnabled={p.user_id === localUserId ? isVideoEnabled : (remoteMediaStates.get(p.user_id)?.isCameraOn ?? p.is_camera_on)}
                 />
               ))}
             </div>
@@ -144,7 +144,7 @@ export function DiscordVoiceChannel({
                 stream={p.user_id === localUserId ? localStream : remoteStreams.get(p.user_id)}
                 isSpeaking={speakingUsers.has(p.user_id)}
                 isLocal={p.user_id === localUserId}
-                isVideoEnabled={p.user_id === localUserId ? isVideoEnabled : p.is_camera_on}
+                isVideoEnabled={p.user_id === localUserId ? isVideoEnabled : (remoteMediaStates.get(p.user_id)?.isCameraOn ?? p.is_camera_on)}
               />
             ))}
           </div>
@@ -245,16 +245,38 @@ function VideoTile({
   isVideoEnabled?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [trackCount, setTrackCount] = useState(0);
 
+  // Assign srcObject and listen for track changes
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    const el = videoRef.current;
+    if (!el || !stream) {
+      if (el) el.srcObject = null;
+      setTrackCount(0);
+      return;
     }
+
+    el.srcObject = stream;
+    setTrackCount(stream.getVideoTracks().length);
+
+    const onTrackChange = () => {
+      setTrackCount(stream.getVideoTracks().length);
+      // Re-assign srcObject to force browser to pick up new tracks
+      if (el) el.srcObject = stream;
+    };
+
+    stream.addEventListener('addtrack', onTrackChange);
+    stream.addEventListener('removetrack', onTrackChange);
+
+    return () => {
+      stream.removeEventListener('addtrack', onTrackChange);
+      stream.removeEventListener('removetrack', onTrackChange);
+    };
   }, [stream]);
 
   const hasLiveVideo = Boolean(
     stream &&
-    stream.getVideoTracks().length > 0 &&
+    trackCount > 0 &&
     stream.getVideoTracks().some(t => t.enabled && t.readyState === 'live')
   );
   const showVideo = (isVideoEnabled || hasLiveVideo) && Boolean(stream);
@@ -331,16 +353,36 @@ function SmallTile({
   isLocal: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [trackCount, setTrackCount] = useState(0);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    const el = videoRef.current;
+    if (!el || !stream) {
+      if (el) el.srcObject = null;
+      setTrackCount(0);
+      return;
     }
+
+    el.srcObject = stream;
+    setTrackCount(stream.getVideoTracks().length);
+
+    const onTrackChange = () => {
+      setTrackCount(stream.getVideoTracks().length);
+      if (el) el.srcObject = stream;
+    };
+
+    stream.addEventListener('addtrack', onTrackChange);
+    stream.addEventListener('removetrack', onTrackChange);
+
+    return () => {
+      stream.removeEventListener('addtrack', onTrackChange);
+      stream.removeEventListener('removetrack', onTrackChange);
+    };
   }, [stream]);
 
   const hasLiveVideo = Boolean(
     stream &&
-    stream.getVideoTracks().length > 0 &&
+    trackCount > 0 &&
     stream.getVideoTracks().some(t => t.enabled && t.readyState === 'live')
   );
   const showVideo = (isVideoEnabled || hasLiveVideo) && Boolean(stream);
@@ -354,6 +396,7 @@ function SmallTile({
         ref={videoRef}
         autoPlay
         muted={true}
+        playsInline
         className={cn("w-full h-full object-cover", !showVideo && "hidden")}
       />
       {!showVideo && (

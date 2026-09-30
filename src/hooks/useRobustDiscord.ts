@@ -82,11 +82,27 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const userIdRef = useRef<string | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const isSpeakingLocalRef = useRef<boolean>(false);
+    const isVideoEnabledRef = useRef(false);
+    const isScreenSharingRef = useRef(false);
+    const isAudioEnabledRef = useRef(true);
 
     useEffect(() => { channelIdRef.current = channelId; }, [channelId]);
     useEffect(() => { userIdRef.current = user?.id ?? null; _globalUserId = user?.id ?? null; }, [user?.id]);
+    useEffect(() => { isVideoEnabledRef.current = isVideoEnabled; }, [isVideoEnabled]);
+    useEffect(() => { isScreenSharingRef.current = isScreenSharing; }, [isScreenSharing]);
+    useEffect(() => { isAudioEnabledRef.current = isAudioEnabled; }, [isAudioEnabled]);
 
     const log = useCallback((msg: string) => console.log(`[Tabetalk WebRTC] ${msg}`), []);
+
+    // Helper: find the video sender (including pre-negotiated transceiver with null track)
+    const findVideoSender = useCallback((pc: RTCPeerConnection): RTCRtpSender | undefined => {
+        // First try to find sender with video track
+        const withTrack = pc.getSenders().find(s => s.track?.kind === 'video');
+        if (withTrack) return withTrack;
+        // Fall back to transceiver's sender for 'video' mid
+        const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
+        return transceiver?.sender;
+    }, []);
 
     // ─── Enumerate cameras ───
     const refreshCameras = useCallback(async () => {
@@ -214,15 +230,15 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
         // 2. Ensure video transceiver is pre-negotiated
         // This guarantees sendrecv video exists from handshake, allowing instant replaceTrack!
-        let activeVideoTrack: MediaTrack | null = null;
+        let activeVideoTrack: MediaStreamTrack | null = null;
         if (screenStreamRef.current && screenStreamRef.current.getVideoTracks().length > 0) {
-            activeVideoTrack = screenStreamRef.current.getVideoTracks()[0] as any;
+            activeVideoTrack = screenStreamRef.current.getVideoTracks()[0];
         } else if (cameraStreamRef.current && cameraStreamRef.current.getVideoTracks().length > 0) {
-            activeVideoTrack = cameraStreamRef.current.getVideoTracks()[0] as any;
+            activeVideoTrack = cameraStreamRef.current.getVideoTracks()[0];
         }
 
         if (activeVideoTrack) {
-            pc.addTrack(activeVideoTrack as any, stream);
+            pc.addTrack(activeVideoTrack, stream);
         } else {
             // Transceiver ensures SDP negotiates video direction without initial track
             pc.addTransceiver('video', { direction: 'sendrecv' });
@@ -312,7 +328,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                     log(`Answer sent to ${sid.slice(0, 8)}`);
 
                     // Respond with current media state
-                    broadcastMediaState(isVideoEnabled, isScreenSharing, isAudioEnabled);
+                    broadcastMediaState(isVideoEnabledRef.current, isScreenSharingRef.current, isAudioEnabledRef.current);
                 } catch (e: any) {
                     log(`Offer error: ${e.message}`);
                 }
@@ -378,7 +394,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 break;
             }
         }
-    }, [makePC, drainPendingCandidates, broadcastMediaState, isVideoEnabled, isScreenSharing, isAudioEnabled, closePeer, log]);
+    }, [makePC, drainPendingCandidates, broadcastMediaState, closePeer, log]);
 
     // ─── Create initial offer ───
     const createOfferTo = useCallback(async (targetId: string, stream: MediaStream) => {
@@ -560,7 +576,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             // If not screen sharing, replace video sender with null
             if (!isScreenSharing) {
                 pcsRef.current.forEach(pc => {
-                    const sender = pc.getSenders().find(s => s.track?.kind === 'video' || (s as any).kind === 'video');
+                    const sender = findVideoSender(pc);
                     if (sender) sender.replaceTrack(null);
                 });
             }
@@ -587,7 +603,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 // If not currently screen sharing, replaceTrack on all peer connections
                 if (!isScreenSharing) {
                     pcsRef.current.forEach(pc => {
-                        const sender = pc.getSenders().find(s => s.track?.kind === 'video' || (s as any).kind === 'video');
+                        const sender = findVideoSender(pc);
                         if (sender) {
                             sender.replaceTrack(vt);
                         } else {
@@ -627,7 +643,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
             if (!isScreenSharing) {
                 pcsRef.current.forEach(pc => {
-                    const sender = pc.getSenders().find(s => s.track?.kind === 'video' || (s as any).kind === 'video');
+                    const sender = findVideoSender(pc);
                     if (sender) sender.replaceTrack(newVt);
                 });
             }
@@ -653,7 +669,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         // Restore camera video track if enabled, otherwise replace with null
         const cameraTrack = isVideoEnabled ? cameraStreamRef.current?.getVideoTracks()[0] || null : null;
         pcsRef.current.forEach(pc => {
-            const sender = pc.getSenders().find(s => s.track?.kind === 'video' || (s as any).kind === 'video');
+            const sender = findVideoSender(pc);
             if (sender) {
                 sender.replaceTrack(cameraTrack);
             }
@@ -676,7 +692,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
             // Dynamically replace video track on all peer connections
             pcsRef.current.forEach(pc => {
-                const sender = pc.getSenders().find(s => s.track?.kind === 'video' || (s as any).kind === 'video');
+                const sender = findVideoSender(pc);
                 if (sender) {
                     sender.replaceTrack(screenTrack);
                 } else {
