@@ -76,7 +76,22 @@ export function useNotionCollab({
   const [activeCollaborators, setActiveCollaborators] = useState<CollabUser[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [provider, setProvider] = useState<YjsSupabaseProvider | null>(null);
-  const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
+
+  // Y.Doc debe crearse de forma SÍNCRONA con useMemo para que esté disponible
+  // inmediatamente en el render 0 de TipTap (evita que useEditor monte sin la extensión Collaboration)
+  const ydoc = useMemo(() => {
+    if (!enabled || !documentId) return null;
+    return new Y.Doc();
+  }, [documentId, enabled]);
+
+  // Limpieza del Y.Doc cuando se desmonta o cambia de documento
+  useEffect(() => {
+    return () => {
+      if (ydoc) {
+        ydoc.destroy();
+      }
+    };
+  }, [ydoc]);
 
   // Determinar identidad activa (usuario registrado o invitado)
   const activeIdentity = useMemo(() => {
@@ -103,21 +118,19 @@ export function useNotionCollab({
   const currentUserColor = getCollabColor(currentUserId);
 
   useEffect(() => {
-    if (!enabled || !documentId || !currentUserId) {
+    if (!enabled || !documentId || !currentUserId || !ydoc) {
       setProvider((prev) => {
         if (prev) prev.destroy();
         return null;
       });
-      setYdoc(null);
       setIsConnected(false);
       setActiveCollaborators([]);
       return;
     }
 
-    const doc = new Y.Doc();
     const newProvider = new YjsSupabaseProvider({
       documentId,
-      doc,
+      doc: ydoc,
       userId: currentUserId,
       userMeta: {
         name: currentUserName,
@@ -132,17 +145,15 @@ export function useNotionCollab({
       },
     });
 
-    setYdoc(doc);
     setProvider(newProvider);
 
     return () => {
       newProvider.destroy();
       setProvider(null);
-      setYdoc(null);
       setIsConnected(false);
       setActiveCollaborators([]);
     };
-  }, [documentId, currentUserId, currentUserName, currentUserColor, activeIdentity.avatarUrl, enabled]);
+  }, [documentId, currentUserId, currentUserName, currentUserColor, activeIdentity.avatarUrl, enabled, ydoc]);
 
   return {
     ydoc,

@@ -271,7 +271,7 @@ export function AdvancedNotionEditor({
           ]
         : []),
     ],
-    content,
+    content: ydoc ? undefined : content,
     editable: !readOnly,
     onSelectionUpdate: ({ editor }) => {
       onCursorChange?.(editor.state.selection.from);
@@ -668,7 +668,13 @@ export function AdvancedNotionEditor({
       } catch {}
       return;
     }
-  }, [documentId, editor, readOnly]);
+
+    // Si el documento ya estaba montado pero el Y.Doc sigue vacío y content acaba de llegar (ej. creador cargando apunte de BD)
+    if (ydoc && ydoc.getXmlFragment('default').length === 0 && content) {
+      editor.commands.setContent(content, false);
+      editor.commands.setTextSelection(0);
+    }
+  }, [documentId, editor, readOnly, content, ydoc]);
 
   // Listener to open math menu via custom event (e.g. from SlashCommands)
   useEffect(() => {

@@ -56,6 +56,7 @@ export class YjsSupabaseProvider {
   public userMeta: YjsProviderUserMeta;
   private destroyed: boolean = false;
   private isConnected: boolean = false;
+  private isExternalDoc: boolean = false;
   private onStatusChange?: (connected: boolean) => void;
   private onCollaboratorsChange?: (users: any[]) => void;
 
@@ -70,6 +71,7 @@ export class YjsSupabaseProvider {
     this.documentId = documentId;
     this.userId = userId;
     this.userMeta = userMeta;
+    this.isExternalDoc = !!doc;
     this.doc = doc || new Y.Doc();
     this.awareness = new Awareness(this.doc);
     this.onStatusChange = onStatusChange;
@@ -223,7 +225,7 @@ export class YjsSupabaseProvider {
       }
     });
 
-    // 4. Sincronización inicial (Sync Step 1 y 2)
+    // 4. Sincronización inicial bidireccional (Sync Step 1 y 2)
     this.channel.on("broadcast", { event: "yjs-sync-step-1" }, ({ payload }) => {
       if (!payload || payload.senderId === this.userId || this.destroyed || !this.channel) return;
       if (payload.pageId && payload.pageId !== this.documentId) return;
@@ -256,6 +258,26 @@ export class YjsSupabaseProvider {
         Y.applyUpdate(this.doc, update, "supabase-realtime");
       } catch (err) {
         console.warn("YjsProvider: error aplicando yjs-sync-step-2:", err);
+      }
+    });
+
+    // Al unirse un nuevo participante, emitir vector de estado para sincronizarlo de inmediato
+    this.channel.on("presence", { event: "join" }, ({ newPresences }) => {
+      if (this.destroyed || !this.channel || !this.isConnected) return;
+      const hasOther = (newPresences || []).some((p: any) => p.user_id !== this.userId);
+      if (hasOther) {
+        try {
+          const localVector = Y.encodeStateVector(this.doc);
+          this.channel.send({
+            type: "broadcast",
+            event: "yjs-sync-step-1",
+            payload: {
+              vector: uint8ArrayToBase64(localVector),
+              senderId: this.userId,
+              pageId: this.documentId,
+            },
+          });
+        } catch (e) {}
       }
     });
 
@@ -317,6 +339,8 @@ export class YjsSupabaseProvider {
       supabase.removeChannel(this.channel);
       this.channel = null;
     }
-    this.doc.destroy();
+    if (!this.isExternalDoc) {
+      this.doc.destroy();
+    }
   }
 }

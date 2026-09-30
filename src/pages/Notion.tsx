@@ -1336,9 +1336,13 @@ export default function Notion() {
 
       const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
       if (editor && !editor.isDestroyed) {
-        editor.commands.setContent(content, false);
-        editor.commands.setTextSelection(0);
         const isCollab = isDocOrAncestorCollaborative(doc);
+        if (!isCollab) {
+          editor.commands.setContent(content, false);
+        } else if (ydoc && ydoc.getXmlFragment('default').length === 0) {
+          editor.commands.setContent(content, false);
+        }
+        editor.commands.setTextSelection(0);
         const canEditDoc = doc.user_id === user?.id || (
           (doc.is_shared && doc.share_permission === 'edit') ||
           doc.user_permission === 'edit' ||
@@ -1396,9 +1400,13 @@ export default function Notion() {
 
     const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
     if (editor && !editor.isDestroyed) {
-      editor.commands.setContent(content, false);
-      editor.commands.setTextSelection(0);
       const isCollab = isDocOrAncestorCollaborative(doc);
+      if (!isCollab) {
+        editor.commands.setContent(content, false);
+      } else if (ydoc && ydoc.getXmlFragment('default').length === 0) {
+        editor.commands.setContent(content, false);
+      }
+      editor.commands.setTextSelection(0);
       const canEditDoc = doc.user_id === user?.id || (
         (doc.is_shared && doc.share_permission === 'edit') ||
         doc.user_permission === 'edit' ||
@@ -2582,7 +2590,7 @@ export default function Notion() {
                   </div>
                 )}
                 <AdvancedNotionEditor
-                  key={activeDocument.id}
+                  key={`${activeDocument.id}_${isCollabActive ? "collab" : "local"}`}
                   headerContent={
                     <>
                       {/* Cover */}
