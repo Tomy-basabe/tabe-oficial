@@ -15,6 +15,7 @@ import { AICareerImportModal } from "@/components/subjects/AICareerImportModal";
 import { useSubjects, SubjectWithStatus, SubjectStatus } from "@/hooks/useSubjects";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { usePageTitle } from "@/hooks/useDynamicTitle";
 
 const statusFilters = [
   { value: "all", label: "Todas", color: "bg-secondary text-foreground" },
@@ -53,6 +54,10 @@ export default function CareerPlan() {
 
   // Modals
   const [selectedSubject, setSelectedSubject] = useState<SubjectWithStatus | null>(null);
+  
+  // Título dinámico cuando hay una materia seleccionada o inspeccionada
+  usePageTitle(selectedSubject ? selectedSubject.nombre : null);
+
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);

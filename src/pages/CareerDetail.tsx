@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, GraduationCap, Calendar, BookOpen, ChevronRight, FileJson, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
+import { usePageTitle } from "@/hooks/useDynamicTitle";
 
 // Dynamic import of all career templates
 const careerTemplates = import.meta.glob('../data/*_template.json', { eager: true });
@@ -14,6 +15,13 @@ export default function CareerDetail() {
   const templatePath = `../data/${id}_template.json`;
   const module: any = careerTemplates[templatePath];
   
+  const data = module?.default || module;
+  const subjects = (data?.subjects || []) as any[];
+  const name = id?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || "Carrera Universitaria";
+  
+  // Título dinámico para la carrera activa
+  usePageTitle(module ? name : "Carrera");
+
   if (!module) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -29,10 +37,6 @@ export default function CareerDetail() {
     );
   }
 
-  const data = module.default || module;
-  const subjects = (data.subjects || []) as any[];
-  const name = id?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || "Carrera Universitaria";
-  
   // Group by year
   const years = [...new Set(subjects.map((s: any) => s.año))].sort((a: any, b: any) => (Number(a) || 0) - (Number(b) || 0)) as number[];
 

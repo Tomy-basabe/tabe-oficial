@@ -41,6 +41,7 @@ import { useAudioBook } from "@/hooks/useAudioBook";
 import { AudioBookPlayer } from "@/components/notion/AudioBookPlayer";
 import { resolveDocSubject, normalizeSubjectName } from "@/lib/notionSubjectHelper";
 import { subscribeNotionSync, broadcastNotionDocUpdate } from "@/lib/notionSync";
+import { usePageTitle } from "@/hooks/useDynamicTitle";
 
 interface Subject {
   id: string;
@@ -309,6 +310,9 @@ export default function Notion() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [activeDocument, setActiveDocument] = useState<NotionDocument | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  
+  // Título dinámico para la pestaña con el nombre del apunte abierto
+  usePageTitle(activeDocument ? (activeDocument.titulo || "Nuevo Apunte") : null);
   
   // Trash modal & items state (30 min recovery grace period)
   const [showTrashModal, setShowTrashModal] = useState(false);

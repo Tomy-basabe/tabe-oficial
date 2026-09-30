@@ -213,6 +213,7 @@ import { AIChatProvider } from "@/contexts/AIChatContext";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
 import { IncomingChallengeModal } from "@/components/games/IncomingChallengeModal";
 import { useTheme } from "@/hooks/useTheme";
+import { DynamicTitleWatcher } from "@/hooks/useDynamicTitle";
 
 const App = () => {
   useTheme();
@@ -227,7 +228,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <DiscordVoiceProvider>
-
+                <DynamicTitleWatcher />
                 <AppRoutes />
                 <GlobalDiscordVoiceWidget />
                 <PWAInstallBanner />
