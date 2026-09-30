@@ -49,7 +49,8 @@ export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare: TabetalkIcon, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
-  ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous
+  ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous,
+  Gamepad2
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);
