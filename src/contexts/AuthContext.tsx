@@ -230,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, nombre?: string) => {
+    try {
       const emailRedirectTo = typeof window !== 'undefined' && window.location.origin
         ? `${window.location.origin}/email-verificado`
         : 'https://tabe.com.ar/email-verificado';

@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
 const ALLOWED_ORIGINS = [
+  "https://tabe.com.ar",
+  "https://www.tabe.com.ar",
   "https://www.tabe.software",
   "https://tabe.software",
   "https://tabe-oficial.vercel.app",
