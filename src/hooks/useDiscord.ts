@@ -822,8 +822,7 @@ export function useDiscord() {
         });
 
       if (insertError) {
-        console.error("[Discord][Diag] insert voice participant failed", insertError);
-        throw insertError;
+        console.warn("[Discord][Diag] insert voice participant warning (proceeding to WebRTC voice):", insertError);
       }
 
       setInternalCurrentChannel(channel);

@@ -85,7 +85,7 @@ export function useWebRTC(roomId: string | null) {
 
       // Handle incoming tracks
       pc.ontrack = (event) => {
-        console.log(`[WebRTC] Received remote track (${event.track.kind}) from ${peerId}`);
+        console.log(`[WebRTC] Recibiendo stream remoto de: ${peerId}`);
         const [remoteStream] = event.streams;
         setRemoteStreams((prev) => {
           const updated = new Map(prev);
@@ -107,6 +107,15 @@ export function useWebRTC(roomId: string | null) {
               data: event.candidate,
             } as SignalingMessage,
           });
+          channelRef.current.send({
+            type: "broadcast",
+            event: "webrtc-ice",
+            payload: {
+              senderId: user.id,
+              targetId: peerId,
+              candidate: event.candidate,
+            },
+          });
         }
       };
 
@@ -114,6 +123,7 @@ export function useWebRTC(roomId: string | null) {
       pc.onconnectionstatechange = () => {
         console.log(`[WebRTC] Connection state with ${peerId}: ${pc.connectionState}`);
         if (pc.connectionState === "connected") {
+          console.log(`[WebRTC] Conexión establecida con éxito.`);
           setConnectionState("connected");
         } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
           console.warn(`[WebRTC] Connection disconnected/failed with ${peerId}`);
@@ -141,12 +151,33 @@ export function useWebRTC(roomId: string | null) {
     async (peerId: string, stream: MediaStream) => {
       if (!user) return;
 
+      console.log(`[WebRTC] Enviando oferta a: ${peerId}`);
       const pc = createPeerConnection(peerId, stream);
       if (!pc) return;
 
       try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
+
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "signaling",
+          payload: {
+            type: "offer",
+            from: user.id,
+            to: peerId,
+            data: offer,
+          } as SignalingMessage,
+        });
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "webrtc-offer",
+          payload: {
+            senderId: user.id,
+            targetId: peerId,
+            sdp: offer,
+          },
+        });
 
         channelRef.current?.send({
           type: "broadcast",
@@ -373,7 +404,23 @@ export function useWebRTC(roomId: string | null) {
               break;
           }
         })
+        .on("broadcast", { event: "webrtc-offer" }, ({ payload }) => {
+          if (payload?.targetId === user.id && payload?.senderId && payload?.sdp) {
+            handleOffer(payload.senderId, payload.sdp, stream);
+          }
+        })
+        .on("broadcast", { event: "webrtc-answer" }, ({ payload }) => {
+          if (payload?.targetId === user.id && payload?.senderId && payload?.sdp) {
+            handleAnswer(payload.senderId, payload.sdp);
+          }
+        })
+        .on("broadcast", { event: "webrtc-ice" }, ({ payload }) => {
+          if (payload?.targetId === user.id && payload?.senderId && payload?.candidate) {
+            handleIceCandidate(payload.senderId, payload.candidate);
+          }
+        })
         .on("presence", { event: "join" }, ({ key }) => {
+          console.log(`[WebRTC] Usuario conectado a la sala: ${key}`);
           // New user joined, send them an offer
           if (key !== user.id) {
             createOffer(key, stream);

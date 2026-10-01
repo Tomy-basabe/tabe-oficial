@@ -297,8 +297,8 @@ function VideoTile({
         <video
           ref={videoRef}
           autoPlay
-          muted={true}
           playsInline
+          muted={isLocal}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -399,8 +399,8 @@ function SmallTile({
         <video
           ref={videoRef}
           autoPlay
-          muted={true}
           playsInline
+          muted={isLocal}
           className="w-full h-full object-cover"
         />
       ) : (
