@@ -63,8 +63,12 @@ import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
 import { extractAndStoreTokenFromUrl } from "@/lib/googleCalendarSync";
 import { preloadCoreRoutes } from "@/lib/routePreload";
 
-// Automatically capture OAuth provider token from Google redirects globally & preload core routes
+// Automatically capture OAuth provider token from Google redirects globally, enforce domain & preload core routes
 if (typeof window !== "undefined") {
+  const h = window.location.hostname;
+  if (h === "tabe.software" || h === "www.tabe.software" || h === "tabe-oficial.vercel.app") {
+    window.location.replace(`https://tabe.com.ar${window.location.pathname}${window.location.search}${window.location.hash}`);
+  }
   extractAndStoreTokenFromUrl();
   preloadCoreRoutes();
 }

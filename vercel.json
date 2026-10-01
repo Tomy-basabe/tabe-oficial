@@ -5,7 +5,18 @@
             "has": [
                 {
                     "type": "host",
-                    "value": "(?:www\\.)?tabe\\.software"
+                    "value": "tabe.software"
+                }
+            ],
+            "destination": "https://tabe.com.ar/registro",
+            "permanent": true
+        },
+        {
+            "source": "/auth",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "www.tabe.software"
                 }
             ],
             "destination": "https://tabe.com.ar/registro",
@@ -16,7 +27,18 @@
             "has": [
                 {
                     "type": "host",
-                    "value": "(?:www\\.)?tabe\\.software"
+                    "value": "tabe.software"
+                }
+            ],
+            "destination": "https://tabe.com.ar/$1",
+            "permanent": true
+        },
+        {
+            "source": "/(.*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "www.tabe.software"
                 }
             ],
             "destination": "https://tabe.com.ar/$1",

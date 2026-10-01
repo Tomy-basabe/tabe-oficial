@@ -3,6 +3,25 @@
 
 <head>
   <meta charset="UTF-8" />
+  <!-- Redirección inmediata ultra-temprana desde dominios antiguos preservando path, query y hash (#access_token) -->
+  <script>
+    (function () {
+      var h = window.location.hostname;
+      if (h === 'tabe.software' || h === 'www.tabe.software' || h === 'tabe-oficial.vercel.app') {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var i = 0; i < regs.length; i++) regs[i].unregister();
+          });
+        }
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (var i = 0; i < names.length; i++) caches.delete(names[i]);
+          });
+        }
+        window.location.replace('https://tabe.com.ar' + window.location.pathname + window.location.search + window.location.hash);
+      }
+    })();
+  </script>
   <script>
     (function () {
       try {
@@ -90,31 +109,15 @@
   <meta name="google-site-verification" content="LloPDFcY6KrJWu80uX8X5pinzXltP2qFem1uhjrADaQ" />
   <meta name="google-site-verification" content="google23a4ae638db42bc1" />
 
-  <!-- Clean old domain caches and force redirect -->
+  <!-- Service worker update check -->
   <script>
-    (function () {
-      var oldDomains = ['tabe-oficial.vercel.app', 'tabe.software', 'www.tabe.software'];
-      var isOld = oldDomains.indexOf(window.location.hostname) !== -1;
-      if (isOld) {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(regs) {
-            for(var i=0; i<regs.length; i++) regs[i].unregister();
-          });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (reg) {
+          reg.update();
         }
-        if ('caches' in window) {
-          caches.keys().then(function(names) {
-            for(var i=0; i<names.length; i++) caches.delete(names[i]);
-          });
-        }
-        window.location.replace('https://tabe.com.ar' + window.location.pathname + window.location.search + window.location.hash);
-      } else if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistration().then(function(reg) {
-          if (reg) {
-            reg.update();
-          }
-        });
-      }
-    })();
+      });
+    }
   </script>
 
   <!-- Prevent white flash: apply theme before React loads -->
