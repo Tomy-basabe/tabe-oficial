@@ -67,7 +67,7 @@ export function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
       navigate("/registro", { replace: true });
     } catch (err: any) {
       console.error("Error al eliminar la cuenta:", err);
-      toast.error(err?.message || "Ocurrió un error al procesar la eliminación. Contactá a soporte@tabe.software.");
+      toast.error(err?.message || "Ocurrió un error al procesar la eliminación. Contactá a soporte@tabe.com.ar.");
     } finally {
       setLoading(false);
     }

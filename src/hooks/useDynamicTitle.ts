@@ -62,7 +62,7 @@ export function setDynamicResourceTitle(title: string | null | undefined) {
 
 export function formatDocumentTitle(sectionOrResource?: string | null): string {
   if (!sectionOrResource) {
-    return `TABE | Plataforma de Estudio Universitaria - Apuntes, Flashcards y Pomodoro`;
+    return `TABE | Tu Asistente de Bolsillo Estudiantil`;
   }
   return `${sectionOrResource} | ${APP_NAME}`;
 }
@@ -124,7 +124,7 @@ export function DynamicTitleWatcher() {
       if (currentResourceTitle) {
         document.title = formatDocumentTitle(currentResourceTitle);
       } else if (location.pathname === "/") {
-        document.title = "TABE | Plataforma de Estudio Universitaria - Apuntes, Flashcards y Pomodoro";
+        document.title = "TABE | Tu Asistente de Bolsillo Estudiantil";
       } else {
         const sectionTitle = getTitleForPath(location.pathname);
         document.title = formatDocumentTitle(sectionTitle);

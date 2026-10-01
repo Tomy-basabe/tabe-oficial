@@ -75,7 +75,7 @@ export default async function handler(req: any, res: any) {
     const response = await fetch(cleanUrl, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; TABE/1.0; +https://www.tabe.software)",
+        "User-Agent": "Mozilla/5.0 (compatible; TABE/1.0; +https://tabe.com.ar)",
         "Accept": "text/calendar, text/plain, */*",
       },
     });

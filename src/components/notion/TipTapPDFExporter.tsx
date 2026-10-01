@@ -800,7 +800,7 @@ class PDFRenderer {
 
       const logoSize = 3.6; // 3.6mm x 3.6mm
       const brandText = "TABE  •";
-      const linkText = "www.tabe.software";
+      const linkText = "tabe.com.ar";
       const pageText = `—  Página ${i} de ${totalPages}`;
 
       const brandW = this.doc.getTextWidth(brandText);
@@ -830,7 +830,7 @@ class PDFRenderer {
       this.doc.setTextColor(37, 99, 235); // azul #2563eb
       this.doc.text(linkText, curX, textY);
       // Link cliqueable en el PDF
-      this.doc.link(curX, textY - 3, linkW, 4.5, { url: "https://www.tabe.software" });
+      this.doc.link(curX, textY - 3, linkW, 4.5, { url: "https://tabe.com.ar" });
       curX += linkW + gap;
 
       // 4. Paginación
