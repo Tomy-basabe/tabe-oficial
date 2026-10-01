@@ -229,11 +229,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Helper to ensure auth redirects land strictly on tabe.com.ar in production
+  const getCanonicalAuthUrl = (path: string = "/dashboard"): string => {
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+      if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+        return `${origin}${path}`;
+      }
+    }
+    return `https://tabe.com.ar${path}`;
+  };
+
   const signUp = async (email: string, password: string, nombre?: string) => {
     try {
-      const emailRedirectTo = typeof window !== 'undefined' && window.location.origin
-        ? `${window.location.origin}/email-verificado`
-        : 'https://tabe.com.ar/email-verificado';
+      const emailRedirectTo = getCanonicalAuthUrl("/email-verificado");
 
       const { error } = await supabase.auth.signUp({
         email,
@@ -267,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      const redirectTo = `${window.location.origin}/dashboard`;
+      const redirectTo = getCanonicalAuthUrl("/dashboard");
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -287,7 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const connectGoogleCalendar = async () => {
     try {
-      const redirectTo = `${window.location.origin}/calendario`;
+      const redirectTo = getCanonicalAuthUrl("/calendario");
       if (user) {
         const { error } = await supabase.auth.linkIdentity({
           provider: "google",
@@ -324,7 +333,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const linkGoogleAccount = async () => {
     try {
-      const redirectTo = `${window.location.origin}/configuracion`;
+      const redirectTo = getCanonicalAuthUrl("/configuracion");
       const { data, error } = await supabase.auth.linkIdentity({
         provider: "google",
         options: {

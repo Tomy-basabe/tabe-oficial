@@ -60,7 +60,7 @@ export default function Terms() {
   };
 
   const copyLegalEmail = () => {
-    navigator.clipboard.writeText("legal@tabe.software");
+    navigator.clipboard.writeText("legal@tabe.com.ar");
     setCopiedEmail(true);
     toast.success("Correo legal copiado al portapapeles");
     setTimeout(() => setCopiedEmail(false), 2000);
@@ -178,7 +178,7 @@ export default function Terms() {
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="text-xs font-mono font-bold bg-background px-2.5 py-1.5 rounded-lg border-2 border-foreground flex-1 truncate">
-                    legal@tabe.software
+                    legal@tabe.com.ar
                   </code>
                   <button
                     type="button"
@@ -256,7 +256,7 @@ export default function Terms() {
                   Para acceder a las funcionalidades personalizadas, el usuario debe registrarse proporcionando información veraz. Cada cuenta es de uso estrictamente personal e intransferible.
                 </p>
                 <p>
-                  El usuario es custodio único de la confidencialidad de su contraseña y de cualquier actividad originada bajo su sesión. TABE implementa estándares criptográficos modernos mediante Supabase Auth y Row Level Security (RLS) para resguardar la identidad del estudiante. Ante sospecha de acceso no autorizado, debe notificarse de inmediato a <code className="text-foreground">seguridad@tabe.software</code>.
+                  El usuario es custodio único de la confidencialidad de su contraseña y de cualquier actividad originada bajo su sesión. TABE implementa estándares criptográficos modernos mediante Supabase Auth y Row Level Security (RLS) para resguardar la identidad del estudiante. Ante sospecha de acceso no autorizado, debe notificarse de inmediato a <code className="text-foreground">seguridad@tabe.com.ar</code>.
                 </p>
               </div>
             </section>
@@ -306,7 +306,7 @@ export default function Terms() {
                   <strong>b) Responsabilidad del Usuario Emisor:</strong> El usuario que comparte o comercializa un apunte garantiza ser el autor legítimo del material o contar con las autorizaciones pertinentes, respondiendo íntegramente por reclamos de terceros relativos a plagio o vulneración de copyright.
                 </p>
                 <p>
-                  <strong>c) Procedimiento de Notificación y Retiro (Notice & Takedown):</strong> Si un titular de derechos detecta material no autorizado, puede enviar una solicitud a <code className="text-foreground">legal@tabe.software</code> indicando el enlace y acreditando titularidad. TABE procederá al bloqueo o retiro cautelar en un plazo máximo de 48 horas hábiles.
+                  <strong>c) Procedimiento de Notificación y Retiro (Notice & Takedown):</strong> Si un titular de derechos detecta material no autorizado, puede enviar una solicitud a <code className="text-foreground">legal@tabe.com.ar</code> indicando el enlace y acreditando titularidad. TABE procederá al bloqueo o retiro cautelar en un plazo máximo de 48 horas hábiles.
                 </p>
               </div>
             </section>

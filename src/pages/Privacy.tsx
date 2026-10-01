@@ -204,10 +204,10 @@ export default function Privacy() {
                   Para ejercer derechos ARCO o consultas sobre tus datos:
                 </p>
                 <a
-                  href="mailto:privacidad@tabe.software"
+                  href="mailto:privacidad@tabe.com.ar"
                   className="block font-black text-primary hover:underline truncate"
                 >
-                  privacidad@tabe.software
+                  privacidad@tabe.com.ar
                 </a>
               </div>
             </div>
@@ -236,16 +236,16 @@ export default function Privacy() {
 
               <div className="space-y-3 font-semibold text-muted-foreground text-sm leading-relaxed">
                 <p>
-                  Bienvenido a <strong>TABE (Tu Asistente de Bolsillo Estudiantil)</strong>, operado y desarrollado por TABE Software (en adelante, indistintamente «TABE», «la Plataforma», «nosotros» o «nuestro»). La presente Política de Privacidad constituye un contrato vinculante y describe de forma transparente, minuciosa y completa los procedimientos relativos a la recopilación, almacenamiento, tratamiento, procesamiento, seguridad, transferencia y supresión de la información personal de los usuarios («el Usuario», «el Estudiante» o «usted»).
+                  Bienvenido a <strong>TABE (Tu Asistente de Bolsillo Estudiantil)</strong>, operado y desarrollado por TABE (en adelante, indistintamente «TABE», «la Plataforma», «nosotros» o «nuestro»). La presente Política de Privacidad constituye un contrato vinculante y describe de forma transparente, minuciosa y completa los procedimientos relativos a la recopilación, almacenamiento, tratamiento, procesamiento, seguridad, transferencia y supresión de la información personal de los usuarios («el Usuario», «el Estudiante» o «usted»).
                 </p>
                 <p>
-                  Esta política aplica de forma irrestricta a todo acceso, navegación, registro o uso de nuestros servicios web a través de los dominios oficiales <code>tabe.software</code>, <code>tabe.com.ar</code>, aplicaciones web progresivas (PWA), canales de mensajería integrados, extensiones y servicios conexos.
+                  Esta política aplica de forma irrestricta a todo acceso, navegación, registro o uso de nuestros servicios web a través de los dominios oficiales <code>tabe.com.ar</code>, aplicaciones web progresivas (PWA), canales de mensajería integrados, extensiones y servicios conexos.
                 </p>
                 <div className="p-4 bg-muted/60 border-2 border-foreground rounded-xl text-foreground font-bold space-y-1">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">Datos del Responsable:</div>
                   <div><strong>Denominación:</strong> TABE — Tu Asistente de Bolsillo Estudiantil</div>
                   <div><strong>Finalidad:</strong> Plataforma integral de gestión universitaria, gamificación académica y tutoría con Inteligencia Artificial.</div>
-                  <div><strong>Contacto Legal & DPO:</strong> <code>privacidad@tabe.software</code> | <code>soporte@tabe.software</code></div>
+                  <div><strong>Contacto Legal & DPO:</strong> <code>privacidad@tabe.com.ar</code> | <code>soporte@tabe.com.ar</code></div>
                   <div><strong>Sede Operativa:</strong> República Argentina.</div>
                 </div>
               </div>
@@ -837,9 +837,9 @@ export default function Privacy() {
                   <div className="uppercase text-muted-foreground tracking-wider font-black">
                     Canales Exclusivos de Atención en Privacidad:
                   </div>
-                  <div>📧 Correo de Privacidad: <a href="mailto:privacidad@tabe.software" className="text-primary underline font-black">privacidad@tabe.software</a></div>
-                  <div>📧 Soporte Técnico General: <a href="mailto:soporte@tabe.software" className="text-primary underline font-black">soporte@tabe.software</a></div>
-                  <div>🌐 Sitio Web Oficial: <a href="https://tabe.software" className="text-primary underline font-black">https://tabe.software</a></div>
+                  <div>📧 Correo de Privacidad: <a href="mailto:privacidad@tabe.com.ar" className="text-primary underline font-black">privacidad@tabe.com.ar</a></div>
+                  <div>📧 Soporte Técnico General: <a href="mailto:soporte@tabe.com.ar" className="text-primary underline font-black">soporte@tabe.com.ar</a></div>
+                  <div>🌐 Sitio Web Oficial: <a href="https://tabe.com.ar" className="text-primary underline font-black">https://tabe.com.ar</a></div>
                 </div>
 
                 <p className="text-xs text-muted-foreground italic text-center pt-2">

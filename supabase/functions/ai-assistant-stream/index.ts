@@ -5,8 +5,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ALLOWED_ORIGINS = [
   "https://tabe.com.ar",
   "https://www.tabe.com.ar",
-  "https://www.tabe.software",
-  "https://tabe.software",
   "https://tabe-oficial.vercel.app",
   "http://localhost:8080",
   "http://127.0.0.1:8080",
@@ -1080,7 +1078,7 @@ serve(async (req) => {
           headers: {
             "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://tabe.software",
+            "HTTP-Referer": "https://tabe.com.ar",
             "X-Title": "TABE"
           },
           body: JSON.stringify({

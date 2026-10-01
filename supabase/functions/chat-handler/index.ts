@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Security: Restrict CORS to known origins
-const ALLOWED_ORIGINS = ["https://tabe.com.ar", "https://www.tabe.com.ar", "https://www.tabe.software", "https://tabe.software", "https://tabe-oficial.vercel.app", "http://localhost:8080", "http://localhost:5173"];
+const ALLOWED_ORIGINS = ["https://tabe.com.ar", "https://www.tabe.com.ar", "https://tabe-oficial.vercel.app", "http://localhost:8080", "http://localhost:5173"];
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("Origin") || "";
   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -1116,7 +1116,7 @@ serve(async (req) => {
       return `[ID: ${f.id}] "${f.nombre}" (${subj?.nombre || 'General'}) - ${f.total_cards || '?'} tarjetas`;
     });
 
-    const systemPrompt = `Sos TABE AI (@tabeai_bot), el asistente pedagógico inteligente oficial de la plataforma educativa TABE (web y app móvil en https://www.tabe.software).
+    const systemPrompt = `Sos TABE AI (@tabeai_bot), el asistente pedagógico inteligente oficial de la plataforma educativa TABE (web y app móvil en https://tabe.com.ar).
       Estás DIRECTAMENTE integrado a la aplicación TABE y a la cuenta del estudiante ${userName}.
       Tenés acceso total en tiempo real a su base de datos académica: materias, notas, estado de cursada, eventos de calendario, cuestionarios y flashcards.
       
@@ -1124,10 +1124,10 @@ serve(async (req) => {
       - Sos la IA de la App TABE. NUNCA digas que no tenés acceso a la app o que no podés crear cosas en la app.
       - TODO lo que el estudiante te pida hacer (crear flashcards, armar cuestionarios/quizzes, agendar parciales, registrar sesiones de estudio, cambiar notas o estados de materias) se guarda e impacta DIRECTAMENTE en su cuenta de la App TABE en tiempo real.
       - Enlaces clave de la App TABE para indicarle al estudiante:
-        * Cuestionarios / Quizzes: https://www.tabe.software/cuestionarios
-        * Flashcards y Mazos: https://www.tabe.software/flashcards
-        * Calendario y Exámenes: https://www.tabe.software/calendario
-        * Panel Principal y Gamificación: https://www.tabe.software/dashboard
+        * Cuestionarios / Quizzes: https://tabe.com.ar/cuestionarios
+        * Flashcards y Mazos: https://tabe.com.ar/flashcards
+        * Calendario y Exámenes: https://tabe.com.ar/calendario
+        * Panel Principal y Gamificación: https://tabe.com.ar/dashboard
 
       -- DATOS ACADÉMICOS DE ${userName.toUpperCase()} --
       Promedio actual: ${promedio} (sobre ${notasValidas.length} materias con nota)
@@ -1554,7 +1554,7 @@ serve(async (req) => {
 
               flashcardsFormatted += `────────────────────────────\n`;
               flashcardsFormatted += `🚀 *¡Ya podés repasarlas con repetición espaciada interactiva en la app!*\n`;
-              flashcardsFormatted += `👉 *Abrir Flashcards en TABE:* https://www.tabe.software/flashcards\n`;
+              flashcardsFormatted += `👉 *Abrir Flashcards en TABE:* https://tabe.com.ar/flashcards\n`;
               flashcardsFormatted += `💾 _Mazo sincronizado en tu cuenta con ID: \`${deck.id}\`_`;
 
               actionResponseMsg += flashcardsFormatted;
@@ -1624,7 +1624,7 @@ serve(async (req) => {
 
               quizFormatted += `────────────────────────────\n`;
               quizFormatted += `📩 *Para responder acá:* enviame solo las letras en orden (ejemplo: \`${letras.slice(0, Math.min(numQuestions, 4)).join(", ")}\`).\n\n`;
-              quizFormatted += `🌐 *O respondelo de forma interactiva en la App TABE:* https://www.tabe.software/cuestionarios\n`;
+              quizFormatted += `🌐 *O respondelo de forma interactiva en la App TABE:* https://tabe.com.ar/cuestionarios\n`;
               quizFormatted += `💾 _Guardado en tu cuenta con ID: \`${deck.id}\`_`;
 
               actionResponseMsg += quizFormatted;

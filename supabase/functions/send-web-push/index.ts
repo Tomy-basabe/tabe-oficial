@@ -5,8 +5,6 @@ import webpush from "npm:web-push@3.6.7";
 const ALLOWED_ORIGINS = [
   "https://tabe.com.ar",
   "https://www.tabe.com.ar",
-  "https://www.tabe.software",
-  "https://tabe.software",
   "https://tabe-oficial.vercel.app",
   "http://localhost:8080",
   "http://localhost:5173"
@@ -25,7 +23,7 @@ function getCorsHeaders(req: Request) {
 
 const VAPID_PUBLIC_KEY = "BNaibveUWxGdggaWEWGFg07YbIg5feJ67xDzCcf41L8J8W93Xf-89LJWZZl_kVYN9ZZZ8XnrXkXuP2Us_BP15Qg";
 const VAPID_PRIVATE_KEY = "vlJOxv6GvlLobTIITI0iTC7byz6tCvNm2vo4o4LjuT8";
-const VAPID_SUBJECT = "mailto:soporte@tabe.software";
+const VAPID_SUBJECT = "mailto:soporte@tabe.com.ar";
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 

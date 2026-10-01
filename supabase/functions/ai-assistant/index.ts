@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = ["https://tabe.com.ar", "https://www.tabe.com.ar", "https://www.tabe.software", "https://tabe.software", "https://tabe-oficial.vercel.app", "http://localhost:8080", "http://localhost:5173"];
+const ALLOWED_ORIGINS = ["https://tabe.com.ar", "https://www.tabe.com.ar", "https://tabe-oficial.vercel.app", "http://localhost:8080", "http://localhost:5173"];
 function getgetCorsHeaders(req)(req: Request) {
   const origin = req.headers.get("Origin") || "";
   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
