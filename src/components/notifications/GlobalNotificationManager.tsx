@@ -27,14 +27,15 @@ export function GlobalNotificationManager() {
           console.warn("Auto-sync push error:", e);
         }
       } else if (status.permission === "default") {
-        // Only show subtle prompt if user hasn't dismissed it in the last 7 days
-        const dismissedUntil = localStorage.getItem("tabe_notif_prompt_dismissed");
-        if (!dismissedUntil || Date.now() > Number(dismissedUntil)) {
-          // Slight delay after app load so it doesn't interrupt navigation
-          setTimeout(() => {
-            if (isMounted) setShowPrompt(true);
-          }, 3000);
-        }
+        // Si el usuario ya respondió (activar o no), no volver a molestar nunca más
+        const dismissed = localStorage.getItem("tabe_notif_prompt_dismissed");
+        if (dismissed === "never") return;
+        if (dismissed && Date.now() < Number(dismissed)) return;
+
+        // Slight delay after app load so it doesn't interrupt navigation
+        setTimeout(() => {
+          if (isMounted) setShowPrompt(true);
+        }, 3000);
       }
     }
 
@@ -104,9 +105,9 @@ export function GlobalNotificationManager() {
 
   const handleEnable = () => {
     if (!user) return;
-    // Cerrar inmediatamente el cartel para no bloquear ni molestar al usuario
+    // Cerrar y marcar para no volver a molestar
     setShowPrompt(false);
-    localStorage.setItem("tabe_notif_prompt_dismissed", (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+    localStorage.setItem("tabe_notif_prompt_dismissed", "never");
 
     // Ejecutar la suscripción y sincronización de forma silenciosa en segundo plano
     (async () => {
@@ -123,8 +124,8 @@ export function GlobalNotificationManager() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    // Descartar por 14 días
-    localStorage.setItem("tabe_notif_prompt_dismissed", (Date.now() + 14 * 24 * 60 * 60 * 1000).toString());
+    // Si tocan que no, no los volvemos a molestar nunca más
+    localStorage.setItem("tabe_notif_prompt_dismissed", "never");
   };
 
   if (!showPrompt) return null;
@@ -132,7 +133,8 @@ export function GlobalNotificationManager() {
   return (
     <aside 
       aria-label="Aviso de notificaciones" 
-      className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-auto md:top-6 left-1/2 -translate-x-1/2 z-[1050] max-w-md w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] bg-card border-3 sm:border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-2xl p-4"
+      style={{ transform: "translateX(-50%)" }}
+      className="no-comic fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-auto md:top-6 left-1/2 z-[1050] max-w-md w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] bg-card border-3 sm:border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-2xl p-4 transition-none"
     >
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#FFE600] border-2 border-foreground text-black flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
@@ -146,7 +148,7 @@ export function GlobalNotificationManager() {
             <button
               onClick={handleDismiss}
               className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-              title="Cerrar aviso"
+              title="No activar y cerrar"
             >
               <X className="w-4 h-4 stroke-[2.5]" />
             </button>
@@ -160,13 +162,13 @@ export function GlobalNotificationManager() {
               className="flex-1 bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_#000] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              Activar Ahora
+              Activar
             </button>
             <button
               onClick={handleDismiss}
-              className="bg-secondary hover:bg-muted text-foreground font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-colors flex items-center justify-center cursor-pointer"
+              className="bg-secondary hover:bg-muted text-foreground font-black text-xs uppercase px-4 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-colors flex items-center justify-center cursor-pointer"
             >
-              Más tarde
+              No
             </button>
           </div>
         </div>

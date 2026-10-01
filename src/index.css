@@ -1462,7 +1462,7 @@
 }
 
 .comic-mode-active .card,
-.comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic) {
+.comic-mode-active [class*="bg-card"]:not(aside):not(aside *):not(header *):not(.no-comic) {
   border-width: 2px !important;
   border-color: hsl(var(--foreground) / 0.85) !important;
   box-shadow: 3.5px 3.5px 0 0 hsl(var(--foreground) / 0.9) !important;
@@ -1470,19 +1470,19 @@
 }
 
 .dark.comic-mode-active .card,
-.dark .comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic):not([role="dialog"]):not([role="dialog"] *):not([role="alertdialog"]):not([role="alertdialog"] *):not([data-radix-portal] *) {
+.dark .comic-mode-active [class*="bg-card"]:not(aside):not(aside *):not(header *):not(.no-comic):not([role="dialog"]):not([role="dialog"] *):not([role="alertdialog"]):not([role="alertdialog"] *):not([data-radix-portal] *) {
   border-color: rgba(255, 255, 255, 0.35) !important;
   box-shadow: 3.5px 3.5px 0 0 #000, 3.5px 3.5px 0 1px rgba(255, 255, 255, 0.2) !important;
 }
 
 .comic-mode-active .card:hover,
-.comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic):not([role="dialog"]):not([role="dialog"] *):not([role="alertdialog"]):not([role="alertdialog"] *):not([data-radix-portal] *):hover {
+.comic-mode-active [class*="bg-card"]:not(aside):not(aside *):not(header *):not(.no-comic):not([role="dialog"]):not([role="dialog"] *):not([role="alertdialog"]):not([role="alertdialog"] *):not([data-radix-portal] *):hover {
   transform: translateY(-2px);
   box-shadow: 5px 5px 0 0 hsl(var(--foreground) / 0.9) !important;
 }
 
 .dark.comic-mode-active .card:hover,
-.dark .comic-mode-active [class*="bg-card"]:not(aside *):not(header *):not(.no-comic):not([role="dialog"]):not([role="dialog"] *):not([role="alertdialog"]):not([role="alertdialog"] *):not([data-radix-portal] *):hover {
+.dark .comic-mode-active [class*="bg-card"]:not(aside):not(aside *):not(header *):not(.no-comic):not([role="dialog"]):not([role="dialog"] *):not([role="alertdialog"]):not([role="alertdialog"] *):not([data-radix-portal] *):hover {
   transform: translateY(-2px);
   box-shadow: 5px 5px 0 0 #000, 5px 5px 0 1px rgba(255, 255, 255, 0.4) !important;
 }
