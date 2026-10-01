@@ -56,24 +56,84 @@ export function DiscordVoiceChannel({
   const localUserId = user?.id || "";
   const [showCameraMenu, setShowCameraMenu] = useState(false);
 
-  // Normalize participants
-  const activeParticipants = voiceParticipants || participants || [];
+  // Normalize participants asegurando unificación reactiva:
+  // 1. Participantes de base de datos
+  const dbParticipants = voiceParticipants || participants || [];
+
+  // 2. Participante local garantizado
+  const localParticipant: DiscordVoiceParticipant = dbParticipants.find(p => p.user_id === localUserId) || {
+    id: `local-${localUserId}`,
+    channel_id: channel.id,
+    user_id: localUserId,
+    is_muted: !isAudioEnabled,
+    is_deafened: isDeafened,
+    is_camera_on: isVideoEnabled,
+    is_screen_sharing: isScreenSharing,
+    is_speaking: speakingUsers.has(localUserId),
+    joined_at: new Date().toISOString(),
+    profile: (user?.user_metadata as any) || { nombre: "Tú", username: "Tú" }
+  };
+
+  // 3. Unir mapa de participantes (DB + Streams WebRTC activos + Media States)
+  const participantsMap = new Map<string, DiscordVoiceParticipant>();
+  dbParticipants.forEach(p => participantsMap.set(p.user_id, p));
+
+  // Asegurar participante local con estados frescos en tiempo real
+  participantsMap.set(localUserId, {
+    ...(participantsMap.get(localUserId) || localParticipant),
+    is_muted: !isAudioEnabled,
+    is_deafened: isDeafened,
+    is_camera_on: isVideoEnabled,
+    is_screen_sharing: isScreenSharing,
+    is_speaking: speakingUsers.has(localUserId),
+  });
+
+  // Agregar cualquier peer que tenga stream activo o media state activo
+  remoteStreams.forEach((_str, peerId) => {
+    if (!participantsMap.has(peerId) && peerId !== localUserId) {
+      participantsMap.set(peerId, {
+        id: `peer-${peerId}`,
+        channel_id: channel.id,
+        user_id: peerId,
+        is_muted: remoteMediaStates.get(peerId)?.isAudioEnabled === false,
+        is_deafened: false,
+        is_camera_on: remoteMediaStates.get(peerId)?.isCameraOn ?? false,
+        is_screen_sharing: remoteMediaStates.get(peerId)?.isScreenSharing ?? false,
+        is_speaking: speakingUsers.has(peerId),
+        joined_at: new Date().toISOString(),
+        profile: { username: "Compañero", nombre: "Compañero" }
+      });
+    }
+  });
+
+  const activeParticipants = Array.from(participantsMap.values());
 
   // Find screen sharer
   const screenSharer = isScreenSharing
-    ? activeParticipants.find(p => p.user_id === localUserId) || {
-        id: "me",
-        channel_id: channel.id,
-        user_id: localUserId,
-        is_muted: !isAudioEnabled,
-        is_deafened: isDeafened,
-        is_camera_on: isVideoEnabled,
-        is_screen_sharing: true,
-        is_speaking: speakingUsers.has(localUserId),
-        joined_at: new Date().toISOString(),
-        profile: user?.user_metadata || { nombre: "Tú", username: "Tú" }
-      }
-    : activeParticipants.find(p => p.is_screen_sharing || remoteMediaStates.get(p.user_id)?.isScreenSharing);
+    ? localParticipant
+    : activeParticipants.find(p => {
+        const isSharing = p.is_screen_sharing || remoteMediaStates.get(p.user_id)?.isScreenSharing;
+        const str = remoteScreenStreams.get(p.user_id) || remoteStreams.get(p.user_id);
+        const hasVideo = str && str.getVideoTracks().length > 0;
+        return isSharing && hasVideo;
+      });
+
+  // Desbloqueo proactivo de audio en navegadores móviles (iOS Safari / Android Chrome)
+  useEffect(() => {
+    const unlockAudio = () => {
+      document.querySelectorAll("audio, video").forEach((el: any) => {
+        if (el && !el.muted && el.paused && el.srcObject) {
+          el.play().catch(() => {});
+        }
+      });
+    };
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+    window.addEventListener("click", unlockAudio, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", unlockAudio);
+      window.removeEventListener("click", unlockAudio);
+    };
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col bg-background relative z-10 h-full select-none overflow-hidden">
@@ -251,57 +311,84 @@ function VideoTile({
   isVideoEnabled?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [, setTrackUpdate] = useState(0);
 
   const videoTracks = stream ? stream.getVideoTracks() : [];
   const hasLiveVideo = videoTracks.some(t => t.enabled && t.readyState === 'live');
   const showVideo = Boolean((isVideoEnabled || hasLiveVideo) && videoTracks.length > 0 && stream);
 
+  // Vincular stream al elemento de video
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
 
-    if (!stream || !showVideo) {
+    if (!stream) {
       el.srcObject = null;
       return;
     }
 
-    el.srcObject = stream;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+    el.play().catch(() => {});
+  }, [stream]);
 
-    const onTrackChange = () => {
-      setTrackUpdate(n => n + 1);
-      if (el) {
-        if (stream.getVideoTracks().length === 0) {
-          el.srcObject = null;
-        } else {
-          el.srcObject = stream;
-        }
-      }
-    };
+  // Audio dedicado persistente para pares remotos (evita bloqueos si la cámara está apagada)
+  useEffect(() => {
+    const ael = audioRef.current;
+    if (!ael || !stream || isLocal) return;
+    if (ael.srcObject !== stream) {
+      ael.srcObject = stream;
+    }
+    ael.play().catch(() => {});
+  }, [stream, isLocal]);
 
+  // Escuchar adición o remoción de pistas en caliente (cámara on/off, pantalla on/off)
+  useEffect(() => {
+    if (!stream) return;
+    const onTrackChange = () => setTrackUpdate(n => n + 1);
     stream.addEventListener('addtrack', onTrackChange);
     stream.addEventListener('removetrack', onTrackChange);
-
     return () => {
       stream.removeEventListener('addtrack', onTrackChange);
       stream.removeEventListener('removetrack', onTrackChange);
     };
-  }, [stream, showVideo]);
+  }, [stream]);
 
   return (
     <div className={cn(
       "relative rounded-2xl overflow-hidden w-full h-full min-h-[220px] max-h-[460px] aspect-video flex items-center justify-center transition-all duration-200 border-3 border-black shadow-[4px_4px_0px_#000] bg-card group",
       isSpeaking ? "ring-4 ring-[#22c55e] shadow-[0_0_20px_rgba(34,197,94,0.5),4px_4px_0px_#000]" : ""
     )}>
-      {showVideo ? (
+      {/* Audio Element para participantes remotos */}
+      {!isLocal && (
+        <audio
+          ref={audioRef}
+          autoPlay
+          playsInline
+          muted={false}
+          className="hidden"
+        />
+      )}
+
+      {/* Video Element */}
+      {stream && (
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted={isLocal}
-          className="w-full h-full object-cover"
+          className={cn(
+            "w-full h-full object-cover",
+            isLocal && "scale-x-[-1]",
+            !showVideo && "hidden"
+          )}
         />
-      ) : (
+      )}
+
+      {/* Avatar cuando la cámara no está activa */}
+      {!showVideo && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/30 p-4">
           <Avatar className={cn(
             "w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-3 border-black shadow-[4px_4px_0px_#000] transition-transform duration-200",
@@ -353,6 +440,7 @@ function SmallTile({
   isLocal: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [, setTrackUpdate] = useState(0);
 
   const videoTracks = stream ? stream.getVideoTracks() : [];
@@ -361,49 +449,47 @@ function SmallTile({
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el) return;
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) el.srcObject = stream;
+    el.play().catch(() => {});
+  }, [stream]);
 
-    if (!stream || !showVideo) {
-      el.srcObject = null;
-      return;
-    }
+  useEffect(() => {
+    const ael = audioRef.current;
+    if (!ael || !stream || isLocal) return;
+    if (ael.srcObject !== stream) ael.srcObject = stream;
+    ael.play().catch(() => {});
+  }, [stream, isLocal]);
 
-    el.srcObject = stream;
-
-    const onTrackChange = () => {
-      setTrackUpdate(n => n + 1);
-      if (el) {
-        if (stream.getVideoTracks().length === 0) {
-          el.srcObject = null;
-        } else {
-          el.srcObject = stream;
-        }
-      }
-    };
-
+  useEffect(() => {
+    if (!stream) return;
+    const onTrackChange = () => setTrackUpdate(n => n + 1);
     stream.addEventListener('addtrack', onTrackChange);
     stream.addEventListener('removetrack', onTrackChange);
-
     return () => {
       stream.removeEventListener('addtrack', onTrackChange);
       stream.removeEventListener('removetrack', onTrackChange);
     };
-  }, [stream, showVideo]);
+  }, [stream]);
 
   return (
     <div className={cn(
       "w-36 md:w-full aspect-video bg-card rounded-xl overflow-hidden relative border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center shrink-0 transition-transform",
       isSpeaking ? "ring-3 ring-[#22c55e]" : ""
     )}>
-      {showVideo ? (
+      {!isLocal && (
+        <audio ref={audioRef} autoPlay playsInline muted={false} className="hidden" />
+      )}
+      {stream && (
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted={isLocal}
-          className="w-full h-full object-cover"
+          className={cn("w-full h-full object-cover", !showVideo && "hidden")}
         />
-      ) : (
+      )}
+      {!showVideo && (
         <Avatar className="w-10 h-10 border-2 border-black shadow-[1.5px_1.5px_0px_#000]">
           <AvatarImage src={participant.profile?.avatar_url || undefined} />
           <AvatarFallback className="text-xs font-black bg-[#FFE600] text-black">
@@ -423,12 +509,14 @@ function ScreenShareTile({ stream }: { stream?: MediaStream | null }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    const el = videoRef.current;
+    if (el && stream) {
+      if (el.srcObject !== stream) el.srcObject = stream;
+      el.play().catch(() => {});
     }
   }, [stream]);
 
-  if (!stream) {
+  if (!stream || stream.getVideoTracks().length === 0) {
     return (
       <div className="text-center text-muted-foreground animate-pulse w-full h-full flex flex-col items-center justify-center p-6">
         <div className="w-16 h-16 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center mb-3">
@@ -444,7 +532,7 @@ function ScreenShareTile({ stream }: { stream?: MediaStream | null }) {
       ref={videoRef}
       autoPlay
       playsInline
-      muted
+      muted={false}
       className="w-full h-full object-contain"
     />
   );
