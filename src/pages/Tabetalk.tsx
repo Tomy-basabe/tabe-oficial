@@ -1,22 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { DiscordServerList } from "@/components/discord/DiscordServerList";
 import { DiscordChannelSidebar } from "@/components/discord/DiscordChannelSidebar";
 import { DiscordTextChannel } from "@/components/discord/DiscordTextChannel";
 import { DiscordVoiceChannel } from "@/components/discord/DiscordVoiceChannel";
-import { ArrowLeft, Hash, Volume2, Plus, Sparkles, Video, MonitorUp, Users } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Hash, 
+  Volume2, 
+  Plus, 
+  Video, 
+  MonitorUp, 
+  Users, 
+  Sparkles, 
+  Zap, 
+  Flame, 
+  Radio, 
+  CheckCircle2, 
+  MessageSquare
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 // Mobile view states: which panel is shown on small screens
 type MobileView = "servers" | "channels" | "main";
 
+type FeatureCardType = "voice" | "screen" | "community" | null;
+
 export default function Tabetalk() {
   const navigate = useNavigate();
   const discord = useDiscordVoice();
-  const [mobileView, setMobileView] = useState<MobileView>("servers");
+  const [mobileView, setMobileView] = useState<MobileView>("main");
   const [showCreateOrJoinModal, setShowCreateOrJoinModal] = useState(false);
+  const [activeFeatureModal, setActiveFeatureModal] = useState<FeatureCardType>(null);
 
   const {
     servers,
@@ -82,7 +106,11 @@ export default function Tabetalk() {
   // When selecting a server on mobile, auto-navigate to channels
   const handleSelectServer = (server: any) => {
     setCurrentServer(server);
-    if (server) setMobileView("channels");
+    if (server) {
+      setMobileView("channels");
+    } else {
+      setMobileView("main");
+    }
   };
 
   // When selecting a channel on mobile, auto-navigate to main content
@@ -91,21 +119,44 @@ export default function Tabetalk() {
     if (channel) setMobileView("main");
   };
 
+  // Al entrar a Tabetalk sin servidor seleccionado, asegurar vista principal activa
+  useEffect(() => {
+    if (!currentServer) {
+      setMobileView("main");
+    }
+  }, [currentServer]);
+
   if (loading && servers.length === 0) {
     return <LoadingScreen message="Cargando Tabetalk..." submessage="Conectando salas de voz y estudio..." />;
   }
 
   return (
-    <div className="h-screen w-screen flex bg-background overflow-hidden relative selection:bg-primary/30 text-foreground font-sans">
-      {/* Background Ambience */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
+    <div className="h-screen w-screen flex flex-col md:flex-row bg-background overflow-hidden relative selection:bg-primary/30 text-foreground font-sans">
+      {/* Background Comic/Gaming Dot Pattern */}
+      <div 
+        className="absolute inset-0 opacity-[0.035] dark:opacity-[0.05] pointer-events-none"
+        style={{ 
+          backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1.5px, transparent 0)', 
+          backgroundSize: '24px 24px' 
+        }}
+      />
+
+      {/* Ambient Radial Accent */}
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#FFE600]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#00E5FF]/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* === SERVER LIST === */}
-      {/* Desktop: always visible. Mobile: only when mobileView === "servers" */}
+      {/* Desktop: barra lateral izquierda siempre visible. 
+          Mobile: barra superior horizontal si estamos en Home/Welcome o cuando mobileView === "servers" */}
       <div className={`
         shrink-0 z-50
         md:block
-        ${mobileView === "servers" ? "block w-full" : "hidden"}
+        ${!currentServer 
+          ? "block w-full md:w-auto" 
+          : mobileView === "servers" 
+            ? "block w-full" 
+            : "hidden md:block"
+        }
       `}>
         <div className="md:w-auto w-full h-full">
           <DiscordServerList
@@ -131,21 +182,20 @@ export default function Tabetalk() {
           ${mobileView === "servers" ? "hidden md:flex" : "flex"}
         `}>
           {/* === CHANNEL SIDEBAR === */}
-          {/* Desktop: always visible. Mobile: only when mobileView === "channels" */}
           <div className={`
             shrink-0
             md:block md:w-60
             ${mobileView === "channels" ? "block w-full" : "hidden"}
           `}>
             {/* Mobile back button to servers */}
-            <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b border-border bg-card/30">
+            <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b-2 border-black bg-card/60">
               <button
                 onClick={() => setMobileView("servers")}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg border-2 border-black bg-[#FFE600] text-black shadow-[2px_2px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 stroke-[3]" />
               </button>
-              <span className="font-bold text-sm truncate">{currentServer.name}</span>
+              <span className="font-black text-sm truncate uppercase tracking-wider">{currentServer.name}</span>
             </div>
             <div className="md:h-full h-[calc(100%-48px)]">
               <DiscordChannelSidebar
@@ -178,18 +228,17 @@ export default function Tabetalk() {
           </div>
 
           {/* === MAIN CONTENT === */}
-          {/* Desktop: always visible. Mobile: only when mobileView === "main" */}
           <div className={`
             flex-1 flex flex-col bg-background relative overflow-hidden
             ${mobileView === "main" ? "flex" : "hidden md:flex"}
           `}>
             {/* Mobile header with back button */}
-            <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b border-border bg-card/30 shrink-0">
+            <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b-2 border-black bg-card/60 shrink-0">
               <button
                 onClick={() => setMobileView("channels")}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg border-2 border-black bg-[#FFE600] text-black shadow-[2px_2px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 stroke-[3]" />
               </button>
               {currentChannel && (
                 <div className="flex items-center gap-2 truncate">
@@ -198,14 +247,9 @@ export default function Tabetalk() {
                   ) : (
                     <Volume2 className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
-                  <span className="font-bold text-sm truncate">{currentChannel.name}</span>
+                  <span className="font-black text-sm truncate uppercase">{currentChannel.name}</span>
                 </div>
               )}
-            </div>
-
-            {/* Main Content Area Background Pattern */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-              style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '20px 20px' }}>
             </div>
 
             {currentChannel?.type === "text" ? (
@@ -241,14 +285,16 @@ export default function Tabetalk() {
                 remoteMediaStates={remoteMediaStates}
               />
             ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4 p-6 text-center">
-                <div className="w-20 h-20 rounded-2xl bg-card border border-border flex items-center justify-center shadow-lg shadow-black/10">
-                  <Hash className="w-10 h-10 text-primary/70" />
-                </div>
-                <div className="max-w-sm">
-                  <h3 className="text-lg font-bold text-foreground mb-1">Ningún canal seleccionado</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Elige un canal de texto o voz en la barra lateral izquierda para unirte a la conversación.
+              <div className="flex-1 flex items-center justify-center p-6 text-center">
+                <div className="max-w-md p-8 rounded-2xl bg-card border-3 border-black shadow-[6px_6px_0px_#000] flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-2xl bg-[#FFE600] border-2 border-black flex items-center justify-center mb-4 shadow-[3px_3px_0px_#000]">
+                    <Hash className="w-8 h-8 text-black stroke-[2.5]" />
+                  </div>
+                  <h3 className="text-xl font-black text-foreground uppercase tracking-wide mb-2">
+                    Ningún canal seleccionado
+                  </h3>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Elige un canal de texto o voz en el panel izquierdo para conversar o conectarte en llamada.
                   </p>
                 </div>
               </div>
@@ -256,84 +302,282 @@ export default function Tabetalk() {
           </div>
         </div>
       ) : (
-        /* === EMPTY STATE / PANTALLA DE BIENVENIDA === */
-        <div className={`
-          flex-1 flex flex-col items-center justify-center bg-background text-foreground p-6 sm:p-12 text-center relative overflow-hidden
-          ${mobileView === "servers" ? "hidden md:flex" : "flex"}
-        `}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/15 via-background to-background pointer-events-none" />
-          
-          {/* Subtle Grid Accent */}
-          <div 
-            className="absolute inset-0 opacity-[0.03] pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}
-          />
+        /* === EMPTY STATE / PANTALLA DE BIENVENIDA NEOBRUTALISTA GAMING / CÓMIC === */
+        <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 md:p-12 overflow-y-auto discord-scrollbar relative z-10">
+          <div className="w-full max-w-2xl flex flex-col items-center text-center my-auto py-6">
+            
+            {/* Top Retro Gaming Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FFE600] text-black font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000]">
+                <Flame className="w-3.5 h-3.5 fill-black stroke-black" />
+                🔥 TABETALK V2.0
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#00E5FF] text-black font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000]">
+                <Zap className="w-3.5 h-3.5 fill-black stroke-black" />
+                ⚡ P2P DIRECTO
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FF2E93] text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000]">
+                🎮 CO-STUDY
+              </span>
+            </div>
 
-          <div className="relative z-10 max-w-lg flex flex-col items-center">
-            {/* Logo con Glow ambiental */}
-            <div className="relative mb-6">
-              <div className="absolute -inset-4 bg-primary/20 rounded-full blur-2xl opacity-75 animate-pulse" />
-              <div className="relative w-24 h-24 rounded-3xl bg-card/80 border border-primary/30 backdrop-blur-md flex items-center justify-center shadow-2xl shadow-primary/20">
+            {/* Logo Arcade Neobrutalista */}
+            <div className="relative mb-6 group cursor-pointer" onClick={() => setShowCreateOrJoinModal(true)}>
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#FFE600] border-3 sm:border-4 border-black shadow-[6px_6px_0px_#000] sm:shadow-[8px_8px_0px_#000] flex items-center justify-center -rotate-2 group-hover:rotate-0 group-hover:-translate-x-1 group-hover:-translate-y-1 group-hover:shadow-[10px_10px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[4px_4px_0px_#000] transition-all duration-200">
                 <img 
                   src="/tabe-talk.png" 
                   alt="Tabetalk" 
-                  className="w-16 h-16 object-contain drop-shadow" 
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow" 
                   onError={(e) => { e.currentTarget.src = "/logo.png"; }} 
                 />
               </div>
+              <div className="absolute -top-2 -right-2 bg-black text-[#FFE600] text-[10px] font-black uppercase px-2 py-0.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#000]">
+                LIVE
+              </div>
             </div>
 
-            {/* Título y Descripción */}
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3 text-foreground">
-              ¡Bienvenido a <span className="text-primary font-orbitron">Tabetalk</span>!
-            </h2>
-            <p className="text-muted-foreground text-base sm:text-lg mb-8 max-w-md leading-relaxed">
-              Selecciona un servidor o conéctate con tus compañeros para estudiar, hablar y compartir pantalla en tiempo real.
-            </p>
+            {/* Título Neobrutalista Impactante */}
+            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-foreground mb-4 leading-tight">
+              ¡BIENVENIDO A{" "}
+              <span className="inline-block bg-[#FFE600] text-black px-3 py-1 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] rotate-1">
+                TABETALK
+              </span>
+              !
+            </h1>
 
-            {/* Botón Destacado */}
-            <Button
-              size="lg"
+            {/* Subtítulo / Descripción Contundente */}
+            <div className="max-w-lg mx-auto mb-8 p-3 sm:p-4 rounded-xl bg-card border-2 border-black shadow-[4px_4px_0px_#000]">
+              <p className="text-muted-foreground text-sm sm:text-base font-bold leading-relaxed">
+                Selecciona un servidor o conéctate con tus compañeros para estudiar, encender tu cámara y compartir pantalla sin límites.
+              </p>
+            </div>
+
+            {/* Botón Principal Arcade / Neobrutalista */}
+            <button
               onClick={() => setShowCreateOrJoinModal(true)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-6 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] transition-all flex items-center gap-2.5 text-base mb-10"
+              className="inline-flex items-center gap-3 bg-[#FFE600] hover:bg-[#FFE600]/95 text-black font-black uppercase text-base sm:text-lg px-8 py-4 sm:py-5 rounded-2xl border-3 border-black shadow-[6px_6px_0px_#000] sm:shadow-[8px_8px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[10px_10px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all cursor-pointer mb-10 group"
             >
-              <Plus className="w-5 h-5 stroke-[2.5]" />
-              Crear o Unirse a un Servidor
-            </Button>
-
-            {/* Feature Cards Informativas */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-left">
-              <div className="p-4 rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:border-primary/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-2.5">
-                  <Video className="w-4 h-4" />
-                </div>
-                <h4 className="text-xs font-bold text-foreground mb-1">Voz & Video P2P</h4>
-                <p className="text-[11px] text-muted-foreground leading-normal">
-                  Transmisión cifrada punto a punto sin retardos ni intermediarios.
-                </p>
+              <div className="w-7 h-7 rounded-lg bg-black text-[#FFE600] flex items-center justify-center group-hover:rotate-12 transition-transform">
+                <Plus className="w-5 h-5 stroke-[3]" />
               </div>
+              <span>CREAR O UNIRSE A UN SERVIDOR</span>
+            </button>
 
-              <div className="p-4 rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:border-primary/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-2.5">
-                  <MonitorUp className="w-4 h-4" />
-                </div>
-                <h4 className="text-xs font-bold text-foreground mb-1">Pantalla Compartida</h4>
-                <p className="text-[11px] text-muted-foreground leading-normal">
-                  Comparte tus diapositivas, código o apuntes en directo.
-                </p>
-              </div>
+            {/* 3 Cards Interactivas Cómic / Gaming Neobrutalistas */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+              
+              {/* Card 1: Voz & Video P2P */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={() => setActiveFeatureModal("voice")}
+                    className="p-5 rounded-2xl bg-card border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#00E5FF] text-black border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:scale-110 transition-transform">
+                          <Video className="w-5 h-5 stroke-[2.5]" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00E5FF]/20 text-foreground border border-black">
+                          ⚡ P2P DIRECTO
+                        </span>
+                      </div>
+                      <h3 className="font-black text-base uppercase text-foreground mb-1 group-hover:text-primary transition-colors">
+                        Voz & Video P2P
+                      </h3>
+                      <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                        Transmisión directa punto a punto entre navegadores sin lag ni intermediarios.
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t-2 border-black/10 flex items-center justify-between text-[11px] font-black text-primary uppercase">
+                      <span>Explorar sala</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-black shadow-[3px_3px_0px_#000]">
+                  Click para ver detalles de llamada WebRTC
+                </TooltipContent>
+              </Tooltip>
 
-              <div className="p-4 rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:border-primary/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-2.5">
-                  <Users className="w-4 h-4" />
-                </div>
-                <h4 className="text-xs font-bold text-foreground mb-1">Comunidad Activa</h4>
-                <p className="text-[11px] text-muted-foreground leading-normal">
-                  Crea canales de texto dedicados para cada tema o materia.
-                </p>
-              </div>
+              {/* Card 2: Pantalla Compartida */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={() => setActiveFeatureModal("screen")}
+                    className="p-5 rounded-2xl bg-card border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#FF2E93] text-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:scale-110 transition-transform">
+                          <MonitorUp className="w-5 h-5 stroke-[2.5]" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FF2E93]/20 text-foreground border border-black">
+                          🎮 CO-STUDY
+                        </span>
+                      </div>
+                      <h3 className="font-black text-base uppercase text-foreground mb-1 group-hover:text-primary transition-colors">
+                        Pantalla Compartida
+                      </h3>
+                      <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                        Transmite diapositivas, código o apuntes en vivo en calidad HD a tus compañeros.
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t-2 border-black/10 flex items-center justify-between text-[11px] font-black text-primary uppercase">
+                      <span>Cómo transmitir</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-black shadow-[3px_3px_0px_#000]">
+                  Click para ver cómo compartir pantalla
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Card 3: Comunidad Activa */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={() => setActiveFeatureModal("community")}
+                    className="p-5 rounded-2xl bg-card border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#FFE600] text-black border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:scale-110 transition-transform">
+                          <Users className="w-5 h-5 stroke-[2.5]" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FFE600]/30 text-foreground border border-black">
+                          🔥 CANALES
+                        </span>
+                      </div>
+                      <h3 className="font-black text-base uppercase text-foreground mb-1 group-hover:text-primary transition-colors">
+                        Comunidad Activa
+                      </h3>
+                      <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                        Canales de texto y voz organizados por materia, apuntes y grupos de estudio.
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t-2 border-black/10 flex items-center justify-between text-[11px] font-black text-primary uppercase">
+                      <span>Unirse con código</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-black shadow-[3px_3px_0px_#000]">
+                  Click para unirse o crear un espacio
+                </TooltipContent>
+              </Tooltip>
+
             </div>
           </div>
+
+          {/* Modal Interactivo de Cards Neobrutalistas */}
+          <Dialog open={!!activeFeatureModal} onOpenChange={(open) => !open && setActiveFeatureModal(null)}>
+            <DialogContent className="bg-card border-3 border-black text-foreground sm:max-w-md p-0 overflow-hidden shadow-[8px_8px_0px_#000]">
+              <DialogHeader className="p-6 pb-4 bg-muted/30 border-b-2 border-black">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-xl border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#000] ${
+                    activeFeatureModal === "voice" 
+                      ? "bg-[#00E5FF] text-black" 
+                      : activeFeatureModal === "screen" 
+                        ? "bg-[#FF2E93] text-white" 
+                        : "bg-[#FFE600] text-black"
+                  }`}>
+                    {activeFeatureModal === "voice" && <Video className="w-6 h-6 stroke-[2.5]" />}
+                    {activeFeatureModal === "screen" && <MonitorUp className="w-6 h-6 stroke-[2.5]" />}
+                    {activeFeatureModal === "community" && <Users className="w-6 h-6 stroke-[2.5]" />}
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl font-black uppercase text-foreground">
+                      {activeFeatureModal === "voice" && "Llamada Directa P2P"}
+                      {activeFeatureModal === "screen" && "Compartir Pantalla"}
+                      {activeFeatureModal === "community" && "Comunidades y Canales"}
+                    </DialogTitle>
+                    <span className="text-xs font-black uppercase text-primary">
+                      {activeFeatureModal === "voice" && "Voz y Video en Tiempo Real"}
+                      {activeFeatureModal === "screen" && "Co-Study Colaborativo"}
+                      {activeFeatureModal === "community" && "Salas de Estudio Tabe"}
+                    </span>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="p-6 space-y-4">
+                {activeFeatureModal === "voice" && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-muted-foreground leading-relaxed">
+                      Conéctate a cualquier canal de voz en tus servidores para iniciar videollamadas con baja latencia gracias a la conexión cifrada P2P con servidores STUN públicos.
+                    </p>
+                    <div className="space-y-2 text-xs font-bold">
+                      <div className="flex items-center gap-2 text-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-success" />
+                        <span>Soporta múltiples cámaras y cambio dinámico</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-success" />
+                        <span>Detección de voz activa y silenciador instantáneo</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeFeatureModal === "screen" && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-muted-foreground leading-relaxed">
+                      Dentro de una sala de voz, activa el botón de pantalla para compartir tus pestañas, apuntes de Notion o tu IDE de programación en directo.
+                    </p>
+                    <div className="space-y-2 text-xs font-bold">
+                      <div className="flex items-center gap-2 text-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-success" />
+                        <span>Reemplazo dinámico de cámara a pantalla sin cortar la llamada</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-success" />
+                        <span>Audio del sistema integrado para compartir videos o presentaciones</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeFeatureModal === "community" && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-muted-foreground leading-relaxed">
+                      Crea un servidor propio para tu cursada, grupo de trabajo o materias, o únete al de tus compañeros mediante un código alfanumérico rápido.
+                    </p>
+                    <div className="space-y-2 text-xs font-bold">
+                      <div className="flex items-center gap-2 text-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-success" />
+                        <span>Canales de texto separados para chats y archivos</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-success" />
+                        <span>Códigos de invitación únicos y gestión segura de miembros</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 flex items-center justify-end gap-3 border-t-2 border-black/10">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setActiveFeatureModal(null)}
+                    className="font-bold text-xs"
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setActiveFeatureModal(null);
+                      setShowCreateOrJoinModal(true);
+                    }}
+                    className="bg-[#FFE600] hover:bg-[#FFE600]/90 text-black font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+                  >
+                    Crear o Unirse a Servidor
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>
