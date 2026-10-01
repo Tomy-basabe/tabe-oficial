@@ -495,6 +495,7 @@ export function DiscordChannelSidebar({
           server={server}
           onUpdateServer={onUpdateServer}
           onDeleteServer={onDeleteServer}
+          onLeaveServer={onLeaveServer}
           onGetServerInviteCode={onGetServerInviteCode}
         />
       )}
