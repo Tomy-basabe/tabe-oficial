@@ -139,30 +139,35 @@ export function useDiscord() {
     [user]
   );
 
-  // Fetch user's servers (only those where they are a member)
+  // Fetch user's servers (both owned and member of)
   const fetchServers = useCallback(async () => {
     const userId = user?.id;
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     try {
-      // First get the server IDs where the user is a member
-      const { data: memberRows, error: memberError } = await supabase
-        .from("discord_server_members")
-        .select("server_id")
-        .eq("user_id", userId);
+      const [membersResult, ownedResult] = await Promise.all([
+        supabase
+          .from("discord_server_members")
+          .select("server_id")
+          .eq("user_id", userId),
+        supabase
+          .from("discord_servers")
+          .select("id")
+          .eq("owner_id", userId),
+      ]);
 
-      if (memberError) {
-        console.error("Error fetching server memberships:", memberError);
-        return;
-      }
+      const memberIds = (membersResult.data || []).map((m: any) => m.server_id);
+      const ownedIds = (ownedResult.data || []).map((s: any) => s.id);
+      const serverIds = [...new Set([...memberIds, ...ownedIds])];
 
-      if (!memberRows || memberRows.length === 0) {
+      if (serverIds.length === 0) {
         setServers([]);
         return;
       }
-
-      const serverIds = memberRows.map(m => m.server_id);
 
       const { data, error } = await supabase
         .from("discord_servers")
@@ -176,6 +181,8 @@ export function useDiscord() {
       }
 
       setServers(data || []);
+    } catch (err) {
+      console.error("Error in fetchServers:", err);
     } finally {
       setLoading(false);
     }

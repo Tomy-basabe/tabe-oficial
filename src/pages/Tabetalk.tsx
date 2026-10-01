@@ -28,7 +28,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 // Mobile view states: which panel is shown on small screens
 type MobileView = "servers" | "channels" | "main";
