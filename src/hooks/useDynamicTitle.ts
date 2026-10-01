@@ -134,10 +134,13 @@ export function DynamicTitleWatcher() {
       const cleanPath = location.pathname === "/" ? "" : location.pathname;
       const canonicalUrl = `https://tabe.com.ar${cleanPath}`;
 
-      const canonicalEl = document.querySelector('link[rel="canonical"]');
-      if (canonicalEl) {
-        canonicalEl.setAttribute("href", canonicalUrl);
+      let canonicalEl = document.querySelector('link[rel="canonical"]');
+      if (!canonicalEl) {
+        canonicalEl = document.createElement("link");
+        canonicalEl.setAttribute("rel", "canonical");
+        document.head.appendChild(canonicalEl);
       }
+      canonicalEl.setAttribute("href", canonicalUrl);
 
       const ogUrlEl = document.querySelector('meta[property="og:url"]');
       if (ogUrlEl) {
