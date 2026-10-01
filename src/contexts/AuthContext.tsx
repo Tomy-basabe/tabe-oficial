@@ -1,3 +1,5 @@
+/* REGLA ARQUITECTÓNICA: NINGÚN COMPONENTE VISUAL, HOOK O FUNCIONALIDAD PÚBLICA DEBE CONDICIONARSE AL ROL ADMIN. TODOS LOS USUARIOS USAN LA MISMA UI Y LÓGICA DE NEGOCIO SALVO LA RUTA PRIVADA /admin */
+
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,12 +27,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper para leer sesión almacenada de inmediato y evitar flash de no autenticado en Ctrl + Shift + R
+function getInitialStoredAuth(): { user: User | null; session: Session | null; isGuest: boolean } {
+  if (typeof window === "undefined") {
+    return { user: null, session: null, isGuest: false };
+  }
+  try {
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    if (url) {
+      const projectRef = new URL(url).hostname.split(".")[0];
+      const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const resolvedUser = parsed?.user || parsed?.currentSession?.user || null;
+        const resolvedSession = parsed?.session || (parsed?.access_token ? parsed : null);
+        if (resolvedUser) {
+          return { user: resolvedUser, session: resolvedSession, isGuest: false };
+        }
+      }
+    }
+  } catch {}
+  const guestActive = localStorage.getItem("tabe_guest_mode") === "true";
+  return { user: null, session: null, isGuest: guestActive };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const initialAuth = getInitialStoredAuth();
+  const [user, setUser] = useState<User | null>(initialAuth.user);
+  const [session, setSession] = useState<Session | null>(initialAuth.session);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null>(null);
-  const [isGuest, setIsGuest] = useState(true);
+  const [isGuest, setIsGuest] = useState<boolean>(initialAuth.isGuest);
 
   const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-blue', 'theme-purple', 'theme-green', 'theme-red', 'theme-pink', 'theme-black', 'theme-white'];
 
@@ -158,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (newUser) {
         setIsGuest(false);
+        try { localStorage.removeItem("tabe_guest_mode"); } catch {}
         const savedTheme = localStorage.getItem("active-theme-color");
         if (savedTheme) {
           applyTheme(savedTheme);
@@ -197,17 +225,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
+    let initialCheckCompleted = false;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        // Si el evento inicial reporta null antes de que getSession() termine de leer localStorage, esperamos
+        if (event === 'INITIAL_SESSION' && !session && !initialCheckCompleted) {
+          return;
+        }
         handleSessionChange(session);
       }
     );
 
     // Initial check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      initialCheckCompleted = true;
       handleSessionChange(session);
     }).catch(err => {
+      initialCheckCompleted = true;
       console.error("Auth session error:", err);
       if (isMounted) {
         setIsGuest(true);
@@ -413,6 +449,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginAsGuest = () => {
     setIsGuest(true);
+    try { localStorage.setItem("tabe_guest_mode", "true"); } catch {}
     // Guest dummy profile - check localStorage first
     const savedTheme = localStorage.getItem("active-theme-color");
     setProfile({ active_theme: savedTheme, active_badge: null, sidebar_config: null });

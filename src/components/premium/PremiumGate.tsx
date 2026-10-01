@@ -40,22 +40,7 @@ const plans = [
 ];
 
 export function PremiumGate({ children, feature }: PremiumGateProps) {
-    const { isPremium, loading } = useSubscription();
-    const { user, isGuest } = useAuth();
-    const [isAdmin, setIsAdmin] = useState(false);
-
-    useEffect(() => {
-        if (!user?.id) return;
-        supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", user.id)
-            .eq("role", "admin")
-            .maybeSingle()
-            .then(({ data }) => setIsAdmin(!!data));
-    }, [user?.id]);
-
-    // Everyone passes through now (Ads-only model)
+    // REGLA ARQUITECTÓNICA: Sin bifurcaciones de UI por rol fuera de /admin. Modelo Ads-only unificado.
     return <>{children}</>;
 
     // Free users see the paywall with 3 plans
