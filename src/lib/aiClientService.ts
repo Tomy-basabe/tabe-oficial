@@ -878,7 +878,7 @@ async function streamFromOpenRouter(opts: {
       headers: {
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": window.location.origin || "https://tabe.software",
+        "HTTP-Referer": window.location.origin || "https://tabe.com.ar",
         "X-Title": "TABE",
       },
       body: JSON.stringify({
