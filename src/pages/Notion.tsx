@@ -1128,6 +1128,13 @@ export default function Notion() {
     }
   }, [activeDocument?.id, activeDocument?.subject_id]);
 
+  // Pause study timer automatically upon navigating away from Notion
+  useEffect(() => {
+    return () => {
+      pauseStudyTimer();
+    };
+  }, [pauseStudyTimer]);
+
   const handleSaveOnExit = useCallback(() => {
     const doc = activeDocumentRef.current;
     if (!doc || !user) return;

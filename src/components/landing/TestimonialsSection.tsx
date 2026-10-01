@@ -29,6 +29,7 @@ export function TestimonialsSection() {
       const { data, error } = await supabase
         .from("user_reviews")
         .select("id, name, career, description, rating")
+        .eq("is_approved", true)
         .gte("rating", 1)
         .order("created_at", { ascending: false });
 

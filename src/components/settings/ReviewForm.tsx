@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface ReviewFormProps {
     userName: string;
@@ -14,10 +15,17 @@ interface ReviewFormProps {
 export function ReviewForm({ userName, userId }: ReviewFormProps) {
     const [rating, setRating] = useState<number>(0);
     const [hoveredRating, setHoveredRating] = useState<number>(0);
+    const [name, setName] = useState<string>(userName || "");
     const [career, setCareer] = useState("");
     const [description, setDescription] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [hasSubmitted, setHasSubmitted] = useState(false);
+
+    useEffect(() => {
+        if (!name && userName) {
+            setName(userName);
+        }
+    }, [userName]);
 
     useEffect(() => {
         checkExistingReview();
@@ -34,8 +42,9 @@ export function ReviewForm({ userName, userId }: ReviewFormProps) {
             if (data) {
                 setHasSubmitted(true);
                 setRating(data.rating);
-                setCareer(data.career);
-                setDescription(data.description);
+                setCareer(data.career || "");
+                setDescription(data.description || "");
+                if (data.name) setName(data.name);
             }
         } catch (error) {
             console.error("Error checking existing review", error);
@@ -50,44 +59,59 @@ export function ReviewForm({ userName, userId }: ReviewFormProps) {
             return;
         }
 
-        if (!career.trim() || !description.trim()) {
-            toast.error("Por favor completa todos los campos");
+        const trimmedCareer = career.trim();
+        const trimmedDescription = description.trim();
+        const trimmedName = (name.trim() || userName || "Estudiante").slice(0, 100);
+
+        if (!trimmedCareer || !trimmedDescription) {
+            toast.error("Por favor completa todos los campos requeridos");
+            return;
+        }
+
+        if (trimmedCareer.length > 80) {
+            toast.error("La carrera o facultad no puede superar los 80 caracteres");
+            return;
+        }
+
+        if (trimmedDescription.length > 300) {
+            toast.error("El testimonio no puede superar los 300 caracteres");
             return;
         }
 
         setIsSubmitting(true);
 
         try {
+            const payload = {
+                name: trimmedName,
+                career: trimmedCareer.slice(0, 80),
+                rating,
+                description: trimmedDescription.slice(0, 300),
+                is_approved: false, // Toda reseña nueva o modificada queda pendiente de moderación
+            };
+
             if (hasSubmitted) {
-                // Determine if we should update or not (for now we let them update)
                 const { data, error } = await supabase
                     .from("user_reviews")
-                    .update({
-                        name: userName,
-                        career,
-                        rating,
-                        description
-                    })
+                    .update(payload)
                     .eq("user_id", userId)
                     .select();
 
                 if (error) throw error;
-                if (!data || data.length === 0) throw new Error("La base de datos bloqueó la actualización (Probablemente falte la política UPDATE en Supabase).");
+                if (!data || data.length === 0) {
+                    throw new Error("La base de datos bloqueó la actualización.");
+                }
 
-                toast.success("Valoración actualizada correctamente. ¡Gracias!");
+                toast.success("¡Gracias por tu reseña! Estará visible en la portada una vez revisada por el equipo.");
             } else {
                 const { error } = await supabase
                     .from("user_reviews")
                     .insert({
+                        ...payload,
                         user_id: userId,
-                        name: userName,
-                        career,
-                        rating,
-                        description
                     });
 
                 if (error) throw error;
-                toast.success("Valoración enviada correctamente. ¡Muchas gracias!");
+                toast.success("¡Gracias por tu reseña! Estará visible en la portada una vez revisada por el equipo.");
                 setHasSubmitted(true);
             }
         } catch (error) {
@@ -124,23 +148,63 @@ export function ReviewForm({ userName, userId }: ReviewFormProps) {
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Carrera que estudias</label>
+                <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium">Nombre visible</label>
+                    <span className="text-[11px] font-mono text-muted-foreground">
+                        {name.length}/100 caracteres
+                    </span>
+                </div>
                 <Input
-                    placeholder="Ej. Ingeniería en Sistemas"
-                    value={career}
-                    onChange={(e) => setCareer(e.target.value)}
+                    placeholder="Tu nombre o alias"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    maxLength={100}
                     className="bg-background/50 border-white/10 text-foreground"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Cuéntanos tu experiencia</label>
+                <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium">Carrera que estudias</label>
+                    <span className="text-[11px] font-mono text-muted-foreground">
+                        {career.length}/80 caracteres
+                    </span>
+                </div>
+                <Input
+                    placeholder="Ej. Ingeniería en Sistemas"
+                    value={career}
+                    onChange={(e) => setCareer(e.target.value)}
+                    maxLength={80}
+                    className="bg-background/50 border-white/10 text-foreground"
+                />
+            </div>
+
+            <div>
+                <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-sm font-medium">Cuéntanos tu experiencia</label>
+                    <div
+                        className={cn(
+                            "inline-flex items-center gap-1 font-mono font-black text-xs px-2.5 py-0.5 rounded border shadow-[2px_2px_0_0_#000] tracking-wide transition-all select-none",
+                            description.length >= 280
+                                ? "bg-[#FF2E93] text-white border-black scale-105"
+                                : description.length >= 200
+                                ? "bg-[#FFE600] text-black border-black"
+                                : "bg-secondary/70 text-foreground border-border"
+                        )}
+                    >
+                        <span>{description.length}/300 caracteres</span>
+                    </div>
+                </div>
                 <Textarea
-                    placeholder="¿Cómo te ha ayudado T.A.B.E en tus estudios?"
+                    placeholder="¿Cómo te ha ayudado TABE en tus estudios?"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    maxLength={300}
                     className="h-24 resize-none bg-background/50 border-white/10 text-foreground"
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                    ⚡ Tu testimonio estará visible en la portada una vez revisado por el equipo.
+                </p>
             </div>
 
             <Button

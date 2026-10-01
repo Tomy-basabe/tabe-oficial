@@ -25,6 +25,7 @@ interface UserReview {
   rating: number;
   description: string;
   created_at: string;
+  is_approved?: boolean;
 }
 
 interface Profile {
@@ -358,6 +359,23 @@ const AdminPanel = () => {
     } catch (error) {
       console.error("Error deleting review:", error);
       toast.error("Error al eliminar la valoración");
+    }
+  };
+
+  const handleToggleApproval = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("user_reviews")
+        .update({ is_approved: !currentStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success(!currentStatus ? "Reseña aprobada para la portada" : "Reseña ocultada de la portada");
+      fetchReviews();
+    } catch (error) {
+      console.error("Error toggling review approval:", error);
+      toast.error("Error al cambiar estado de moderación");
     }
   };
 
@@ -763,6 +781,15 @@ const AdminPanel = () => {
                         <Badge variant="outline" className="text-xs bg-secondary/50">
                           {review.career}
                         </Badge>
+                        {review.is_approved ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px]">
+                            ✓ Aprobada
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px]">
+                            ⏳ Pendiente
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -781,15 +808,28 @@ const AdminPanel = () => {
                       </p>
                     </div>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
-                      onClick={() => handleDeleteReview(review.id)}
-                      title="Eliminar valoración"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant={review.is_approved ? "outline" : "default"}
+                        size="sm"
+                        className={review.is_approved 
+                          ? "text-amber-400 border-amber-500/40 hover:bg-amber-500/10 text-xs h-8" 
+                          : "bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8"}
+                        onClick={() => handleToggleApproval(review.id, !!review.is_approved)}
+                        title={review.is_approved ? "Ocultar de portada" : "Aprobar para portada"}
+                      >
+                        {review.is_approved ? "Ocultar" : "Aprobar"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                        onClick={() => handleDeleteReview(review.id)}
+                        title="Eliminar valoración"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

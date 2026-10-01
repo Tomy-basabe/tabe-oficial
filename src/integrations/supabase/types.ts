@@ -1522,6 +1522,7 @@ export type Database = {
           created_at: string | null
           description: string
           id: string
+          is_approved: boolean
           name: string
           rating: number
           user_id: string
@@ -1531,6 +1532,7 @@ export type Database = {
           created_at?: string | null
           description: string
           id?: string
+          is_approved?: boolean
           name: string
           rating: number
           user_id: string
@@ -1540,6 +1542,7 @@ export type Database = {
           created_at?: string | null
           description?: string
           id?: string
+          is_approved?: boolean
           name?: string
           rating?: number
           user_id?: string

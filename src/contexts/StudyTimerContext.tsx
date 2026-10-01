@@ -111,14 +111,35 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
   // Persist current session time to database (study_sessions + notion_documents) and trigger Forest growth
   const flushUnsavedTime = useCallback(async (explicitSubjectId?: string | null, explicitDocId?: string | null) => {
     if (!user) return;
+
+    // Check localStorage to sync with any other open tab
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.lastSavedSeconds === "number" && parsed.lastSavedSeconds > lastSavedSecondsRef.current) {
+          lastSavedSecondsRef.current = parsed.lastSavedSeconds;
+        }
+      } catch {}
+    }
+
     const currentTotal = computeExactSeconds();
-    const unsaved = currentTotal - lastSavedSecondsRef.current;
+    let unsaved = currentTotal - lastSavedSecondsRef.current;
 
     // Only record if at least 3 seconds were studied to avoid noise
     if (unsaved < 3) return;
 
+    // SAFETY CAP: Never flush more than 1 hour (3600s) in a single burst
+    if (unsaved > 3600) {
+      console.warn(`[StudyTimer] Salto de tiempo anómalo detectado (${unsaved}s). Limitando a 3600s para evitar horas fantasma.`);
+      unsaved = 3600;
+    }
+
     const targetSubId = explicitSubjectId !== undefined ? explicitSubjectId : subjectIdRef.current;
     const targetDocId = explicitDocId !== undefined ? explicitDocId : documentIdRef.current;
+
+    // Mark as saved in ref immediately to prevent race conditions from concurrent triggers
+    lastSavedSecondsRef.current = currentTotal;
 
     try {
       // 1. Insert into study_sessions (Triggers racha, metricas, and Forest growth in Supabase)
@@ -152,10 +173,7 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // 3. Update saved marker
-      lastSavedSecondsRef.current = currentTotal;
-
-      // Update storage snapshot
+      // 3. Update storage snapshot
       saveStoredState({
         isActive: isActiveRef.current,
         isPaused: isPausedRef.current,
@@ -363,44 +381,144 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, flushUnsavedTime]);
 
-  // Initialize and restore state from localStorage on mount
+  // Initialize and restore state from localStorage on mount with cold-boot safety
   useEffect(() => {
     const saved = loadStoredState(user?.id);
     if (saved && saved.isActive) {
+      const now = Date.now();
+      const lastUpdateTimestamp = saved.updatedAt || saved.startTime || 0;
+      const timeSinceLastActive = now - lastUpdateTimestamp;
+
+      // STALE / DISCONNECT GUARD:
+      // If more than 5 minutes elapsed since the last recorded activity, the browser/tab
+      // was closed or machine was asleep. DO NOT add offline elapsed time. Restore as PAUSED.
+      const isStaleOrWasClosed = timeSinceLastActive > 5 * 60 * 1000;
+
       subjectIdRef.current = saved.subjectId;
       documentIdRef.current = saved.documentId;
       documentTitleRef.current = saved.documentTitle;
       lastSavedSecondsRef.current = saved.lastSavedSeconds || 0;
-      accumulatedSecondsRef.current = saved.accumulatedSeconds || 0;
-      isPausedRef.current = saved.isPaused;
-      isActiveRef.current = true;
 
-      if (!saved.isPaused && saved.startTime) {
-        // Calculate exact real time passed including background duration
-        const now = Date.now();
+      if (!saved.isPaused && saved.startTime && !isStaleOrWasClosed) {
+        // Fast refresh within 5 minutes: compute exact background seconds
         const elapsedSinceStart = Math.max(0, Math.floor((now - saved.startTime) / 1000));
         const total = (saved.accumulatedSeconds || 0) + elapsedSinceStart;
         startTimeRef.current = saved.startTime;
+        accumulatedSecondsRef.current = saved.accumulatedSeconds || 0;
+        isPausedRef.current = false;
         setSeconds(total);
+        setIsPaused(false);
       } else {
+        // Was offline or already paused: freeze accumulated seconds and remain paused
         startTimeRef.current = null;
-        setSeconds(saved.accumulatedSeconds || 0);
+        const total = saved.accumulatedSeconds || saved.lastSavedSeconds || 0;
+        accumulatedSecondsRef.current = total;
+        isPausedRef.current = true;
+        setSeconds(total);
+        setIsPaused(true);
+
+        saveStoredState({
+          ...saved,
+          isPaused: true,
+          startTime: null,
+          accumulatedSeconds: total,
+          updatedAt: now,
+        });
       }
 
+      isActiveRef.current = true;
       setIsActive(true);
-      setIsPaused(saved.isPaused);
       setSubjectId(saved.subjectId);
       setDocumentId(saved.documentId);
       setDocumentTitle(saved.documentTitle);
     }
   }, [user?.id]);
 
-  // Periodic tick + visibility listener + background synchronization
+  // Multi-tab synchronization via storage events
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || !e.newValue) return;
+      try {
+        const data: StoredTimerState = JSON.parse(e.newValue);
+        if (user?.id && data.userId && data.userId !== user.id) return;
+
+        // Keep lastSavedSeconds updated across tabs so only genuine increments are flushed
+        if (typeof data.lastSavedSeconds === "number" && data.lastSavedSeconds > lastSavedSecondsRef.current) {
+          lastSavedSecondsRef.current = data.lastSavedSeconds;
+        }
+
+        // Sync pause/resume state
+        if (data.isPaused !== isPausedRef.current) {
+          isPausedRef.current = data.isPaused;
+          setIsPaused(data.isPaused);
+          if (data.isPaused) {
+            startTimeRef.current = null;
+            accumulatedSecondsRef.current = data.accumulatedSeconds || 0;
+            setSeconds(data.accumulatedSeconds || 0);
+          } else if (data.startTime) {
+            startTimeRef.current = data.startTime;
+            accumulatedSecondsRef.current = data.accumulatedSeconds || 0;
+          }
+        }
+
+        if (data.isActive !== isActiveRef.current) {
+          isActiveRef.current = data.isActive;
+          setIsActive(data.isActive);
+        }
+      } catch {}
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [user?.id]);
+
+  // AFK / Inactivity detector: auto-pause if user is idle for 15 minutes
+  const lastUserInteractionRef = useRef<number>(Date.now());
+  useEffect(() => {
+    const markInteraction = () => {
+      lastUserInteractionRef.current = Date.now();
+    };
+
+    const events = ["mousemove", "keydown", "scroll", "touchstart", "click"];
+    events.forEach((ev) => window.addEventListener(ev, markInteraction, { passive: true }));
+
+    const idleChecker = setInterval(() => {
+      if (isActiveRef.current && !isPausedRef.current) {
+        const idleDuration = Date.now() - lastUserInteractionRef.current;
+        if (idleDuration >= 15 * 60 * 1000) {
+          console.warn("[StudyTimer] Inactividad prolongada (15m sin interacción). Pausando cronómetro automáticamente.");
+          pauseTimer();
+          toast.info("Cronómetro de estudio pausado por inactividad.", { duration: 4000 });
+        }
+      }
+    }, 15000); // Check every 15 seconds
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, markInteraction));
+      clearInterval(idleChecker);
+    };
+  }, [pauseTimer]);
+
+  // Periodic tick + visibility listener + heartbeat update
+  const lastHeartbeatRef = useRef<number>(0);
   useEffect(() => {
     const updateTick = () => {
       if (!isActiveRef.current || isPausedRef.current || !startTimeRef.current) return;
       const exact = computeExactSeconds();
       setSeconds(exact);
+
+      const now = Date.now();
+      // Heartbeat: update updatedAt in localStorage every 5 seconds to provide accurate disconnect timestamp
+      if (now - lastHeartbeatRef.current >= 5000) {
+        lastHeartbeatRef.current = now;
+        const currentSaved = loadStoredState(user?.id);
+        if (currentSaved && currentSaved.isActive && !currentSaved.isPaused) {
+          saveStoredState({
+            ...currentSaved,
+            updatedAt: now,
+          });
+        }
+      }
 
       // Auto-save to DB every 5 minutes (300 seconds) of unsaved study time
       if (exact - lastSavedSecondsRef.current >= 300) {
@@ -428,15 +546,16 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("focus", handleVisibilityOrFocus);
       window.removeEventListener("pageshow", handleVisibilityOrFocus);
     };
-  }, [computeExactSeconds, flushUnsavedTime]);
+  }, [computeExactSeconds, flushUnsavedTime, user?.id]);
 
   // Tab unload safety: flush any unsaved time on tab close / reload
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (!user || !isActiveRef.current) return;
+      if (!user || !isActiveRef.current || isPausedRef.current) return;
       const exact = computeExactSeconds();
-      const unsaved = exact - lastSavedSecondsRef.current;
+      let unsaved = exact - lastSavedSecondsRef.current;
       if (unsaved >= 5) {
+        if (unsaved > 3600) unsaved = 3600;
         const url = import.meta.env.VITE_SUPABASE_URL;
         const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         if (url && key) {
