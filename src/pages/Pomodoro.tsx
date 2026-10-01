@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Play, Pause, RotateCcw, Settings, Coffee, BookOpen, Target, Loader2, Save, Gamepad2, Swords, CheckSquare, Calendar, Filter, X } from "lucide-react";
+import { Play, Pause, RotateCcw, Settings, Coffee, BookOpen, Target, Loader2, Save, Gamepad2, Swords, CheckSquare, Calendar, Filter, X, PictureInPicture2 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +62,9 @@ export default function Pomodoro() {
     completedPomodoros,
     settings: pomodoroSettings,
     updateSettings,
+    isPipSupported,
+    isPipActive,
+    togglePip,
   } = usePomodoro();
 
   const { subjects: careerSubjects } = useSubjects();
@@ -214,7 +217,23 @@ export default function Pomodoro() {
             <span>ESTUDIÁ COMO JUGÁS. TÉCNICA POMODORO SINCRONIZADA.</span>
           </p>
         </div>
-        <div className="relative z-10 flex items-center gap-2.5">
+        <div className="relative z-10 flex flex-wrap items-center gap-2.5">
+          {isPipSupported && (
+            <button
+              onClick={togglePip}
+              className={cn(
+                "px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-black text-xs uppercase tracking-wider border-2 border-foreground transition-all flex items-center gap-2 cursor-pointer shadow-[3px_3px_0_0_#000] active:translate-y-[1px]",
+                isPipActive
+                  ? "bg-[#FFE600] text-black ring-2 ring-black"
+                  : "bg-white text-black hover:translate-y-[-1px]"
+              )}
+              title={isPipActive ? "Cerrar ventana flotante (PiP)" : "Minimizar a ventana flotante (Document PiP)"}
+            >
+              <PictureInPicture2 className="w-4 h-4 text-[#ff4747] stroke-[2.5]" />
+              <span>{isPipActive ? "PiP Activo" : "Ventana Flotante"}</span>
+            </button>
+          )}
+
           <button
             onClick={() => navigate("/tareas")}
             className="px-4 py-2.5 rounded-xl bg-white text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
@@ -361,6 +380,25 @@ export default function Pomodoro() {
               >
                 <Settings className="w-6 h-6 lg:w-7 lg:h-7" />
               </button>
+
+              {isPipSupported && (
+                <button
+                  onClick={togglePip}
+                  disabled={isRinging}
+                  aria-label="Minimizar a ventana flotante"
+                  title={isPipActive ? "Cerrar ventana flotante (PiP)" : "Minimizar a ventana flotante (Document PiP)"}
+                  className={cn(
+                    "p-4 rounded-xl border-[3px] border-foreground transition-all duration-200 flex items-center justify-center",
+                    isRinging
+                      ? "opacity-30 cursor-not-allowed"
+                      : isPipActive
+                        ? "bg-[#FFE600] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[2px]"
+                        : "bg-muted text-foreground hover:bg-muted/80 shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                  )}
+                >
+                  <PictureInPicture2 className="w-6 h-6 lg:w-7 lg:h-7" />
+                </button>
+              )}
             </div>
 
 

@@ -2,11 +2,11 @@
 import { usePomodoro } from "@/contexts/PomodoroContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, BellOff } from "lucide-react";
+import { Play, Pause, BellOff, PictureInPicture2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function GlobalPomodoroWidget() {
-    const { timeLeft, isActive, isRinging, toggleTimer, stopAlarm, formatTime, mode } = usePomodoro();
+    const { timeLeft, isActive, isRinging, toggleTimer, stopAlarm, formatTime, mode, isPipSupported, isPipActive, togglePip } = usePomodoro();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -71,7 +71,25 @@ export function GlobalPomodoroWidget() {
                     )}
                 </div>
 
-                <div className="flex gap-1 z-10">
+                <div className="flex gap-1 z-10 items-center">
+                    {isPipSupported && (
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className={cn(
+                                "h-8 w-8 rounded-full hover:bg-primary/20",
+                                isPipActive && "text-primary bg-primary/10"
+                            )}
+                            title={isPipActive ? "Cerrar ventana flotante (PiP)" : "Minimizar a ventana flotante (Document PiP)"}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                togglePip();
+                            }}
+                        >
+                            <PictureInPicture2 className="h-4 w-4" />
+                        </Button>
+                    )}
+
                     {isRinging ? (
                         <Button size="icon" variant="destructive" className="h-8 w-8 rounded-full" onClick={stopAlarm}>
                             <BellOff className="h-4 w-4" />

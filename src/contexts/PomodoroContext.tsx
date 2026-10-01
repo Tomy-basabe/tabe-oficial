@@ -1,9 +1,11 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toLocalDateStr } from "@/lib/utils";
+import { PomodoroPipWidget } from "@/components/pomodoro/PomodoroPipWidget";
 
 export type TimerMode = "work" | "shortBreak" | "longBreak";
 export type SoundType = "classic" | "zen" | "arcade";
@@ -67,6 +69,11 @@ interface PomodoroContextType {
     completedPomodoros: number;
     settings: PomodoroSettings;
     updateSettings: (newSettings: PomodoroSettings) => void;
+    isPipSupported: boolean;
+    isPipActive: boolean;
+    openPip: () => Promise<void>;
+    closePip: () => void;
+    togglePip: () => Promise<void>;
 }
 
 const PomodoroContext = createContext<PomodoroContextType | undefined>(undefined);
@@ -84,6 +91,13 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const elapsedSecondsRef = useRef(0);
     const [completedPomodoros, setCompletedPomodoros] = useState(0);
     const [sessionStartDate, setSessionStartDate] = useState<string>(() => toLocalDateStr());
+
+    // Document Picture-in-Picture (PiP) State
+    const isPipSupported = typeof window !== "undefined" && "documentPictureInPicture" in window;
+    const [isPipActive, setIsPipActive] = useState(false);
+    const [pipWindow, setPipWindow] = useState<Window | null>(null);
+    const [pipContainer, setPipContainer] = useState<HTMLElement | null>(null);
+    const pipWindowRef = useRef<Window | null>(null);
 
     useEffect(() => {
         elapsedSecondsRef.current = elapsedSeconds;
@@ -367,6 +381,22 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             playAlarm();
         }
 
+        // Notificación de sistema (desktop/móvil)
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            try {
+                const notifTitle = mode === "work" ? "🍅 ¡Pomodoro terminado!" : "☕ ¡Descanso terminado!";
+                const notifBody = mode === "work" 
+                    ? "Excelente sesión de estudio. ¡Tomate un merecido descanso!"
+                    : "El descanso finalizó. ¡Hora de volver a concentrarse!";
+                new Notification(notifTitle, {
+                    body: notifBody,
+                    icon: "/favicon.ico",
+                });
+            } catch (err) {
+                console.warn("No se pudo disparar notificación de sistema:", err);
+            }
+        }
+
         if (mode === "work") {
             saveCurrentSession(true);
             toast.success(`Pomodoro terminado!`, {
@@ -413,6 +443,136 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     };
 
+    // Document Picture-in-Picture (PiP) Implementation
+    const closePip = useCallback(() => {
+        if (pipWindowRef.current && !pipWindowRef.current.closed) {
+            pipWindowRef.current.close();
+        }
+        pipWindowRef.current = null;
+        setPipWindow(null);
+        setPipContainer(null);
+        setIsPipActive(false);
+    }, []);
+
+    const openPip = useCallback(async () => {
+        if (!isPipSupported) {
+            toast.error("Tu navegador no soporta ventana flotante (Document PiP). Prueba en Google Chrome o Microsoft Edge.");
+            return;
+        }
+
+        if (pipWindowRef.current && !pipWindowRef.current.closed) {
+            pipWindowRef.current.focus();
+            return;
+        }
+
+        try {
+            // Solicitar permisos de notificación si están pendientes
+            if (typeof Notification !== "undefined" && Notification.permission === "default") {
+                Notification.requestPermission().catch(() => {});
+            }
+
+            const pipWin = await (window as any).documentPictureInPicture.requestWindow({
+                width: 280,
+                height: 180,
+                disallowReturnToOpener: false,
+            });
+
+            pipWindowRef.current = pipWin;
+            setPipWindow(pipWin);
+
+            // Copiar estilos CSS del documento principal
+            try {
+                // 1. Clonar tags link y style existentes
+                document.querySelectorAll("link[rel='stylesheet'], style").forEach((node) => {
+                    pipWin.document.head.appendChild(node.cloneNode(true));
+                });
+
+                // 2. Copiar reglas de hojas de estilo cargadas
+                [...document.styleSheets].forEach((styleSheet) => {
+                    try {
+                        if (styleSheet.cssRules) {
+                            const newStyleEl = pipWin.document.createElement("style");
+                            for (const cssRule of styleSheet.cssRules) {
+                                newStyleEl.appendChild(pipWin.document.createTextNode(cssRule.cssText));
+                            }
+                            pipWin.document.head.appendChild(newStyleEl);
+                        }
+                    } catch {
+                        // Ignorar hojas de estilo con restricciones CORS
+                    }
+                });
+
+                // 3. Reglas base de reset para ventana compacta
+                const resetStyle = pipWin.document.createElement("style");
+                resetStyle.textContent = `
+                    * { box-sizing: border-box; }
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-color: #ffffff;
+                        color: #000000;
+                        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                        overflow: hidden;
+                        user-select: none;
+                        -webkit-user-select: none;
+                    }
+                    button { cursor: pointer; font-family: inherit; }
+                `;
+                pipWin.document.head.appendChild(resetStyle);
+            } catch (styleErr) {
+                console.warn("Aviso al transferir estilos a PiP:", styleErr);
+            }
+
+            // Metadatos
+            pipWin.document.title = "🍅 Pomodoro TABE";
+            pipWin.document.body.className = "bg-white text-black m-0 p-0 overflow-hidden font-sans select-none";
+
+            // Contenedor del portal React
+            let container = pipWin.document.getElementById("pomodoro-pip-root");
+            if (!container) {
+                container = pipWin.document.createElement("div");
+                container.id = "pomodoro-pip-root";
+                container.style.width = "100%";
+                container.style.height = "100%";
+                pipWin.document.body.appendChild(container);
+            }
+            setPipContainer(container);
+            setIsPipActive(true);
+
+            // Escuchar cierre de la ventana flotante
+            pipWin.addEventListener("pagehide", () => {
+                pipWindowRef.current = null;
+                setPipWindow(null);
+                setPipContainer(null);
+                setIsPipActive(false);
+            });
+
+        } catch (err: any) {
+            console.error("Error al abrir ventana flotante PiP:", err);
+            toast.error("No se pudo abrir la ventana flotante.");
+            setIsPipActive(false);
+        }
+    }, [isPipSupported]);
+
+    const togglePip = useCallback(async () => {
+        if (isPipActive && pipWindowRef.current && !pipWindowRef.current.closed) {
+            closePip();
+        } else {
+            await openPip();
+        }
+    }, [isPipActive, closePip, openPip]);
+
+    // Limpieza de ventana flotante al desmontar
+    useEffect(() => {
+        return () => {
+            if (pipWindowRef.current && !pipWindowRef.current.closed) {
+                pipWindowRef.current.close();
+            }
+        };
+    }, []);
+
     const totalTime = getMinutesForMode(mode, pomodoroSettings) * 60;
     const progress = ((totalTime - timeLeft) / totalTime) * 100;
 
@@ -435,8 +595,17 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             completedPomodoros,
             settings: pomodoroSettings,
             updateSettings,
+            isPipSupported,
+            isPipActive,
+            openPip,
+            closePip,
+            togglePip,
         }}>
             {children}
+            {isPipActive && pipContainer && pipWindow && createPortal(
+                <PomodoroPipWidget pipWindow={pipWindow} />,
+                pipContainer
+            )}
         </PomodoroContext.Provider>
     );
 }
