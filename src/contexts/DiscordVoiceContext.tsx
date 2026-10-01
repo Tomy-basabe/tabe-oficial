@@ -9,14 +9,16 @@ const DiscordVoiceContext = createContext<any>(null);
 export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
     const discord = useDiscord();
 
-    // Only activate voice when user is viewing a voice channel
-    const voiceChannelId = discord.currentChannel?.type === 'voice' ? discord.currentChannel.id : null;
+    // Activate voice based on currentVoiceChannel (persistent) or currentChannel if it's voice
+    const activeVoiceChannel = discord.currentVoiceChannel || (discord.currentChannel?.type === 'voice' ? discord.currentChannel : null);
+    const voiceChannelId = activeVoiceChannel ? activeVoiceChannel.id : null;
     const voice = useRobustDiscord({ channelId: voiceChannelId });
 
     // Merge: discord provides data (servers, channels, messages, participants)
     //        voice provides media (streams, toggle functions)
     const combinedValue = {
         ...discord,
+        currentVoiceChannel: activeVoiceChannel,
         // Override media-related properties with robust hook values
         localStream: voice.localStream,
         remoteStreams: voice.remoteStreams,

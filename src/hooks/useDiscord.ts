@@ -96,6 +96,7 @@ export function useDiscord() {
 
   const [loading, setLoading] = useState(false);
   const [inVoiceChannel, setInVoiceChannel] = useState(false);
+  const [currentVoiceChannel, setCurrentVoiceChannel] = useState<DiscordChannel | null>(null);
 
   // Refs
   const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -826,6 +827,7 @@ export function useDiscord() {
       }
 
       setInternalCurrentChannel(channel);
+      setCurrentVoiceChannel(channel);
       setInVoiceChannel(true);
 
       // Signaling moved to useRobustDiscord
@@ -839,15 +841,16 @@ export function useDiscord() {
         description: `${name}: ${message}`,
         variant: "destructive",
       });
+      setCurrentVoiceChannel(null);
       setInVoiceChannel(false);
     }
   };
 
   // Leave voice channel
   const leaveVoiceChannel = async () => {
-    if (!user || !currentChannel) return;
-
-    console.log("[Discord][Diag] leaveVoiceChannel", { channelId: currentChannel.id, userId: user.id });
+    if (!user) return;
+    const targetChannelId = currentVoiceChannel?.id || currentChannel?.id;
+    console.log("[Discord][Diag] leaveVoiceChannel", { channelId: targetChannelId, userId: user.id });
 
     // Remove ALL voice participant rows for this user (cleanup stale entries)
     await supabase
@@ -855,16 +858,19 @@ export function useDiscord() {
       .delete()
       .eq("user_id", user.id);
 
+    setCurrentVoiceChannel(null);
     setInVoiceChannel(false);
     setIsScreenSharing(false);
     setIsSpeaking(false);
 
-    // Switch to default text channel so robust hook gets channelId=null and stops media
-    const textChannel = channels.find(c => c.type === 'text');
-    if (textChannel) {
-      setInternalCurrentChannel(textChannel);
-    } else {
-      setInternalCurrentChannel(null);
+    // Switch to default text channel if currently viewing a voice channel
+    if (currentChannel?.type === 'voice') {
+      const textChannel = channels.find(c => c.type === 'text');
+      if (textChannel) {
+        setInternalCurrentChannel(textChannel);
+      } else {
+        setInternalCurrentChannel(null);
+      }
     }
   };
 
@@ -1521,29 +1527,26 @@ export function useDiscord() {
     // If clicking the same channel, do nothing
     if (currentChannel?.id === channel?.id) return;
 
-    // Logic for Voice Channels
-    const isLeavingVoice = inVoiceChannel || (currentChannel?.type === 'voice'); // Ensure we catch if we are in a voice channel even if flag is desynced
-    const isJoiningVoice = channel?.type === 'voice';
-
-    console.log("[Discord] Changing Channel:", {
-      from: currentChannel?.name,
-      to: channel?.name,
-      isLeavingVoice,
-      isJoiningVoice
-    });
-
-    if (isLeavingVoice) {
-      console.log("[Discord] Leaving previous voice channel...");
-      await leaveVoiceChannel();
-      // Small delay to ensure cleanup
-      await new Promise(r => setTimeout(r, 100));
+    if (!channel) {
+      setInternalCurrentChannel(null);
+      return;
     }
 
-    setInternalCurrentChannel(channel);
-
-    if (isJoiningVoice && channel) {
-      console.log("[Discord] Joining new voice channel...");
-      await joinVoiceChannel(channel);
+    if (channel.type === 'voice') {
+      // Si nos movemos a un canal de voz diferente al que ya estábamos conectados
+      if (inVoiceChannel && currentVoiceChannel?.id !== channel.id) {
+        console.log("[Discord] Switching voice channel from", currentVoiceChannel?.name, "to", channel.name);
+        await leaveVoiceChannel();
+        await new Promise(r => setTimeout(r, 100));
+        await joinVoiceChannel(channel);
+      } else if (!inVoiceChannel) {
+        await joinVoiceChannel(channel);
+      }
+      setInternalCurrentChannel(channel);
+    } else {
+      // Si navegamos a un canal de texto, cambiamos la pantalla de visualización,
+      // pero la llamada de voz se mantiene activa sin interrupción
+      setInternalCurrentChannel(channel);
     }
   };
 
@@ -1557,6 +1560,7 @@ export function useDiscord() {
 
     // Channel state
     currentChannel,
+    currentVoiceChannel,
     setCurrentChannel: handleSetCurrentChannel,
     messages,
     voiceParticipants,

@@ -4,7 +4,28 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 
 export function DiscordAudioRenderer() {
-    const { remoteStreams, voiceParticipants } = useDiscordVoice();
+    const { remoteStreams } = useDiscordVoice();
+
+    // Desbloqueo global de audio con cualquier interacción del usuario (click, touch, keydown)
+    useEffect(() => {
+        const resumeAllAudio = () => {
+            document.querySelectorAll("audio[data-tabetalk-audio='true']").forEach((el: any) => {
+                if (el && el.paused && el.srcObject) {
+                    el.play().catch(() => {});
+                }
+            });
+        };
+
+        window.addEventListener("click", resumeAllAudio, { passive: true });
+        window.addEventListener("touchstart", resumeAllAudio, { passive: true });
+        window.addEventListener("keydown", resumeAllAudio, { passive: true });
+
+        return () => {
+            window.removeEventListener("click", resumeAllAudio);
+            window.removeEventListener("touchstart", resumeAllAudio);
+            window.removeEventListener("keydown", resumeAllAudio);
+        };
+    }, []);
 
     return (
         <div className="sr-only" aria-hidden="true">
@@ -13,7 +34,6 @@ export function DiscordAudioRenderer() {
                     key={peerId}
                     peerId={peerId}
                     stream={stream}
-                // Find participant to check if they are locally muted (optional feature for later)
                 />
             ))}
         </div>
@@ -25,36 +45,39 @@ function AudioStream({ peerId, stream }: { peerId: string; stream: MediaStream }
     const audioRef = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
-        if (audioRef.current && stream) {
-            console.log(`[DiscordAudio] Attaching stream ${peerId}`, stream.getAudioTracks());
-            audioRef.current.srcObject = stream;
+        const el = audioRef.current;
+        if (!el || !stream) return;
 
-            const playPromise = audioRef.current.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(e => {
-                    console.error(`[DiscordAudio] Autoplay failed for peer ${peerId}:`, e);
-                    toast({
-                        title: "Audio bloqueado",
-                        description: "Hacé click aquí para activar el sonido",
-                        action: (
-                            <ToastAction altText="Activar" onClick={() => audioRef.current?.play()}>
-                                Activar
-                            </ToastAction>
-                        ),
-                        duration: 10000,
-                    });
+        if (el.srcObject !== stream) {
+            console.log(`[DiscordAudio] Attaching stream ${peerId}`, stream.getAudioTracks());
+            el.srcObject = stream;
+        }
+
+        const tryPlay = () => {
+            if (el.paused) {
+                el.play().catch(e => {
+                    console.warn(`[DiscordAudio] Autoplay pending interaction for peer ${peerId}:`, e.message);
                 });
             }
-        }
+        };
+
+        tryPlay();
+
+        // Escuchar si se agrega la pista de audio después de la conexión inicial
+        stream.addEventListener('addtrack', tryPlay);
+
+        return () => {
+            stream.removeEventListener('addtrack', tryPlay);
+        };
     }, [stream, peerId, toast]);
 
     return (
         <audio
             ref={audioRef}
+            data-tabetalk-audio="true"
             autoPlay
             playsInline
             controls={false}
-            // Ensure we don't mute remote streams
             muted={false}
         />
     );

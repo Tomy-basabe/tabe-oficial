@@ -206,7 +206,7 @@ export default function Tabetalk() {
                 onDeleteChannel={deleteChannel}
                 onInviteUser={inviteUser}
                 inVoiceChannel={inVoiceChannel}
-                currentVoiceChannel={inVoiceChannel && currentChannel?.type === 'voice' ? currentChannel : null}
+                currentVoiceChannel={discord.currentVoiceChannel || (inVoiceChannel && currentChannel?.type === 'voice' ? currentChannel : null)}
                 isAudioEnabled={isAudioEnabled}
                 isVideoEnabled={isVideoEnabled}
                 isDeafened={isDeafened}

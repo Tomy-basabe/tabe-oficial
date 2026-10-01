@@ -497,34 +497,54 @@ function SmallTile({
 // ═══ Screen Share Tile ═══
 function ScreenShareTile({ stream, isLocal = false }: { stream?: MediaStream | null; isLocal?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [, setTrackVersion] = useState(0);
+
+  // Escuchar adición dinámica de tracks de video
+  useEffect(() => {
+    if (!stream) return;
+    const handleTrackChange = () => setTrackVersion(v => v + 1);
+    stream.addEventListener('addtrack', handleTrackChange);
+    stream.addEventListener('removetrack', handleTrackChange);
+    return () => {
+      stream.removeEventListener('addtrack', handleTrackChange);
+      stream.removeEventListener('removetrack', handleTrackChange);
+    };
+  }, [stream]);
+
+  const hasVideoTracks = Boolean(stream && stream.getVideoTracks().length > 0);
 
   useEffect(() => {
     const el = videoRef.current;
     if (el && stream) {
-      if (el.srcObject !== stream) el.srcObject = stream;
+      if (el.srcObject !== stream) {
+        el.srcObject = stream;
+      }
       el.play().catch(() => {});
     }
-  }, [stream]);
-
-  if (!stream || stream.getVideoTracks().length === 0) {
-    return (
-      <div className="text-center text-muted-foreground animate-pulse w-full h-full flex flex-col items-center justify-center p-6">
-        <div className="w-16 h-16 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center mb-3">
-          <Monitor className="w-8 h-8 text-white opacity-60 stroke-[2.5]" />
-        </div>
-        <p className="text-sm font-black uppercase text-white tracking-wider">Conectando pantalla compartida...</p>
-      </div>
-    );
-  }
+  }, [stream, hasVideoTracks]);
 
   return (
-    <video
-      ref={videoRef}
-      autoPlay
-      playsInline
-      muted={isLocal}
-      className="w-full h-full object-contain"
-    />
+    <div className="relative w-full h-full flex items-center justify-center">
+      {!hasVideoTracks && (
+        <div className="absolute inset-0 z-10 text-center text-muted-foreground animate-pulse w-full h-full flex flex-col items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <div className="w-16 h-16 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center mb-3">
+            <Monitor className="w-8 h-8 text-white opacity-60 stroke-[2.5]" />
+          </div>
+          <p className="text-sm font-black uppercase text-white tracking-wider">Conectando pantalla compartida...</p>
+        </div>
+      )}
+
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isLocal}
+        className={cn(
+          "w-full h-full object-contain",
+          !hasVideoTracks && "opacity-0"
+        )}
+      />
+    </div>
   );
 }
 
