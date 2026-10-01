@@ -381,7 +381,7 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, flushUnsavedTime]);
 
-  // Initialize and restore state from localStorage on mount with cold-boot safety
+  // Initialize and restore state from localStorage on mount
   useEffect(() => {
     const saved = loadStoredState(user?.id);
     if (saved && saved.isActive) {
@@ -389,18 +389,31 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
       const lastUpdateTimestamp = saved.updatedAt || saved.startTime || 0;
       const timeSinceLastActive = now - lastUpdateTimestamp;
 
-      // STALE / DISCONNECT GUARD:
-      // If more than 5 minutes elapsed since the last recorded activity, the browser/tab
-      // was closed or machine was asleep. DO NOT add offline elapsed time. Restore as PAUSED.
-      const isStaleOrWasClosed = timeSinceLastActive > 5 * 60 * 1000;
+      // Si la aplicación se cerró por completo (más de 5 minutos inactiva sin app abierta):
+      // Se reinicia limpiamente para evitar horas fantasma de cuando la app estuvo cerrada
+      const wasClosedCompletely = timeSinceLastActive > 5 * 60 * 1000;
+
+      if (wasClosedCompletely) {
+        console.log("[StudyTimer] La aplicación se cerró por completo previamente. Reiniciando cronómetro.");
+        localStorage.removeItem(STORAGE_KEY);
+        startTimeRef.current = null;
+        accumulatedSecondsRef.current = 0;
+        lastSavedSecondsRef.current = 0;
+        isActiveRef.current = false;
+        isPausedRef.current = false;
+        setSeconds(0);
+        setIsActive(false);
+        setIsPaused(false);
+        return;
+      }
 
       subjectIdRef.current = saved.subjectId;
       documentIdRef.current = saved.documentId;
       documentTitleRef.current = saved.documentTitle;
       lastSavedSecondsRef.current = saved.lastSavedSeconds || 0;
 
-      if (!saved.isPaused && saved.startTime && !isStaleOrWasClosed) {
-        // Fast refresh within 5 minutes: compute exact background seconds
+      if (!saved.isPaused && saved.startTime) {
+        // En segundo plano o refresco: computar tiempo exacto transcurrido
         const elapsedSinceStart = Math.max(0, Math.floor((now - saved.startTime) / 1000));
         const total = (saved.accumulatedSeconds || 0) + elapsedSinceStart;
         startTimeRef.current = saved.startTime;
@@ -409,21 +422,12 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
         setSeconds(total);
         setIsPaused(false);
       } else {
-        // Was offline or already paused: freeze accumulated seconds and remain paused
         startTimeRef.current = null;
         const total = saved.accumulatedSeconds || saved.lastSavedSeconds || 0;
         accumulatedSecondsRef.current = total;
         isPausedRef.current = true;
         setSeconds(total);
         setIsPaused(true);
-
-        saveStoredState({
-          ...saved,
-          isPaused: true,
-          startTime: null,
-          accumulatedSeconds: total,
-          updatedAt: now,
-        });
       }
 
       isActiveRef.current = true;
@@ -483,10 +487,15 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     events.forEach((ev) => window.addEventListener(ev, markInteraction, { passive: true }));
 
     const idleChecker = setInterval(() => {
+      // Si la pestaña está en segundo plano (document.visibilityState === 'hidden'),
+      // el usuario puede estar investigando en otra pestaña o ventana; NO pausar el cronómetro.
+      if (document.visibilityState === "hidden") {
+        return;
+      }
       if (isActiveRef.current && !isPausedRef.current) {
         const idleDuration = Date.now() - lastUserInteractionRef.current;
-        if (idleDuration >= 15 * 60 * 1000) {
-          console.warn("[StudyTimer] Inactividad prolongada (15m sin interacción). Pausando cronómetro automáticamente.");
+        if (idleDuration >= 30 * 60 * 1000) {
+          console.warn("[StudyTimer] Inactividad prolongada en pantalla (30m sin interacción). Pausando cronómetro automáticamente.");
           pauseTimer();
           toast.info("Cronómetro de estudio pausado por inactividad.", { duration: 4000 });
         }
@@ -548,7 +557,7 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     };
   }, [computeExactSeconds, flushUnsavedTime, user?.id]);
 
-  // Tab unload safety: flush any unsaved time on tab close / reload
+  // Tab unload safety: flush any unsaved time on tab close / reload and reset for next session
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (!user || !isActiveRef.current || isPausedRef.current) return;
@@ -584,6 +593,8 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
           }).catch(() => {});
         }
       }
+      // Al cerrarse la aplicación por completo, limpiar el storage para que reinicie limpio
+      localStorage.removeItem(STORAGE_KEY);
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
