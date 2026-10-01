@@ -303,93 +303,151 @@ export default function Tabetalk() {
         </div>
       ) : (
         /* === EMPTY STATE / PANTALLA DE BIENVENIDA NEOBRUTALISTA GAMING / CÓMIC === */
-        <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 md:p-12 overflow-y-auto discord-scrollbar relative z-10">
-          <div className="w-full max-w-2xl flex flex-col items-center text-center my-auto py-6">
+        <div className="flex-1 h-[100dvh] flex flex-col items-center justify-center p-3 sm:p-6 overflow-hidden relative z-10 select-none">
+          {/* Estilos CSS nativos ligeros acelerados por hardware para animación cómic flotante */}
+          <style>{`
+            @keyframes comicFloatA {
+              0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+              50% { transform: translate3d(0, -9px, 0) rotate(4deg); }
+            }
+            @keyframes comicFloatB {
+              0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+              50% { transform: translate3d(0, 7px, 0) rotate(-4deg); }
+            }
+            @keyframes comicFloatC {
+              0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
+              50% { transform: translate3d(0, -7px, 0) rotate(-6deg); }
+            }
+            .comic-float-a { animation: comicFloatA 5s ease-in-out infinite; will-change: transform; }
+            .comic-float-b { animation: comicFloatB 6s ease-in-out infinite 0.7s; will-change: transform; }
+            .comic-float-c { animation: comicFloatC 4.5s ease-in-out infinite 1.4s; will-change: transform; }
+          `}</style>
+
+          {/* Formas flotantes cómic / gaming decorativas de fondo (Zero network / Zero websocket) */}
+          <div className="pointer-events-none z-0 absolute top-8 left-8 sm:top-10 sm:left-14 comic-float-a hidden sm:flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-black shadow-[3px_3px_0px_#000] rotate-12 flex items-center justify-center text-black font-black text-sm">
+              ✦
+            </div>
+          </div>
+
+          <div className="pointer-events-none z-0 absolute top-24 left-20 sm:top-24 sm:left-28 comic-float-b hidden md:flex items-center justify-center">
+            <span className="text-xl font-black text-[#00E5FF] drop-shadow-[2px_2px_0px_#000] select-none">
+              ✚
+            </span>
+          </div>
+
+          <div className="pointer-events-none z-0 absolute top-8 right-8 sm:top-10 sm:right-16 comic-float-b hidden sm:flex items-center justify-center">
+            <div className="relative px-2.5 py-0.5 rounded-md bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0px_#000] font-black text-[10px] uppercase tracking-wider -rotate-6">
+              TABE!
+              <div className="absolute -bottom-1 left-2 w-1.5 h-1.5 bg-[#FFE600] border-r-2 border-b-2 border-black rotate-45" />
+            </div>
+          </div>
+
+          <div className="pointer-events-none z-0 absolute top-24 right-16 sm:top-24 sm:right-28 comic-float-c hidden md:flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-[#FF2E93] border-2 border-black shadow-[2px_2px_0px_#000] -rotate-12 flex items-center justify-center text-white font-black text-xs">
+              ✧
+            </div>
+          </div>
+
+          <div className="pointer-events-none z-0 absolute top-1/2 left-6 sm:left-10 -translate-y-1/2 comic-float-c hidden lg:flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#00E5FF] border-2 border-black shadow-[3px_3px_0px_#000] rotate-6 flex items-center justify-center text-black font-black text-sm">
+              ⚡
+            </div>
+          </div>
+
+          <div className="pointer-events-none z-0 absolute top-1/2 right-6 sm:right-10 -translate-y-1/2 comic-float-a hidden lg:flex items-center justify-center">
+            <div className="px-2 py-0.5 rounded-md bg-[#10B981] border-2 border-black shadow-[3px_3px_0px_#000] text-white font-black text-[9px] uppercase tracking-wider rotate-3">
+              XP +50
+            </div>
+          </div>
+
+          {/* Contenedor Central Escala Equilibrada (Des-zoom) */}
+          <div className="w-full max-w-4xl flex flex-col items-center text-center justify-center relative z-10 px-2 my-auto">
             
             {/* Top Retro Gaming Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FFE600] text-black font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000]">
-                <Flame className="w-3.5 h-3.5 fill-black stroke-black" />
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mb-2.5">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FFE600] text-black font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
+                <Flame className="w-3 h-3 fill-black stroke-black" />
                 🔥 TABETALK V2.0
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#00E5FF] text-black font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000]">
-                <Zap className="w-3.5 h-3.5 fill-black stroke-black" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#00E5FF] text-black font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
+                <Zap className="w-3 h-3 fill-black stroke-black" />
                 ⚡ P2P DIRECTO
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FF2E93] text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000]">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FF2E93] text-white font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
                 🎮 CO-STUDY
               </span>
             </div>
 
-            {/* Logo Arcade Neobrutalista */}
-            <div className="relative mb-6 group cursor-pointer" onClick={() => setShowCreateOrJoinModal(true)}>
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#FFE600] border-3 sm:border-4 border-black shadow-[6px_6px_0px_#000] sm:shadow-[8px_8px_0px_#000] flex items-center justify-center -rotate-2 group-hover:rotate-0 group-hover:-translate-x-1 group-hover:-translate-y-1 group-hover:shadow-[10px_10px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[4px_4px_0px_#000] transition-all duration-200">
+            {/* Logo Arcade Neobrutalista Redimensionado */}
+            <div className="relative mb-2.5 group cursor-pointer" onClick={() => setShowCreateOrJoinModal(true)}>
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#FFE600] border-3 border-black shadow-[4px_4px_0px_#000] sm:shadow-[5px_5px_0px_#000] flex items-center justify-center -rotate-2 group-hover:rotate-0 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:shadow-[7px_7px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all duration-200">
                 <img 
                   src="/tabe-talk.png" 
                   alt="Tabetalk" 
-                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow" 
+                  className="w-11 h-11 sm:w-14 sm:h-14 object-contain drop-shadow" 
                   onError={(e) => { e.currentTarget.src = "/logo.png"; }} 
                 />
               </div>
-              <div className="absolute -top-2 -right-2 bg-black text-[#FFE600] text-[10px] font-black uppercase px-2 py-0.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#000]">
+              <div className="absolute -top-1.5 -right-1.5 bg-black text-[#FFE600] text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full border border-black shadow-[1.5px_1.5px_0px_#000]">
                 LIVE
               </div>
             </div>
 
-            {/* Título Neobrutalista Impactante */}
-            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-foreground mb-4 leading-tight">
+            {/* Título Neobrutalista Equilibrado */}
+            <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-foreground mb-2 leading-none">
               ¡BIENVENIDO A{" "}
-              <span className="inline-block bg-[#FFE600] text-black px-3 py-1 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] rotate-1">
+              <span className="inline-block bg-[#FFE600] text-black px-2.5 py-0.5 rounded-lg border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] rotate-1">
                 TABETALK
               </span>
               !
             </h1>
 
-            {/* Subtítulo / Descripción Contundente */}
-            <div className="max-w-lg mx-auto mb-8 p-3 sm:p-4 rounded-xl bg-card border-2 border-black shadow-[4px_4px_0px_#000]">
-              <p className="text-muted-foreground text-sm sm:text-base font-bold leading-relaxed">
+            {/* Subtítulo / Descripción Compacta */}
+            <div className="max-w-md mx-auto mb-3.5 p-2 sm:p-2.5 rounded-lg bg-card border-2 border-black shadow-[3px_3px_0px_#000]">
+              <p className="text-muted-foreground text-xs sm:text-sm font-bold leading-normal">
                 Selecciona un servidor o conéctate con tus compañeros para estudiar, encender tu cámara y compartir pantalla sin límites.
               </p>
             </div>
 
-            {/* Botón Principal Arcade / Neobrutalista */}
+            {/* Botón Principal Arcade Compacto */}
             <button
               onClick={() => setShowCreateOrJoinModal(true)}
-              className="inline-flex items-center gap-3 bg-[#FFE600] hover:bg-[#FFE600]/95 text-black font-black uppercase text-base sm:text-lg px-8 py-4 sm:py-5 rounded-2xl border-3 border-black shadow-[6px_6px_0px_#000] sm:shadow-[8px_8px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[10px_10px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all cursor-pointer mb-10 group"
+              className="inline-flex items-center gap-2.5 bg-[#FFE600] hover:bg-[#FFE600]/95 text-black font-black uppercase text-xs sm:text-sm px-6 py-2.5 sm:py-3 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer mb-4 sm:mb-5 group"
             >
-              <div className="w-7 h-7 rounded-lg bg-black text-[#FFE600] flex items-center justify-center group-hover:rotate-12 transition-transform">
-                <Plus className="w-5 h-5 stroke-[3]" />
+              <div className="w-5 h-5 rounded-md bg-black text-[#FFE600] flex items-center justify-center group-hover:rotate-12 transition-transform">
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
               </div>
               <span>CREAR O UNIRSE A UN SERVIDOR</span>
             </button>
 
-            {/* 3 Cards Interactivas Cómic / Gaming Neobrutalistas */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+            {/* 3 Cards Interactivas Cómic / Gaming Neobrutalistas Compactas */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-3xl">
               
               {/* Card 1: Voz & Video P2P */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => setActiveFeatureModal("voice")}
-                    className="p-5 rounded-2xl bg-card border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#00E5FF] text-black border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:scale-110 transition-transform">
-                          <Video className="w-5 h-5 stroke-[2.5]" />
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-[#00E5FF] text-black border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000] group-hover:scale-105 transition-transform">
+                          <Video className="w-4 h-4 stroke-[2.5]" />
                         </div>
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#00E5FF]/20 text-foreground border border-black">
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#00E5FF]/20 text-foreground border border-black">
                           ⚡ P2P DIRECTO
                         </span>
                       </div>
-                      <h3 className="font-black text-base uppercase text-foreground mb-1 group-hover:text-primary transition-colors">
+                      <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
                         Voz & Video P2P
                       </h3>
-                      <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                      <p className="text-[11px] font-medium text-muted-foreground leading-snug line-clamp-2">
                         Transmisión directa punto a punto entre navegadores sin lag ni intermediarios.
                       </p>
                     </div>
-                    <div className="mt-4 pt-3 border-t-2 border-black/10 flex items-center justify-between text-[11px] font-black text-primary uppercase">
+                    <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Explorar sala</span>
                       <span>→</span>
                     </div>
@@ -405,25 +463,25 @@ export default function Tabetalk() {
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => setActiveFeatureModal("screen")}
-                    className="p-5 rounded-2xl bg-card border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#FF2E93] text-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:scale-110 transition-transform">
-                          <MonitorUp className="w-5 h-5 stroke-[2.5]" />
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-[#FF2E93] text-white border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000] group-hover:scale-105 transition-transform">
+                          <MonitorUp className="w-4 h-4 stroke-[2.5]" />
                         </div>
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FF2E93]/20 text-foreground border border-black">
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FF2E93]/20 text-foreground border border-black">
                           🎮 CO-STUDY
                         </span>
                       </div>
-                      <h3 className="font-black text-base uppercase text-foreground mb-1 group-hover:text-primary transition-colors">
+                      <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
                         Pantalla Compartida
                       </h3>
-                      <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                      <p className="text-[11px] font-medium text-muted-foreground leading-snug line-clamp-2">
                         Transmite diapositivas, código o apuntes en vivo en calidad HD a tus compañeros.
                       </p>
                     </div>
-                    <div className="mt-4 pt-3 border-t-2 border-black/10 flex items-center justify-between text-[11px] font-black text-primary uppercase">
+                    <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Cómo transmitir</span>
                       <span>→</span>
                     </div>
@@ -439,25 +497,25 @@ export default function Tabetalk() {
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => setActiveFeatureModal("community")}
-                    className="p-5 rounded-2xl bg-card border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#FFE600] text-black border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:scale-110 transition-transform">
-                          <Users className="w-5 h-5 stroke-[2.5]" />
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-[#FFE600] text-black border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000] group-hover:scale-105 transition-transform">
+                          <Users className="w-4 h-4 stroke-[2.5]" />
                         </div>
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FFE600]/30 text-foreground border border-black">
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FFE600]/30 text-foreground border border-black">
                           🔥 CANALES
                         </span>
                       </div>
-                      <h3 className="font-black text-base uppercase text-foreground mb-1 group-hover:text-primary transition-colors">
+                      <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
                         Comunidad Activa
                       </h3>
-                      <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                      <p className="text-[11px] font-medium text-muted-foreground leading-snug line-clamp-2">
                         Canales de texto y voz organizados por materia, apuntes y grupos de estudio.
                       </p>
                     </div>
-                    <div className="mt-4 pt-3 border-t-2 border-black/10 flex items-center justify-between text-[11px] font-black text-primary uppercase">
+                    <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Unirse con código</span>
                       <span>→</span>
                     </div>
