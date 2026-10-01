@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InviteFriendsModal } from "./InviteFriendsModal";
+import { DiscordServerSettingsModal } from "./DiscordServerSettingsModal";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 
 interface DiscordChannelSidebarProps {
@@ -52,6 +53,8 @@ interface DiscordChannelSidebarProps {
   isSpeaking?: boolean;
   onDeleteServer?: (serverId: string) => Promise<void>;
   onLeaveServer?: (serverId: string) => Promise<void>;
+  onUpdateServer?: (serverId: string, updates: { name?: string; icon_url?: string | null }) => Promise<boolean>;
+  onGetServerInviteCode?: (serverId: string) => Promise<string | null>;
 }
 
 export function DiscordChannelSidebar({
@@ -77,12 +80,15 @@ export function DiscordChannelSidebar({
   isSpeaking,
   onDeleteServer,
   onLeaveServer,
+  onUpdateServer,
+  onGetServerInviteCode,
 }: DiscordChannelSidebarProps) {
   const { user } = useAuth();
   const { canUse, incrementUsage, isPremium } = useUsageLimits();
   const [showCreateText, setShowCreateText] = useState(false);
   const [showCreateVoice, setShowCreateVoice] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showServerSettings, setShowServerSettings] = useState(false);
   const [channelName, setChannelName] = useState("");
   const [creating, setCreating] = useState(false);
   const [textCollapsed, setTextCollapsed] = useState(false);
@@ -144,7 +150,10 @@ export function DiscordChannelSidebar({
             <Users className="w-4 h-4 mr-2" />
             Invitar gente
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary transition-colors">
+          <DropdownMenuItem
+            className="cursor-pointer hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary transition-colors"
+            onClick={() => setShowServerSettings(true)}
+          >
             <Settings className="w-4 h-4 mr-2" />
             Ajustes del servidor
           </DropdownMenuItem>
@@ -471,6 +480,17 @@ export function DiscordChannelSidebar({
           </Tooltip>
         </div>
       </div>
+
+      {showServerSettings && (
+        <DiscordServerSettingsModal
+          open={showServerSettings}
+          onOpenChange={setShowServerSettings}
+          server={server}
+          onUpdateServer={onUpdateServer}
+          onDeleteServer={onDeleteServer}
+          onGetServerInviteCode={onGetServerInviteCode}
+        />
+      )}
     </div>
   );
 }

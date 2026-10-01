@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { Plus, Compass, Download, Trash2, LogOut, Home } from "lucide-react";
+import { Plus, Compass, Trash2, LogOut, Home, Server, KeyRound, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { TabeLogo } from "@/components/ui/TabeLogo";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   ContextMenu,
@@ -17,6 +15,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { DiscordServer } from "@/hooks/useDiscord";
@@ -26,13 +25,15 @@ interface DiscordServerListProps {
   servers: DiscordServer[];
   currentServer: DiscordServer | null;
   onSelectServer: (server: DiscordServer | null) => void;
-  onCreateServer: (name: string) => Promise<any>;
+  onCreateServer: (name: string, iconUrl?: string) => Promise<any>;
   onDeleteServer?: (serverId: string) => Promise<void>;
   onLeaveServer?: (serverId: string) => Promise<void>;
   onJoinByCode?: (code: string) => Promise<boolean>;
   onCreateInvite?: () => Promise<string | null>;
   hasCurrentServer?: boolean;
   onGoBack?: () => void;
+  openModal?: boolean;
+  onOpenModalChange?: (open: boolean) => void;
 }
 
 export function DiscordServerList({
@@ -45,22 +46,45 @@ export function DiscordServerList({
   onJoinByCode,
   onCreateInvite,
   hasCurrentServer,
-  onGoBack
+  onGoBack,
+  openModal,
+  onOpenModalChange,
 }: DiscordServerListProps) {
   const { user } = useAuth();
-  const [showCreateServer, setShowCreateServer] = useState(false);
-  const [showJoinServer, setShowJoinServer] = useState(false);
+  const [internalOpenModal, setInternalOpenModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"create" | "join">("create");
   const [serverName, setServerName] = useState("");
+  const [serverIcon, setServerIcon] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
 
+  const isModalOpen = openModal !== undefined ? openModal : internalOpenModal;
+  const setModalOpen = (open: boolean) => {
+    if (onOpenModalChange) {
+      onOpenModalChange(open);
+    } else {
+      setInternalOpenModal(open);
+    }
+  };
+
+  const handleOpenCreate = () => {
+    setActiveTab("create");
+    setModalOpen(true);
+  };
+
+  const handleOpenJoin = () => {
+    setActiveTab("join");
+    setModalOpen(true);
+  };
+
   const handleCreateServer = async () => {
     if (!serverName.trim()) return;
     setCreating(true);
-    await onCreateServer(serverName.trim());
+    await onCreateServer(serverName.trim(), serverIcon.trim() || undefined);
     setServerName("");
-    setShowCreateServer(false);
+    setServerIcon("");
+    setModalOpen(false);
     setCreating(false);
   };
 
@@ -70,10 +94,11 @@ export function DiscordServerList({
     const success = await onJoinByCode(inviteCode.trim());
     if (success) {
       setInviteCode("");
-      setShowJoinServer(false);
+      setModalOpen(false);
     }
     setJoining(false);
   };
+
   return (
     <div className="md:w-[72px] w-full bg-background/95 backdrop-blur border-r md:border-r border-border md:py-3 py-3 flex md:flex-col flex-row items-center md:gap-2 gap-3 overflow-x-auto md:overflow-y-auto md:overflow-x-hidden discord-scrollbar shrink-0 z-50 px-3 md:px-0">
       {/* Botón de Retorno al Dashboard principal */}
@@ -166,22 +191,6 @@ export function DiscordServerList({
               </div>
             </ContextMenuTrigger>
             <ContextMenuContent className="w-56 bg-card border-border text-foreground">
-              {onCreateInvite && (
-                <ContextMenuItem
-                  className="cursor-pointer"
-                  onClick={async () => {
-                    // Need to select server first to create invite for it
-                    onSelectServer(server);
-                    const code = await onCreateInvite();
-                    if (code) {
-                      navigator.clipboard?.writeText(code);
-                    }
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Crear Invitación
-                </ContextMenuItem>
-              )}
               {user?.id === server.owner_id && onDeleteServer ? (
                 <ContextMenuItem
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer group"
@@ -215,146 +224,158 @@ export function DiscordServerList({
 
       <div className="w-8 h-[2px] bg-border/50 rounded-lg mx-auto mb-2" />
 
-      {/* Add Server Button */}
+      {/* Botón 1: Añadir o Crear Servidor (+) */}
       <div className="relative group mb-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Dialog open={showCreateServer} onOpenChange={setShowCreateServer}>
-              <DialogTrigger asChild>
-                <button className="w-12 h-12 rounded-[24px] bg-card hover:bg-success hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-success hover:text-white mx-3 border border-dashed border-muted-foreground/30 hover:border-transparent">
-                  <Plus className="w-6 h-6" />
-                </button>
-              </DialogTrigger>
-              <DialogContent className="bg-card border-border text-foreground sm:max-w-md p-0 overflow-hidden gap-0">
-                <DialogHeader className="p-6 pb-2 text-center bg-muted/20">
-                  <DialogTitle className="text-2xl font-bold text-primary font-orbitron">Personaliza tu servidor</DialogTitle>
-                  <p className="text-muted-foreground text-sm mt-2 text-center px-4">
-                    Dale una personalidad propia a tu nuevo servidor con un nombre y un icono.
-                  </p>
-                </DialogHeader>
-
-                <div className="p-6 space-y-4 bg-muted/10">
-                  <div className="flex justify-center mb-2">
-                    <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/40 flex items-center justify-center flex-col gap-1 cursor-pointer hover:bg-muted/20 transition-colors group">
-                      <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center -mt-1 shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
-                        <Plus className="w-4 h-4 text-primary-foreground" />
-                      </div>
-                      <span className="text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors">UPLOAD</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide px-1">
-                      Nombre del servidor
-                    </label>
-                    <Input
-                      value={serverName}
-                      onChange={(e) => setServerName(e.target.value)}
-                      placeholder="Mi servidor genial"
-                      className="bg-background border-input text-foreground h-10 focus-visible:ring-primary"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleCreateServer();
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-muted/30 p-4 flex justify-between items-center border-t border-border">
-                  <button
-                    onClick={() => setShowCreateServer(false)}
-                    className="text-sm text-foreground hover:underline px-4 hover:text-primary transition-colors"
-                  >
-                    Atrás
-                  </button>
-                  <Button
-                    onClick={handleCreateServer}
-                    disabled={!serverName.trim() || creating}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 shadow-lg shadow-primary/20"
-                  >
-                    Crear
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
-            Añadir un servidor
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {/* Join Server Button */}
-      <div className="relative group mb-1">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Dialog open={showJoinServer} onOpenChange={setShowJoinServer}>
-              <DialogTrigger asChild>
-                <button className="w-12 h-12 rounded-[24px] bg-card hover:bg-primary hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-primary hover:text-primary-foreground mx-3 shadow-sm">
-                  <Compass className="w-6 h-6" />
-                </button>
-              </DialogTrigger>
-              <DialogContent className="bg-card border-border text-foreground sm:max-w-md p-0 overflow-hidden gap-0">
-                <DialogHeader className="p-6 pb-2 text-center bg-muted/20">
-                  <DialogTitle className="text-2xl font-bold text-primary font-orbitron">Unirse a un Servidor</DialogTitle>
-                  <p className="text-muted-foreground text-sm mt-2 text-center px-4">
-                    Ingresá el código de invitación que te compartieron para unirte a un servidor.
-                  </p>
-                </DialogHeader>
-                <div className="p-6 space-y-4 bg-muted/10">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide px-1">
-                      Código de invitación
-                    </label>
-                    <Input
-                      value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value)}
-                      placeholder="Ej: ABC12345"
-                      className="bg-background border-input text-foreground h-10 focus-visible:ring-primary text-center text-lg tracking-widest font-mono uppercase"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          handleJoinServer();
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="bg-muted/30 p-4 flex justify-between items-center border-t border-border">
-                  <button
-                    onClick={() => setShowJoinServer(false)}
-                    className="text-sm text-foreground hover:underline px-4 hover:text-primary transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <Button
-                    onClick={handleJoinServer}
-                    disabled={!inviteCode.trim() || joining}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 shadow-lg shadow-primary/20"
-                  >
-                    {joining ? "Uniéndose..." : "Unirse"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
-            Unirse a un servidor
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {/* Download Button */}
-      <div className="relative group">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="w-12 h-12 rounded-[24px] bg-card hover:bg-success hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-success hover:text-white mx-3 shadow-sm">
-              <Download className="w-6 h-6" />
+            <button
+              onClick={handleOpenCreate}
+              className="w-12 h-12 rounded-[24px] bg-card hover:bg-primary hover:text-primary-foreground hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-primary mx-3 border border-dashed border-primary/40 hover:border-transparent shadow-sm"
+              aria-label="Crear o unirse a un servidor"
+            >
+              <Plus className="w-6 h-6" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
-            Descargar aplicaciones
+            Crear o unirse a un servidor
           </TooltipContent>
         </Tooltip>
       </div>
+
+      {/* Botón 2: Brújula - Explorar / Unirse con Código */}
+      <div className="relative group mb-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleOpenJoin}
+              className="w-12 h-12 rounded-[24px] bg-card hover:bg-primary hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-muted-foreground hover:text-primary-foreground mx-3 shadow-sm"
+              aria-label="Unirse a un servidor con código"
+            >
+              <Compass className="w-6 h-6" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
+            Unirse con código de invitación
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Modal Unificado: Crear Servidor | Unirse con Código */}
+      <Dialog open={isModalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-md p-0 overflow-hidden gap-0">
+          <DialogHeader className="p-6 pb-4 text-center bg-muted/20 border-b border-border/50">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-2 text-primary">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-foreground">
+              Comunidad Tabetalk
+            </DialogTitle>
+            <p className="text-muted-foreground text-xs mt-1">
+              Crea tu propio espacio de estudio o únete al de tus compañeros con un código.
+            </p>
+          </DialogHeader>
+
+          <div className="p-6">
+            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "create" | "join")} className="w-full">
+              <TabsList className="grid grid-cols-2 w-full mb-6 bg-muted/60 p-1">
+                <TabsTrigger value="create" className="text-xs font-semibold gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                  <Server className="w-3.5 h-3.5" />
+                  Crear Servidor
+                </TabsTrigger>
+                <TabsTrigger value="join" className="text-xs font-semibold gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                  <KeyRound className="w-3.5 h-3.5" />
+                  Unirse con Código
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Tab 1: Crear Servidor */}
+              <TabsContent value="create" className="space-y-4 m-0 focus-visible:outline-none">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    Nombre del servidor <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    value={serverName}
+                    onChange={(e) => setServerName(e.target.value)}
+                    placeholder="Ej. Grupo de Estudio Algoritmos"
+                    className="bg-background border-input text-foreground h-10 focus-visible:ring-primary"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateServer();
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    URL de Icono o Avatar (opcional)
+                  </label>
+                  <Input
+                    value={serverIcon}
+                    onChange={(e) => setServerIcon(e.target.value)}
+                    placeholder="https://ejemplo.com/icono.png"
+                    className="bg-background border-input text-foreground h-10 focus-visible:ring-primary text-xs font-mono"
+                  />
+                </div>
+
+                <div className="pt-3 flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setModalOpen(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleCreateServer}
+                    disabled={!serverName.trim() || creating}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-md shadow-primary/20"
+                  >
+                    {creating ? "Creando..." : "Crear Servidor"}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Tab 2: Unirse con Código */}
+              <TabsContent value="join" className="space-y-4 m-0 focus-visible:outline-none">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    Código de Invitación <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    placeholder="Ej. TABE-A9F3"
+                    className="bg-background border-input text-foreground h-11 focus-visible:ring-primary text-center text-base tracking-widest font-mono uppercase font-bold"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleJoinServer();
+                    }}
+                  />
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Pídele el código o enlace al administrador del servidor.
+                  </p>
+                </div>
+
+                <div className="pt-3 flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setModalOpen(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleJoinServer}
+                    disabled={!inviteCode.trim() || joining}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-md shadow-primary/20"
+                  >
+                    {joining ? "Uniéndose..." : "Unirse al Servidor"}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

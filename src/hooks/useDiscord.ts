@@ -440,6 +440,65 @@ export function useDiscord() {
     }
   };
 
+  // Update a server's name and icon
+  const updateServer = async (serverId: string, updates: { name?: string; icon_url?: string | null }) => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase
+        .from("discord_servers")
+        .update(updates)
+        .eq("id", serverId);
+
+      if (error) throw error;
+
+      setServers(prev => prev.map(s => s.id === serverId ? { ...s, ...updates } : s));
+      if (currentServer?.id === serverId) {
+        setCurrentServer(prev => prev ? { ...prev, ...updates } : null);
+      }
+
+      toast({ title: "Servidor actualizado", description: "Los cambios se guardaron correctamente." });
+      return true;
+    } catch (error: any) {
+      console.error("Error updating server:", error);
+      toast({ title: "Error al actualizar", description: error?.message || "No se pudo actualizar el servidor", variant: "destructive" });
+      return false;
+    }
+  };
+
+  // Get or generate a server invite code
+  const getServerInviteCode = async (serverId: string): Promise<string | null> => {
+    if (!user) return null;
+    try {
+      const { data: existing } = await supabase
+        .from("discord_server_invites")
+        .select("code")
+        .eq("server_id", serverId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existing?.code) {
+        return existing.code;
+      }
+
+      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const { error } = await supabase
+        .from("discord_server_invites")
+        .insert({
+          server_id: serverId,
+          code,
+          created_by: user.id,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+
+      if (error) throw error;
+      return code;
+    } catch (e) {
+      console.error("Error fetching invite code:", e);
+      return null;
+    }
+  };
+
   // Leave a server
   const leaveServer = async (serverId: string) => {
     if (!user) return;
@@ -1531,5 +1590,7 @@ export function useDiscord() {
     fetchServers,
     createInvite,
     joinServerByCode,
+    updateServer,
+    getServerInviteCode,
   };
 }

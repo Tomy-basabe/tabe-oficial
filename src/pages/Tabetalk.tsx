@@ -5,7 +5,8 @@ import { DiscordServerList } from "@/components/discord/DiscordServerList";
 import { DiscordChannelSidebar } from "@/components/discord/DiscordChannelSidebar";
 import { DiscordTextChannel } from "@/components/discord/DiscordTextChannel";
 import { DiscordVoiceChannel } from "@/components/discord/DiscordVoiceChannel";
-import { ArrowLeft, Hash, Volume2, Home } from "lucide-react";
+import { ArrowLeft, Hash, Volume2, Plus, Sparkles, Video, MonitorUp, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 // Mobile view states: which panel is shown on small screens
@@ -15,6 +16,7 @@ export default function Tabetalk() {
   const navigate = useNavigate();
   const discord = useDiscordVoice();
   const [mobileView, setMobileView] = useState<MobileView>("servers");
+  const [showCreateOrJoinModal, setShowCreateOrJoinModal] = useState(false);
 
   const {
     servers,
@@ -39,6 +41,8 @@ export default function Tabetalk() {
     createServer,
     deleteServer,
     leaveServer,
+    updateServer,
+    getServerInviteCode,
     createChannel,
     deleteChannel,
     setCurrentChannel,
@@ -94,7 +98,7 @@ export default function Tabetalk() {
   return (
     <div className="h-screen w-screen flex bg-background overflow-hidden relative selection:bg-primary/30 text-foreground font-sans">
       {/* Background Ambience */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
 
       {/* === SERVER LIST === */}
       {/* Desktop: always visible. Mobile: only when mobileView === "servers" */}
@@ -115,6 +119,8 @@ export default function Tabetalk() {
             onCreateInvite={createInvite}
             hasCurrentServer={!!currentServer}
             onGoBack={handleGoBack}
+            openModal={showCreateOrJoinModal}
+            onOpenModalChange={setShowCreateOrJoinModal}
           />
         </div>
       </div>
@@ -165,6 +171,8 @@ export default function Tabetalk() {
                 onLeaveVoice={leaveVoiceChannel}
                 onDeleteServer={deleteServer}
                 onLeaveServer={leaveServer}
+                onUpdateServer={updateServer}
+                onGetServerInviteCode={getServerInviteCode}
               />
             </div>
           </div>
@@ -196,7 +204,7 @@ export default function Tabetalk() {
             </div>
 
             {/* Main Content Area Background Pattern */}
-            <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
               style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '20px 20px' }}>
             </div>
 
@@ -233,39 +241,96 @@ export default function Tabetalk() {
                 remoteMediaStates={remoteMediaStates}
               />
             ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4">
-                <div className="w-24 h-24 rounded-full bg-muted/20 flex items-center justify-center animate-pulse">
-                  <div className="w-16 h-16 rounded-full bg-muted/30" />
+              <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4 p-6 text-center">
+                <div className="w-20 h-20 rounded-2xl bg-card border border-border flex items-center justify-center shadow-lg shadow-black/10">
+                  <Hash className="w-10 h-10 text-primary/70" />
                 </div>
-                <p>Selecciona un canal para comenzar en Tabetalk</p>
+                <div className="max-w-sm">
+                  <h3 className="text-lg font-bold text-foreground mb-1">Ningún canal seleccionado</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Elige un canal de texto o voz en la barra lateral izquierda para unirte a la conversación.
+                  </p>
+                </div>
               </div>
             )}
           </div>
         </div>
       ) : (
+        /* === EMPTY STATE / PANTALLA DE BIENVENIDA === */
         <div className={`
-          flex-1 flex flex-col items-center justify-center bg-background text-foreground p-8 text-center relative overflow-hidden
+          flex-1 flex flex-col items-center justify-center bg-background text-foreground p-6 sm:p-12 text-center relative overflow-hidden
           ${mobileView === "servers" ? "hidden md:flex" : "flex"}
         `}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
-          <div className="relative z-10 max-w-md">
-            <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(var(--primary),0.3)] animate-float">
-              <img src="/tabe-talk.png" alt="Tabetalk" className="w-16 h-16 object-contain" onError={(e) => {
-                e.currentTarget.src = "/logo.png";
-              }} />
-            </div>
-            <h2 className="text-3xl font-bold font-orbitron mb-4 text-primary">Bienvenido a Tabetalk</h2>
-            <p className="text-muted-foreground mb-8 text-lg">
-              Selecciona una sala o crea una nueva para estudiar, conversar por voz, prender tu cámara o compartir tu pantalla en vivo.
-            </p>
-            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground/60">
-              <div className="p-4 rounded-lg bg-card/50 border border-border/50">
-                <span className="block text-primary font-bold mb-1">Voz y Video P2P</span>
-                Conexión directa en tiempo real
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/15 via-background to-background pointer-events-none" />
+          
+          {/* Subtle Grid Accent */}
+          <div 
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}
+          />
+
+          <div className="relative z-10 max-w-lg flex flex-col items-center">
+            {/* Logo con Glow ambiental */}
+            <div className="relative mb-6">
+              <div className="absolute -inset-4 bg-primary/20 rounded-full blur-2xl opacity-75 animate-pulse" />
+              <div className="relative w-24 h-24 rounded-3xl bg-card/80 border border-primary/30 backdrop-blur-md flex items-center justify-center shadow-2xl shadow-primary/20">
+                <img 
+                  src="/tabe-talk.png" 
+                  alt="Tabetalk" 
+                  className="w-16 h-16 object-contain drop-shadow" 
+                  onError={(e) => { e.currentTarget.src = "/logo.png"; }} 
+                />
               </div>
-              <div className="p-4 rounded-lg bg-card/50 border border-border/50">
-                <span className="block text-primary font-bold mb-1">Pantalla Compartida</span>
-                Estudia en grupo sin lag
+            </div>
+
+            {/* Título y Descripción */}
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3 text-foreground">
+              ¡Bienvenido a <span className="text-primary font-orbitron">Tabetalk</span>!
+            </h2>
+            <p className="text-muted-foreground text-base sm:text-lg mb-8 max-w-md leading-relaxed">
+              Selecciona un servidor o conéctate con tus compañeros para estudiar, hablar y compartir pantalla en tiempo real.
+            </p>
+
+            {/* Botón Destacado */}
+            <Button
+              size="lg"
+              onClick={() => setShowCreateOrJoinModal(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-6 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] transition-all flex items-center gap-2.5 text-base mb-10"
+            >
+              <Plus className="w-5 h-5 stroke-[2.5]" />
+              Crear o Unirse a un Servidor
+            </Button>
+
+            {/* Feature Cards Informativas */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-left">
+              <div className="p-4 rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:border-primary/40 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-2.5">
+                  <Video className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-foreground mb-1">Voz & Video P2P</h4>
+                <p className="text-[11px] text-muted-foreground leading-normal">
+                  Transmisión cifrada punto a punto sin retardos ni intermediarios.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:border-primary/40 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-2.5">
+                  <MonitorUp className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-foreground mb-1">Pantalla Compartida</h4>
+                <p className="text-[11px] text-muted-foreground leading-normal">
+                  Comparte tus diapositivas, código o apuntes en directo.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:border-primary/40 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-2.5">
+                  <Users className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-foreground mb-1">Comunidad Activa</h4>
+                <p className="text-[11px] text-muted-foreground leading-normal">
+                  Crea canales de texto dedicados para cada tema o materia.
+                </p>
               </div>
             </div>
           </div>
