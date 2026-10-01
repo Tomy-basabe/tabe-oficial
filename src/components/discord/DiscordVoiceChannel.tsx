@@ -7,7 +7,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuth } from "@/contexts/AuthContext";
 import type { DiscordChannel, DiscordVoiceParticipant } from "@/hooks/useDiscord";
 
-// Update props interface to match what Context provides now
 interface DiscordVoiceChannelProps {
   channel: DiscordChannel;
   voiceParticipants?: DiscordVoiceParticipant[];
@@ -60,7 +59,7 @@ export function DiscordVoiceChannel({
   // Normalize participants
   const activeParticipants = voiceParticipants || participants || [];
 
-  // Find screen sharer (either locally or via remoteMediaState or DB)
+  // Find screen sharer
   const screenSharer = isScreenSharing
     ? activeParticipants.find(p => p.user_id === localUserId) || {
         id: "me",
@@ -76,46 +75,44 @@ export function DiscordVoiceChannel({
       }
     : activeParticipants.find(p => p.is_screen_sharing || remoteMediaStates.get(p.user_id)?.isScreenSharing);
 
-  // Theme: Deep Blue
-  // Main BG: bg-background (since main container is bg-background)
-  // But we want separate look for voice area? No, user wants consistency.
-  // We'll use bg-transparent to let radial gradient show through, or bg-black/40 for overlay.
-
   return (
-    <div className="flex-1 flex flex-col bg-transparent relative z-10 h-full">
-      {/* Header */}
-      <div className="h-12 px-4 flex items-center border-b border-border bg-background/95 backdrop-blur shrink-0 transition-colors">
-        <Volume2 className="w-5 h-5 text-muted-foreground mr-2" />
-        <span className="font-bold text-foreground text-[15px]">{channel.name}</span>
-        <div className="w-px h-6 bg-border mx-3" />
+    <div className="flex-1 flex flex-col bg-background relative z-10 h-full select-none overflow-hidden">
+      {/* Comic Header */}
+      <div className="h-14 px-4 flex items-center justify-between border-b-3 border-black bg-card shadow-[0_3px_0px_#000] shrink-0 z-20">
         <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-sm text-muted-foreground font-medium">
-            {activeParticipants.length} {activeParticipants.length === 1 ? "conectado" : "conectados"}
+          <div className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center">
+            <Volume2 className="w-4 h-4 text-black stroke-[2.5]" />
+          </div>
+          <span className="font-black text-foreground text-sm uppercase tracking-wider">{channel.name}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="bg-[#FFE600] text-black border-2 border-black shadow-[2px_2px_0px_#000] px-3 py-1 rounded-full font-black text-xs flex items-center gap-1.5 uppercase tracking-wide">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse border border-black" />
+            {activeParticipants.length} {activeParticipants.length === 1 ? "Conectado" : "Conectados"}
           </span>
         </div>
       </div>
 
-      {/* Main video area */}
-      <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Main Video & Screen Share Stage */}
+      <div className="flex-1 flex items-center justify-center p-4 relative overflow-y-auto">
         {screenSharer ? (
-          // Screen share mode
-          <div className="w-full h-full flex gap-4">
-            {/* Main screen share */}
-            <div className="flex-1 bg-black/80 rounded-xl overflow-hidden relative flex items-center justify-center border border-border/50 shadow-2xl">
+          // Screen share layout
+          <div className="w-full h-full flex flex-col md:flex-row gap-4">
+            {/* Screen share main viewport */}
+            <div className="flex-1 bg-black rounded-2xl overflow-hidden relative flex items-center justify-center border-3 border-black shadow-[6px_6px_0px_#000] min-h-[300px]">
               {screenSharer.user_id === localUserId ? (
                 <ScreenShareTile stream={screenStream} />
               ) : (
                 <ScreenShareTile stream={remoteScreenStreams.get(screenSharer.user_id) || remoteStreams.get(screenSharer.user_id)} />
               )}
-              <div className="absolute bottom-4 left-4 bg-background/80 backdrop-blur px-4 py-1.5 rounded-full text-foreground text-sm font-medium border border-border shadow-lg flex items-center gap-2">
-                <Monitor className="w-4 h-4 text-primary" />
-                Pantalla de {screenSharer.profile?.nombre || "Usuario"}
+              <div className="absolute bottom-4 left-4 bg-white text-black px-3.5 py-1.5 rounded-xl text-xs font-black border-2 border-black shadow-[3px_3px_0px_#000] flex items-center gap-2 uppercase tracking-wide">
+                <Monitor className="w-4 h-4 text-primary stroke-[2.5]" />
+                Pantalla de {screenSharer.profile?.nombre || screenSharer.profile?.username || "Usuario"}
               </div>
             </div>
 
-            {/* Small participant tiles */}
-            <div className="w-60 flex flex-col gap-3 overflow-y-auto pr-1 discord-scrollbar">
+            {/* Side column for participants */}
+            <div className="w-full md:w-64 flex flex-row md:flex-col gap-3 overflow-x-auto md:overflow-y-auto pr-1 shrink-0">
               {activeParticipants.map(p => (
                 <SmallTile
                   key={p.id}
@@ -129,13 +126,13 @@ export function DiscordVoiceChannel({
             </div>
           </div>
         ) : (
-          // Normal video grid
+          // Grid layout for video / avatar tiles
           <div className={cn(
             "grid gap-4 w-full h-full place-items-center transition-all duration-300",
-            activeParticipants.length <= 1 && "grid-cols-1 max-w-3xl max-h-[600px]",
-            activeParticipants.length === 2 && "grid-cols-2 max-h-[500px]",
-            activeParticipants.length >= 3 && activeParticipants.length <= 4 && "grid-cols-2 grid-rows-2",
-            activeParticipants.length > 4 && "grid-cols-3 grid-rows-2"
+            activeParticipants.length <= 1 && "grid-cols-1 max-w-2xl max-h-[500px]",
+            activeParticipants.length === 2 && "grid-cols-1 md:grid-cols-2 max-w-4xl max-h-[480px]",
+            activeParticipants.length >= 3 && activeParticipants.length <= 4 && "grid-cols-1 sm:grid-cols-2 max-w-5xl",
+            activeParticipants.length > 4 && "grid-cols-2 md:grid-cols-3 max-w-6xl"
           )}>
             {activeParticipants.map(p => (
               <VideoTile
@@ -151,84 +148,93 @@ export function DiscordVoiceChannel({
         )}
       </div>
 
-      {/* Bottom Controls */}
-      <div className="h-20 bg-background/95 backdrop-blur border-t border-border flex items-center justify-center gap-4 relative z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
-        <ControlBtn
-          icon={isAudioEnabled ? Mic : MicOff}
-          active={!isAudioEnabled}
-          onClick={onToggleAudio}
-          tooltip={isAudioEnabled ? "Silenciar" : "Activar micrófono"}
-          variant={!isAudioEnabled ? "destructive" : "secondary"}
-        />
+      {/* Floating Bottom Controls (Comic / Neobrutalism) */}
+      <div className="p-4 flex items-center justify-center shrink-0 z-30">
+        <div className="bg-card border-3 border-black shadow-[6px_6px_0px_#000] rounded-2xl px-5 py-2.5 flex items-center gap-3 backdrop-blur-md">
+          {/* Mic Button */}
+          <ComicControlBtn
+            icon={isAudioEnabled ? Mic : MicOff}
+            active={!isAudioEnabled}
+            onClick={onToggleAudio}
+            tooltip={isAudioEnabled ? "Silenciar Micrófono" : "Activar Micrófono"}
+            variant={isAudioEnabled ? "yellow" : "danger"}
+          />
 
-        <div className="relative">
-          <div className="flex items-center">
-            <ControlBtn
+          {/* Camera Button & Selector */}
+          <div className="relative flex items-center">
+            <ComicControlBtn
               icon={isVideoEnabled ? Video : VideoOff}
-              active={!isVideoEnabled}
+              active={isVideoEnabled}
               onClick={onToggleVideo}
-              tooltip={isVideoEnabled ? "Desactivar cámara" : "Activar cámara"}
-              variant={!isVideoEnabled ? "destructive" : "secondary"}
+              tooltip={isVideoEnabled ? "Apagar Cámara" : "Encender Cámara"}
+              variant={isVideoEnabled ? "cyan" : "neutral"}
             />
             {cameras.length > 1 && (
               <button
                 onClick={() => setShowCameraMenu(!showCameraMenu)}
-                className="ml-1 w-7 h-7 rounded-full flex items-center justify-center bg-muted/50 hover:bg-muted text-foreground transition-all"
+                className="ml-1 w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 text-foreground border-2 border-black shadow-[1.5px_1.5px_0px_#000] transition-all"
                 title="Cambiar cámara"
               >
-                <ChevronDown className="w-3.5 h-3.5" />
+                <ChevronDown className="w-4 h-4 stroke-[2.5]" />
               </button>
             )}
-          </div>
-          {showCameraMenu && cameras.length > 1 && (
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur border border-border rounded-lg shadow-xl p-2 min-w-[200px] z-50">
-              <div className="text-xs font-semibold text-muted-foreground px-2 py-1 flex items-center gap-1.5">
-                <SwitchCamera className="w-3.5 h-3.5" /> Seleccionar cámara
+
+            {showCameraMenu && cameras.length > 1 && (
+              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-card border-2 border-black rounded-xl shadow-[4px_4px_0px_#000] p-2 min-w-[200px] z-50">
+                <div className="text-[11px] font-black uppercase text-muted-foreground px-2 py-1 flex items-center gap-1.5">
+                  <SwitchCamera className="w-3.5 h-3.5" /> Dispositivos
+                </div>
+                {cameras.map(cam => (
+                  <button
+                    key={cam.deviceId}
+                    onClick={() => { onSwitchCamera?.(cam.deviceId); setShowCameraMenu(false); }}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg transition-colors truncate border-2 border-transparent my-0.5",
+                      cam.deviceId === selectedCameraId
+                        ? "bg-[#FFE600] text-black border-black shadow-[2px_2px_0px_#000]"
+                        : "hover:bg-muted text-foreground"
+                    )}
+                  >
+                    {cam.label}
+                  </button>
+                ))}
               </div>
-              {cameras.map(cam => (
-                <button
-                  key={cam.deviceId}
-                  onClick={() => { onSwitchCamera?.(cam.deviceId); setShowCameraMenu(false); }}
-                  className={cn(
-                    "w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors truncate",
-                    cam.deviceId === selectedCameraId
-                      ? "bg-primary/20 text-primary font-medium"
-                      : "hover:bg-muted text-foreground"
-                  )}
-                >
-                  {cam.label}
-                </button>
-              ))}
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Screen Share Button */}
+          <ComicControlBtn
+            icon={isScreenSharing ? MonitorOff : Monitor}
+            active={isScreenSharing}
+            onClick={onToggleScreenShare}
+            tooltip={isScreenSharing ? "Dejar de compartir" : "Transmitir Pantalla"}
+            variant={isScreenSharing ? "purple" : "neutral"}
+          />
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Disconnect Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onLeaveChannel}
+                className="px-4 py-2 rounded-xl flex items-center gap-2 bg-[#EF4444] text-white hover:bg-red-600 border-2 border-black shadow-[3px_3px_0px_#000] hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all font-black text-xs uppercase tracking-wider"
+              >
+                <PhoneOff className="w-4 h-4 stroke-[2.5]" />
+                <span>Desconectar</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="font-bold border-2 border-black shadow-[2px_2px_0px_#000]">
+              Salir del canal de voz
+            </TooltipContent>
+          </Tooltip>
         </div>
-
-        <ControlBtn
-          icon={isScreenSharing ? MonitorOff : Monitor}
-          active={isScreenSharing}
-          onClick={onToggleScreenShare}
-          tooltip={isScreenSharing ? "Dejar de compartir" : "Compartir pantalla"}
-          variant={isScreenSharing ? "active" : "secondary"}
-        />
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={onLeaveChannel}
-              className="ml-4 px-5 h-12 rounded-full flex items-center gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all duration-200 shadow-lg shadow-destructive/20 hover:-translate-y-1 font-medium text-sm"
-            >
-              <PhoneOff className="w-5 h-5" />
-              <span>Desconectar</span>
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>Salir del canal de voz</TooltipContent>
-        </Tooltip>
       </div>
     </div>
   );
 }
 
-// Subcomponents
+// ═══ Participant Video Tile (Comic Style) ═══
 function VideoTile({
   participant,
   stream,
@@ -251,7 +257,6 @@ function VideoTile({
   const hasLiveVideo = videoTracks.some(t => t.enabled && t.readyState === 'live');
   const showVideo = Boolean((isVideoEnabled || hasLiveVideo) && videoTracks.length > 0 && stream);
 
-  // Assign srcObject and listen for track changes
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
@@ -285,9 +290,8 @@ function VideoTile({
 
   return (
     <div className={cn(
-      "relative bg-card rounded-xl overflow-hidden w-full h-full flex items-center justify-center transition-all duration-300 shadow-xl border border-border group",
-      isSpeaking && "ring-2 ring-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]",
-      !isScreenShare && "aspect-video max-h-full"
+      "relative rounded-2xl overflow-hidden w-full h-full min-h-[220px] max-h-[460px] aspect-video flex items-center justify-center transition-all duration-200 border-3 border-black shadow-[4px_4px_0px_#000] bg-card group",
+      isSpeaking ? "ring-4 ring-[#22c55e] shadow-[0_0_20px_rgba(34,197,94,0.5),4px_4px_0px_#000]" : ""
     )}>
       {showVideo ? (
         <video
@@ -298,46 +302,43 @@ function VideoTile({
           className="w-full h-full object-cover"
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/30 p-4">
           <Avatar className={cn(
-            "transition-all duration-300 ring-4 ring-transparent",
-            isSpeaking ? "w-32 h-32 ring-green-500/50 scale-110" : "w-24 h-24",
-            isScreenShare && "w-16 h-16"
+            "w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-3 border-black shadow-[4px_4px_0px_#000] transition-transform duration-200",
+            isSpeaking && "scale-105"
           )}>
-            <AvatarImage src={participant.profile?.avatar_url || undefined} />
-            <AvatarFallback className="text-3xl bg-primary text-primary-foreground font-bold">
-              {participant.profile?.username?.substring(0, 2).toUpperCase()}
+            <AvatarImage src={participant.profile?.avatar_url || undefined} className="object-cover" />
+            <AvatarFallback className="text-3xl font-black bg-[#FFE600] text-black">
+              {participant.profile?.username?.substring(0, 2).toUpperCase() || "US"}
             </AvatarFallback>
           </Avatar>
         </div>
       )}
 
-      {/* Overlays */}
-      <div className="absolute bottom-3 left-3 bg-black/60 px-3 py-1.5 rounded-full text-white text-sm font-medium flex items-center gap-2 backdrop-blur-sm border border-white/10 z-10">
-        {isSpeaking ? (
-          <Volume2 className="w-4 h-4 text-green-400 animate-pulse" />
-        ) : participant.is_muted ? (
-          <MicOff className="w-4 h-4 text-red-400" />
-        ) : (
-          <Mic className="w-4 h-4 text-gray-300" />
-        )}
-        <span className="max-w-[120px] truncate drop-shadow-md">
-          {isLocal ? "Tú" : (participant.profile?.username || "Usuario")}
-        </span>
-      </div>
-
-      {/* Speaking Visualizer (Sound Waves) */}
+      {/* Speaking Badge */}
       {isSpeaking && (
-        <div className="absolute top-3 right-3 discord-sound-wave z-10">
-          <div className="bar" />
-          <div className="bar" />
-          <div className="bar" />
+        <div className="absolute top-3 right-3 bg-[#22c55e] text-black font-black text-[11px] px-2.5 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-1.5 animate-pulse uppercase tracking-wider z-20">
+          <span className="w-2 h-2 rounded-full bg-black animate-ping" />
+          <span>Hablando</span>
         </div>
       )}
+
+      {/* Name & Mic Status Badge */}
+      <div className="absolute bottom-3 left-3 bg-white text-black font-black text-xs px-3 py-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-2 uppercase tracking-wide z-20 max-w-[85%]">
+        {participant.is_muted ? (
+          <MicOff className="w-3.5 h-3.5 text-[#EF4444] stroke-[3]" />
+        ) : (
+          <Mic className="w-3.5 h-3.5 text-black stroke-[3]" />
+        )}
+        <span className="truncate">
+          {isLocal ? "Tú" : (participant.profile?.username || participant.profile?.nombre || "Usuario")}
+        </span>
+      </div>
     </div>
   );
 }
 
+// ═══ Small Participant Tile for Screen Share sidebar ═══
 function SmallTile({
   participant,
   stream,
@@ -391,8 +392,8 @@ function SmallTile({
 
   return (
     <div className={cn(
-      "aspect-video bg-card rounded-lg overflow-hidden relative border border-border shadow-md transition-all hover:scale-105 cursor-pointer",
-      isSpeaking && "ring-2 ring-green-500"
+      "w-36 md:w-full aspect-video bg-card rounded-xl overflow-hidden relative border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center shrink-0 transition-transform",
+      isSpeaking ? "ring-3 ring-[#22c55e]" : ""
     )}>
       {showVideo ? (
         <video
@@ -403,17 +404,21 @@ function SmallTile({
           className="w-full h-full object-cover"
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-muted/30">
-          <Avatar className="w-10 h-10">
-            <AvatarImage src={participant.profile?.avatar_url || undefined} />
-            <AvatarFallback>{participant.profile?.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-        </div>
+        <Avatar className="w-10 h-10 border-2 border-black shadow-[1.5px_1.5px_0px_#000]">
+          <AvatarImage src={participant.profile?.avatar_url || undefined} />
+          <AvatarFallback className="text-xs font-black bg-[#FFE600] text-black">
+            {participant.profile?.username?.substring(0, 2).toUpperCase() || "US"}
+          </AvatarFallback>
+        </Avatar>
       )}
+      <div className="absolute bottom-1 left-1 bg-white text-black font-black text-[10px] px-1.5 py-0.5 rounded border border-black truncate max-w-[90%]">
+        {isLocal ? "Tú" : (participant.profile?.username || "Usuario")}
+      </div>
     </div>
   );
 }
 
+// ═══ Screen Share Tile ═══
 function ScreenShareTile({ stream }: { stream?: MediaStream | null }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -425,9 +430,11 @@ function ScreenShareTile({ stream }: { stream?: MediaStream | null }) {
 
   if (!stream) {
     return (
-      <div className="text-center text-muted-foreground animate-pulse w-full h-full flex flex-col items-center justify-center">
-        <Monitor className="w-16 h-16 mx-auto mb-4 opacity-50" />
-        <p className="text-xl font-bold font-orbitron text-primary">Conectando pantalla...</p>
+      <div className="text-center text-muted-foreground animate-pulse w-full h-full flex flex-col items-center justify-center p-6">
+        <div className="w-16 h-16 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center mb-3">
+          <Monitor className="w-8 h-8 text-white opacity-60 stroke-[2.5]" />
+        </div>
+        <p className="text-sm font-black uppercase text-white tracking-wider">Conectando pantalla compartida...</p>
       </div>
     );
   }
@@ -443,29 +450,27 @@ function ScreenShareTile({ stream }: { stream?: MediaStream | null }) {
   );
 }
 
-function ControlBtn({
+// ═══ Comic Control Button ═══
+function ComicControlBtn({
   icon: Icon,
   active,
   onClick,
   tooltip,
-  variant = "secondary",
-  className
-}: any) {
-  // define variants
-  const variants: any = {
-    secondary: "bg-muted text-foreground hover:bg-muted/80 hover:text-primary hover:-translate-y-1",
-    active: "bg-white text-black hover:bg-gray-200",
-    destructive: "bg-white text-black hover:bg-gray-200 relative overflow-hidden", // White like Discord mute? No, user wants theme. Discord uses white with red slash or just white button for active.
-    // Let's stick to App Theme:
-    // Active (Muted/Off) -> Destructive Red? Or just White? Discord uses White button with internal strikethrough.
-    // I'll use: Mute -> White bg + Black icon + Strikethrough?
-    "danger-solid": "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:-translate-y-1 shadow-lg shadow-destructive/20"
-  };
-
-  // If active=true (e.g. isMuted), use white style
-  const finalClass = variant === 'destructive'
-    ? "bg-white text-black hover:bg-gray-200"
-    : variants[variant];
+  variant = "neutral"
+}: {
+  icon: any;
+  active?: boolean;
+  onClick: () => void;
+  tooltip: string;
+  variant?: "yellow" | "cyan" | "purple" | "danger" | "neutral";
+}) {
+  const colorStyles = {
+    yellow: "bg-[#FFE600] text-black hover:bg-yellow-400",
+    cyan: "bg-[#06B6D4] text-black hover:bg-cyan-400",
+    purple: "bg-[#8B5CF6] text-white hover:bg-purple-600",
+    danger: "bg-[#EF4444] text-white hover:bg-red-600",
+    neutral: "bg-muted text-foreground hover:bg-muted/80",
+  }[variant];
 
   return (
     <Tooltip>
@@ -473,20 +478,16 @@ function ControlBtn({
         <button
           onClick={onClick}
           className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-md",
-            finalClass,
-            className
+            "w-11 h-11 rounded-xl flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none hover:-translate-y-0.5 transition-all",
+            colorStyles
           )}
         >
-          <Icon className={cn("w-6 h-6", variant === 'secondary' && "text-foreground")} />
-          {variant === 'destructive' && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-8 h-0.5 bg-red-600 rotate-45 rounded-full" />
-            </div>
-          )}
+          <Icon className="w-5 h-5 stroke-[2.5]" />
         </button>
       </TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
+      <TooltipContent className="font-bold border-2 border-black shadow-[2px_2px_0px_#000]">
+        {tooltip}
+      </TooltipContent>
     </Tooltip>
   );
 }

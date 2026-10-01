@@ -98,10 +98,8 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
     // Helper: find the video sender (including pre-negotiated transceiver with null track)
     const findVideoSender = useCallback((pc: RTCPeerConnection): RTCRtpSender | undefined => {
-        // First try to find sender with video track
         const withTrack = pc.getSenders().find(s => s.track?.kind === 'video');
         if (withTrack) return withTrack;
-        // Fall back to transceiver's sender for 'video' mid
         const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
         return transceiver?.sender;
     }, []);
@@ -141,6 +139,22 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
     const cleanupAll = useCallback(() => {
         log('Cleanup all media and connections');
+        const myId = userIdRef.current;
+        if (sigRef.current && myId) {
+            try {
+                sigRef.current.send({
+                    type: 'broadcast',
+                    event: 'user-left',
+                    payload: { userId: myId, from: myId },
+                });
+                sigRef.current.send({
+                    type: 'broadcast',
+                    event: 'signaling',
+                    payload: { type: 'user-left', from: myId },
+                });
+            } catch { }
+        }
+
         if (audioContextRef.current) {
             try { audioContextRef.current.close(); } catch { }
             audioContextRef.current = null;
@@ -178,6 +192,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         setSpeakingUsers(new Set());
         setIsAudioEnabled(true);
         setIsVideoEnabled(false);
+
         if (sigRef.current) {
             supabase.removeChannel(sigRef.current);
             sigRef.current = null;
@@ -200,20 +215,26 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, [log]);
 
-    // ─── Broadcast Media State (Cero Egress continuo) ───
+    // ─── Broadcast Media State ───
     const broadcastMediaState = useCallback((cameraOn: boolean, screenSharing: boolean, audioOn: boolean) => {
         const myId = userIdRef.current;
         if (!myId || !sigRef.current) return;
+        const payload = {
+            type: 'media-state',
+            from: myId,
+            isCameraOn: cameraOn,
+            isScreenSharing: screenSharing,
+            isAudioEnabled: audioOn,
+        };
+        sigRef.current.send({
+            type: 'broadcast',
+            event: 'signal:media-state',
+            payload,
+        });
         sigRef.current.send({
             type: 'broadcast',
             event: 'signaling',
-            payload: {
-                type: 'media-state',
-                from: myId,
-                isCameraOn: cameraOn,
-                isScreenSharing: screenSharing,
-                isAudioEnabled: audioOn,
-            }
+            payload,
         });
     }, []);
 
@@ -236,10 +257,17 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
             if (pc.signalingState !== 'stable') return;
             await pc.setLocalDescription(offer);
+
+            const payload = { type: 'offer', offer: pc.localDescription, from: myId, to: targetId };
+            sigRef.current.send({
+                type: 'broadcast',
+                event: 'signal:offer',
+                payload,
+            });
             sigRef.current.send({
                 type: 'broadcast',
                 event: 'signaling',
-                payload: { type: 'offer', offer: pc.localDescription, from: myId, to: targetId },
+                payload,
             });
             log(`Renegotiation offer sent to ${targetId.slice(0, 8)}`);
         } catch (e: any) {
@@ -261,7 +289,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             pcsRef.current.delete(targetId);
         }
 
-        log(`Creating RTCPeerConnection for ${targetId.slice(0, 8)} with ICE STUN/TURN`);
+        log(`Creating RTCPeerConnection for ${targetId.slice(0, 8)} with ICE STUN servers`);
         const pc = new RTCPeerConnection(ICE_SERVERS);
         pcsRef.current.set(targetId, pc);
 
@@ -270,8 +298,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             pc.addTrack(track, stream);
         });
 
-        // 2. Ensure video transceiver is pre-negotiated
-        // This guarantees sendrecv video exists from handshake, allowing instant replaceTrack!
+        // 2. Ensure video transceiver is pre-negotiated for fast seamless track swapping
         let activeVideoTrack: MediaStreamTrack | null = null;
         if (screenStreamRef.current && screenStreamRef.current.getVideoTracks().length > 0) {
             activeVideoTrack = screenStreamRef.current.getVideoTracks()[0];
@@ -282,7 +309,6 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         if (activeVideoTrack) {
             pc.addTrack(activeVideoTrack, stream);
         } else {
-            // Transceiver ensures SDP negotiates video direction without initial track
             pc.addTransceiver('video', { direction: 'sendrecv' });
         }
 
@@ -336,15 +362,22 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
         pc.onicecandidate = (ev) => {
             if (ev.candidate && sigRef.current) {
+                const myId = userIdRef.current;
+                const payload = {
+                    type: 'ice-candidate',
+                    candidate: ev.candidate.toJSON(),
+                    from: myId,
+                    to: targetId,
+                };
+                sigRef.current.send({
+                    type: 'broadcast',
+                    event: 'signal:ice-candidate',
+                    payload,
+                });
                 sigRef.current.send({
                     type: 'broadcast',
                     event: 'signaling',
-                    payload: {
-                        type: 'ice-candidate',
-                        candidate: ev.candidate.toJSON(),
-                        from: userIdRef.current,
-                        to: targetId
-                    },
+                    payload,
                 });
             }
         };
@@ -361,148 +394,159 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         return pc;
     }, [log, renegotiateWith]);
 
-    // ─── Signaling Handler ───
-    const handleSignaling = useCallback(async (payload: any) => {
-        const myId = userIdRef.current;
-        if (!myId || payload.from === myId) return;
-        if (payload.to && payload.to !== myId) return;
-
-        const sid = payload.from as string;
-        const stream = localStreamRef.current;
-
-        switch (payload.type) {
-            case 'offer': {
-                log(`Received offer from ${sid.slice(0, 8)}`);
-                if (!stream) return;
-
-                let pc = pcsRef.current.get(sid);
-                if (!pc) {
-                    pc = makePC(sid, stream);
-                }
-
-                try {
-                    if (pc.signalingState !== 'stable') {
-                        log(`Signaling glare detected with ${sid.slice(0, 8)}, state=${pc.signalingState}`);
-                        if (myId.localeCompare(sid) > 0) {
-                            try {
-                                await pc.setLocalDescription({ type: 'rollback' } as any);
-                            } catch { }
-                        } else {
-                            return;
-                        }
-                    }
-
-                    await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
-                    // Drain any candidate that arrived before setRemoteDescription
-                    await drainPendingCandidates(sid, pc);
-
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-
-                    sigRef.current?.send({
-                        type: 'broadcast',
-                        event: 'signaling',
-                        payload: { type: 'answer', answer: pc.localDescription, from: myId, to: sid },
-                    });
-                    log(`Answer sent to ${sid.slice(0, 8)}`);
-
-                    // Respond with current media state
-                    broadcastMediaState(isVideoEnabledRef.current, isScreenSharingRef.current, isAudioEnabledRef.current);
-                } catch (e: any) {
-                    log(`Offer error: ${e.message}`);
-                }
-                break;
-            }
-
-            case 'answer': {
-                log(`Received answer from ${sid.slice(0, 8)}`);
-                const pc = pcsRef.current.get(sid);
-                if (!pc) return;
-                try {
-                    await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
-                    await drainPendingCandidates(sid, pc);
-                    log(`Handshake WebRTC established successfully with ${sid.slice(0, 8)}`);
-                } catch (e: any) {
-                    log(`Answer error: ${e.message}`);
-                }
-                break;
-            }
-
-            case 'ice-candidate': {
-                const pc = pcsRef.current.get(sid);
-                if (!pc || !pc.remoteDescription || !pc.remoteDescription.type) {
-                    // Queue candidate until remote description is ready
-                    const queue = pendingCandidatesRef.current.get(sid) || [];
-                    queue.push(payload.candidate);
-                    pendingCandidatesRef.current.set(sid, queue);
-                    return;
-                }
-                try {
-                    await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-                } catch (e: any) {
-                    console.warn(`[Tabetalk] Error adding ICE candidate: ${e.message}`);
-                }
-                break;
-            }
-
-            case 'media-state': {
-                setRemoteMediaStates(prev => {
-                    const next = new Map(prev);
-                    next.set(sid, {
-                        isCameraOn: Boolean(payload.isCameraOn),
-                        isScreenSharing: Boolean(payload.isScreenSharing),
-                        isAudioEnabled: payload.isAudioEnabled !== false,
-                    });
-                    return next;
-                });
-
-                if (!payload.isCameraOn && !payload.isScreenSharing) {
-                    const rStream = remoteStreamsRef.current.get(sid);
-                    if (rStream) {
-                        rStream.getVideoTracks().forEach(t => {
-                            try { rStream.removeTrack(t); } catch { }
-                        });
-                        setRemoteStreams(new Map(remoteStreamsRef.current));
-                    }
-                }
-                break;
-            }
-
-            case 'speaking': {
-                setSpeakingUsers(prev => {
-                    const next = new Set(prev);
-                    if (payload.isSpeaking) next.add(sid);
-                    else next.delete(sid);
-                    return next;
-                });
-                break;
-            }
-
-            case 'user-left': {
-                closePeer(sid);
-                break;
-            }
-        }
-    }, [makePC, drainPendingCandidates, broadcastMediaState, closePeer, log]);
-
-    // ─── Create initial offer ───
+    // ─── Offer Creator ───
     const createOfferTo = useCallback(async (targetId: string, stream: MediaStream) => {
         log(`Initiating offer to ${targetId.slice(0, 8)}`);
         const pc = makePC(targetId, stream);
         try {
             const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
             await pc.setLocalDescription(offer);
+            const myId = userIdRef.current;
+            const payload = { type: 'offer', offer: pc.localDescription, from: myId, to: targetId };
+
+            sigRef.current?.send({
+                type: 'broadcast',
+                event: 'signal:offer',
+                payload,
+            });
             sigRef.current?.send({
                 type: 'broadcast',
                 event: 'signaling',
-                payload: { type: 'offer', offer: pc.localDescription, from: userIdRef.current, to: targetId },
+                payload,
             });
         } catch (e: any) {
             log(`Create offer error: ${e.message}`);
         }
     }, [makePC, log]);
 
-    // ─── Setup Voice Activity Detection (Client-side, 0 Database queries) ───
+    // ─── Signaling Dispatchers ───
+    const handleOffer = useCallback(async (payload: any) => {
+        const myId = userIdRef.current;
+        if (!myId || payload.from === myId) return;
+        if (payload.to && payload.to !== myId) return;
+
+        const sid = payload.from as string;
+        const stream = localStreamRef.current;
+        log(`Received offer from ${sid.slice(0, 8)}`);
+        if (!stream) return;
+
+        let pc = pcsRef.current.get(sid);
+        if (!pc) {
+            pc = makePC(sid, stream);
+        }
+
+        try {
+            if (pc.signalingState !== 'stable') {
+                log(`Signaling glare detected with ${sid.slice(0, 8)}, state=${pc.signalingState}`);
+                if (myId.localeCompare(sid) > 0) {
+                    try {
+                        await pc.setLocalDescription({ type: 'rollback' } as any);
+                    } catch { }
+                } else {
+                    return;
+                }
+            }
+
+            await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+            await drainPendingCandidates(sid, pc);
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            const answerPayload = { type: 'answer', answer: pc.localDescription, from: myId, to: sid };
+            sigRef.current?.send({
+                type: 'broadcast',
+                event: 'signal:answer',
+                payload: answerPayload,
+            });
+            sigRef.current?.send({
+                type: 'broadcast',
+                event: 'signaling',
+                payload: answerPayload,
+            });
+            log(`Answer sent to ${sid.slice(0, 8)}`);
+
+            broadcastMediaState(isVideoEnabledRef.current, isScreenSharingRef.current, isAudioEnabledRef.current);
+        } catch (e: any) {
+            log(`Offer error: ${e.message}`);
+        }
+    }, [makePC, drainPendingCandidates, broadcastMediaState, log]);
+
+    const handleAnswer = useCallback(async (payload: any) => {
+        const myId = userIdRef.current;
+        if (!myId || payload.from === myId) return;
+        if (payload.to && payload.to !== myId) return;
+
+        const sid = payload.from as string;
+        log(`Received answer from ${sid.slice(0, 8)}`);
+        const pc = pcsRef.current.get(sid);
+        if (!pc) return;
+        try {
+            await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+            await drainPendingCandidates(sid, pc);
+            log(`Handshake WebRTC established successfully with ${sid.slice(0, 8)}`);
+        } catch (e: any) {
+            log(`Answer error: ${e.message}`);
+        }
+    }, [drainPendingCandidates, log]);
+
+    const handleIceCandidate = useCallback(async (payload: any) => {
+        const myId = userIdRef.current;
+        if (!myId || payload.from === myId) return;
+        if (payload.to && payload.to !== myId) return;
+
+        const sid = payload.from as string;
+        const pc = pcsRef.current.get(sid);
+        if (!pc || !pc.remoteDescription || !pc.remoteDescription.type) {
+            const queue = pendingCandidatesRef.current.get(sid) || [];
+            queue.push(payload.candidate);
+            pendingCandidatesRef.current.set(sid, queue);
+            return;
+        }
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+        } catch (e: any) {
+            console.warn(`[Tabetalk] Error adding ICE candidate: ${e.message}`);
+        }
+    }, []);
+
+    const handleMediaState = useCallback((payload: any) => {
+        const sid = payload.from as string;
+        if (!sid || sid === userIdRef.current) return;
+
+        setRemoteMediaStates(prev => {
+            const next = new Map(prev);
+            next.set(sid, {
+                isCameraOn: Boolean(payload.isCameraOn),
+                isScreenSharing: Boolean(payload.isScreenSharing),
+                isAudioEnabled: payload.isAudioEnabled !== false,
+            });
+            return next;
+        });
+
+        if (!payload.isCameraOn && !payload.isScreenSharing) {
+            const rStream = remoteStreamsRef.current.get(sid);
+            if (rStream) {
+                rStream.getVideoTracks().forEach(t => {
+                    try { rStream.removeTrack(t); } catch { }
+                });
+                setRemoteStreams(new Map(remoteStreamsRef.current));
+            }
+        }
+    }, []);
+
+    const handleSpeaking = useCallback((payload: any) => {
+        const sid = payload.from as string;
+        if (!sid) return;
+        setSpeakingUsers(prev => {
+            const next = new Set(prev);
+            if (payload.isSpeaking) next.add(sid);
+            else next.delete(sid);
+            return next;
+        });
+    }, []);
+
+    // ─── Setup Voice Activity Detection ───
     const setupLocalVAD = useCallback((stream: MediaStream) => {
         try {
             if (audioContextRef.current) {
@@ -537,10 +581,16 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                             else next.delete(myId);
                             return next;
                         });
+                        const payload = { type: 'speaking', isSpeaking: speaking, from: myId };
+                        sigRef.current?.send({
+                            type: 'broadcast',
+                            event: 'signal:speaking',
+                            payload,
+                        });
                         sigRef.current?.send({
                             type: 'broadcast',
                             event: 'signaling',
-                            payload: { type: 'speaking', isSpeaking: speaking, from: myId }
+                            payload,
                         });
                     }
                 }
@@ -560,7 +610,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
 
         let cancelled = false;
-        log(`Joining Tabetalk Room: tabetalk-room:${channelId}`);
+        log(`Joining Tabetalk Room: room:${channelId}`);
 
         const start = async () => {
             let stream: MediaStream;
@@ -586,19 +636,63 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             setupLocalVAD(stream);
             await refreshCameras();
 
-            // Lightweight ephemeral broadcast channel for signaling
-            const channel = supabase.channel(`tabetalk-room:${channelId}`, {
+            // Setup Realtime broadcast & presence channel: room:${channelId}
+            const channel = supabase.channel(`room:${channelId}`, {
                 config: { broadcast: { self: false }, presence: { key: user.id } },
             });
 
-            channel.on('broadcast', { event: 'signaling' }, ({ payload }) => {
-                if (!cancelled) handleSignaling(payload);
+            // 1. Specific signaling events
+            channel.on('broadcast', { event: 'user-joined' }, ({ payload }) => {
+                if (cancelled || !payload?.userId || payload.userId === user.id) return;
+                log(`user-joined event from: ${payload.userId.slice(0, 8)}`);
+                // Existing peer creates offer to newcomer
+                createOfferTo(payload.userId, stream);
             });
 
+            channel.on('broadcast', { event: 'signal:offer' }, ({ payload }) => {
+                if (!cancelled) handleOffer(payload);
+            });
+
+            channel.on('broadcast', { event: 'signal:answer' }, ({ payload }) => {
+                if (!cancelled) handleAnswer(payload);
+            });
+
+            channel.on('broadcast', { event: 'signal:ice-candidate' }, ({ payload }) => {
+                if (!cancelled) handleIceCandidate(payload);
+            });
+
+            channel.on('broadcast', { event: 'signal:media-state' }, ({ payload }) => {
+                if (!cancelled) handleMediaState(payload);
+            });
+
+            channel.on('broadcast', { event: 'signal:speaking' }, ({ payload }) => {
+                if (!cancelled) handleSpeaking(payload);
+            });
+
+            channel.on('broadcast', { event: 'user-left' }, ({ payload }) => {
+                const leftId = payload?.userId || payload?.from;
+                if (!leftId || leftId === user.id) return;
+                log(`user-left event from: ${leftId.slice(0, 8)}`);
+                closePeer(leftId);
+            });
+
+            // Backward compatibility generic signaling event
+            channel.on('broadcast', { event: 'signaling' }, ({ payload }) => {
+                if (cancelled) return;
+                switch (payload.type) {
+                    case 'offer': handleOffer(payload); break;
+                    case 'answer': handleAnswer(payload); break;
+                    case 'ice-candidate': handleIceCandidate(payload); break;
+                    case 'media-state': handleMediaState(payload); break;
+                    case 'speaking': handleSpeaking(payload); break;
+                    case 'user-left': closePeer(payload.from); break;
+                }
+            });
+
+            // Presence fallbacks
             channel.on('presence', { event: 'join' }, ({ key }) => {
                 if (cancelled || !key || key === user.id) return;
-                log(`Participant joined: ${key.slice(0, 8)}`);
-                // Deterministic initiator (lexicographical order prevents collisions)
+                log(`Presence join: ${key.slice(0, 8)}`);
                 if (user.id.localeCompare(key) < 0) {
                     createOfferTo(key, stream);
                 }
@@ -606,7 +700,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
             channel.on('presence', { event: 'leave' }, ({ key }) => {
                 if (!key || key === user.id) return;
-                log(`Participant left: ${key.slice(0, 8)}`);
+                log(`Presence leave: ${key.slice(0, 8)}`);
                 closePeer(key);
             });
 
@@ -615,6 +709,14 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                     await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
                     sigRef.current = channel;
 
+                    // Announce user-joined to all connected peers
+                    channel.send({
+                        type: 'broadcast',
+                        event: 'user-joined',
+                        payload: { userId: user.id, from: user.id },
+                    });
+
+                    // Check existing peers already in the room
                     setTimeout(() => {
                         if (cancelled) return;
                         const others = Object.keys(channel.presenceState()).filter(id => id !== user.id);
@@ -624,7 +726,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                                 createOfferTo(id, stream);
                             }
                         });
-                    }, 600);
+                    }, 400);
                 }
             });
         };
@@ -634,7 +736,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             cancelled = true;
             cleanupAll();
         };
-    }, [channelId, user?.id, setupLocalVAD, refreshCameras, createOfferTo, handleSignaling, closePeer, cleanupAll, toast, log]);
+    }, [channelId, user?.id, setupLocalVAD, refreshCameras, createOfferTo, handleOffer, handleAnswer, handleIceCandidate, handleMediaState, handleSpeaking, closePeer, cleanupAll, toast, log]);
 
     // ─── Toggle Audio ───
     const toggleAudio = useCallback(() => {
@@ -646,7 +748,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         broadcastMediaState(isVideoEnabled, isScreenSharing, next);
     }, [isAudioEnabled, isVideoEnabled, isScreenSharing, broadcastMediaState]);
 
-    // ─── Toggle Video (using replaceTrack for instant seamless switch) ───
+    // ─── Toggle Video ───
     const toggleVideo = useCallback(async () => {
         const mainStream = localStreamRef.current;
         if (!mainStream) return;
@@ -666,7 +768,6 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 mainStream.removeTrack(t);
             });
 
-            // If not screen sharing, replace video sender with null
             if (!isScreenSharing) {
                 pcsRef.current.forEach(pc => {
                     const sender = findVideoSender(pc);
@@ -690,7 +791,6 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 const vt = vs.getVideoTracks()[0];
                 cameraStreamRef.current = vs;
 
-                // Add track to local media stream
                 mainStream.getVideoTracks().forEach(t => {
                     t.enabled = false;
                     try { t.stop(); } catch { }
@@ -698,7 +798,6 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 });
                 mainStream.addTrack(vt);
 
-                // If not currently screen sharing, ensure transceiver is sendrecv and replaceTrack / addTrack
                 if (!isScreenSharing) {
                     pcsRef.current.forEach(pc => {
                         const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
@@ -770,7 +869,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, [isVideoEnabled, isScreenSharing, findVideoSender, renegotiateAllPeers, toast, log]);
 
-    // ─── Screen Share (using replaceTrack for dynamic seamless switch) ───
+    // ─── Screen Share ───
     const stopScreenShare = useCallback(async () => {
         const screen = screenStreamRef.current;
         if (screen) {
@@ -828,7 +927,6 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             log('Screen share started using replaceTrack');
             renegotiateAllPeers();
 
-            // Handle when user stops sharing from browser's native floating bar
             screenTrack.onended = () => {
                 stopScreenShare();
             };

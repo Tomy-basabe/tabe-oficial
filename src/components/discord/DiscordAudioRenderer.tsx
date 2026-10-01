@@ -7,7 +7,7 @@ export function DiscordAudioRenderer() {
     const { remoteStreams, voiceParticipants } = useDiscordVoice();
 
     return (
-        <div className="hidden">
+        <div className="sr-only" aria-hidden="true">
             {Array.from(remoteStreams.entries()).map(([peerId, stream]) => (
                 <AudioStream
                     key={peerId}
