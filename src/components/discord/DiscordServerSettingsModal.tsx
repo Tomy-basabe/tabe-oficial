@@ -70,16 +70,25 @@ export function DiscordServerSettingsModal({
       setIconUrl(server.icon_url || "");
       setConfirmDelete(false);
       setConfirmLeave(false);
-      loadInviteCode();
+      if (isOwner) {
+        loadInviteCode();
+      } else {
+        setInviteCode(fallbackCode);
+        setLoadingCode(false);
+      }
     }
-  }, [open, server.id, server.name, server.icon_url]);
+  }, [open, server.id, isOwner]);
 
   const loadInviteCode = async () => {
+    if (!isOwner) {
+      setInviteCode(fallbackCode);
+      setLoadingCode(false);
+      return;
+    }
     setLoadingCode(true);
     try {
       if (onGetServerInviteCode) {
-        // Fast promise with timeout to never freeze the UI for non-admins
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
         const code = await Promise.race([onGetServerInviteCode(server.id), timeoutPromise]);
         setInviteCode(code || fallbackCode);
       } else {

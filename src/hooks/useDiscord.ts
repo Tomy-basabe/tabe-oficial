@@ -141,7 +141,8 @@ export function useDiscord() {
 
   // Fetch user's servers (only those where they are a member)
   const fetchServers = useCallback(async () => {
-    if (!user) return;
+    const userId = user?.id;
+    if (!userId) return;
     setLoading(true);
 
     try {
@@ -149,7 +150,7 @@ export function useDiscord() {
       const { data: memberRows, error: memberError } = await supabase
         .from("discord_server_members")
         .select("server_id")
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       if (memberError) {
         console.error("Error fetching server memberships:", memberError);
@@ -178,7 +179,7 @@ export function useDiscord() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Fetch channels for current server
   const fetchChannels = useCallback(async () => {
@@ -196,7 +197,7 @@ export function useDiscord() {
     }
 
     setChannels((data as DiscordChannel[]) || []);
-  }, [currentServer]);
+  }, [currentServer?.id]);
 
   // Fetch members for current server
   const fetchMembers = useCallback(async () => {
@@ -227,7 +228,7 @@ export function useDiscord() {
     } else {
       setMembers([]);
     }
-  }, [currentServer]);
+  }, [currentServer?.id]);
 
   // Fetch messages for current text channel
   const fetchMessages = useCallback(async () => {
@@ -333,7 +334,7 @@ export function useDiscord() {
     } else {
       setAllVoiceParticipants([]);
     }
-  }, [currentServer]);
+  }, [currentServer?.id]);
 
   // Create a new server
   const createServer = async (name: string) => {
@@ -1359,7 +1360,7 @@ export function useDiscord() {
         supabase.removeChannel(allVoiceSub);
       };
     }
-  }, [currentServer, fetchChannels, fetchMembers, fetchAllVoiceParticipants]);
+  }, [currentServer?.id, fetchChannels, fetchMembers, fetchAllVoiceParticipants]);
 
   useEffect(() => {
     if (currentChannel?.type === "text") {

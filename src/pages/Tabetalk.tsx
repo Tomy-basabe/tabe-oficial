@@ -126,10 +126,6 @@ export default function Tabetalk() {
     }
   }, [currentServer]);
 
-  if (loading && servers.length === 0) {
-    return <LoadingScreen message="Cargando Tabetalk..." submessage="Conectando salas de voz y estudio..." />;
-  }
-
   return (
     <div className="h-screen w-screen flex flex-col md:flex-row bg-background overflow-hidden relative selection:bg-primary/30 text-foreground font-sans">
       {/* Background Comic/Gaming Dot Pattern */}
