@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Minus, Plus, X, Volume2, Repeat, RotateCcw } from "lucide-react";
+import { Minus, Plus, X, Volume2, Repeat, RotateCcw, PictureInPicture2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +13,7 @@ interface PomodoroSettingsProps {
     longBreakInterval: number;
     soundType: SoundType;
     continuousAlarm: boolean;
+    autoPip?: boolean;
   };
   onSettingsChange: (settings: {
     work: number;
@@ -21,6 +22,7 @@ interface PomodoroSettingsProps {
     longBreakInterval: number;
     soundType: SoundType;
     continuousAlarm: boolean;
+    autoPip: boolean;
   }) => void;
   onClose: () => void;
   isRunning: boolean;
@@ -32,7 +34,7 @@ export function PomodoroSettings({
   onClose,
   isRunning,
 }: PomodoroSettingsProps) {
-  type NumericSettings = Exclude<keyof typeof settings, "soundType" | "continuousAlarm">;
+  type NumericSettings = Exclude<keyof typeof settings, "soundType" | "continuousAlarm" | "autoPip">;
 
   const [localValues, setLocalValues] = useState<Partial<Record<NumericSettings, string>>>({});
 
@@ -213,6 +215,26 @@ export function PomodoroSettings({
           <Switch 
             checked={settings.continuousAlarm}
             onCheckedChange={(checked) => onSettingsChange({ ...settings, continuousAlarm: checked })}
+            disabled={isRunning}
+            className="border-2 border-foreground data-[state=checked]:bg-[#00ff9d]"
+          />
+        </div>
+
+        {/* Auto PiP on Tab Switch */}
+        <div className="flex items-center justify-between pt-4 border-t-2 border-dashed border-foreground/30 mt-4">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <PictureInPicture2 className="w-5 h-5 text-foreground" />
+              <span className="font-bold text-foreground text-sm uppercase tracking-wider">PiP Automático</span>
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-[#FFE600] text-black border border-black shadow-[1px_1px_0_#000]">
+                MEET STYLE
+              </span>
+            </div>
+            <span className="text-[10px] font-bold text-muted-foreground ml-7 uppercase tracking-wider">Abre ventana flotante al cambiar de pestaña</span>
+          </div>
+          <Switch 
+            checked={settings.autoPip ?? true}
+            onCheckedChange={(checked) => onSettingsChange({ ...settings, autoPip: checked })}
             disabled={isRunning}
             className="border-2 border-foreground data-[state=checked]:bg-[#00ff9d]"
           />

@@ -17,6 +17,7 @@ export interface PomodoroSettings {
     longBreakInterval: number;
     soundType: SoundType;
     continuousAlarm: boolean;
+    autoPip: boolean;
 }
 
 const STORAGE_KEY = "pomodoro-settings";
@@ -29,6 +30,7 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
     longBreakInterval: 4,
     soundType: 'classic',
     continuousAlarm: false,
+    autoPip: true,
 };
 
 const loadSettings = (): PomodoroSettings => {
@@ -92,12 +94,37 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const [completedPomodoros, setCompletedPomodoros] = useState(0);
     const [sessionStartDate, setSessionStartDate] = useState<string>(() => toLocalDateStr());
 
-    // Document Picture-in-Picture (PiP) State
+    // Document Picture-in-Picture (PiP) State & Refs
     const isPipSupported = typeof window !== "undefined" && "documentPictureInPicture" in window;
     const [isPipActive, setIsPipActive] = useState(false);
     const [pipWindow, setPipWindow] = useState<Window | null>(null);
     const [pipContainer, setPipContainer] = useState<HTMLElement | null>(null);
     const pipWindowRef = useRef<Window | null>(null);
+    const isOpeningPipRef = useRef(false);
+    const isActiveRef = useRef(false);
+    const modeRef = useRef<TimerMode>("work");
+    const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        isActiveRef.current = isActive;
+    }, [isActive]);
+
+    useEffect(() => {
+        modeRef.current = mode;
+    }, [mode]);
+
+    // Loop de audio inaudible para mantener activa la sesión de MediaSession en Chromium (requerido para Auto-PiP)
+    useEffect(() => {
+        const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+        audio.loop = true;
+        audio.volume = 0.001;
+        silentAudioRef.current = audio;
+
+        return () => {
+            audio.pause();
+            silentAudioRef.current = null;
+        };
+    }, []);
 
     useEffect(() => {
         elapsedSecondsRef.current = elapsedSeconds;
@@ -412,12 +439,19 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const toggleTimer = () => {
         if (!isActive) {
             setSessionStartDate(toLocalDateStr());
+            silentAudioRef.current?.play().catch(() => {});
+            if (typeof Notification !== "undefined" && Notification.permission === "default") {
+                Notification.requestPermission().catch(() => {});
+            }
+        } else {
+            silentAudioRef.current?.pause();
         }
         setIsActive(!isActive);
     };
 
     const resetTimer = () => {
         if (mode === "work" && elapsedSeconds > 60) saveCurrentSession(false);
+        silentAudioRef.current?.pause();
         setIsActive(false);
         stopAlarm();
         setTimeLeft(getMinutesForMode(mode, pomodoroSettings) * 60);
@@ -445,8 +479,11 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
     // Document Picture-in-Picture (PiP) Implementation
     const closePip = useCallback(() => {
-        if (pipWindowRef.current && !pipWindowRef.current.closed) {
-            pipWindowRef.current.close();
+        const currentActive = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
+        if (currentActive && !currentActive.closed) {
+            try {
+                currentActive.close();
+            } catch (e) {}
         }
         pipWindowRef.current = null;
         setPipWindow(null);
@@ -460,8 +497,9 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        if (pipWindowRef.current && !pipWindowRef.current.closed) {
-            pipWindowRef.current.focus();
+        const currentActive = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
+        if (currentActive && !currentActive.closed) {
+            try { currentActive.focus(); } catch (e) {}
             return;
         }
 
@@ -551,24 +589,113 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
         } catch (err: any) {
             console.error("Error al abrir ventana flotante PiP:", err);
-            toast.error("No se pudo abrir la ventana flotante.");
             setIsPipActive(false);
         }
     }, [isPipSupported]);
 
     const togglePip = useCallback(async () => {
-        if (isPipActive && pipWindowRef.current && !pipWindowRef.current.closed) {
+        const currentActive = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
+        if (currentActive && !currentActive.closed) {
             closePip();
         } else {
             await openPip();
         }
-    }, [isPipActive, closePip, openPip]);
+    }, [closePip, openPip]);
+
+    // 1. MediaSession Metadata & Handlers (Auto-PiP estilo Google Meet en Chromium)
+    useEffect(() => {
+        if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+
+        try {
+            navigator.mediaSession.playbackState = isActive ? "playing" : "paused";
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: `${mode === "work" ? "🍅" : "☕"} ${formatTime(timeLeft)} - Pomodoro`,
+                artist: mode === "work" ? "Foco Total • TABE" : "Descanso • TABE",
+                album: "Tu Asistente de Bolsillo",
+                artwork: [
+                    { src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
+                ],
+            });
+        } catch (e) {}
+    }, [isActive, mode, timeLeft]);
+
+    useEffect(() => {
+        if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+
+        try {
+            navigator.mediaSession.setActionHandler("enterpictureinpicture", async () => {
+                const isAutoPip = pomodoroSettings.autoPip ?? true;
+                const activeWin = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
+                if (isAutoPip && isActiveRef.current && !activeWin) {
+                    await openPip();
+                }
+            });
+        } catch (e) {
+            console.warn("enterpictureinpicture no soportado:", e);
+        }
+
+        try {
+            navigator.mediaSession.setActionHandler("play", () => {
+                if (!isActiveRef.current) toggleTimer();
+            });
+            navigator.mediaSession.setActionHandler("pause", () => {
+                if (isActiveRef.current) toggleTimer();
+            });
+            navigator.mediaSession.setActionHandler("nexttrack", () => {
+                changeMode(modeRef.current === "work" ? "shortBreak" : "work");
+            });
+        } catch (e) {}
+
+        return () => {
+            try {
+                navigator.mediaSession.setActionHandler("enterpictureinpicture", null);
+                navigator.mediaSession.setActionHandler("play", null);
+                navigator.mediaSession.setActionHandler("pause", null);
+                navigator.mediaSession.setActionHandler("nexttrack", null);
+            } catch (e) {}
+        };
+    }, [openPip, toggleTimer, changeMode, pomodoroSettings.autoPip]);
+
+    // 2. VisibilityChange Handler (Auto-PiP al salir de pestaña y auto-cierre suave al regresar a TABE)
+    useEffect(() => {
+        const handleVisibilityChange = async () => {
+            const isAutoPip = pomodoroSettings.autoPip ?? true;
+            if (!isAutoPip || !isPipSupported) return;
+
+            if (document.visibilityState === "hidden") {
+                // El usuario cambió de pestaña o minimizó el navegador
+                const activeWin = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
+                if (isActiveRef.current && !activeWin && !isOpeningPipRef.current) {
+                    try {
+                        isOpeningPipRef.current = true;
+                        await openPip();
+                    } catch (err) {
+                        console.warn("Auto-PiP en visibilitychange:", err);
+                    } finally {
+                        isOpeningPipRef.current = false;
+                    }
+                }
+            } else if (document.visibilityState === "visible") {
+                // El usuario regresó a la pestaña de TABE: cerrar suavemente y restaurar vista
+                const activeWin = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
+                if (activeWin && !activeWin.closed) {
+                    closePip();
+                }
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, [isPipSupported, pomodoroSettings.autoPip, openPip, closePip]);
 
     // Limpieza de ventana flotante al desmontar
     useEffect(() => {
         return () => {
-            if (pipWindowRef.current && !pipWindowRef.current.closed) {
-                pipWindowRef.current.close();
+            const activeWin = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
+            if (activeWin && !activeWin.closed) {
+                activeWin.close();
             }
         };
     }, []);
