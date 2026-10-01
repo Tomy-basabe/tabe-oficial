@@ -5,10 +5,32 @@
             "has": [
                 {
                     "type": "host",
+                    "value": "(?:www\\.)?tabe\\.software"
+                }
+            ],
+            "destination": "https://tabe.com.ar/registro",
+            "permanent": true
+        },
+        {
+            "source": "/(.*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "(?:www\\.)?tabe\\.software"
+                }
+            ],
+            "destination": "https://tabe.com.ar/$1",
+            "permanent": true
+        },
+        {
+            "source": "/auth",
+            "has": [
+                {
+                    "type": "host",
                     "value": "tabe-oficial.vercel.app"
                 }
             ],
-            "destination": "https://www.tabe.software/registro",
+            "destination": "https://tabe.com.ar/registro",
             "permanent": true
         },
         {
@@ -19,7 +41,18 @@
                     "value": "tabe-oficial.vercel.app"
                 }
             ],
-            "destination": "https://www.tabe.software/$1",
+            "destination": "https://tabe.com.ar/$1",
+            "permanent": true
+        },
+        {
+            "source": "/(.*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "www.tabe.com.ar"
+                }
+            ],
+            "destination": "https://tabe.com.ar/$1",
             "permanent": true
         },
         {

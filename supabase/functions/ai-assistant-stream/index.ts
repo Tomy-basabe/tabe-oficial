@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Security: Restrict CORS to known origins
 const ALLOWED_ORIGINS = [
+  "https://tabe.com.ar",
+  "https://www.tabe.com.ar",
   "https://www.tabe.software",
   "https://tabe.software",
   "https://tabe-oficial.vercel.app",

@@ -115,7 +115,7 @@ export function HeroSection() {
 
             {/* Headline with interactive words */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-black leading-[1.05] tracking-tight text-foreground">
-              Estudiá con{" "}
+              <span className="text-[#1475e5]">TABE</span>: Estudiá con{" "}
               <span className="relative inline-block cursor-pointer group">
                 <span className="relative z-10 transition-colors duration-200 group-hover:text-[#1475e5]">
                   método.

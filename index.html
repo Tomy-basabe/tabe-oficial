@@ -44,12 +44,12 @@
     })();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
-  <title>T.A.B.E. - Tu Asistente de Bolsillo Estudiantil</title>
+  <title>TABE | Plataforma de Estudio Universitaria - Apuntes, Flashcards y Pomodoro</title>
   <meta name="description"
-    content="T.A.B.E. es la plataforma todo-en-uno para estudiantes universitarios argentinos. Organizá tus materias, creá flashcards y cuestionarios con inteligencia artificial, planificá tu estudio con el método Pomodoro, usá el calendario académico y seguí tu progreso con métricas avanzadas. Gratis para empezar." />
-  <meta name="author" content="T.A.B.E." />
-  <meta name="keywords" content="estudiantes universitarios, organizar materias, flashcards IA, cuestionarios, pomodoro, calendario académico, asistente estudiantil, Argentina, app para estudiar, plan de carrera" />
-  <link rel="canonical" href="https://www.tabe.software/" />
+    content="TABE es la plataforma de estudio universitaria todo-en-uno: organizá materias, creá flashcards y cuestionarios con IA, apuntes inteligentes, método Pomodoro y calendario académico. Gratis para estudiantes." />
+  <meta name="author" content="TABE" />
+  <meta name="keywords" content="TABE, Tabe App, Tabe Software, estudiantes universitarios, organizar materias, flashcards IA, cuestionarios, pomodoro, calendario académico, asistente estudiantil, Argentina, app para estudiar, plan de carrera" />
+  <link rel="canonical" href="https://tabe.com.ar/" />
 
   <!-- Favicon oficial de TABE -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -65,34 +65,35 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="T.A.B.E." />
+  <meta name="apple-mobile-web-app-title" content="TABE" />
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8f9fa" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0f" />
   <meta name="theme-color" content="#0a0a0f" />
 
-  <meta property="og:title" content="T.A.B.E. — Tu Asistente de Bolsillo Estudiantil" />
+  <meta property="og:title" content="TABE | Plataforma de Estudio Universitaria - Apuntes, Flashcards y Pomodoro" />
   <meta property="og:description"
-    content="La plataforma definitiva todo-en-uno para estudiantes universitarios. Organización de materias, generación de apuntes con IA, flashcards inteligentes, quizzes, calendario, método Pomodoro y métricas avanzadas. Inicia sesión aquí: https://www.tabe.software/auth" />
+    content="TABE es la plataforma de estudio universitaria todo-en-uno: organizá materias, creá flashcards y cuestionarios con IA, apuntes inteligentes, método Pomodoro y calendario académico." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://www.tabe.software/" />
-  <meta property="og:image" content="https://www.tabe.software/pwa-512x512.png" />
+  <meta property="og:url" content="https://tabe.com.ar/" />
+  <meta property="og:image" content="https://tabe.com.ar/pwa-512x512.png" />
   <meta property="og:image:width" content="512" />
   <meta property="og:image:height" content="512" />
-  <meta property="og:image:alt" content="Logo de T.A.B.E." />
-  <meta property="og:site_name" content="T.A.B.E." />
+  <meta property="og:image:alt" content="Logo de TABE" />
+  <meta property="og:site_name" content="TABE" />
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="T.A.B.E. — Tu Asistente de Bolsillo Estudiantil" />
+  <meta name="twitter:url" content="https://tabe.com.ar/" />
+  <meta name="twitter:title" content="TABE | Plataforma de Estudio Universitaria" />
   <meta name="twitter:description"
-    content="La plataforma todo-en-uno para estudiantes de exactas. Materias, flashcards, quizzes con IA, calendario, Pomodoro, métricas y mucho más." />
-  <meta name="twitter:image" content="https://www.tabe.software/pwa-512x512.png" />
+    content="TABE es la plataforma de estudio universitaria todo-en-uno: organizá materias, creá flashcards y cuestionarios con IA, apuntes inteligentes, método Pomodoro y calendario académico." />
+  <meta name="twitter:image" content="https://tabe.com.ar/pwa-512x512.png" />
   <meta name="google-site-verification" content="ltbPBCZi5i38A2_YOdo09OBenBJ9Y6fWoNo4dQDMKRM" />
   <meta name="google-site-verification" content="google23a4ae638db42bc1" />
 
   <!-- Clean old domain caches and force redirect -->
   <script>
     (function () {
-      var oldDomains = ['tabe-oficial.vercel.app'];
+      var oldDomains = ['tabe-oficial.vercel.app', 'tabe.software', 'www.tabe.software'];
       var isOld = oldDomains.indexOf(window.location.hostname) !== -1;
       if (isOld) {
         if ('serviceWorker' in navigator) {
@@ -105,7 +106,7 @@
             for(var i=0; i<names.length; i++) caches.delete(names[i]);
           });
         }
-        window.location.replace('https://www.tabe.software' + window.location.pathname + window.location.search + window.location.hash);
+        window.location.replace('https://tabe.com.ar' + window.location.pathname + window.location.search + window.location.hash);
       } else if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then(function(reg) {
           if (reg) {
@@ -125,37 +126,58 @@
   </script>
 
 
-  <!-- JSON-LD Structured Data -->
+  <!-- JSON-LD Structured Data: WebSite & SoftwareApplication -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "T.A.B.E.",
-    "alternateName": "Tu Asistente de Bolsillo Estudiantil",
-    "description": "Plataforma todo-en-uno para estudiantes universitarios argentinos. Organizá materias, creá flashcards con IA, calendario académico, método Pomodoro, cuestionarios y métricas de estudio.",
-    "url": "https://www.tabe.software",
-    "applicationCategory": "EducationalApplication",
-    "operatingSystem": "Web",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "ARS"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "ratingCount": "150"
-    },
-    "featureList": [
-      "Organización de materias y plan de carrera",
-      "Flashcards generadas con inteligencia artificial",
-      "Cuestionarios de opción múltiple con IA",
-      "Calendario académico con agenda de exámenes",
-      "Método Pomodoro con seguimiento de sesiones",
-      "Asistente de IA personalizado para cada estudiante",
-      "Métricas y analíticas de estudio avanzadas",
-      "Editor de apuntes tipo Notion",
-      "Sistema de logros y gamificación"
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://tabe.com.ar/#website",
+        "url": "https://tabe.com.ar",
+        "name": "TABE",
+        "alternateName": [
+          "Tabe Software",
+          "Tabe App"
+        ],
+        "inLanguage": "es-AR",
+        "description": "TABE es la plataforma de estudio universitaria todo-en-uno: organizá materias, creá flashcards y cuestionarios con IA, apuntes inteligentes, método Pomodoro y calendario académico."
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://tabe.com.ar/#software",
+        "name": "TABE",
+        "alternateName": [
+          "Tabe Software",
+          "Tabe App"
+        ],
+        "url": "https://tabe.com.ar",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "inLanguage": "es-AR",
+        "description": "TABE es la plataforma de estudio universitaria todo-en-uno para organizar materias, crear flashcards y cuestionarios con IA, método Pomodoro y calendario académico.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "ARS"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "ratingCount": "150"
+        },
+        "featureList": [
+          "Organización de materias y plan de carrera",
+          "Flashcards generadas con inteligencia artificial",
+          "Cuestionarios de opción múltiple con IA",
+          "Calendario académico con agenda de exámenes",
+          "Método Pomodoro con seguimiento de sesiones",
+          "Asistente de IA personalizado para cada estudiante",
+          "Métricas y analíticas de estudio avanzadas",
+          "Editor de apuntes tipo Notion",
+          "Sistema de logros y gamificación"
+        ]
+      }
     ]
   }
   </script>
@@ -228,7 +250,7 @@
       <p>T.A.B.E. (Tu Asistente de Bolsillo Estudiantil) es una aplicación web gratuita diseñada especialmente para estudiantes universitarios en Argentina. Combina las mejores herramientas de estudio en una sola plataforma: organización de materias con correlatividades, generación automática de flashcards y cuestionarios usando inteligencia artificial, calendario académico con sincronización a Google Calendar, temporizador Pomodoro con seguimiento por materia, un asistente de IA personalizado que conoce tu carrera, y métricas detalladas de tu rendimiento académico.</p>
 
       <h2>¿Cómo empezar?</h2>
-      <p>Registrate gratis en <a href="https://www.tabe.software/auth" style="color:#00d9ff;">www.tabe.software/auth</a> y configurá tu carrera en minutos. T.A.B.E. se adapta a cualquier universidad y plan de estudios.</p>
+      <p>Registrate gratis en <a href="https://tabe.com.ar/registro" style="color:#00d9ff;">tabe.com.ar/registro</a> y configurá tu carrera en minutos. T.A.B.E. se adapta a cualquier universidad y plan de estudios.</p>
 
       <h2>Preguntas frecuentes</h2>
       <h3>¿T.A.B.E. es gratis?</h3>
@@ -239,13 +261,13 @@
       <p>T.A.B.E. es compatible con cualquier universidad argentina. Podés configurar tus materias manualmente o usar plantillas predefinidas.</p>
 
       <p style="margin-top:40px;">
-        <a href="https://www.tabe.software/auth" style="color:#00d9ff;font-weight:bold;">→ Crear cuenta gratis</a> | 
-        <a href="https://www.tabe.software/carreras" style="color:#00d9ff;">Planes de Carrera</a> | 
-        <a href="https://www.tabe.software/guia-de-estudio" style="color:#00d9ff;">Guías de Estudio</a> | 
-        <a href="https://www.tabe.software/acerca-de" style="color:#00d9ff;">Acerca de</a> | 
-        <a href="https://www.tabe.software/contacto" style="color:#00d9ff;">Contacto</a> | 
-        <a href="https://www.tabe.software/privacidad" style="color:#00d9ff;">Privacidad</a> | 
-        <a href="https://www.tabe.software/terminos" style="color:#00d9ff;">Términos</a>
+        <a href="https://tabe.com.ar/registro" style="color:#00d9ff;font-weight:bold;">→ Crear cuenta gratis</a> | 
+        <a href="https://tabe.com.ar/carreras" style="color:#00d9ff;">Planes de Carrera</a> | 
+        <a href="https://tabe.com.ar/guia-de-estudio" style="color:#00d9ff;">Guías de Estudio</a> | 
+        <a href="https://tabe.com.ar/acerca-de" style="color:#00d9ff;">Acerca de</a> | 
+        <a href="https://tabe.com.ar/contacto" style="color:#00d9ff;">Contacto</a> | 
+        <a href="https://tabe.com.ar/privacidad" style="color:#00d9ff;">Privacidad</a> | 
+        <a href="https://tabe.com.ar/terminos" style="color:#00d9ff;">Términos</a>
       </p>
     </div>
   </noscript>

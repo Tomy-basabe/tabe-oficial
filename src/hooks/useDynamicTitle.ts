@@ -62,7 +62,7 @@ export function setDynamicResourceTitle(title: string | null | undefined) {
 
 export function formatDocumentTitle(sectionOrResource?: string | null): string {
   if (!sectionOrResource) {
-    return `T.A.B.E. | Tu Asistente de Bolsillo Estudiantil`;
+    return `TABE | Plataforma de Estudio Universitaria - Apuntes, Flashcards y Pomodoro`;
   }
   return `${sectionOrResource} | ${APP_NAME}`;
 }
@@ -119,26 +119,42 @@ export function DynamicTitleWatcher() {
   const location = useLocation();
 
   useEffect(() => {
-    const updateTitle = () => {
+    const updateTitleAndMetadata = () => {
+      // 1. Título del documento
       if (currentResourceTitle) {
         document.title = formatDocumentTitle(currentResourceTitle);
-        return;
+      } else if (location.pathname === "/") {
+        document.title = "TABE | Plataforma de Estudio Universitaria - Apuntes, Flashcards y Pomodoro";
+      } else {
+        const sectionTitle = getTitleForPath(location.pathname);
+        document.title = formatDocumentTitle(sectionTitle);
       }
 
-      if (location.pathname === "/") {
-        document.title = "T.A.B.E. | Tu Asistente de Bolsillo Estudiantil";
-        return;
+      // 2. Canonical URL dinámica y metadatos sociales para el nuevo dominio tabe.com.ar
+      const cleanPath = location.pathname === "/" ? "" : location.pathname;
+      const canonicalUrl = `https://tabe.com.ar${cleanPath}`;
+
+      const canonicalEl = document.querySelector('link[rel="canonical"]');
+      if (canonicalEl) {
+        canonicalEl.setAttribute("href", canonicalUrl);
       }
 
-      const sectionTitle = getTitleForPath(location.pathname);
-      document.title = formatDocumentTitle(sectionTitle);
+      const ogUrlEl = document.querySelector('meta[property="og:url"]');
+      if (ogUrlEl) {
+        ogUrlEl.setAttribute("content", canonicalUrl);
+      }
+
+      const twitterUrlEl = document.querySelector('meta[name="twitter:url"]');
+      if (twitterUrlEl) {
+        twitterUrlEl.setAttribute("content", canonicalUrl);
+      }
     };
 
-    updateTitle();
+    updateTitleAndMetadata();
 
-    listeners.add(updateTitle);
+    listeners.add(updateTitleAndMetadata);
     return () => {
-      listeners.delete(updateTitle);
+      listeners.delete(updateTitleAndMetadata);
     };
   }, [location.pathname]);
 
