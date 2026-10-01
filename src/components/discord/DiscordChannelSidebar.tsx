@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InviteFriendsModal } from "./InviteFriendsModal";
 import { DiscordServerSettingsModal } from "./DiscordServerSettingsModal";
+import { TabetalkUserSettingsModal } from "./TabetalkUserSettingsModal";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 
 interface DiscordChannelSidebarProps {
@@ -89,6 +90,7 @@ export function DiscordChannelSidebar({
   const [showCreateVoice, setShowCreateVoice] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showServerSettings, setShowServerSettings] = useState(false);
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [channelName, setChannelName] = useState("");
   const [creating, setCreating] = useState(false);
   const [textCollapsed, setTextCollapsed] = useState(false);
@@ -472,7 +474,12 @@ export function DiscordChannelSidebar({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
+              <button 
+                onClick={() => setIsUserSettingsOpen(true)}
+                className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                title="Ajustes de Tabetalk"
+                aria-label="Abrir ajustes de usuario de Tabetalk"
+              >
                 <Settings className="w-4 h-4" />
               </button>
             </TooltipTrigger>
@@ -489,6 +496,13 @@ export function DiscordChannelSidebar({
           onUpdateServer={onUpdateServer}
           onDeleteServer={onDeleteServer}
           onGetServerInviteCode={onGetServerInviteCode}
+        />
+      )}
+
+      {isUserSettingsOpen && (
+        <TabetalkUserSettingsModal
+          open={isUserSettingsOpen}
+          onOpenChange={setIsUserSettingsOpen}
         />
       )}
     </div>

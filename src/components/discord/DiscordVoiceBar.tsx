@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Mic, MicOff, Video, VideoOff, Monitor, PhoneOff, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TabetalkUserSettingsModal } from "./TabetalkUserSettingsModal";
 import type { DiscordChannel } from "@/hooks/useDiscord";
 
 interface DiscordVoiceBarProps {
@@ -25,6 +27,8 @@ export function DiscordVoiceBar({
   onToggleScreenShare,
   onLeave,
 }: DiscordVoiceBarProps) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   return (
     <div className="h-20 bg-[#1e1f22] border-t border-[#1f2023] flex items-center justify-center gap-4 px-4">
       {/* Channel info */}
@@ -132,7 +136,10 @@ export function DiscordVoiceBar({
             <Button
               variant="ghost"
               size="icon"
-              className="w-10 h-10 rounded-full bg-[#2b2d31] hover:bg-[#404249] text-[#b5bac1]"
+              onClick={() => setIsSettingsOpen(true)}
+              className="w-10 h-10 rounded-full bg-[#2b2d31] hover:bg-[#404249] text-[#b5bac1] cursor-pointer"
+              title="Ajustes de Tabetalk"
+              aria-label="Abrir ajustes de Tabetalk"
             >
               <Settings className="w-5 h-5" />
             </Button>
@@ -140,6 +147,13 @@ export function DiscordVoiceBar({
           <TooltipContent>Configuración</TooltipContent>
         </Tooltip>
       </div>
+
+      {isSettingsOpen && (
+        <TabetalkUserSettingsModal
+          open={isSettingsOpen}
+          onOpenChange={setIsSettingsOpen}
+        />
+      )}
     </div>
   );
 }
