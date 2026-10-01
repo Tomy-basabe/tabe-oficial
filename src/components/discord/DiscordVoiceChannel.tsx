@@ -106,16 +106,32 @@ export function DiscordVoiceChannel({
     }
   });
 
+  // Asegurar también cualquier peer que haya emitido remoteMediaState
+  remoteMediaStates.forEach((state, peerId) => {
+    if (!participantsMap.has(peerId) && peerId !== localUserId) {
+      participantsMap.set(peerId, {
+        id: `peer-${peerId}`,
+        channel_id: channel.id,
+        user_id: peerId,
+        is_muted: !state.isAudioEnabled,
+        is_deafened: false,
+        is_camera_on: state.isCameraOn,
+        is_screen_sharing: state.isScreenSharing,
+        is_speaking: speakingUsers.has(peerId),
+        joined_at: new Date().toISOString(),
+        profile: { username: "Compañero", nombre: "Compañero" }
+      });
+    }
+  });
+
   const activeParticipants = Array.from(participantsMap.values());
 
-  // Find screen sharer
+  // Find screen sharer (activación inmediata al recibir señal o stream)
   const screenSharer = isScreenSharing
     ? localParticipant
     : activeParticipants.find(p => {
         const isSharing = p.is_screen_sharing || remoteMediaStates.get(p.user_id)?.isScreenSharing;
-        const str = remoteScreenStreams.get(p.user_id) || remoteStreams.get(p.user_id);
-        const hasVideo = str && str.getVideoTracks().length > 0;
-        return isSharing && hasVideo;
+        return Boolean(isSharing);
       });
 
   // Desbloqueo proactivo de audio en navegadores móviles (iOS Safari / Android Chrome)
@@ -161,9 +177,9 @@ export function DiscordVoiceChannel({
             {/* Screen share main viewport */}
             <div className="flex-1 bg-black rounded-2xl overflow-hidden relative flex items-center justify-center border-3 border-black shadow-[6px_6px_0px_#000] min-h-[300px]">
               {screenSharer.user_id === localUserId ? (
-                <ScreenShareTile stream={screenStream} />
+                <ScreenShareTile stream={screenStream} isLocal={true} />
               ) : (
-                <ScreenShareTile stream={remoteScreenStreams.get(screenSharer.user_id) || remoteStreams.get(screenSharer.user_id)} />
+                <ScreenShareTile stream={remoteScreenStreams.get(screenSharer.user_id) || remoteStreams.get(screenSharer.user_id)} isLocal={false} />
               )}
               <div className="absolute bottom-4 left-4 bg-white text-black px-3.5 py-1.5 rounded-xl text-xs font-black border-2 border-black shadow-[3px_3px_0px_#000] flex items-center gap-2 uppercase tracking-wide">
                 <Monitor className="w-4 h-4 text-primary stroke-[2.5]" />
@@ -479,7 +495,7 @@ function SmallTile({
 }
 
 // ═══ Screen Share Tile ═══
-function ScreenShareTile({ stream }: { stream?: MediaStream | null }) {
+function ScreenShareTile({ stream, isLocal = false }: { stream?: MediaStream | null; isLocal?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -506,7 +522,7 @@ function ScreenShareTile({ stream }: { stream?: MediaStream | null }) {
       ref={videoRef}
       autoPlay
       playsInline
-      muted={false}
+      muted={isLocal}
       className="w-full h-full object-contain"
     />
   );
