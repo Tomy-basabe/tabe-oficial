@@ -132,11 +132,11 @@ export function GlobalNotificationManager() {
   return (
     <aside 
       aria-label="Aviso de notificaciones" 
-      className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-auto md:top-6 left-1/2 -translate-x-1/2 z-[1050] max-w-md w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] bg-card border-3 sm:border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-5 md:slide-in-from-top-4"
+      className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-auto md:top-6 left-1/2 -translate-x-1/2 z-[1050] max-w-md w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] bg-card border-3 sm:border-4 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-2xl p-4"
     >
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#FFE600] border-2 border-foreground text-black flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
-          <Bell className="w-5 h-5 animate-bounce" />
+          <Bell className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
@@ -157,14 +157,14 @@ export function GlobalNotificationManager() {
           <div className="flex items-center gap-2 mt-3">
             <button
               onClick={handleEnable}
-              className="flex-1 bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_#000] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4 stroke-[3]" />
               Activar Ahora
             </button>
             <button
               onClick={handleDismiss}
-              className="bg-secondary hover:bg-muted text-foreground font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center cursor-pointer"
+              className="bg-secondary hover:bg-muted text-foreground font-black text-xs uppercase px-3 py-2.5 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-colors flex items-center justify-center cursor-pointer"
             >
               Más tarde
             </button>
