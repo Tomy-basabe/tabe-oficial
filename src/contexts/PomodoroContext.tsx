@@ -1,3 +1,4 @@
+/* REGLA ARQUITECTÓNICA: NINGÚN COMPONENTE VISUAL, HOOK O FUNCIONALIDAD PÚBLICA DEBE CONDICIONARSE AL ROL ADMIN. TODOS LOS USUARIOS USAN LA MISMA UI Y LÓGICA DE NEGOCIO SALVO LA RUTA PRIVADA /admin */
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -9,6 +10,7 @@ import { PomodoroPipWidget } from "@/components/pomodoro/PomodoroPipWidget";
 
 export type TimerMode = "work" | "shortBreak" | "longBreak";
 export type SoundType = "classic" | "zen" | "arcade";
+export type PomodoroStatus = "idle" | "running" | "paused" | "completed";
 
 export interface PomodoroSettings {
     work: number;
@@ -20,7 +22,18 @@ export interface PomodoroSettings {
     autoPip: boolean;
 }
 
+interface StoredTimerState {
+    status: PomodoroStatus;
+    mode: TimerMode;
+    remainingSeconds: number;
+    targetEndTime: number | null;
+    selectedSubject: string | null;
+    elapsedSeconds: number;
+    lastSavedAt: number;
+}
+
 const STORAGE_KEY = "pomodoro-settings";
+const STATE_STORAGE_KEY = "pomodoro_timer_state";
 const CLOUD_SETTINGS_KEY = "pomodoro_settings";
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
@@ -45,6 +58,69 @@ const getMinutesForMode = (mode: TimerMode, settings: PomodoroSettings): number 
     return settings[mode];
 };
 
+const loadStoredTimerState = (settings: PomodoroSettings): {
+    status: PomodoroStatus;
+    mode: TimerMode;
+    timeLeft: number;
+    targetEndTime: number | null;
+    selectedSubject: string | null;
+    elapsedSeconds: number;
+} => {
+    try {
+        const raw = localStorage.getItem(STATE_STORAGE_KEY);
+        if (raw) {
+            const parsed: StoredTimerState = JSON.parse(raw);
+            const mode = parsed.mode || "work";
+            const defaultTime = getMinutesForMode(mode, settings) * 60;
+
+            if (parsed.status === "paused") {
+                const remaining = typeof parsed.remainingSeconds === "number" && parsed.remainingSeconds > 0
+                    ? parsed.remainingSeconds
+                    : defaultTime;
+                return {
+                    status: "paused",
+                    mode,
+                    timeLeft: remaining,
+                    targetEndTime: null,
+                    selectedSubject: parsed.selectedSubject || null,
+                    elapsedSeconds: parsed.elapsedSeconds || 0,
+                };
+            } else if (parsed.status === "running" && parsed.targetEndTime) {
+                const now = Date.now();
+                const secondsLeft = Math.max(0, Math.ceil((parsed.targetEndTime - now) / 1000));
+                if (secondsLeft > 0) {
+                    return {
+                        status: "running",
+                        mode,
+                        timeLeft: secondsLeft,
+                        targetEndTime: parsed.targetEndTime,
+                        selectedSubject: parsed.selectedSubject || null,
+                        elapsedSeconds: parsed.elapsedSeconds || 0,
+                    };
+                } else {
+                    return {
+                        status: "completed",
+                        mode,
+                        timeLeft: 0,
+                        targetEndTime: null,
+                        selectedSubject: parsed.selectedSubject || null,
+                        elapsedSeconds: parsed.elapsedSeconds || 0,
+                    };
+                }
+            }
+        }
+    } catch { /* ignore fallback */ }
+
+    return {
+        status: "idle",
+        mode: "work",
+        timeLeft: settings.work * 60,
+        targetEndTime: null,
+        selectedSubject: null,
+        elapsedSeconds: 0,
+    };
+};
+
 const MOTIVATIONAL_QUOTES = [
     "¡Dale que sos ingeniero!",
     "El dolor es temporal, el título es para siempre.",
@@ -54,13 +130,17 @@ const MOTIVATIONAL_QUOTES = [
 ];
 
 interface PomodoroContextType {
+    status: PomodoroStatus;
     mode: TimerMode;
     timeLeft: number;
     isActive: boolean;
+    isPaused: boolean;
     isRinging: boolean;
     soundEnabled: boolean;
     selectedSubject: string | null;
     toggleTimer: () => void;
+    startTimer: () => void;
+    pauseTimer: () => void;
     resetTimer: () => void;
     stopAlarm: () => void;
     changeMode: (mode: TimerMode) => void;
@@ -83,16 +163,34 @@ const PomodoroContext = createContext<PomodoroContextType | undefined>(undefined
 export function PomodoroProvider({ children }: { children: ReactNode }) {
     const { user, isGuest } = useAuth();
     const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettings>(loadSettings);
-    const [mode, setMode] = useState<TimerMode>("work");
-    const [timeLeft, setTimeLeft] = useState(pomodoroSettings.work * 60);
-    const [isActive, setIsActive] = useState(false);
+
+    // Initial state restored safely from localStorage
+    const initialTimer = loadStoredTimerState(pomodoroSettings);
+    const [status, setStatus] = useState<PomodoroStatus>(initialTimer.status);
+    const [mode, setMode] = useState<TimerMode>(initialTimer.mode);
+    const [timeLeft, setTimeLeft] = useState<number>(initialTimer.timeLeft);
+    const [selectedSubject, setSelectedSubject] = useState<string | null>(initialTimer.selectedSubject);
+    const [elapsedSeconds, setElapsedSeconds] = useState<number>(initialTimer.elapsedSeconds);
+
     const [isRinging, setIsRinging] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(true);
-    const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-    const [elapsedSeconds, setElapsedSeconds] = useState(0);
-    const elapsedSecondsRef = useRef(0);
     const [completedPomodoros, setCompletedPomodoros] = useState(0);
-    const [sessionStartDate, setSessionStartDate] = useState<string>(() => toLocalDateStr());
+
+    // Refs for synchronization across ticks and background handlers
+    const targetEndTimeRef = useRef<number | null>(initialTimer.targetEndTime);
+    const statusRef = useRef<PomodoroStatus>(initialTimer.status);
+    const modeRef = useRef<TimerMode>(initialTimer.mode);
+    const timeLeftRef = useRef<number>(initialTimer.timeLeft);
+    const elapsedSecondsRef = useRef<number>(initialTimer.elapsedSeconds);
+    const selectedSubjectRef = useRef<string | null>(initialTimer.selectedSubject);
+    const pomodoroSettingsRef = useRef<PomodoroSettings>(pomodoroSettings);
+
+    useEffect(() => { statusRef.current = status; }, [status]);
+    useEffect(() => { modeRef.current = mode; }, [mode]);
+    useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
+    useEffect(() => { elapsedSecondsRef.current = elapsedSeconds; }, [elapsedSeconds]);
+    useEffect(() => { selectedSubjectRef.current = selectedSubject; }, [selectedSubject]);
+    useEffect(() => { pomodoroSettingsRef.current = pomodoroSettings; }, [pomodoroSettings]);
 
     // Document Picture-in-Picture (PiP) State & Refs
     const isPipSupported = typeof window !== "undefined" && "documentPictureInPicture" in window;
@@ -101,19 +199,13 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     const [pipContainer, setPipContainer] = useState<HTMLElement | null>(null);
     const pipWindowRef = useRef<Window | null>(null);
     const isOpeningPipRef = useRef(false);
-    const isActiveRef = useRef(false);
-    const modeRef = useRef<TimerMode>("work");
     const silentAudioRef = useRef<HTMLAudioElement | null>(null);
 
-    useEffect(() => {
-        isActiveRef.current = isActive;
-    }, [isActive]);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const alarmIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
-        modeRef.current = mode;
-    }, [mode]);
-
-    // Loop de audio inaudible para mantener activa la sesión de MediaSession en Chromium (requerido para Auto-PiP)
+    // Audio loop silencioso para mantener vivo el hilo multimedia en navegadores Chromium
     useEffect(() => {
         const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
         audio.loop = true;
@@ -126,33 +218,54 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    useEffect(() => {
-        elapsedSecondsRef.current = elapsedSeconds;
-    }, [elapsedSeconds]);
+    // Helper: guardar estado del timer en localStorage
+    const persistTimerState = useCallback((
+        newStatus: PomodoroStatus,
+        newRemaining: number,
+        targetTime: number | null = null,
+        newMode?: TimerMode
+    ) => {
+        try {
+            const currentMode = newMode || modeRef.current;
+            if (newStatus === "idle") {
+                localStorage.removeItem(STATE_STORAGE_KEY);
+                return;
+            }
+            const data: StoredTimerState = {
+                status: newStatus,
+                mode: currentMode,
+                remainingSeconds: newRemaining,
+                targetEndTime: newStatus === "running" ? targetTime : null,
+                selectedSubject: selectedSubjectRef.current,
+                elapsedSeconds: elapsedSecondsRef.current,
+                lastSavedAt: Date.now(),
+            };
+            localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(data));
+        } catch { /* ignore */ }
+    }, []);
 
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
-    const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const alarmIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const lastTickRef = useRef<number | null>(null);
-
-    // Load today's stats on init
+    // Cargar estadísticas del día
     useEffect(() => {
         if (isGuest) {
-            setCompletedPomodoros(2); // Mock completed pomodoros for guests
+            setCompletedPomodoros(2);
             return;
         }
         if (user) {
             const fetchToday = async () => {
                 const today = toLocalDateStr();
-                const { data } = await supabase.from("study_sessions").select("completada").eq("fecha", today).eq("tipo", "pomodoro").eq("user_id", user.id);
+                const { data } = await supabase
+                    .from("study_sessions")
+                    .select("completada")
+                    .eq("fecha", today)
+                    .eq("tipo", "pomodoro")
+                    .eq("user_id", user.id);
                 if (data) setCompletedPomodoros(data.filter(s => s.completada).length);
             };
             fetchToday();
         }
     }, [user, isGuest]);
 
-    // Account settings take precedence over browser-local settings so a new
-    // browser restores the same configuration after signing in.
+    // Sincronizar configuración en la nube sin afectar timers en pausa o corriendo
     useEffect(() => {
         if (!user || isGuest) return;
 
@@ -161,99 +274,48 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
         const nextSettings = { ...DEFAULT_SETTINGS, ...cloudSettings } as PomodoroSettings;
         setPomodoroSettings(nextSettings);
-        if (!isActive) {
-            setTimeLeft(getMinutesForMode(mode, nextSettings) * 60);
+
+        // REGLA CRÍTICA: Solo actualizar timeLeft si el timer está 'idle'. NUNCA si está 'paused' o 'running'.
+        if (statusRef.current === "idle") {
+            const newMinutes = getMinutesForMode(modeRef.current, nextSettings) * 60;
+            setTimeLeft(newMinutes);
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
     }, [user, isGuest]);
 
-    // Listen for localStorage changes from Settings page
+    // Escuchar cambios de configuración desde otras pestañas/páginas
     useEffect(() => {
         const onStorage = (e: StorageEvent) => {
             if (e.key === STORAGE_KEY && e.newValue) {
                 try {
                     const newSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(e.newValue) };
                     setPomodoroSettings(newSettings);
-                    if (!isActive) {
-                        setTimeLeft(getMinutesForMode(mode, newSettings) * 60);
+                    // Solo resetear si está idle
+                    if (statusRef.current === "idle") {
+                        setTimeLeft(getMinutesForMode(modeRef.current, newSettings) * 60);
                     }
                 } catch { /* ignore */ }
             }
         };
         window.addEventListener('storage', onStorage);
         return () => window.removeEventListener('storage', onStorage);
-    }, [isActive, mode]);
+    }, []);
 
     const updateSettings = (newSettings: PomodoroSettings) => {
         setPomodoroSettings(newSettings);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-        if (!isActive) {
+        if (statusRef.current === "idle") {
             setTimeLeft(getMinutesForMode(mode, newSettings) * 60);
         }
 
         if (user && !isGuest) {
             supabase.auth.updateUser({
                 data: { [CLOUD_SETTINGS_KEY]: newSettings },
-            }).then(({ error }) => {
-                if (error) console.error("Error saving Pomodoro settings:", error);
-            });
+            }).catch(() => {});
         }
     };
-    // Timer Tick (Background Tab Throttling Safe)
-    useEffect(() => {
-        if (isActive && timeLeft > 0) {
-            // Only set lastTick if it's the beginning of a active cycle
-            if (!lastTickRef.current) {
-                lastTickRef.current = Date.now();
-                if (timeLeft === getMinutesForMode(mode, pomodoroSettings) * 60) {
-                    setSessionStartDate(toLocalDateStr());
-                }
-            }
 
-            timerRef.current = setInterval(() => {
-                if (!lastTickRef.current) return;
-                
-                const now = Date.now();
-                const deltaSeconds = Math.floor((now - lastTickRef.current) / 1000);
-                
-                if (deltaSeconds > 0) {
-                    lastTickRef.current += deltaSeconds * 1000;
-                    
-                    setTimeLeft((prev) => {
-                        const newTimeLeft = Math.max(0, prev - deltaSeconds);
-                        const actualDelta = prev - newTimeLeft;
-                        
-                        setElapsedSeconds((ePrev) => ePrev + actualDelta);
-                        
-                        return newTimeLeft;
-                    });
-                }
-            }, 500); // Check every ~500ms to catch up accurately if 1000ms was skipped
-        } else if (timeLeft <= 0 && isActive) {
-            handleTimerComplete();
-        } else {
-            if (timerRef.current) clearInterval(timerRef.current);
-            lastTickRef.current = null;
-        }
-        
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, [isActive, timeLeft]);
-
-    // Auto-save safety fallback (every 5 minutes of continuous work to protect against crashes without hammering database)
-    useEffect(() => {
-        if (isActive && mode === "work") {
-            saveIntervalRef.current = setInterval(() => {
-                saveCurrentSession(false);
-            }, 5 * 60 * 1000);
-        }
-        return () => {
-            if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
-        };
-    }, [isActive, mode, user]);
-
-
+    // Guardar sesión de estudio completada o parcial en la base de datos
     const saveCurrentSession = async (completed: boolean) => {
         if (isGuest) {
             if (completed) {
@@ -263,8 +325,8 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        const currentElapsed = elapsedSecondsRef.current || elapsedSeconds;
-        if (!user || mode !== "work" || currentElapsed === 0) return;
+        const currentElapsed = elapsedSecondsRef.current;
+        if (!user || modeRef.current !== "work" || currentElapsed === 0) return;
 
         try {
             const sessionDate = toLocalDateStr();
@@ -272,7 +334,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                 .from("study_sessions")
                 .insert({
                     user_id: user.id,
-                    subject_id: selectedSubject,
+                    subject_id: selectedSubjectRef.current,
                     duracion_segundos: currentElapsed,
                     tipo: "pomodoro",
                     completada: completed,
@@ -281,7 +343,6 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
             if (error) throw error;
 
-            // Update user stats (XP)
             const hours = Math.floor(currentElapsed / 3600);
             let xpGained = Math.floor(currentElapsed / 60) * 2;
 
@@ -290,10 +351,9 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                 .select("id, horas_estudio_total, xp_total, credits, xp_multiplier, xp_multiplier_ends_at")
                 .eq("user_id", user.id)
                 .single();
+
             if (stats) {
                 const currentStats = stats as any;
-
-                // Check for active XP multiplier
                 if (currentStats.xp_multiplier && currentStats.xp_multiplier > 1) {
                     const endDate = currentStats.xp_multiplier_ends_at ? new Date(currentStats.xp_multiplier_ends_at) : null;
                     if (endDate && endDate > new Date()) {
@@ -305,7 +365,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                 await supabase.from("user_stats").update({
                     horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
                     xp_total: (currentStats.xp_total || 0) + xpGained,
-                    credits: (currentStats.credits || 0) + Math.floor(currentElapsed / 60), // 1 Credit per minute
+                    credits: (currentStats.credits || 0) + Math.floor(currentElapsed / 60),
                 }).eq("user_id", user.id);
             }
 
@@ -313,79 +373,67 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             if (completed) {
                 setCompletedPomodoros(prev => prev + 1);
             }
-        } catch (e) { console.error("Save error", e); }
+        } catch (e) {
+            console.error("Save session error:", e);
+        }
     };
 
-    // Reliable alarm using Web Audio API (no external dependencies)
+    // Alarma Web Audio API
     const playAlarm = useCallback(() => {
-        const type = pomodoroSettings.soundType || 'classic';
-        const isContinuous = pomodoroSettings.continuousAlarm || false;
+        const type = pomodoroSettingsRef.current.soundType || 'classic';
+        const isContinuous = pomodoroSettingsRef.current.continuousAlarm || false;
 
         const playSequence = () => {
             try {
-                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-                
-                const playTone = (time: number, freq: number, duration: number, type: OscillatorType = 'sine') => {
+                const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+
+                const playTone = (time: number, freq: number, duration: number, oscType: OscillatorType = 'sine') => {
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
+                    osc.type = oscType;
+                    osc.frequency.setValueAtTime(freq, time);
+                    gain.gain.setValueAtTime(0, time);
+                    gain.gain.linearRampToValueAtTime(0.3, time + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
                     osc.connect(gain);
                     gain.connect(ctx.destination);
-                    osc.type = type;
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0.3, time);
-                    gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
                     osc.start(time);
                     osc.stop(time + duration);
                 };
 
                 const now = ctx.currentTime;
-
-                if (type === 'classic') {
-                    // 3 beeps
-                    playTone(now, 880, 0.2, 'square');
-                    playTone(now + 0.3, 1100, 0.2, 'square');
-                    playTone(now + 0.6, 1320, 0.3, 'square');
+                if (type === 'arcade') {
+                    playTone(now, 523.25, 0.1, 'square');
+                    playTone(now + 0.1, 659.25, 0.1, 'square');
+                    playTone(now + 0.2, 783.99, 0.15, 'square');
+                    playTone(now + 0.35, 1046.50, 0.3, 'square');
                 } else if (type === 'zen') {
-                    // Soft, long sustaining bowl/bell
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(432, now); // Healing frequency
-                    gain.gain.setValueAtTime(0, now);
-                    gain.gain.linearRampToValueAtTime(0.4, now + 0.5); // Slow attack
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 5.0); // Long decay
-                    osc.start(now);
-                    osc.stop(now + 6.0);
-                } else if (type === 'arcade') {
-                    // Fast arpeggio
-                    playTone(now, 440, 0.1, 'sawtooth');
-                    playTone(now + 0.1, 554, 0.1, 'sawtooth');
-                    playTone(now + 0.2, 659, 0.1, 'sawtooth');
-                    playTone(now + 0.3, 880, 0.3, 'sawtooth');
+                    playTone(now, 432, 1.5, 'sine');
+                    playTone(now + 0.8, 540, 2.0, 'sine');
+                } else {
+                    playTone(now, 880, 0.15, 'sine');
+                    playTone(now + 0.2, 880, 0.15, 'sine');
+                    playTone(now + 0.4, 880, 0.3, 'sine');
                 }
 
-                // Auto suspend ctx to save resources after sequence finishes
-                setTimeout(() => { if (ctx.state !== 'closed') ctx.close(); }, 7000);
-            } catch (e) {
-                console.error("Audio error", e);
+                setTimeout(() => {
+                    ctx.close().catch(() => {});
+                }, 3000);
+            } catch (err) {
+                console.warn("Error playing alarm audio:", err);
             }
         };
 
-        // Play once initially
+        setIsRinging(true);
         playSequence();
 
-        // If continuous, set up loop
+        if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current);
         if (isContinuous) {
-            setIsRinging(true);
-            const intervalTime = type === 'zen' ? 7000 : 3000;
-            alarmIntervalRef.current = setInterval(() => {
-                playSequence();
-            }, intervalTime);
+            alarmIntervalRef.current = setInterval(playSequence, 4000);
         }
-
-    }, [pomodoroSettings]);
+    }, []);
 
     const stopAlarm = useCallback(() => {
         setIsRinging(false);
@@ -395,24 +443,23 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Clean up interval on unmount
-    useEffect(() => {
-        return () => {
-            if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current);
-        };
-    }, []);
+    // Manejar finalización del temporizador
+    const handleTimerComplete = useCallback(() => {
+        setStatus("completed");
+        targetEndTimeRef.current = null;
+        setTimeLeft(0);
+        silentAudioRef.current?.pause();
 
-    const handleTimerComplete = () => {
-        setIsActive(false);
+        persistTimerState("completed", 0, null);
+
         if (soundEnabled) {
             playAlarm();
         }
 
-        // Notificación de sistema (desktop/móvil)
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
             try {
-                const notifTitle = mode === "work" ? "🍅 ¡Pomodoro terminado!" : "☕ ¡Descanso terminado!";
-                const notifBody = mode === "work" 
+                const notifTitle = modeRef.current === "work" ? "🍅 ¡Pomodoro terminado!" : "☕ ¡Descanso terminado!";
+                const notifBody = modeRef.current === "work"
                     ? "Excelente sesión de estudio. ¡Tomate un merecido descanso!"
                     : "El descanso finalizó. ¡Hora de volver a concentrarse!";
                 new Notification(notifTitle, {
@@ -420,56 +467,142 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                     icon: "/favicon.ico",
                 });
             } catch (err) {
-                console.warn("No se pudo disparar notificación de sistema:", err);
+                console.warn("No se pudo disparar notificación:", err);
             }
         }
 
-        if (mode === "work") {
+        if (modeRef.current === "work") {
             saveCurrentSession(true);
-            toast.success(`Pomodoro terminado!`, {
+            toast.success("¡Pomodoro terminado!", {
                 description: MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)],
             });
         } else {
             toast.info("Descanso terminado. ¡A volver!");
             setMode("work");
-            setTimeLeft(pomodoroSettings.work * 60);
+            const workSecs = pomodoroSettingsRef.current.work * 60;
+            setTimeLeft(workSecs);
+            persistTimerState("idle", workSecs, null, "work");
         }
-    };
+    }, [soundEnabled, playAlarm, persistTimerState]);
 
-    const toggleTimer = () => {
-        if (!isActive) {
-            setSessionStartDate(toLocalDateStr());
-            silentAudioRef.current?.play().catch(() => {});
-            if (typeof Notification !== "undefined" && Notification.permission === "default") {
-                Notification.requestPermission().catch(() => {});
-            }
-        } else {
-            silentAudioRef.current?.pause();
+    // INICIAR TEMPORIZADOR
+    const startTimer = useCallback(() => {
+        stopAlarm();
+        const currentSeconds = timeLeftRef.current > 0
+            ? timeLeftRef.current
+            : getMinutesForMode(modeRef.current, pomodoroSettingsRef.current) * 60;
+
+        const newTargetEndTime = Date.now() + currentSeconds * 1000;
+        targetEndTimeRef.current = newTargetEndTime;
+
+        setTimeLeft(currentSeconds);
+        setStatus("running");
+        silentAudioRef.current?.play().catch(() => {});
+
+        persistTimerState("running", currentSeconds, newTargetEndTime);
+
+        if (typeof Notification !== "undefined" && Notification.permission === "default") {
+            Notification.requestPermission().catch(() => {});
         }
-        setIsActive(!isActive);
-    };
+    }, [stopAlarm, persistTimerState]);
 
-    const resetTimer = () => {
-        if (mode === "work" && elapsedSeconds > 60) saveCurrentSession(false);
+    // PAUSAR TEMPORIZADOR (Congela exactamente los segundos restantes)
+    const pauseTimer = useCallback(() => {
+        // Calcular los segundos restantes actuales antes de borrar el target
+        let frozenSeconds = timeLeftRef.current;
+        if (targetEndTimeRef.current) {
+            frozenSeconds = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+        }
+
+        targetEndTimeRef.current = null;
+        setTimeLeft(frozenSeconds);
+        setStatus("paused");
         silentAudioRef.current?.pause();
-        setIsActive(false);
-        stopAlarm();
-        setTimeLeft(getMinutesForMode(mode, pomodoroSettings) * 60);
-        setElapsedSeconds(0);
-        lastTickRef.current = null;
-        setSessionStartDate(toLocalDateStr());
-    };
 
-    const changeMode = (newMode: TimerMode) => {
-        if (mode === "work" && isActive && elapsedSeconds > 0) saveCurrentSession(false);
-        setMode(newMode);
-        setIsActive(false);
+        persistTimerState("paused", frozenSeconds, null);
+    }, [persistTimerState]);
+
+    // Alternar Inicio / Pausa
+    const toggleTimer = useCallback(() => {
+        if (statusRef.current === "running") {
+            pauseTimer();
+        } else {
+            startTimer();
+        }
+    }, [startTimer, pauseTimer]);
+
+    // RESETEAR TEMPORIZADOR
+    const resetTimer = useCallback(() => {
+        if (modeRef.current === "work" && elapsedSecondsRef.current > 60) {
+            saveCurrentSession(false);
+        }
+        silentAudioRef.current?.pause();
+        targetEndTimeRef.current = null;
         stopAlarm();
-        setTimeLeft(getMinutesForMode(newMode, pomodoroSettings) * 60);
+
+        const defaultSeconds = getMinutesForMode(modeRef.current, pomodoroSettingsRef.current) * 60;
+        setTimeLeft(defaultSeconds);
         setElapsedSeconds(0);
-        lastTickRef.current = null;
-        setSessionStartDate(toLocalDateStr());
-    };
+        setStatus("idle");
+
+        persistTimerState("idle", defaultSeconds, null);
+    }, [stopAlarm, persistTimerState]);
+
+    // CAMBIAR MODO (Trabajo / Descanso Corto / Descanso Largo)
+    const changeMode = useCallback((newMode: TimerMode) => {
+        if (modeRef.current === "work" && statusRef.current === "running" && elapsedSecondsRef.current > 0) {
+            saveCurrentSession(false);
+        }
+        silentAudioRef.current?.pause();
+        targetEndTimeRef.current = null;
+        stopAlarm();
+
+        setMode(newMode);
+        const defaultSeconds = getMinutesForMode(newMode, pomodoroSettingsRef.current) * 60;
+        setTimeLeft(defaultSeconds);
+        setElapsedSeconds(0);
+        setStatus("idle");
+
+        persistTimerState("idle", defaultSeconds, null, newMode);
+    }, [stopAlarm, persistTimerState]);
+
+    // Loop de tick del temporizador usando targetEndTime (inmune a throttling de pestañas secundarias)
+    useEffect(() => {
+        if (status === "running") {
+            const tick = () => {
+                if (!targetEndTimeRef.current) return;
+                const now = Date.now();
+                const secondsLeft = Math.max(0, Math.ceil((targetEndTimeRef.current - now) / 1000));
+
+                setTimeLeft(secondsLeft);
+                setElapsedSeconds(prev => prev + 1);
+
+                if (secondsLeft <= 0) {
+                    handleTimerComplete();
+                }
+            };
+
+            // Ejecución periódica cada 500ms
+            timerRef.current = setInterval(tick, 500);
+            return () => {
+                if (timerRef.current) clearInterval(timerRef.current);
+            };
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+    }, [status, handleTimerComplete]);
+
+    // Auto-save cada 5 minutos de trabajo continuo
+    useEffect(() => {
+        if (status === "running" && mode === "work") {
+            saveIntervalRef.current = setInterval(() => {
+                saveCurrentSession(false);
+            }, 5 * 60 * 1000);
+        }
+        return () => {
+            if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
+        };
+    }, [status, mode]);
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -477,15 +610,14 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     };
 
-    // Document Picture-in-Picture (PiP) Implementation
+    // ═══ DOCUMENT PICTURE-IN-PICTURE (PiP) CON CICLO DE VIDA LIMPIO ═══
     const closePip = useCallback(() => {
-        const currentActive = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
-        if (currentActive && !currentActive.closed) {
+        if (pipWindowRef.current) {
             try {
-                currentActive.close();
-            } catch (e) {}
+                pipWindowRef.current.close();
+            } catch { /* ignore */ }
+            pipWindowRef.current = null;
         }
-        pipWindowRef.current = null;
         setPipWindow(null);
         setPipContainer(null);
         setIsPipActive(false);
@@ -497,51 +629,52 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        const currentActive = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
-        if (currentActive && !currentActive.closed) {
-            try { currentActive.focus(); } catch (e) {}
+        const dPip = (window as any).documentPictureInPicture;
+        if (!dPip) return;
+
+        // Si ya hay una ventana activa y no está cerrada, darle foco y evitar duplicados
+        if (pipWindowRef.current && !pipWindowRef.current.closed) {
+            try { pipWindowRef.current.focus(); } catch { /* ignore */ }
             return;
         }
 
+        if (isOpeningPipRef.current) return;
+        isOpeningPipRef.current = true;
+
         try {
-            // Solicitar permisos de notificación si están pendientes
             if (typeof Notification !== "undefined" && Notification.permission === "default") {
                 Notification.requestPermission().catch(() => {});
             }
 
-            const pipWin = await (window as any).documentPictureInPicture.requestWindow({
+            const newPipWindow: Window = await dPip.requestWindow({
                 width: 280,
                 height: 180,
                 disallowReturnToOpener: false,
             });
 
-            pipWindowRef.current = pipWin;
-            setPipWindow(pipWin);
+            pipWindowRef.current = newPipWindow;
+            setPipWindow(newPipWindow);
+            setIsPipActive(true);
 
-            // Copiar estilos CSS del documento principal
+            // Copiar estilos CSS para renderizado idéntico
             try {
-                // 1. Clonar tags link y style existentes
                 document.querySelectorAll("link[rel='stylesheet'], style").forEach((node) => {
-                    pipWin.document.head.appendChild(node.cloneNode(true));
+                    newPipWindow.document.head.appendChild(node.cloneNode(true));
                 });
 
-                // 2. Copiar reglas de hojas de estilo cargadas
                 [...document.styleSheets].forEach((styleSheet) => {
                     try {
                         if (styleSheet.cssRules) {
-                            const newStyleEl = pipWin.document.createElement("style");
+                            const newStyleEl = newPipWindow.document.createElement("style");
                             for (const cssRule of styleSheet.cssRules) {
-                                newStyleEl.appendChild(pipWin.document.createTextNode(cssRule.cssText));
+                                newStyleEl.appendChild(newPipWindow.document.createTextNode(cssRule.cssText));
                             }
-                            pipWin.document.head.appendChild(newStyleEl);
+                            newPipWindow.document.head.appendChild(newStyleEl);
                         }
-                    } catch {
-                        // Ignorar hojas de estilo con restricciones CORS
-                    }
+                    } catch { /* CORS */ }
                 });
 
-                // 3. Reglas base de reset para ventana compacta
-                const resetStyle = pipWin.document.createElement("style");
+                const resetStyle = newPipWindow.document.createElement("style");
                 resetStyle.textContent = `
                     * { box-sizing: border-box; }
                     html, body {
@@ -558,29 +691,26 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                     }
                     button { cursor: pointer; font-family: inherit; }
                 `;
-                pipWin.document.head.appendChild(resetStyle);
+                newPipWindow.document.head.appendChild(resetStyle);
             } catch (styleErr) {
                 console.warn("Aviso al transferir estilos a PiP:", styleErr);
             }
 
-            // Metadatos
-            pipWin.document.title = "🍅 Pomodoro TABE";
-            pipWin.document.body.className = "bg-white text-black m-0 p-0 overflow-hidden font-sans select-none";
+            newPipWindow.document.title = "🍅 Pomodoro TABE";
+            newPipWindow.document.body.className = "bg-white text-black m-0 p-0 overflow-hidden font-sans select-none";
 
-            // Contenedor del portal React
-            let container = pipWin.document.getElementById("pomodoro-pip-root");
+            let container = newPipWindow.document.getElementById("pomodoro-pip-root");
             if (!container) {
-                container = pipWin.document.createElement("div");
+                container = newPipWindow.document.createElement("div");
                 container.id = "pomodoro-pip-root";
                 container.style.width = "100%";
                 container.style.height = "100%";
-                pipWin.document.body.appendChild(container);
+                newPipWindow.document.body.appendChild(container);
             }
             setPipContainer(container);
-            setIsPipActive(true);
 
-            // Escuchar cierre de la ventana flotante
-            pipWin.addEventListener("pagehide", () => {
+            // REGLA CLAVE: Limpiar referencias al cerrar la ventana flotante (por botón X o script)
+            newPipWindow.addEventListener("pagehide", () => {
                 pipWindowRef.current = null;
                 setPipWindow(null);
                 setPipContainer(null);
@@ -589,25 +719,29 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
         } catch (err: any) {
             console.error("Error al abrir ventana flotante PiP:", err);
+            pipWindowRef.current = null;
+            setPipWindow(null);
+            setPipContainer(null);
             setIsPipActive(false);
+        } finally {
+            isOpeningPipRef.current = false;
         }
     }, [isPipSupported]);
 
     const togglePip = useCallback(async () => {
-        const currentActive = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
-        if (currentActive && !currentActive.closed) {
+        if (pipWindowRef.current && !pipWindowRef.current.closed) {
             closePip();
         } else {
             await openPip();
         }
     }, [closePip, openPip]);
 
-    // 1. MediaSession Metadata & Handlers (Auto-PiP estilo Google Meet en Chromium)
+    // MediaSession Metadata para soporte nativo del sistema
     useEffect(() => {
         if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
 
         try {
-            navigator.mediaSession.playbackState = isActive ? "playing" : "paused";
+            navigator.mediaSession.playbackState = status === "running" ? "playing" : "paused";
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: `${mode === "work" ? "🍅" : "☕"} ${formatTime(timeLeft)} - Pomodoro`,
                 artist: mode === "work" ? "Foco Total • TABE" : "Descanso • TABE",
@@ -616,35 +750,32 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                     { src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
                 ],
             });
-        } catch (e) {}
-    }, [isActive, mode, timeLeft]);
+        } catch { /* ignore */ }
+    }, [status, mode, timeLeft]);
 
     useEffect(() => {
         if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
 
         try {
             navigator.mediaSession.setActionHandler("enterpictureinpicture", async () => {
-                const isAutoPip = pomodoroSettings.autoPip ?? true;
-                const activeWin = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
-                if (isAutoPip && isActiveRef.current && !activeWin) {
+                const isAutoPip = pomodoroSettingsRef.current.autoPip ?? true;
+                if (isAutoPip && statusRef.current === "running" && !pipWindowRef.current) {
                     await openPip();
                 }
             });
-        } catch (e) {
-            console.warn("enterpictureinpicture no soportado:", e);
-        }
+        } catch { /* not supported */ }
 
         try {
             navigator.mediaSession.setActionHandler("play", () => {
-                if (!isActiveRef.current) toggleTimer();
+                if (statusRef.current !== "running") startTimer();
             });
             navigator.mediaSession.setActionHandler("pause", () => {
-                if (isActiveRef.current) toggleTimer();
+                if (statusRef.current === "running") pauseTimer();
             });
             navigator.mediaSession.setActionHandler("nexttrack", () => {
                 changeMode(modeRef.current === "work" ? "shortBreak" : "work");
             });
-        } catch (e) {}
+        } catch { /* ignore */ }
 
         return () => {
             try {
@@ -652,34 +783,35 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                 navigator.mediaSession.setActionHandler("play", null);
                 navigator.mediaSession.setActionHandler("pause", null);
                 navigator.mediaSession.setActionHandler("nexttrack", null);
-            } catch (e) {}
+            } catch { /* ignore */ }
         };
-    }, [openPip, toggleTimer, changeMode, pomodoroSettings.autoPip]);
+    }, [openPip, startTimer, pauseTimer, changeMode]);
 
-    // 2. VisibilityChange Handler (Auto-PiP al salir de pestaña y auto-cierre suave al regresar a TABE)
+    // REAPERTURA Y LIMPIEZA MULTIPLE EN VISIBILITYCHANGE
     useEffect(() => {
         const handleVisibilityChange = async () => {
-            const isAutoPip = pomodoroSettings.autoPip ?? true;
+            const isAutoPip = pomodoroSettingsRef.current.autoPip ?? true;
             if (!isAutoPip || !isPipSupported) return;
 
             if (document.visibilityState === "hidden") {
-                // El usuario cambió de pestaña o minimizó el navegador
-                const activeWin = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
-                if (isActiveRef.current && !activeWin && !isOpeningPipRef.current) {
+                // Solo abre si el pomodoro está corriendo Y no hay ya una ventana activa abierta
+                if (statusRef.current === "running" && !pipWindowRef.current && !isOpeningPipRef.current) {
                     try {
-                        isOpeningPipRef.current = true;
                         await openPip();
                     } catch (err) {
                         console.warn("Auto-PiP en visibilitychange:", err);
-                    } finally {
-                        isOpeningPipRef.current = false;
                     }
                 }
             } else if (document.visibilityState === "visible") {
-                // El usuario regresó a la pestaña de TABE: cerrar suavemente y restaurar vista
-                const activeWin = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
-                if (activeWin && !activeWin.closed) {
-                    closePip();
+                // Al regresar a la pestaña, cierra la flotante y deja el foco en la web principal
+                if (pipWindowRef.current) {
+                    try {
+                        pipWindowRef.current.close();
+                    } catch { /* ignore */ }
+                    pipWindowRef.current = null;
+                    setPipWindow(null);
+                    setPipContainer(null);
+                    setIsPipActive(false);
                 }
             }
         };
@@ -688,30 +820,36 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, [isPipSupported, pomodoroSettings.autoPip, openPip, closePip]);
+    }, [isPipSupported, openPip]);
 
-    // Limpieza de ventana flotante al desmontar
+    // Limpieza al desmontar
     useEffect(() => {
         return () => {
-            const activeWin = pipWindowRef.current || (window as any).documentPictureInPicture?.window;
-            if (activeWin && !activeWin.closed) {
-                activeWin.close();
+            if (pipWindowRef.current) {
+                try { pipWindowRef.current.close(); } catch { /* ignore */ }
+                pipWindowRef.current = null;
             }
         };
     }, []);
 
     const totalTime = getMinutesForMode(mode, pomodoroSettings) * 60;
-    const progress = ((totalTime - timeLeft) / totalTime) * 100;
+    const progress = totalTime > 0 ? ((totalTime - timeLeft) / totalTime) * 100 : 0;
+    const isActive = status === "running";
+    const isPaused = status === "paused";
 
     return (
         <PomodoroContext.Provider value={{
+            status,
             mode,
             timeLeft,
             isActive,
+            isPaused,
             isRinging,
             soundEnabled,
             selectedSubject,
             toggleTimer,
+            startTimer,
+            pauseTimer,
             resetTimer,
             stopAlarm,
             changeMode,
