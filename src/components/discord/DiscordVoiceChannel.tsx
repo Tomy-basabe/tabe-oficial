@@ -315,15 +315,15 @@ function VideoTile({
   const [, setTrackUpdate] = useState(0);
 
   const videoTracks = stream ? stream.getVideoTracks() : [];
-  const hasLiveVideo = videoTracks.some(t => t.enabled && t.readyState === 'live');
-  const showVideo = Boolean((isVideoEnabled || hasLiveVideo) && videoTracks.length > 0 && stream);
+  const hasLiveVideo = videoTracks.some(t => t.readyState === 'live');
+  const showVideo = Boolean(videoTracks.length > 0 && (isVideoEnabled || hasLiveVideo));
 
   // Vincular stream al elemento de video
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
 
-    if (!stream) {
+    if (!stream || !showVideo) {
       el.srcObject = null;
       return;
     }
@@ -332,17 +332,7 @@ function VideoTile({
       el.srcObject = stream;
     }
     el.play().catch(() => {});
-  }, [stream]);
-
-  // Audio dedicado persistente para pares remotos (evita bloqueos si la cámara está apagada)
-  useEffect(() => {
-    const ael = audioRef.current;
-    if (!ael || !stream || isLocal) return;
-    if (ael.srcObject !== stream) {
-      ael.srcObject = stream;
-    }
-    ael.play().catch(() => {});
-  }, [stream, isLocal]);
+  }, [stream, showVideo]);
 
   // Escuchar adición o remoción de pistas en caliente (cámara on/off, pantalla on/off)
   useEffect(() => {
@@ -361,16 +351,6 @@ function VideoTile({
       "relative rounded-2xl overflow-hidden w-full h-full min-h-[220px] max-h-[460px] aspect-video flex items-center justify-center transition-all duration-200 border-3 border-black shadow-[4px_4px_0px_#000] bg-card group",
       isSpeaking ? "ring-4 ring-[#22c55e] shadow-[0_0_20px_rgba(34,197,94,0.5),4px_4px_0px_#000]" : ""
     )}>
-      {/* Audio Element para participantes remotos */}
-      {!isLocal && (
-        <audio
-          ref={audioRef}
-          autoPlay
-          playsInline
-          muted={false}
-          className="hidden"
-        />
-      )}
 
       {/* Video Element */}
       {stream && (
@@ -444,22 +424,19 @@ function SmallTile({
   const [, setTrackUpdate] = useState(0);
 
   const videoTracks = stream ? stream.getVideoTracks() : [];
-  const hasLiveVideo = videoTracks.some(t => t.enabled && t.readyState === 'live');
-  const showVideo = Boolean((isVideoEnabled || hasLiveVideo) && videoTracks.length > 0 && stream);
+  const hasLiveVideo = videoTracks.some(t => t.readyState === 'live');
+  const showVideo = Boolean(videoTracks.length > 0 && (isVideoEnabled || hasLiveVideo));
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !stream) return;
+    if (!el) return;
+    if (!stream || !showVideo) {
+      el.srcObject = null;
+      return;
+    }
     if (el.srcObject !== stream) el.srcObject = stream;
     el.play().catch(() => {});
-  }, [stream]);
-
-  useEffect(() => {
-    const ael = audioRef.current;
-    if (!ael || !stream || isLocal) return;
-    if (ael.srcObject !== stream) ael.srcObject = stream;
-    ael.play().catch(() => {});
-  }, [stream, isLocal]);
+  }, [stream, showVideo]);
 
   useEffect(() => {
     if (!stream) return;
@@ -477,9 +454,6 @@ function SmallTile({
       "w-36 md:w-full aspect-video bg-card rounded-xl overflow-hidden relative border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center shrink-0 transition-transform",
       isSpeaking ? "ring-3 ring-[#22c55e]" : ""
     )}>
-      {!isLocal && (
-        <audio ref={audioRef} autoPlay playsInline muted={false} className="hidden" />
-      )}
       {stream && (
         <video
           ref={videoRef}

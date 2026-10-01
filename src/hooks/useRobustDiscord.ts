@@ -290,13 +290,14 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             });
         }
 
-        // Asegurar transceivers para audio y video si no fueron agregados
+        // Asegurar transceiver para audio si no fue agregado
         const hasAudioSender = pc.getSenders().some(s => s.track?.kind === 'audio');
         if (!hasAudioSender) {
             pc.addTransceiver('audio', { direction: 'sendrecv' });
         }
 
-        // Asegurar transceiver de video pre-negociado para hot-swap instantáneo de cámara/pantalla
+        // Asegurar transceiver de video: SIEMPRE 'sendrecv' si tenemos video local o 'recvonly' si la cámara está apagada
+        // Esto permite que usuarios sin cámara prendida reciban transmisiones y cámaras de otros sin problemas.
         let activeVideoTrack: MediaStreamTrack | null = null;
         if (screenStreamRef.current && screenStreamRef.current.getVideoTracks().length > 0) {
             activeVideoTrack = screenStreamRef.current.getVideoTracks()[0];
@@ -304,16 +305,24 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             activeVideoTrack = cameraStreamRef.current.getVideoTracks()[0];
         }
 
-        const hasVideoSender = pc.getSenders().some(s => s.track?.kind === 'video');
+        const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
+        const videoTransceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
+
         if (activeVideoTrack) {
-            if (hasVideoSender) {
-                const s = pc.getSenders().find(send => send.track?.kind === 'video');
-                if (s) s.replaceTrack(activeVideoTrack);
+            if (videoSender) {
+                videoSender.replaceTrack(activeVideoTrack);
             } else {
                 pc.addTrack(activeVideoTrack, stream || new MediaStream([activeVideoTrack]));
             }
-        } else if (!hasVideoSender) {
-            pc.addTransceiver('video', { direction: 'sendrecv' });
+            if (videoTransceiver) {
+                videoTransceiver.direction = 'sendrecv';
+            }
+        } else {
+            if (videoTransceiver) {
+                videoTransceiver.direction = 'recvonly';
+            } else {
+                pc.addTransceiver('video', { direction: 'recvonly' });
+            }
         }
 
         pc.onnegotiationneeded = () => {
@@ -658,14 +667,52 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
         const start = async () => {
             let stream: MediaStream;
+            const savedMicId = localStorage.getItem('tabetalk_audio_input_device');
+            const echoCancel = localStorage.getItem('tabetalk_echo_cancellation') !== 'false';
+            const noiseSupp = localStorage.getItem('tabetalk_noise_suppression') !== 'false';
+
+            const audioConstraints: MediaTrackConstraints = {
+                echoCancellation: echoCancel,
+                noiseSuppression: noiseSupp,
+                autoGainControl: true,
+            };
+            if (savedMicId && savedMicId !== 'default') {
+                audioConstraints.deviceId = { ideal: savedMicId };
+            }
+
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    audio: audioConstraints,
                     video: false,
                 });
-            } catch (e: any) {
-                toast({ title: 'Permiso de micrófono requerido', description: e.message, variant: 'destructive' });
-                return;
+            } catch (e1: any) {
+                console.warn('[Tabetalk WebRTC] Error con constraints avanzados de audio, probando fallback básico:', e1);
+                try {
+                    // Fallback a cualquier micrófono disponible
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                } catch (e2: any) {
+                    console.warn('[Tabetalk WebRTC] No se pudo obtener micrófono físico, conectando como oyente:', e2);
+                    toast({
+                        title: 'Modo Oyente activado',
+                        description: 'No se detectó micrófono o falta permiso. Puedes escuchar y ver a tus compañeros.',
+                    });
+                    // Fallback a pista de audio silenciosa para permitir conexión WebRTC como oyente
+                    try {
+                        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                        const ctx = new AudioCtx();
+                        const osc = ctx.createOscillator();
+                        const dst = ctx.createMediaStreamDestination();
+                        osc.connect(dst);
+                        osc.start();
+                        const silentTrack = dst.stream.getAudioTracks()[0];
+                        silentTrack.enabled = false;
+                        stream = new MediaStream([silentTrack]);
+                        setIsAudioEnabled(false);
+                    } catch {
+                        stream = new MediaStream();
+                        setIsAudioEnabled(false);
+                    }
+                }
             }
             if (cancelled) {
                 stream.getTracks().forEach(t => t.stop());
@@ -840,6 +887,11 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
             if (!isScreenSharing) {
                 pcsRef.current.forEach(pc => {
+                    // Al apagar la cámara, volvemos a 'recvonly' para seguir recibiendo video de otros usuarios
+                    const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
+                    if (transceiver) {
+                        transceiver.direction = 'recvonly';
+                    }
                     const sender = findVideoSender(pc);
                     if (sender) sender.replaceTrack(null);
                 });
@@ -850,14 +902,38 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             broadcastMediaState(false, isScreenSharing, isAudioEnabled);
             log('Camera turned OFF');
             renegotiateAllPeers();
-        } else {
-            // Encender cámara
-            try {
-                const constraints: MediaTrackConstraints = selectedCameraId
-                    ? { deviceId: { exact: selectedCameraId } }
-                    : true as any;
 
-                const vs = await navigator.mediaDevices.getUserMedia({ video: constraints });
+            // Sincronizar en base de datos si estamos en un canal
+            const curCh = channelIdRef.current;
+            const curUid = userIdRef.current;
+            if (curCh && curUid) {
+                supabase.from('discord_voice_participants')
+                    .update({ is_camera_on: false })
+                    .eq('channel_id', curCh)
+                    .eq('user_id', curUid)
+                    .then();
+            }
+        } else {
+            // Encender cámara con fallback inteligente de constraints
+            try {
+                let vs: MediaStream;
+                const targetCameraId = selectedCameraId || localStorage.getItem('tabetalk_video_input_device') || '';
+
+                try {
+                    if (targetCameraId && targetCameraId !== 'default') {
+                        vs = await navigator.mediaDevices.getUserMedia({
+                            video: { deviceId: { ideal: targetCameraId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                        });
+                    } else {
+                        vs = await navigator.mediaDevices.getUserMedia({
+                            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+                        });
+                    }
+                } catch (e1) {
+                    console.warn('[Tabetalk WebRTC] Error con constraints de cámara ideales, probando fallback básico:', e1);
+                    vs = await navigator.mediaDevices.getUserMedia({ video: true });
+                }
+
                 const vt = vs.getVideoTracks()[0];
                 cameraStreamRef.current = vs;
 
@@ -888,9 +964,20 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 broadcastMediaState(true, isScreenSharing, isAudioEnabled);
                 log('Camera turned ON');
                 renegotiateAllPeers();
+
+                // Sincronizar en base de datos si estamos en un canal
+                const curCh = channelIdRef.current;
+                const curUid = userIdRef.current;
+                if (curCh && curUid) {
+                    supabase.from('discord_voice_participants')
+                        .update({ is_camera_on: true })
+                        .eq('channel_id', curCh)
+                        .eq('user_id', curUid)
+                        .then();
+                }
             } catch (e: any) {
                 log(`Camera error: ${e.message}`);
-                toast({ title: 'No se pudo acceder a la cámara', description: e.message, variant: 'destructive' });
+                toast({ title: 'No se pudo acceder a la cámara', description: e.message || 'Verifica los permisos del navegador', variant: 'destructive' });
             }
         }
     }, [isVideoEnabled, isScreenSharing, isAudioEnabled, selectedCameraId, broadcastMediaState, findVideoSender, renegotiateAllPeers, toast, log]);
@@ -955,6 +1042,11 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
         const cameraTrack = isVideoEnabled ? cameraStreamRef.current?.getVideoTracks()[0] || null : null;
         pcsRef.current.forEach(pc => {
+            const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
+            if (transceiver) {
+                // Si la cámara sigue activa, nos mantenemos en sendrecv; si no, volvemos a recvonly
+                transceiver.direction = isVideoEnabled ? 'sendrecv' : 'recvonly';
+            }
             const sender = findVideoSender(pc);
             if (sender) {
                 sender.replaceTrack(cameraTrack);
@@ -964,6 +1056,16 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         broadcastMediaState(isVideoEnabled, false, isAudioEnabled);
         log('Screen share ended, restored camera track');
         renegotiateAllPeers();
+
+        const curCh = channelIdRef.current;
+        const curUid = userIdRef.current;
+        if (curCh && curUid) {
+            supabase.from('discord_voice_participants')
+                .update({ is_screen_sharing: false })
+                .eq('channel_id', curCh)
+                .eq('user_id', curUid)
+                .then();
+        }
     }, [isVideoEnabled, isAudioEnabled, broadcastMediaState, findVideoSender, renegotiateAllPeers, log]);
 
     const startScreenShare = useCallback(async () => {
@@ -994,6 +1096,16 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             broadcastMediaState(isVideoEnabled, true, isAudioEnabled);
             log('Screen share started using replaceTrack');
             renegotiateAllPeers();
+
+            const curCh = channelIdRef.current;
+            const curUid = userIdRef.current;
+            if (curCh && curUid) {
+                supabase.from('discord_voice_participants')
+                    .update({ is_screen_sharing: true })
+                    .eq('channel_id', curCh)
+                    .eq('user_id', curUid)
+                    .then();
+            }
 
             screenTrack.onended = () => {
                 stopScreenShare();
