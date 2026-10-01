@@ -24,7 +24,7 @@ export function TabetalkIcon({
     <div
       className={cn(
         "relative inline-flex items-center justify-center shrink-0 select-none overflow-visible",
-        !size && !className?.includes("w-") && "w-5 h-5 sm:w-5.5 sm:h-5.5",
+        !size && !className?.includes("w-") && "w-7 h-7",
         className
       )}
       style={sizeStyle}
@@ -33,7 +33,7 @@ export function TabetalkIcon({
       <img
         src="/tabe-talk.png"
         alt="Tabetalk"
-        className="w-full h-full object-contain pointer-events-none transition-transform duration-200 group-hover:scale-110"
+        className="w-full h-full object-contain pointer-events-none transition-transform duration-200 group-hover:scale-110 drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)]"
         loading="eager"
         onError={(e) => {
           e.currentTarget.src = "/logo.png";

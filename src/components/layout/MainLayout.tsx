@@ -535,7 +535,8 @@ export function MainLayout() {
                       onTouchStart={() => preloadRoute(path)}
                       onFocus={() => preloadRoute(path)}
                       className={cn(
-                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none justify-center p-2.5",
+                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none justify-center",
+                        targetPath === "/tabetalk" || item.id === "item-/tabetalk" ? "p-1.5" : "p-2.5",
                         isActive
                           ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
                           : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-105 font-extrabold"
@@ -544,7 +545,8 @@ export function MainLayout() {
                     >
                       <Icon
                         className={cn(
-                          "w-5 h-5 transition-transform group-hover:scale-110 flex-shrink-0",
+                          targetPath === "/tabetalk" || item.id === "item-/tabetalk" ? "w-7 h-7" : "w-5 h-5",
+                          "transition-transform group-hover:scale-110 flex-shrink-0",
                           isActive ? "stroke-[2.5]" : ""
                         )}
                       />
@@ -658,7 +660,8 @@ export function MainLayout() {
                     >
                       <Icon
                         className={cn(
-                          "w-4 h-4 transition-all flex-shrink-0",
+                          targetPath === "/tabetalk" || item.id === "item-/tabetalk" ? "w-6 h-6" : "w-4 h-4",
+                          "transition-all flex-shrink-0",
                           isActive ? "stroke-[2.5]" : ""
                         )}
                       />

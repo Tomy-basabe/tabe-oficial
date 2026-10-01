@@ -26,6 +26,7 @@ import {
 import { ApuntesIcon, NotionIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { TabetalkIcon } from "@/components/icons/TabetalkIcon";
+import { ArcadeIcon } from "@/components/icons/ArcadeIcon";
 
 export interface NavItem {
   icon: any;
@@ -48,9 +49,10 @@ export interface CustomSidebarItem {
 export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
-  Music, Video, Camera, MessageSquare: TabetalkIcon, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
-  ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous,
-  Gamepad2
+  Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
+  ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Tabetalk: TabetalkIcon,
+  Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous,
+  Gamepad2, Arcade: ArcadeIcon, ArcadeIcon
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);
@@ -76,7 +78,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/admin": "Shield",
   "/configuracion": "Settings",
   "/examenes": "GraduationCap",
-  "/juegos": "Gamepad2",
+  "/juegos": "Arcade",
   "/mapa": "Compass",
   "/tabetalk": "TabetalkIcon",
   "/discord": "TabetalkIcon"
@@ -129,11 +131,11 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     id: "cat-comunidad",
     label: "Comunidad & Juegos",
     type: "category",
-    iconName: "Gamepad2",
+    iconName: "Arcade",
     items: [
       { id: "item-/amigos", path: "/amigos", label: "Amigos", type: "item", iconName: "Users" },
       { id: "item-/bosque", path: "/bosque", label: "Mi Bosque", type: "item", iconName: "TreeDeciduous" },
-      { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Gamepad2" },
+      { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Arcade" },
       { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
       { id: "item-/marketplace", path: "/marketplace", label: "Marketplace", type: "item", iconName: "Store" }
     ]
@@ -181,7 +183,7 @@ export const baseNavItems: NavItem[] = [
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
   { icon: TabetalkIcon, label: "Tabetalk", path: "/tabetalk", tourClass: "tour-sidebar-tabetalk" },
-  { icon: Gamepad2, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
+  { icon: ArcadeIcon, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];
 
@@ -345,8 +347,15 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
       if (item.type === "category" && item.items) {
         return {
           ...item,
-          iconName: (item.id === "cat-comunidad" || item.label?.toLowerCase().includes("comunidad") || item.label?.toLowerCase().includes("juego")) ? "Gamepad2" : item.iconName,
-          items: item.items.filter(sub => (sub.path || sub.id) !== "/tabetalk" && sub.id !== "item-/tabetalk")
+          iconName: (item.id === "cat-comunidad" || item.label?.toLowerCase().includes("comunidad") || item.label?.toLowerCase().includes("juego")) ? "Arcade" : item.iconName,
+          items: item.items
+            .filter(sub => (sub.path || sub.id) !== "/tabetalk" && sub.id !== "item-/tabetalk")
+            .map(sub => {
+              if ((sub.path || sub.id) === "/juegos" || sub.id === "item-/juegos" || sub.label?.toLowerCase().includes("juego")) {
+                return { ...sub, iconName: "Arcade" };
+              }
+              return sub;
+            })
         };
       }
       return item;
@@ -362,11 +371,11 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
       path: "/tabetalk",
       label: "Tabetalk",
       type: "item",
-      iconName: "MessageSquare"
+      iconName: "TabetalkIcon"
     };
 
     // Insert after cat-comunidad if present, else before metricas or at end
-    const comCatIdx = rootCleaned.findIndex(i => i.id === "cat-comunidad" || i.label?.toLowerCase().includes("comunidad"));
+    const comCatIdx = rootCleaned.findIndex(i => i.id === "cat-comunidad" || i.label?.toLowerCase().includes("comunidad") || i.label?.toLowerCase().includes("juego"));
     if (comCatIdx !== -1) {
       rootCleaned.splice(comCatIdx + 1, 0, tabetalkItem);
     } else {
