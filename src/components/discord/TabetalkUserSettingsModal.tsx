@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { 
   X, 
   Mic, 
@@ -280,97 +281,121 @@ export function TabetalkUserSettingsModal({
     onOpenChange(false);
   };
 
-  if (!open) return null;
+  // Close on Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onOpenChange(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onOpenChange]);
 
-  return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onOpenChange(false);
+        }
+      }}
+    >
       <div 
         role="dialog"
         aria-modal="true"
         aria-labelledby="tabetalk-settings-title"
-        className="relative w-full max-w-2xl bg-white text-black rounded-2xl border-2 border-black shadow-[6px_6px_0px_#000] overflow-hidden flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl max-h-[85vh] bg-white rounded-2xl border-4 border-black shadow-[8px_8px_0px_#000] flex flex-col overflow-hidden text-black animate-in zoom-in-95 duration-150"
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black bg-[#FFE600] shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-              <Sliders className="w-4 h-4 text-black stroke-[2.5]" />
+        <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black bg-[#FFE600] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white border-3 border-black flex items-center justify-center shadow-[3px_3px_0px_#000]">
+              <Sliders className="w-5 h-5 text-black stroke-[2.5]" />
             </div>
             <div>
-              <h3 id="tabetalk-settings-title" className="text-base font-black uppercase tracking-wider text-black leading-none">
-                Ajustes de Tabetalk
+              <h3 id="tabetalk-settings-title" className="text-lg font-black uppercase tracking-wider text-black leading-none">
+                AJUSTES DE TABETALK
               </h3>
-              <p className="text-[11px] font-bold text-black/75 mt-0.5">
-                Voz, video, dispositivos y perfil
+              <p className="text-xs font-bold text-black/80 mt-1">
+                Voz, video, dispositivos y perfil de usuario
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             aria-label="Cerrar modal de configuración"
-            className="w-8 h-8 rounded-xl bg-white border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center hover:bg-neutral-100 active:translate-y-0.5 transition-all cursor-pointer"
+            className="w-9 h-9 rounded-xl bg-white border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center hover:bg-neutral-100 active:translate-y-0.5 transition-all cursor-pointer"
           >
-            <X className="w-4 h-4 stroke-[2.5]" />
+            <X className="w-5 h-5 stroke-[3] text-black" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b-2 border-black bg-neutral-100 px-4 pt-2 gap-2 shrink-0 overflow-x-auto">
+        <div className="flex border-b-4 border-black bg-neutral-100 px-6 pt-3 gap-3 shrink-0 overflow-x-auto">
           <button
+            type="button"
             onClick={() => setActiveTab("audio_video")}
             className={cn(
-              "px-4 py-2 text-xs font-black uppercase tracking-wider rounded-t-xl border-t-2 border-x-2 border-black transition-all flex items-center gap-2 -mb-[2px]",
+              "px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-t-xl border-t-3 border-x-3 border-black transition-all flex items-center gap-2 -mb-[4px] cursor-pointer shrink-0",
               activeTab === "audio_video"
-                ? "bg-white text-black border-b-2 border-b-white z-10 shadow-[0_-2px_0_0_#000]"
-                : "bg-neutral-200/80 hover:bg-neutral-200 text-neutral-600 border-b-2 border-b-black"
+                ? "bg-white text-black border-b-4 border-b-white z-10 shadow-[0_-3px_0_0_#000]"
+                : "bg-neutral-200/80 hover:bg-neutral-200 text-neutral-600 border-b-4 border-b-black"
             )}
           >
-            <Mic className="w-3.5 h-3.5" />
+            <Mic className="w-4 h-4 stroke-[2.5]" />
             Voz & Video
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("profile")}
             className={cn(
-              "px-4 py-2 text-xs font-black uppercase tracking-wider rounded-t-xl border-t-2 border-x-2 border-black transition-all flex items-center gap-2 -mb-[2px]",
+              "px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-t-xl border-t-3 border-x-3 border-black transition-all flex items-center gap-2 -mb-[4px] cursor-pointer shrink-0",
               activeTab === "profile"
-                ? "bg-white text-black border-b-2 border-b-white z-10 shadow-[0_-2px_0_0_#000]"
-                : "bg-neutral-200/80 hover:bg-neutral-200 text-neutral-600 border-b-2 border-b-black"
+                ? "bg-white text-black border-b-4 border-b-white z-10 shadow-[0_-3px_0_0_#000]"
+                : "bg-neutral-200/80 hover:bg-neutral-200 text-neutral-600 border-b-4 border-b-black"
             )}
           >
-            <User className="w-3.5 h-3.5" />
+            <User className="w-4 h-4 stroke-[2.5]" />
             Perfil
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("preferences")}
             className={cn(
-              "px-4 py-2 text-xs font-black uppercase tracking-wider rounded-t-xl border-t-2 border-x-2 border-black transition-all flex items-center gap-2 -mb-[2px]",
+              "px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-t-xl border-t-3 border-x-3 border-black transition-all flex items-center gap-2 -mb-[4px] cursor-pointer shrink-0",
               activeTab === "preferences"
-                ? "bg-white text-black border-b-2 border-b-white z-10 shadow-[0_-2px_0_0_#000]"
-                : "bg-neutral-200/80 hover:bg-neutral-200 text-neutral-600 border-b-2 border-b-black"
+                ? "bg-white text-black border-b-4 border-b-white z-10 shadow-[0_-3px_0_0_#000]"
+                : "bg-neutral-200/80 hover:bg-neutral-200 text-neutral-600 border-b-4 border-b-black"
             )}
           >
-            <Keyboard className="w-3.5 h-3.5" />
+            <Keyboard className="w-4 h-4 stroke-[2.5]" />
             Preferencias
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 overflow-y-auto space-y-6 flex-1">
+        <div className="overflow-y-auto p-6 space-y-6 flex-1 bg-white">
           {/* TAB 1: AUDIO & VIDEO */}
           {activeTab === "audio_video" && (
-            <div className="space-y-5 animate-in fade-in duration-150">
-              {/* Mic & Speakers in 2 columns */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-6 animate-in fade-in duration-150">
+              {/* Mic & Speakers in 2 clean columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Microfono */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 text-black">
-                    <Mic className="w-3.5 h-3.5 text-black" />
+                <div className="p-4 rounded-xl border-2 border-black bg-neutral-50 shadow-[3px_3px_0px_#000] space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-black">
+                    <Mic className="w-4 h-4 text-black stroke-[2.5]" />
                     Dispositivo de Entrada (Micrófono)
                   </label>
                   <select
                     value={selectedAudioInput}
                     onChange={(e) => setSelectedAudioInput(e.target.value)}
-                    className="w-full bg-neutral-50 text-black text-xs font-bold px-3 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20 cursor-pointer"
+                    className="w-full bg-white text-black text-xs font-bold px-3.5 py-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20 cursor-pointer"
                   >
                     {audioInputs.map((d) => (
                       <option key={d.deviceId} value={d.deviceId}>
@@ -381,15 +406,15 @@ export function TabetalkUserSettingsModal({
                 </div>
 
                 {/* Altavoces */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 text-black">
-                    <Volume2 className="w-3.5 h-3.5 text-black" />
+                <div className="p-4 rounded-xl border-2 border-black bg-neutral-50 shadow-[3px_3px_0px_#000] space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-black">
+                    <Volume2 className="w-4 h-4 text-black stroke-[2.5]" />
                     Dispositivo de Salida (Altavoces)
                   </label>
                   <select
                     value={selectedAudioOutput}
                     onChange={(e) => setSelectedAudioOutput(e.target.value)}
-                    className="w-full bg-neutral-50 text-black text-xs font-bold px-3 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20 cursor-pointer"
+                    className="w-full bg-white text-black text-xs font-bold px-3.5 py-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20 cursor-pointer"
                   >
                     {audioOutputs.map((d) => (
                       <option key={d.deviceId} value={d.deviceId}>
@@ -401,10 +426,10 @@ export function TabetalkUserSettingsModal({
               </div>
 
               {/* Prueba de Micrófono & Sensibilidad */}
-              <div className="p-4 rounded-xl border-2 border-black bg-neutral-50 shadow-[3px_3px_0px_#000] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse border border-black" />
                     <span className="text-xs font-black uppercase tracking-wider text-black">
                       Prueba de Micrófono
                     </span>
@@ -413,24 +438,24 @@ export function TabetalkUserSettingsModal({
                     type="button"
                     onClick={isTestingMic ? stopMicTest : startMicTest}
                     className={cn(
-                      "px-3 py-1.5 text-xs font-black uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer flex items-center gap-1.5",
+                      "px-4 py-2 text-xs font-black uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer flex items-center gap-2",
                       isTestingMic
                         ? "bg-[#ed4245] text-white"
                         : "bg-[#00FF9D] text-black hover:bg-[#00E58D]"
                     )}
                   >
-                    {isTestingMic ? <VolumeX className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                    {isTestingMic ? <VolumeX className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                     {isTestingMic ? "Detener Prueba" : "Probar Micrófono"}
                   </button>
                 </div>
 
                 {/* Reactive Mic Bar */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-bold text-neutral-600">
-                    <span>Nivel de entrada</span>
-                    <span>{audioLevel}%</span>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-neutral-700">
+                    <span>Nivel de entrada en tiempo real</span>
+                    <span className="font-mono font-black">{audioLevel}%</span>
                   </div>
-                  <div className="h-3 w-full bg-neutral-200 border-2 border-black rounded-full overflow-hidden p-0.5">
+                  <div className="h-4 w-full bg-neutral-200 border-2 border-black rounded-full overflow-hidden p-0.5">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-75",
@@ -442,31 +467,31 @@ export function TabetalkUserSettingsModal({
                 </div>
 
                 {/* Slider de volumen */}
-                <div className="pt-2 border-t border-black/10 flex items-center gap-3">
-                  <span className="text-xs font-bold text-neutral-700 min-w-[70px]">Sensibilidad:</span>
+                <div className="pt-3 border-t-2 border-black/10 flex items-center gap-4">
+                  <span className="text-xs font-bold text-neutral-800 min-w-[80px]">Sensibilidad:</span>
                   <input
                     type="range"
                     min="0"
                     max="100"
                     value={inputVolume}
                     onChange={(e) => setInputVolume(Number(e.target.value))}
-                    className="flex-1 accent-black cursor-pointer"
+                    className="flex-1 accent-black cursor-pointer h-2"
                   />
-                  <span className="text-xs font-black text-black min-w-[35px] text-right">{inputVolume}%</span>
+                  <span className="text-xs font-black text-black min-w-[40px] text-right font-mono">{inputVolume}%</span>
                 </div>
               </div>
 
               {/* Cámara y Preview Box */}
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 text-black">
-                  <Camera className="w-3.5 h-3.5 text-black" />
+              <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-3">
+                <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-black">
+                  <Camera className="w-4 h-4 text-black stroke-[2.5]" />
                   Cámara de Video (Webcam)
                 </label>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <select
                     value={selectedVideoInput}
                     onChange={(e) => setSelectedVideoInput(e.target.value)}
-                    className="flex-1 bg-neutral-50 text-black text-xs font-bold px-3 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20 cursor-pointer"
+                    className="flex-1 bg-white text-black text-xs font-bold px-3.5 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20 cursor-pointer"
                   >
                     {videoInputs.map((d) => (
                       <option key={d.deviceId} value={d.deviceId}>
@@ -478,20 +503,20 @@ export function TabetalkUserSettingsModal({
                     type="button"
                     onClick={isTestingCamera ? stopCameraPreview : startCameraPreview}
                     className={cn(
-                      "px-3.5 py-2.5 text-xs font-black uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer flex items-center justify-center gap-1.5 shrink-0",
+                      "px-4 py-2.5 text-xs font-black uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer flex items-center justify-center gap-2 shrink-0",
                       isTestingCamera
                         ? "bg-[#ed4245] text-white"
                         : "bg-[#FFE600] text-black hover:bg-[#FFE600]/90"
                     )}
                   >
-                    <Video className="w-3.5 h-3.5" />
+                    <Video className="w-4 h-4" />
                     {isTestingCamera ? "Apagar Cámara" : "Vista Previa"}
                   </button>
                 </div>
 
                 {/* Preview Box */}
                 {isTestingCamera && (
-                  <div className="relative w-full aspect-video max-w-sm mx-auto bg-black rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden mt-3">
+                  <div className="relative w-full aspect-video max-w-md mx-auto bg-black rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] overflow-hidden mt-3">
                     <video
                       ref={videoPreviewRef}
                       autoPlay
@@ -499,7 +524,8 @@ export function TabetalkUserSettingsModal({
                       muted
                       className="w-full h-full object-cover scale-x-[-1]"
                     />
-                    <div className="absolute top-2 left-2 bg-emerald-500 text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-md border border-black shadow-[1px_1px_0px_#000]">
+                    <div className="absolute top-2.5 left-2.5 bg-emerald-500 text-black text-[10px] font-black uppercase px-2.5 py-1 rounded-md border border-black shadow-[1px_1px_0px_#000] flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-black animate-ping" />
                       En Vivo
                     </div>
                   </div>
@@ -510,9 +536,9 @@ export function TabetalkUserSettingsModal({
 
           {/* TAB 2: PROFILE */}
           {activeTab === "profile" && (
-            <div className="space-y-5 animate-in fade-in duration-150">
+            <div className="space-y-6 animate-in fade-in duration-150">
               {/* Nickname */}
-              <div className="space-y-1.5">
+              <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-2">
                 <label className="text-xs font-black uppercase tracking-wider text-black block">
                   Apodo dentro de Tabetalk
                 </label>
@@ -522,35 +548,35 @@ export function TabetalkUserSettingsModal({
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder="Tu nombre o alias"
-                  className="w-full bg-neutral-50 text-black text-sm font-bold px-3.5 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20"
+                  className="w-full bg-white text-black text-sm font-bold px-4 py-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20"
                 />
-                <p className="text-[11px] font-semibold text-neutral-500">
+                <p className="text-xs font-semibold text-neutral-600 mt-1">
                   Este es el nombre visible que verán los demás participantes en las salas de voz y chat.
                 </p>
               </div>
 
               {/* Avatar Selector */}
-              <div className="space-y-2.5">
+              <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-4">
                 <label className="text-xs font-black uppercase tracking-wider text-black block">
                   Avatar de Tabetalk
                 </label>
                 
                 {/* Active Preview */}
-                <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
-                  <div className="w-14 h-14 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000] overflow-hidden flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-4 p-4 bg-white rounded-xl border-2 border-black shadow-[3px_3px_0px_#000]">
+                  <div className="w-16 h-16 rounded-2xl border-3 border-black bg-neutral-100 shadow-[3px_3px_0px_#000] overflow-hidden flex items-center justify-center shrink-0">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-8 h-8 text-neutral-400" />
+                      <User className="w-9 h-9 text-neutral-400" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-black uppercase text-black">{nickname || "Sin alias"}</p>
-                    <p className="text-[10px] font-bold text-neutral-500 truncate">
+                    <p className="text-sm font-black uppercase text-black">{nickname || "Sin alias"}</p>
+                    <p className="text-xs font-bold text-neutral-500 truncate mt-0.5">
                       {user?.email || "Usuario autenticado"}
                     </p>
-                    <label className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 bg-white hover:bg-neutral-100 text-black text-[11px] font-black uppercase rounded-lg border border-black shadow-[1px_1px_0px_#000] cursor-pointer">
-                      <Upload className="w-3 h-3" />
+                    <label className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 bg-[#FFE600] hover:bg-[#FFE600]/90 text-black text-xs font-black uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] cursor-pointer transition-transform active:translate-y-0.5">
+                      <Upload className="w-3.5 h-3.5 stroke-[2.5]" />
                       Subir Imagen
                       <input type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" />
                     </label>
@@ -559,16 +585,16 @@ export function TabetalkUserSettingsModal({
 
                 {/* Pre-made Avatars */}
                 <div>
-                  <p className="text-[11px] font-bold text-neutral-600 mb-2">O elegí un avatar temático cómic:</p>
-                  <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                  <p className="text-xs font-bold text-neutral-700 mb-2.5">O elegí un avatar temático cómic:</p>
+                  <div className="flex items-center gap-3 overflow-x-auto pb-2">
                     {COMIC_AVATARS.map((seedUrl, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => setAvatarUrl(seedUrl)}
                         className={cn(
-                          "w-11 h-11 rounded-xl border-2 border-black p-0.5 bg-white shrink-0 transition-transform active:translate-y-0.5 cursor-pointer shadow-[2px_2px_0px_#000]",
-                          avatarUrl === seedUrl && "ring-2 ring-black bg-[#FFE600]"
+                          "w-12 h-12 rounded-xl border-2 border-black p-0.5 bg-white shrink-0 transition-transform active:translate-y-0.5 cursor-pointer shadow-[2px_2px_0px_#000]",
+                          avatarUrl === seedUrl && "ring-3 ring-black bg-[#FFE600] scale-105"
                         )}
                       >
                         <img src={seedUrl} alt="Preset avatar" className="w-full h-full rounded-lg" />
@@ -584,11 +610,11 @@ export function TabetalkUserSettingsModal({
           {activeTab === "preferences" && (
             <div className="space-y-4 animate-in fade-in duration-150">
               {/* Noise & Echo Toggles */}
-              <div className="p-4 rounded-xl border-2 border-black bg-neutral-50 shadow-[3px_3px_0px_#000] space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-4">
+                <div className="flex items-center justify-between gap-4">
                   <div>
                     <h4 className="text-xs font-black uppercase text-black">Supresión de Eco</h4>
-                    <p className="text-[11px] font-semibold text-neutral-600">
+                    <p className="text-xs font-semibold text-neutral-600 mt-0.5">
                       Evita que los demás escuchen el audio que sale de tus altavoces.
                     </p>
                   </div>
@@ -596,14 +622,14 @@ export function TabetalkUserSettingsModal({
                     type="checkbox"
                     checked={echoCancellation}
                     onChange={(e) => setEchoCancellation(e.target.checked)}
-                    className="w-5 h-5 accent-black cursor-pointer rounded-md border-2 border-black"
+                    className="w-5 h-5 accent-black cursor-pointer rounded-md border-2 border-black shrink-0"
                   />
                 </div>
 
-                <div className="border-t border-black/10 pt-3 flex items-center justify-between">
+                <div className="border-t-2 border-black/10 pt-4 flex items-center justify-between gap-4">
                   <div>
                     <h4 className="text-xs font-black uppercase text-black">Cancelación de Ruido</h4>
-                    <p className="text-[11px] font-semibold text-neutral-600">
+                    <p className="text-xs font-semibold text-neutral-600 mt-0.5">
                       Filtra ruidos de fondo, teclados y ventiladores automáticamente.
                     </p>
                   </div>
@@ -611,34 +637,34 @@ export function TabetalkUserSettingsModal({
                     type="checkbox"
                     checked={noiseSuppression}
                     onChange={(e) => setNoiseSuppression(e.target.checked)}
-                    className="w-5 h-5 accent-black cursor-pointer rounded-md border-2 border-black"
+                    className="w-5 h-5 accent-black cursor-pointer rounded-md border-2 border-black shrink-0"
                   />
                 </div>
               </div>
 
               {/* Keyboard Shortcuts */}
-              <div className="p-4 rounded-xl border-2 border-black bg-neutral-50 shadow-[3px_3px_0px_#000] space-y-3">
+              <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-4">
                 <div className="flex items-center gap-2">
                   <Keyboard className="w-4 h-4 text-black" />
                   <h4 className="text-xs font-black uppercase text-black">Atajos de Teclado</h4>
                 </div>
 
-                <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center justify-between gap-4 pt-1">
                   <div>
-                    <p className="text-xs font-bold text-neutral-800">Modo Pulsar para Hablar (Push-to-Talk)</p>
-                    <p className="text-[11px] font-semibold text-neutral-500">Mantiene el micrófono silenciado hasta presionar la tecla.</p>
+                    <p className="text-xs font-bold text-neutral-900">Modo Pulsar para Hablar (Push-to-Talk)</p>
+                    <p className="text-xs font-semibold text-neutral-500 mt-0.5">Mantiene el micrófono silenciado hasta presionar la tecla.</p>
                   </div>
                   <input
                     type="checkbox"
                     checked={pushToTalk}
                     onChange={(e) => setPushToTalk(e.target.checked)}
-                    className="w-5 h-5 accent-black cursor-pointer rounded-md border-2 border-black"
+                    className="w-5 h-5 accent-black cursor-pointer rounded-md border-2 border-black shrink-0"
                   />
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-black/10">
-                  <span className="text-xs font-bold text-neutral-800">Tecla rápida para silenciar/activar micrófono:</span>
-                  <kbd className="px-2.5 py-1 bg-white text-black font-black text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_#000]">
+                <div className="flex items-center justify-between gap-4 pt-3 border-t-2 border-black/10">
+                  <span className="text-xs font-bold text-neutral-900">Tecla rápida para silenciar/activar micrófono:</span>
+                  <kbd className="px-3 py-1.5 bg-white text-black font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
                     {muteShortcut}
                   </kbd>
                 </div>
@@ -648,24 +674,25 @@ export function TabetalkUserSettingsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t-2 border-black bg-neutral-100 shrink-0">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t-4 border-black bg-neutral-100 shrink-0">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="px-4 py-2 bg-white hover:bg-neutral-200 text-black text-xs font-black uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
+            className="px-5 py-2.5 bg-white hover:bg-neutral-200 text-black text-xs font-black uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={handleSaveAll}
-            className="px-5 py-2 bg-[#00FF9D] hover:bg-[#00E58D] text-black text-xs font-black uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-6 py-2.5 bg-[#00FF9D] hover:bg-[#00E58D] text-black text-xs font-black uppercase rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Check className="w-4 h-4 stroke-[3]" />
             Guardar Cambios
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
