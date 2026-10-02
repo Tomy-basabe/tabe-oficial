@@ -967,6 +967,45 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     }, [isVideoEnabled, isScreenSharing, findVideoSender, renegotiateAllPeers, toast, log]);
 
     // â”€â”€â”€ Screen Sharing (Transmitir Pantalla) â”€â”€â”€
+    // 🎤 Switch Mic 🎤
+    const switchMic = useCallback(async (deviceId: string) => {
+        setSelectedMicId(deviceId);
+        localStorage.setItem('tabetalk_audio_input_device', deviceId);
+        if (!localStreamRef.current) return;
+        const mainStream = localStreamRef.current;
+
+        try {
+            const as = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: localStorage.getItem('tabetalk_echo_cancellation') !== 'false',
+                    noiseSuppression: localStorage.getItem('tabetalk_noise_suppression') !== 'false',
+                    autoGainControl: true,
+                    deviceId: { exact: deviceId }
+                }
+            });
+            const newAt = as.getAudioTracks()[0];
+
+            mainStream.getAudioTracks().forEach(t => {
+                t.enabled = false;
+                try { t.stop(); } catch {}
+                mainStream.removeTrack(t);
+            });
+            mainStream.addTrack(newAt);
+            newAt.enabled = isAudioEnabledRef.current;
+
+            pcsRef.current.forEach(pc => {
+                const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
+                if (sender) sender.replaceTrack(newAt);
+            });
+
+            setLocalStream(new MediaStream(mainStream.getTracks()));
+            setupLocalVAD(mainStream); // Re-attach VAD
+            log(Mic switched to );
+        } catch (e: any) {
+            toast({ title: 'Error al cambiar micrófono', description: e.message, variant: 'destructive' });
+        }
+    }, [setupLocalVAD, toast, log]);
+
     const stopScreenShare = useCallback(async () => {
         const screen = screenStreamRef.current;
         if (screen) {
@@ -1078,6 +1117,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         speakingUsers,
     };
 }
+
 
 
 
