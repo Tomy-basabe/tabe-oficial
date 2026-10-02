@@ -1,4 +1,4 @@
-/* REGLA ARQUITECTÓNICA: NINGÚN COMPONENTE VISUAL, HOOK O FUNCIONALIDAD PÚBLICA DEBE CONDICIONARSE AL ROL ADMIN. TODOS LOS USUARIOS USAN LA MISMA UI Y LÓGICA DE NEGOCIO SALVO LA RUTA PRIVADA /admin */
+﻿/* REGLA ARQUITECTÃ“NICA: NINGÃšN COMPONENTE VISUAL, HOOK O FUNCIONALIDAD PÃšBLICA DEBE CONDICIONARSE AL ROL ADMIN. TODOS LOS USUARIOS USAN LA MISMA UI Y LÃ“GICA DE NEGOCIO SALVO LA RUTA PRIVADA /admin */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { ICE_SERVERS } from '@/lib/webrtc-config';
 
-// ═══ Global cleanup on tab close/refresh ═══
+// â•â•â• Global cleanup on tab close/refresh â•â•â•
 const activeStreams = new Set<MediaStream>();
 let _globalUserId: string | null = null;
 
@@ -102,13 +102,13 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
     const log = useCallback((msg: string) => console.log(`[Tabetalk WebRTC] ${msg}`), []);
 
-    // ─── Dispositivos de cámara ───
+    // â”€â”€â”€ Dispositivos de cÃ¡mara â”€â”€â”€
     const refreshCameras = useCallback(async () => {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const videoDevices = devices
                 .filter(d => d.kind === 'videoinput')
-                .map((d, i) => ({ deviceId: d.deviceId, label: d.label || `Cámara ${i + 1}` }));
+                .map((d, i) => ({ deviceId: d.deviceId, label: d.label || `CÃ¡mara ${i + 1}` }));
             setCameras(videoDevices);
             if (videoDevices.length > 0 && !selectedCameraId) {
                 setSelectedCameraId(videoDevices[0].deviceId);
@@ -118,7 +118,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
     useEffect(() => { refreshCameras(); }, []);
 
-    // ─── Enviar señales por Realtime sin duplicaciones ───
+    // â”€â”€â”€ Enviar seÃ±ales por Realtime sin duplicaciones â”€â”€â”€
     const sendSignal = useCallback((event: string, payload: any) => {
         if (!sigRef.current) return;
         try {
@@ -132,7 +132,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, []);
 
-    // ─── Broadcast de Estado Multimedia ───
+    // â”€â”€â”€ Broadcast de Estado Multimedia â”€â”€â”€
     const broadcastMediaState = useCallback((cameraOn: boolean, screenSharing: boolean, audioOn: boolean) => {
         const myId = userIdRef.current;
         if (!myId) return;
@@ -144,7 +144,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         });
     }, [sendSignal]);
 
-    // ─── Drenar candidatos ICE pendientes ───
+    // â”€â”€â”€ Drenar candidatos ICE pendientes â”€â”€â”€
     const drainPendingCandidates = useCallback(async (targetId: string, pc: RTCPeerConnection) => {
         const queue = pendingCandidatesRef.current.get(targetId);
         if (queue && queue.length > 0) {
@@ -160,7 +160,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, [log]);
 
-    // ─── Buscar sender de video para replaceTrack en caliente ───
+    // â”€â”€â”€ Buscar sender de video para replaceTrack en caliente â”€â”€â”€
     const findVideoSender = useCallback((pc: RTCPeerConnection): RTCRtpSender | undefined => {
         const withTrack = pc.getSenders().find(s => s.track?.kind === 'video');
         if (withTrack) return withTrack;
@@ -168,7 +168,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         return transceiver?.sender;
     }, []);
 
-    // ─── Limpieza de un peer individual ───
+    // â”€â”€â”€ Limpieza de un peer individual â”€â”€â”€
     const closePeer = useCallback((id: string) => {
         log(`Closing peer connection with ${id.slice(0, 8)}`);
         const pc = pcsRef.current.get(id);
@@ -189,7 +189,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         setSpeakingUsers(p => { const s = new Set(p); s.delete(id); return s; });
     }, [log]);
 
-    // ─── Limpieza global al desconectar del canal de voz ───
+    // â”€â”€â”€ Limpieza global al desconectar del canal de voz â”€â”€â”€
     const cleanupAll = useCallback(() => {
         log('Cleaning up all media and connections');
         const myId = userIdRef.current;
@@ -253,7 +253,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, [log]);
 
-    // ─── Fábrica RTCPeerConnection con W3C Perfect Negotiation ───
+    // â”€â”€â”€ FÃ¡brica RTCPeerConnection con W3C Perfect Negotiation â”€â”€â”€
     const getOrCreatePC = useCallback((targetId: string): RTCPeerConnection => {
         let pc = pcsRef.current.get(targetId);
         if (pc) return pc;
@@ -267,7 +267,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         pc = new RTCPeerConnection(ICE_SERVERS);
         pcsRef.current.set(targetId, pc);
 
-        // 1. Agregar tracks locales existentes o configurar transceivers para recepción
+        // 1. Agregar tracks locales existentes o configurar transceivers para recepciÃ³n
         const curStream = localStreamRef.current;
         let hasAudioSender = false;
         if (curStream) {
@@ -278,11 +278,11 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             }
         }
         if (!hasAudioSender) {
-            // Modo oyente o sin micrófono: siempre recvonly para escuchar a los demás
+            // Modo oyente o sin micrÃ³fono: siempre recvonly para escuchar a los demÃ¡s
             pc.addTransceiver('audio', { direction: 'recvonly' });
         }
 
-        // Pista de video activa (cámara o pantalla compartida)
+        // Pista de video activa (cÃ¡mara o pantalla compartida)
         let activeVideoTrack: MediaStreamTrack | null = null;
         if (screenStreamRef.current && screenStreamRef.current.getVideoTracks().length > 0) {
             activeVideoTrack = screenStreamRef.current.getVideoTracks()[0];
@@ -293,7 +293,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         if (activeVideoTrack) {
             pc.addTrack(activeVideoTrack, curStream || new MediaStream([activeVideoTrack]));
         } else {
-            // Usuario con cámara apagada: SIEMPRE 'recvonly' para poder ver las cámaras y pantallas de los demás
+            // Usuario con cÃ¡mara apagada: SIEMPRE 'recvonly' para poder ver las cÃ¡maras y pantallas de los demÃ¡s
             pc.addTransceiver('video', { direction: 'recvonly' });
         }
 
@@ -329,7 +329,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             }
         };
 
-        // 4. Recepción de Streams Multimedia Persistentes (ontrack)
+        // 4. RecepciÃ³n de Streams Multimedia Persistentes (ontrack)
         pc.ontrack = (ev) => {
             log(`[WebRTC] Received remote track ${ev.track.kind} (${ev.track.id}) from ${targetId.slice(0, 8)}`);
 
@@ -340,12 +340,12 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 remoteStreamsRef.current.set(targetId, rStream);
             }
 
-            // Asegurar que el track esté en el stream
+            // Asegurar que el track estÃ© en el stream
             if (!rStream.getTracks().some(t => t.id === ev.track.id)) {
                 rStream.addTrack(ev.track);
             }
 
-            // Si es video, actualizar también remoteScreenStreams
+            // Si es video, actualizar tambiÃ©n remoteScreenStreams
             if (ev.track.kind === 'video') {
                 let sStream = remoteScreenStreamsRef.current.get(targetId);
                 if (!sStream) {
@@ -381,7 +381,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             };
         };
 
-        // 5. Monitoreo del estado de conexión
+        // 5. Monitoreo del estado de conexiÃ³n
         pc.onconnectionstatechange = () => {
             const state = pc!.connectionState;
             log(`Connection state with ${targetId.slice(0, 8)}: ${state}`);
@@ -389,7 +389,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
             if (state === 'connected') {
                 log(`WebRTC successfully connected with ${targetId.slice(0, 8)}`);
-                // Asegurar que los tracks de los receivers estén reflejados
+                // Asegurar que los tracks de los receivers estÃ©n reflejados
                 const receivers = pc!.getReceivers();
                 receivers.forEach(r => {
                     if (r.track && r.track.readyState !== 'ended') {
@@ -414,7 +414,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         return pc;
     }, [log, sendSignal]);
 
-    // ─── Manejador de Ofertas (W3C Perfect Negotiation) ───
+    // â”€â”€â”€ Manejador de Ofertas (W3C Perfect Negotiation) â”€â”€â”€
     const handleOffer = useCallback(async (payload: any) => {
         const myId = userIdRef.current;
         const from = payload.from || payload.senderId;
@@ -427,7 +427,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         log(`Received offer from ${from.slice(0, 8)}`);
         const pc = getOrCreatePC(from);
 
-        // Determinación de polite peer: el que tiene ID mayor cede ante colisiones
+        // DeterminaciÃ³n de polite peer: el que tiene ID mayor cede ante colisiones
         const isPolite = myId.localeCompare(from) > 0;
         const readyState = pc.signalingState;
         const offerCollision = makingOfferRef.current.get(from) || readyState !== 'stable';
@@ -458,7 +458,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, [getOrCreatePC, drainPendingCandidates, sendSignal, broadcastMediaState, log]);
 
-    // ─── Manejador de Respuestas ───
+    // â”€â”€â”€ Manejador de Respuestas â”€â”€â”€
     const handleAnswer = useCallback(async (payload: any) => {
         const myId = userIdRef.current;
         const from = payload.from || payload.senderId;
@@ -485,7 +485,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, [drainPendingCandidates, log]);
 
-    // ─── Manejador de Candidatos ICE ───
+    // â”€â”€â”€ Manejador de Candidatos ICE â”€â”€â”€
     const handleIceCandidate = useCallback(async (payload: any) => {
         const myId = userIdRef.current;
         const from = payload.from || payload.senderId;
@@ -512,7 +512,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, []);
 
-    // ─── Manejador de Estado Multimedia Remoto ───
+    // â”€â”€â”€ Manejador de Estado Multimedia Remoto â”€â”€â”€
     const handleMediaState = useCallback((payload: any) => {
         const sid = payload.from || payload.senderId;
         if (!sid || sid === userIdRef.current) return;
@@ -527,7 +527,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             return next;
         });
 
-        // Si el peer apagó cámara y pantalla, limpiar tracks de video del stream remoto
+        // Si el peer apagÃ³ cÃ¡mara y pantalla, limpiar tracks de video del stream remoto
         if (!payload.isCameraOn && !payload.isScreenSharing) {
             const rStream = remoteStreamsRef.current.get(sid);
             if (rStream) {
@@ -546,7 +546,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, []);
 
-    // ─── Manejador de Indicador de Habla ───
+    // â”€â”€â”€ Manejador de Indicador de Habla â”€â”€â”€
     const handleSpeaking = useCallback((payload: any) => {
         const sid = payload.from || payload.senderId;
         if (!sid) return;
@@ -558,7 +558,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         });
     }, []);
 
-    // ─── Detección de Actividad de Voz Local (VAD) ───
+    // â”€â”€â”€ DetecciÃ³n de Actividad de Voz Local (VAD) â”€â”€â”€
     const setupLocalVAD = useCallback((stream: MediaStream) => {
         try {
             if (audioContextRef.current) {
@@ -607,7 +607,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         }
     }, [sendSignal]);
 
-    // ─── Renegociar todos los peers al cambiar tracks ───
+    // â”€â”€â”€ Renegociar todos los peers al cambiar tracks â”€â”€â”€
     const renegotiateAllPeers = useCallback(() => {
         pcsRef.current.forEach((pc, targetId) => {
             // En Perfect Negotiation basta con invocar createOffer si el canal es stable
@@ -630,7 +630,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         });
     }, [sendSignal]);
 
-    // ═══ Efecto Principal: Conexión a la Sala de Voz ═══
+    // â•â•â• Efecto Principal: ConexiÃ³n a la Sala de Voz â•â•â•
     useEffect(() => {
         if (!channelId || !user) {
             cleanupAll();
@@ -661,16 +661,16 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                     video: false,
                 });
             } catch (e1: any) {
-                console.warn('[Tabetalk WebRTC] Error con constraints avanzados de audio, probando fallback básico:', e1);
+                console.warn('[Tabetalk WebRTC] Error con constraints avanzados de audio, probando fallback bÃ¡sico:', e1);
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 } catch (e2: any) {
-                    console.warn('[Tabetalk WebRTC] No se pudo obtener micrófono físico, conectando como oyente:', e2);
+                    console.warn('[Tabetalk WebRTC] No se pudo obtener micrÃ³fono fÃ­sico, conectando como oyente:', e2);
                     toast({
                         title: 'Modo Oyente activado',
-                        description: 'No se detectó micrófono o falta permiso. Puedes escuchar y ver a tus compañeros.',
+                        description: 'No se detectÃ³ micrÃ³fono o falta permiso. Puedes escuchar y ver a tus compaÃ±eros.',
                     });
-                    // Fallback a pista de audio vacía/silenciosa para modo oyente
+                    // Fallback a pista de audio vacÃ­a/silenciosa para modo oyente
                     try {
                         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
                         const ctx = new AudioCtx();
@@ -704,12 +704,12 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             }
             await refreshCameras();
 
-            // Configurar canal de señalización único en Supabase Realtime
+            // Configurar canal de seÃ±alizaciÃ³n Ãºnico en Supabase Realtime
             const channel = supabase.channel(`tabetalk:${channelId}`, {
                 config: { broadcast: { self: false }, presence: { key: user.id } },
             });
 
-            // Suscribir eventos de señalización unificados
+            // Suscribir eventos de seÃ±alizaciÃ³n unificados
             channel.on('broadcast', { event: 'signal:offer' }, ({ payload }) => {
                 if (!cancelled) handleOffer(payload);
             });
@@ -729,7 +729,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 const newcomer = payload?.from || payload?.userId;
                 if (cancelled || !newcomer || newcomer === user.id) return;
                 log(`New user joined room: ${newcomer.slice(0, 8)}`);
-                // Inicializar conexión con el nuevo usuario
+                // Inicializar conexiÃ³n con el nuevo usuario
                 getOrCreatePC(newcomer);
                 broadcastMediaState(isVideoEnabledRef.current, isScreenSharingRef.current, isAudioEnabledRef.current);
             });
@@ -788,7 +788,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         };
     }, [channelId, user?.id, setupLocalVAD, refreshCameras, getOrCreatePC, handleOffer, handleAnswer, handleIceCandidate, handleMediaState, handleSpeaking, closePeer, cleanupAll, broadcastMediaState, sendSignal, toast, log]);
 
-    // ─── Toggle Audio (Micrófono) ───
+    // â”€â”€â”€ Toggle Audio (MicrÃ³fono) â”€â”€â”€
     const toggleAudio = useCallback(() => {
         const s = localStreamRef.current;
         if (!s) return;
@@ -798,13 +798,13 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         broadcastMediaState(isVideoEnabled, isScreenSharing, next);
     }, [isAudioEnabled, isVideoEnabled, isScreenSharing, broadcastMediaState]);
 
-    // ─── Toggle Video (Cámara Web) ───
+    // â”€â”€â”€ Toggle Video (CÃ¡mara Web) â”€â”€â”€
     const toggleVideo = useCallback(async () => {
         const mainStream = localStreamRef.current;
         if (!mainStream) return;
 
         if (isVideoEnabled) {
-            // Apagar cámara
+            // Apagar cÃ¡mara
             if (cameraStreamRef.current) {
                 cameraStreamRef.current.getTracks().forEach(t => {
                     t.enabled = false;
@@ -822,7 +822,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 pcsRef.current.forEach(pc => {
                     const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
                     if (transceiver) {
-                        // Al apagar cámara, mantenemos en 'recvonly' para poder seguir viendo a los demás
+                        // Al apagar cÃ¡mara, mantenemos en 'recvonly' para poder seguir viendo a los demÃ¡s
                         transceiver.direction = 'recvonly';
                     }
                     const sender = findVideoSender(pc);
@@ -847,7 +847,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                     .then();
             }
         } else {
-            // Encender cámara con fallback resiliente
+            // Encender cÃ¡mara con fallback resiliente
             try {
                 let vs: MediaStream;
                 const targetCameraId = selectedCameraId || localStorage.getItem('tabetalk_video_input_device') || '';
@@ -863,7 +863,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                         });
                     }
                 } catch (e1) {
-                    console.warn('[Tabetalk WebRTC] Error con constraints de cámara ideales, probando fallback básico:', e1);
+                    console.warn('[Tabetalk WebRTC] Error con constraints de cÃ¡mara ideales, probando fallback bÃ¡sico:', e1);
                     vs = await navigator.mediaDevices.getUserMedia({ video: true });
                 }
 
@@ -909,34 +909,40 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 }
             } catch (e: any) {
                 log(`Camera error: ${e.message}`);
-                toast({ title: 'No se pudo acceder a la cámara', description: e.message || 'Verifica los permisos del navegador', variant: 'destructive' });
+                toast({ title: 'No se pudo acceder a la cÃ¡mara', description: e.message || 'Verifica los permisos del navegador', variant: 'destructive' });
             }
         }
     }, [isVideoEnabled, isScreenSharing, isAudioEnabled, selectedCameraId, broadcastMediaState, findVideoSender, renegotiateAllPeers, toast, log]);
 
-    // ─── Switch Camera ───
+    // â”€â”€â”€ Switch Camera â”€â”€â”€
     const switchCamera = useCallback(async (deviceId: string) => {
         setSelectedCameraId(deviceId);
+        localStorage.setItem('tabetalk_video_input_device', deviceId); // Guardar preferencia
         if (!isVideoEnabled || !localStreamRef.current) return;
         const mainStream = localStreamRef.current;
 
         try {
-            const vs = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
-            const newVt = vs.getVideoTracks()[0];
-
+            // STOP old camera FIRST to release hardware locks (fixes black screen/virtual camera issues on Windows)
             if (cameraStreamRef.current) {
                 cameraStreamRef.current.getTracks().forEach(t => {
                     t.enabled = false;
                     try { t.stop(); } catch { }
                 });
+                cameraStreamRef.current = null;
             }
-            cameraStreamRef.current = vs;
 
+            // Also remove from mainStream immediately
             mainStream.getVideoTracks().forEach(t => {
                 t.enabled = false;
                 try { t.stop(); } catch { }
                 mainStream.removeTrack(t);
             });
+
+            const vs = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
+            const newVt = vs.getVideoTracks()[0];
+
+            cameraStreamRef.current = vs;
+
             mainStream.addTrack(newVt);
 
             if (!isScreenSharing) {
@@ -954,11 +960,11 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             log(`Camera switched to ${deviceId}`);
             renegotiateAllPeers();
         } catch (e: any) {
-            toast({ title: 'Error al cambiar cámara', description: e.message, variant: 'destructive' });
+            toast({ title: 'Error al cambiar cÃ¡mara', description: e.message, variant: 'destructive' });
         }
     }, [isVideoEnabled, isScreenSharing, findVideoSender, renegotiateAllPeers, toast, log]);
 
-    // ─── Screen Sharing (Transmitir Pantalla) ───
+    // â”€â”€â”€ Screen Sharing (Transmitir Pantalla) â”€â”€â”€
     const stopScreenShare = useCallback(async () => {
         const screen = screenStreamRef.current;
         if (screen) {
@@ -976,7 +982,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         pcsRef.current.forEach(pc => {
             const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
             if (transceiver) {
-                // Si la cámara sigue prendida, mantenemos sendrecv; si no, volvemos a recvonly
+                // Si la cÃ¡mara sigue prendida, mantenemos sendrecv; si no, volvemos a recvonly
                 transceiver.direction = isVideoEnabled ? 'sendrecv' : 'recvonly';
             }
             const sender = findVideoSender(pc);
@@ -1067,3 +1073,5 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         speakingUsers,
     };
 }
+
+
