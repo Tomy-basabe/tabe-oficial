@@ -1,147 +1,292 @@
-import { useForest } from "@/hooks/useForest";
-import { TreePine, Droplet, Sprout } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-
-import { Link } from "react-router-dom";
+import { useTabeGochi } from "@/hooks/useTabeGochi";
+import { useForest } from "@/hooks/useForest";
+import { 
+  TabeGochiDevice, 
+  GOTCHI_MENU_OPTIONS, 
+  GotchiMenuOptionId 
+} from "@/components/tabegochi/TabeGochiDevice";
+import { PetAdoptModal } from "@/components/tabegochi/PetAdoptModal";
+import { useNavigate, Link } from "react-router-dom";
+import { TabeGochiAudio } from "@/lib/tabegochiAudio";
+import { TreePine, Sprout, Droplet, ArrowLeft, Sparkles } from "lucide-react";
 
 export function ForestWidget() {
-  const { currentPlant, plantNewTree, plantTypes, loading, studyActivity } = useForest();
-  const [selectedSeed, setSelectedSeed] = useState("oak");
-  const [isHovered, setIsHovered] = useState(false);
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"pet" | "forest">("pet");
+  const [showAdoptModal, setShowAdoptModal] = useState(false);
+  const { currentPlant, plantNewTree, plantTypes, studyActivity } = useForest();
+  const {
+    pets,
+    activePet,
+    feedPet,
+    petThePet,
+    cleanPet,
+    toggleSleep,
+    healPet,
+    switchPet,
+    releasePet,
+    adoptPet,
+  } = useTabeGochi();
 
-  const handleDPad = (direction: 1 | -1) => {
-    if (currentPlant) return;
-    const currentIndex = plantTypes.findIndex(p => p.id === selectedSeed);
-    let nextIndex = currentIndex + direction;
-    if (nextIndex < 0) nextIndex = plantTypes.length - 1;
-    if (nextIndex >= plantTypes.length) nextIndex = 0;
-    setSelectedSeed(plantTypes[nextIndex].id);
+  const [activeMenuIcon, setActiveMenuIcon] = useState<GotchiMenuOptionId>("feed");
+  const [actionEffect, setActionEffect] = useState<"feed" | "clean" | "love" | "heal" | null>(null);
+  const [selectedSeed] = useState("oak");
+
+  const triggerEffect = (type: "feed" | "clean" | "love" | "heal") => {
+    setActionEffect(type);
+    setTimeout(() => setActionEffect(null), 1200);
   };
 
-  if (loading) {
-    return <Skeleton className="w-full h-48 rounded-3xl" />;
+  // Si abandonó su última mascota, mostrar pantalla retro de adopción en el mismo widget
+  if (!activePet) {
+    return (
+      <div className="w-full flex justify-center">
+        <div className="relative w-full max-w-[360px] sm:max-w-[380px] bg-emerald-500 border-4 border-black rounded-3xl p-5 shadow-[6px_6px_0px_#000] flex flex-col items-center overflow-hidden select-none font-mono">
+          <div className="w-full flex items-center justify-between mb-3 px-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-black" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-black/80">BATTERY</span>
+            </div>
+            <span className="text-xs font-black uppercase tracking-widest text-black">
+              ★ TABE-GOTCHI ★
+            </span>
+            <div className="flex gap-1.5 opacity-60">
+              <div className="w-1.5 h-1.5 rounded-full bg-black" />
+              <div className="w-1.5 h-1.5 rounded-full bg-black" />
+              <div className="w-1.5 h-1.5 rounded-full bg-black" />
+            </div>
+          </div>
+
+          <div className="w-full bg-[#1e293b]/10 border-3 border-black rounded-2xl p-2.5 shadow-[inset_0_3px_6px_rgba(0,0,0,0.2)]">
+            <div className="w-full h-56 rounded-xl border-3 border-black p-4 bg-[#9bbc0f] text-[#0f380f] flex flex-col items-center justify-center text-center gap-3">
+              <Sparkles className="w-10 h-10 text-black" />
+              <div>
+                <p className="font-black text-xs uppercase text-black">SIN MASCOTA ACTIVA</p>
+                <p className="text-[10px] font-bold opacity-85 mt-1">
+                  Elige una nueva mascota virtual para criar.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAdoptModal(true)}
+                className="px-4 py-2 rounded-xl bg-[#FFE600] hover:bg-yellow-400 text-black border-2 border-black shadow-[2px_2px_0_#000] text-xs font-black uppercase cursor-pointer"
+              >
+                [ADOPTAR MASCOTA]
+              </button>
+            </div>
+          </div>
+
+          <PetAdoptModal
+            open={showAdoptModal}
+            onOpenChange={setShowAdoptModal}
+            onAdopt={adoptPet}
+          />
+        </div>
+      </div>
+    );
   }
 
-  const plantInfo = currentPlant ? plantTypes.find(p => p.id === currentPlant.plant_type) : null;
-  const isGrowing = currentPlant && studyActivity.hasStudiedToday;
+  // Ejecuta una acción concreta del Tabe-Gotchi
+  const executeAction = (actionId: GotchiMenuOptionId) => {
+    switch (actionId) {
+      case "feed":
+        feedPet("apple");
+        triggerEffect("feed");
+        break;
+      case "love":
+        petThePet();
+        triggerEffect("love");
+        break;
+      case "clean":
+        cleanPet();
+        triggerEffect("clean");
+        break;
+      case "heal":
+        healPet();
+        triggerEffect("heal");
+        break;
+      case "play":
+        TabeGochiAudio.playClick();
+        navigate("/tabegochi");
+        break;
+    }
+  };
 
-  return (
-    <div 
-      className="relative bg-emerald-500 border-[4px] border-foreground rounded-3xl p-5 hover:shadow-[6px_6px_0_0_#000000] transition-all duration-300 overflow-hidden group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Console "Speakers" decoration */}
-      <div className="absolute top-4 right-5 flex gap-1.5 opacity-50">
-        <div className="w-1.5 h-1.5 rounded-full bg-foreground"></div>
-        <div className="w-1.5 h-1.5 rounded-full bg-foreground"></div>
-        <div className="w-1.5 h-1.5 rounded-full bg-foreground"></div>
-      </div>
+  // Al tocar directamente un botón del menú superior
+  const handleSelectOption = (optionId: GotchiMenuOptionId) => {
+    TabeGochiAudio.playClick();
+    setActiveMenuIcon(optionId);
+    executeAction(optionId);
+  };
 
-      <div className="flex items-center justify-between mb-4 relative z-10">
-        <Link
-          to="/bosque"
-          className="font-black text-xl text-foreground bg-white hover:bg-amber-100 px-3 py-1 rounded-full border-2 border-foreground uppercase tracking-widest -rotate-2 shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-transform inline-flex items-center gap-1.5"
-          title="Ver mi bosque completo"
-        >
-          <span>TABE-Gotchi</span>
-          <span className="text-xs bg-[#BFFF00] text-black px-1.5 py-0.5 rounded-full font-black border border-black">
-            ↗
-          </span>
-        </Link>
-      </div>
+  // Botón A: Siguiente opción en la tira superior
+  const handleButtonA = () => {
+    TabeGochiAudio.playClick();
+    const currentIndex = GOTCHI_MENU_OPTIONS.findIndex(o => o.id === activeMenuIcon);
+    const nextIndex = (currentIndex + 1) % GOTCHI_MENU_OPTIONS.length;
+    setActiveMenuIcon(GOTCHI_MENU_OPTIONS[nextIndex].id);
+  };
 
-      {/* "LCD" Screen */}
-      <div className="bg-[#9bbc0f] border-[4px] border-foreground rounded-xl p-4 shadow-[inset_0_4px_0_rgba(0,0,0,0.1)] min-h-[160px] flex flex-col justify-between relative">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-1 text-foreground/80 font-black text-xs uppercase">
-            <TreePine className="w-4 h-4" />
-            <span>Bosque</span>
-          </div>
-          {currentPlant && (
-            <div className="text-right">
-              <span className="text-[10px] font-black uppercase text-foreground/70">Progreso</span>
-              <div className="text-xl font-black text-foreground">
-                {currentPlant.growth_percentage}%
-              </div>
-            </div>
-          )}
+  // Botón B: Ejecutar la opción resaltada
+  const handleButtonB = () => {
+    executeAction(activeMenuIcon);
+  };
+
+  // Botón C: Alternar Luz / Dormir
+  const handleButtonC = () => {
+    TabeGochiAudio.playClick();
+    toggleSleep();
+  };
+
+  // D-Pad Izquierda: Opción anterior
+  const handleDpadLeft = () => {
+    TabeGochiAudio.playClick();
+    const currentIndex = GOTCHI_MENU_OPTIONS.findIndex(o => o.id === activeMenuIcon);
+    const prevIndex = (currentIndex - 1 + GOTCHI_MENU_OPTIONS.length) % GOTCHI_MENU_OPTIONS.length;
+    setActiveMenuIcon(GOTCHI_MENU_OPTIONS[prevIndex].id);
+  };
+
+  // D-Pad Derecha: Opción siguiente
+  const handleDpadRight = () => {
+    handleButtonA();
+  };
+
+  // D-Pad Arriba / Abajo o clic en nombre: Alternar mascota activa si tiene más de 1
+  const handleSwitchPet = () => {
+    if (pets.length <= 1) {
+      petThePet();
+      triggerEffect("love");
+      return;
+    }
+    const currentIndex = pets.findIndex(p => p.id === activePet.id);
+    const nextIndex = (currentIndex + 1) % pets.length;
+    switchPet(pets[nextIndex].id);
+  };
+
+  // Abandonar mascota actual
+  const handleAbandonPet = () => {
+    const isLast = pets.length <= 1;
+    releasePet(activePet.id);
+    if (isLast) {
+      setTimeout(() => setShowAdoptModal(true), 150);
+    }
+  };
+
+  if (activeTab === "forest") {
+    const plantInfo = currentPlant ? plantTypes.find(p => p.id === currentPlant.plant_type) : null;
+    const isGrowing = currentPlant && studyActivity.hasStudiedToday;
+
+    return (
+      <div className="relative w-full max-w-[380px] mx-auto bg-emerald-600 border-4 border-black rounded-3xl p-5 shadow-[6px_6px_0px_#000] flex flex-col items-center select-none font-mono">
+        <div className="w-full flex items-center justify-between mb-3 px-1 text-black font-black text-xs uppercase">
+          <button
+            onClick={() => setActiveTab("pet")}
+            className="flex items-center gap-1 bg-white hover:bg-yellow-300 text-black px-2 py-0.5 rounded-lg border-2 border-black shadow-[2px_2px_0_#000] text-[10px] cursor-pointer"
+          >
+            <ArrowLeft className="w-3 h-3 stroke-[3]" />
+            Mascota
+          </button>
+          <span>★ BOSQUE ESTUDIO ★</span>
+          <Link
+            to="/bosque"
+            className="bg-[#FFE600] text-black px-2 py-0.5 rounded-lg border-2 border-black shadow-[2px_2px_0_#000] text-[10px]"
+          >
+            Ver Isla
+          </Link>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center my-4">
-          {!currentPlant ? (
-            <div className="text-center animate-bounce mt-4">
-              <Sprout className="w-12 h-12 mx-auto text-foreground mb-2" />
-              <p className="font-black text-sm uppercase text-foreground">Selecciona Semilla</p>
+        <div className="w-full bg-[#1e293b]/10 border-3 border-black rounded-2xl p-2.5 shadow-[inset_0_3px_6px_rgba(0,0,0,0.2)]">
+          <div className="w-full h-56 rounded-xl border-3 border-black p-3 bg-[#9bbc0f] text-[#0f380f] flex flex-col justify-between font-mono lcd-dotmatrix relative">
+            <div className="flex justify-between items-start">
+              <span className="font-black text-xs uppercase">Árbol en Crecimiento</span>
+              {currentPlant && (
+                <span className="font-black text-xs">{currentPlant.growth_percentage}%</span>
+              )}
             </div>
-          ) : (
-            <div className="text-center">
-              <div className={cn(
-                "text-6xl mb-2 transition-transform duration-500",
-                isHovered && "scale-125"
-              )}>
-                {currentPlant.growth_percentage < 25 ? "🌱" : currentPlant.growth_percentage < 75 ? "🌿" : plantInfo?.emoji}
-              </div>
-              <p className="font-black text-sm uppercase text-foreground">
-                {currentPlant.growth_percentage < 25 ? "Semilla" : currentPlant.growth_percentage < 75 ? "Brote" : plantInfo?.name}
-              </p>
-              
-              {isGrowing && (
-                <div className="absolute top-1/2 -translate-y-1/2 right-4 flex flex-col gap-2">
-                  <div className="w-6 h-6 bg-foreground rounded-full flex items-center justify-center animate-ping absolute opacity-75"></div>
-                  <div className="w-6 h-6 bg-foreground text-[#9bbc0f] rounded-full flex items-center justify-center relative z-10">
-                    <Droplet className="w-3 h-3" />
+
+            <div className="flex-1 flex flex-col items-center justify-center">
+              {!currentPlant ? (
+                <div className="text-center animate-bounce">
+                  <Sprout className="w-12 h-12 mx-auto text-[#0f380f] mb-1" />
+                  <p className="font-black text-xs uppercase">Selecciona Semilla</p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="w-14 h-14 mx-auto mb-1 flex items-center justify-center">
+                    {currentPlant.growth_percentage < 25 ? (
+                      <Sprout className="w-10 h-10 text-emerald-900" />
+                    ) : (
+                      <TreePine className="w-12 h-12 text-emerald-950" />
+                    )}
                   </div>
+                  <p className="font-black text-xs uppercase">{plantInfo?.name || "Brote"}</p>
+                  {isGrowing && (
+                    <div className="flex items-center justify-center gap-1 text-[10px] font-black text-blue-900 mt-1">
+                      <Droplet className="w-3 h-3 fill-current" />
+                      <span>Regado hoy</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Screen footer status */}
-        <div className="border-t-[3px] border-foreground/30 pt-2 flex justify-between items-center text-[10px] font-black uppercase text-foreground/70">
-          <span>{currentPlant ? 'Creciendo...' : 'Listo para plantar'}</span>
-          {isGrowing && <span>¡Regado hoy!</span>}
-        </div>
-      </div>
-
-      {/* Console Controls */}
-      <div className="mt-5 flex justify-between items-end px-2">
-        {/* D-Pad */}
-        <div className="relative w-16 h-16 opacity-100">
-          <div className="absolute top-1/2 left-0 right-0 h-6 bg-foreground -translate-y-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset] flex justify-between overflow-hidden">
-            <button className="w-6 h-full hover:bg-white/20 z-20 pointer-events-auto" onClick={() => handleDPad(-1)} aria-label="Anterior semilla" />
-            <button className="w-6 h-full hover:bg-white/20 z-20 pointer-events-auto" onClick={() => handleDPad(1)} aria-label="Siguiente semilla" />
-          </div>
-          <div className="absolute left-1/2 top-0 bottom-0 w-6 bg-foreground -translate-x-1/2 rounded-sm shadow-[2px_2px_0_rgba(255,255,255,0.3)_inset] flex flex-col justify-between pointer-events-none overflow-hidden">
-            <button className="w-full h-6 hover:bg-white/20 pointer-events-auto z-20" onClick={() => handleDPad(-1)} aria-label="Anterior semilla" />
-            <button className="w-full h-6 hover:bg-white/20 pointer-events-auto z-20" onClick={() => handleDPad(1)} aria-label="Siguiente semilla" />
-          </div>
-          <div className="absolute top-1/2 left-1/2 w-6 h-6 bg-foreground -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30">
-             <div className="w-2 h-2 rounded-full bg-white/10 mx-auto mt-2"></div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col items-end gap-3">
-          {!currentPlant && (
-            <div className="text-[10px] font-black uppercase text-foreground bg-white/50 px-2 py-1 rounded-md border-2 border-foreground mb-1">
-              {plantTypes.find(p => p.id === selectedSeed)?.name}
+            <div className="border-t-2 border-black/25 pt-1 flex justify-between items-center text-[10px] font-black uppercase">
+              <span>{currentPlant ? 'Creciendo con estudio' : 'Listo para plantar'}</span>
+              <span>{studyActivity.studyMinutesToday} MIN HOY</span>
             </div>
-          )}
+          </div>
+        </div>
 
-          {!currentPlant && (
-             <button 
-               onClick={() => plantNewTree(selectedSeed)}
-               className="bg-[#ef4444] border-2 border-foreground w-12 h-12 rounded-full font-black text-white text-xs hover:scale-95 transition-transform uppercase shadow-[inset_-2px_-4px_0_rgba(0,0,0,0.3),_2px_2px_0_#000]"
-             >
-               Start
-             </button>
+        <div className="w-full flex items-center justify-between mt-4 px-2">
+          {!currentPlant ? (
+            <button
+              onClick={() => plantNewTree(selectedSeed)}
+              className="bg-[#ef4444] text-white border-2 border-black rounded-xl px-4 py-2 font-black text-xs uppercase shadow-[2px_2px_0_#000] w-full cursor-pointer"
+            >
+              Plantar Semilla
+            </button>
+          ) : (
+            <Link
+              to="/bosque"
+              className="bg-white hover:bg-yellow-300 text-black border-2 border-black rounded-xl px-4 py-2 font-black text-xs uppercase shadow-[2px_2px_0_#000] text-center w-full"
+            >
+              Ir al Bosque Completo
+            </Link>
           )}
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="w-full flex justify-center">
+      <TabeGochiDevice
+        pet={activePet}
+        onPetClick={() => {
+          petThePet();
+          triggerEffect("love");
+        }}
+        onButtonA={handleButtonA}
+        onButtonB={handleButtonB}
+        onButtonC={handleButtonC}
+        onDpadLeft={handleDpadLeft}
+        onDpadRight={handleDpadRight}
+        onDpadUp={handleSwitchPet}
+        onDpadDown={handleSwitchPet}
+        onSelectOption={handleSelectOption}
+        onSwitchPet={handleSwitchPet}
+        onAbandonPet={handleAbandonPet}
+        totalPets={pets.length}
+        activeMenuIcon={activeMenuIcon}
+        actionEffect={actionEffect}
+        onToggleForest={() => setActiveTab("forest")}
+      />
+      <PetAdoptModal
+        open={showAdoptModal}
+        onOpenChange={setShowAdoptModal}
+        onAdopt={adoptPet}
+      />
     </div>
   );
 }

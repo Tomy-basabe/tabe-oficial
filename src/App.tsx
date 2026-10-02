@@ -57,6 +57,7 @@ const BombGame = lazy(() => import("@/pages/BombGame"));
 const TicTacToeGame = lazy(() => import("@/pages/TicTacToeGame"));
 const ChessGame = lazy(() => import("@/pages/ChessGame"));
 const Tasks = lazy(() => import("@/pages/Tasks"));
+const TabeGochi = lazy(() => import("@/pages/TabeGochi"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
@@ -208,6 +209,8 @@ const AppRoutes = () => (
       <Route path="/juegos/bomba" element={<BombGame />} />
       <Route path="/juegos/tateti" element={<TicTacToeGame />} />
       <Route path="/juegos/ajedrez" element={<ChessGame />} />
+      <Route path="/tabegochi" element={<TabeGochi />} />
+      <Route path="/juegos/tabegochi" element={<TabeGochi />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

@@ -101,6 +101,47 @@ export default function Games() {
           Minijuegos Disponibles
         </h2>
         <div className="grid md:grid-cols-2 gap-6">
+          {/* Tabe Gochi: Mascota Virtual */}
+          <div
+            className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col md:col-span-2"
+            onClick={() => navigate("/tabegochi")}
+          >
+            <div className="relative">
+              <div className="h-36 sm:h-40 border-b-4 border-foreground bg-[#FFE600] flex items-center justify-center gap-3 sm:gap-6">
+                <span className="text-5xl sm:text-6xl animate-bounce">🐱</span>
+                <span className="text-5xl sm:text-6xl animate-pulse">🐶</span>
+                <span className="text-5xl sm:text-6xl animate-bounce" style={{ animationDelay: "0.2s" }}>🐲</span>
+                <span className="text-5xl sm:text-6xl animate-pulse" style={{ animationDelay: "0.4s" }}>🐧</span>
+                <span className="text-5xl sm:text-6xl animate-bounce" style={{ animationDelay: "0.6s" }}>🐰</span>
+              </div>
+              <div className="absolute top-4 right-4 bg-black text-[#FFE600] text-[10px] font-black uppercase px-3 py-1 border-2 border-white rotate-[3deg] shadow-[2px_2px_0_0_#fff]">
+                ★ NOVEDAD • TAMAGOTCHI ★
+              </div>
+            </div>
+            <div className="p-6 flex-1 flex flex-col">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <h3 className="font-black uppercase text-xl sm:text-2xl text-foreground">Tabe Gochi: Mascota Virtual</h3>
+                <span className="px-2 py-0.5 rounded-full bg-[#FF2E93] text-white font-black text-[10px] uppercase border border-black">
+                  Crianza Clásica
+                </span>
+              </div>
+              <p className="text-sm font-bold text-muted-foreground mb-4 flex-1">
+                Criá tu propia mascota virtual como en los 90s. Elegí entre Michi, Shiba, Draco, Pingu y más. Alimentala, limpiala, jugá a los minijuegos y mirala evolucionar de bebé a mítico.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-black uppercase text-muted-foreground">
+                <span className="flex items-center gap-1">🐾 6 Mascotas</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">🎮 Minijuegos Retro</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">🍖 Crianza Libre</span>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-black bg-[#FFE600] px-3 py-1 rotate-[-1deg] border-2 border-black font-black">
+                  CRIAR MASCOTA →
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Penales */}
           <div
             className="bg-card border-4 border-foreground rounded-2xl group cursor-pointer hover:-translate-y-1 hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-300 overflow-hidden flex flex-col"

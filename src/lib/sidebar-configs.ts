@@ -79,6 +79,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/configuracion": "Settings",
   "/examenes": "GraduationCap",
   "/juegos": "Arcade",
+  "/tabegochi": "Sparkles",
   "/mapa": "Compass",
   "/tabetalk": "TabetalkIcon",
   "/discord": "TabetalkIcon"
@@ -135,6 +136,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     items: [
       { id: "item-/amigos", path: "/amigos", label: "Amigos", type: "item", iconName: "Users" },
       { id: "item-/bosque", path: "/bosque", label: "Mi Bosque", type: "item", iconName: "TreeDeciduous" },
+      { id: "item-/tabegochi", path: "/tabegochi", label: "TabeGochi", type: "item", iconName: "Sparkles" },
       { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Arcade" },
       { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
       { id: "item-/marketplace", path: "/marketplace", label: "Marketplace", type: "item", iconName: "Store" }
