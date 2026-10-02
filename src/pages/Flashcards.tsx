@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -29,7 +29,7 @@ interface Deck {
   nombre: string;
   subject_id: string;
   total_cards: number;
-  subject?: { nombre: string; codigo: string; año: number };
+  subject?: { nombre: string; codigo: string; aÃ±o: number };
 }
 
 interface Flashcard {
@@ -45,7 +45,7 @@ interface Subject {
   id: string;
   nombre: string;
   codigo: string;
-  año: number;
+  aÃ±o: number;
 }
 
 type StudyState = "browsing" | "studying" | "completed";
@@ -118,8 +118,8 @@ export default function Flashcards() {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
   const activeYears = useMemo(() => {
-    const unique = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
-    return unique.filter(year => subjects.some(s => Number(s.año) === year));
+    const unique = [...new Set(subjects.map(s => Number(s.aÃ±o)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+    return unique.filter(year => subjects.some(s => Number(s.aÃ±o) === year));
   }, [subjects]);
 
   useEffect(() => {
@@ -192,15 +192,15 @@ export default function Flashcards() {
   const fetchSubjects = async () => {
     try {
       if (isGuest) {
-        const guestSubs: Subject[] = [{ id: "mock", nombre: "Uso de Tablero", codigo: "TAB1", año: 1 }];
+        const guestSubs: Subject[] = [{ id: "mock", nombre: "Uso de Tablero", codigo: "TAB1", aÃ±o: 1 }];
         setCachedFlashcardSubjects(guestSubs);
         setSubjects(guestSubs);
         return guestSubs;
       }
       let query = supabase
         .from("subjects")
-        .select("id, nombre, codigo, año")
-        .order("año", { ascending: true });
+        .select("id, nombre, codigo, aÃ±o")
+        .order("aÃ±o", { ascending: true });
 
       if (user) {
         query = query.eq("user_id", user.id);
@@ -210,9 +210,9 @@ export default function Flashcards() {
       if (user && (!data || data.length === 0)) {
         const fallback = await supabase
           .from("subjects")
-          .select("id, nombre, codigo, año")
+          .select("id, nombre, codigo, aÃ±o")
           .is("user_id", null)
-          .order("año", { ascending: true });
+          .order("aÃ±o", { ascending: true });
         if (fallback.data && fallback.data.length > 0) {
           data = fallback.data;
         }
@@ -241,7 +241,7 @@ export default function Flashcards() {
     try {
       if (isGuest) {
         const guestDecks: Deck[] = [
-          { id: "mock-deck-1", nombre: "Uso de Flashcards", subject_id: "mock", total_cards: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } },
+          { id: "mock-deck-1", nombre: "Uso de Flashcards", subject_id: "mock", total_cards: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", aÃ±o: 1 } },
         ];
         setCachedFlashcardDecks(guestDecks);
         setDecks(guestDecks);
@@ -250,7 +250,7 @@ export default function Flashcards() {
 
       const { data, error } = await supabase
         .from("flashcard_decks")
-        .select("id, user_id, subject_id, nombre, descripcion, total_cards, created_at, subjects(nombre, codigo, año)")
+        .select("id, user_id, subject_id, nombre, descripcion, total_cards, created_at, subjects(nombre, codigo, aÃ±o)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -269,7 +269,7 @@ export default function Flashcards() {
           const subs = getCachedFlashcardSubjects();
           const mapped = rawData.map((d: any) => {
             const s = subs.find(sub => sub.id === d.subject_id);
-            return { ...d, subject: s ? { nombre: s.nombre, codigo: s.codigo, año: s.año } : undefined };
+            return { ...d, subject: s ? { nombre: s.nombre, codigo: s.codigo, aÃ±o: s.aÃ±o } : undefined };
           });
           setCachedFlashcardDecks(mapped);
           setDecks(mapped);
@@ -312,11 +312,11 @@ export default function Flashcards() {
     if (isGuest) {
       if (deckId === "mock-deck-1") {
         const anatomyMocks = [
-          { pregunta: "¿Para qué sirven las Flashcards?", respuesta: "Las flashcards son tarjetas de memoria que ayudan a repasar conceptos clave de forma rápida y efectiva." },
-          { pregunta: "¿Cómo funciona el sistema de estudio?", respuesta: "Te mostramos la pregunta. Pensás la respuesta y luego la volteás para ver si acertaste." },
-          { pregunta: "Aquí puedes colocar preguntas", respuesta: "Aquí pondrías la respuesta correcta que debes memorizar." },
-          { pregunta: "¿Qué evalúa este modo de estudio?", respuesta: "Evalúa tu retención activa, obligándote a recordar el concepto antes de leerlo." },
-          { pregunta: "¿Cómo me ayuda la IA con esto?", respuesta: "Puedes abrir el chat con la IA y pedirle que genere flashcards automáticamente a partir de tus apuntes." },
+          { pregunta: "Â¿Para quÃ© sirven las Flashcards?", respuesta: "Las flashcards son tarjetas de memoria que ayudan a repasar conceptos clave de forma rÃ¡pida y efectiva." },
+          { pregunta: "Â¿CÃ³mo funciona el sistema de estudio?", respuesta: "Te mostramos la pregunta. PensÃ¡s la respuesta y luego la volteÃ¡s para ver si acertaste." },
+          { pregunta: "AquÃ­ puedes colocar preguntas", respuesta: "AquÃ­ pondrÃ­as la respuesta correcta que debes memorizar." },
+          { pregunta: "Â¿QuÃ© evalÃºa este modo de estudio?", respuesta: "EvalÃºa tu retenciÃ³n activa, obligÃ¡ndote a recordar el concepto antes de leerlo." },
+          { pregunta: "Â¿CÃ³mo me ayuda la IA con esto?", respuesta: "Puedes abrir el chat con la IA y pedirle que genere flashcards automÃ¡ticamente a partir de tus apuntes." },
         ].map((c, i) => ({
           id: `mock-card-1-${i}`,
           ...c,
@@ -329,11 +329,11 @@ export default function Flashcards() {
       }
 
       const formulasMocks = [
-        { pregunta: "¿Por qué estudiar en bloques pequeños?", respuesta: "Mejora la atención y evita la fatiga, técnica conocida como Pomodoro." },
-        { pregunta: "¿Qué es el repaso espaciado?", respuesta: "Repasar la información en intervalos cada vez mayores para fijarla a largo plazo." },
-        { pregunta: "Aquí puedes colocar tips", respuesta: "Y aquí la explicación de cómo aplicarlos en tu día a día." },
-        { pregunta: "¿Por qué es importante dormir bien?", respuesta: "El sueño consolida la memoria de lo aprendido durante el día." },
-        { pregunta: "¿Cómo empezar a organizarse?", respuesta: "Utiliza la vista de Calendario de Tabe para planificar tus sesiones y no procrastinar." },
+        { pregunta: "Â¿Por quÃ© estudiar en bloques pequeÃ±os?", respuesta: "Mejora la atenciÃ³n y evita la fatiga, tÃ©cnica conocida como Pomodoro." },
+        { pregunta: "Â¿QuÃ© es el repaso espaciado?", respuesta: "Repasar la informaciÃ³n en intervalos cada vez mayores para fijarla a largo plazo." },
+        { pregunta: "AquÃ­ puedes colocar tips", respuesta: "Y aquÃ­ la explicaciÃ³n de cÃ³mo aplicarlos en tu dÃ­a a dÃ­a." },
+        { pregunta: "Â¿Por quÃ© es importante dormir bien?", respuesta: "El sueÃ±o consolida la memoria de lo aprendido durante el dÃ­a." },
+        { pregunta: "Â¿CÃ³mo empezar a organizarse?", respuesta: "Utiliza la vista de Calendario de Tabe para planificar tus sesiones y no procrastinar." },
       ].map((c, i) => ({
         id: `mock-card-2-${i}`,
         ...c,
@@ -378,12 +378,12 @@ export default function Flashcards() {
     if (error) {
       toast.error("Error al crear el mazo");
     } else {
-      toast.success("¡Mazo creado exitosamente!");
+      toast.success("Â¡Mazo creado exitosamente!");
       await incrementUsage('flashcard_mazos');
       setNewDeckName("");
       setShowNewDeckModal(false);
       fetchDecks();
-      // Verificar logros después de crear un mazo
+      // Verificar logros despuÃ©s de crear un mazo
       checkAndUnlockAchievements();
     }
   };
@@ -405,7 +405,7 @@ export default function Flashcards() {
     if (error) {
       toast.error("Error al crear la tarjeta");
     } else {
-      toast.success("¡Tarjeta agregada! Podés seguir creando más.");
+      toast.success("Â¡Tarjeta agregada! PodÃ©s seguir creando mÃ¡s.");
       setNewCardQuestion("");
       setNewCardAnswer("");
       // Keep modal open so user can continue creating cards
@@ -420,7 +420,7 @@ export default function Flashcards() {
       // Update selectedDeck in memory to reflect new card count
       setSelectedDeck({ ...selectedDeck, total_cards: updatedCards.length });
       fetchDecks();
-      // Verificar logros después de crear una tarjeta
+      // Verificar logros despuÃ©s de crear una tarjeta
       checkAndUnlockAchievements();
     }
   };
@@ -455,12 +455,12 @@ export default function Flashcards() {
         .insert({
           user_id: user.id,
           subject_id: selectedDeck.subject_id,
-          duracion_segundos: studyTime,
+            duracion_segundos: Math.min(studyTime, 43200),
           tipo: "flashcard",
           completada: true,
           fecha: toLocalDateStr(),
         });
-      // Verificar logros después de completar estudio de flashcards
+      // Verificar logros despuÃ©s de completar estudio de flashcards
       checkAndUnlockAchievements();
     }
     setStudyState("completed");
@@ -484,8 +484,8 @@ export default function Flashcards() {
 
     if (fetchedCards.length === 0) {
       const messages = {
-        known: "No hay tarjetas marcadas como 'sabidas' todavía",
-        partial: "No hay tarjetas marcadas como 'sabidas a medias' todavía",
+        known: "No hay tarjetas marcadas como 'sabidas' todavÃ­a",
+        partial: "No hay tarjetas marcadas como 'sabidas a medias' todavÃ­a",
         unknown: "No hay tarjetas 'no sabidas' en este mazo"
       };
       toast.info(messages[filter as keyof typeof messages] || "No hay tarjetas con este filtro");
@@ -587,12 +587,12 @@ export default function Flashcards() {
         .insert({
           user_id: user.id,
           subject_id: selectedDeck.subject_id,
-          duracion_segundos: studyTime,
+            duracion_segundos: Math.min(studyTime, 43200),
           tipo: "flashcard",
           completada: false,
           fecha: toLocalDateStr(),
         });
-      toast.success("Sesión guardada");
+      toast.success("SesiÃ³n guardada");
     }
     resetStudy();
   };
@@ -612,12 +612,12 @@ export default function Flashcards() {
   };
 
   const filteredDecks = decks.filter(deck => {
-    const matchesYear = !selectedYear || deck.subject?.año === selectedYear;
+    const matchesYear = !selectedYear || deck.subject?.aÃ±o === selectedYear;
     const matchesSubject = !selectedSubject || deck.subject_id === selectedSubject;
     return matchesYear && matchesSubject;
   });
 
-  const filteredSubjects = subjects.filter(s => !selectedYear || s.año === selectedYear);
+  const filteredSubjects = subjects.filter(s => !selectedYear || s.aÃ±o === selectedYear);
 
   // Edit Deck Functions
   const handleEditDeck = (deck: Deck) => {
@@ -770,7 +770,7 @@ export default function Flashcards() {
         .update({ total_cards: cardsToInsert.length })
         .eq("id", newDeck.id);
 
-      toast.success(`¡Mazo "${mergeNewDeckName}" creado con ${cardsToInsert.length} tarjetas!`);
+      toast.success(`Â¡Mazo "${mergeNewDeckName}" creado con ${cardsToInsert.length} tarjetas!`);
       setShowMergeModal(false);
       resetMergeState();
       fetchDecks();
@@ -827,12 +827,12 @@ export default function Flashcards() {
     // Exclude current target deck
     if (deck.id === importTargetDeck?.id) return false;
 
-    const matchesYear = !importSourceYear || deck.subject?.año === importSourceYear;
+    const matchesYear = !importSourceYear || deck.subject?.aÃ±o === importSourceYear;
     const matchesSubject = !importSourceSubject || deck.subject_id === importSourceSubject;
     return matchesYear && matchesSubject;
   });
 
-  const filteredSourceSubjects = subjects.filter(s => !importSourceYear || s.año === importSourceYear);
+  const filteredSourceSubjects = subjects.filter(s => !importSourceYear || s.aÃ±o === importSourceYear);
 
   // Study Mode
   if (studyState === "studying" && selectedDeck && cards.length > 0) {
@@ -937,8 +937,8 @@ export default function Flashcards() {
             <Sparkles className="w-6 h-6 text-foreground" />
           </div>
           <div>
-            <p className="text-sm font-black uppercase tracking-widest text-black">¡Estudia hoy!</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-black/70 mt-1">Mantén tu racha</p>
+            <p className="text-sm font-black uppercase tracking-widest text-black">Â¡Estudia hoy!</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-black/70 mt-1">MantÃ©n tu racha</p>
           </div>
         </div>
       </div>
@@ -968,7 +968,7 @@ export default function Flashcards() {
                   : "bg-background text-foreground hover:bg-secondary shadow-[4px_4px_0_0_transparent] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
               )}
             >
-              AÑO {year}
+              AÃ‘O {year}
             </button>
           ))}
         </div>
@@ -1041,7 +1041,7 @@ export default function Flashcards() {
           </DialogHeader>
           <div className="space-y-6 py-2">
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Seleccionar Año</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Seleccionar AÃ±o</label>
               <div className="flex gap-2 mt-2">
                 {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                   <button
@@ -1054,7 +1054,7 @@ export default function Flashcards() {
                         : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                     )}
                   >
-                    {year}°
+                    {year}Â°
                   </button>
                 ))}
               </div>
@@ -1085,7 +1085,7 @@ export default function Flashcards() {
                   type="text"
                   value={newDeckName}
                   onChange={(e) => setNewDeckName(e.target.value)}
-                  placeholder="Ej: Unidad 1 - Conceptos básicos"
+                  placeholder="Ej: Unidad 1 - Conceptos bÃ¡sicos"
                   className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                 />
               </div>
@@ -1173,8 +1173,8 @@ export default function Flashcards() {
                           <p className="font-medium text-sm line-clamp-2">{card.pregunta}</p>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
                           <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                            <span className="text-neon-green">✓ {card.veces_correcta}</span>
-                            <span className="text-destructive">✗ {card.veces_incorrecta}</span>
+                            <span className="text-neon-green">âœ“ {card.veces_correcta}</span>
+                            <span className="text-destructive">âœ— {card.veces_incorrecta}</span>
                           </div>
                         </div>
                         <button
@@ -1198,7 +1198,7 @@ export default function Flashcards() {
                       Anterior
                     </button>
                     <span className="text-xs font-medium text-muted-foreground">
-                      Página {managePage} de {Math.ceil(cards.length / ITEMS_PER_PAGE)}
+                      PÃ¡gina {managePage} de {Math.ceil(cards.length / ITEMS_PER_PAGE)}
                     </span>
                     <button
                       disabled={managePage === Math.ceil(cards.length / ITEMS_PER_PAGE)}
@@ -1283,7 +1283,7 @@ export default function Flashcards() {
 
               {/* Year Filter */}
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Filtrar por Año</label>
+                <label className="text-sm font-medium text-muted-foreground">Filtrar por AÃ±o</label>
                 <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
                   <button
                     onClick={() => { setImportSourceYear(null); setImportSourceSubject(null); }}
@@ -1307,7 +1307,7 @@ export default function Flashcards() {
                           : "bg-secondary hover:bg-secondary/80"
                       )}
                     >
-                      {year}°
+                      {year}Â°
                     </button>
                   ))}
                 </div>
@@ -1363,7 +1363,7 @@ export default function Flashcards() {
                   onClick={() => setImportStep(1)}
                   className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
                 >
-                  ← Volver
+                  â† Volver
                 </button>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">
@@ -1381,7 +1381,7 @@ export default function Flashcards() {
               <div className="flex-1 overflow-y-auto pr-1">
                 {importSourceCards.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Este mazo está vacío.
+                    Este mazo estÃ¡ vacÃ­o.
                   </div>
                 ) : (
                   <>
@@ -1469,7 +1469,7 @@ export default function Flashcards() {
                   1. Seleccionar Mazos ({selectedDecksToMerge.length} seleccionados)
                 </label>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                  Mínimo 2 mazos
+                  MÃ­nimo 2 mazos
                 </span>
               </div>
 
@@ -1498,7 +1498,7 @@ export default function Flashcards() {
                           : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                       )}
                     >
-                      {year}° Año
+                      {year}Â° AÃ±o
                     </button>
                   ))}
                 </div>
@@ -1506,11 +1506,11 @@ export default function Flashcards() {
                 {mergeSourceYearFilter && (
                   <Select value={mergeSourceSubjectFilter || "all"} onValueChange={(val) => setMergeSourceSubjectFilter(val === "all" ? null : val)}>
                     <SelectTrigger className="w-full px-4 py-5 h-auto bg-background rounded-lg border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm data-[state=open]:shadow-[4px_4px_0_0_#000]">
-                      <SelectValue placeholder="Todas las materias del año" />
+                      <SelectValue placeholder="Todas las materias del aÃ±o" />
                     </SelectTrigger>
                     <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
-                      <SelectItem value="all" className="font-bold uppercase tracking-widest focus:bg-secondary cursor-pointer rounded-lg my-1">Todas las materias del año</SelectItem>
-                      {subjects.filter(s => s.año === mergeSourceYearFilter).map(s => (
+                      <SelectItem value="all" className="font-bold uppercase tracking-widest focus:bg-secondary cursor-pointer rounded-lg my-1">Todas las materias del aÃ±o</SelectItem>
+                      {subjects.filter(s => s.aÃ±o === mergeSourceYearFilter).map(s => (
                         <SelectItem key={s.id} value={s.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
                           {s.nombre}
                         </SelectItem>
@@ -1523,7 +1523,7 @@ export default function Flashcards() {
               <div className="grid grid-cols-1 gap-3 max-h-56 overflow-y-auto pr-1">
                 {decks
                   .filter(deck => {
-                    const matchesYear = !mergeSourceYearFilter || deck.subject?.año === mergeSourceYearFilter;
+                    const matchesYear = !mergeSourceYearFilter || deck.subject?.aÃ±o === mergeSourceYearFilter;
                     const matchesSubject = !mergeSourceSubjectFilter || deck.subject_id === mergeSourceSubjectFilter;
                     return matchesYear && matchesSubject;
                   })
@@ -1567,7 +1567,7 @@ export default function Flashcards() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Año</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">AÃ±o</label>
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                       <button
@@ -1594,7 +1594,7 @@ export default function Flashcards() {
                       <SelectValue placeholder="Seleccionar..." />
                     </SelectTrigger>
                     <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
-                      {subjects.filter(s => s.año === mergeYear).map(s => (
+                      {subjects.filter(s => s.aÃ±o === mergeYear).map(s => (
                         <SelectItem key={s.id} value={s.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
                           {s.nombre}
                         </SelectItem>
@@ -1637,7 +1637,7 @@ export default function Flashcards() {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  CONFIRMAR COMBINACIÓN
+                  CONFIRMAR COMBINACIÃ“N
                 </>
               )}
             </button>
@@ -1656,10 +1656,10 @@ export default function Flashcards() {
           </DialogHeader>
           <div className="py-4">
             <p className="text-muted-foreground">
-              ¿Estás seguro de que deseas eliminar el mazo <span className="font-semibold text-foreground">"{deckToDelete?.nombre}"</span>?
+              Â¿EstÃ¡s seguro de que deseas eliminar el mazo <span className="font-semibold text-foreground">"{deckToDelete?.nombre}"</span>?
             </p>
             <p className="text-sm text-destructive mt-2">
-              Esta acción eliminará todas las tarjetas ({deckToDelete?.total_cards}) y no se puede deshacer.
+              Esta acciÃ³n eliminarÃ¡ todas las tarjetas ({deckToDelete?.total_cards}) y no se puede deshacer.
             </p>
           </div>
           <div className="flex gap-3">
@@ -1689,19 +1689,19 @@ export default function Flashcards() {
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Descripción</label>
+              <label className="text-sm font-medium">DescripciÃ³n</label>
               <textarea
                 className="w-full h-24 p-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-neon-cyan/50"
-                placeholder="Describe qué contiene este mazo..."
+                placeholder="Describe quÃ© contiene este mazo..."
                 value={pubDescription}
                 onChange={(e) => setPubDescription(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Categoría</label>
+              <label className="text-sm font-medium">CategorÃ­a</label>
               <input
                 className="w-full p-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-neon-cyan/50"
-                placeholder="Ej: Medicina, Historia, Programación..."
+                placeholder="Ej: Medicina, Historia, ProgramaciÃ³n..."
                 value={pubCategory}
                 onChange={(e) => setPubCategory(e.target.value)}
               />
@@ -1723,9 +1723,9 @@ export default function Flashcards() {
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">Publicar como anónimo</p>
+                  <p className="font-semibold text-sm">Publicar como anÃ³nimo</p>
                   <p className="text-xs text-muted-foreground">
-                    Oculta tu identidad y carrera a los demás usuarios.
+                    Oculta tu identidad y carrera a los demÃ¡s usuarios.
                   </p>
                 </div>
               </div>

@@ -305,8 +305,12 @@ export default function Library() {
     if (viewerTimerRef.current) clearInterval(viewerTimerRef.current);
     
     // Convert to a local variable for the closure in case state clears
-    const secondsToSave = viewerTimer;
+    let secondsToSave = viewerTimer;
     const fileToSave = fullScreenFile;
+
+    if (secondsToSave > 43200) {
+      secondsToSave = 43200; // Cap at 12 hours
+    }
     
     if (secondsToSave > 5 && user && fileToSave) {
       supabase.from("study_sessions").insert({
@@ -1418,7 +1422,11 @@ export default function Library() {
 
     return () => {
       const endTime = Date.now();
-      const durationSeconds = Math.floor((endTime - startTime) / 1000);
+      let durationSeconds = Math.floor((endTime - startTime) / 1000);
+
+      if (durationSeconds > 43200) {
+        durationSeconds = 43200; // Cap at 12 hours
+      }
 
       if (durationSeconds > 5 && user) {
         // Save session

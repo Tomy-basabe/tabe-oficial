@@ -700,9 +700,13 @@ export function StudyRoomProvider({ children }: { children: ReactNode }) {
     if (!user || !currentRoom || !myParticipant) return;
 
     try {
-      const duration = sessionStartTime
+      let duration = sessionStartTime
         ? Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000)
         : 0;
+
+      if (duration > 43200) {
+        duration = 43200; // Cap at 12 hours
+      }
 
       await supabase
         .from("room_participants")
