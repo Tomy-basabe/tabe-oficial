@@ -221,6 +221,7 @@ const AppRoutes = () => (
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
 import { StudyTimerProvider } from "@/contexts/StudyTimerContext";
 import { AIChatProvider } from "@/contexts/AIChatContext";
+import { FriendsSocialProvider } from "@/contexts/FriendsSocialContext";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
 import { IncomingChallengeModal } from "@/components/games/IncomingChallengeModal";
 import { useTheme } from "@/hooks/useTheme";
@@ -240,14 +241,16 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
-                <DiscordVoiceProvider>
-                  <DynamicTitleWatcher />
-                  <AppRoutes />
-                  <GlobalDiscordVoiceWidget />
-                  <PWAInstallBanner />
-                  <IncomingChallengeModal />
-                  <CookieConsent />
-                </DiscordVoiceProvider>
+                <FriendsSocialProvider>
+                  <DiscordVoiceProvider>
+                    <DynamicTitleWatcher />
+                    <AppRoutes />
+                    <GlobalDiscordVoiceWidget />
+                    <PWAInstallBanner />
+                    <IncomingChallengeModal />
+                    <CookieConsent />
+                  </DiscordVoiceProvider>
+                </FriendsSocialProvider>
               </BrowserRouter>
             </AIChatProvider>
           </StudyTimerProvider>
