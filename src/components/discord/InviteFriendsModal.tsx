@@ -32,8 +32,8 @@ export function InviteFriendsModal({
   const [invitedUsers, setInvitedUsers] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
 
-  // Generate invite code (simple version - just the server ID for now)
-  const inviteCode = `STUDYAPP-${serverId.slice(0, 8).toUpperCase()}`;
+  // Generate invite code (prefixed with TABE)
+  const inviteCode = `TABE-${serverId.slice(0, 8).toUpperCase()}`;
   const inviteLink = `${window.location.origin}/tabetalk?invite=${inviteCode}`;
 
   // Filter friends who are not already members
