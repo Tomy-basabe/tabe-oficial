@@ -72,6 +72,8 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const [peerStates, setPeerStates] = useState<Map<string, string>>(new Map());
     const [cameras, setCameras] = useState<CameraDevice[]>([]);
     const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+    const [mics, setMics] = useState<CameraDevice[]>([]);
+    const [selectedMicId, setSelectedMicId] = useState<string>('');
     const [remoteMediaStates, setRemoteMediaStates] = useState<Map<string, RemoteMediaState>>(new Map());
     const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
 
@@ -103,7 +105,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const log = useCallback((msg: string) => console.log(`[Tabetalk WebRTC] ${msg}`), []);
 
     // â”€â”€â”€ Dispositivos de cÃ¡mara â”€â”€â”€
-    const refreshCameras = useCallback(async () => {
+    const refreshDevices = useCallback(async () => {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const videoDevices = devices
@@ -116,7 +118,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         } catch { /* ignore */ }
     }, [selectedCameraId]);
 
-    useEffect(() => { refreshCameras(); }, []);
+    useEffect(() => { refreshDevices(); }, []);
 
     // â”€â”€â”€ Enviar seÃ±ales por Realtime sin duplicaciones â”€â”€â”€
     const sendSignal = useCallback((event: string, payload: any) => {
@@ -702,7 +704,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             if (stream.getAudioTracks().length > 0) {
                 setupLocalVAD(stream);
             }
-            await refreshCameras();
+            await refreshDevices();
 
             // Configurar canal de seÃ±alizaciÃ³n Ãºnico en Supabase Realtime
             const channel = supabase.channel(`tabetalk:${channelId}`, {
@@ -786,7 +788,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             cancelled = true;
             cleanupAll();
         };
-    }, [channelId, user?.id, setupLocalVAD, refreshCameras, getOrCreatePC, handleOffer, handleAnswer, handleIceCandidate, handleMediaState, handleSpeaking, closePeer, cleanupAll, broadcastMediaState, sendSignal, toast, log]);
+    }, [channelId, user?.id, setupLocalVAD, refreshDevices, getOrCreatePC, handleOffer, handleAnswer, handleIceCandidate, handleMediaState, handleSpeaking, closePeer, cleanupAll, broadcastMediaState, sendSignal, toast, log]);
 
     // â”€â”€â”€ Toggle Audio (MicrÃ³fono) â”€â”€â”€
     const toggleAudio = useCallback(() => {
@@ -1065,6 +1067,9 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         cameras,
         selectedCameraId,
         switchCamera,
+        mics,
+        selectedMicId,
+        switchMic,
         startScreenShare,
         stopScreenShare,
         screenStream,
@@ -1073,5 +1078,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         speakingUsers,
     };
 }
+
+
 
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { DiscordServerList } from "@/components/discord/DiscordServerList";
@@ -45,7 +45,7 @@ export default function Tabetalk() {
   const [prefillInviteCode, setPrefillInviteCode] = useState<string>("");
   const [activeFeatureModal, setActiveFeatureModal] = useState<FeatureCardType>(null);
 
-  // Auto-detectar código de invitación en la URL (?invite=XYZ)
+  // Auto-detectar cÃ³digo de invitaciÃ³n en la URL (?invite=XYZ)
   useEffect(() => {
     const inviteParam = searchParams.get("invite");
     if (inviteParam) {
@@ -109,12 +109,15 @@ export default function Tabetalk() {
     cameras,
     selectedCameraId,
     switchCamera,
+    mics,
+    selectedMicId,
+    switchMic,
     screenStream,
     remoteScreenStreams,
     remoteMediaStates,
   } = discord;
 
-  // Desconexión limpia de llamada WebRTC y retorno al Dashboard
+  // DesconexiÃ³n limpia de llamada WebRTC y retorno al Dashboard
   const handleGoBack = async () => {
     if (inVoiceChannel) {
       try {
@@ -300,6 +303,9 @@ export default function Tabetalk() {
                 onToggleScreenShare={isScreenSharing ? stopScreenShare : startScreenShare}
                 onLeaveChannel={leaveVoiceChannel}
                 onSwitchCamera={switchCamera}
+                mics={mics}
+                selectedMicId={selectedMicId}
+                onSwitchMic={switchMic}
                 speakingUsers={speakingUsers}
                 screenStream={screenStream}
                 remoteScreenStreams={remoteScreenStreams}
@@ -312,7 +318,7 @@ export default function Tabetalk() {
                     <Hash className="w-8 h-8 text-black stroke-[2.5]" />
                   </div>
                   <h3 className="text-xl font-black text-foreground uppercase tracking-wide mb-2">
-                    Ningún canal seleccionado
+                    NingÃºn canal seleccionado
                   </h3>
                   <p className="text-sm font-medium text-muted-foreground">
                     Elige un canal de texto o voz en el panel izquierdo para conversar o conectarte en llamada.
@@ -323,9 +329,9 @@ export default function Tabetalk() {
           </div>
         </div>
       ) : (
-        /* === EMPTY STATE / PANTALLA DE BIENVENIDA NEOBRUTALISTA GAMING / CÓMIC SCROLLEABLE EN MÓVIL === */
+        /* === EMPTY STATE / PANTALLA DE BIENVENIDA NEOBRUTALISTA GAMING / CÃ“MIC SCROLLEABLE EN MÃ“VIL === */
         <div className="flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 pb-24 sm:pb-12 flex flex-col items-center justify-start md:justify-center relative z-10 discord-scrollbar">
-          {/* Estilos CSS nativos ligeros acelerados por hardware para animación cómic flotante */}
+          {/* Estilos CSS nativos ligeros acelerados por hardware para animaciÃ³n cÃ³mic flotante */}
           <style>{`
             @keyframes comicFloatA {
               0%, 100% { transform: translate3d(0, 0px, 0) rotate(0deg); }
@@ -344,16 +350,16 @@ export default function Tabetalk() {
             .comic-float-c { animation: comicFloatC 4.5s ease-in-out infinite 1.4s; will-change: transform; }
           `}</style>
 
-          {/* Formas flotantes cómic / gaming decorativas de fondo (Zero network / Zero websocket) */}
+          {/* Formas flotantes cÃ³mic / gaming decorativas de fondo (Zero network / Zero websocket) */}
           <div className="pointer-events-none z-0 absolute top-8 left-8 sm:top-10 sm:left-14 comic-float-a hidden sm:flex items-center justify-center">
             <div className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-black shadow-[3px_3px_0px_#000] rotate-12 flex items-center justify-center text-black font-black text-sm">
-              ✦
+              âœ¦
             </div>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-24 left-20 sm:top-24 sm:left-28 comic-float-b hidden md:flex items-center justify-center">
             <span className="text-xl font-black text-[#00E5FF] drop-shadow-[2px_2px_0px_#000] select-none">
-              ✚
+              âœš
             </span>
           </div>
 
@@ -366,13 +372,13 @@ export default function Tabetalk() {
 
           <div className="pointer-events-none z-0 absolute top-24 right-16 sm:top-24 sm:right-28 comic-float-c hidden md:flex items-center justify-center">
             <div className="w-7 h-7 rounded-md bg-[#FF2E93] border-2 border-black shadow-[2px_2px_0px_#000] -rotate-12 flex items-center justify-center text-white font-black text-xs">
-              ✧
+              âœ§
             </div>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-1/2 left-6 sm:left-10 -translate-y-1/2 comic-float-c hidden lg:flex items-center justify-center">
             <div className="w-8 h-8 rounded-lg bg-[#00E5FF] border-2 border-black shadow-[3px_3px_0px_#000] rotate-6 flex items-center justify-center text-black font-black text-sm">
-              ⚡
+              âš¡
             </div>
           </div>
 
@@ -389,14 +395,14 @@ export default function Tabetalk() {
             <div className="flex flex-wrap items-center justify-center gap-1.5 mb-2.5">
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FFE600] text-black font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
                 <Flame className="w-3 h-3 fill-black stroke-black" />
-                🔥 TABETALK V2.0
+                ðŸ”¥ TABETALK V2.0
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#00E5FF] text-black font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
                 <Zap className="w-3 h-3 fill-black stroke-black" />
-                ⚡ P2P DIRECTO
+                âš¡ P2P DIRECTO
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FF2E93] text-white font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
-                🎮 CO-STUDY
+                ðŸŽ® CO-STUDY
               </span>
             </div>
 
@@ -415,23 +421,23 @@ export default function Tabetalk() {
               </div>
             </div>
 
-            {/* Título Neobrutalista Equilibrado */}
+            {/* TÃ­tulo Neobrutalista Equilibrado */}
             <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-foreground mb-2 leading-none">
-              ¡BIENVENIDO A{" "}
+              Â¡BIENVENIDO A{" "}
               <span className="inline-block bg-[#FFE600] text-black px-2.5 py-0.5 rounded-lg border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] rotate-1">
                 TABETALK
               </span>
               !
             </h1>
 
-            {/* Subtítulo / Descripción Compacta */}
+            {/* SubtÃ­tulo / DescripciÃ³n Compacta */}
             <div className="max-w-md mx-auto mb-4 p-2.5 rounded-xl bg-card border-2 border-black shadow-[3px_3px_0px_#000]">
               <p className="text-muted-foreground text-xs sm:text-sm font-bold leading-normal">
-                Selecciona un servidor o conéctate con tus compañeros para estudiar, encender tu cámara y compartir pantalla sin límites.
+                Selecciona un servidor o conÃ©ctate con tus compaÃ±eros para estudiar, encender tu cÃ¡mara y compartir pantalla sin lÃ­mites.
               </p>
             </div>
 
-            {/* Botones Principales Arcade: Crear Servidor & Unirse con Código */}
+            {/* Botones Principales Arcade: Crear Servidor & Unirse con CÃ³digo */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full max-w-md mx-auto mb-5 sm:mb-6">
               <button
                 onClick={handleOpenCreateModal}
@@ -450,11 +456,11 @@ export default function Tabetalk() {
                 <div className="w-5 h-5 rounded-md bg-black text-[#00E5FF] flex items-center justify-center group-hover:-rotate-12 transition-transform shrink-0">
                   <KeyRound className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
-                <span>UNIRSE CON CÓDIGO</span>
+                <span>UNIRSE CON CÃ“DIGO</span>
               </button>
             </div>
 
-            {/* 3 Cards Interactivas Cómic / Gaming Neobrutalistas Compactas */}
+            {/* 3 Cards Interactivas CÃ³mic / Gaming Neobrutalistas Compactas */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-3xl">
               
               {/* Card 1: Voz & Video P2P */}
@@ -470,19 +476,19 @@ export default function Tabetalk() {
                           <Video className="w-4 h-4 stroke-[2.5]" />
                         </div>
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#00E5FF]/20 text-foreground border border-black">
-                          ⚡ P2P DIRECTO
+                          âš¡ P2P DIRECTO
                         </span>
                       </div>
                       <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
                         Voz & Video P2P
                       </h3>
                       <p className="text-[11px] font-medium text-muted-foreground leading-snug line-clamp-2">
-                        Transmisión directa punto a punto entre navegadores sin lag ni intermediarios.
+                        TransmisiÃ³n directa punto a punto entre navegadores sin lag ni intermediarios.
                       </p>
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Explorar sala</span>
-                      <span>→</span>
+                      <span>â†’</span>
                     </div>
                   </div>
                 </TooltipTrigger>
@@ -504,24 +510,24 @@ export default function Tabetalk() {
                           <MonitorUp className="w-4 h-4 stroke-[2.5]" />
                         </div>
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FF2E93]/20 text-foreground border border-black">
-                          🎮 CO-STUDY
+                          ðŸŽ® CO-STUDY
                         </span>
                       </div>
                       <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
                         Pantalla Compartida
                       </h3>
                       <p className="text-[11px] font-medium text-muted-foreground leading-snug line-clamp-2">
-                        Transmite diapositivas, código o apuntes en vivo en calidad HD a tus compañeros.
+                        Transmite diapositivas, cÃ³digo o apuntes en vivo en calidad HD a tus compaÃ±eros.
                       </p>
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
-                      <span>Cómo transmitir</span>
-                      <span>→</span>
+                      <span>CÃ³mo transmitir</span>
+                      <span>â†’</span>
                     </div>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-black shadow-[3px_3px_0px_#000]">
-                  Click para ver cómo compartir pantalla
+                  Click para ver cÃ³mo compartir pantalla
                 </TooltipContent>
               </Tooltip>
 
@@ -538,7 +544,7 @@ export default function Tabetalk() {
                           <Users className="w-4 h-4 stroke-[2.5]" />
                         </div>
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FFE600]/30 text-foreground border border-black">
-                          🔥 CANALES
+                          ðŸ”¥ CANALES
                         </span>
                       </div>
                       <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
@@ -549,8 +555,8 @@ export default function Tabetalk() {
                       </p>
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
-                      <span>Unirse con código</span>
-                      <span>→</span>
+                      <span>Unirse con cÃ³digo</span>
+                      <span>â†’</span>
                     </div>
                   </div>
                 </TooltipTrigger>
@@ -597,16 +603,16 @@ export default function Tabetalk() {
                 {activeFeatureModal === "voice" && (
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-muted-foreground leading-relaxed">
-                      Conéctate a cualquier canal de voz en tus servidores para iniciar videollamadas con baja latencia gracias a la conexión cifrada P2P con servidores STUN públicos.
+                      ConÃ©ctate a cualquier canal de voz en tus servidores para iniciar videollamadas con baja latencia gracias a la conexiÃ³n cifrada P2P con servidores STUN pÃºblicos.
                     </p>
                     <div className="space-y-2 text-xs font-bold">
                       <div className="flex items-center gap-2 text-foreground">
                         <CheckCircle2 className="w-4 h-4 text-success" />
-                        <span>Soporta múltiples cámaras y cambio dinámico</span>
+                        <span>Soporta mÃºltiples cÃ¡maras y cambio dinÃ¡mico</span>
                       </div>
                       <div className="flex items-center gap-2 text-foreground">
                         <CheckCircle2 className="w-4 h-4 text-success" />
-                        <span>Detección de voz activa y silenciador instantáneo</span>
+                        <span>DetecciÃ³n de voz activa y silenciador instantÃ¡neo</span>
                       </div>
                     </div>
                   </div>
@@ -615,12 +621,12 @@ export default function Tabetalk() {
                 {activeFeatureModal === "screen" && (
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-muted-foreground leading-relaxed">
-                      Dentro de una sala de voz, activa el botón de pantalla para compartir tus pestañas, apuntes de Notion o tu IDE de programación en directo.
+                      Dentro de una sala de voz, activa el botÃ³n de pantalla para compartir tus pestaÃ±as, apuntes de Notion o tu IDE de programaciÃ³n en directo.
                     </p>
                     <div className="space-y-2 text-xs font-bold">
                       <div className="flex items-center gap-2 text-foreground">
                         <CheckCircle2 className="w-4 h-4 text-success" />
-                        <span>Reemplazo dinámico de cámara a pantalla sin cortar la llamada</span>
+                        <span>Reemplazo dinÃ¡mico de cÃ¡mara a pantalla sin cortar la llamada</span>
                       </div>
                       <div className="flex items-center gap-2 text-foreground">
                         <CheckCircle2 className="w-4 h-4 text-success" />
@@ -633,7 +639,7 @@ export default function Tabetalk() {
                 {activeFeatureModal === "community" && (
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-muted-foreground leading-relaxed">
-                      Crea un servidor propio para tu cursada, grupo de trabajo o materias, o únete al de tus compañeros mediante un código alfanumérico rápido.
+                      Crea un servidor propio para tu cursada, grupo de trabajo o materias, o Ãºnete al de tus compaÃ±eros mediante un cÃ³digo alfanumÃ©rico rÃ¡pido.
                     </p>
                     <div className="space-y-2 text-xs font-bold">
                       <div className="flex items-center gap-2 text-foreground">
@@ -642,7 +648,7 @@ export default function Tabetalk() {
                       </div>
                       <div className="flex items-center gap-2 text-foreground">
                         <CheckCircle2 className="w-4 h-4 text-success" />
-                        <span>Códigos de invitación únicos y gestión segura de miembros</span>
+                        <span>CÃ³digos de invitaciÃ³n Ãºnicos y gestiÃ³n segura de miembros</span>
                       </div>
                     </div>
                   </div>
@@ -679,3 +685,4 @@ export default function Tabetalk() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+﻿import { useRef, useEffect, useState } from "react";
 import { Volume2, Mic, MicOff, Video, VideoOff, Monitor, PhoneOff, MonitorOff, SwitchCamera, ChevronDown } from "lucide-react";
 import type { CameraDevice } from "@/hooks/useRobustDiscord";
 import { cn } from "@/lib/utils";
@@ -20,11 +20,14 @@ interface DiscordVoiceChannelProps {
   isDeafened: boolean;
   cameras?: CameraDevice[];
   selectedCameraId?: string;
+  mics?: CameraDevice[];
+  selectedMicId?: string;
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
   onLeaveChannel: () => void;
   onSwitchCamera?: (deviceId: string) => void;
+  onSwitchMic?: (deviceId: string) => void;
   screenStream?: MediaStream | null;
   remoteScreenStreams?: Map<string, MediaStream>;
   remoteMediaStates?: Map<string, any>;
@@ -43,11 +46,14 @@ export function DiscordVoiceChannel({
   isDeafened,
   cameras = [],
   selectedCameraId = '',
+  mics = [],
+  selectedMicId = '',
   onToggleAudio,
   onToggleVideo,
   onToggleScreenShare,
   onLeaveChannel,
   onSwitchCamera,
+  onSwitchMic,
   screenStream,
   remoteScreenStreams = new Map(),
   remoteMediaStates = new Map(),
@@ -55,8 +61,9 @@ export function DiscordVoiceChannel({
   const { user } = useAuth();
   const localUserId = user?.id || "";
   const [showCameraMenu, setShowCameraMenu] = useState(false);
+  const [showMicMenu, setShowMicMenu] = useState(false);
 
-  // Normalize participants asegurando unificación reactiva:
+  // Normalize participants asegurando unificaciÃ³n reactiva:
   // 1. Participantes de base de datos
   const dbParticipants = voiceParticipants || participants || [];
 
@@ -71,7 +78,7 @@ export function DiscordVoiceChannel({
     is_screen_sharing: isScreenSharing,
     is_speaking: speakingUsers.has(localUserId),
     joined_at: new Date().toISOString(),
-    profile: (user?.user_metadata as any) || { nombre: "Tú", username: "Tú" }
+    profile: (user?.user_metadata as any) || { nombre: "TÃº", username: "TÃº" }
   };
 
   // 3. Unir mapa de participantes (DB + Streams WebRTC activos + Media States)
@@ -101,12 +108,12 @@ export function DiscordVoiceChannel({
         is_screen_sharing: remoteMediaStates.get(peerId)?.isScreenSharing ?? false,
         is_speaking: speakingUsers.has(peerId),
         joined_at: new Date().toISOString(),
-        profile: { username: "Compañero", nombre: "Compañero" }
+        profile: { username: "CompaÃ±ero", nombre: "CompaÃ±ero" }
       });
     }
   });
 
-  // Asegurar también cualquier peer que haya emitido remoteMediaState
+  // Asegurar tambiÃ©n cualquier peer que haya emitido remoteMediaState
   remoteMediaStates.forEach((state, peerId) => {
     if (!participantsMap.has(peerId) && peerId !== localUserId) {
       participantsMap.set(peerId, {
@@ -119,14 +126,14 @@ export function DiscordVoiceChannel({
         is_screen_sharing: state.isScreenSharing,
         is_speaking: speakingUsers.has(peerId),
         joined_at: new Date().toISOString(),
-        profile: { username: "Compañero", nombre: "Compañero" }
+        profile: { username: "CompaÃ±ero", nombre: "CompaÃ±ero" }
       });
     }
   });
 
   const activeParticipants = Array.from(participantsMap.values());
 
-  // Find screen sharer (activación inmediata al recibir señal o stream)
+  // Find screen sharer (activaciÃ³n inmediata al recibir seÃ±al o stream)
   const screenSharer = isScreenSharing
     ? localParticipant
     : activeParticipants.find(p => {
@@ -134,7 +141,7 @@ export function DiscordVoiceChannel({
         return Boolean(isSharing);
       });
 
-  // Desbloqueo proactivo de audio en navegadores móviles (iOS Safari / Android Chrome)
+  // Desbloqueo proactivo de audio en navegadores mÃ³viles (iOS Safari / Android Chrome)
   useEffect(() => {
     const unlockAudio = () => {
       document.querySelectorAll("audio, video").forEach((el: any) => {
@@ -232,7 +239,7 @@ export function DiscordVoiceChannel({
             icon={isAudioEnabled ? Mic : MicOff}
             active={!isAudioEnabled}
             onClick={onToggleAudio}
-            tooltip={isAudioEnabled ? "Silenciar Micrófono" : "Activar Micrófono"}
+            tooltip={isAudioEnabled ? "Silenciar MicrÃ³fono" : "Activar MicrÃ³fono"}
             variant={isAudioEnabled ? "yellow" : "danger"}
           />
 
@@ -242,14 +249,14 @@ export function DiscordVoiceChannel({
               icon={isVideoEnabled ? Video : VideoOff}
               active={isVideoEnabled}
               onClick={onToggleVideo}
-              tooltip={isVideoEnabled ? "Apagar Cámara" : "Encender Cámara"}
+              tooltip={isVideoEnabled ? "Apagar CÃ¡mara" : "Encender CÃ¡mara"}
               variant={isVideoEnabled ? "cyan" : "neutral"}
             />
             {cameras.length > 1 && (
               <button
                 onClick={() => setShowCameraMenu(!showCameraMenu)}
                 className="ml-1 w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 text-foreground border-2 border-black shadow-[1.5px_1.5px_0px_#000] transition-all"
-                title="Cambiar cámara"
+                title="Cambiar cÃ¡mara"
               >
                 <ChevronDown className="w-4 h-4 stroke-[2.5]" />
               </button>
@@ -310,7 +317,7 @@ export function DiscordVoiceChannel({
   );
 }
 
-// ═══ Participant Video Tile (Comic Style) ═══
+// â•â•â• Participant Video Tile (Comic Style) â•â•â•
 function VideoTile({
   participant,
   stream,
@@ -339,7 +346,7 @@ function VideoTile({
     const el = videoRef.current;
     if (!el) return;
 
-    if (!stream || !showVideo) {
+    if (!stream) {
       el.srcObject = null;
       return;
     }
@@ -347,10 +354,10 @@ function VideoTile({
     if (el.srcObject !== stream) {
       el.srcObject = stream;
     }
-    el.play().catch(() => {});
-  }, [stream, showVideo]);
+    el.play().catch((err) => console.log('AutoPlay prevented:', err));
+  }, [stream]); // NO DEPENDER DE showVideo, SINO CORTA EL AUDIO
 
-  // Escuchar adición o remoción de pistas en caliente (cámara on/off, pantalla on/off)
+  // Escuchar adiciÃ³n o remociÃ³n de pistas en caliente (cÃ¡mara on/off, pantalla on/off)
   useEffect(() => {
     if (!stream) return;
     const onTrackChange = () => setTrackUpdate(n => n + 1);
@@ -383,7 +390,7 @@ function VideoTile({
         />
       )}
 
-      {/* Avatar cuando la cámara no está activa */}
+      {/* Avatar cuando la cÃ¡mara no estÃ¡ activa */}
       {!showVideo && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/30 p-4">
           <Avatar className={cn(
@@ -414,14 +421,14 @@ function VideoTile({
           <Mic className="w-3.5 h-3.5 text-black stroke-[3]" />
         )}
         <span className="truncate">
-          {isLocal ? "Tú" : (participant.profile?.username || participant.profile?.nombre || "Usuario")}
+          {isLocal ? "TÃº" : (participant.profile?.username || participant.profile?.nombre || "Usuario")}
         </span>
       </div>
     </div>
   );
 }
 
-// ═══ Small Participant Tile for Screen Share sidebar ═══
+// â•â•â• Small Participant Tile for Screen Share sidebar â•â•â•
 function SmallTile({
   participant,
   stream,
@@ -488,18 +495,18 @@ function SmallTile({
         </Avatar>
       )}
       <div className="absolute bottom-1 left-1 bg-white text-black font-black text-[10px] px-1.5 py-0.5 rounded border border-black truncate max-w-[90%]">
-        {isLocal ? "Tú" : (participant.profile?.username || "Usuario")}
+        {isLocal ? "TÃº" : (participant.profile?.username || "Usuario")}
       </div>
     </div>
   );
 }
 
-// ═══ Screen Share Tile ═══
+// â•â•â• Screen Share Tile â•â•â•
 function ScreenShareTile({ stream, isLocal = false }: { stream?: MediaStream | null; isLocal?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [, setTrackVersion] = useState(0);
 
-  // Escuchar adición dinámica de tracks de video
+  // Escuchar adiciÃ³n dinÃ¡mica de tracks de video
   useEffect(() => {
     if (!stream) return;
     const handleTrackChange = () => setTrackVersion(v => v + 1);
@@ -548,7 +555,7 @@ function ScreenShareTile({ stream, isLocal = false }: { stream?: MediaStream | n
   );
 }
 
-// ═══ Comic Control Button ═══
+// â•â•â• Comic Control Button â•â•â•
 function ComicControlBtn({
   icon: Icon,
   active,
@@ -589,3 +596,7 @@ function ComicControlBtn({
     </Tooltip>
   );
 }
+
+
+
+

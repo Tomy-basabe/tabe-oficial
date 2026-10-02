@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from "react";
+﻿import { createContext, useContext, ReactNode } from "react";
 import { useDiscord } from "@/hooks/useDiscord";
 import { useRobustDiscord } from "@/hooks/useRobustDiscord";
 import { DiscordAudioRenderer } from "@/components/discord/DiscordAudioRenderer";
@@ -35,6 +35,9 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
         cameras: voice.cameras,
         selectedCameraId: voice.selectedCameraId,
         switchCamera: voice.switchCamera,
+        mics: voice.mics,
+        selectedMicId: voice.selectedMicId,
+        switchMic: voice.switchMic,
         speakingUsers: voice.speakingUsers && voice.speakingUsers.size > 0 ? voice.speakingUsers : discord.speakingUsers,
         remoteMediaStates: voice.remoteMediaStates,
     };
@@ -55,3 +58,4 @@ export function useDiscordVoice() {
     }
     return context;
 }
+
