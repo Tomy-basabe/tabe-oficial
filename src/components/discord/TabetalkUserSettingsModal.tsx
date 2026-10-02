@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { 
   X, 
@@ -114,7 +114,7 @@ export function TabetalkUserSettingsModal({
         const hasLabels = devices.some((d) => d.label);
         if (!hasLabels && navigator.mediaDevices.getUserMedia) {
           try {
-            const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+            const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             tempStream.getTracks().forEach((track) => track.stop());
             devices = await navigator.mediaDevices.enumerateDevices();
           } catch {
@@ -128,17 +128,17 @@ export function TabetalkUserSettingsModal({
 
         devices.forEach((d, idx) => {
           if (d.kind === "audioinput") {
-            aInputs.push({ deviceId: d.deviceId || `audioinput-${idx}`, label: d.label || `Micrófono ${aInputs.length + 1}` });
+            aInputs.push({ deviceId: d.deviceId || `audioinput-${idx}`, label: d.label || `MicrÃ³fono ${aInputs.length + 1}` });
           } else if (d.kind === "audiooutput") {
             aOutputs.push({ deviceId: d.deviceId || `audiooutput-${idx}`, label: d.label || `Altavoz ${aOutputs.length + 1}` });
           } else if (d.kind === "videoinput") {
-            vInputs.push({ deviceId: d.deviceId || `videoinput-${idx}`, label: d.label || `Cámara ${vInputs.length + 1}` });
+            vInputs.push({ deviceId: d.deviceId || `videoinput-${idx}`, label: d.label || `CÃ¡mara ${vInputs.length + 1}` });
           }
         });
 
-        setAudioInputs(aInputs.length ? aInputs : [{ deviceId: "default", label: "Micrófono predeterminado" }]);
+        setAudioInputs(aInputs.length ? aInputs : [{ deviceId: "default", label: "MicrÃ³fono predeterminado" }]);
         setAudioOutputs(aOutputs.length ? aOutputs : [{ deviceId: "default", label: "Altavoces predeterminados" }]);
-        setVideoInputs(vInputs.length ? vInputs : [{ deviceId: "default", label: "Cámara web predeterminada" }]);
+        setVideoInputs(vInputs.length ? vInputs : [{ deviceId: "default", label: "CÃ¡mara web predeterminada" }]);
       } catch (err) {
         console.warn("Error enumerating devices:", err);
       }
@@ -188,8 +188,8 @@ export function TabetalkUserSettingsModal({
       };
       checkVolume();
     } catch (e) {
-      console.warn("No se pudo iniciar el test de micrófono:", e);
-      toast.error("No se pudo acceder al micrófono para la prueba.");
+      console.warn("No se pudo iniciar el test de micrÃ³fono:", e);
+      toast.error("No se pudo acceder al micrÃ³fono para la prueba.");
     }
   };
 
@@ -213,15 +213,18 @@ export function TabetalkUserSettingsModal({
       const constraints: MediaStreamConstraints = {
         video: selectedVideoInput !== "default" ? { deviceId: { exact: selectedVideoInput }, width: { ideal: 640 }, height: { ideal: 360 } } : true,
       };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      cameraStreamRef.current = stream;
+      let stream = cameraStreamRef.current;
+      if (!stream) {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        cameraStreamRef.current = stream;
+      }
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
       }
       setIsTestingCamera(true);
     } catch (e) {
-      console.warn("No se pudo iniciar la cámara:", e);
-      toast.error("No se pudo acceder a la cámara seleccionada.");
+      console.warn("No se pudo iniciar la cÃ¡mara:", e);
+      toast.error("No se pudo acceder a la cÃ¡mara seleccionada.");
     }
   };
 
@@ -277,7 +280,7 @@ export function TabetalkUserSettingsModal({
     localStorage.setItem("tabetalk_ptt_enabled", pushToTalk.toString());
     localStorage.setItem("tabetalk_mute_shortcut", muteShortcut.toUpperCase());
 
-    toast.success("Configuración de Tabetalk guardada correctamente");
+    toast.success("ConfiguraciÃ³n de Tabetalk guardada correctamente");
     onOpenChange(false);
   };
 
@@ -329,7 +332,7 @@ export function TabetalkUserSettingsModal({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            aria-label="Cerrar modal de configuración"
+            aria-label="Cerrar modal de configuraciÃ³n"
             className="w-9 h-9 rounded-xl bg-white border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center hover:bg-neutral-100 active:translate-y-0.5 transition-all cursor-pointer"
           >
             <X className="w-5 h-5 stroke-[3] text-black" />
@@ -390,7 +393,7 @@ export function TabetalkUserSettingsModal({
                 <div className="p-4 rounded-xl border-2 border-black bg-neutral-50 shadow-[3px_3px_0px_#000] space-y-2">
                   <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-black">
                     <Mic className="w-4 h-4 text-black stroke-[2.5]" />
-                    Dispositivo de Entrada (Micrófono)
+                    Dispositivo de Entrada (MicrÃ³fono)
                   </label>
                   <select
                     value={selectedAudioInput}
@@ -425,13 +428,13 @@ export function TabetalkUserSettingsModal({
                 </div>
               </div>
 
-              {/* Prueba de Micrófono & Sensibilidad */}
+              {/* Prueba de MicrÃ³fono & Sensibilidad */}
               <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse border border-black" />
                     <span className="text-xs font-black uppercase tracking-wider text-black">
-                      Prueba de Micrófono
+                      Prueba de MicrÃ³fono
                     </span>
                   </div>
                   <button
@@ -445,7 +448,7 @@ export function TabetalkUserSettingsModal({
                     )}
                   >
                     {isTestingMic ? <VolumeX className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    {isTestingMic ? "Detener Prueba" : "Probar Micrófono"}
+                    {isTestingMic ? "Detener Prueba" : "Probar MicrÃ³fono"}
                   </button>
                 </div>
 
@@ -481,11 +484,11 @@ export function TabetalkUserSettingsModal({
                 </div>
               </div>
 
-              {/* Cámara y Preview Box */}
+              {/* CÃ¡mara y Preview Box */}
               <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-3">
                 <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-black">
                   <Camera className="w-4 h-4 text-black stroke-[2.5]" />
-                  Cámara de Video (Webcam)
+                  CÃ¡mara de Video (Webcam)
                 </label>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <select
@@ -510,7 +513,7 @@ export function TabetalkUserSettingsModal({
                     )}
                   >
                     <Video className="w-4 h-4" />
-                    {isTestingCamera ? "Apagar Cámara" : "Vista Previa"}
+                    {isTestingCamera ? "Apagar CÃ¡mara" : "Vista Previa"}
                   </button>
                 </div>
 
@@ -551,7 +554,7 @@ export function TabetalkUserSettingsModal({
                   className="w-full bg-white text-black text-sm font-bold px-4 py-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20"
                 />
                 <p className="text-xs font-semibold text-neutral-600 mt-1">
-                  Este es el nombre visible que verán los demás participantes en las salas de voz y chat.
+                  Este es el nombre visible que verÃ¡n los demÃ¡s participantes en las salas de voz y chat.
                 </p>
               </div>
 
@@ -585,7 +588,7 @@ export function TabetalkUserSettingsModal({
 
                 {/* Pre-made Avatars */}
                 <div>
-                  <p className="text-xs font-bold text-neutral-700 mb-2.5">O elegí un avatar temático cómic:</p>
+                  <p className="text-xs font-bold text-neutral-700 mb-2.5">O elegÃ­ un avatar temÃ¡tico cÃ³mic:</p>
                   <div className="flex items-center gap-3 overflow-x-auto pb-2">
                     {COMIC_AVATARS.map((seedUrl, idx) => (
                       <button
@@ -613,9 +616,9 @@ export function TabetalkUserSettingsModal({
               <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-black uppercase text-black">Supresión de Eco</h4>
+                    <h4 className="text-xs font-black uppercase text-black">SupresiÃ³n de Eco</h4>
                     <p className="text-xs font-semibold text-neutral-600 mt-0.5">
-                      Evita que los demás escuchen el audio que sale de tus altavoces.
+                      Evita que los demÃ¡s escuchen el audio que sale de tus altavoces.
                     </p>
                   </div>
                   <input
@@ -628,9 +631,9 @@ export function TabetalkUserSettingsModal({
 
                 <div className="border-t-2 border-black/10 pt-4 flex items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-black uppercase text-black">Cancelación de Ruido</h4>
+                    <h4 className="text-xs font-black uppercase text-black">CancelaciÃ³n de Ruido</h4>
                     <p className="text-xs font-semibold text-neutral-600 mt-0.5">
-                      Filtra ruidos de fondo, teclados y ventiladores automáticamente.
+                      Filtra ruidos de fondo, teclados y ventiladores automÃ¡ticamente.
                     </p>
                   </div>
                   <input
@@ -652,7 +655,7 @@ export function TabetalkUserSettingsModal({
                 <div className="flex items-center justify-between gap-4 pt-1">
                   <div>
                     <p className="text-xs font-bold text-neutral-900">Modo Pulsar para Hablar (Push-to-Talk)</p>
-                    <p className="text-xs font-semibold text-neutral-500 mt-0.5">Mantiene el micrófono silenciado hasta presionar la tecla.</p>
+                    <p className="text-xs font-semibold text-neutral-500 mt-0.5">Mantiene el micrÃ³fono silenciado hasta presionar la tecla.</p>
                   </div>
                   <input
                     type="checkbox"
@@ -663,7 +666,7 @@ export function TabetalkUserSettingsModal({
                 </div>
 
                 <div className="flex items-center justify-between gap-4 pt-3 border-t-2 border-black/10">
-                  <span className="text-xs font-bold text-neutral-900">Tecla rápida para silenciar/activar micrófono:</span>
+                  <span className="text-xs font-bold text-neutral-900">Tecla rÃ¡pida para silenciar/activar micrÃ³fono:</span>
                   <kbd className="px-3 py-1.5 bg-white text-black font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
                     {muteShortcut}
                   </kbd>
@@ -696,3 +699,5 @@ export function TabetalkUserSettingsModal({
     document.body
   );
 }
+
+
