@@ -335,12 +335,17 @@ export function useSubjects() {
         const { error: subError } = await supabase.from('subjects').insert(newSubjects);
         if (subError) throw subError;
 
-        const newDeps = tplDependencies.map((d: any) => ({
-          subject_id: idMap.get(d.subject_id),
-          requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
-          requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
-          user_id: user.id
-        })).filter((d: any) => d.subject_id);
+        const newDeps = tplDependencies.map((d: any) => {
+          const sId = idMap.get(d.subject_id);
+          const reqReg = d.requiere_regular ? idMap.get(d.requiere_regular) : null;
+          const reqApr = d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null;
+          return {
+            subject_id: sId,
+            requiere_regular: reqReg || null,
+            requiere_aprobada: reqApr || null,
+            user_id: user.id
+          };
+        }).filter((d: any) => d.subject_id && (d.requiere_regular || d.requiere_aprobada));
 
         if (newDeps.length > 0) {
           const { error: depError } = await supabase.from('subject_dependencies').insert(newDeps);
@@ -385,16 +390,32 @@ export function useSubjects() {
         import('@/data/sistemas_template.json').then(module => {
           const template = module.default;
           setSubjects(template.subjects);
-          // Pre-fill some statuses for visual richness
-          setUserStatuses(template.subjects.map((s: any, idx: number) => ({
-            id: `demo-st-${s.id}`,
-            subject_id: s.id,
-            estado: idx < 10 ? "aprobada" : (idx < 20 ? "regular" : "cursable"),
-            nota: idx < 10 ? 8 : null,
-            fecha_aprobacion: idx < 10 ? "2024-01-01" : null
-          })));
+          // Pre-fill only 1st year approved and a couple 2nd year regular to demonstrate realistic progress
+          const initialStatuses: any[] = [];
+          template.subjects.forEach((s: any, idx: number) => {
+            if (idx < 8) {
+              // 1° año completado
+              initialStatuses.push({
+                id: `demo-st-${s.id}`,
+                subject_id: s.id,
+                estado: "aprobada",
+                nota: 8,
+                fecha_aprobacion: "2024-01-01"
+              });
+            } else if (idx < 10) {
+              // Primeras de 2° año regulares
+              initialStatuses.push({
+                id: `demo-st-${s.id}`,
+                subject_id: s.id,
+                estado: "regular",
+                nota: null,
+                fecha_aprobacion: null
+              });
+            }
+          });
+          setUserStatuses(initialStatuses);
           setDependencies(template.dependencies.map((d: any) => ({
-            id: `demo-dep-${d.subject_id}-${d.requiere_regular || d.requiere_aprobada}`,
+            id: `demo-dep-${d.subject_id}-${d.requiere_regular || d.requiere_aprobada || d.dependency_id}`,
             ...d
           })));
           setLoading(false);
@@ -468,28 +489,42 @@ export function useSubjects() {
 
   const getSubjectStatus = useCallback((subjectId: string): SubjectStatus => {
     const userStatus = userStatusMap.get(subjectId);
-    if (userStatus) {
-      return userStatus.estado;
+    
+    // 1. Si el usuario ya la aprobó con final, siempre es "aprobada"
+    if (userStatus?.estado === "aprobada") {
+      return "aprobada";
     }
 
     const deps = dependenciesBySubject.get(subjectId) || [];
-    if (deps.length === 0) {
-      return "cursable";
-    }
-
-    const canTake = deps.every(dep => {
+    
+    // 2. Verificar cumplimiento estricto de todas las correlativas
+    const canTake = deps.length === 0 || deps.every(dep => {
+      let ok = true;
       if (dep.requiere_aprobada) {
         const reqStatus = userStatusMap.get(dep.requiere_aprobada);
-        return reqStatus?.estado === "aprobada";
+        if (reqStatus?.estado !== "aprobada") ok = false;
       }
       if (dep.requiere_regular) {
         const reqStatus = userStatusMap.get(dep.requiere_regular);
-        return reqStatus?.estado === "aprobada" || reqStatus?.estado === "regular";
+        if (reqStatus?.estado !== "aprobada" && reqStatus?.estado !== "regular") ok = false;
       }
-      return true;
+      return ok;
     });
 
-    return canTake ? "cursable" : "bloqueada";
+    // 3. Si no cumple las correlativas, NUNCA puede figurar como cursable/disponible
+    if (!canTake) {
+      if (userStatus?.estado === "regular") {
+        return "regular"; // Conserva regularidad histórica para rendir el final
+      }
+      return "bloqueada";
+    }
+
+    // 4. Si cumple correlativas, respetar estado explícito si existe
+    if (userStatus?.estado) {
+      return userStatus.estado;
+    }
+
+    return "cursable";
   }, [userStatusMap, dependenciesBySubject]);
 
   const getMissingRequirements = useCallback((subjectId: string): string[] => {
@@ -501,14 +536,20 @@ export function useSubjects() {
         const reqStatus = userStatusMap.get(dep.requiere_aprobada);
         if (reqStatus?.estado !== "aprobada") {
           const subject = subjectMap.get(dep.requiere_aprobada);
-          if (subject) missing.push(`${subject.numero_materia} aprobada`);
+          if (subject) {
+            const prefix = subject.numero_materia ? `#${subject.numero_materia} ` : '';
+            missing.push(`${prefix}${subject.codigo || subject.nombre} (Aprobada)`);
+          }
         }
       }
       if (dep.requiere_regular) {
         const reqStatus = userStatusMap.get(dep.requiere_regular);
         if (reqStatus?.estado !== "aprobada" && reqStatus?.estado !== "regular") {
           const subject = subjectMap.get(dep.requiere_regular);
-          if (subject) missing.push(`${subject.numero_materia} regular`);
+          if (subject) {
+            const prefix = subject.numero_materia ? `#${subject.numero_materia} ` : '';
+            missing.push(`${prefix}${subject.codigo || subject.nombre} (Regular)`);
+          }
         }
       }
     }
@@ -995,12 +1036,16 @@ export function useSubjects() {
 
         // Format A: requiere_regular / requiere_aprobada as IDs (Sistemas)
         if (typeof d.requiere_regular === 'string' || typeof d.requiere_aprobada === 'string') {
-          newDeps.push({
-            subject_id: subjectId,
-            requiere_regular: d.requiere_regular ? idMap.get(d.requiere_regular) : null,
-            requiere_aprobada: d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null,
-            user_id: user.id,
-          });
+          const reqReg = d.requiere_regular ? idMap.get(d.requiere_regular) : null;
+          const reqApr = d.requiere_aprobada ? idMap.get(d.requiere_aprobada) : null;
+          if (reqReg || reqApr) {
+            newDeps.push({
+              subject_id: subjectId,
+              requiere_regular: reqReg || null,
+              requiere_aprobada: reqApr || null,
+              user_id: user.id,
+            });
+          }
         }
         // Format B: dependency_id + requiere_regular as boolean (Civil, Química, etc.)
         else if (d.dependency_id) {

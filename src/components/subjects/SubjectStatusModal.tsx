@@ -277,15 +277,22 @@ export function SubjectStatusModal({
                   {statusOptions.map((option) => {
                     const Icon = option.icon;
                     const isSelected = selectedStatus === option.value;
+                    const isOptionDisabled = isBlocked && option.value === "cursable";
 
                     return (
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() => handleStatusSelect(option.value)}
+                        disabled={isOptionDisabled}
+                        onClick={() => {
+                          if (isOptionDisabled) return;
+                          handleStatusSelect(option.value);
+                        }}
                         className={cn(
                           "p-3 rounded-2xl border-3 transition-colors text-left group relative",
-                          isSelected
+                          isOptionDisabled
+                            ? "opacity-40 cursor-not-allowed bg-muted/40 border-dashed border-black/30"
+                            : isSelected
                             ? option.activeColor
                             : "border-black/40 bg-card hover:border-black shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:bg-secondary/60"
                         )}
@@ -293,12 +300,17 @@ export function SubjectStatusModal({
                         <div className="flex items-center justify-between mb-1.5">
                           <div className={cn(
                             "w-8 h-8 rounded-xl border-2 border-black flex items-center justify-center",
-                            isSelected ? "bg-black/15 text-inherit" : "bg-muted text-foreground"
+                            isOptionDisabled
+                              ? "bg-muted text-muted-foreground"
+                              : isSelected ? "bg-black/15 text-inherit" : "bg-muted text-foreground"
                           )}>
-                            <Icon className="w-4 h-4 stroke-[2.5]" />
+                            {isOptionDisabled ? <Lock className="w-4 h-4 stroke-[2.5]" /> : <Icon className="w-4 h-4 stroke-[2.5]" />}
                           </div>
-                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-black text-white">
-                            {option.badge}
+                          <span className={cn(
+                            "text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-black",
+                            isOptionDisabled ? "bg-muted-foreground/30 text-foreground" : "bg-black text-white"
+                          )}>
+                            {isOptionDisabled ? "BLOQ" : option.badge}
                           </span>
                         </div>
 
@@ -307,14 +319,35 @@ export function SubjectStatusModal({
                         </p>
                         <p className={cn(
                           "text-[10px] font-bold mt-0.5 leading-tight truncate",
-                          isSelected ? "opacity-90" : "text-muted-foreground"
+                          isOptionDisabled
+                            ? "text-muted-foreground"
+                            : isSelected ? "opacity-90" : "text-muted-foreground"
                         )}>
-                          {option.description}
+                          {isOptionDisabled ? "Requisitos pendientes" : option.description}
                         </p>
                       </button>
                     );
                   })}
                 </div>
+
+                {/* Botón para restablecer estado a automático si ya tenía estado manual previo */}
+                {(subject.status === "aprobada" || subject.status === "regular" || subject.status === "recursar") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      ComicAudio.playPop();
+                      setSelectedStatus("cursable");
+                      setNota("");
+                    }}
+                    className={cn(
+                      "w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-black/40 text-xs font-black uppercase text-muted-foreground hover:text-foreground hover:border-black flex items-center justify-center gap-1.5 transition-all mt-1",
+                      selectedStatus === "cursable" && "bg-secondary text-foreground border-solid border-black shadow-[2px_2px_0_0_#000]"
+                    )}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                    Restablecer estado (cálculo automático)
+                  </button>
+                )}
               </div>
             )}
 
