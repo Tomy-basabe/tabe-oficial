@@ -2,7 +2,7 @@
     "id": "/",
     "name": "TABE | Tu Asistente de Bolsillo Estudiantil",
     "short_name": "TABE",
-    "description": "Tabe es tu asistente de bolsillo para universitarios: organizá materias, flashcards con IA, apuntes colaborativos, técnica Pomodoro y métricas en una sola app.",
+    "description": "TABE es tu asistente de bolsillo estudiantil: organizá materias, correlatividades, flashcards con IA, apuntes colaborativos y técnica Pomodoro.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",

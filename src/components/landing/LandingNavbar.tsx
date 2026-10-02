@@ -37,8 +37,8 @@ export function LandingNavbar() {
             <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
 
                 {/* Logo */}
-                <Link to="/" className="flex items-center gap-3 group">
-                    <img src={logo} alt="TABE" className="w-10 h-10 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6" />
+                <Link to="/" className="flex items-center gap-3 group" title="TABE - Tu Asistente de Bolsillo Estudiantil">
+                    <img src={logo} alt="TABE - Tu Asistente de Bolsillo Estudiantil" className="w-10 h-10 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6" />
                     <span className="font-black text-2xl tracking-tight">TABE</span>
                 </Link>
 

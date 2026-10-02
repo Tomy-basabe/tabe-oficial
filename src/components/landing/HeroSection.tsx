@@ -97,9 +97,9 @@ export function HeroSection() {
                 rotate="left"
                 size="md"
                 className="cursor-pointer"
-                onClick={(e) => handleStickerClick(e, "OFICIAL!")}
+                onClick={(e) => handleStickerClick(e, "TABE!")}
               >
-                <Sparkles className="w-3.5 h-3.5 fill-black" /> PLATAFORMA UNIVERSITARIA
+                <Sparkles className="w-3.5 h-3.5 fill-black" /> TU ASISTENTE DE BOLSILLO ESTUDIANTIL
               </ComicBadge>
 
               <ComicBadge
@@ -144,7 +144,7 @@ export function HeroSection() {
 
             {/* Subtitle */}
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-lg mx-auto lg:mx-0 font-bold">
-              La plataforma todo‑en‑uno que combina organización académica, gamificación y diseño interactivo para que domines tus materias sin aburrirte.
+              Tu asistente de bolsillo estudiantil: la plataforma todo‑en‑uno que combina organización académica, gamificación y diseño interactivo para que domines tus materias sin aburrirte.
             </p>
 
             {/* CTAs — Inked neo-brutalist buttons */}

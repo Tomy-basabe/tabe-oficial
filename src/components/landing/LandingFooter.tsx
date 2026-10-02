@@ -11,11 +11,11 @@ export function LandingFooter() {
             <div className="container mx-auto px-4 md:px-6 py-12">
                 <div className="grid md:grid-cols-4 gap-10">
                     <div className="md:col-span-1 space-y-4">
-                        <Link to="/" className="flex items-center gap-2.5">
-                            <img src={logo} alt="TABE" className="w-9 h-9 object-contain" />
+                        <Link to="/" className="flex items-center gap-2.5" title="TABE - Tu Asistente de Bolsillo Estudiantil">
+                            <img src={logo} alt="TABE - Tu Asistente de Bolsillo Estudiantil" className="w-9 h-9 object-contain" />
                             <span className="font-black text-xl tracking-tight">TABE</span>
                         </Link>
-                        <p className="text-sm text-muted-foreground leading-relaxed">La plataforma todo-en-uno para estudiantes universitarios.</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">Tu asistente de bolsillo estudiantil: la plataforma todo-en-uno para universitarios.</p>
                         <a href="https://www.instagram.com/tabe_oficial/" target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-[#ff9415] transition-colors font-bold">
                             <Instagram className="w-4 h-4" /> @tabe_oficial
