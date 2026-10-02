@@ -1,8 +1,8 @@
 {
     "id": "/",
-    "name": "T.A.B.E. - Tu Asistente de Bolsillo Estudiantil",
-    "short_name": "T.A.B.E.",
-    "description": "La plataforma definitiva todo-en-uno para estudiantes universitarios. Organización de materias, generación de apuntes con IA, flashcards inteligentes, quizzes, calendario, método Pomodoro y métricas avanzadas.",
+    "name": "TABE | Tu Asistente de Bolsillo Estudiantil",
+    "short_name": "TABE",
+    "description": "TABE | tabe es tu asistente de bolsillo estudiantil: organiza tus materias, apuntes colaborativos, flashcards con IA, método Pomodoro y métricas de estudio.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
