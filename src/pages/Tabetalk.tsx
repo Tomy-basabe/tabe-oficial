@@ -329,7 +329,7 @@ export default function Tabetalk() {
           </div>
         </div>
       ) : (
-        /* === EMPTY STATE / PANTALLA DE BIENVENIDA NEOBRUTALISTA GAMING / C�MIC SCROLLEABLE EN M�VIL === */
+        /* === EMPTY STATE / PANTALLA DE BIENVENIDA NEOBRUTALISTA GAMING / CÓMIC SCROLLEABLE EN MÓVIL === */
         <div className="flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 pb-24 sm:pb-12 flex flex-col items-center justify-start md:justify-center relative z-10 discord-scrollbar">
           {/* Estilos CSS nativos ligeros acelerados por hardware para animación cómic flotante */}
           <style>{`
@@ -353,13 +353,13 @@ export default function Tabetalk() {
           {/* Formas flotantes cómic / gaming decorativas de fondo (Zero network / Zero websocket) */}
           <div className="pointer-events-none z-0 absolute top-8 left-8 sm:top-10 sm:left-14 comic-float-a hidden sm:flex items-center justify-center">
             <div className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-black shadow-[3px_3px_0px_#000] rotate-12 flex items-center justify-center text-black font-black text-sm">
-              �S�
+              ★
             </div>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-24 left-20 sm:top-24 sm:left-28 comic-float-b hidden md:flex items-center justify-center">
             <span className="text-xl font-black text-[#00E5FF] drop-shadow-[2px_2px_0px_#000] select-none">
-              �Sa
+              ✦
             </span>
           </div>
 
@@ -372,13 +372,13 @@ export default function Tabetalk() {
 
           <div className="pointer-events-none z-0 absolute top-24 right-16 sm:top-24 sm:right-28 comic-float-c hidden md:flex items-center justify-center">
             <div className="w-7 h-7 rounded-md bg-[#FF2E93] border-2 border-black shadow-[2px_2px_0px_#000] -rotate-12 flex items-center justify-center text-white font-black text-xs">
-              �S�
+              ★
             </div>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-1/2 left-6 sm:left-10 -translate-y-1/2 comic-float-c hidden lg:flex items-center justify-center">
             <div className="w-8 h-8 rounded-lg bg-[#00E5FF] border-2 border-black shadow-[3px_3px_0px_#000] rotate-6 flex items-center justify-center text-black font-black text-sm">
-              �a�
+              ⚡
             </div>
           </div>
 
@@ -395,14 +395,14 @@ export default function Tabetalk() {
             <div className="flex flex-wrap items-center justify-center gap-1.5 mb-2.5">
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FFE600] text-black font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
                 <Flame className="w-3 h-3 fill-black stroke-black" />
-                �x� TABETALK V2.0
+                TABETALK V2.0
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#00E5FF] text-black font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
                 <Zap className="w-3 h-3 fill-black stroke-black" />
-                �a� P2P DIRECTO
+                P2P DIRECTO
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FF2E93] text-white font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
-                �x}� CO-STUDY
+                CO-STUDY
               </span>
             </div>
 
@@ -456,7 +456,7 @@ export default function Tabetalk() {
                 <div className="w-5 h-5 rounded-md bg-black text-[#00E5FF] flex items-center justify-center group-hover:-rotate-12 transition-transform shrink-0">
                   <KeyRound className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
-                <span>UNIRSE CON C�DIGO</span>
+                <span>UNIRSE CON CÓDIGO</span>
               </button>
             </div>
 
@@ -476,7 +476,7 @@ export default function Tabetalk() {
                           <Video className="w-4 h-4 stroke-[2.5]" />
                         </div>
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#00E5FF]/20 text-foreground border border-black">
-                          �a� P2P DIRECTO
+                          P2P DIRECTO
                         </span>
                       </div>
                       <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
@@ -488,7 +488,7 @@ export default function Tabetalk() {
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Explorar sala</span>
-                      <span>� </span>
+                      <span>→</span>
                     </div>
                   </div>
                 </TooltipTrigger>
@@ -510,7 +510,7 @@ export default function Tabetalk() {
                           <MonitorUp className="w-4 h-4 stroke-[2.5]" />
                         </div>
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FF2E93]/20 text-foreground border border-black">
-                          �x}� CO-STUDY
+                          CO-STUDY
                         </span>
                       </div>
                       <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
@@ -522,7 +522,7 @@ export default function Tabetalk() {
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Cómo transmitir</span>
-                      <span>� </span>
+                      <span>→</span>
                     </div>
                   </div>
                 </TooltipTrigger>
@@ -544,7 +544,7 @@ export default function Tabetalk() {
                           <Users className="w-4 h-4 stroke-[2.5]" />
                         </div>
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FFE600]/30 text-foreground border border-black">
-                          �x� CANALES
+                          CANALES
                         </span>
                       </div>
                       <h3 className="font-black text-xs sm:text-sm uppercase text-foreground mb-0.5 group-hover:text-primary transition-colors">
@@ -556,7 +556,7 @@ export default function Tabetalk() {
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Unirse con código</span>
-                      <span>� </span>
+                      <span>→</span>
                     </div>
                   </div>
                 </TooltipTrigger>
