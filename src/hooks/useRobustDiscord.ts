@@ -1000,7 +1000,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
             setLocalStream(new MediaStream(mainStream.getTracks()));
             setupLocalVAD(mainStream); // Re-attach VAD
-            log(Mic switched to );
+            log(`Mic switched to `);
         } catch (e: any) {
             toast({ title: 'Error al cambiar micrófono', description: e.message, variant: 'destructive' });
         }
@@ -1117,6 +1117,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         speakingUsers,
     };
 }
+
 
 
 
