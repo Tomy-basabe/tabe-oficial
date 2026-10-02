@@ -13,19 +13,21 @@ const STORAGE_KEY_PETS = "tabe_gochi_pets_v1";
 const STORAGE_KEY_ACTIVE = "tabe_gochi_active_pet_id_v1";
 const STORAGE_KEY_COINS = "tabe_gochi_coins_v1";
 const STORAGE_KEY_INVENTORY = "tabe_gochi_inventory_v1";
+const STORAGE_KEY_DAILY_FIX = "tabe_gochi_daily_lifecycle_v2";
 
 function createDefaultPet(name: string, species: PetSpecies): TabeGochiPet {
+  const now = Date.now();
   return {
-    id: `pet_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: `pet_${now}_${Math.random().toString(36).slice(2, 7)}`,
     name: name.trim() || "Michi",
     species,
     stage: "baby",
     level: 1,
     xp: 0,
     ageDays: 1,
-    hunger: 80,
-    happiness: 85,
-    energy: 90,
+    hunger: 85,
+    happiness: 90,
+    energy: 95,
     hygiene: 95,
     health: 100,
     isSleeping: false,
@@ -33,8 +35,88 @@ function createDefaultPet(name: string, species: PetSpecies): TabeGochiPet {
     poopCount: 0,
     hat: undefined,
     background: "room",
-    createdAt: Date.now(),
-    lastUpdated: Date.now(),
+    createdAt: now,
+    lastUpdated: now,
+  };
+}
+
+/**
+ * Calcula la progresión pasiva real en un ciclo de 24 HORAS (interacción 1 vez al día).
+ * - Hambre baja ~60% en 24h (2.5% por hora)
+ * - Felicidad baja ~50% en 24h (~2.1% por hora)
+ * - Energía e Higiene bajan ~45% en 24h (~1.9% por hora)
+ * - Máximo 1-2 caquitas por día (cada 12h)
+ */
+function applyRealTimeDailyDecay(pet: TabeGochiPet, now: number): TabeGochiPet {
+  const last = pet.lastUpdated || now;
+  const elapsedMs = Math.max(0, now - last);
+  const elapsedHours = elapsedMs / (1000 * 60 * 60);
+
+  // Si está durmiendo, recupera energía cada minuto (+2% por minuto)
+  if (pet.isSleeping) {
+    const elapsedMinutes = elapsedMs / (1000 * 60);
+    if (elapsedMinutes < 1) return pet;
+
+    const energyGain = Math.floor(elapsedMinutes * 2);
+    const hungerDrop = Math.floor(elapsedHours * 1.2); // Baja muy lento al dormir
+    const newEnergy = Math.min(100, pet.energy + energyGain);
+    const newHunger = Math.max(15, pet.hunger - hungerDrop);
+
+    return {
+      ...pet,
+      energy: newEnergy,
+      hunger: newHunger,
+      isSleeping: newEnergy < 100, // Se despierta sola al llegar al 100%
+      ageDays: Math.max(1, Math.floor((now - (pet.createdAt || now)) / 86400000) + 1),
+      lastUpdated: now,
+    };
+  }
+
+  // Mientras está despierta: solo aplicamos descuento cuando pasó al menos 24 min (~0.4h = 1% de cambio)
+  // para evitar pérdidas por redondeo y garantizar ritmo real de 24 horas.
+  if (elapsedHours < 0.4) {
+    return pet;
+  }
+
+  // Limitar caída máxima acumulada para que nunca muera de golpe
+  const effectiveHours = Math.min(elapsedHours, 36);
+
+  const hungerDrop = Math.round(effectiveHours * 2.5);     // 60% en 24 horas
+  const happinessDrop = Math.round(effectiveHours * 2.08); // 50% en 24 horas
+  const energyDrop = Math.round(effectiveHours * 1.85);    // 44% en 24 horas
+  const hygieneDrop = Math.round(effectiveHours * 1.85);   // 44% en 24 horas
+
+  const newHunger = Math.max(10, pet.hunger - hungerDrop);
+  const newHappiness = Math.max(15, pet.happiness - happinessDrop);
+  const newEnergy = Math.max(15, pet.energy - energyDrop);
+
+  // 1 caquita cada 12 horas transcurridas (máximo 3)
+  const newPoops = Math.min(3, pet.poopCount + Math.floor(effectiveHours / 12));
+  const newHygiene = Math.max(10, pet.hygiene - hygieneDrop - (newPoops > pet.poopCount ? 10 : 0));
+
+  // Solo se enferma si lleva más de 24-30 horas sin atención (hambre e higiene críticas)
+  const becomesSick = pet.isSick || (newHunger <= 15 && newHygiene <= 20 && effectiveHours >= 20);
+  const newHealth = becomesSick
+    ? Math.max(30, pet.health - Math.round(effectiveHours * 1.2))
+    : Math.min(100, pet.health + 5);
+
+  let stage = pet.stage;
+  if (pet.level >= 10 && stage !== "legendary") stage = "legendary";
+  else if (pet.level >= 6 && stage !== "adult" && stage !== "legendary") stage = "adult";
+  else if (pet.level >= 3 && stage === "baby") stage = "child";
+
+  return {
+    ...pet,
+    hunger: newHunger,
+    happiness: newHappiness,
+    energy: newEnergy,
+    hygiene: newHygiene,
+    health: newHealth,
+    poopCount: newPoops,
+    isSick: becomesSick,
+    stage,
+    ageDays: Math.max(1, Math.floor((now - (pet.createdAt || now)) / 86400000) + 1),
+    lastUpdated: now,
   };
 }
 
@@ -42,7 +124,32 @@ export function useTabeGochi() {
   const [pets, setPets] = useState<TabeGochiPet[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PETS);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: TabeGochiPet[] = JSON.parse(saved);
+        const alreadyMigrated = localStorage.getItem(STORAGE_KEY_DAILY_FIX) === "1";
+        const now = Date.now();
+
+        const processed = parsed.map(pet => {
+          // Si la mascota sufrió el desgaste rápido anterior, la restauramos a plena salud
+          if (!alreadyMigrated) {
+            return {
+              ...pet,
+              hunger: Math.max(pet.hunger, 85),
+              happiness: Math.max(pet.happiness, 90),
+              energy: Math.max(pet.energy, 90),
+              hygiene: Math.max(pet.hygiene, 95),
+              health: 100,
+              isSick: false,
+              poopCount: 0,
+              lastUpdated: now,
+            };
+          }
+          return applyRealTimeDailyDecay(pet, now);
+        });
+
+        localStorage.setItem(STORAGE_KEY_DAILY_FIX, "1");
+        return processed;
+      }
     } catch {}
     // Default starter pet
     return [createDefaultPet("Michi", "cat")];
@@ -119,67 +226,12 @@ export function useTabeGochi() {
     );
   }, [activePetId]);
 
-  // Natural passive stat decay & age ticker every 30 seconds
+  // Chequeo pasivo cada 60 segundos basado en horas reales transcurridas (ciclo de 24 horas)
   useEffect(() => {
     const interval = setInterval(() => {
-      setPets(prevPets =>
-        prevPets.map(pet => {
-          let { hunger, happiness, energy, hygiene, health, poopCount, isSleeping, isSick, xp, level, stage } = pet;
-
-          if (isSleeping) {
-            // While sleeping: energy regenerates, hunger drops slowly
-            energy = Math.min(100, energy + 8);
-            hunger = Math.max(0, hunger - 1);
-            if (energy >= 100) {
-              isSleeping = false; // Wake up when fully refreshed!
-            }
-          } else {
-            // While awake: natural slow decay
-            hunger = Math.max(0, hunger - 2);
-            happiness = Math.max(0, happiness - 2);
-            energy = Math.max(0, energy - 1.5);
-            hygiene = Math.max(0, hygiene - 1.5);
-          }
-
-          // Random chance of poop if full & awake
-          if (!isSleeping && hunger > 30 && Math.random() < 0.15 && poopCount < 4) {
-            poopCount = Math.min(4, poopCount + 1);
-            hygiene = Math.max(0, hygiene - 15);
-          }
-
-          // Health check: poor hygiene or extreme hunger can cause sickness
-          if ((hygiene < 20 || hunger < 15 || poopCount >= 3) && !isSick && Math.random() < 0.25) {
-            isSick = true;
-          }
-
-          if (isSick) {
-            health = Math.max(10, health - 5);
-            happiness = Math.max(0, happiness - 5);
-          } else {
-            health = Math.min(100, health + 2);
-          }
-
-          // Evolution check based on level
-          if (level >= 10 && stage !== "legendary") stage = "legendary";
-          else if (level >= 6 && stage !== "adult" && stage !== "legendary") stage = "adult";
-          else if (level >= 3 && stage === "baby") stage = "child";
-
-          return {
-            ...pet,
-            hunger: Math.round(hunger),
-            happiness: Math.round(happiness),
-            energy: Math.round(energy),
-            hygiene: Math.round(hygiene),
-            health: Math.round(health),
-            poopCount,
-            isSleeping,
-            isSick,
-            stage,
-            lastUpdated: Date.now(),
-          };
-        })
-      );
-    }, 30000);
+      const now = Date.now();
+      setPets(prevPets => prevPets.map(pet => applyRealTimeDailyDecay(pet, now)));
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
