@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogDescription, DialogFooter
@@ -16,7 +16,7 @@ interface ManualStudyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
-  subjects: { id: string; nombre: string; aÃ±o?: number }[];
+  subjects: { id: string; nombre: string; año?: number }[];
 }
 
 export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: ManualStudyDialogProps) {
@@ -37,17 +37,17 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
     }
   }, [open]);
 
-  const years = [...new Set(subjects.filter(s => s.aÃ±o).map(s => s.aÃ±o!))].sort((a, b) => a - b);
+  const years = [...new Set(subjects.filter(s => s.año).map(s => s.año!))].sort((a, b) => a - b);
 
   const filteredSubjects = yearFilter
-    ? subjects.filter(s => s.aÃ±o === yearFilter)
+    ? subjects.filter(s => s.año === yearFilter)
     : subjects;
 
-  const subjectsByYear = [...new Set(filteredSubjects.map(s => s.aÃ±o || 0))]
+  const subjectsByYear = [...new Set(filteredSubjects.map(s => s.año || 0))]
     .sort((a, b) => a - b)
     .map(year => ({
       year,
-      subjects: filteredSubjects.filter(s => (s.aÃ±o || 0) === year),
+      subjects: filteredSubjects.filter(s => (s.año || 0) === year),
     }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,18 +59,13 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
     const totalSeconds = Math.round(h * 3600 + m * 60);
 
     if (totalSeconds <= 0) {
-      toast.error("La duraciÃ³n debe ser mayor a 0");
+      toast.error("La duración debe ser mayor a 0");
       return;
-    
-
-    if (totalSeconds > 86400) {
-
-      toast.error("No puedes registrar más de 24 horas en una sesión manual");
-
-      return;
-
     }
 
+    if (totalSeconds > 86400) {
+      toast.error("No puedes registrar más de 24 horas en una sesión manual");
+      return;
     }
 
     setLoading(true);
@@ -88,7 +83,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
 
       if (error) throw error;
 
-      // Actualizar XP y CrÃ©ditos en el frontend (igual que Pomodoro)
+      // Actualizar XP y Créditos en el frontend (igual que Pomodoro)
       const hours = Math.floor(totalSeconds / 3600);
       const xpGained = Math.floor(totalSeconds / 60) * 2; // 2 XP por minuto
 
@@ -98,8 +93,8 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
           await supabase.from("user_stats").update({
               horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
               xp_total: (currentStats.xp_total || 0) + xpGained,
-              credits: (currentStats.credits || 0) + Math.floor(totalSeconds / 60), // 1 CrÃ©dito por min
-              nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1 // Subir de nivel automÃ¡ticamente
+              credits: (currentStats.credits || 0) + Math.floor(totalSeconds / 60), // 1 Crédito por min
+              nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1 // Subir de nivel automáticamente
           }).eq("user_id", user.id);
           
           await supabase.rpc('check_and_unlock_achievements', { p_user_id: user.id });
@@ -146,7 +141,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
           {/* Year Filter */}
           {years.length > 1 && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Filtrar por aÃ±o</Label>
+              <Label className="text-sm font-medium">Filtrar por año</Label>
               <div className="flex gap-2 flex-wrap">
                 <button
                   type="button"
@@ -170,7 +165,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                         : "bg-secondary text-muted-foreground border-transparent hover:bg-secondary/80"
                     }`}
                   >
-                    AÃ±o {y}
+                    Año {y}
                   </button>
                 ))}
               </div>
@@ -188,9 +183,9 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
               onChange={(e) => setSubjectId(e.target.value)}
               className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
             >
-              <option value="">Sin materia especÃ­fica</option>
+              <option value="">Sin materia específica</option>
               {subjectsByYear.map(({ year, subjects: ys }) => (
-                <optgroup key={year} label={year ? `AÃ±o ${year}` : "Sin aÃ±o"}>
+                <optgroup key={year} label={year ? `Año ${year}` : "Sin año"}>
                   {ys.map(s => (
                     <option key={s.id} value={s.id}>{s.nombre}</option>
                   ))}
@@ -201,7 +196,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
 
           {/* Duration */}
           <div className="space-y-4">
-            <Label className="text-sm font-medium">DuraciÃ³n del estudio</Label>
+            <Label className="text-sm font-medium">Duración del estudio</Label>
             <div className="flex gap-4">
               <div className="flex-1 space-y-2">
                 <Label htmlFor="manual-horas" className="text-xs text-muted-foreground font-medium">Horas</Label>

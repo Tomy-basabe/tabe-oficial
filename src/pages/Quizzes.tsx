@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -30,7 +30,7 @@ interface QuizDeck {
     nombre: string;
     subject_id: string;
     total_questions: number;
-    subject?: { nombre: string; codigo: string; aÃ±o: number };
+    subject?: { nombre: string; codigo: string; año: number };
 }
 
 interface QuizQuestion {
@@ -51,7 +51,7 @@ interface Subject {
     id: string;
     nombre: string;
     codigo: string;
-    aÃ±o: number;
+    año: number;
 }
 
 let quizzesDecksCache: QuizDeck[] | null = null;
@@ -159,7 +159,7 @@ function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckI
                     {deck.subject && (
                         <Badge className="bg-secondary text-foreground border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider mb-4 mt-auto">
                             <GraduationCap className="w-4 h-4 mr-1.5" />
-                            AÃ±o {deck.subject.aÃ±o} Â· {deck.subject.nombre}
+                            Año {deck.subject.año} · {deck.subject.nombre}
                         </Badge>
                     )}
                     {!deck.subject && <div className="mt-auto" />}
@@ -341,8 +341,8 @@ export default function Quizzes() {
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
     const activeYears = useMemo(() => {
-        const unique = [...new Set(subjects.map(s => Number(s.aÃ±o)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
-        return unique.filter(year => subjects.some(s => Number(s.aÃ±o) === year));
+        const unique = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+        return unique.filter(year => subjects.some(s => Number(s.año) === year));
     }, [subjects]);
 
     useEffect(() => {
@@ -359,9 +359,9 @@ export default function Quizzes() {
         }
 
         if (isGuest) {
-            const guestSubjects: Subject[] = [{ id: "mock", nombre: "Materias Mock", codigo: "MOCK", aÃ±o: 1 }];
+            const guestSubjects: Subject[] = [{ id: "mock", nombre: "Materias Mock", codigo: "MOCK", año: 1 }];
             const guestDecks: QuizDeck[] = [
-                { id: "mock-1", nombre: "Cuestionario de Prueba", subject_id: "mock", total_questions: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", aÃ±o: 1 } }
+                { id: "mock-1", nombre: "Cuestionario de Prueba", subject_id: "mock", total_questions: 5, subject: { nombre: "Uso de Tablero", codigo: "TAB1", año: 1 } }
             ];
             setCachedSubjects(guestSubjects);
             setCachedQuizzesDecks(guestDecks);
@@ -384,13 +384,13 @@ export default function Quizzes() {
         try {
             const [subjectsRes, decksRes] = await Promise.allSettled([
                 (async () => {
-                    let query = supabase.from("subjects").select("id, nombre, codigo, aÃ±o").order("aÃ±o");
+                    let query = supabase.from("subjects").select("id, nombre, codigo, año").order("año");
                     if (user) {
                         query = query.eq("user_id", user.id);
                     }
                     let { data } = await query;
                     if (user && (!data || data.length === 0)) {
-                        const fallback = await supabase.from("subjects").select("id, nombre, codigo, aÃ±o").is("user_id", null).order("aÃ±o");
+                        const fallback = await supabase.from("subjects").select("id, nombre, codigo, año").is("user_id", null).order("año");
                         if (fallback.data && fallback.data.length > 0) {
                             data = fallback.data;
                         }
@@ -476,14 +476,14 @@ export default function Quizzes() {
             if (deckId === "mock-1") {
                 const mockQs = Array.from({ length: 5 }, (_, i) => ({
                     id: `mock-q-${i}`,
-                    pregunta: `AquÃ­ puedes colocar preguntas de opciÃ³n mÃºltiple (Ejemplo #${i + 1})`,
-                    explicacion: `Y aquÃ­ puedes aÃ±adir una explicaciÃ³n detallada que aparecerÃ¡ cuando elijas una respuesta. Esta es la explicaciÃ³n para la pregunta ${i + 1}.`,
+                    pregunta: `Aquí puedes colocar preguntas de opción múltiple (Ejemplo #${i + 1})`,
+                    explicacion: `Y aquí puedes añadir una explicación detallada que aparecerá cuando elijas una respuesta. Esta es la explicación para la pregunta ${i + 1}.`,
                     is_multi_select: false,
                     options: [
-                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "AquÃ­ pondrÃ­as la respuesta correcta", es_correcta: true },
-                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "AquÃ­ una respuesta incorrecta", es_correcta: false },
-                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Otra opciÃ³n distractora", es_correcta: false },
-                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracciÃ³n mÃ¡s", es_correcta: false }
+                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Aquí pondrías la respuesta correcta", es_correcta: true },
+                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Aquí una respuesta incorrecta", es_correcta: false },
+                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Otra opción distractora", es_correcta: false },
+                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracción más", es_correcta: false }
                     ]
                 }));
                 setDeckQuestions(mockQs);
@@ -595,7 +595,7 @@ export default function Quizzes() {
 
     const handleDeleteOption = (index: number) => {
         if (formOptions.length <= 2) {
-            toast.error("Una pregunta debe tener como mÃ­nimo 2 opciones");
+            toast.error("Una pregunta debe tener como mínimo 2 opciones");
             return;
         }
         setFormOptions(prev => {
@@ -646,7 +646,7 @@ export default function Quizzes() {
         }
         const correctCount = filledOptions.filter(o => o.es_correcta).length;
         if (correctCount === 0) {
-            toast.error("Debes marcar al menos una opciÃ³n como correcta");
+            toast.error("Debes marcar al menos una opción como correcta");
             return;
         }
 
@@ -762,7 +762,7 @@ export default function Quizzes() {
                 updated_at: new Date().toISOString()
             }).eq("id", manageDeck.id);
 
-            toast.success("Â¡Pregunta agregada exitosamente!");
+            toast.success("¡Pregunta agregada exitosamente!");
             setManageDeck({ ...manageDeck, total_questions: (manageDeck.total_questions || 0) + 1 });
             setQuestionFormOpen(false);
             fetchQuestions(manageDeck.id);
@@ -834,7 +834,7 @@ export default function Quizzes() {
         }
 
         toast.success(creationQuestions.length > 0
-            ? `Â¡Cuestionario creado con ${creationQuestions.length} pregunta(s)!`
+            ? `¡Cuestionario creado con ${creationQuestions.length} pregunta(s)!`
             : "Cuestionario creado");
 
         await incrementUsage('cuestionarios');
@@ -901,7 +901,7 @@ export default function Quizzes() {
         if (error) {
             toast.error("Error al publicar en Marketplace");
         } else {
-            toast.success("Â¡Cuestionario publicado en el Marketplace!");
+            toast.success("¡Cuestionario publicado en el Marketplace!");
             setShowPublishDialog(false);
             setPublishDescription("");
             setPublishCategory("");
@@ -964,14 +964,14 @@ export default function Quizzes() {
             if (deck.id === "mock-1") {
                 const mockQs = Array.from({ length: 5 }, (_, i) => ({
                     id: `mock-q-${i}`,
-                    pregunta: `AquÃ­ puedes colocar preguntas de opciÃ³n mÃºltiple (Ejemplo #${i + 1})`,
-                    explicacion: `Y aquÃ­ puedes aÃ±adir una explicacion detallada que aparecerÃ¡ cuando elijas una respuesta. Esta es la explicaciÃ³n para la pregunta ${i + 1}.`,
+                    pregunta: `Aquí puedes colocar preguntas de opción múltiple (Ejemplo #${i + 1})`,
+                    explicacion: `Y aquí puedes añadir una explicacion detallada que aparecerá cuando elijas una respuesta. Esta es la explicación para la pregunta ${i + 1}.`,
                     is_multi_select: false,
                     options: [
-                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "AquÃ­ pondrÃ­as la respuesta correcta", es_correcta: true },
-                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "AquÃ­ una respuesta incorrecta", es_correcta: false },
-                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Otra opciÃ³n distractora", es_correcta: false },
-                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracciÃ³n mÃ¡s", es_correcta: false }
+                        { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Aquí pondrías la respuesta correcta", es_correcta: true },
+                        { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Aquí una respuesta incorrecta", es_correcta: false },
+                        { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Otra opción distractora", es_correcta: false },
+                        { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracción más", es_correcta: false }
                     ]
                 }));
                 setStudyQuestions(order === 'random' ? mockQs.sort(() => Math.random() - 0.5) : mockQs);
@@ -1092,7 +1092,7 @@ export default function Quizzes() {
                     <Card className="bg-background border-[3px] border-foreground shadow-[12px_12px_0_0_#000] max-w-lg w-full relative z-10 rounded-2xl overflow-hidden">
                         <div className="bg-[#ffd21c] border-b-[3px] border-foreground p-6 text-center">
                             <h2 className="text-3xl font-display font-black uppercase tracking-widest text-foreground">
-                                {percentage >= 70 ? "Â¡Excelente!" : percentage >= 40 ? "Â¡Buen Intento!" : "A Seguir Practicando"}
+                                {percentage >= 70 ? "¡Excelente!" : percentage >= 40 ? "¡Buen Intento!" : "A Seguir Practicando"}
                             </h2>
                         </div>
                         <CardContent className="p-8 text-center space-y-8">
@@ -1177,7 +1177,7 @@ export default function Quizzes() {
                             <h3 className="text-xl md:text-2xl font-bold leading-relaxed text-foreground">{currentQ.pregunta}</h3>
                             {currentQ.is_multi_select && (
                                 <Badge className="shrink-0 bg-[#ffd21c] text-black border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider hover:bg-[#ffd21c]">
-                                    <ListChecks className="w-4 h-4 mr-1" /> MÃºltiple
+                                    <ListChecks className="w-4 h-4 mr-1" /> Múltiple
                                 </Badge>
                             )}
                         </div>
@@ -1300,7 +1300,7 @@ export default function Quizzes() {
                                     <Sparkles className="w-6 h-6 text-black" />
                                 </div>
                                 <div>
-                                    <h4 className="font-black uppercase tracking-widest text-foreground text-sm mb-1">ExplicaciÃ³n</h4>
+                                    <h4 className="font-black uppercase tracking-widest text-foreground text-sm mb-1">Explicación</h4>
                                     <p className="text-base font-medium text-foreground">{currentQ.explicacion}</p>
                                 </div>
                             </div>
@@ -1352,7 +1352,7 @@ export default function Quizzes() {
                     <div className="space-y-2">
                         <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Pregunta *</Label>
                         <Textarea
-                            placeholder="Escribe la pregunta aquÃ­..."
+                            placeholder="Escribe la pregunta aquí..."
                             value={formQuestionText}
                             onChange={(e) => setFormQuestionText(e.target.value)}
                             rows={3}
@@ -1377,9 +1377,9 @@ export default function Quizzes() {
                                 )}
                             >
                                 <div className="w-8 h-8 rounded-full border-[2px] border-foreground flex items-center justify-center mb-1.5 bg-white text-black font-black text-xs">
-                                    â—
+                                    ●
                                 </div>
-                                <span className="font-black text-sm uppercase tracking-wide">OpciÃ³n Ãšnica</span>
+                                <span className="font-black text-sm uppercase tracking-wide">Opción Única</span>
                                 <span className="text-[11px] font-bold opacity-80 mt-0.5">1 respuesta correcta</span>
                             </button>
 
@@ -1396,14 +1396,14 @@ export default function Quizzes() {
                                 <div className="w-8 h-8 rounded-lg border-[2px] border-foreground flex items-center justify-center mb-1.5 bg-white text-black font-black text-xs">
                                     <ListChecks className="w-4 h-4 text-black" />
                                 </div>
-                                <span className="font-black text-sm uppercase tracking-wide">OpciÃ³n MÃºltiple</span>
+                                <span className="font-black text-sm uppercase tracking-wide">Opción Múltiple</span>
                                 <span className="text-[11px] font-bold opacity-80 mt-0.5">Elegir varias correctas</span>
                             </button>
                         </div>
                         <p className="text-[11px] font-bold text-muted-foreground ml-1">
                             {formIsMultiSelect 
-                                ? "ðŸ’¡ Haz clic en la letra de cada opciÃ³n para marcar una o mÃ¡s respuestas correctas." 
-                                : "ðŸ’¡ Haz clic en la letra de una opciÃ³n para seleccionarla como la Ãºnica correcta."}
+                                ? "💡 Haz clic en la letra de cada opción para marcar una o más respuestas correctas." 
+                                : "💡 Haz clic en la letra de una opción para seleccionarla como la única correcta."}
                         </p>
                     </div>
 
@@ -1419,7 +1419,7 @@ export default function Quizzes() {
                                 className="flex items-center gap-1.5 px-3 py-1 bg-[#25d06c] text-white font-black text-xs uppercase tracking-widest border-[2px] border-foreground rounded-lg shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000] active:translate-y-0 transition-all"
                             >
                                 <Plus className="w-3.5 h-3.5" />
-                                Agregar OpciÃ³n
+                                Agregar Opción
                             </button>
                         </div>
 
@@ -1441,7 +1441,7 @@ export default function Quizzes() {
                                     </button>
 
                                     <input
-                                        placeholder={`OpciÃ³n ${String.fromCharCode(65 + i)} ${i < 2 ? '*' : '(opcional)'}`}
+                                        placeholder={`Opción ${String.fromCharCode(65 + i)} ${i < 2 ? '*' : '(opcional)'}`}
                                         value={opt.texto}
                                         onChange={(e) => {
                                             const copy = [...formOptions];
@@ -1461,7 +1461,7 @@ export default function Quizzes() {
                                                 ? "opacity-30 cursor-not-allowed bg-secondary text-muted-foreground" 
                                                 : "bg-[#ff4e4e] text-white shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000] active:translate-y-0"
                                         )}
-                                        title={formOptions.length <= 2 ? "Se requieren mÃ­nimo 2 opciones" : "Eliminar esta opciÃ³n"}
+                                        title={formOptions.length <= 2 ? "Se requieren mínimo 2 opciones" : "Eliminar esta opción"}
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -1474,15 +1474,15 @@ export default function Quizzes() {
                             onClick={handleAddOption}
                             className="w-full py-2 bg-secondary/50 hover:bg-secondary text-foreground font-black text-xs uppercase tracking-widest border-[2px] border-foreground border-dashed rounded-xl flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all mt-2"
                         >
-                            <Plus className="w-4 h-4" /> Agregar otra opciÃ³n ({String.fromCharCode(65 + formOptions.length)})
+                            <Plus className="w-4 h-4" /> Agregar otra opción ({String.fromCharCode(65 + formOptions.length)})
                         </button>
                     </div>
 
                     {/* Explanation */}
                     <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">ExplicaciÃ³n (opcional)</Label>
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Explicación (opcional)</Label>
                         <Textarea
-                            placeholder="ExplicaciÃ³n de por quÃ© la respuesta es correcta..."
+                            placeholder="Explicación de por qué la respuesta es correcta..."
                             value={formExplanation}
                             onChange={(e) => setFormExplanation(e.target.value)}
                             rows={2}
@@ -1572,11 +1572,11 @@ export default function Quizzes() {
                                             Sin materia asignada
                                         </SelectItem>
                                         {[1, 2, 3, 4, 5, 6].map(year => {
-                                            const yearSubjects = subjects.filter(s => s.aÃ±o === year);
+                                            const yearSubjects = subjects.filter(s => s.año === year);
                                             if (yearSubjects.length === 0) return null;
                                             return (
                                                 <SelectGroup key={year}>
-                                                    <SelectLabel className="font-black uppercase tracking-widest text-muted-foreground">{year}Â° AÃ±o</SelectLabel>
+                                                    <SelectLabel className="font-black uppercase tracking-widest text-muted-foreground">{year}° Año</SelectLabel>
                                                     {yearSubjects.map(s => (
                                                         <SelectItem key={s.id} value={s.id} className="font-bold focus:bg-secondary cursor-pointer rounded-lg my-1">
                                                             {s.nombre}
@@ -1591,7 +1591,7 @@ export default function Quizzes() {
 
                             {manageDeck.subject && (
                                 <Badge className="bg-[#ffd21c] text-black border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider px-3 py-1.5 shrink-0 hover:bg-[#ffd21c]">
-                                    AÃ±o {manageDeck.subject.aÃ±o} Â· {manageDeck.subject.nombre}
+                                    Año {manageDeck.subject.año} · {manageDeck.subject.nombre}
                                 </Badge>
                             )}
                         </div>
@@ -1608,8 +1608,8 @@ export default function Quizzes() {
                             <div className="w-20 h-20 bg-secondary border-[3px] border-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-[-5deg] shadow-[4px_4px_0_0_#000]">
                                 <ClipboardList className="w-10 h-10 text-muted-foreground" />
                             </div>
-                            <h3 className="text-xl font-black uppercase tracking-widest text-foreground mb-2">AÃºn no hay preguntas</h3>
-                            <p className="text-muted-foreground font-bold">Â¡AgregÃ¡ la primera pregunta para empezar a estudiar!</p>
+                            <h3 className="text-xl font-black uppercase tracking-widest text-foreground mb-2">Aún no hay preguntas</h3>
+                            <p className="text-muted-foreground font-bold">¡Agregá la primera pregunta para empezar a estudiar!</p>
                         </CardContent>
                     </Card>
                 ) : (
@@ -1627,7 +1627,7 @@ export default function Quizzes() {
                                             </div>
                                             {q.is_multi_select && (
                                                 <Badge className="mt-3 ml-11 bg-[#ffd21c] text-black border-[2px] border-foreground shadow-[2px_2px_0_0_#000] font-black uppercase tracking-wider text-xs hover:bg-[#ffd21c]">
-                                                    <ListChecks className="w-3 h-3 mr-1" /> MÃºltiple
+                                                    <ListChecks className="w-3 h-3 mr-1" /> Múltiple
                                                 </Badge>
                                             )}
                                         </div>
@@ -1697,13 +1697,13 @@ export default function Quizzes() {
                                 </div>
                                 <div>
                                     <p className="font-bold text-foreground text-lg leading-snug">{manageDeck.nombre}</p>
-                                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-1">{manageDeck.total_questions} preguntas Â· {manageDeck.subject?.nombre || 'Sin materia'}</p>
+                                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-1">{manageDeck.total_questions} preguntas · {manageDeck.subject?.nombre || 'Sin materia'}</p>
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">DescripciÃ³n *</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Descripción *</Label>
                                 <Textarea
-                                    placeholder="Describe este cuestionario para que otros sepan de quÃ© se trata..."
+                                    placeholder="Describe este cuestionario para que otros sepan de qué se trata..."
                                     value={publishDescription}
                                     onChange={(e) => setPublishDescription(e.target.value)}
                                     rows={3}
@@ -1711,7 +1711,7 @@ export default function Quizzes() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">CategorÃ­a / Etiquetas *</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Categoría / Etiquetas *</Label>
                                 <input
                                     placeholder="Ej: Parcial, Final, Resumen..."
                                     value={publishCategory}
@@ -1747,7 +1747,7 @@ export default function Quizzes() {
                             Cuestionarios
                         </h1>
                         <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
-                            Crea y practica cuestionarios de opciÃ³n mÃºltiple
+                            Crea y practica cuestionarios de opción múltiple
                         </p>
                     </div>
                 </div>
@@ -1765,7 +1765,7 @@ export default function Quizzes() {
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <Filter className="w-5 h-5 text-foreground" />
-                        <span className="font-black uppercase tracking-widest text-sm text-foreground">Filtrar por AÃ±o</span>
+                        <span className="font-black uppercase tracking-widest text-sm text-foreground">Filtrar por Año</span>
                     </div>
                     <div className="flex gap-3 flex-wrap">
                         <button
@@ -1790,7 +1790,7 @@ export default function Quizzes() {
                                         : "bg-background text-foreground"
                                 )}
                             >
-                                {y}Â° AÃ±o
+                                {y}° Año
                             </button>
                         ))}
                     </div>
@@ -1814,7 +1814,7 @@ export default function Quizzes() {
                             >
                                 Todas las materias
                             </button>
-                            {subjects.filter(s => s.aÃ±o === selectedYear).map(sub => (
+                            {subjects.filter(s => s.año === selectedYear).map(sub => (
                                 <button
                                     key={sub.id}
                                     onClick={() => setSelectedSubject(sub.id)}
@@ -1844,7 +1844,7 @@ export default function Quizzes() {
                         </div>
                         <h3 className="text-xl font-black uppercase tracking-widest text-foreground mb-2">Sin cuestionarios</h3>
                         <p className="text-muted-foreground font-bold mb-6">
-                            Crea tu primer cuestionario o pedile a la IA que genere uno automÃ¡ticamente
+                            Crea tu primer cuestionario o pedile a la IA que genere uno automáticamente
                         </p>
                         <button 
                             onClick={() => setShowCreateDeck(true)}
@@ -1858,7 +1858,7 @@ export default function Quizzes() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 tour-quizzes-decks">
                     {decks
                         .filter(d => {
-                            if (selectedYear && d.subject?.aÃ±o !== selectedYear) return false;
+                            if (selectedYear && d.subject?.año !== selectedYear) return false;
                             if (selectedSubject && d.subject_id !== selectedSubject) return false;
                             return true;
                         })
@@ -1897,7 +1897,7 @@ export default function Quizzes() {
                     </DialogHeader>
                     <div className="space-y-6 pt-4">
                         <div>
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Seleccionar AÃ±o *</Label>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Seleccionar Año *</Label>
                             <div className="flex gap-2 mt-2">
                                 {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                                     <button
@@ -1910,7 +1910,7 @@ export default function Quizzes() {
                                                 : "bg-background hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
                                         )}
                                     >
-                                        {year}Â°
+                                        {year}°
                                     </button>
                                 ))}
                             </div>
@@ -1928,7 +1928,7 @@ export default function Quizzes() {
                                     </SelectTrigger>
                                     <SelectContent className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-xl">
                                         {subjects
-                                            .filter(s => s.aÃ±o === newDeckYear)
+                                            .filter(s => s.año === newDeckYear)
                                             .map(subject => (
                                                 <SelectItem key={subject.id} value={subject.id} className="font-bold focus:bg-secondary cursor-pointer rounded-lg my-1">
                                                     {subject.nombre}
@@ -1961,7 +1961,7 @@ export default function Quizzes() {
                                         </h4>
                                         <p className="text-[11px] font-bold text-muted-foreground mt-0.5">
                                             {creationQuestions.length === 0 
-                                                ? "PodÃ©s agregarlas ahora o luego" 
+                                                ? "Podés agregarlas ahora o luego" 
                                                 : `${creationQuestions.length} pregunta(s) lista(s)`}
                                         </p>
                                     </div>
@@ -1985,7 +1985,7 @@ export default function Quizzes() {
                                                             {qIdx + 1}
                                                         </span>
                                                         <Badge className="bg-[#ffd21c] text-black border-[1.5px] border-foreground text-[10px] font-black uppercase tracking-wider py-0 px-1.5 hover:bg-[#ffd21c]">
-                                                            {qDraft.is_multi_select ? "OpciÃ³n MÃºltiple" : "OpciÃ³n Ãšnica"} Â· {qDraft.options.length} opciones
+                                                            {qDraft.is_multi_select ? "Opción Múltiple" : "Opción Única"} · {qDraft.options.length} opciones
                                                         </Badge>
                                                     </div>
                                                     <p className="text-sm font-bold text-foreground truncate">{qDraft.pregunta}</p>
@@ -2038,7 +2038,7 @@ export default function Quizzes() {
                         </DialogTitle>
                     </DialogHeader>
                     <p className="text-foreground font-medium py-2">
-                        Â¿EstÃ¡s seguro de que querÃ©s eliminar <strong>{deleteDeck?.nombre}</strong>? Se borrarÃ¡n todas las preguntas.
+                        ¿Estás seguro de que querés eliminar <strong>{deleteDeck?.nombre}</strong>? Se borrarán todas las preguntas.
                     </p>
                     <div className="flex gap-4 pt-4">
                         <button 
@@ -2063,7 +2063,7 @@ export default function Quizzes() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 font-black uppercase tracking-widest text-xl">
                             <Zap className="w-6 h-6 text-[#00ffcc]" />
-                            Opciones de PrÃ¡ctica
+                            Opciones de Práctica
                         </DialogTitle>
                     </DialogHeader>
                     
@@ -2071,7 +2071,7 @@ export default function Quizzes() {
                         {savedWrongIds.length > 0 && (
                             <div className="p-4 bg-[#ff4e4e]/20 border-[3px] border-[#ff4e4e] rounded-xl text-[#ff4e4e] font-bold">
                                 <p>
-                                    TenÃ©s {savedWrongIds.length} pregunta(s) en las que te equivocaste en tu intento anterior.
+                                    Tenés {savedWrongIds.length} pregunta(s) en las que te equivocaste en tu intento anterior.
                                 </p>
                             </div>
                         )}
@@ -2128,7 +2128,7 @@ export default function Quizzes() {
                                     if (pendingStudyDeck) startStudy(pendingStudyDeck, [], studyOrder);
                                 }}
                             >
-                                {savedWrongIds.length > 0 ? "Empezar de nuevo" : "Comenzar PrÃ¡ctica"}
+                                {savedWrongIds.length > 0 ? "Empezar de nuevo" : "Comenzar Práctica"}
                             </button>
                         </div>
                     </div>
