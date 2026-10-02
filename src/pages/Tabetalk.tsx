@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { DiscordServerList } from "@/components/discord/DiscordServerList";
 import { DiscordChannelSidebar } from "@/components/discord/DiscordChannelSidebar";
@@ -18,7 +18,8 @@ import {
   Flame, 
   Radio, 
   CheckCircle2, 
-  MessageSquare
+  MessageSquare,
+  KeyRound
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -36,10 +37,33 @@ type FeatureCardType = "voice" | "screen" | "community" | null;
 
 export default function Tabetalk() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const discord = useDiscordVoice();
   const [mobileView, setMobileView] = useState<MobileView>("main");
   const [showCreateOrJoinModal, setShowCreateOrJoinModal] = useState(false);
+  const [modalDefaultTab, setModalDefaultTab] = useState<"create" | "join">("create");
+  const [prefillInviteCode, setPrefillInviteCode] = useState<string>("");
   const [activeFeatureModal, setActiveFeatureModal] = useState<FeatureCardType>(null);
+
+  // Auto-detectar código de invitación en la URL (?invite=XYZ)
+  useEffect(() => {
+    const inviteParam = searchParams.get("invite");
+    if (inviteParam) {
+      setPrefillInviteCode(inviteParam.trim());
+      setModalDefaultTab("join");
+      setShowCreateOrJoinModal(true);
+    }
+  }, [searchParams]);
+
+  const handleOpenCreateModal = () => {
+    setModalDefaultTab("create");
+    setShowCreateOrJoinModal(true);
+  };
+
+  const handleOpenJoinModal = () => {
+    setModalDefaultTab("join");
+    setShowCreateOrJoinModal(true);
+  };
 
   const {
     servers,
@@ -167,6 +191,8 @@ export default function Tabetalk() {
             onGoBack={handleGoBack}
             openModal={showCreateOrJoinModal}
             onOpenModalChange={setShowCreateOrJoinModal}
+            defaultModalTab={modalDefaultTab}
+            prefillInviteCode={prefillInviteCode}
           />
         </div>
       </div>
@@ -297,8 +323,8 @@ export default function Tabetalk() {
           </div>
         </div>
       ) : (
-        /* === EMPTY STATE / PANTALLA DE BIENVENIDA NEOBRUTALISTA GAMING / CÓMIC === */
-        <div className="flex-1 h-[100dvh] flex flex-col items-center justify-center p-3 sm:p-6 overflow-hidden relative z-10 select-none">
+        /* === EMPTY STATE / PANTALLA DE BIENVENIDA NEOBRUTALISTA GAMING / CÓMIC SCROLLEABLE EN MÓVIL === */
+        <div className="flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 pb-24 sm:pb-12 flex flex-col items-center justify-start md:justify-center relative z-10 discord-scrollbar">
           {/* Estilos CSS nativos ligeros acelerados por hardware para animación cómic flotante */}
           <style>{`
             @keyframes comicFloatA {
@@ -356,8 +382,8 @@ export default function Tabetalk() {
             </div>
           </div>
 
-          {/* Contenedor Central Escala Equilibrada (Des-zoom) */}
-          <div className="w-full max-w-4xl flex flex-col items-center text-center justify-center relative z-10 px-2 my-auto">
+          {/* Contenedor Central Escala Equilibrada y Scrolleable */}
+          <div className="w-full max-w-4xl flex flex-col items-center text-center justify-center relative z-10 px-2 my-auto py-2 sm:py-6">
             
             {/* Top Retro Gaming Badges */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 mb-2.5">
@@ -375,7 +401,7 @@ export default function Tabetalk() {
             </div>
 
             {/* Logo Arcade Neobrutalista Redimensionado */}
-            <div className="relative mb-2.5 group cursor-pointer" onClick={() => setShowCreateOrJoinModal(true)}>
+            <div className="relative mb-2.5 group cursor-pointer" onClick={handleOpenCreateModal}>
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#FFE600] border-3 border-black shadow-[4px_4px_0px_#000] sm:shadow-[5px_5px_0px_#000] flex items-center justify-center -rotate-2 group-hover:rotate-0 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:shadow-[7px_7px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all duration-200">
                 <img 
                   src="/tabe-talk.png" 
@@ -399,22 +425,34 @@ export default function Tabetalk() {
             </h1>
 
             {/* Subtítulo / Descripción Compacta */}
-            <div className="max-w-md mx-auto mb-3.5 p-2 sm:p-2.5 rounded-lg bg-card border-2 border-black shadow-[3px_3px_0px_#000]">
+            <div className="max-w-md mx-auto mb-4 p-2.5 rounded-xl bg-card border-2 border-black shadow-[3px_3px_0px_#000]">
               <p className="text-muted-foreground text-xs sm:text-sm font-bold leading-normal">
                 Selecciona un servidor o conéctate con tus compañeros para estudiar, encender tu cámara y compartir pantalla sin límites.
               </p>
             </div>
 
-            {/* Botón Principal Arcade Compacto */}
-            <button
-              onClick={() => setShowCreateOrJoinModal(true)}
-              className="inline-flex items-center gap-2.5 bg-[#FFE600] hover:bg-[#FFE600]/95 text-black font-black uppercase text-xs sm:text-sm px-6 py-2.5 sm:py-3 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer mb-4 sm:mb-5 group"
-            >
-              <div className="w-5 h-5 rounded-md bg-black text-[#FFE600] flex items-center justify-center group-hover:rotate-12 transition-transform">
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
-              </div>
-              <span>CREAR O UNIRSE A UN SERVIDOR</span>
-            </button>
+            {/* Botones Principales Arcade: Crear Servidor & Unirse con Código */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full max-w-md mx-auto mb-5 sm:mb-6">
+              <button
+                onClick={handleOpenCreateModal}
+                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 bg-[#FFE600] hover:bg-[#FFE600]/95 text-black font-black uppercase text-xs sm:text-sm px-5 py-3 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer group"
+              >
+                <div className="w-5 h-5 rounded-md bg-black text-[#FFE600] flex items-center justify-center group-hover:rotate-12 transition-transform shrink-0">
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+                <span>CREAR SERVIDOR</span>
+              </button>
+
+              <button
+                onClick={handleOpenJoinModal}
+                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 bg-[#00E5FF] hover:bg-[#00E5FF]/95 text-black font-black uppercase text-xs sm:text-sm px-5 py-3 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer group"
+              >
+                <div className="w-5 h-5 rounded-md bg-black text-[#00E5FF] flex items-center justify-center group-hover:-rotate-12 transition-transform shrink-0">
+                  <KeyRound className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+                <span>UNIRSE CON CÓDIGO</span>
+              </button>
+            </div>
 
             {/* 3 Cards Interactivas Cómic / Gaming Neobrutalistas Compactas */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-3xl">
@@ -620,8 +658,13 @@ export default function Tabetalk() {
                   </Button>
                   <Button
                     onClick={() => {
+                      const type = activeFeatureModal;
                       setActiveFeatureModal(null);
-                      setShowCreateOrJoinModal(true);
+                      if (type === "community") {
+                        handleOpenJoinModal();
+                      } else {
+                        handleOpenCreateModal();
+                      }
                     }}
                     className="bg-[#FFE600] hover:bg-[#FFE600]/90 text-black font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                   >

@@ -345,43 +345,93 @@ export function useDiscord() {
   }, [currentServer?.id]);
 
   // Create a new server
-  const createServer = async (name: string) => {
+  const createServer = async (name: string, iconUrl?: string) => {
     if (!user) return null;
     setLoading(true);
 
     try {
-      // Create server
-      const { data: server, error: serverError } = await supabase
+      // Generate ID client-side so we don't depend on .select().single() passing SELECT RLS before membership exists
+      const serverId = crypto.randomUUID();
+      const serverPayload: any = { 
+        id: serverId,
+        name: name.trim(), 
+        owner_id: user.id 
+      };
+      if (iconUrl && iconUrl.trim()) {
+        serverPayload.icon_url = iconUrl.trim();
+      }
+
+      const { error: serverError } = await supabase
         .from("discord_servers")
-        .insert({ name, owner_id: user.id })
-        .select()
-        .single();
+        .insert(serverPayload);
 
-      if (serverError) throw serverError;
+      if (serverError) {
+        console.error("Error creating server record:", serverError);
+        throw serverError;
+      }
 
-      // Add owner as member
-      await supabase
+      // Add owner as member immediately
+      const { error: memberError } = await supabase
         .from("discord_server_members")
         .insert({
-          server_id: server.id,
+          server_id: serverId,
           user_id: user.id,
           role: "owner"
         });
 
+      if (memberError) {
+        console.warn("Notice: Member insertion warning:", memberError);
+      }
+
       // Create default channels
-      await supabase
+      const { error: channelsError } = await supabase
         .from("discord_channels")
         .insert([
-          { server_id: server.id, name: "general", type: "text", position: 0 },
-          { server_id: server.id, name: "General", type: "voice", position: 1 },
+          { server_id: serverId, name: "general", type: "text", position: 0 },
+          { server_id: serverId, name: "General", type: "voice", position: 1 },
         ]);
 
-      toast({ title: "Servidor creado", description: `${name} está listo` });
+      if (channelsError) {
+        console.warn("Notice: Channel creation warning:", channelsError);
+      }
+
+      // Generate initial invite code so it is ready immediately
+      try {
+        const initialInviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+        await supabase
+          .from("discord_server_invites")
+          .insert({
+            server_id: serverId,
+            code: initialInviteCode,
+            created_by: user.id,
+            expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+      } catch (invErr) {
+        console.warn("Notice: could not pre-create invite code:", invErr);
+      }
+
+      const newServer: DiscordServer = {
+        id: serverId,
+        name: name.trim(),
+        icon_url: iconUrl?.trim() || null,
+        owner_id: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      setServers(prev => [...prev.filter(s => s.id !== serverId), newServer]);
+      setCurrentServer(newServer);
+
+      toast({ title: "¡Servidor creado!", description: `"${name}" está listo para usar` });
       await fetchServers();
-      return server;
-    } catch (error) {
+      return newServer;
+    } catch (error: any) {
       console.error("Error creating server:", error);
-      toast({ title: "Error", description: "No se pudo crear el servidor", variant: "destructive" });
+      toast({ 
+        title: "Error al crear servidor", 
+        description: error?.message || "No se pudo crear el servidor. Verifica tu conexión.", 
+        variant: "destructive" 
+      });
       return null;
     } finally {
       setLoading(false);
@@ -565,21 +615,90 @@ export function useDiscord() {
     if (!user) return false;
 
     try {
-      // Look up the invite
-      const { data: invite, error: inviteError } = await supabase
-        .from("discord_server_invites")
-        .select("*")
-        .eq("code", code.toUpperCase().trim())
-        .single();
-
-      if (inviteError || !invite) {
-        toast({ title: "Error", description: "Código de invitación inválido o expirado", variant: "destructive" });
+      let rawCode = (code || "").trim();
+      if (!rawCode) {
+        toast({ title: "Código requerido", description: "Ingresa un código de invitación válido", variant: "destructive" });
         return false;
       }
 
-      // Check if expired
-      if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-        toast({ title: "Error", description: "Esta invitación ha expirado", variant: "destructive" });
+      // If full URL was pasted (e.g., https://tabe.com.ar/tabetalk?invite=CODE or .../invite/CODE)
+      if (rawCode.includes("invite=")) {
+        const match = rawCode.match(/invite=([a-zA-Z0-9_-]+)/i);
+        if (match) rawCode = match[1];
+      } else if (rawCode.includes("/")) {
+        const parts = rawCode.split("/").filter(Boolean);
+        rawCode = parts[parts.length - 1] || rawCode;
+      }
+
+      const cleanCode = rawCode.trim().toUpperCase();
+      const codeVariants = [
+        cleanCode,
+        cleanCode.replace(/^STUDYAPP-/, ""),
+        cleanCode.replace(/^TABE-/, ""),
+        cleanCode.replace(/-/g, ""),
+      ].filter((v, i, arr) => v.length > 0 && arr.indexOf(v) === i);
+
+      let targetServerId: string | null = null;
+      let inviteRecord: any = null;
+
+      // 1. Try finding in discord_server_invites table
+      for (const variant of codeVariants) {
+        try {
+          const { data: invite } = await supabase
+            .from("discord_server_invites")
+            .select("*")
+            .ilike("code", variant)
+            .maybeSingle();
+
+          if (invite) {
+            if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+              toast({ title: "Invitación expirada", description: "Esta invitación ha vencido", variant: "destructive" });
+              return false;
+            }
+            targetServerId = invite.server_id;
+            inviteRecord = invite;
+            break;
+          }
+        } catch (e) {
+          console.warn("Notice: could not query discord_server_invites with variant:", variant, e);
+        }
+      }
+
+      // 2. If not found in invites, check if user provided server UUID or server ID prefix
+      if (!targetServerId) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(rawCode)) {
+          const { data: srv } = await supabase
+            .from("discord_servers")
+            .select("id")
+            .eq("id", rawCode.toLowerCase())
+            .maybeSingle();
+          if (srv) targetServerId = srv.id;
+        }
+      }
+
+      // 3. Fallback: Check if 8-char prefix matches a server ID
+      if (!targetServerId) {
+        for (const variant of codeVariants) {
+          if (variant.length >= 8) {
+            const { data: serverList } = await supabase
+              .from("discord_servers")
+              .select("id");
+            const matched = serverList?.find(s => s.id.toUpperCase().startsWith(variant));
+            if (matched) {
+              targetServerId = matched.id;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!targetServerId) {
+        toast({ 
+          title: "Código no encontrado", 
+          description: "No encontramos ningún servidor con ese código de invitación. Verifica el código e intenta nuevamente.", 
+          variant: "destructive" 
+        });
         return false;
       }
 
@@ -587,35 +706,64 @@ export function useDiscord() {
       const { data: existing } = await supabase
         .from("discord_server_members")
         .select("id")
-        .eq("server_id", invite.server_id)
+        .eq("server_id", targetServerId)
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (existing) {
         toast({ title: "Ya eres miembro", description: "Ya perteneces a este servidor" });
         await fetchServers();
+        const existingServer = servers.find(s => s.id === targetServerId);
+        if (existingServer) setCurrentServer(existingServer);
         return true;
       }
 
-      // Join
+      // Join server
       const { error: joinError } = await supabase
         .from("discord_server_members")
-        .insert({ server_id: invite.server_id, user_id: user.id, role: "member" });
+        .insert({ 
+          server_id: targetServerId, 
+          user_id: user.id, 
+          role: "member" 
+        });
 
-      if (joinError) throw joinError;
+      if (joinError) {
+        console.error("Error inserting into discord_server_members:", joinError);
+        throw joinError;
+      }
 
-      // Increment uses
-      await supabase
-        .from("discord_server_invites")
-        .update({ uses: (invite.uses || 0) + 1 })
-        .eq("id", invite.id);
+      // Increment uses if invite record exists
+      if (inviteRecord?.id) {
+        try {
+          await supabase
+            .from("discord_server_invites")
+            .update({ uses: (inviteRecord.uses || 0) + 1 })
+            .eq("id", inviteRecord.id);
+        } catch {}
+      }
 
-      toast({ title: "¡Te uniste al servidor!", description: "Bienvenido al servidor" });
+      toast({ title: "¡Te uniste al servidor!", description: "Bienvenido a la comunidad" });
       await fetchServers();
+
+      // Fetch server details and set as current
+      const { data: joinedServer } = await supabase
+        .from("discord_servers")
+        .select("*")
+        .eq("id", targetServerId)
+        .maybeSingle();
+
+      if (joinedServer) {
+        setCurrentServer(joinedServer);
+      }
+
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error joining server:", error);
-      toast({ title: "Error", description: "No se pudo unir al servidor", variant: "destructive" });
+      toast({ 
+        title: "Error al unirse", 
+        description: error?.message || "No se pudo unir al servidor", 
+        variant: "destructive" 
+      });
       return false;
     }
   };

@@ -62,7 +62,7 @@ export function setDynamicResourceTitle(title: string | null | undefined) {
 
 export function formatDocumentTitle(sectionOrResource?: string | null): string {
   if (!sectionOrResource || sectionOrResource === "Inicio") {
-    return `TABE | Tu Asistente de Bolsillo Estudiantil - tabe.com.ar`;
+    return `TABE | Tu Asistente de Bolsillo Estudiantil`;
   }
   return `${sectionOrResource} | ${APP_NAME}`;
 }

@@ -34,6 +34,8 @@ interface DiscordServerListProps {
   onGoBack?: () => void;
   openModal?: boolean;
   onOpenModalChange?: (open: boolean) => void;
+  defaultModalTab?: "create" | "join";
+  prefillInviteCode?: string;
 }
 
 export function DiscordServerList({
@@ -49,15 +51,30 @@ export function DiscordServerList({
   onGoBack,
   openModal,
   onOpenModalChange,
+  defaultModalTab,
+  prefillInviteCode,
 }: DiscordServerListProps) {
   const { user } = useAuth();
   const [internalOpenModal, setInternalOpenModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"create" | "join">("create");
+  const [activeTab, setActiveTab] = useState<"create" | "join">(defaultModalTab || "create");
   const [serverName, setServerName] = useState("");
   const [serverIcon, setServerIcon] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
+  const [inviteCode, setInviteCode] = useState(prefillInviteCode || "");
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
+
+  // Sincronizar tab por defecto y código pre-rellenado si cambian
+  useEffect(() => {
+    if (defaultModalTab) {
+      setActiveTab(defaultModalTab);
+    }
+  }, [defaultModalTab]);
+
+  useEffect(() => {
+    if (prefillInviteCode) {
+      setInviteCode(prefillInviteCode);
+    }
+  }, [prefillInviteCode]);
 
   const isModalOpen = openModal !== undefined ? openModal : internalOpenModal;
   const setModalOpen = (open: boolean) => {
@@ -100,7 +117,7 @@ export function DiscordServerList({
   };
 
   return (
-    <div className="md:w-[72px] w-full bg-background/95 backdrop-blur border-r md:border-r border-border md:py-3 py-3 flex md:flex-col flex-row items-center md:gap-2 gap-3 overflow-x-auto md:overflow-y-auto md:overflow-x-hidden discord-scrollbar shrink-0 z-50 px-3 md:px-0">
+    <div className="md:w-[72px] w-full bg-background/95 backdrop-blur border-b md:border-b-0 md:border-r border-border md:py-3 py-2 flex md:flex-col flex-row items-center md:gap-2 gap-2 overflow-x-auto md:overflow-y-auto md:overflow-x-hidden discord-scrollbar shrink-0 z-50 px-2 sm:px-3 md:px-0">
       {/* Botón de Retorno al Dashboard principal */}
       {onGoBack && (
         <div className="relative group mb-1">
@@ -152,16 +169,17 @@ export function DiscordServerList({
         </Tooltip>
       </div>
 
-      <div className="w-8 h-[2px] bg-border/50 rounded-lg mx-auto" />
+      {/* Separador adaptativo: vertical en mobile horizontal, horizontal en desktop vertical */}
+      <div className="w-[2px] h-7 md:w-8 md:h-[2px] bg-border/60 rounded-full mx-1 md:mx-auto shrink-0" />
 
       {/* Server List */}
-      <div className="flex-1 w-full flex flex-col items-center gap-2 overflow-y-auto discord-scrollbar py-2">
+      <div className="flex md:flex-col flex-row items-center gap-2 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto discord-scrollbar py-1 md:py-2 shrink-0 md:shrink md:w-full">
         {servers.map((server) => (
           <ContextMenu key={server.id}>
             <ContextMenuTrigger>
-              <div className="relative group w-full flex justify-center">
+              <div className="relative group flex justify-center shrink-0">
                 <div className={cn(
-                  "absolute left-0 top-1/2 -translate-y-1/2 w-[4px] bg-primary rounded-r-lg transition-all duration-200",
+                  "hidden md:block absolute left-0 top-1/2 -translate-y-1/2 w-[4px] bg-primary rounded-r-lg transition-all duration-200",
                   currentServer?.id === server.id ? "h-10" : "h-2 group-hover:h-5 opacity-0 group-hover:opacity-100"
                 )} />
                 <Tooltip>
@@ -169,8 +187,8 @@ export function DiscordServerList({
                     <button
                       onClick={() => onSelectServer(server)}
                       className={cn(
-                        "w-12 h-12 rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 overflow-hidden shadow-lg shadow-black/20",
-                        currentServer?.id === server.id ? "rounded-[16px] ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+                        "w-11 h-11 md:w-12 md:h-12 rounded-[20px] md:rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 overflow-hidden shadow-md shadow-black/20 shrink-0",
+                        currentServer?.id === server.id ? "rounded-[16px] ring-2 ring-primary ring-offset-2 ring-offset-background scale-105" : ""
                       )}
                     >
                       <Avatar className={cn(
@@ -178,7 +196,7 @@ export function DiscordServerList({
                         currentServer?.id === server.id ? "bg-primary" : "bg-card group-hover:bg-primary"
                       )}>
                         <AvatarImage src={server.icon_url || undefined} className="object-cover" />
-                        <AvatarFallback className="bg-transparent text-sm font-medium text-foreground group-hover:text-primary-foreground">
+                        <AvatarFallback className="bg-transparent text-xs md:text-sm font-bold text-foreground group-hover:text-primary-foreground">
                           {server.name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -222,36 +240,37 @@ export function DiscordServerList({
         ))}
       </div>
 
-      <div className="w-8 h-[2px] bg-border/50 rounded-lg mx-auto mb-2" />
+      {/* Separador adaptativo */}
+      <div className="w-[2px] h-7 md:w-8 md:h-[2px] bg-border/60 rounded-full mx-1 md:mx-auto shrink-0 md:mb-2" />
 
       {/* Botón 1: Añadir o Crear Servidor (+) */}
-      <div className="relative group mb-1">
+      <div className="relative group shrink-0">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={handleOpenCreate}
-              className="w-12 h-12 rounded-[24px] bg-card hover:bg-primary hover:text-primary-foreground hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-primary mx-3 border border-dashed border-primary/40 hover:border-transparent shadow-sm"
-              aria-label="Crear o unirse a un servidor"
+              className="w-11 h-11 md:w-12 md:h-12 rounded-[20px] md:rounded-[24px] bg-card hover:bg-[#FFE600] hover:text-black hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-primary border-2 border-dashed border-primary/50 hover:border-black shadow-sm shrink-0 active:scale-95"
+              aria-label="Crear servidor"
             >
-              <Plus className="w-6 h-6" />
+              <Plus className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
-            Crear o unirse a un servidor
+            Crear un servidor
           </TooltipContent>
         </Tooltip>
       </div>
 
       {/* Botón 2: Brújula - Explorar / Unirse con Código */}
-      <div className="relative group mb-1">
+      <div className="relative group shrink-0">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={handleOpenJoin}
-              className="w-12 h-12 rounded-[24px] bg-card hover:bg-primary hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-muted-foreground hover:text-primary-foreground mx-3 shadow-sm"
+              className="w-11 h-11 md:w-12 md:h-12 rounded-[20px] md:rounded-[24px] bg-card hover:bg-[#00E5FF] hover:text-black hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-muted-foreground hover:border-black shadow-sm shrink-0 active:scale-95"
               aria-label="Unirse a un servidor con código"
             >
-              <Compass className="w-6 h-6" />
+              <Compass className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-popover text-popover-foreground font-semibold border-border">
@@ -262,73 +281,79 @@ export function DiscordServerList({
 
       {/* Modal Unificado: Crear Servidor | Unirse con Código */}
       <Dialog open={isModalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground sm:max-w-md p-0 overflow-hidden gap-0">
-          <DialogHeader className="p-6 pb-4 text-center bg-muted/20 border-b border-border/50">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-2 text-primary">
-              <Sparkles className="w-6 h-6" />
+        <DialogContent className="bg-card border-3 border-black text-foreground w-[94vw] max-w-md max-h-[88vh] overflow-y-auto rounded-2xl p-0 gap-0 shadow-[8px_8px_0px_#000]">
+          <DialogHeader className="p-5 sm:p-6 pb-4 text-center bg-[#FFE600]/10 border-b-2 border-black">
+            <div className="w-12 h-12 rounded-2xl bg-[#FFE600] border-2 border-black flex items-center justify-center mx-auto mb-2 text-black shadow-[3px_3px_0px_#000]">
+              <Sparkles className="w-6 h-6 stroke-[2.5]" />
             </div>
-            <DialogTitle className="text-xl font-bold text-foreground">
+            <DialogTitle className="text-lg sm:text-xl font-black uppercase text-foreground tracking-wide">
               Comunidad Tabetalk
             </DialogTitle>
-            <p className="text-muted-foreground text-xs mt-1">
-              Crea tu propio espacio de estudio o únete al de tus compañeros con un código.
+            <p className="text-muted-foreground text-xs font-medium mt-1">
+              Crea tu espacio de estudio o únete al de tus compañeros en segundos.
             </p>
           </DialogHeader>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "create" | "join")} className="w-full">
-              <TabsList className="grid grid-cols-2 w-full mb-6 bg-muted/60 p-1">
-                <TabsTrigger value="create" className="text-xs font-semibold gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                  <Server className="w-3.5 h-3.5" />
+              <TabsList className="grid grid-cols-2 w-full mb-5 bg-muted/60 p-1 border-2 border-black rounded-xl">
+                <TabsTrigger 
+                  value="create" 
+                  className="text-xs font-black uppercase gap-1.5 data-[state=active]:bg-[#FFE600] data-[state=active]:text-black data-[state=active]:shadow-[2px_2px_0px_#000] data-[state=active]:border-2 data-[state=active]:border-black rounded-lg transition-all py-2"
+                >
+                  <Server className="w-3.5 h-3.5 stroke-[2.5]" />
                   Crear Servidor
                 </TabsTrigger>
-                <TabsTrigger value="join" className="text-xs font-semibold gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                  <KeyRound className="w-3.5 h-3.5" />
+                <TabsTrigger 
+                  value="join" 
+                  className="text-xs font-black uppercase gap-1.5 data-[state=active]:bg-[#00E5FF] data-[state=active]:text-black data-[state=active]:shadow-[2px_2px_0px_#000] data-[state=active]:border-2 data-[state=active]:border-black rounded-lg transition-all py-2"
+                >
+                  <KeyRound className="w-3.5 h-3.5 stroke-[2.5]" />
                   Unirse con Código
                 </TabsTrigger>
               </TabsList>
 
               {/* Tab 1: Crear Servidor */}
               <TabsContent value="create" className="space-y-4 m-0 focus-visible:outline-none">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1">
                     Nombre del servidor <span className="text-destructive">*</span>
                   </label>
                   <Input
                     value={serverName}
                     onChange={(e) => setServerName(e.target.value)}
                     placeholder="Ej. Grupo de Estudio Algoritmos"
-                    className="bg-background border-input text-foreground h-10 focus-visible:ring-primary"
+                    className="bg-background border-2 border-black text-foreground h-11 focus-visible:ring-primary font-bold shadow-[2px_2px_0px_#000]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleCreateServer();
                     }}
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-foreground uppercase tracking-wide">
                     URL de Icono o Avatar (opcional)
                   </label>
                   <Input
                     value={serverIcon}
                     onChange={(e) => setServerIcon(e.target.value)}
                     placeholder="https://ejemplo.com/icono.png"
-                    className="bg-background border-input text-foreground h-10 focus-visible:ring-primary text-xs font-mono"
+                    className="bg-background border-2 border-black text-foreground h-11 focus-visible:ring-primary text-xs font-mono shadow-[2px_2px_0px_#000]"
                   />
                 </div>
 
-                <div className="pt-3 flex items-center justify-end gap-2">
+                <div className="pt-2 flex items-center justify-end gap-2">
                   <Button
                     variant="ghost"
                     onClick={() => setModalOpen(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    className="text-xs font-bold text-muted-foreground hover:text-foreground"
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleCreateServer}
                     disabled={!serverName.trim() || creating}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-md shadow-primary/20"
+                    className="bg-[#FFE600] hover:bg-[#FFE600]/90 text-black font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1px_1px_0px_#000] transition-all h-10 px-5"
                   >
                     {creating ? "Creando..." : "Crear Servidor"}
                   </Button>
@@ -337,36 +362,36 @@ export function DiscordServerList({
 
               {/* Tab 2: Unirse con Código */}
               <TabsContent value="join" className="space-y-4 m-0 focus-visible:outline-none">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                    Código de Invitación <span className="text-destructive">*</span>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1">
+                    Código de Invitación o Enlace <span className="text-destructive">*</span>
                   </label>
                   <Input
                     value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value)}
-                    placeholder="Ej. TABE-A9F3"
-                    className="bg-background border-input text-foreground h-11 focus-visible:ring-primary text-center text-base tracking-widest font-mono uppercase font-bold"
+                    placeholder="Ej. TABE-A9F3 o pega el link"
+                    className="bg-background border-2 border-black text-foreground h-12 focus-visible:ring-primary text-center text-sm sm:text-base tracking-wider font-mono uppercase font-black shadow-[3px_3px_0px_#000]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleJoinServer();
                     }}
                   />
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    Pídele el código o enlace al administrador del servidor.
+                  <p className="text-[11px] text-muted-foreground text-center font-medium mt-1">
+                    Pega el código corto o el link que te compartió tu compañero.
                   </p>
                 </div>
 
-                <div className="pt-3 flex items-center justify-end gap-2">
+                <div className="pt-2 flex items-center justify-end gap-2">
                   <Button
                     variant="ghost"
                     onClick={() => setModalOpen(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    className="text-xs font-bold text-muted-foreground hover:text-foreground"
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleJoinServer}
                     disabled={!inviteCode.trim() || joining}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-md shadow-primary/20"
+                    className="bg-[#00E5FF] hover:bg-[#00E5FF]/90 text-black font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1px_1px_0px_#000] transition-all h-10 px-5"
                   >
                     {joining ? "Uniéndose..." : "Unirse al Servidor"}
                   </Button>
