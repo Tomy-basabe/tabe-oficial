@@ -686,7 +686,7 @@
     width: 16px;
     height: 16px;
     border-radius: 3px;
-    border: 2px solid rgba(255,255,255,0.25);
+    border: 2px solid var(--notion-text-tertiary);
     background: transparent;
     cursor: pointer;
     appearance: none;
@@ -2316,3 +2316,4 @@
 .heading-target-highlight {
     animation: headingTargetFlash 1.5s ease-out;
 }
+

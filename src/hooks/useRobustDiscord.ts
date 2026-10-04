@@ -1,46 +1,7 @@
-/* REGLA ARQUITECT�NICA: NING�aN COMPONENTE VISUAL, HOOK O FUNCIONALIDAD P�aBLICA DEBE CONDICIONARSE AL ROL ADMIN. TODOS LOS USUARIOS USAN LA MISMA UI Y L�GICA DE NEGOCIO SALVO LA RUTA PRIVADA /admin */
-
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import type { RealtimeChannel } from '@supabase/supabase-js';
-import { ICE_SERVERS } from '@/lib/webrtc-config';
-
-// �"��"��"� Global cleanup on tab close/refresh �"��"��"�
-const activeStreams = new Set<MediaStream>();
-let _globalUserId: string | null = null;
-
-function cleanupOnUnload() {
-    activeStreams.forEach(s => s.getTracks().forEach(t => t.stop()));
-    activeStreams.clear();
-
-    if (_globalUserId) {
-        const url = import.meta.env.VITE_SUPABASE_URL;
-        const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-        if (url && key) {
-            const token = localStorage.getItem('sb-' + new URL(url).hostname.split('.')[0] + '-auth-token');
-            let accessToken = key;
-            if (token) {
-                try { accessToken = JSON.parse(token).access_token || key; } catch { }
-            }
-            fetch(`${url}/rest/v1/discord_voice_participants?user_id=eq.${_globalUserId}`, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': key,
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                },
-                keepalive: true,
-            }).catch(() => { });
-        }
-    }
-}
-
-if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', cleanupOnUnload);
-    window.addEventListener('pagehide', cleanupOnUnload);
-}
+import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { ICE_SERVERS } from "@/lib/webrtc-config";
 
 export interface CameraDevice {
     deviceId: string;
@@ -59,1067 +20,658 @@ interface UseRobustDiscordProps {
 
 export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const { user } = useAuth();
-    const { toast } = useToast();
+    const localUserId = user?.id;
 
-    // Estado reactivo para la interfaz
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
     const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
     const [remoteScreenStreams, setRemoteScreenStreams] = useState<Map<string, MediaStream>>(new Map());
-    const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-    const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-    const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [peerStates, setPeerStates] = useState<Map<string, string>>(new Map());
-    const [cameras, setCameras] = useState<CameraDevice[]>([]);
-    const [selectedCameraId, setSelectedCameraId] = useState<string>('');
-    const [mics, setMics] = useState<CameraDevice[]>([]);
-    const [selectedMicId, setSelectedMicId] = useState<string>('');
     const [remoteMediaStates, setRemoteMediaStates] = useState<Map<string, RemoteMediaState>>(new Map());
     const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
 
-    // Referencias mutables para evitar cierres de estado obsoletos
+    const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+    const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
+
+    const [cameras, setCameras] = useState<CameraDevice[]>([]);
+    const [mics, setMics] = useState<CameraDevice[]>([]);
+    const [selectedCameraId, setSelectedCameraId] = useState(() => {
+        const saved = localStorage.getItem("tabetalk_video_input_device");
+        return saved && saved !== "default" ? saved : "";
+    });
+    const [selectedMicId, setSelectedMicId] = useState(() => {
+        const saved = localStorage.getItem("tabetalk_audio_input_device");
+        return saved && saved !== "default" ? saved : "";
+    });
+
+    // Refs para evitar problemas de dependencias en callbacks de eventos
+    const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
+    const channelRef = useRef<any>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
     const screenStreamRef = useRef<MediaStream | null>(null);
-    const cameraStreamRef = useRef<MediaStream | null>(null);
-    const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-    const makingOfferRef = useRef<Map<string, boolean>>(new Map());
-    const ignoreOfferRef = useRef<Map<string, boolean>>(new Map());
-    const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
-    const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
-    const remoteScreenStreamsRef = useRef<Map<string, MediaStream>>(new Map());
-    const sigRef = useRef<RealtimeChannel | null>(null);
-    const channelIdRef = useRef<string | null>(null);
-    const userIdRef = useRef<string | null>(null);
+
+    // Audio Analysis (VAD) ref
     const audioContextRef = useRef<AudioContext | null>(null);
-    const isSpeakingLocalRef = useRef<boolean>(false);
-    const isVideoEnabledRef = useRef(false);
-    const isScreenSharingRef = useRef(false);
-    const isAudioEnabledRef = useRef(true);
+    const analyzerRef = useRef<AnalyserNode | null>(null);
+    const vadIntervalRef = useRef<any>(null);
 
-    useEffect(() => { channelIdRef.current = channelId; }, [channelId]);
-    useEffect(() => { userIdRef.current = user?.id ?? null; _globalUserId = user?.id ?? null; }, [user?.id]);
-    useEffect(() => { isVideoEnabledRef.current = isVideoEnabled; }, [isVideoEnabled]);
-    useEffect(() => { isScreenSharingRef.current = isScreenSharing; }, [isScreenSharing]);
-    useEffect(() => { isAudioEnabledRef.current = isAudioEnabled; }, [isAudioEnabled]);
+    // --- MÉTODOS DE MEDIA LOCALES ---
 
-    const log = useCallback((msg: string) => console.log(`[Tabetalk WebRTC] ${msg}`), []);
-
-    // ������ Dispositivos de cámara ������
-    const refreshDevices = useCallback(async () => {
+    const getDevices = async () => {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices
-                .filter(d => d.kind === 'videoinput')
-                .map((d, i) => ({ deviceId: d.deviceId, label: d.label || `Cámara ${i + 1}` }));
-            setCameras(videoDevices);
-            if (videoDevices.length > 0 && !selectedCameraId) {
-                setSelectedCameraId(videoDevices[0].deviceId);
-            }
-        } catch { /* ignore */ }
-    }, [selectedCameraId]);
-
-    useEffect(() => { refreshDevices(); }, []);
-
-    // ������ Enviar señales por Realtime sin duplicaciones ������
-    const sendSignal = useCallback((event: string, payload: any) => {
-        if (!sigRef.current) return;
-        try {
-            sigRef.current.send({
-                type: 'broadcast',
-                event,
-                payload,
-            });
-        } catch (e: any) {
-            console.warn(`[Tabetalk WebRTC] Error sending ${event}:`, e.message);
+            const videoDevs = devices.filter(d => d.kind === 'videoinput');
+            const audioDevs = devices.filter(d => d.kind === 'audioinput');
+            
+            setCameras(videoDevs.map((d, idx) => ({ deviceId: d.deviceId, label: d.label || `Cámara ${idx + 1}` })));
+            setMics(audioDevs.map((d, idx) => ({ deviceId: d.deviceId, label: d.label || `Micrófono ${idx + 1}` })));
+            
+            if (videoDevs.length > 0 && !selectedCameraId) setSelectedCameraId(videoDevs[0].deviceId);
+            if (audioDevs.length > 0 && !selectedMicId) setSelectedMicId(audioDevs[0].deviceId);
+        } catch (err) {
+            console.error("[WebRTC] Error enumerando dispositivos:", err);
         }
-    }, []);
+    };
 
-    // ������ Broadcast de Estado Multimedia ������
-    const broadcastMediaState = useCallback((cameraOn: boolean, screenSharing: boolean, audioOn: boolean) => {
-        const myId = userIdRef.current;
-        if (!myId) return;
-        sendSignal('signal:media-state', {
-            from: myId,
-            isCameraOn: cameraOn,
-            isScreenSharing: screenSharing,
-            isAudioEnabled: audioOn,
-        });
-    }, [sendSignal]);
-
-    // ������ Drenar candidatos ICE pendientes ������
-    const drainPendingCandidates = useCallback(async (targetId: string, pc: RTCPeerConnection) => {
-        const queue = pendingCandidatesRef.current.get(targetId);
-        if (queue && queue.length > 0) {
-            log(`Draining ${queue.length} pending ICE candidates for ${targetId.slice(0, 8)}`);
-            pendingCandidatesRef.current.delete(targetId);
-            for (const cand of queue) {
-                try {
-                    await pc.addIceCandidate(new RTCIceCandidate(cand));
-                } catch (e: any) {
-                    console.warn(`[Tabetalk WebRTC] Error draining candidate: ${e.message}`);
-                }
-            }
-        }
-    }, [log]);
-
-    // ������ Buscar sender de video para replaceTrack en caliente ������
-    const findVideoSender = useCallback((pc: RTCPeerConnection): RTCRtpSender | undefined => {
-        const withTrack = pc.getSenders().find(s => s.track?.kind === 'video');
-        if (withTrack) return withTrack;
-        const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
-        return transceiver?.sender;
-    }, []);
-
-    // ������ Limpieza de un peer individual ������
-    const closePeer = useCallback((id: string) => {
-        log(`Closing peer connection with ${id.slice(0, 8)}`);
-        const pc = pcsRef.current.get(id);
-        if (pc) {
-            try { pc.close(); } catch { }
-            pcsRef.current.delete(id);
-        }
-        makingOfferRef.current.delete(id);
-        ignoreOfferRef.current.delete(id);
-        pendingCandidatesRef.current.delete(id);
-        remoteStreamsRef.current.delete(id);
-        remoteScreenStreamsRef.current.delete(id);
-
-        setRemoteStreams(p => { const m = new Map(p); m.delete(id); return m; });
-        setRemoteScreenStreams(p => { const m = new Map(p); m.delete(id); return m; });
-        setRemoteMediaStates(p => { const m = new Map(p); m.delete(id); return m; });
-        setPeerStates(p => { const m = new Map(p); m.delete(id); return m; });
-        setSpeakingUsers(p => { const s = new Set(p); s.delete(id); return s; });
-    }, [log]);
-
-    // ������ Limpieza global al desconectar del canal de voz ������
-    const cleanupAll = useCallback(() => {
-        log('Cleaning up all media and connections');
-        const myId = userIdRef.current;
-        if (sigRef.current && myId) {
-            try {
-                sigRef.current.send({
-                    type: 'broadcast',
-                    event: 'signal:user-left',
-                    payload: { from: myId, userId: myId },
-                });
-            } catch { }
-        }
-
-        if (audioContextRef.current) {
-            try { audioContextRef.current.close(); } catch { }
-            audioContextRef.current = null;
-        }
-
-        const s = localStreamRef.current;
-        if (s) {
-            s.getTracks().forEach(t => t.stop());
-            activeStreams.delete(s);
-            localStreamRef.current = null;
-        }
-        const cs = cameraStreamRef.current;
-        if (cs) {
-            cs.getTracks().forEach(t => t.stop());
-            cameraStreamRef.current = null;
-        }
-        const ss = screenStreamRef.current;
-        if (ss) {
-            ss.getTracks().forEach(t => t.stop());
-            screenStreamRef.current = null;
-        }
-
-        setLocalStream(null);
-        setScreenStream(null);
-        setIsScreenSharing(false);
-
-        pcsRef.current.forEach(pc => {
-            try { pc.close(); } catch { }
-        });
-        pcsRef.current.clear();
-        makingOfferRef.current.clear();
-        ignoreOfferRef.current.clear();
-        pendingCandidatesRef.current.clear();
-        remoteStreamsRef.current.clear();
-        remoteScreenStreamsRef.current.clear();
-
-        setRemoteStreams(new Map());
-        setRemoteScreenStreams(new Map());
-        setRemoteMediaStates(new Map());
-        setPeerStates(new Map());
-        setSpeakingUsers(new Set());
-        setIsAudioEnabled(true);
-        setIsVideoEnabled(false);
-
-        if (sigRef.current) {
-            supabase.removeChannel(sigRef.current);
-            sigRef.current = null;
-        }
-    }, [log]);
-
-    // ������ Fábrica RTCPeerConnection con W3C Perfect Negotiation ������
-    const getOrCreatePC = useCallback((targetId: string): RTCPeerConnection => {
-        let pc = pcsRef.current.get(targetId);
-        if (pc) return pc;
-
-        const myId = userIdRef.current;
-        if (!myId) {
-            throw new Error('User ID not set when creating RTCPeerConnection');
-        }
-
-        log(`Creating RTCPeerConnection for ${targetId.slice(0, 8)}`);
-        pc = new RTCPeerConnection(ICE_SERVERS);
-        pcsRef.current.set(targetId, pc);
-
-        // 1. Agregar tracks locales existentes o configurar transceivers para recepción
-        const curStream = localStreamRef.current;
-        let hasAudioSender = false;
-        if (curStream) {
-            const audioTracks = curStream.getAudioTracks();
-            if (audioTracks.length > 0) {
-                pc.addTrack(audioTracks[0], curStream);
-                hasAudioSender = true;
-            }
-        }
-        if (!hasAudioSender) {
-            // Modo oyente o sin micrófono: siempre recvonly para escuchar a los demás
-            pc.addTransceiver('audio', { direction: 'recvonly' });
-        }
-
-        // Pista de video activa (cámara o pantalla compartida)
-        let activeVideoTrack: MediaStreamTrack | null = null;
-        if (screenStreamRef.current && screenStreamRef.current.getVideoTracks().length > 0) {
-            activeVideoTrack = screenStreamRef.current.getVideoTracks()[0];
-        } else if (cameraStreamRef.current && cameraStreamRef.current.getVideoTracks().length > 0) {
-            activeVideoTrack = cameraStreamRef.current.getVideoTracks()[0];
-        }
-
-        if (activeVideoTrack) {
-            pc.addTrack(activeVideoTrack, curStream || new MediaStream([activeVideoTrack]));
-        } else {
-            // Usuario con cámara apagada: SIEMPRE 'recvonly' para poder ver las cámaras y pantallas de los demás
-            pc.addTransceiver('video', { direction: 'recvonly' });
-        }
-
-        // 2. W3C Perfect Negotiation: onnegotiationneeded
-        pc.onnegotiationneeded = async () => {
-            try {
-                makingOfferRef.current.set(targetId, true);
-                log(`[PerfectNegotiation] Creating offer for ${targetId.slice(0, 8)}`);
-                const offer = await pc!.createOffer();
-                if (pc!.signalingState !== 'stable') return;
-                await pc!.setLocalDescription(offer);
-
-                sendSignal('signal:offer', {
-                    from: myId,
-                    to: targetId,
-                    sdp: pc!.localDescription,
-                });
-            } catch (err: any) {
-                console.warn(`[Tabetalk WebRTC] Error in onnegotiationneeded with ${targetId.slice(0, 8)}:`, err.message);
-            } finally {
-                makingOfferRef.current.set(targetId, false);
-            }
-        };
-
-        // 3. ICE Candidates: un solo evento unificado
-        pc.onicecandidate = (ev) => {
-            if (ev.candidate) {
-                sendSignal('signal:ice-candidate', {
-                    from: myId,
-                    to: targetId,
-                    candidate: ev.candidate.toJSON(),
-                });
-            }
-        };
-
-        // 4. Recepción de Streams Multimedia Persistentes (ontrack)
-        pc.ontrack = (ev) => {
-            log(`[WebRTC] Received remote track ${ev.track.kind} (${ev.track.id}) from ${targetId.slice(0, 8)}`);
-
-            // Reutilizar o crear MediaStream persistente para evitar romper elementos HTML
-            let rStream = remoteStreamsRef.current.get(targetId);
-            if (!rStream) {
-                rStream = new MediaStream();
-                remoteStreamsRef.current.set(targetId, rStream);
-            }
-
-            // Asegurar que el track esté en el stream
-            if (!rStream.getTracks().some(t => t.id === ev.track.id)) {
-                rStream.addTrack(ev.track);
-            }
-
-            // Si es video, actualizar también remoteScreenStreams
-            if (ev.track.kind === 'video') {
-                let sStream = remoteScreenStreamsRef.current.get(targetId);
-                if (!sStream) {
-                    sStream = new MediaStream();
-                    remoteScreenStreamsRef.current.set(targetId, sStream);
-                }
-                if (!sStream.getTracks().some(t => t.id === ev.track.id)) {
-                    sStream.addTrack(ev.track);
-                }
-                setRemoteScreenStreams(new Map(remoteScreenStreamsRef.current));
-            }
-
-            // Notificar a React con nueva referencia de Map
-            setRemoteStreams(new Map(remoteStreamsRef.current));
-
-            // Manejo de eventos en la pista recibida
-            const triggerUpdate = () => {
-                setRemoteStreams(new Map(remoteStreamsRef.current));
-                setRemoteScreenStreams(new Map(remoteScreenStreamsRef.current));
-            };
-
-            ev.track.onended = () => {
-                log(`Track ${ev.track.kind} ended from ${targetId.slice(0, 8)}`);
-                triggerUpdate();
-            };
-            ev.track.onunmute = () => {
-                log(`Track ${ev.track.kind} unmuted from ${targetId.slice(0, 8)}`);
-                triggerUpdate();
-            };
-            ev.track.onmute = () => {
-                log(`Track ${ev.track.kind} muted from ${targetId.slice(0, 8)}`);
-                triggerUpdate();
-            };
-        };
-
-        // 5. Monitoreo del estado de conexión
-        pc.onconnectionstatechange = () => {
-            const state = pc!.connectionState;
-            log(`Connection state with ${targetId.slice(0, 8)}: ${state}`);
-            setPeerStates(p => { const m = new Map(p); m.set(targetId, state); return m; });
-
-            if (state === 'connected') {
-                log(`WebRTC successfully connected with ${targetId.slice(0, 8)}`);
-                // Asegurar que los tracks de los receivers estén reflejados
-                const receivers = pc!.getReceivers();
-                receivers.forEach(r => {
-                    if (r.track && r.track.readyState !== 'ended') {
-                        let rStream = remoteStreamsRef.current.get(targetId);
-                        if (!rStream) {
-                            rStream = new MediaStream();
-                            remoteStreamsRef.current.set(targetId, rStream);
-                        }
-                        if (!rStream.getTracks().some(t => t.id === r.track!.id)) {
-                            rStream.addTrack(r.track);
-                        }
-                    }
-                });
-                setRemoteStreams(new Map(remoteStreamsRef.current));
-                setRemoteScreenStreams(new Map(remoteScreenStreamsRef.current));
-            } else if (state === 'failed') {
-                log(`Attempting ICE restart with ${targetId.slice(0, 8)}`);
-                try { pc!.restartIce(); } catch { }
-            }
-        };
-
-        return pc;
-    }, [log, sendSignal]);
-
-    // ������ Manejador de Ofertas (W3C Perfect Negotiation) ������
-    const handleOffer = useCallback(async (payload: any) => {
-        const myId = userIdRef.current;
-        const from = payload.from || payload.senderId;
-        const to = payload.to || payload.targetId;
-        const sdp = payload.sdp || payload.offer;
-
-        if (!myId || !from || from === myId || !sdp) return;
-        if (to && to !== myId) return;
-
-        log(`Received offer from ${from.slice(0, 8)}`);
-        const pc = getOrCreatePC(from);
-
-        // Determinación de polite peer: el que tiene ID mayor cede ante colisiones
-        const isPolite = myId.localeCompare(from) > 0;
-        const readyState = pc.signalingState;
-        const offerCollision = makingOfferRef.current.get(from) || readyState !== 'stable';
-
-        ignoreOfferRef.current.set(from, !isPolite && offerCollision);
-        if (ignoreOfferRef.current.get(from)) {
-            log(`Glare collision: ignoring offer from ${from.slice(0, 8)} (impolite role)`);
-            return;
-        }
+    const setupVAD = (stream: MediaStream) => {
+        if (vadIntervalRef.current) clearInterval(vadIntervalRef.current);
+        if (audioContextRef.current) audioContextRef.current.close();
 
         try {
-            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-            await drainPendingCandidates(from, pc);
+            const audioCtx = new window.AudioContext();
+            audioContextRef.current = audioCtx;
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 512;
+            analyser.smoothingTimeConstant = 0.4;
+            analyzerRef.current = analyser;
 
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-
-            sendSignal('signal:answer', {
-                from: myId,
-                to: from,
-                sdp: pc.localDescription,
-            });
-
-            // Notificar de inmediato nuestro estado multimedia al emisor
-            broadcastMediaState(isVideoEnabledRef.current, isScreenSharingRef.current, isAudioEnabledRef.current);
-        } catch (e: any) {
-            log(`Error handling offer from ${from.slice(0, 8)}: ${e.message}`);
-        }
-    }, [getOrCreatePC, drainPendingCandidates, sendSignal, broadcastMediaState, log]);
-
-    // ������ Manejador de Respuestas ������
-    const handleAnswer = useCallback(async (payload: any) => {
-        const myId = userIdRef.current;
-        const from = payload.from || payload.senderId;
-        const to = payload.to || payload.targetId;
-        const sdp = payload.sdp || payload.answer;
-
-        if (!myId || !from || from === myId || !sdp) return;
-        if (to && to !== myId) return;
-
-        log(`Received answer from ${from.slice(0, 8)}`);
-        const pc = pcsRef.current.get(from);
-        if (!pc) return;
-
-        if (pc.signalingState !== 'have-local-offer') {
-            log(`Ignoring answer from ${from.slice(0, 8)} because state is ${pc.signalingState}`);
-            return;
-        }
-
-        try {
-            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-            await drainPendingCandidates(from, pc);
-        } catch (e: any) {
-            log(`Error handling answer from ${from.slice(0, 8)}: ${e.message}`);
-        }
-    }, [drainPendingCandidates, log]);
-
-    // ������ Manejador de Candidatos ICE ������
-    const handleIceCandidate = useCallback(async (payload: any) => {
-        const myId = userIdRef.current;
-        const from = payload.from || payload.senderId;
-        const to = payload.to || payload.targetId;
-        const candidate = payload.candidate;
-
-        if (!myId || !from || from === myId || !candidate) return;
-        if (to && to !== myId) return;
-
-        const pc = pcsRef.current.get(from);
-        if (!pc || !pc.remoteDescription || !pc.remoteDescription.type) {
-            const queue = pendingCandidatesRef.current.get(from) || [];
-            queue.push(candidate);
-            pendingCandidatesRef.current.set(from, queue);
-            return;
-        }
-
-        try {
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (e: any) {
-            if (!ignoreOfferRef.current.get(from)) {
-                console.warn(`[Tabetalk WebRTC] Error adding ICE candidate: ${e.message}`);
-            }
-        }
-    }, []);
-
-    // ������ Manejador de Estado Multimedia Remoto ������
-    const handleMediaState = useCallback((payload: any) => {
-        const sid = payload.from || payload.senderId;
-        if (!sid || sid === userIdRef.current) return;
-
-        setRemoteMediaStates(prev => {
-            const next = new Map(prev);
-            next.set(sid, {
-                isCameraOn: Boolean(payload.isCameraOn),
-                isScreenSharing: Boolean(payload.isScreenSharing),
-                isAudioEnabled: payload.isAudioEnabled !== false,
-            });
-            return next;
-        });
-
-        // Si el peer apagó cámara y pantalla, limpiar tracks de video del stream remoto
-        if (!payload.isCameraOn && !payload.isScreenSharing) {
-            const rStream = remoteStreamsRef.current.get(sid);
-            if (rStream) {
-                rStream.getVideoTracks().forEach(t => {
-                    try { rStream.removeTrack(t); } catch { }
-                });
-                setRemoteStreams(new Map(remoteStreamsRef.current));
-            }
-            const sStream = remoteScreenStreamsRef.current.get(sid);
-            if (sStream) {
-                sStream.getVideoTracks().forEach(t => {
-                    try { sStream.removeTrack(t); } catch { }
-                });
-                setRemoteScreenStreams(new Map(remoteScreenStreamsRef.current));
-            }
-        }
-    }, []);
-
-    // ������ Manejador de Indicador de Habla ������
-    const handleSpeaking = useCallback((payload: any) => {
-        const sid = payload.from || payload.senderId;
-        if (!sid) return;
-        setSpeakingUsers(prev => {
-            const next = new Set(prev);
-            if (payload.isSpeaking) next.add(sid);
-            else next.delete(sid);
-            return next;
-        });
-    }, []);
-
-    // ������ Detección de Actividad de Voz Local (VAD) ������
-    const setupLocalVAD = useCallback((stream: MediaStream) => {
-        try {
-            if (audioContextRef.current) {
-                try { audioContextRef.current.close(); } catch { }
-            }
-            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioCtx) return;
-
-            const ctx = new AudioCtx();
-            audioContextRef.current = ctx;
-
-            const source = ctx.createMediaStreamSource(stream);
-            const analyser = ctx.createAnalyser();
-            analyser.fftSize = 256;
+            const source = audioCtx.createMediaStreamSource(stream);
             source.connect(analyser);
 
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-            const checkAudio = () => {
-                if (!audioContextRef.current) return;
+            
+            vadIntervalRef.current = setInterval(() => {
+                if (!localUserId) return;
                 analyser.getByteFrequencyData(dataArray);
-                const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-                const speaking = average > 14;
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                const average = sum / dataArray.length;
+                
+                const isSpeakingNow = average > 15; // Threshold
+                
+                setSpeakingUsers(prev => {
+                    const next = new Set(prev);
+                    if (isSpeakingNow && isAudioEnabled) {
+                        next.add(localUserId);
+                    } else {
+                        next.delete(localUserId);
+                    }
+                    return next;
+                });
+            }, 100);
+        } catch (e) {
+            console.error("[WebRTC] Error VAD:", e);
+        }
+    };
 
-                if (speaking !== isSpeakingLocalRef.current) {
-                    isSpeakingLocalRef.current = speaking;
-                    const myId = userIdRef.current;
-                    if (myId) {
-                        setSpeakingUsers(prev => {
-                            const next = new Set(prev);
-                            if (speaking) next.add(myId);
-                            else next.delete(myId);
+    const initLocalMedia = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true,
+                video: isVideoEnabled ? (selectedCameraId ? { deviceId: { exact: selectedCameraId } } : true) : false
+            });
+            
+            setLocalStream(stream);
+            localStreamRef.current = stream;
+            
+            // Forzar estado de los tracks
+            stream.getAudioTracks().forEach(t => t.enabled = isAudioEnabled);
+            
+            setupVAD(stream);
+            await getDevices();
+            return stream;
+        } catch (err) {
+            console.error("[WebRTC] Error obteniendo media:", err);
+            return null;
+        }
+    };
+
+    // --- SEÑALIZACIÓN Y PEER CONNECTIONS (RED MALLA) ---
+
+    const broadcastMediaState = useCallback(() => {
+        if (!channelRef.current || !localUserId) return;
+        channelRef.current.send({
+            type: 'broadcast',
+            event: 'media_state',
+            payload: {
+                senderId: localUserId,
+                isCameraOn: isVideoEnabled,
+                isAudioEnabled: isAudioEnabled,
+                isScreenSharing: isScreenSharing
+            }
+        });
+    }, [localUserId, isVideoEnabled, isAudioEnabled, isScreenSharing]);
+
+    // DB Update
+    useEffect(() => {
+        if (!channelId || !localUserId) return;
+        supabase.from('discord_voice_participants')
+            .update({ 
+                is_camera_on: isVideoEnabled, 
+                is_screen_sharing: isScreenSharing,
+                is_muted: !isAudioEnabled 
+            })
+            .eq('channel_id', channelId)
+            .eq('user_id', localUserId)
+            .then();
+    }, [isVideoEnabled, isScreenSharing, isAudioEnabled, channelId, localUserId]);
+
+    const createPeerConnection = (targetId: string, isInitiator: boolean) => {
+        if (peerConnections.current.has(targetId)) {
+            const existingPc = peerConnections.current.get(targetId)!;
+            existingPc.close();
+        }
+
+        const pc = new RTCPeerConnection(ICE_SERVERS);
+        peerConnections.current.set(targetId, pc);
+
+        setPeerStates(prev => {
+            const next = new Map(prev);
+            next.set(targetId, 'connecting');
+            return next;
+        });
+
+        // 1. Añadir tracks locales
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach(track => {
+                pc.addTrack(track, localStreamRef.current!);
+            });
+        }
+        
+        // 2. Añadir track de pantalla si existe (en un stream separado para que no se mezcle)
+        if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach(track => {
+                pc.addTrack(track, screenStreamRef.current!);
+            });
+        }
+
+        // 3. Manejar ICE Candidates
+        pc.onicecandidate = (event) => {
+            if (event.candidate && channelRef.current && localUserId) {
+                channelRef.current.send({
+                    type: 'broadcast',
+                    event: 'webrtc_ice_candidate',
+                    payload: {
+                        targetId,
+                        senderId: localUserId,
+                        candidate: event.candidate
+                    }
+                });
+            }
+        };
+
+        // 4. Recibir Tracks (ONTRACK CRÍTICO)
+        pc.ontrack = (event) => {
+            const stream = event.streams[0];
+            if (!stream) return;
+            
+            // Detectar si el stream es de pantalla (por convención, si tiene video y un ID distinto, aunque lo mejor es
+            // separarlos por el tipo de track o el msid. Aquí nos basamos en el track de video).
+            // Para simplificar, asumimos que el primer stream con audio/video es el de cámara, 
+            // y si llega un segundo stream es el de pantalla.
+            
+            const isScreenTrack = event.track.kind === 'video' && event.track.label.toLowerCase().includes('screen');
+            // Como Safari no siempre respeta el label, usamos heurísticas o simplemente actualizamos el mapa reactivo.
+            
+            // Por simplicidad en la malla: si el stream tiene un video track que NO es la cámara principal:
+            // Vamos a registrar el stream remoto asociándolo al targetId.
+            setRemoteStreams(prev => {
+                const next = new Map(prev);
+                // Si el evento es para pantalla (podemos inferirlo de remoteMediaStates)
+                // Para evitar complicaciones extremas sin transceivers dirigidos, lo guardamos en remoteStreams
+                // La UI usará el track de video correspondiente.
+                next.set(targetId, stream);
+                return next;
+            });
+        };
+
+        pc.oniceconnectionstatechange = () => {
+            setPeerStates(prev => {
+                const next = new Map(prev);
+                next.set(targetId, pc.iceConnectionState);
+                return next;
+            });
+            
+            if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
+                setRemoteStreams(prev => {
+                    const next = new Map(prev);
+                    next.delete(targetId);
+                    return next;
+                });
+                setRemoteScreenStreams(prev => {
+                    const next = new Map(prev);
+                    next.delete(targetId);
+                    return next;
+                });
+            }
+        };
+
+        // Negociación
+        if (isInitiator) {
+            pc.createOffer()
+                .then(offer => pc.setLocalDescription(offer))
+                .then(() => {
+                    channelRef.current?.send({
+                        type: 'broadcast',
+                        event: 'webrtc_offer',
+                        payload: {
+                            targetId,
+                            senderId: localUserId,
+                            offer: pc.localDescription
+                        }
+                    });
+                })
+                .catch(e => console.error("[WebRTC] Error creando oferta:", e));
+        }
+
+        return pc;
+    };
+
+    const handleNewPeer = useCallback((newUserId: string) => {
+        if (!localUserId || newUserId === localUserId) return;
+        // El usuario que ya estaba en la sala inicia la llamada al nuevo
+        createPeerConnection(newUserId, true);
+    }, [localUserId]);
+
+    // --- EFECTO PRINCIPAL DE CONEXIÓN A SALA ---
+
+    useEffect(() => {
+        if (!channelId || !localUserId) return;
+
+        let active = true;
+
+        const connect = async () => {
+            // Inicializar medios primero
+            await initLocalMedia();
+            if (!active) return;
+
+            // Conectar a canal Realtime
+            const channel = supabase.channel(`room_${channelId}`);
+            channelRef.current = channel;
+
+            channel
+                .on('broadcast', { event: 'user_joined' }, ({ payload }) => {
+                    if (payload.userId !== localUserId) {
+                        handleNewPeer(payload.userId);
+                        broadcastMediaState();
+                    }
+                })
+                .on('broadcast', { event: 'webrtc_offer' }, async ({ payload }) => {
+                    if (payload.targetId !== localUserId) return;
+                    try {
+                        const pc = createPeerConnection(payload.senderId, false);
+                        await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+                        const answer = await pc.createAnswer();
+                        await pc.setLocalDescription(answer);
+                        channel.send({
+                            type: 'broadcast',
+                            event: 'webrtc_answer',
+                            payload: {
+                                targetId: payload.senderId,
+                                senderId: localUserId,
+                                answer: pc.localDescription
+                            }
+                        });
+                    } catch (e) {
+                        console.error("[WebRTC] Error procesando oferta:", e);
+                    }
+                })
+                .on('broadcast', { event: 'webrtc_answer' }, async ({ payload }) => {
+                    if (payload.targetId !== localUserId) return;
+                    const pc = peerConnections.current.get(payload.senderId);
+                    if (pc && pc.signalingState !== 'closed') {
+                        try {
+                            await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+                        } catch (e) {
+                            console.error("[WebRTC] Error procesando respuesta:", e);
+                        }
+                    }
+                })
+                .on('broadcast', { event: 'webrtc_ice_candidate' }, async ({ payload }) => {
+                    if (payload.targetId !== localUserId) return;
+                    const pc = peerConnections.current.get(payload.senderId);
+                    if (pc && pc.signalingState !== 'closed') {
+                        try {
+                            await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                        } catch (e) {
+                            console.error("[WebRTC] Error procesando ICE:", e);
+                        }
+                    }
+                })
+                .on('broadcast', { event: 'media_state' }, ({ payload }) => {
+                    if (payload.senderId !== localUserId) {
+                        setRemoteMediaStates(prev => {
+                            const next = new Map(prev);
+                            next.set(payload.senderId, {
+                                isCameraOn: payload.isCameraOn,
+                                isAudioEnabled: payload.isAudioEnabled,
+                                isScreenSharing: payload.isScreenSharing
+                            });
                             return next;
                         });
-                        sendSignal('signal:speaking', {
-                            from: myId,
-                            isSpeaking: speaking,
-                        });
                     }
-                }
-                requestAnimationFrame(checkAudio);
-            };
-            requestAnimationFrame(checkAudio);
-        } catch (e) {
-            console.warn('[Tabetalk VAD] Error initializing audio analyzer:', e);
-        }
-    }, [sendSignal]);
-
-    // ������ Renegociar todos los peers al cambiar tracks ������
-    const renegotiateAllPeers = useCallback(() => {
-        pcsRef.current.forEach((pc, targetId) => {
-            // En Perfect Negotiation basta con invocar createOffer si el canal es stable
-            if (pc.signalingState === 'stable') {
-                const myId = userIdRef.current;
-                if (!myId) return;
-                makingOfferRef.current.set(targetId, true);
-                pc.createOffer()
-                    .then(offer => pc.setLocalDescription(offer))
-                    .then(() => {
-                        sendSignal('signal:offer', {
-                            from: myId,
-                            to: targetId,
-                            sdp: pc.localDescription,
+                })
+                .subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        channel.send({
+                            type: 'broadcast',
+                            event: 'user_joined',
+                            payload: { userId: localUserId }
                         });
-                    })
-                    .catch(e => console.warn(`[Tabetalk WebRTC] Error renegotiating with ${targetId}:`, e))
-                    .finally(() => makingOfferRef.current.set(targetId, false));
-            }
-        });
-    }, [sendSignal]);
-
-    // �"��"��"� Efecto Principal: Conexión a la Sala de Voz �"��"��"�
-    useEffect(() => {
-        if (!channelId || !user) {
-            cleanupAll();
-            return;
-        }
-
-        let cancelled = false;
-        log(`Joining Tabetalk Room: tabetalk:${channelId}`);
-
-        const start = async () => {
-            let stream: MediaStream;
-            const savedMicId = localStorage.getItem('tabetalk_audio_input_device');
-            const echoCancel = localStorage.getItem('tabetalk_echo_cancellation') !== 'false';
-            const noiseSupp = localStorage.getItem('tabetalk_noise_suppression') !== 'false';
-
-            const audioConstraints: MediaTrackConstraints = {
-                echoCancellation: echoCancel,
-                noiseSuppression: noiseSupp,
-                autoGainControl: true,
-            };
-            if (savedMicId && savedMicId !== 'default') {
-                audioConstraints.deviceId = { ideal: savedMicId };
-            }
-
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    audio: audioConstraints,
-                    video: false,
-                });
-            } catch (e1: any) {
-                console.warn('[Tabetalk WebRTC] Error con constraints avanzados de audio, probando fallback básico:', e1);
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                } catch (e2: any) {
-                    console.warn('[Tabetalk WebRTC] No se pudo obtener micrófono físico, conectando como oyente:', e2);
-                    toast({
-                        title: 'Modo Oyente activado',
-                        description: 'No se detectó micrófono o falta permiso. Puedes escuchar y ver a tus compañeros.',
-                    });
-                    // Fallback a pista de audio vacía/silenciosa para modo oyente
-                    try {
-                        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-                        const ctx = new AudioCtx();
-                        const osc = ctx.createOscillator();
-                        const dst = ctx.createMediaStreamDestination();
-                        osc.connect(dst);
-                        osc.start();
-                        const silentTrack = dst.stream.getAudioTracks()[0];
-                        silentTrack.enabled = false;
-                        stream = new MediaStream([silentTrack]);
-                        setIsAudioEnabled(false);
-                    } catch {
-                        stream = new MediaStream();
-                        setIsAudioEnabled(false);
+                        broadcastMediaState();
                     }
-                }
-            }
-
-            if (cancelled) {
-                stream.getTracks().forEach(t => t.stop());
-                return;
-            }
-
-            activeStreams.add(stream);
-            localStreamRef.current = stream;
-            setLocalStream(stream);
-            setIsAudioEnabled(true);
-            setIsVideoEnabled(false);
-            if (stream.getAudioTracks().length > 0) {
-                setupLocalVAD(stream);
-            }
-            await refreshDevices();
-
-            // Configurar canal de señalización único en Supabase Realtime
-            const channel = supabase.channel(`tabetalk:${channelId}`, {
-                config: { broadcast: { self: false }, presence: { key: user.id } },
-            });
-
-            // Suscribir eventos de señalización unificados
-            channel.on('broadcast', { event: 'signal:offer' }, ({ payload }) => {
-                if (!cancelled) handleOffer(payload);
-            });
-            channel.on('broadcast', { event: 'signal:answer' }, ({ payload }) => {
-                if (!cancelled) handleAnswer(payload);
-            });
-            channel.on('broadcast', { event: 'signal:ice-candidate' }, ({ payload }) => {
-                if (!cancelled) handleIceCandidate(payload);
-            });
-            channel.on('broadcast', { event: 'signal:media-state' }, ({ payload }) => {
-                if (!cancelled) handleMediaState(payload);
-            });
-            channel.on('broadcast', { event: 'signal:speaking' }, ({ payload }) => {
-                if (!cancelled) handleSpeaking(payload);
-            });
-            channel.on('broadcast', { event: 'signal:user-joined' }, ({ payload }) => {
-                const newcomer = payload?.from || payload?.userId;
-                if (cancelled || !newcomer || newcomer === user.id) return;
-                log(`New user joined room: ${newcomer.slice(0, 8)}`);
-                // Inicializar conexión con el nuevo usuario
-                getOrCreatePC(newcomer);
-                broadcastMediaState(isVideoEnabledRef.current, isScreenSharingRef.current, isAudioEnabledRef.current);
-            });
-            channel.on('broadcast', { event: 'signal:user-left' }, ({ payload }) => {
-                const leftId = payload?.from || payload?.userId;
-                if (!leftId || leftId === user.id) return;
-                closePeer(leftId);
-            });
-
-            // Presence para resiliencia ante usuarios ya conectados
-            channel.on('presence', { event: 'sync' }, () => {
-                if (cancelled) return;
-                const state = channel.presenceState();
-                const others = Object.keys(state).filter(id => id !== user.id);
-                others.forEach(remoteUserId => {
-                    getOrCreatePC(remoteUserId);
                 });
-            });
-
-            channel.on('presence', { event: 'join' }, ({ key }) => {
-                if (cancelled || !key || key === user.id) return;
-                getOrCreatePC(key);
-            });
-
-            channel.on('presence', { event: 'leave' }, ({ key }) => {
-                if (!key || key === user.id) return;
-                closePeer(key);
-            });
-
-            channel.subscribe(async (status) => {
-                if (status === 'SUBSCRIBED' && !cancelled) {
-                    sigRef.current = channel;
-                    await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
-
-                    // Anunciar llegada a todos los participantes
-                    sendSignal('signal:user-joined', { from: user.id });
-
-                    // Conectar con participantes ya presentes
-                    setTimeout(() => {
-                        if (cancelled) return;
-                        const others = Object.keys(channel.presenceState()).filter(id => id !== user.id);
-                        others.forEach(id => {
-                            getOrCreatePC(id);
-                        });
-                        broadcastMediaState(isVideoEnabledRef.current, isScreenSharingRef.current, isAudioEnabledRef.current);
-                    }, 300);
-                }
-            });
         };
 
-        start();
+        connect();
 
+        // Cleanup
         return () => {
-            cancelled = true;
-            cleanupAll();
+            active = false;
+            if (channelRef.current) {
+                channelRef.current.unsubscribe();
+            }
+            
+            peerConnections.current.forEach(pc => pc.close());
+            peerConnections.current.clear();
+            
+            if (localStreamRef.current) {
+                localStreamRef.current.getTracks().forEach(t => t.stop());
+            }
+            if (screenStreamRef.current) {
+                screenStreamRef.current.getTracks().forEach(t => t.stop());
+            }
+            
+            if (vadIntervalRef.current) clearInterval(vadIntervalRef.current);
+            if (audioContextRef.current) audioContextRef.current.close();
+            
+            // Limpiar BD
+            supabase.from('discord_voice_participants')
+                .delete()
+                .eq('channel_id', channelId)
+                .eq('user_id', localUserId)
+                .then();
         };
-    }, [channelId, user?.id, setupLocalVAD, refreshDevices, getOrCreatePC, handleOffer, handleAnswer, handleIceCandidate, handleMediaState, handleSpeaking, closePeer, cleanupAll, broadcastMediaState, sendSignal, toast, log]);
+    }, [channelId, localUserId]);
 
-    // ������ Toggle Audio (Micrófono) ������
-    const toggleAudio = useCallback(() => {
-        const s = localStreamRef.current;
-        if (!s) return;
-        const next = !isAudioEnabled;
-        s.getAudioTracks().forEach(t => { t.enabled = next; });
-        setIsAudioEnabled(next);
-        broadcastMediaState(isVideoEnabled, isScreenSharing, next);
-    }, [isAudioEnabled, isVideoEnabled, isScreenSharing, broadcastMediaState]);
-
-    // ������ Toggle Video (Cámara Web) ������
-    const toggleVideo = useCallback(async () => {
-        const mainStream = localStreamRef.current;
-        if (!mainStream) return;
-
-        if (isVideoEnabled) {
-            // Apagar cámara
-            if (cameraStreamRef.current) {
-                cameraStreamRef.current.getTracks().forEach(t => {
-                    t.enabled = false;
-                    try { t.stop(); } catch { }
-                });
-                cameraStreamRef.current = null;
-            }
-            mainStream.getVideoTracks().forEach(t => {
-                t.enabled = false;
-                try { t.stop(); } catch { }
-                mainStream.removeTrack(t);
-            });
-
-            if (!isScreenSharing) {
-                pcsRef.current.forEach(pc => {
-                    const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
-                    if (transceiver) {
-                        // Al apagar cámara, mantenemos en 'recvonly' para poder seguir viendo a los demás
-                        transceiver.direction = 'recvonly';
+    // Limpieza global en beforeunload (cierre de pestaña)
+    useEffect(() => {
+        const handleUnload = () => {
+            if (channelId && localUserId) {
+                const url = import.meta.env.VITE_SUPABASE_URL;
+                const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+                if (url && key) {
+                    const tokenStr = localStorage.getItem('sb-' + new URL(url).hostname.split('.')[0] + '-auth-token');
+                    let token = key;
+                    if (tokenStr) {
+                        try { token = JSON.parse(tokenStr).access_token || key; } catch {}
                     }
-                    const sender = findVideoSender(pc);
-                    if (sender) sender.replaceTrack(null);
-                });
-            }
-
-            setIsVideoEnabled(false);
-            setLocalStream(new MediaStream(mainStream.getTracks()));
-            broadcastMediaState(false, isScreenSharing, isAudioEnabled);
-            log('Camera turned OFF');
-            renegotiateAllPeers();
-
-            // Sincronizar en DB si aplica
-            const curCh = channelIdRef.current;
-            const curUid = userIdRef.current;
-            if (curCh && curUid) {
-                supabase.from('discord_voice_participants')
-                    .update({ is_camera_on: false })
-                    .eq('channel_id', curCh)
-                    .eq('user_id', curUid)
-                    .then();
-            }
-        } else {
-            // Encender cámara con fallback resiliente
-            try {
-                let vs: MediaStream;
-                const targetCameraId = selectedCameraId || localStorage.getItem('tabetalk_video_input_device') || '';
-
-                try {
-                    if (targetCameraId && targetCameraId !== 'default') {
-                        vs = await navigator.mediaDevices.getUserMedia({
-                            video: { deviceId: { ideal: targetCameraId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-                        });
-                    } else {
-                        vs = await navigator.mediaDevices.getUserMedia({
-                            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
-                        });
-                    }
-                } catch (e1) {
-                    console.warn('[Tabetalk WebRTC] Error con constraints de cámara ideales, probando fallback básico:', e1);
-                    vs = await navigator.mediaDevices.getUserMedia({ video: true });
+                    fetch(`${url}/rest/v1/discord_voice_participants?user_id=eq.${localUserId}&channel_id=eq.${channelId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': key,
+                            'Authorization': `Bearer ${token}`
+                        },
+                        keepalive: true
+                    }).catch(()=>{});
                 }
+            }
+        };
+        window.addEventListener('beforeunload', handleUnload);
+        return () => window.removeEventListener('beforeunload', handleUnload);
+    }, [channelId, localUserId]);
 
-                const vt = vs.getVideoTracks()[0];
-                cameraStreamRef.current = vs;
+    // --- ACCIONES DE MEDIA ---
 
-                mainStream.getVideoTracks().forEach(t => {
-                    t.enabled = false;
-                    try { t.stop(); } catch { }
-                    mainStream.removeTrack(t);
-                });
-                mainStream.addTrack(vt);
-
-                if (!isScreenSharing) {
-                    pcsRef.current.forEach(pc => {
-                        const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
-                        if (transceiver) {
-                            transceiver.direction = 'sendrecv';
-                        }
-                        const sender = findVideoSender(pc);
-                        if (sender) {
-                            sender.replaceTrack(vt);
-                        } else {
-                            pc.addTrack(vt, mainStream);
+    const renegotiateAllPeers = () => {
+        peerConnections.current.forEach((pc, targetId) => {
+            const senders = pc.getSenders();
+            
+            // Actualizar tracks locales
+            if (localStreamRef.current) {
+                const audioTrack = localStreamRef.current.getAudioTracks()[0];
+                const videoTrack = localStreamRef.current.getVideoTracks()[0];
+                
+                if (audioTrack) {
+                    const audioSender = senders.find(s => s.track?.kind === 'audio');
+                    if (audioSender) audioSender.replaceTrack(audioTrack);
+                    else pc.addTrack(audioTrack, localStreamRef.current);
+                }
+                
+                const videoSender = senders.find(s => s.track?.kind === 'video' && !s.track.label.toLowerCase().includes('screen'));
+                if (videoTrack) {
+                    if (videoSender) videoSender.replaceTrack(videoTrack);
+                    else pc.addTrack(videoTrack, localStreamRef.current);
+                } else if (videoSender) {
+                    pc.removeTrack(videoSender);
+                }
+            }
+            
+            // Actualizar track de pantalla
+            const screenSender = senders.find(s => s.track?.kind === 'video' && s.track.label.toLowerCase().includes('screen'));
+            if (screenStreamRef.current) {
+                const screenTrack = screenStreamRef.current.getVideoTracks()[0];
+                if (screenTrack) {
+                    if (screenSender) screenSender.replaceTrack(screenTrack);
+                    else pc.addTrack(screenTrack, screenStreamRef.current);
+                }
+            } else if (screenSender) {
+                pc.removeTrack(screenSender);
+            }
+            
+            // Re-ofertar
+            pc.createOffer()
+                .then(offer => pc.setLocalDescription(offer))
+                .then(() => {
+                    channelRef.current?.send({
+                        type: 'broadcast',
+                        event: 'webrtc_offer',
+                        payload: {
+                            targetId,
+                            senderId: localUserId,
+                            offer: pc.localDescription
                         }
                     });
-                }
-
-                setIsVideoEnabled(true);
-                setLocalStream(new MediaStream(mainStream.getTracks()));
-                broadcastMediaState(true, isScreenSharing, isAudioEnabled);
-                log('Camera turned ON');
-                renegotiateAllPeers();
-
-                const curCh = channelIdRef.current;
-                const curUid = userIdRef.current;
-                if (curCh && curUid) {
-                    supabase.from('discord_voice_participants')
-                        .update({ is_camera_on: true })
-                        .eq('channel_id', curCh)
-                        .eq('user_id', curUid)
-                        .then();
-                }
-            } catch (e: any) {
-                log(`Camera error: ${e.message}`);
-                toast({ title: 'No se pudo acceder a la cámara', description: e.message || 'Verifica los permisos del navegador', variant: 'destructive' });
-            }
-        }
-    }, [isVideoEnabled, isScreenSharing, isAudioEnabled, selectedCameraId, broadcastMediaState, findVideoSender, renegotiateAllPeers, toast, log]);
-
-    // ������ Switch Camera ������
-    const switchCamera = useCallback(async (deviceId: string) => {
-        setSelectedCameraId(deviceId);
-        localStorage.setItem('tabetalk_video_input_device', deviceId); // Guardar preferencia
-        if (!isVideoEnabled || !localStreamRef.current) return;
-        const mainStream = localStreamRef.current;
-
-        try {
-            // STOP old camera FIRST to release hardware locks (fixes black screen/virtual camera issues on Windows)
-            if (cameraStreamRef.current) {
-                cameraStreamRef.current.getTracks().forEach(t => {
-                    t.enabled = false;
-                    try { t.stop(); } catch { }
-                });
-                cameraStreamRef.current = null;
-            }
-
-            // Also remove from mainStream immediately
-            mainStream.getVideoTracks().forEach(t => {
-                t.enabled = false;
-                try { t.stop(); } catch { }
-                mainStream.removeTrack(t);
-            });
-
-            const vs = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
-            const newVt = vs.getVideoTracks()[0];
-
-            cameraStreamRef.current = vs;
-
-            mainStream.addTrack(newVt);
-
-            if (!isScreenSharing) {
-                pcsRef.current.forEach(pc => {
-                    const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
-                    if (transceiver) {
-                        transceiver.direction = 'sendrecv';
-                    }
-                    const sender = findVideoSender(pc);
-                    if (sender) sender.replaceTrack(newVt);
-                });
-            }
-
-            setLocalStream(new MediaStream(mainStream.getTracks()));
-            log(`Camera switched to ${deviceId}`);
-            renegotiateAllPeers();
-        } catch (e: any) {
-            toast({ title: 'Error al cambiar cámara', description: e.message, variant: 'destructive' });
-        }
-    }, [isVideoEnabled, isScreenSharing, findVideoSender, renegotiateAllPeers, toast, log]);
-
-    // ������ Screen Sharing (Transmitir Pantalla) ������
-    // <� Switch Mic <�
-    const switchMic = useCallback(async (deviceId: string) => {
-        setSelectedMicId(deviceId);
-        localStorage.setItem('tabetalk_audio_input_device', deviceId);
-        if (!localStreamRef.current) return;
-        const mainStream = localStreamRef.current;
-
-        try {
-            const as = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: localStorage.getItem('tabetalk_echo_cancellation') !== 'false',
-                    noiseSuppression: localStorage.getItem('tabetalk_noise_suppression') !== 'false',
-                    autoGainControl: true,
-                    deviceId: { exact: deviceId }
-                }
-            });
-            const newAt = as.getAudioTracks()[0];
-
-            mainStream.getAudioTracks().forEach(t => {
-                t.enabled = false;
-                try { t.stop(); } catch {}
-                mainStream.removeTrack(t);
-            });
-            mainStream.addTrack(newAt);
-            newAt.enabled = isAudioEnabledRef.current;
-
-            pcsRef.current.forEach(pc => {
-                const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
-                if (sender) sender.replaceTrack(newAt);
-            });
-
-            setLocalStream(new MediaStream(mainStream.getTracks()));
-            setupLocalVAD(mainStream); // Re-attach VAD
-            log(`Mic switched to `);
-        } catch (e: any) {
-            toast({ title: 'Error al cambiar micr�fono', description: e.message, variant: 'destructive' });
-        }
-    }, [setupLocalVAD, toast, log]);
-
-    const stopScreenShare = useCallback(async () => {
-        const screen = screenStreamRef.current;
-        if (screen) {
-            screen.getTracks().forEach(t => {
-                t.enabled = false;
-                try { t.stop(); } catch { }
-            });
-            screenStreamRef.current = null;
-        }
-
-        setIsScreenSharing(false);
-        setScreenStream(null);
-
-        const cameraTrack = isVideoEnabled ? cameraStreamRef.current?.getVideoTracks()[0] || null : null;
-        pcsRef.current.forEach(pc => {
-            const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
-            if (transceiver) {
-                // Si la cámara sigue prendida, mantenemos sendrecv; si no, volvemos a recvonly
-                transceiver.direction = isVideoEnabled ? 'sendrecv' : 'recvonly';
-            }
-            const sender = findVideoSender(pc);
-            if (sender) {
-                sender.replaceTrack(cameraTrack);
-            }
+                })
+                .catch(e => console.error("[WebRTC] Error renegociando:", e));
         });
+    };
 
-        broadcastMediaState(isVideoEnabled, false, isAudioEnabled);
-        log('Screen share ended, restored camera track');
-        renegotiateAllPeers();
-
-        const curCh = channelIdRef.current;
-        const curUid = userIdRef.current;
-        if (curCh && curUid) {
-            supabase.from('discord_voice_participants')
-                .update({ is_screen_sharing: false })
-                .eq('channel_id', curCh)
-                .eq('user_id', curUid)
-                .then();
-        }
-    }, [isVideoEnabled, isAudioEnabled, broadcastMediaState, findVideoSender, renegotiateAllPeers, log]);
-
-    const startScreenShare = useCallback(async () => {
-        try {
-            const displayStream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
-                audio: true,
-            });
-
-            screenStreamRef.current = displayStream;
-            setScreenStream(displayStream);
-            const screenTrack = displayStream.getVideoTracks()[0];
-
-            pcsRef.current.forEach(pc => {
-                const transceiver = pc.getTransceivers().find(t => t.receiver.track?.kind === 'video' || t.mid === 'video');
-                if (transceiver) {
-                    transceiver.direction = 'sendrecv';
-                }
-                const sender = findVideoSender(pc);
-                if (sender) {
-                    sender.replaceTrack(screenTrack);
-                } else {
-                    pc.addTrack(screenTrack, displayStream);
-                }
-            });
-
-            setIsScreenSharing(true);
-            broadcastMediaState(isVideoEnabled, true, isAudioEnabled);
-            log('Screen share started using replaceTrack');
-            renegotiateAllPeers();
-
-            const curCh = channelIdRef.current;
-            const curUid = userIdRef.current;
-            if (curCh && curUid) {
-                supabase.from('discord_voice_participants')
-                    .update({ is_screen_sharing: true })
-                    .eq('channel_id', curCh)
-                    .eq('user_id', curUid)
-                    .then();
+    const toggleAudio = () => {
+        setIsAudioEnabled(prev => {
+            const next = !prev;
+            if (localStreamRef.current) {
+                localStreamRef.current.getAudioTracks().forEach(t => t.enabled = next);
             }
+            setTimeout(broadcastMediaState, 100);
+            return next;
+        });
+    };
 
-            screenTrack.onended = () => {
-                stopScreenShare();
-            };
-        } catch (e: any) {
-            log(`Screen share cancelled or error: ${e.message}`);
+    const toggleVideo = async () => {
+        try {
+            if (!isVideoEnabled) {
+                let newStream: MediaStream;
+                try {
+                    newStream = await navigator.mediaDevices.getUserMedia({
+                        video: selectedCameraId && selectedCameraId !== "default" ? { deviceId: { exact: selectedCameraId } } : true,
+                        audio: false
+                    });
+                } catch {
+                    newStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
+                const videoTrack = newStream.getVideoTracks()[0];
+                
+                if (localStreamRef.current && videoTrack) {
+                    const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+                    if (oldVideoTrack) {
+                        localStreamRef.current.removeTrack(oldVideoTrack);
+                        oldVideoTrack.stop();
+                    }
+                    localStreamRef.current.addTrack(videoTrack);
+                    setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+                } else if (videoTrack) {
+                    const combined = new MediaStream([videoTrack]);
+                    localStreamRef.current = combined;
+                    setLocalStream(combined);
+                }
+                setIsVideoEnabled(true);
+                await getDevices();
+            } else {
+                if (localStreamRef.current) {
+                    const videoTrack = localStreamRef.current.getVideoTracks()[0];
+                    if (videoTrack) {
+                        videoTrack.stop();
+                        localStreamRef.current.removeTrack(videoTrack);
+                        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+                    }
+                }
+                setIsVideoEnabled(false);
+            }
+            setTimeout(() => {
+                renegotiateAllPeers();
+                broadcastMediaState();
+            }, 200);
+        } catch (e) {
+            console.error("[WebRTC] Error alternando video:", e);
         }
-    }, [isVideoEnabled, isAudioEnabled, stopScreenShare, broadcastMediaState, findVideoSender, renegotiateAllPeers, log]);
+    };
+
+    const startScreenShare = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            setScreenStream(stream);
+            screenStreamRef.current = stream;
+            setIsScreenSharing(true);
+            
+            stream.getVideoTracks()[0].onended = stopScreenShare;
+            
+            setTimeout(() => {
+                renegotiateAllPeers();
+                broadcastMediaState();
+            }, 200);
+        } catch (e) {
+            console.error("[WebRTC] Error compartiendo pantalla:", e);
+        }
+    };
+
+    const stopScreenShare = () => {
+        if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach(t => t.stop());
+            setScreenStream(null);
+            screenStreamRef.current = null;
+            setIsScreenSharing(false);
+            
+            setTimeout(() => {
+                renegotiateAllPeers();
+                broadcastMediaState();
+            }, 200);
+        }
+    };
+
+    const switchCamera = async (deviceId: string) => {
+        setSelectedCameraId(deviceId);
+        localStorage.setItem("tabetalk_video_input_device", deviceId);
+        if (isVideoEnabled) {
+            try {
+                const newStream = await navigator.mediaDevices.getUserMedia({
+                    video: deviceId && deviceId !== "default" ? { deviceId: { exact: deviceId } } : true
+                });
+                const videoTrack = newStream.getVideoTracks()[0];
+                if (localStreamRef.current && videoTrack) {
+                    const oldTrack = localStreamRef.current.getVideoTracks()[0];
+                    if (oldTrack) {
+                        localStreamRef.current.removeTrack(oldTrack);
+                        oldTrack.stop();
+                    }
+                    localStreamRef.current.addTrack(videoTrack);
+                    setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+                    renegotiateAllPeers();
+                }
+            } catch (e) {
+                console.error("[WebRTC] Error cambiando cámara:", e);
+            }
+        }
+    };
+
+    const switchMic = async (deviceId: string) => {
+        setSelectedMicId(deviceId);
+        localStorage.setItem("tabetalk_audio_input_device", deviceId);
+        try {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                audio: deviceId && deviceId !== "default" ? { deviceId: { exact: deviceId } } : true
+            });
+            const audioTrack = newStream.getAudioTracks()[0];
+            if (localStreamRef.current && audioTrack) {
+                const oldTrack = localStreamRef.current.getAudioTracks()[0];
+                if (oldTrack) {
+                    localStreamRef.current.removeTrack(oldTrack);
+                    oldTrack.stop();
+                }
+                audioTrack.enabled = isAudioEnabled;
+                localStreamRef.current.addTrack(audioTrack);
+                setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+                
+                setupVAD(localStreamRef.current);
+                renegotiateAllPeers();
+            }
+        } catch (e) {
+            console.error("[WebRTC] Error cambiando micrófono:", e);
+        }
+    };
+
+    // Sincronizar cambios desde el modal de Ajustes de Tabetalk
+    useEffect(() => {
+        const handleDevicesChanged = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (!detail) return;
+            getDevices();
+            if (detail.videoInput && detail.videoInput !== selectedCameraId) {
+                switchCamera(detail.videoInput);
+            }
+            if (detail.audioInput && detail.audioInput !== selectedMicId && localStreamRef.current) {
+                switchMic(detail.audioInput);
+            }
+        };
+        window.addEventListener("tabetalk:devices-changed", handleDevicesChanged);
+        return () => window.removeEventListener("tabetalk:devices-changed", handleDevicesChanged);
+    }, [selectedCameraId, selectedMicId, isVideoEnabled, isAudioEnabled]);
 
     return {
         localStream,
         remoteStreams,
+        screenStream,
+        remoteScreenStreams,
+        peerStates,
+        remoteMediaStates,
+        speakingUsers,
+        
         isAudioEnabled,
         isVideoEnabled,
         isScreenSharing,
-        toggleAudio,
-        toggleVideo,
-        peerStates,
+        
         cameras,
         selectedCameraId,
-        switchCamera,
         mics,
         selectedMicId,
-        switchMic,
+        
+        toggleAudio,
+        toggleVideo,
         startScreenShare,
         stopScreenShare,
-        screenStream,
-        remoteScreenStreams,
-        remoteMediaStates,
-        speakingUsers,
+        switchCamera,
+        switchMic
     };
 }
-
-
-
-
-
 

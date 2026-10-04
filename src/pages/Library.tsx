@@ -333,20 +333,79 @@ export default function Library() {
     }
   };
 
-  // Visibility change listener for Library viewer
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && fullScreenFile) {
-        saveLibraryStudySession();
-      }
-    };
+      // Visibility change listener for Library viewer
+    const viewerTimerStateRef = useRef(viewerTimer);
+    const fullScreenFileRef = useRef(fullScreenFile);
+    
+    useEffect(() => {
+      viewerTimerStateRef.current = viewerTimer;
+      fullScreenFileRef.current = fullScreenFile;
+    }, [viewerTimer, fullScreenFile]);
 
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (fullScreenFile) saveLibraryStudySession();
-    };
-  }, [fullScreenFile, viewerTimer, user]);
+    useEffect(() => {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden' && fullScreenFileRef.current) {
+          // Instead of calling saveLibraryStudySession which clears the interval,
+          // we should just pause the timer or do nothing, 
+          // because the user wants to ONLY count time when looking at the app.
+          // BUT wait! To keep it simple, we can just clear the interval, and when visible, restart it!
+          if (viewerTimerRef.current) clearInterval(viewerTimerRef.current);
+          viewerTimerRef.current = null;
+        } else if (document.visibilityState === 'visible' && fullScreenFileRef.current) {
+          if (!viewerTimerRef.current) {
+            viewerTimerRef.current = window.setInterval(() => setViewerTimer(t => t + 1), 1000);
+          }
+        }
+      };
+  
+      window.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => {
+                window.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    }, []);
+
+    // Save on tab close
+    useEffect(() => {
+      const handleBeforeUnload = () => {
+        if (fullScreenFileRef.current) {
+          if (viewerTimerStateRef.current > 5) {
+             const url = import.meta.env.VITE_SUPABASE_URL;
+             const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+             if (url && key) {
+               const tokenKey = 'sb-' + new URL(url).hostname.split('.')[0] + '-auth-token';
+               const tokenStr = localStorage.getItem(tokenKey);
+               let token = key;
+               if (tokenStr) {
+                 try { token = JSON.parse(tokenStr).access_token || key; } catch {}
+               }
+               fetch(`/rest/v1/study_sessions`, {
+                 method: 'POST',
+                 headers: {
+                   'apikey': key,
+                   'Authorization': Bearer ,
+                   'Content-Type': 'application/json'
+                 },
+                 body: JSON.stringify({
+                   user_id: user?.id,
+                   subject_id: fullScreenFileRef.current.subject_id,
+                   duracion_segundos: Math.min(viewerTimerStateRef.current, 43200),
+                   tipo: "biblioteca",
+                   completada: true,
+                   fecha: toLocalDateStr(),
+                 }),
+                 keepalive: true
+               }).catch(()=>{});
+             }
+          }
+        }
+      };
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('pagehide', handleBeforeUnload);
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('pagehide', handleBeforeUnload);
+      };
+    }, [user?.id]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -2840,3 +2899,6 @@ export default function Library() {
     </div>
   );
 }
+
+
+

@@ -548,28 +548,6 @@ const getSuggestionItems = (): CommandItem[] => [
     },
   },
 
-  // ========== 6. COLORES ==========
-  // Colors - Text
-  ...NOTION_TEXT_COLORS.filter(c => c.color).map(color => ({
-    title: `Texto ${color.name}`,
-    description: `Color de texto ${color.name.toLowerCase()}`,
-    icon: <Palette className="w-4 h-4" style={{ color: color.color || undefined }} />,
-    category: "Colores",
-    command: ({ editor, range }: { editor: any; range: any }) => {
-      editor.chain().focus().deleteRange(range).setColor(color.color!).run();
-    },
-  })),
-  // Colors - Background
-  ...NOTION_BACKGROUND_COLORS.filter(c => c.color).map(color => ({
-    title: `Fondo ${color.name}`,
-    description: `Color de fondo ${color.name.toLowerCase()}`,
-    icon: <PaintBucket className="w-4 h-4" style={{ color: color.color || undefined }} />,
-    category: "Colores",
-    command: ({ editor, range }: { editor: any; range: any }) => {
-      editor.chain().focus().deleteRange(range).setBackgroundColor(color.color!).run();
-    },
-  })),
-
   // ========== 7. AVANZADO (Embeds, Columnas, etc.) ==========
   {
     title: "YouTube",

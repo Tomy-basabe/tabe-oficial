@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { 
   X, 
@@ -100,50 +100,88 @@ export function TabetalkUserSettingsModal({
   ];
 
   // Enumerate media devices
+  const loadDevices = async () => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) return;
+
+    try {
+      let devices = await navigator.mediaDevices.enumerateDevices();
+
+      const hasAudioLabels = devices.some((d) => d.kind === "audioinput" && d.label);
+      const hasVideoLabels = devices.some((d) => d.kind === "videoinput" && d.label);
+
+      // Solicitar permisos solo del tipo que aún no tiene etiquetas (si ya está en uso, ya tendrá etiqueta)
+      if ((!hasAudioLabels || !hasVideoLabels) && navigator.mediaDevices.getUserMedia) {
+        try {
+          const tempStream = await navigator.mediaDevices.getUserMedia({
+            audio: !hasAudioLabels,
+            video: !hasVideoLabels,
+          });
+          tempStream.getTracks().forEach((track) => track.stop());
+          devices = await navigator.mediaDevices.enumerateDevices();
+        } catch {
+          if (!hasAudioLabels) {
+            try {
+              const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+              s.getTracks().forEach((t) => t.stop());
+            } catch {}
+          }
+          if (!hasVideoLabels) {
+            try {
+              const s = await navigator.mediaDevices.getUserMedia({ video: true });
+              s.getTracks().forEach((t) => t.stop());
+            } catch {}
+          }
+          devices = await navigator.mediaDevices.enumerateDevices();
+        }
+      }
+
+      const aInputs: MediaDeviceInfoItem[] = [];
+      const aOutputs: MediaDeviceInfoItem[] = [];
+      const vInputs: MediaDeviceInfoItem[] = [];
+
+      devices.forEach((d, idx) => {
+        if (d.kind === "audioinput") {
+          aInputs.push({
+            deviceId: d.deviceId || "default",
+            label: d.label || `Micrófono ${aInputs.length + 1}`,
+          });
+        } else if (d.kind === "audiooutput") {
+          aOutputs.push({
+            deviceId: d.deviceId || "default",
+            label: d.label || `Altavoz ${aOutputs.length + 1}`,
+          });
+        } else if (d.kind === "videoinput") {
+          vInputs.push({
+            deviceId: d.deviceId || "default",
+            label: d.label || `Cámara ${vInputs.length + 1}`,
+          });
+        }
+      });
+
+      const finalAudioInputs = aInputs.length ? aInputs : [{ deviceId: "default", label: "Micrófono predeterminado" }];
+      const finalAudioOutputs = aOutputs.length ? aOutputs : [{ deviceId: "default", label: "Altavoces predeterminados" }];
+      const finalVideoInputs = vInputs.length ? vInputs : [{ deviceId: "default", label: "Cámara web predeterminada" }];
+
+      setAudioInputs(finalAudioInputs);
+      setAudioOutputs(finalAudioOutputs);
+      setVideoInputs(finalVideoInputs);
+
+      setSelectedAudioInput((prev) =>
+        finalAudioInputs.some((d) => d.deviceId === prev) ? prev : finalAudioInputs[0].deviceId
+      );
+      setSelectedAudioOutput((prev) =>
+        finalAudioOutputs.some((d) => d.deviceId === prev) ? prev : finalAudioOutputs[0].deviceId
+      );
+      setSelectedVideoInput((prev) =>
+        finalVideoInputs.some((d) => d.deviceId === prev) ? prev : finalVideoInputs[0].deviceId
+      );
+    } catch (err) {
+      console.warn("Error enumerating devices:", err);
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
-
-    async function loadDevices() {
-      if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) return;
-
-      try {
-        // Query devices directly
-        let devices = await navigator.mediaDevices.enumerateDevices();
-        
-        // If device labels are empty, try requesting temporary permissions to obtain labels
-        const hasLabels = devices.some((d) => d.label);
-        if (!hasLabels && navigator.mediaDevices.getUserMedia) {
-          try {
-            const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            tempStream.getTracks().forEach((track) => track.stop());
-            devices = await navigator.mediaDevices.enumerateDevices();
-          } catch {
-            // Permission denied or not available; fallback to unlabeled device list
-          }
-        }
-
-        const aInputs: MediaDeviceInfoItem[] = [];
-        const aOutputs: MediaDeviceInfoItem[] = [];
-        const vInputs: MediaDeviceInfoItem[] = [];
-
-        devices.forEach((d, idx) => {
-          if (d.kind === "audioinput") {
-            aInputs.push({ deviceId: d.deviceId || `audioinput-${idx}`, label: d.label || `MicrÃ³fono ${aInputs.length + 1}` });
-          } else if (d.kind === "audiooutput") {
-            aOutputs.push({ deviceId: d.deviceId || `audiooutput-${idx}`, label: d.label || `Altavoz ${aOutputs.length + 1}` });
-          } else if (d.kind === "videoinput") {
-            vInputs.push({ deviceId: d.deviceId || `videoinput-${idx}`, label: d.label || `CÃ¡mara ${vInputs.length + 1}` });
-          }
-        });
-
-        setAudioInputs(aInputs.length ? aInputs : [{ deviceId: "default", label: "MicrÃ³fono predeterminado" }]);
-        setAudioOutputs(aOutputs.length ? aOutputs : [{ deviceId: "default", label: "Altavoces predeterminados" }]);
-        setVideoInputs(vInputs.length ? vInputs : [{ deviceId: "default", label: "CÃ¡mara web predeterminada" }]);
-      } catch (err) {
-        console.warn("Error enumerating devices:", err);
-      }
-    }
-
     loadDevices();
   }, [open]);
 
@@ -158,10 +196,16 @@ export function TabetalkUserSettingsModal({
   // Mic test logic
   const startMicTest = async () => {
     try {
-      const constraints: MediaStreamConstraints = {
-        audio: selectedAudioInput !== "default" ? { deviceId: { exact: selectedAudioInput } } : true,
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      stopMicTest();
+      const useExact = selectedAudioInput && selectedAudioInput !== "default" && !selectedAudioInput.startsWith("audioinput-");
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: useExact ? { deviceId: { exact: selectedAudioInput } } : true,
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       micStreamRef.current = stream;
 
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -188,8 +232,8 @@ export function TabetalkUserSettingsModal({
       };
       checkVolume();
     } catch (e) {
-      console.warn("No se pudo iniciar el test de micrÃ³fono:", e);
-      toast.error("No se pudo acceder al micrÃ³fono para la prueba.");
+      console.warn("No se pudo iniciar el test de micrófono:", e);
+      toast.error("No se pudo acceder al micrófono para la prueba.");
     }
   };
 
@@ -208,25 +252,52 @@ export function TabetalkUserSettingsModal({
   };
 
   // Camera preview logic
-  const startCameraPreview = async () => {
+  const startCameraPreview = async (overrideDeviceId?: string) => {
     try {
-      const constraints: MediaStreamConstraints = {
-        video: selectedVideoInput !== "default" ? { deviceId: { exact: selectedVideoInput }, width: { ideal: 640 }, height: { ideal: 360 } } : true,
-      };
-      let stream = cameraStreamRef.current;
-      if (!stream) {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        cameraStreamRef.current = stream;
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((t) => t.stop());
+        cameraStreamRef.current = null;
       }
+
+      const targetId = typeof overrideDeviceId === "string" ? overrideDeviceId : selectedVideoInput;
+      const useExact = Boolean(targetId && targetId !== "default" && !targetId.startsWith("videoinput-"));
+
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: useExact
+            ? { deviceId: { exact: targetId }, width: { ideal: 640 }, height: { ideal: 360 } }
+            : { width: { ideal: 640 }, height: { ideal: 360 } },
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
+      cameraStreamRef.current = stream;
+      setIsTestingCamera(true);
+
+      // Si ya está montado el elemento <video>, asignarle el stream de inmediato
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
+        videoPreviewRef.current.play().catch(() => {});
       }
-      setIsTestingCamera(true);
+
+      // Refrescar nombres reales de cámaras tras obtener permiso
+      loadDevices();
     } catch (e) {
-      console.warn("No se pudo iniciar la cÃ¡mara:", e);
-      toast.error("No se pudo acceder a la cÃ¡mara seleccionada.");
+      console.warn("No se pudo iniciar la cámara:", e);
+      toast.error("No se pudo acceder a la cámara seleccionada.");
+      setIsTestingCamera(false);
     }
   };
+
+  // Vincular el stream cuando el elemento <video> se monta en el DOM
+  useEffect(() => {
+    if (isTestingCamera && videoPreviewRef.current && cameraStreamRef.current) {
+      videoPreviewRef.current.srcObject = cameraStreamRef.current;
+      videoPreviewRef.current.play().catch(() => {});
+    }
+  }, [isTestingCamera]);
 
   const stopCameraPreview = () => {
     if (cameraStreamRef.current) {
@@ -241,9 +312,8 @@ export function TabetalkUserSettingsModal({
 
   // Switch camera if already previewing
   useEffect(() => {
-    if (isTestingCamera) {
-      stopCameraPreview();
-      startCameraPreview();
+    if (isTestingCamera && selectedVideoInput) {
+      startCameraPreview(selectedVideoInput);
     }
   }, [selectedVideoInput]);
 
@@ -280,7 +350,17 @@ export function TabetalkUserSettingsModal({
     localStorage.setItem("tabetalk_ptt_enabled", pushToTalk.toString());
     localStorage.setItem("tabetalk_mute_shortcut", muteShortcut.toUpperCase());
 
-    toast.success("ConfiguraciÃ³n de Tabetalk guardada correctamente");
+    window.dispatchEvent(
+      new CustomEvent("tabetalk:devices-changed", {
+        detail: {
+          audioInput: selectedAudioInput,
+          audioOutput: selectedAudioOutput,
+          videoInput: selectedVideoInput,
+        },
+      })
+    );
+
+    toast.success("Configuración de Tabetalk guardada correctamente");
     onOpenChange(false);
   };
 
@@ -332,7 +412,7 @@ export function TabetalkUserSettingsModal({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            aria-label="Cerrar modal de configuraciÃ³n"
+            aria-label="Cerrar modal de configuración"
             className="w-9 h-9 rounded-xl bg-white border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center hover:bg-neutral-100 active:translate-y-0.5 transition-all cursor-pointer"
           >
             <X className="w-5 h-5 stroke-[3] text-black" />
@@ -393,7 +473,7 @@ export function TabetalkUserSettingsModal({
                 <div className="p-4 rounded-xl border-2 border-black bg-neutral-50 shadow-[3px_3px_0px_#000] space-y-2">
                   <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-black">
                     <Mic className="w-4 h-4 text-black stroke-[2.5]" />
-                    Dispositivo de Entrada (MicrÃ³fono)
+                    Dispositivo de Entrada (Micrófono)
                   </label>
                   <select
                     value={selectedAudioInput}
@@ -428,13 +508,13 @@ export function TabetalkUserSettingsModal({
                 </div>
               </div>
 
-              {/* Prueba de MicrÃ³fono & Sensibilidad */}
+              {/* Prueba de Micrófono & Sensibilidad */}
               <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse border border-black" />
                     <span className="text-xs font-black uppercase tracking-wider text-black">
-                      Prueba de MicrÃ³fono
+                      Prueba de Micrófono
                     </span>
                   </div>
                   <button
@@ -448,7 +528,7 @@ export function TabetalkUserSettingsModal({
                     )}
                   >
                     {isTestingMic ? <VolumeX className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    {isTestingMic ? "Detener Prueba" : "Probar MicrÃ³fono"}
+                    {isTestingMic ? "Detener Prueba" : "Probar Micrófono"}
                   </button>
                 </div>
 
@@ -484,11 +564,11 @@ export function TabetalkUserSettingsModal({
                 </div>
               </div>
 
-              {/* CÃ¡mara y Preview Box */}
+              {/* Cámara y Preview Box */}
               <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-3">
                 <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-black">
                   <Camera className="w-4 h-4 text-black stroke-[2.5]" />
-                  CÃ¡mara de Video (Webcam)
+                  Cámara de Video (Webcam)
                 </label>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <select
@@ -513,7 +593,7 @@ export function TabetalkUserSettingsModal({
                     )}
                   >
                     <Video className="w-4 h-4" />
-                    {isTestingCamera ? "Apagar CÃ¡mara" : "Vista Previa"}
+                    {isTestingCamera ? "Apagar Cámara" : "Vista Previa"}
                   </button>
                 </div>
 
@@ -554,7 +634,7 @@ export function TabetalkUserSettingsModal({
                   className="w-full bg-white text-black text-sm font-bold px-4 py-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-hidden focus:bg-[#FFE600]/20"
                 />
                 <p className="text-xs font-semibold text-neutral-600 mt-1">
-                  Este es el nombre visible que verÃ¡n los demÃ¡s participantes en las salas de voz y chat.
+                  Este es el nombre visible que verán los demás participantes en las salas de voz y chat.
                 </p>
               </div>
 
@@ -588,7 +668,7 @@ export function TabetalkUserSettingsModal({
 
                 {/* Pre-made Avatars */}
                 <div>
-                  <p className="text-xs font-bold text-neutral-700 mb-2.5">O elegÃ­ un avatar temÃ¡tico cÃ³mic:</p>
+                  <p className="text-xs font-bold text-neutral-700 mb-2.5">O elegí un avatar temático cómic:</p>
                   <div className="flex items-center gap-3 overflow-x-auto pb-2">
                     {COMIC_AVATARS.map((seedUrl, idx) => (
                       <button
@@ -616,9 +696,9 @@ export function TabetalkUserSettingsModal({
               <div className="p-5 rounded-2xl border-3 border-black bg-neutral-50 shadow-[4px_4px_0px_#000] space-y-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-black uppercase text-black">SupresiÃ³n de Eco</h4>
+                    <h4 className="text-xs font-black uppercase text-black">Supresión de Eco</h4>
                     <p className="text-xs font-semibold text-neutral-600 mt-0.5">
-                      Evita que los demÃ¡s escuchen el audio que sale de tus altavoces.
+                      Evita que los demás escuchen el audio que sale de tus altavoces.
                     </p>
                   </div>
                   <input
@@ -631,9 +711,9 @@ export function TabetalkUserSettingsModal({
 
                 <div className="border-t-2 border-black/10 pt-4 flex items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-black uppercase text-black">CancelaciÃ³n de Ruido</h4>
+                    <h4 className="text-xs font-black uppercase text-black">Cancelación de Ruido</h4>
                     <p className="text-xs font-semibold text-neutral-600 mt-0.5">
-                      Filtra ruidos de fondo, teclados y ventiladores automÃ¡ticamente.
+                      Filtra ruidos de fondo, teclados y ventiladores automáticamente.
                     </p>
                   </div>
                   <input
@@ -655,7 +735,7 @@ export function TabetalkUserSettingsModal({
                 <div className="flex items-center justify-between gap-4 pt-1">
                   <div>
                     <p className="text-xs font-bold text-neutral-900">Modo Pulsar para Hablar (Push-to-Talk)</p>
-                    <p className="text-xs font-semibold text-neutral-500 mt-0.5">Mantiene el micrÃ³fono silenciado hasta presionar la tecla.</p>
+                    <p className="text-xs font-semibold text-neutral-500 mt-0.5">Mantiene el micrófono silenciado hasta presionar la tecla.</p>
                   </div>
                   <input
                     type="checkbox"
@@ -666,7 +746,7 @@ export function TabetalkUserSettingsModal({
                 </div>
 
                 <div className="flex items-center justify-between gap-4 pt-3 border-t-2 border-black/10">
-                  <span className="text-xs font-bold text-neutral-900">Tecla rÃ¡pida para silenciar/activar micrÃ³fono:</span>
+                  <span className="text-xs font-bold text-neutral-900">Tecla rápida para silenciar/activar micrófono:</span>
                   <kbd className="px-3 py-1.5 bg-white text-black font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_#000]">
                     {muteShortcut}
                   </kbd>

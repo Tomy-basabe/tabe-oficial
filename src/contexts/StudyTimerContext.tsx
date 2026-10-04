@@ -539,9 +539,19 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
 
     // BACKGROUND / TIMESTAMP REAL: When tab becomes visible again or window gains focus,
     // recalculate immediately using absolute timestamps
-    const handleVisibilityOrFocus = () => {
-      if (document.visibilityState === "visible") {
-        updateTick();
+        const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "hidden") {
+        if (isActiveRef.current && !isPausedRef.current && startTimeRef.current !== null) {
+          accumulatedSecondsRef.current += Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000));
+          startTimeRef.current = null;
+        }
+      } else if (document.visibilityState === "visible") {
+        if (isActiveRef.current && !isPausedRef.current) {
+          if (startTimeRef.current === null) {
+            startTimeRef.current = Date.now();
+          }
+          updateTick();
+        }
       }
     };
 
@@ -635,3 +645,4 @@ export function useStudyTimer() {
   }
   return context;
 }
+

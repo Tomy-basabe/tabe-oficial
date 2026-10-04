@@ -279,8 +279,10 @@ export default function Quizzes() {
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (studyDeck && !finished && studyQuestions.length > 0) {
-            interval = setInterval(() => {
-                setStudyTime(prev => prev + 1);
+                        interval = setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    setStudyTime(prev => prev + 1);
+                }
             }, 1000);
         }
         return () => clearInterval(interval);
@@ -2140,3 +2142,4 @@ export default function Quizzes() {
         </div>
     );
 }
+

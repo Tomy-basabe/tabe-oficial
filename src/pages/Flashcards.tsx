@@ -187,7 +187,19 @@ export default function Flashcards() {
 
   useEffect(() => { studyTimeRef.current = studyTime; }, [studyTime]);
   useEffect(() => { selectedDeckRef.current = selectedDeck; }, [selectedDeck]);
-  useEffect(() => { studyStateRef.current = studyState; }, [studyState]);
+    useEffect(() => { studyStateRef.current = studyState; }, [studyState]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (studyState === "studying") {
+      interval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          setStudyTime(prev => prev + 1);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [studyState]);
 
   const fetchSubjects = async () => {
     try {
@@ -1752,3 +1764,4 @@ export default function Flashcards() {
     </div>
   );
 }
+
