@@ -1,0 +1,12 @@
+Skills/
+Skills/**
+dist/
+dist/**
+android/
+android/**
+node_modules/
+node_modules/**
+graphify-out/
+graphify-out/**
+.git/
+public/

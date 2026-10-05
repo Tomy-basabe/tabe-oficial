@@ -43,6 +43,7 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
         "relative group cursor-pointer transition-all duration-300",
         mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}
+      onClick={() => onManageCards(deck)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -63,8 +64,8 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] px-3 py-1.5 bg-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-              Año {deck.subject?.año}
+            <span className="text-[10px] px-3 py-1.5 bg-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl font-black uppercase tracking-widest text-foreground">
+              {deck.subject?.año ? `Año ${deck.subject.año}` : "General"}
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -118,7 +119,7 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
 
         {/* Content */}
         <h3 className="font-display font-black uppercase text-xl mb-1 line-clamp-1 truncate">{deck.nombre}</h3>
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 line-clamp-1">{deck.subject?.nombre}</p>
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 line-clamp-1">{deck.subject?.nombre || "Materia general"}</p>
 
         {/* Card count visualization */}
         <div className="flex items-center gap-3 mb-5">

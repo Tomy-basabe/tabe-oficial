@@ -51,4 +51,8 @@ android/captures
 graphify-out/
 
 # Supabase temp
-supabase/.temp/
+supabase/.temp/
+
+# User reference screenshots
+Referencia/
+public/Referencia/

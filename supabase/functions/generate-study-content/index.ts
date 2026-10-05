@@ -27,8 +27,10 @@ interface RequestBody {
   storagePath?: string;
   fileName: string;
   content?: string;
-  type: 'flashcards' | 'summary' | 'quiz';
+  type: 'flashcards' | 'summary' | 'quiz' | 'roadmap' | 'level_pack';
   count?: number;
+  /** Contexto personalizado (materia, evento, meta, preferencia, plan de niveles) */
+  instructions?: string;
 }
 
 // Modelos ultrarrápidos especializados en extracción y estructuración JSON
@@ -62,10 +64,10 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json();
-    const { fileUrl, storagePath, fileName, content, type, count } = requestBody as RequestBody;
+    const { fileUrl, storagePath, fileName, content, type, count, instructions } = requestBody as RequestBody;
 
     if (!fileName && !content) throw new Error("fileName or content is required");
-    const validTypes = ['flashcards', 'summary', 'quiz'];
+    const validTypes = ['flashcards', 'summary', 'quiz', 'roadmap', 'level_pack'];
     if (!type || !validTypes.includes(type)) throw new Error("Invalid generation type");
 
     // --- PASO 1: OBTENCIÓN DE CONTENIDO ---
@@ -168,6 +170,140 @@ Reglas:
           required: ["pregunta", "opciones", "correcta", "explicacion"]
         }
       };
+    } else if (type === 'roadmap') {
+      systemPrompt = `Eres un planificador de estudios universitario experto y diseñador curricular. Analiza el material del estudiante y genera una ruta de aprendizaje secuencial por niveles.
+Devuelve ÚNICAMENTE un objeto JSON con el formato: { "roadmap": [{ "level": 1, "title": "...", "summary": "...", "keyTopics": ["..."], "sourceFiles": ["..."], "estimatedMinutes": 30 }] }. Ninguna palabra adicional.`;
+
+      responseSchema = {
+        type: "OBJECT",
+        properties: {
+          roadmap: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                level: { type: "INTEGER" },
+                title: { type: "STRING" },
+                summary: { type: "STRING" },
+                keyTopics: { type: "ARRAY", items: { type: "STRING" } },
+                sourceFiles: { type: "ARRAY", items: { type: "STRING" } },
+                estimatedMinutes: { type: "INTEGER" }
+              },
+              required: ["level", "title", "summary", "keyTopics"]
+            }
+          }
+        },
+        required: ["roadmap"]
+      };
+    } else if (type === 'level_pack') {
+      systemPrompt = `Eres un catedrático universitario titular y mentor académico de excelencia. Tu misión es construir el paquete de estudio completo más riguroso, didáctico y enriquecido del nivel asignado.
+
+REGLAS PEDAGÓGICAS ESTRICTAS (CERO COPY-PASTE):
+1. PROHIBIDO cortar y pegar frases sueltas del apunte. Debes EXPLICAR la materia con pedagogía y criterio docente universitario: desglosar el porqué de los conceptos, ilustrar con analogías claras, explicar cómo se deducen los modelos y completar con tu conocimiento experto cualquier laguna o hueco que tenga el apunte del estudiante.
+2. ESTRUCTURA DE LA GUÍA TEÓRICA ('studyGuide'): Debe contener exactamente 4 o 5 módulos pedagógicos extensos y sustanciosos:
+   - Módulo 1: Marco Teórico, Principios y Axiomas Nucleares (definiciones formales, supuestos de validez).
+   - Módulo 2: Procedimiento Analítico y Deducción Paso a Paso (resolución detallada, metodología).
+   - Módulo 3: Casos de Examen y Planteos Típicos de Parcial/Final (ejercicios modelo explicados a fondo).
+   - Módulo 4: Trampas Comunes, Errores que Desaprueban y Criterios Evaluativos (alertas de examen).
+   - Módulo 5: Glosario Técnico de Cátedra y Articulación Temática.
+3. PODCAST DE CLASE MAGISTRAL ('podcastScript'):
+   - Redacta un guion de locución hablada natural, fluida, humana y envolvente, como un profesor apasionado que da una clase de audio individual a su alumno.
+   - En 'chapters', desarrolla la explicación conversacional de cada módulo teórico (sin leer listas aburridas ni usar caracteres extraños).
+   - 'fullNarration': une introducción, capítulos y conclusión en una clase hablada completa y magistral.
+4. FLASHCARDS ('flashcards'): Mazo de tarjetas que desafían la comprensión conceptual y práctica del estudiante.
+5. CUESTIONARIO ESCRITO ('questions'): Preguntas rigurosas de opción múltiple con 4 alternativas verosímiles y justificación teórica paso a paso en 'explicacion'.
+6. EXAMEN ORAL ('oralQuestions'): 3 a 4 preguntas de tribunal evaluador que exigen al alumno formular y defender su respuesta hablando, con criterios de corrección claros y respuesta modelo.
+
+Devuelve ÚNICAMENTE un objeto JSON válido con la estructura solicitada.`;
+
+      responseSchema = {
+        type: "OBJECT",
+        properties: {
+          studyGuide: {
+            type: "OBJECT",
+            properties: {
+              overview: { type: "STRING", description: "Resumen conceptual denso del nivel" },
+              sections: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    heading: { type: "STRING" },
+                    content: { type: "STRING" },
+                    keyPoints: { type: "ARRAY", items: { type: "STRING" } }
+                  },
+                  required: ["heading", "content", "keyPoints"]
+                }
+              },
+              examTips: { type: "ARRAY", items: { type: "STRING" } }
+            },
+            required: ["overview", "sections", "examTips"]
+          },
+          podcastScript: {
+            type: "OBJECT",
+            properties: {
+              title: { type: "STRING" },
+              episodeNumber: { type: "INTEGER" },
+              introduction: { type: "STRING" },
+              chapters: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    heading: { type: "STRING" },
+                    narration: { type: "STRING" },
+                    keyTakeaway: { type: "STRING" }
+                  },
+                  required: ["heading", "narration", "keyTakeaway"]
+                }
+              },
+              conclusion: { type: "STRING" },
+              fullNarration: { type: "STRING" }
+            },
+            required: ["title", "introduction", "chapters", "conclusion", "fullNarration"]
+          },
+          flashcards: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                question: { type: "STRING" },
+                answer: { type: "STRING" }
+              },
+              required: ["question", "answer"]
+            }
+          },
+          questions: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                pregunta: { type: "STRING" },
+                opciones: { type: "ARRAY", items: { type: "STRING" } },
+                correcta: { type: "INTEGER" },
+                explicacion: { type: "STRING" },
+                dificultad: { type: "STRING" }
+              },
+              required: ["pregunta", "opciones", "correcta", "explicacion"]
+            }
+          },
+          oralQuestions: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                id: { type: "STRING" },
+                pregunta: { type: "STRING" },
+                criterios: { type: "ARRAY", items: { type: "STRING" } },
+                respuestaModelo: { type: "STRING" },
+                puntosClave: { type: "ARRAY", items: { type: "STRING" } }
+              },
+              required: ["id", "pregunta", "criterios", "respuestaModelo", "puntosClave"]
+            }
+          }
+        },
+        required: ["studyGuide", "podcastScript", "flashcards", "questions", "oralQuestions"]
+      };
     } else {
       systemPrompt = `Eres un tutor experto. Analiza el texto proporcionado y extrae las ideas principales, estructura y conclusiones clave.
 Genera un resumen completo, estructurado y de alta calidad usando formato Markdown (títulos, listas con viñetas, negritas).
@@ -180,6 +316,11 @@ Devuelve ÚNICAMENTE un objeto JSON con el formato: { "summary": "..." }. Ningun
         },
         required: ["summary"]
       };
+    }
+
+    // Contexto personalizado por usuario/evento (materia, meta de dominio, preferencia, plan de niveles)
+    if (typeof instructions === "string" && instructions.trim()) {
+      systemPrompt += `\n\nCONTEXTO Y REGLAS ADICIONALES (obligatorias):\n${instructions.trim().slice(0, 6000)}`;
     }
 
     // --- PASO 3: EJECUCIÓN CON STRUCTURED OUTPUTS Y MODELO FLASH ---

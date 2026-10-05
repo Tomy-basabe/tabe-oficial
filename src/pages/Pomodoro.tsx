@@ -10,6 +10,15 @@ import { PomodoroSettings } from "@/components/pomodoro/PomodoroSettings";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { SubjectStudyStats } from "@/components/pomodoro/SubjectStudyStats";
 import { useSubjects } from "@/hooks/useSubjects";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Subject {
   id: string;
@@ -479,50 +488,54 @@ export default function Pomodoro() {
                 </div>
               </div>
 
-              {/* Subject Selector (Styled Select like Flashcards) */}
+              {/* Subject Selector (Styled Select) */}
               <div className="space-y-3">
                 <label className="text-xs font-black text-foreground uppercase tracking-wider ml-1">
                   MATERIA
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none bg-foreground text-background border-l-[3px] border-foreground rounded-r-lg">
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
-                  </div>
-                  <select
-                    value={selectedSubject || "none"}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setSelectedSubject(val === "none" ? null : val);
-                    }}
-                    className="w-full bg-background border-[3px] border-foreground p-3 pr-12 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-foreground/20 transition-all appearance-none cursor-pointer shadow-[4px_4px_0_0_hsl(var(--foreground))]"
-                  >
-                    <option value="none">Sin materia específica</option>
+                <Select
+                  value={selectedSubject || "none"}
+                  onValueChange={(val) => setSelectedSubject(val === "none" ? null : val)}
+                >
+                  <SelectTrigger className="w-full bg-background border-[3px] border-foreground p-3.5 h-auto rounded-xl text-sm font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[1px] transition-all focus:ring-0 focus:outline-none">
+                    <SelectValue placeholder="Sin materia específica" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-[3px] border-foreground shadow-[6px_6px_0_0_#000] rounded-xl max-h-72">
+                    <SelectItem value="none" className="font-bold cursor-pointer rounded-lg">
+                      ⚪ Sin materia específica
+                    </SelectItem>
 
                     {activeSubjects.length > 0 && (
-                      <optgroup label="📖 Materias en Cursada / Pendientes">
+                      <SelectGroup>
+                        <SelectLabel className="text-[11px] font-black uppercase text-muted-foreground px-2 py-1.5 tracking-wider">
+                          📖 Materias en Cursada / Pendientes
+                        </SelectLabel>
                         {activeSubjects
                           .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
                           .map((subject) => (
-                            <option key={subject.id} value={subject.id}>
+                            <SelectItem key={subject.id} value={subject.id} className="font-bold cursor-pointer rounded-lg my-0.5">
                               {subject.nombre} ({subject.codigo})
-                            </option>
+                            </SelectItem>
                           ))}
-                      </optgroup>
+                      </SelectGroup>
                     )}
 
                     {approvedSubjects.length > 0 && (
-                      <optgroup label="✅ Materias Aprobadas (Semestres Anteriores)">
+                      <SelectGroup>
+                        <SelectLabel className="text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400 px-2 py-1.5 tracking-wider">
+                          ✅ Materias Aprobadas
+                        </SelectLabel>
                         {approvedSubjects
                           .filter(s => yearFilter === "all" || s.year.toString() === yearFilter)
                           .map((subject) => (
-                            <option key={subject.id} value={subject.id}>
-                              {subject.nombre} ({subject.codigo}) - [Aprobada]
-                            </option>
+                            <SelectItem key={subject.id} value={subject.id} className="font-bold cursor-pointer rounded-lg my-0.5">
+                              {subject.nombre} ({subject.codigo})
+                            </SelectItem>
                           ))}
-                      </optgroup>
+                      </SelectGroup>
                     )}
-                  </select>
-                </div>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Selection Status Indicator */}

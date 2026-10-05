@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2, Radio } from "lucide-react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { 
+  Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, 
+  Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2, Radio, Compass,
+  MessageSquare, Target, LayoutGrid, Flame, Plus, ChevronDown, Check,
+  Image as ImageIcon, MoreVertical, Volume2, SlidersHorizontal
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubjects } from "@/hooks/useSubjects";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { toast } from "sonner";
 import { useStreamingChat } from "@/hooks/useStreamingChat";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
@@ -29,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DisplayMessage } from "@/contexts/AIChatContext";
 
 const quickActions = [
+  { id: "roadmap", label: "Rutas de Examen", icon: Compass, prompt: "", path: "/tabe-ai/examenes" },
   { id: "explain", label: "Explicar tema", icon: BookOpen, prompt: "Explícame el concepto de " },
   { id: "quiz", label: "Simulacro", icon: FileQuestion, prompt: "Hazme un simulacro de examen de " },
   { id: "plan", label: "Plan de estudio", icon: Calendar, prompt: "Genera un plan de estudio para " },
@@ -134,6 +142,7 @@ async function getProactiveGreeting(
 
 export default function AIAssistant() {
   const { user, isGuest } = useAuth();
+  const navigate = useNavigate();
   
   // Use global chat state
   const {
@@ -189,6 +198,12 @@ export default function AIAssistant() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<any>(null);
+
+  const { subjects } = useSubjects();
+  const { userStats } = useDashboardStats();
+  const [selectedSubject, setSelectedSubject] = useState<string>("Todas las materias");
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -540,10 +555,18 @@ export default function AIAssistant() {
       );
     }
 
+    const subjectPrefix = selectedSubject && selectedSubject !== "Todas las materias"
+      ? `[Materia de enfoque: ${selectedSubject}]\n`
+      : "";
+
     // Prepare conversation for the AI
-    const conversationHistory = newMessages
-      .filter((m) => m.id !== "init")
-      .map((m) => ({ role: m.role, content: m.content }));
+    const rawHistory = newMessages.filter((m) => m.id !== "init");
+    const conversationHistory = rawHistory.map((m, idx) => ({
+      role: m.role,
+      content: idx === rawHistory.length - 1 && subjectPrefix
+        ? `${subjectPrefix}${m.content}`
+        : m.content,
+    }));
 
     const assistantMsgId = (Date.now() + 1).toString();
     const currentModelId = requestModel.id;
@@ -712,279 +735,250 @@ export default function AIAssistant() {
 
       <div className="flex-1 flex flex-col h-full min-w-0">
 
-        {/* ── HEADER ─────────────────────────────────────── */}
-        <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 border-b-2 border-foreground bg-card flex items-center gap-2 md:gap-3 z-10">
-          {/* Back link — available on mobile & desktop */}
-          <Link
-            to="/dashboard"
-            className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-3 md:py-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group"
-            title="Volver al Dashboard"
-            aria-label="Volver al Dashboard"
-          >
-            <ArrowLeft className="w-4 h-4 md:w-3.5 md:h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="hidden md:inline">Volver</span>
-          </Link>
-
-          {/* Sidebar toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted shrink-0 w-8 h-8 md:w-9 md:h-9"
-            title="Historial y personalidades"
-          >
-            <Menu className="w-4 h-4" />
-          </Button>
-
-          {/* Avatar + name with TABE AI 2.0 Logo */}
-          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-white text-black dark:bg-black dark:text-white border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center p-1 shrink-0">
-            {activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-              <span className="leading-none text-sm">{activePersona.avatar_emoji}</span>
-            ) : (
-              <TabeAIIcon size={24} animate={isStreaming} withGlow={true} />
-            )}
-          </div>
-
-          <div className="flex flex-col justify-center min-w-0 flex-1">
-            <h1 className="font-black text-sm md:text-base uppercase text-foreground leading-tight tracking-wide truncate">
-              {activePersona?.name || "TABE IA"}
-            </h1>
-            {activePersona?.description && (
-              <p className="font-bold text-muted-foreground text-[10px] md:text-xs uppercase tracking-wide truncate hidden sm:block">
-                {activePersona.description}
-              </p>
-            )}
-          </div>
-
-          {/* Status badge */}
-          <div className="px-2.5 py-1 bg-[#BFFF00] !text-black border-2 border-foreground rounded-full font-black uppercase text-[10px] md:text-xs flex items-center gap-1.5 shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
-            <span className="hidden xs:inline">Online</span>
-          </div>
-
-          {/* Live Voice Mode Button */}
-          <button
-            onClick={() => setShowLiveVoice(true)}
-            className="px-2.5 sm:px-3 py-1 bg-[#00E5FF] hover:bg-[#00cce6] !text-black border-2 border-foreground rounded-xl font-black uppercase text-[10px] md:text-xs flex items-center gap-1.5 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer shrink-0"
-            title="Modo de Voz en Vivo (ChatGPT / Gemini Live)"
-          >
-            <Radio className="w-3.5 h-3.5 text-black animate-pulse stroke-[2.5]" />
-            <span className="hidden xs:inline">Modo Voz</span>
-          </button>
-
-          {/* Delete current chat button */}
-          {currentSessionId && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteSession(currentSessionId)}
-              className="border-2 border-foreground bg-card rounded-xl text-red-600 hover:bg-[#FF5C5C] hover:!text-white shrink-0 w-8 h-8 md:w-9 md:h-9 shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-transform active:scale-90"
-              title="Eliminar conversación actual"
-              aria-label="Eliminar conversación actual"
+        {/* ── HEADER ASTRA AI STYLE ──────────────────────── */}
+        <header className="shrink-0 px-3 py-2 md:px-6 md:py-2.5 border-b-2 border-foreground bg-card/95 backdrop-blur-md flex items-center justify-between gap-2 z-20">
+          {/* Left: Back + TABE AI Brand */}
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            <Link
+              to="/dashboard"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground flex items-center justify-center shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-transform active:scale-95"
+              title="Volver al Dashboard"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
+              <ArrowLeft className="w-4 h-4 md:w-4.5 md:h-4.5" />
+            </Link>
 
-          {/* External link — only on md+ */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.open("/TABEAI", "_blank")}
-            className="border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground shrink-0 hidden md:flex w-8 h-8 hover:bg-muted"
-            title="Abrir en pestaña nueva"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* ── MESSAGES ───────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto scroll-smooth relative">
-          {/* Ambient subtle glow in the background */}
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] bg-gradient-to-tr from-sky-400/10 via-purple-400/5 to-pink-400/5 rounded-full blur-3xl pointer-events-none -z-10" />
-
-          <div className="max-w-3xl mx-auto px-3 py-4 md:px-6 md:py-6 space-y-4">
-
-            {/* Hero empty state greeting when no messages yet or only init */}
-            {messages.length <= 1 && (
-              <div className="flex flex-col items-center justify-center pt-8 pb-4 text-center animate-in fade-in duration-500">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center mb-4 transition-transform hover:scale-105">
-                  <TabeAIIcon size={84} animate={true} withGlow={true} />
-                </div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground font-sans">
-                  ¿Qué toca hoy, {userName}?
-                </h2>
-                <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-muted-foreground max-w-md mt-2 mb-6">
-                  {activePersona?.description || "Tu asistente académico inteligente para materias, exámenes y apuntes."}
-                </p>
-
-                {/* Proactive Context Actions Banner */}
-                {proactiveContext?.type === 'exam' && (
-                  <div className="w-full mb-4 p-3.5 sm:p-4 rounded-2xl bg-[#FFE600] text-black border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] space-y-2.5 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🎯</span>
-                      <span className="font-black text-xs sm:text-sm uppercase tracking-wider">
-                        Acciones recomendadas para {proactiveContext.subject}:
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleQuickAction(`Hazme un simulacro de examen de 5 preguntas tipo quiz sobre ${proactiveContext.subject} para evaluar mis conocimientos`)}
-                        className="px-3 py-1.5 rounded-lg bg-black text-[#BFFF00] font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                      >
-                        <FileQuestion className="w-3.5 h-3.5" />
-                        <span>Simulacro de 5 preguntas</span>
-                      </button>
-                      <button
-                        onClick={() => handleQuickAction(`Explicame los temas más importantes, conceptos y fórmulas clave que suelen tomar en ${proactiveContext.subject}`)}
-                        className="px-3 py-1.5 rounded-lg bg-white text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" />
-                        <span>Repasar conceptos clave</span>
-                      </button>
-                      <button
-                        onClick={() => handleQuickAction(`Dame una guía rápida de 3 pasos y recomendaciones para rendir mañana el examen de ${proactiveContext.subject} con tranquilidad`)}
-                        className="px-3 py-1.5 rounded-lg bg-[#00E5FF] text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Tips para rendir</span>
-                      </button>
-                    </div>
-                  </div>
+            <button
+              onClick={handleNewChat}
+              className="flex items-center gap-1.5 cursor-pointer text-left group"
+              title="Nuevo chat"
+            >
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center p-1 group-hover:scale-105 transition-transform">
+                {activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
+                  <span className="leading-none text-base">{activePersona.avatar_emoji}</span>
+                ) : (
+                  <TabeAIIcon size={22} animate={isStreaming} withGlow={true} />
                 )}
-
-                {proactiveContext?.type === 'streak' && (
-                  <div className="w-full mb-4 p-3.5 sm:p-4 rounded-2xl bg-[#FF5C5C] text-white border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] space-y-2.5 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🔥</span>
-                      <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-black">
-                        ¡Defendé tu racha de {proactiveContext.daysStreak} días!
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleQuickAction("Tomame un quiz express de 5 preguntas variadas de mis materias cursadas para registrar estudio")}
-                        className="px-3 py-1.5 rounded-lg bg-black text-[#FFE600] font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                      >
-                        <FileQuestion className="w-3.5 h-3.5" />
-                        <span>Quiz express de 5 preguntas</span>
-                      </button>
-                      <button
-                        onClick={() => handleQuickAction("Armame una sesión de estudio guiada de 15 minutos con técnica Pomodoro")}
-                        className="px-3 py-1.5 rounded-lg bg-white text-black font-black text-xs uppercase border-2 border-black hover:translate-y-[-1px] transition-all flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Estudio guiado de 15 min</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Quick actions chips */}
-                <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-xl mx-auto">
-                  {quickActions.map((action) => {
-                    const Icon = action.icon;
-                    return (
-                      <button
-                        key={action.id}
-                        onClick={() => handleQuickAction(action.prompt)}
-                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2.5px_2.5px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[1px] transition-all cursor-pointer group"
-                      >
-                        <Icon className="w-3.5 h-3.5 text-[#00E5FF] group-hover:scale-110 transition-transform" />
-                        <span>{action.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
+              <div className="flex items-center gap-1">
+                <span className="font-black text-sm md:text-base tracking-tight uppercase text-foreground">
+                  TABE
+                </span>
+                <span className="text-[10px] font-black uppercase bg-[#FFE600] text-black px-1.5 py-0.5 rounded-md border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))]">
+                  AI
+                </span>
+              </div>
+            </button>
+          </div>
+
+          {/* Center: Segmented Navigation Pill (PREGUNTAR | EXÁMENES | APPS) */}
+          <nav className="flex items-center bg-background border-2 border-foreground rounded-full p-1 shadow-[2px_2px_0_0_hsl(var(--foreground))] text-xs font-black uppercase">
+            {/* Tab: Preguntar */}
+            <button
+              onClick={() => {
+                if (messages.length > 1) {
+                  // Ya estamos en preguntar
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-foreground text-background shadow-xs transition-all cursor-pointer"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="text-[11px] md:text-xs tracking-wider">Preguntar</span>
+            </button>
+
+            {/* Tab: Exámenes -> redirects to /tabe-ai/examenes */}
+            <Link
+              to="/tabe-ai/examenes"
+              className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-foreground hover:bg-muted transition-all cursor-pointer group"
+              title="Ir a Rutas de Estudio Gamificadas por Niveles"
+            >
+              <Target className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] md:text-xs tracking-wider">Exámenes</span>
+            </Link>
+
+            {/* Tab: Apps / Historial */}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-foreground hover:bg-muted transition-all cursor-pointer"
+              title="Personalidades y Chats Anteriores"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline text-[11px] md:text-xs tracking-wider">Apps</span>
+            </button>
+          </nav>
+
+          {/* Right: Apuntes Online / Racha / Más / Avatar */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Apuntes Online Pill */}
+            <Link
+              to="/apuntes"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFE600] hover:bg-[#ffe100] text-black border-2 border-foreground text-[10px] md:text-xs font-black uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all"
+              title="Ir a Apuntes Online"
+            >
+              <BookOpen className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Apuntes Online</span>
+            </Link>
+
+            {/* Racha de estudio */}
+            <div
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-card border-2 border-foreground text-[10px] md:text-xs font-black uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+              title={`Racha de estudio: ${userStats?.racha_actual || 0} días`}
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <span>{userStats?.racha_actual || 0}</span>
+            </div>
+
+            {/* Delete current chat if active */}
+            {currentSessionId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDeleteSession(currentSessionId)}
+                className="border-2 border-foreground bg-card rounded-xl text-red-600 hover:bg-[#FF5C5C] hover:!text-white shrink-0 w-8 h-8 shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-transform active:scale-90"
+                title="Eliminar conversación actual"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
             )}
 
-            {/* Messages */}
-            <div className="space-y-3.5 md:space-y-4 pb-4 min-h-[160px]">
-              {messages.map((message) => {
-                const isThinking = message.role === "assistant" && !message.content;
-                return (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex gap-2.5 md:gap-3 group items-start",
-                      message.role === "user" ? "flex-row-reverse" : "flex-row"
-                    )}
-                  >
-                    {/* Avatar */}
-                    <div className="shrink-0 mt-0.5">
-                      {message.role === "assistant" ? (
-                        activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-                          <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-card border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] flex items-center justify-center text-sm">
-                            {activePersona.avatar_emoji}
-                          </div>
-                        ) : (
-                          <div className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center">
-                            <TabeAIIcon size={28} animate={isThinking} withGlow={isThinking} />
-                          </div>
-                        )
-                      ) : (
-                        <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-[#FFE600] text-black border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] flex items-center justify-center font-black">
-                          <User className="w-3.5 h-3.5" strokeWidth={2.5} />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bubble / Text Stream */}
-                    <div
-                      className={cn(
-                        "transition-all",
-                        message.role === "user"
-                          ? "max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-xs px-4 py-2.5 bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-bold text-xs md:text-sm overflow-hidden"
-                          : isThinking
-                            ? "flex-1 min-w-0 py-1 bg-transparent border-none shadow-none flex items-center"
-                            : "flex-1 min-w-0 bg-transparent border-none shadow-none px-0 py-0.5 text-foreground text-sm md:text-base font-normal leading-relaxed"
-                      )}
-                    >
-                      {/* Model badge for assistant */}
-                      {message.role === "assistant" && message.id !== "init" && message.content && (
-                        <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 select-none">
-                          <span className="text-foreground/90 font-black truncate">
-                            {message.modelName || selectedModel.shortName}
-                          </span>
-                          <span className="text-muted-foreground/40">•</span>
-                          <span className="text-[9px] text-muted-foreground/60 shrink-0">
-                            {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        </div>
-                      )}
-
-                      {message.imageUrl && (
-                        <div className="mb-2">
-                          <img
-                            src={message.imageUrl}
-                            alt="Imagen adjunta"
-                            className="max-h-60 max-w-full rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] object-contain bg-black/10"
-                          />
-                        </div>
-                      )}
-
-                      <div className="leading-relaxed break-words">
-                        {renderContent(message.content, message.role)}
-                      </div>
-
-                      {message.role === "user" && (
-                        <div className="flex items-center justify-end gap-1 mt-1 text-[9px] font-black uppercase !text-black/60">
-                          {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
+            {/* User Avatar */}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="w-8 h-8 rounded-full border-2 border-foreground bg-[#FFE600] text-black font-black flex items-center justify-center text-xs shadow-[2px_2px_0_0_hsl(var(--foreground))] cursor-pointer overflow-hidden hover:scale-105 transition-transform"
+              title="Abrir menú y perfil"
+            >
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt={userName} className="w-full h-full object-cover" />
+              ) : (
+                userName.charAt(0).toUpperCase()
+              )}
+            </button>
           </div>
-        </div>
+        </header>
 
-        {/* ── GAMING COMIC FLOATING INPUT BAR ────────────────── */}
-        <div className="shrink-0 px-3 py-2 md:px-6 md:py-3 bg-background/80 backdrop-blur-md sticky bottom-0 z-20">
-          <div className="max-w-3xl mx-auto">
+        {/* ── MESSAGES / HERO AREA ───────────────────────────── */}
+        {(() => {
+          const isWelcomeScreen =
+            messages.length === 0 ||
+            (messages.length === 1 && Boolean(messages[0]?.id?.startsWith("init")));
+
+          return (
+            <div
+              className={cn(
+                "flex-1 scroll-smooth relative",
+                isWelcomeScreen
+                  ? "flex flex-col items-center justify-center overflow-hidden px-4"
+                  : "overflow-y-auto"
+              )}
+            >
+              {/* Ambient subtle glow in the background */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] bg-gradient-to-tr from-sky-400/10 via-purple-400/5 to-pink-400/5 rounded-full blur-3xl pointer-events-none -z-10" />
+
+              {isWelcomeScreen ? (
+                /* Hero empty state centrado sin necesidad de scroll ni zoom out */
+                <div className="flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500 max-w-xl mx-auto">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground tracking-tight mb-5 sm:mb-6 select-none">
+                    ¡Hola {userName}, bienvenido! 👋
+                  </h1>
+
+                  <button
+                    type="button"
+                    onClick={() => textareaRef.current?.focus()}
+                    className="relative group cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95 focus:outline-none"
+                    title="Escribir a TABE AI"
+                  >
+                    <TabeAIIcon size={96} animate={true} withGlow={true} />
+                  </button>
+                </div>
+              ) : (
+                <div className="max-w-3xl mx-auto px-3 py-3 md:px-6 md:py-5 space-y-3.5 md:space-y-4">
+                  {messages
+                    .filter((m) => !m.id?.startsWith("init"))
+                    .map((message) => {
+                      const isThinking = message.role === "assistant" && !message.content;
+                      return (
+                        <div
+                          key={message.id}
+                          className={cn(
+                            "flex gap-2.5 md:gap-3 group items-start",
+                            message.role === "user" ? "flex-row-reverse" : "flex-row"
+                          )}
+                        >
+                          {/* Avatar */}
+                          <div className="shrink-0 mt-0.5">
+                            {message.role === "assistant" ? (
+                              activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
+                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-card border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] flex items-center justify-center text-sm">
+                                  {activePersona.avatar_emoji}
+                                </div>
+                              ) : (
+                                <div className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center">
+                                  <TabeAIIcon size={28} animate={isThinking} withGlow={isThinking} />
+                                </div>
+                              )
+                            ) : (
+                              <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-[#FFE600] text-black border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] flex items-center justify-center font-black">
+                                <User className="w-3.5 h-3.5" strokeWidth={2.5} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Bubble / Text Stream */}
+                          <div
+                            className={cn(
+                              "transition-all",
+                              message.role === "user"
+                                ? "max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-xs px-4 py-2.5 bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-bold text-xs md:text-sm overflow-hidden"
+                                : isThinking
+                                  ? "flex-1 min-w-0 py-1 bg-transparent border-none shadow-none flex items-center"
+                                  : "flex-1 min-w-0 bg-transparent border-none shadow-none px-0 py-0.5 text-foreground text-sm md:text-base font-normal leading-relaxed"
+                            )}
+                          >
+                            {/* Model badge for assistant */}
+                            {message.role === "assistant" && message.id !== "init" && message.content && (
+                              <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 select-none">
+                                <span className="text-foreground/90 font-black truncate">
+                                  {message.modelName || selectedModel.shortName}
+                                </span>
+                                <span className="text-muted-foreground/40">•</span>
+                                <span className="text-[9px] text-muted-foreground/60 shrink-0">
+                                  {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </div>
+                            )}
+
+                            {message.imageUrl && (
+                              <div className="mb-2">
+                                <img
+                                  src={message.imageUrl}
+                                  alt="Imagen adjunta"
+                                  className="max-h-60 max-w-full rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] object-contain bg-black/10"
+                                />
+                              </div>
+                            )}
+
+                            <div className="leading-relaxed break-words">
+                              {renderContent(message.content, message.role)}
+                            </div>
+
+                            {message.role === "user" && (
+                              <div className="flex items-center justify-end gap-1 mt-1 text-[9px] font-black uppercase !text-black/60">
+                                {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── ASTRA-INSPIRED FLOATING INPUT BAR ────────────────── */}
+        <div className="shrink-0 px-3 py-2.5 md:px-6 md:py-3 bg-background/85 backdrop-blur-md z-20">
+          <div className="max-w-2xl mx-auto">
             <input
               type="file"
               ref={fileInputRef}
@@ -993,7 +987,76 @@ export default function AIAssistant() {
               accept=".pdf,.txt,.md,image/*,audio/*"
             />
 
-            <div className="flex flex-col rounded-2xl sm:rounded-3xl border-2 md:border-3 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-within:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all overflow-hidden">
+            {/* Subject Selector Pill (Centered Above Input) */}
+            <div className="flex justify-center mb-2.5 relative">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
+                  className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-card border-2 border-foreground text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted transition-all cursor-pointer group"
+                  title="Seleccionar materia para contextualizar la IA"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="truncate max-w-[180px] sm:max-w-[240px]">{selectedSubject}</span>
+                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform text-muted-foreground", showSubjectDropdown && "rotate-180")} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showSubjectDropdown && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 max-h-56 overflow-y-auto bg-card border-2 border-foreground rounded-2xl p-1.5 shadow-[4px_4px_0_0_hsl(var(--foreground))] z-50 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubject("Todas las materias");
+                        setShowSubjectDropdown(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold flex items-center justify-between hover:bg-muted transition-colors cursor-pointer",
+                        selectedSubject === "Todas las materias" ? "bg-[#FFE600] text-black font-black" : "text-foreground"
+                      )}
+                    >
+                      <span>Todas las materias</span>
+                      {selectedSubject === "Todas las materias" && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </button>
+                    {subjects &&
+                      subjects
+                        .filter((sub) => sub.status === "regular" || sub.status === "cursable")
+                        .map((sub) => (
+                          <button
+                            key={sub.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSubject(sub.nombre);
+                              setShowSubjectDropdown(false);
+                            }}
+                            className={cn(
+                              "w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 hover:bg-muted transition-colors cursor-pointer",
+                              selectedSubject === sub.nombre ? "bg-[#FFE600] text-black font-black" : "text-foreground"
+                            )}
+                          >
+                            <span className="truncate">{sub.nombre}</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span
+                                className={cn(
+                                  "text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-foreground/40",
+                                  sub.status === "regular"
+                                    ? "bg-[#FFE600]/80 text-black"
+                                    : "bg-[#00E5FF]/80 text-black"
+                                )}
+                              >
+                                {sub.status === "regular" ? "Regular" : "Cursable"}
+                              </span>
+                              {selectedSubject === sub.nombre && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
+                          </button>
+                        ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Main Rounded Input Box */}
+            <div className="flex flex-col rounded-2xl sm:rounded-3xl border-2 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-within:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all overflow-hidden">
               {/* Attached Image Preview */}
               {attachedImage && (
                 <div className="p-2 border-b-2 border-foreground/20 bg-muted/50 flex items-center justify-between gap-2 animate-in fade-in slide-in-from-bottom-1">
@@ -1035,7 +1098,7 @@ export default function AIAssistant() {
                   <button
                     type="button"
                     onClick={stopVoiceRecording}
-                    className="px-2.5 py-1 rounded-lg border-2 border-foreground bg-destructive text-white text-[10px] font-black uppercase shadow-[1px_1px_0_0_#000] hover:scale-95 transition-transform"
+                    className="px-2.5 py-1 rounded-lg border-2 border-foreground bg-destructive text-white text-[10px] font-black uppercase shadow-[1px_1px_0_0_#000] hover:scale-95 transition-transform cursor-pointer"
                   >
                     Detener y Transcribir ⏹️
                   </button>
@@ -1044,6 +1107,7 @@ export default function AIAssistant() {
 
               {/* Textarea */}
               <textarea
+                ref={textareaRef}
                 value={inputValue}
                 onPaste={handlePaste}
                 onChange={(e) => {
@@ -1061,25 +1125,25 @@ export default function AIAssistant() {
                   isUploading
                     ? "Procesando archivo..."
                     : attachedImage
-                      ? "Escribe tu pregunta sobre la foto (o pulsa Enviar para analizarla)..."
+                      ? "Escribe tu pregunta sobre la foto..."
                       : isRecording
                         ? "Grabando tu voz..."
-                        : `Pregunta a ${activePersona?.name || "TABE IA"}...`
+                        : "Pregunta, habla o envía un archivo..."
                 }
-                className="w-full px-4 pt-3 pb-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-bold placeholder:text-muted-foreground/75 resize-none overflow-y-auto text-foreground"
+                className="w-full px-4 pt-3.5 pb-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-bold placeholder:text-muted-foreground/70 resize-none overflow-y-auto text-foreground"
                 style={{ minHeight: "44px", maxHeight: "140px" }}
                 rows={1}
                 disabled={isStreaming || isUploading}
               />
 
-              {/* Bottom action bar inside gaming comic pill */}
-              <div className="flex items-center justify-between px-3 pb-2 gap-2">
-                {/* Left: attach (+) + model selector */}
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              {/* Action Toolbar */}
+              <div className="flex items-center justify-between px-3 pb-2.5 pt-1 gap-2">
+                {/* Left Controls: File/Image, Quick Notes, Model Selector */}
+                <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95"
+                    className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95 cursor-pointer"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading || isStreaming}
                     title="Adjuntar Imagen, Audio, PDF o Texto"
@@ -1087,8 +1151,22 @@ export default function AIAssistant() {
                     {isUploading ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                     ) : (
-                      <Paperclip className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      <ImageIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
                     )}
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95 cursor-pointer hidden xs:flex"
+                    onClick={() => {
+                      setInputValue("Explicame en detalle y con ejemplos: ");
+                      textareaRef.current?.focus();
+                    }}
+                    disabled={isStreaming}
+                    title="Explicación detallada de concepto"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" strokeWidth={2.5} />
                   </Button>
 
                   <div className="min-w-0 flex-1 overflow-hidden">
@@ -1108,24 +1186,13 @@ export default function AIAssistant() {
                   </div>
                 </div>
 
-                {/* Right: live voice + mic + send */}
+                {/* Right Controls: Mic, Live Voice Capsule, Send */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] bg-[#00E5FF] hover:bg-[#00cce6] !text-black h-7 w-7 sm:h-8 sm:w-8 transition-transform active:scale-95 shrink-0"
-                    onClick={() => setShowLiveVoice(true)}
-                    title="Modo de Voz en Vivo (ChatGPT Live / Manos Libres)"
-                    disabled={isStreaming}
-                  >
-                    <Radio className="w-3.5 h-3.5 stroke-[2.5] animate-pulse" />
-                  </Button>
-
-                  <Button
-                    size="icon"
-                    variant="ghost"
                     className={cn(
-                      "border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 transition-transform active:scale-95",
+                      "border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 transition-transform active:scale-95 cursor-pointer",
                       isRecording && "bg-destructive text-white border-destructive animate-pulse"
                     )}
                     onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
@@ -1135,25 +1202,35 @@ export default function AIAssistant() {
                     <Mic className="w-3.5 h-3.5" strokeWidth={2.5} />
                   </Button>
 
-                  <Button
-                    onClick={handleSend}
-                    disabled={(!inputValue.trim() && !attachedImage) || isStreaming}
-                    className={cn(
-                      "rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-8 px-3.5 flex items-center gap-1.5 shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[1px]",
-                      (inputValue.trim() || attachedImage) && !isStreaming
-                        ? "bg-[#00E5FF] !text-black hover:bg-[#00cce6]"
-                        : "bg-muted text-muted-foreground/60 cursor-not-allowed border-foreground/30 shadow-none"
-                    )}
+                  {/* Capsule: Habla con TABE AI */}
+                  <button
+                    type="button"
+                    onClick={() => setShowLiveVoice(true)}
+                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-card hover:bg-muted border-2 border-foreground text-foreground font-black text-[10px] md:text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0"
+                    title="Modo de Voz en Vivo con TABE AI"
+                    disabled={isStreaming}
                   >
-                    <span className="hidden sm:inline">Enviar</span>
-                    <Send className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  </Button>
+                    <Radio className="w-3.5 h-3.5 text-[#00E5FF] animate-pulse stroke-[2.5]" />
+                    <span className="hidden sm:inline">Habla con TABE AI</span>
+                    <Volume2 className="w-3.5 h-3.5 text-foreground hidden xs:inline" />
+                  </button>
+
+                  {/* Send Button */}
+                  {(inputValue.trim() || attachedImage) && (
+                    <Button
+                      onClick={handleSend}
+                      disabled={isStreaming}
+                      className="rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-7 sm:h-8 px-2.5 sm:px-3 flex items-center gap-1 shrink-0 bg-[#00E5FF] !text-black hover:bg-[#00cce6] shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[1px] cursor-pointer"
+                    >
+                      <Send className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
 
-            <p className="text-[9px] text-center font-bold uppercase text-muted-foreground/75 mt-1.5 px-2">
-              {activePersona?.name || "TABE IA"} puede cometer errores. Verifica información importante.
+            <p className="text-[9px] text-center font-bold uppercase text-muted-foreground/70 mt-2 px-2">
+              {activePersona?.name || "TABE AI"} puede cometer errores. Verifica información académica sensible.
             </p>
           </div>
         </div>

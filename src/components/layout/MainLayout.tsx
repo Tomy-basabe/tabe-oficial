@@ -58,9 +58,13 @@ export function MainLayout() {
   }); // Desktop state
   const location = useLocation();
   const navigate = useNavigate();
-  const isAIPage = location.pathname.startsWith("/TABEAI") || location.pathname.startsWith("/asistente");
-  const isApuntesPage = location.pathname.startsWith("/apuntes") || location.pathname.startsWith("/notion");
-  const isTabetalkPage = location.pathname.startsWith("/tabetalk") || location.pathname.startsWith("/discord");
+  const lowerPath = location.pathname.toLowerCase();
+  const isAIPage =
+    lowerPath.startsWith("/tabeai") ||
+    lowerPath.startsWith("/tabe-ai") ||
+    lowerPath.startsWith("/asistente");
+  const isApuntesPage = lowerPath.startsWith("/apuntes") || lowerPath.startsWith("/notion");
+  const isTabetalkPage = lowerPath.startsWith("/tabetalk") || lowerPath.startsWith("/discord");
   const isFullScreenPage = isAIPage || isApuntesPage || isTabetalkPage;
   const { user, isGuest, profile } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);

@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { StudyTask, CreateTaskInput, TaskPriority, TaskStatus } from "@/types/tasks";
 import { X, Check, BookOpen, Calendar, Timer, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SubjectOption {
   id: string;
@@ -162,46 +169,72 @@ export function TaskModal({
             <label className="text-xs font-black uppercase text-foreground">
               Materia Asociada
             </label>
-            <select
-              value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-background border-2 border-foreground rounded-xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-[#00E5FF] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+            <Select
+              value={subjectId || "none"}
+              onValueChange={(val) => setSubjectId(val === "none" ? "" : val)}
             >
-              <option value="">Sin materia específica (General)</option>
-              {subjects.map((sub) => (
-                <option key={sub.id} value={sub.id}>
-                  {sub.nombre} {sub.codigo ? `(${sub.codigo})` : ""}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full px-3.5 py-2.5 h-auto bg-background border-2 border-foreground rounded-xl text-sm font-bold text-foreground focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                <SelectValue placeholder="Sin materia específica (General)" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl max-h-60">
+                <SelectItem value="none" className="font-bold cursor-pointer rounded-lg text-sm">
+                  Sin materia específica (General)
+                </SelectItem>
+                {subjects.map((sub) => (
+                  <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer rounded-lg text-sm my-0.5">
+                    {sub.nombre} {sub.codigo ? `(${sub.codigo})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Estado & Prioridad */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-black uppercase text-foreground">Estado</label>
-              <select
+              <Select
                 value={estado}
-                onChange={(e) => setEstado(e.target.value as TaskStatus)}
-                className="w-full px-3 py-2 bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-[#00E5FF] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                onValueChange={(val) => setEstado(val as TaskStatus)}
               >
-                <option value="todo">Por Hacer 📌</option>
-                <option value="in_progress">En Progreso ⚡</option>
-                <option value="done">Completada ✅</option>
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 h-auto bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
+                  <SelectItem value="todo" className="font-bold cursor-pointer rounded-lg text-xs">
+                    📌 Por Hacer
+                  </SelectItem>
+                  <SelectItem value="in_progress" className="font-bold cursor-pointer rounded-lg text-xs">
+                    ⚡ En Progreso
+                  </SelectItem>
+                  <SelectItem value="done" className="font-bold cursor-pointer rounded-lg text-xs">
+                    ✅ Completada
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-black uppercase text-foreground">Prioridad</label>
-              <select
+              <Select
                 value={prioridad}
-                onChange={(e) => setPrioridad(e.target.value as TaskPriority)}
-                className="w-full px-3 py-2 bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-[#00E5FF] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                onValueChange={(val) => setPrioridad(val as TaskPriority)}
               >
-                <option value="baja">Baja (Normal)</option>
-                <option value="media">Media (Importante)</option>
-                <option value="alta">Alta (Urgente 🔥)</option>
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 h-auto bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                  <SelectValue placeholder="Prioridad" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
+                  <SelectItem value="baja" className="font-bold cursor-pointer rounded-lg text-xs">
+                    🟢 Baja (Normal)
+                  </SelectItem>
+                  <SelectItem value="media" className="font-bold cursor-pointer rounded-lg text-xs">
+                    🟡 Media (Importante)
+                  </SelectItem>
+                  <SelectItem value="alta" className="font-bold cursor-pointer rounded-lg text-xs text-rose-500">
+                    🔥 Alta (Urgente)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

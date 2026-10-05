@@ -797,6 +797,8 @@ export default function Quizzes() {
             setNewDeckYear(null);
             setCreationQuestions([]);
             setShowCreateDeck(false);
+            setManageDeck(newDeck);
+            fetchQuestions(newDeck.id);
             return;
         }
 
@@ -837,7 +839,7 @@ export default function Quizzes() {
 
         toast.success(creationQuestions.length > 0
             ? `¡Cuestionario creado con ${creationQuestions.length} pregunta(s)!`
-            : "Cuestionario creado");
+            : "¡Cuestionario creado! Ya podés cargar preguntas y respuestas.");
 
         await incrementUsage('cuestionarios');
         setNewDeckName("");
@@ -845,7 +847,26 @@ export default function Quizzes() {
         setNewDeckYear(null);
         setCreationQuestions([]);
         setShowCreateDeck(false);
+
+        const foundSubject = subjects.find(s => s.id === newDeckSubject);
+        const fullDeck: QuizDeck = {
+            id: deckData.id,
+            user_id: user.id,
+            subject_id: deckData.subject_id,
+            nombre: deckData.nombre,
+            descripcion: deckData.descripcion,
+            total_questions: creationQuestions.length,
+            created_at: deckData.created_at,
+            subject: foundSubject ? {
+                id: foundSubject.id,
+                nombre: foundSubject.nombre,
+                codigo: foundSubject.codigo,
+                año: foundSubject.año
+            } : undefined
+        };
         fetchDecks();
+        setManageDeck(fullDeck);
+        fetchQuestions(fullDeck.id);
     };
 
     const deleteQuestion = async (qId: string) => {

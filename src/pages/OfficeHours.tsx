@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Clock, Plus, Filter, Trash2, Edit2, X, User, BookOpen,
-  ChevronLeft, ChevronRight, Loader2, Pencil
+  ChevronLeft, ChevronRight, Loader2, Pencil, UserPlus, GraduationCap
 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -576,13 +576,23 @@ export default function OfficeHours() {
         </h2>
 
         {scheduleEntries.length === 0 ? (
-          <div className="text-center py-12">
-            <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">No hay horarios de consulta cargados</p>
+          <div className="my-4 p-8 sm:p-12 text-center rounded-2xl border-3 border-dashed border-foreground/30 bg-muted/20 flex flex-col items-center justify-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-[#ffd21c] border-3 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] flex items-center justify-center -rotate-3">
+              <GraduationCap className="w-8 h-8 text-black" />
+            </div>
+            <div className="max-w-md space-y-1.5">
+              <h3 className="font-black text-lg sm:text-xl uppercase text-foreground">
+                No hay horarios de consulta cargados
+              </h3>
+              <p className="text-xs sm:text-sm font-bold text-muted-foreground">
+                Agregá a tus profesores con sus días y horarios de consulta para organizarte y no perder ninguna clase de apoyo.
+              </p>
+            </div>
             <button
               onClick={openNewModal}
-              className="mt-4 px-6 py-3 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-medium hover:opacity-90 transition-all"
+              className="mt-2 px-6 py-3.5 rounded-xl bg-[#00E5FF] hover:bg-[#00cce6] text-black font-black uppercase text-xs sm:text-sm border-3 border-foreground shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
             >
+              <UserPlus className="w-4 h-4 text-black" />
               Agregar tu primer profesor
             </button>
           </div>

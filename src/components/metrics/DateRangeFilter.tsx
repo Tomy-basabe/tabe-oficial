@@ -128,35 +128,43 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
       {/* Preset Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "gap-2 bg-secondary border-border hover:bg-secondary/80",
-              !isPreset && "text-muted-foreground"
-            )}
+          <button
+            className="flex items-center gap-2 px-3.5 py-2 bg-background border-2 sm:border-3 border-foreground rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider text-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-y-[1px] transition-all cursor-pointer focus:outline-none"
           >
-            <CalendarIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{value.label}</span>
-            <span className="sm:hidden">
+            <CalendarIcon className="w-4 h-4 text-[#00E5FF] shrink-0" />
+            <span className="hidden sm:inline font-bold">{value.label}</span>
+            <span className="sm:hidden font-bold">
               {value.label.length > 15 ? value.label.slice(0, 12) + "..." : value.label}
             </span>
-            <ChevronDown className="w-4 h-4 opacity-50" />
-          </Button>
+            <ChevronDown className="w-3.5 h-3.5 opacity-70 ml-1" />
+          </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {presets.map((preset) => (
-            <DropdownMenuItem
-              key={preset.label}
-              onClick={() => handlePresetSelect(preset)}
-              className={cn(
-                value.label === preset.label && "bg-primary/10 text-primary"
-              )}
-            >
-              {preset.label}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsCustomOpen(true)}>
+        <DropdownMenuContent
+          align="end"
+          className="w-52 bg-card border-3 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-1.5"
+        >
+          {presets.map((preset) => {
+            const isSelected = value.label === preset.label;
+            return (
+              <DropdownMenuItem
+                key={preset.label}
+                onClick={() => handlePresetSelect(preset)}
+                className={cn(
+                  "font-black uppercase text-xs rounded-lg px-3 py-2 cursor-pointer transition-colors my-0.5",
+                  isSelected
+                    ? "bg-[#00E5FF] text-black font-black"
+                    : "text-foreground hover:bg-muted"
+                )}
+              >
+                {preset.label}
+              </DropdownMenuItem>
+            );
+          })}
+          <DropdownMenuSeparator className="bg-foreground/20 my-1" />
+          <DropdownMenuItem
+            onClick={() => setIsCustomOpen(true)}
+            className="font-black uppercase text-xs rounded-lg px-3 py-2 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
             Personalizado...
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -167,7 +175,10 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
         <PopoverTrigger asChild>
           <span className="hidden" />
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
+        <PopoverContent
+          className="w-auto p-0 bg-card border-3 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-xl"
+          align="end"
+        >
           <div className="p-4 space-y-4">
             <h4 className="font-medium text-sm">Seleccionar rango</h4>
 

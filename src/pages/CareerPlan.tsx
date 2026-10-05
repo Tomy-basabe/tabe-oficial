@@ -2,7 +2,16 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award, Sparkles } from "lucide-react";
+import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award, Sparkles, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { SubjectCard } from "@/components/dashboard/SubjectCard";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
@@ -64,6 +73,7 @@ export default function CareerPlan() {
   const [showDepsModal, setShowDepsModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAiImportModal, setShowAiImportModal] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   const years = getYears();
 
@@ -236,18 +246,10 @@ export default function CareerPlan() {
           </Button>
           {subjects.length > 0 && (
             <Button
-              onClick={() => {
-                const confirm1 = window.confirm("¿Estás SEGURO de que quieres borrar TODAS tus materias y progreso?");
-                if (confirm1) {
-                  const confirm2 = window.confirm("ESTA ACCIÓN ES IRREVERSIBLE. ¿Realmente quieres eliminar todo?");
-                  if (confirm2) {
-                    deleteAllSubjects();
-                  }
-                }
-              }}
+              onClick={() => setShowDeleteAllDialog(true)}
               variant="destructive"
               size="sm"
-              className="text-xs sm:text-sm font-bold"
+              className="text-xs sm:text-sm font-bold border-2 border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-all"
             >
               Borrar Todo
             </Button>
@@ -505,6 +507,41 @@ export default function CareerPlan() {
         onImport={importCustomCareerPlan}
         existingSubjectsCount={rawSubjects.length}
       />
+
+      {/* Diálogo de Confirmación Borrar Todo */}
+      <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <AlertDialogContent className="no-comic bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl sm:text-2xl font-black uppercase text-foreground flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border-2 border-rose-500 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-rose-500" />
+              </div>
+              ¿Borrar todas las materias?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground font-bold text-sm mt-3 leading-relaxed">
+              Esta acción es <strong className="text-destructive font-black">permanente e irreversible</strong>. Se eliminarán todas tus materias cargadas, estados académicos, notas parciales y el progreso acumulado en tu carrera.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex flex-col-reverse sm:flex-row gap-2.5">
+            <AlertDialogCancel
+              onClick={() => setShowDeleteAllDialog(false)}
+              className="px-5 py-2.5 rounded-xl border-2 border-foreground font-black uppercase text-xs hover:bg-muted"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteAllDialog(false);
+                deleteAllSubjects();
+              }}
+              className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-black uppercase text-xs rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all cursor-pointer"
+            >
+              Sí, Borrar Todo
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

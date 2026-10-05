@@ -28,6 +28,13 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SubjectOption {
   id: string;
@@ -50,6 +57,7 @@ export default function Tasks() {
 
   // View & Filters
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [selectedYearFilter, setSelectedYearFilter] = useState<string | number>("all");
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -142,19 +150,41 @@ export default function Tasks() {
     }
   };
 
+  // Available years from user subjects
+  const availableYears = useMemo(() => {
+    const rawYears = subjects
+      .map((s) => s.year)
+      .filter((y): y is number => typeof y === "number" && y > 0);
+    return Array.from(new Set(rawYears)).sort((a, b) => a - b);
+  }, [subjects]);
+
+  // Subjects filtered by selected year
+  const filteredSubjectsForDropdown = useMemo(() => {
+    if (selectedYearFilter === "all") return subjects;
+    return subjects.filter((s) => s.year === Number(selectedYearFilter));
+  }, [subjects, selectedYearFilter]);
+
   // Filtered tasks
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
+      const taskSubject = subjects.find((s) => s.id === t.subject_id);
+      const matchYear =
+        selectedYearFilter === "all" ||
+        (t.subjects && t.subjects.año === Number(selectedYearFilter)) ||
+        (taskSubject && taskSubject.year === Number(selectedYearFilter));
+
       const matchSubject =
         selectedSubjectFilter === "all" || t.subject_id === selectedSubjectFilter;
+
       const matchSearch =
         searchQuery === "" ||
         t.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (t.descripcion && t.descripcion.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (t.subjects && t.subjects.nombre.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchSubject && matchSearch;
+
+      return matchYear && matchSubject && matchSearch;
     });
-  }, [tasks, selectedSubjectFilter, searchQuery]);
+  }, [tasks, selectedYearFilter, selectedSubjectFilter, searchQuery, subjects]);
 
   // Stats
   const stats = useMemo(() => {
@@ -369,34 +399,79 @@ export default function Tasks() {
           </button>
         </div>
 
-        {/* Right: Subject Filter and Search */}
+        {/* Right: Year Filter, Subject Filter and Search */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Filter by Year */}
+          {availableYears.length > 0 && (
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-xl border-2 border-foreground">
+              <button
+                onClick={() => {
+                  setSelectedYearFilter("all");
+                  setSelectedSubjectFilter("all");
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                  selectedYearFilter === "all"
+                    ? "bg-foreground text-background shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Todos
+              </button>
+              {availableYears.map((yr) => (
+                <button
+                  key={yr}
+                  onClick={() => {
+                    setSelectedYearFilter(yr);
+                    setSelectedSubjectFilter("all");
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                    selectedYearFilter === yr
+                      ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000] translate-y-[-1px]"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {yr}°
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Filter by Subject */}
-          <div className="flex items-center gap-2 min-w-[200px]">
-            <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-            <select
+          <div className="min-w-[190px] sm:min-w-[220px]">
+            <Select
               value={selectedSubjectFilter}
-              onChange={(e) => setSelectedSubjectFilter(e.target.value)}
-              className="w-full px-3 py-1.5 bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:outline-none shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+              onValueChange={setSelectedSubjectFilter}
             >
-              <option value="all">Todas las materias</option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>
+              <SelectTrigger className="w-full px-3 py-2 h-auto bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                <div className="flex items-center gap-2 truncate">
+                  <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <SelectValue placeholder="Todas las materias" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl max-h-60">
+                <SelectItem value="all" className="font-bold cursor-pointer rounded-lg text-xs">
+                  Todas las materias
+                </SelectItem>
+                {filteredSubjectsForDropdown.map((s) => (
+                  <SelectItem key={s.id} value={s.id} className="font-bold cursor-pointer rounded-lg text-xs my-0.5">
                     {s.nombre} {s.codigo ? `(${s.codigo})` : ""}
-                  </option>
+                  </SelectItem>
                 ))}
-            </select>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Search box */}
-          <div className="relative min-w-[180px]">
+          <div className="relative min-w-[170px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar tareas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:outline-none shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+              className="w-full pl-9 pr-3 py-2 bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:outline-none shadow-[2px_2px_0_0_hsl(var(--foreground))]"
             />
           </div>
         </div>

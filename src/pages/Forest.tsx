@@ -238,6 +238,7 @@ export default function Forest() {
           onSelectSpecies={setSelectedPlantType}
           hasActivePlant={forestStats.hasActivePlant}
           onConfirmPlant={() => handleConfirmPlant(selectedPlantType)}
+          plants={plants}
         />
       )}
 

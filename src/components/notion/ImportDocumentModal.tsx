@@ -279,61 +279,63 @@ export function ImportDocumentModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileUp className="w-5 h-5 text-primary" />
-            Importar Documento
+      <DialogContent className="sm:max-w-xl bg-card border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-5 sm:p-6 text-foreground">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="font-display text-xl font-black uppercase tracking-wider text-foreground flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#00E5FF] border-2 border-foreground shadow-[2px_2px_0_0_#000] flex items-center justify-center shrink-0">
+              <FileUp className="w-5 h-5 text-black" strokeWidth={2.5} />
+            </div>
+            <span>Importar Documento</span>
           </DialogTitle>
         </DialogHeader>
 
         {/* Mode Tabs */}
-        <div className="flex gap-2 p-1 bg-secondary rounded-lg">
+        <div className="flex gap-2 p-1.5 bg-muted/60 border-2 border-foreground rounded-xl">
           <button
             onClick={() => setMode("upload")}
             disabled={isProcessing}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
+              "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
               mode === "upload"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-[#FFE600] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000]"
+                : "text-muted-foreground hover:text-foreground border-2 border-transparent"
             )}
           >
-            <Upload className="w-4 h-4" />
-            Subir Archivo
+            <Upload className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+            <span>Subir Archivo</span>
           </button>
           <button
             onClick={() => setMode("library")}
             disabled={isProcessing}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
+              "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
               mode === "library"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-[#FFE600] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000]"
+                : "text-muted-foreground hover:text-foreground border-2 border-transparent"
             )}
           >
-            <Library className="w-4 h-4" />
-            Biblioteca
+            <Library className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+            <span>Desde Biblioteca</span>
           </button>
         </div>
 
         {/* Upload Mode */}
         {mode === "upload" && (
-          <div className="space-y-4">
+          <div className="space-y-4 pt-1">
             {/* Drop Zone */}
             <div
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
-              onDragOver={handleDrag}
+              onOver={handleDrag}
               onDrop={handleDrop}
               onClick={() => !isProcessing && fileInputRef.current?.click()}
               className={cn(
-                "relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
+                "relative border-3 border-dashed rounded-2xl p-7 text-center cursor-pointer transition-all",
                 dragActive
-                  ? "border-primary bg-primary/5"
+                  ? "border-primary bg-primary/10 shadow-[4px_4px_0_0_hsl(var(--foreground))]"
                   : selectedFile
-                  ? "border-neon-green bg-neon-green/5"
-                  : "border-border hover:border-primary/50 hover:bg-secondary/50",
+                  ? "border-foreground bg-[#BFFF00]/15 shadow-[4px_4px_0_0_#000] border-solid"
+                  : "border-foreground/30 hover:border-foreground hover:bg-muted/40 shadow-[2px_2px_0_0_hsl(var(--foreground))]",
                 isProcessing && "pointer-events-none opacity-60"
               )}
             >
@@ -347,23 +349,24 @@ export function ImportDocumentModal({
 
               {selectedFile ? (
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-neon-green/20 flex items-center justify-center">
-                    <CheckCircle2 className="w-6 h-6 text-neon-green" />
+                  <div className="w-14 h-14 rounded-2xl bg-[#BFFF00] border-2 border-foreground shadow-[3px_3px_0_0_#000] flex items-center justify-center">
+                    <CheckCircle2 className="w-7 h-7 text-black stroke-[2.5]" />
                   </div>
                   <div>
-                    <p className="font-medium">{selectedFile.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-black text-sm text-foreground line-clamp-1">{selectedFile.name}</p>
+                    <p className="text-xs font-bold text-muted-foreground mt-0.5">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                   {!isProcessing && (
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedFile(null);
                         if (fileInputRef.current) fileInputRef.current.value = "";
                       }}
-                      className="text-sm text-destructive hover:underline"
+                      className="px-3 py-1 rounded-lg text-xs font-black uppercase text-destructive hover:bg-destructive/10 border border-destructive transition-colors"
                     >
                       Cambiar archivo
                     </button>
@@ -371,18 +374,18 @@ export function ImportDocumentModal({
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                    <FileUp className="w-6 h-6 text-muted-foreground" />
+                  <div className="w-14 h-14 rounded-2xl bg-card border-2 border-foreground shadow-[3px_3px_0_0_#000] flex items-center justify-center">
+                    <FileUp className="w-7 h-7 text-foreground" strokeWidth={2.5} />
                   </div>
                   <div>
-                    <p className="font-medium">Arrastra un archivo aquí</p>
-                    <p className="text-sm text-muted-foreground">
-                      o haz clic para seleccionar
+                    <p className="font-black text-base text-foreground">Arrastra un archivo aquí</p>
+                    <p className="text-xs font-bold text-muted-foreground mt-0.5">
+                      o haz clic para explorar tu dispositivo
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    PDF, Word, PowerPoint, Excel, TXT (máx. 20MB)
-                  </p>
+                  <div className="px-3 py-1 rounded-full bg-muted border border-foreground/30 text-[11px] font-bold text-muted-foreground">
+                    PDF, Word (.docx), PPTX, Excel, TXT (hasta 20 MB)
+                  </div>
                 </div>
               )}
             </div>
@@ -392,21 +395,21 @@ export function ImportDocumentModal({
               onClick={handleUploadAndProcess}
               disabled={!selectedFile || isProcessing}
               className={cn(
-                "w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2",
+                "w-full py-3.5 rounded-xl font-black uppercase tracking-wider text-xs border-[3px] transition-all flex items-center justify-center gap-2",
                 selectedFile && !isProcessing
-                  ? "bg-gradient-to-r from-neon-purple to-neon-cyan text-background hover:shadow-lg"
-                  : "bg-secondary text-muted-foreground cursor-not-allowed"
+                  ? "bg-[#00E5FF] text-black border-foreground shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none cursor-pointer"
+                  : "bg-muted text-muted-foreground border-foreground/30 shadow-none cursor-not-allowed"
               )}
             >
               {isProcessing ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {uploading ? "Subiendo..." : "Procesando documento..."}
+                  <Loader2 className="w-4 h-4 animate-spin text-foreground" />
+                  <span>{uploading ? "Subiendo archivo..." : "Extrayendo bloques de apunte..."}</span>
                 </>
               ) : (
                 <>
-                  <FileUp className="w-4 h-4" />
-                  Importar a Apuntes
+                  <FileUp className="w-4 h-4 text-black shrink-0" strokeWidth={2.5} />
+                  <span>Importar a Apuntes</span>
                 </>
               )}
             </button>
@@ -415,54 +418,62 @@ export function ImportDocumentModal({
 
         {/* Library Mode */}
         {mode === "library" && (
-          <div className="space-y-4">
+          <div className="space-y-4 pt-1">
             {loadingLibrary ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-xs font-black uppercase text-muted-foreground tracking-wider">Cargando biblioteca...</p>
               </div>
             ) : (
               <>
                 {/* Year Selection */}
                 {!selectedYear && (
-                  <div className="grid grid-cols-3 gap-2 py-4">
-                    {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
-                      <button
-                        key={year}
-                        onClick={() => setSelectedYear(year)}
-                        className="p-4 rounded-xl bg-secondary hover:bg-primary/10 border-2 border-transparent hover:border-primary transition-all text-center group"
-                      >
-                        <span className="text-2xl block group-hover:scale-110 transition-transform mb-1">📅</span>
-                        <span className="text-sm font-bold">{year}° Año</span>
-                      </button>
-                    ))}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Seleccionar Año</label>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map((year) => (
+                        <button
+                          key={year}
+                          onClick={() => setSelectedYear(year)}
+                          className="p-4 rounded-xl bg-card hover:bg-[#FFE600] text-foreground hover:text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:-translate-y-0.5 transition-all text-center group cursor-pointer"
+                        >
+                          <span className="text-2xl block mb-1 group-hover:scale-110 transition-transform">📅</span>
+                          <span className="text-xs font-black uppercase tracking-wider">{year}° Año</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {/* Subject Selection */}
                 {selectedYear && !selectedSubjectId && (
                   <div className="space-y-2">
-                    <button 
+                    <button
                       onClick={() => setSelectedYear(null)}
-                      className="text-xs text-primary hover:underline flex items-center gap-1 mb-2"
+                      className="text-xs font-black uppercase text-primary hover:underline flex items-center gap-1 mb-2 cursor-pointer"
                     >
                       ← Volver a Años
                     </button>
-                    <div className="max-h-64 overflow-y-auto grid grid-cols-1 gap-2">
-                      {subjects.filter(s => s.año === selectedYear).length === 0 ? (
-                        <p className="text-center text-muted-foreground py-4 text-sm">No hay materias para este año</p>
+                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                      {subjects.filter((s) => s.año === selectedYear).length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-foreground/30 rounded-xl">
+                          <p className="text-xs font-black uppercase">No hay materias registradas para este año</p>
+                        </div>
                       ) : (
-                        subjects.filter(s => s.año === selectedYear).map(sub => (
-                          <button
-                            key={sub.id}
-                            onClick={() => setSelectedSubjectId(sub.id)}
-                            className="p-3 rounded-lg bg-secondary hover:bg-neon-cyan/10 border border-transparent hover:border-neon-cyan transition-all text-left flex items-center gap-3"
-                          >
-                            <div className="w-8 h-8 rounded-lg bg-neon-cyan/20 flex items-center justify-center font-bold text-xs text-neon-cyan">
-                              {sub.codigo}
-                            </div>
-                            <span className="text-sm font-medium">{sub.nombre}</span>
-                          </button>
-                        ))
+                        subjects
+                          .filter((s) => s.año === selectedYear)
+                          .map((sub) => (
+                            <button
+                              key={sub.id}
+                              onClick={() => setSelectedSubjectId(sub.id)}
+                              className="w-full p-3 rounded-xl bg-card hover:bg-[#00E5FF]/20 text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:-translate-y-0.5 transition-all text-left flex items-center gap-3 cursor-pointer"
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-[#00E5FF] text-black border border-foreground flex items-center justify-center font-black text-xs shrink-0 shadow-[1px_1px_0_0_#000]">
+                                {sub.codigo?.slice(0, 4) || "MAT"}
+                              </div>
+                              <span className="text-sm font-black truncate">{sub.nombre}</span>
+                            </button>
+                          ))
                       )}
                     </div>
                   </div>
@@ -472,12 +483,16 @@ export function ImportDocumentModal({
                 {selectedSubjectId && (
                   <div className="space-y-3">
                     {/* Breadcrumbs for Subjects/Folders */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-                      <button 
-                        onClick={() => { setSelectedSubjectId(null); setCurrentFolderId(null); setFolderPath([]); }}
-                        className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar font-bold">
+                      <button
+                        onClick={() => {
+                          setSelectedSubjectId(null);
+                          setCurrentFolderId(null);
+                          setFolderPath([]);
+                        }}
+                        className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap cursor-pointer"
                       >
-                        {subjects.find(s => s.id === selectedSubjectId)?.nombre}
+                        {subjects.find((s) => s.id === selectedSubjectId)?.nombre}
                       </button>
                       {folderPath.map((f, i) => (
                         <React.Fragment key={f.id}>
@@ -489,8 +504,8 @@ export function ImportDocumentModal({
                               setCurrentFolderId(f.id);
                             }}
                             className={cn(
-                              "transition-colors whitespace-nowrap",
-                              i === folderPath.length - 1 ? "text-primary font-bold" : "text-muted-foreground hover:text-primary"
+                              "transition-colors whitespace-nowrap cursor-pointer",
+                              i === folderPath.length - 1 ? "text-primary font-black" : "text-muted-foreground hover:text-primary"
                             )}
                           >
                             {f.nombre}
@@ -499,58 +514,57 @@ export function ImportDocumentModal({
                       ))}
                     </div>
 
-                    <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                       {/* Sub-Folders */}
                       {libraryFolders
-                        .filter(f => f.subject_id === selectedSubjectId && f.parent_folder_id === currentFolderId)
-                        .map(folder => (
+                        .filter((f) => f.subject_id === selectedSubjectId && f.parent_folder_id === currentFolderId)
+                        .map((folder) => (
                           <button
                             key={folder.id}
                             onClick={() => {
                               setCurrentFolderId(folder.id);
-                              setFolderPath(prev => [...prev, folder]);
+                              setFolderPath((prev) => [...prev, folder]);
                             }}
-                            className="w-full p-2.5 rounded-lg bg-secondary/50 hover:bg-secondary border border-transparent hover:border-border transition-all flex items-center gap-3 text-left"
+                            className="w-full p-2.5 rounded-xl bg-card hover:bg-muted text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-3 text-left cursor-pointer"
                           >
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${folder.color}20` }}>
+                            <div className="w-8 h-8 rounded-lg border border-foreground flex items-center justify-center shrink-0 shadow-[1px_1px_0_0_#000]" style={{ backgroundColor: `${folder.color}25` }}>
                               <FolderOpen className="w-4 h-4" style={{ color: folder.color }} />
                             </div>
-                            <span className="text-sm font-medium truncate">{folder.nombre}</span>
+                            <span className="text-xs font-black truncate">{folder.nombre}</span>
                           </button>
                         ))}
 
                       {/* Files */}
-                      {libraryFiles
-                        .filter(f => f.subject_id === selectedSubjectId && f.folder_id === currentFolderId)
-                        .length === 0 && libraryFolders.filter(f => f.subject_id === selectedSubjectId && f.parent_folder_id === currentFolderId).length === 0 ? (
-                          <div className="text-center py-6 text-muted-foreground text-sm">
-                            <FolderOpen className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                            Carpeta vacía
-                          </div>
-                        ) : (
-                          libraryFiles
-                            .filter(f => f.subject_id === selectedSubjectId && f.folder_id === currentFolderId)
-                            .map(file => (
-                              <button
-                                key={file.id}
-                                onClick={() => setSelectedLibraryFile(file)}
-                                className={cn(
-                                  "w-full p-2.5 rounded-lg text-left transition-all flex items-center gap-3 border",
-                                  selectedLibraryFile?.id === file.id
-                                    ? "bg-primary/10 border-primary"
-                                    : "bg-secondary/30 hover:bg-secondary border-transparent"
-                                )}
-                              >
-                                <div className="w-8 h-8 rounded-lg bg-destructive/20 flex items-center justify-center shrink-0">
-                                  <FileText className="w-4 h-4 text-destructive" />
-                                </div>
-                                <span className="text-sm font-medium truncate flex-1">{file.nombre}</span>
-                                {selectedLibraryFile?.id === file.id && (
-                                  <CheckCircle2 className="w-4 h-4 text-primary" />
-                                )}
-                              </button>
-                            ))
-                        )}
+                      {libraryFiles.filter((f) => f.subject_id === selectedSubjectId && f.folder_id === currentFolderId).length === 0 &&
+                      libraryFolders.filter((f) => f.subject_id === selectedSubjectId && f.parent_folder_id === currentFolderId).length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-foreground/30 rounded-xl">
+                          <FolderOpen className="w-8 h-8 mx-auto mb-2 opacity-30 text-foreground" />
+                          <p className="text-xs font-black uppercase">Esta carpeta no contiene archivos</p>
+                        </div>
+                      ) : (
+                        libraryFiles
+                          .filter((f) => f.subject_id === selectedSubjectId && f.folder_id === currentFolderId)
+                          .map((file) => (
+                            <button
+                              key={file.id}
+                              onClick={() => setSelectedLibraryFile(file)}
+                              className={cn(
+                                "w-full p-3 rounded-xl text-left transition-all flex items-center gap-3 border-2 border-foreground cursor-pointer",
+                                selectedLibraryFile?.id === file.id
+                                  ? "bg-[#00E5FF]/20 shadow-[3px_3px_0_0_#000] translate-x-1"
+                                  : "bg-card hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                              )}
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-red-500/20 text-red-500 border border-foreground flex items-center justify-center shrink-0">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <span className="text-xs font-black truncate flex-1 text-foreground">{file.nombre}</span>
+                              {selectedLibraryFile?.id === file.id && (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 stroke-[2.5]" />
+                              )}
+                            </button>
+                          ))
+                      )}
                     </div>
                   </div>
                 )}
@@ -559,21 +573,21 @@ export function ImportDocumentModal({
                   onClick={handleLibraryImport}
                   disabled={!selectedLibraryFile || isProcessing}
                   className={cn(
-                    "w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 mt-4",
+                    "w-full py-3.5 rounded-xl font-black uppercase tracking-wider text-xs border-[3px] transition-all flex items-center justify-center gap-2 mt-4",
                     selectedLibraryFile && !isProcessing
-                      ? "bg-gradient-to-r from-neon-purple to-neon-cyan text-background hover:shadow-lg"
-                      : "bg-secondary text-muted-foreground cursor-not-allowed"
+                      ? "bg-[#00E5FF] text-black border-foreground shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none cursor-pointer"
+                      : "bg-muted text-muted-foreground border-foreground/30 shadow-none cursor-not-allowed"
                   )}
                 >
                   {isProcessing ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Procesando documento...
+                      <Loader2 className="w-4 h-4 animate-spin text-foreground" />
+                      <span>Extrayendo bloques de apunte...</span>
                     </>
                   ) : (
                     <>
-                      <FileUp className="w-4 h-4" />
-                      Importar a Apuntes
+                      <FileUp className="w-4 h-4 text-black shrink-0" strokeWidth={2.5} />
+                      <span>Importar a Apuntes</span>
                     </>
                   )}
                 </button>
@@ -582,10 +596,12 @@ export function ImportDocumentModal({
           </div>
         )}
 
-        {/* Info */}
-        <p className="text-xs text-muted-foreground text-center">
-          El contenido del documento se convertirá en bloques editables en tus Apuntes
-        </p>
+        {/* Info Pill */}
+        <div className="pt-2 text-center">
+          <p className="text-[11px] font-bold text-muted-foreground">
+            El texto, encabezados y listas se convertirán en bloques nativos editables en tu apunte.
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1018,8 +1018,8 @@ export default function Notion() {
     setSaveError(null); // Clear previous error indicator as user continues editing
 
     // En sesiones cooperativas usamos un debounce más largo (4.5s) para evitar colisiones de guardado simultáneo
-    const debounceMs = isCollabActive ? 4500 : 1200;
-    const forceSaveMs = isCollabActive ? 15000 : 6000;
+    const debounceMs = isCollabActive ? 4500 : 2500;
+    const forceSaveMs = isCollabActive ? 25000 : 25000;
 
     // 1. Debounce timer: tras dejar de escribir
     if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
@@ -2521,29 +2521,31 @@ export default function Notion() {
                 </DropdownMenu>
               </>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors shadow-xs relative"
+                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-muted/80 text-xs font-black uppercase tracking-wider text-foreground transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none relative cursor-pointer"
                   onClick={() => {
                     setTrashItems(getTrashItems());
                     setShowTrashModal(true);
                   }}
                   title="Papelera (30 min para recuperar)"
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-amber-500" />
+                  <Trash2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span className="hidden sm:inline">Papelera</span>
                   {trashItems.length > 0 && (
-                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                    <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-500 text-black text-[10px] font-black border border-foreground leading-none">
+                      {trashItems.length}
+                    </span>
                   )}
                 </button>
                 <button
                   type="button"
-                  className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors shadow-xs"
+                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-[#00E5FF]/20 text-xs font-black uppercase tracking-wider text-foreground transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none cursor-pointer"
                   onClick={() => setShowImportModal(true)}
                   title="Importar documento"
                 >
-                  <FileUp className="w-3.5 h-3.5" />
+                  <FileUp className="w-3.5 h-3.5 text-[#00E5FF] shrink-0" />
                   <span className="hidden sm:inline">Importar</span>
                 </button>
               </div>

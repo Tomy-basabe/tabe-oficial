@@ -356,7 +356,7 @@ export function CareerAnalytics() {
             <span className="text-xs font-black uppercase text-muted-foreground tracking-wider mb-1">
               Proyección de Egreso
             </span>
-            <span className="text-2xl sm:text-3xl font-black uppercase text-foreground tracking-tight text-[#00E5FF] bg-black px-4 py-1.5 rounded-lg border-2 border-foreground my-2 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+            <span className="text-2xl sm:text-3xl font-black uppercase text-black bg-[#ffd21c] px-4 py-1.5 rounded-xl border-3 border-foreground my-2 shadow-[3px_3px_0_0_hsl(var(--foreground))]">
               {format(stats.estimatedDate, "MMMM 'de' yyyy", { locale: es })}
             </span>
             <p className="text-xs font-bold text-muted-foreground uppercase mt-1">

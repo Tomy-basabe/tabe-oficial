@@ -3,7 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Layers, Plus, Sparkles, GraduationCap,
-  BookOpen, Zap, Trash2, X, ShoppingBag, Edit2, ShieldCheck, Check
+  BookOpen, Zap, Trash2, X, ShoppingBag, Edit2, ShieldCheck, Check,
+  AlertTriangle, Loader2
 } from "lucide-react";
 import { useMarketplace } from "@/hooks/useMarketplace";
 import { cn } from "@/lib/utils";
@@ -145,7 +146,10 @@ export default function Flashcards() {
   const [showManageCardsModal, setShowManageCardsModal] = useState(false);
   const [showDeleteDeckModal, setShowDeleteDeckModal] = useState(false);
   const [deckToDelete, setDeckToDelete] = useState<Deck | null>(null);
+  const [isDeletingDeck, setIsDeletingDeck] = useState(false);
   const [newDeckName, setNewDeckName] = useState("");
+  const [newDeckYear, setNewDeckYear] = useState<number | null>(null);
+  const [newDeckSubject, setNewDeckSubject] = useState<string | null>(null);
   const [newCardQuestion, setNewCardQuestion] = useState("");
   const [newCardAnswer, setNewCardAnswer] = useState("");
   const [loading, setLoading] = useState(() => getCachedFlashcardDecks().length === 0);
@@ -262,7 +266,7 @@ export default function Flashcards() {
 
       const { data, error } = await supabase
         .from("flashcard_decks")
-        .select("id, user_id, subject_id, nombre, descripcion, total_cards, created_at, subjects(nombre, codigo, año)")
+        .select("id, user_id, subject_id, nombre, total_cards, created_at, subjects(nombre, codigo, año)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -274,7 +278,7 @@ export default function Flashcards() {
         // Fallback in case PostgREST schema cache relationship failed
         const { data: rawData } = await supabase
           .from("flashcard_decks")
-          .select("id, user_id, subject_id, nombre, descripcion, total_cards, created_at")
+          .select("id, user_id, subject_id, nombre, total_cards, created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
         if (rawData) {
@@ -359,7 +363,7 @@ export default function Flashcards() {
 
     const { data, error } = await supabase
       .from("flashcards")
-      .select("id, deck_id, pregunta, respuesta, opciones, tipo, dificultad, veces_correcta, veces_incorrecta, veces_parcial, created_at")
+      .select("id, deck_id, pregunta, respuesta, veces_correcta, veces_incorrecta, created_at")
       .eq("deck_id", deckId)
       .order("created_at", { ascending: true });
 
@@ -375,33 +379,103 @@ export default function Flashcards() {
   };
 
   const createDeck = async () => {
-    if (!user || !selectedSubject || !newDeckName.trim()) return;
+    if (!newDeckName.trim()) {
+      toast.error("Por favor, ingresá el nombre del mazo");
+      return;
+    }
 
-    // Acceso ilimitado (Ads-only model)
-
-    const { error } = await supabase
-      .from("flashcard_decks")
-      .insert({
-        user_id: user.id,
-        subject_id: selectedSubject,
+    if (isGuest) {
+      const subjectObj = subjects.find(s => s.id === newDeckSubject);
+      const newGuestDeck: Deck = {
+        id: `mock-deck-${Date.now()}`,
         nombre: newDeckName.trim(),
-      });
-
-    if (error) {
-      toast.error("Error al crear el mazo");
-    } else {
-      toast.success("¡Mazo creado exitosamente!");
-      await incrementUsage('flashcard_mazos');
+        subject_id: newDeckSubject || "mock",
+        total_cards: 0,
+        subject: subjectObj ? { nombre: subjectObj.nombre, codigo: subjectObj.codigo, año: subjectObj.año } : undefined
+      };
+      const updated = [newGuestDeck, ...decks];
+      setDecks(updated);
+      setCachedFlashcardDecks(updated);
       setNewDeckName("");
+      setNewDeckYear(null);
+      setNewDeckSubject(null);
       setShowNewDeckModal(false);
+      setSelectedDeck(newGuestDeck);
+      setCards([]);
+      setShowNewCardModal(true);
+      toast.success("¡Mazo creado! Ya podés cargar tus preguntas y respuestas.");
+      return;
+    }
+
+    if (!user) {
+      toast.error("Iniciá sesión para guardar tus mazos");
+      return;
+    }
+
+    try {
+      const { data: newDeckData, error } = await supabase
+        .from("flashcard_decks")
+        .insert({
+          user_id: user.id,
+          subject_id: newDeckSubject || null,
+          nombre: newDeckName.trim(),
+        })
+        .select("id, user_id, subject_id, nombre, total_cards, created_at")
+        .single();
+
+      if (error || !newDeckData) {
+        console.error("Error creating deck:", error);
+        toast.error(`Error al crear el mazo: ${error?.message || "error al guardar"}`);
+        return;
+      }
+
+      toast.success("¡Mazo creado! Ya podés cargar tus preguntas y respuestas.");
+      await incrementUsage('flashcard_mazos');
+      const subjectObj = subjects.find(s => s.id === newDeckSubject);
+      const fullDeck: Deck = {
+        ...newDeckData,
+        total_cards: 0,
+        subject: subjectObj ? { nombre: subjectObj.nombre, codigo: subjectObj.codigo, año: subjectObj.año } : undefined
+      };
+      setNewDeckName("");
+      setNewDeckYear(null);
+      setNewDeckSubject(null);
+      setShowNewDeckModal(false);
+      setSelectedDeck(fullDeck);
+      setCards([]);
+      setShowNewCardModal(true);
       fetchDecks();
-      // Verificar logros después de crear un mazo
       checkAndUnlockAchievements();
+    } catch (err: any) {
+      console.error("Error creating deck exception:", err);
+      toast.error("Error al crear el mazo");
     }
   };
 
   const createCard = async () => {
-    if (!user || !selectedDeck || !newCardQuestion.trim() || !newCardAnswer.trim()) return;
+    if (!selectedDeck || !newCardQuestion.trim() || !newCardAnswer.trim()) return;
+
+    if (isGuest) {
+      const newGuestCard: Flashcard = {
+        id: `guest-card-${Date.now()}`,
+        deck_id: selectedDeck.id,
+        pregunta: newCardQuestion.trim(),
+        respuesta: newCardAnswer.trim(),
+        veces_correcta: 0,
+        veces_incorrecta: 0,
+        veces_parcial: 0
+      };
+      const updated = [...cards, newGuestCard];
+      setCards(updated);
+      setSelectedDeck({ ...selectedDeck, total_cards: updated.length });
+      setDecks(prev => prev.map(d => d.id === selectedDeck.id ? { ...d, total_cards: updated.length } : d));
+      setNewCardQuestion("");
+      setNewCardAnswer("");
+      toast.success("¡Tarjeta agregada! Podés seguir creando más.");
+      return;
+    }
+
+    if (!user) return;
 
     // No per-deck card limit - unlimited cards per deck
 
@@ -449,7 +523,7 @@ export default function Flashcards() {
     if (card) {
       const updates: any = {};
       if (status === 'correct') updates.veces_correcta = (card.veces_correcta || 0) + 1;
-      if (status === 'partial') updates.veces_parcial = (card.veces_parcial || 0) + 1;
+      // veces_parcial no es una columna en bd, se mantiene en estado local
       if (status === 'incorrect') updates.veces_incorrecta = (card.veces_incorrecta || 0) + 1;
 
       await supabase
@@ -537,6 +611,17 @@ export default function Flashcards() {
   const confirmDeleteDeck = async () => {
     if (!deckToDelete) return;
 
+    if (isGuest) {
+      const updated = decks.filter(d => d.id !== deckToDelete.id);
+      setDecks(updated);
+      setCachedFlashcardDecks(updated);
+      toast.success("Mazo eliminado correctamente");
+      setShowDeleteDeckModal(false);
+      setDeckToDelete(null);
+      return;
+    }
+
+    setIsDeletingDeck(true);
     try {
       // First delete all cards in the deck
       await supabase
@@ -559,6 +644,8 @@ export default function Flashcards() {
     } catch (error) {
       console.error("Error deleting deck:", error);
       toast.error("Error al eliminar el mazo");
+    } finally {
+      setIsDeletingDeck(false);
     }
   };
 
@@ -630,6 +717,7 @@ export default function Flashcards() {
   });
 
   const filteredSubjects = subjects.filter(s => !selectedYear || s.año === selectedYear);
+  const newDeckModalSubjects = subjects.filter(s => !newDeckYear || s.año === newDeckYear);
 
   // Edit Deck Functions
   const handleEditDeck = (deck: Deck) => {
@@ -1051,17 +1139,49 @@ export default function Flashcards() {
               Nuevo Mazo
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6 py-2">
+          <div className="space-y-4 py-2">
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Seleccionar Año</label>
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Nombre del mazo *</label>
+              <input
+                type="text"
+                value={newDeckName}
+                onChange={(e) => setNewDeckName(e.target.value)}
+                placeholder="Ej: Unidad 1 - Conceptos básicos"
+                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Vincular a Materia (Opcional)</label>
+                {newDeckYear && (
+                  <button
+                    type="button"
+                    onClick={() => { setNewDeckYear(null); setNewDeckSubject(null); }}
+                    className="text-[10px] font-black uppercase text-muted-foreground hover:text-foreground underline cursor-pointer"
+                  >
+                    Quitar filtro
+                  </button>
+                )}
+              </div>
               <div className="flex gap-2 mt-2">
                 {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                   <button
                     key={year}
-                    onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
+                    type="button"
+                    onClick={() => {
+                      if (newDeckYear === year) {
+                        setNewDeckYear(null);
+                        setNewDeckSubject(null);
+                      } else {
+                        setNewDeckYear(year);
+                        setNewDeckSubject(null);
+                      }
+                    }}
                     className={cn(
-                      "flex-1 py-3 rounded-xl text-sm font-black border-[2px] border-foreground transition-all",
-                      selectedYear === year
+                      "flex-1 py-2.5 rounded-xl text-xs font-black border-[2px] border-foreground transition-all",
+                      newDeckYear === year
                         ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000]"
                         : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
                     )}
@@ -1072,15 +1192,18 @@ export default function Flashcards() {
               </div>
             </div>
 
-            {selectedYear && (
+            {newDeckYear && newDeckModalSubjects.length > 0 && (
               <div className="animate-fade-in">
                 <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Materia</label>
-                <Select value={selectedSubject || ""} onValueChange={setSelectedSubject}>
-                  <SelectTrigger className="w-full mt-2 px-4 py-6 h-auto bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-base data-[state=open]:shadow-[4px_4px_0_0_#000]">
+                <Select value={newDeckSubject || "none"} onValueChange={(val) => setNewDeckSubject(val === "none" ? null : val)}>
+                  <SelectTrigger className="w-full mt-2 px-4 py-3 h-auto bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm data-[state=open]:shadow-[4px_4px_0_0_#000]">
                     <SelectValue placeholder="Seleccionar materia" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
-                    {filteredSubjects.map(subject => (
+                  <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl max-h-60">
+                    <SelectItem value="none" className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
+                      ⚪ General (Sin materia específica)
+                    </SelectItem>
+                    {newDeckModalSubjects.map(subject => (
                       <SelectItem key={subject.id} value={subject.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
                         {subject.nombre}
                       </SelectItem>
@@ -1090,23 +1213,10 @@ export default function Flashcards() {
               </div>
             )}
 
-            {selectedSubject && (
-              <div className="animate-fade-in">
-                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Nombre del mazo</label>
-                <input
-                  type="text"
-                  value={newDeckName}
-                  onChange={(e) => setNewDeckName(e.target.value)}
-                  placeholder="Ej: Unidad 1 - Conceptos básicos"
-                  className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
-                />
-              </div>
-            )}
-
             <button
               onClick={createDeck}
-              disabled={!selectedSubject || !newDeckName.trim()}
-              className="w-full py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed"
+              disabled={!newDeckName.trim()}
+              className="w-full py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed cursor-pointer mt-2"
             >
               CREAR MAZO
             </button>
@@ -1658,34 +1768,91 @@ export default function Flashcards() {
       </Dialog>
 
       {/* Delete Deck Confirmation Modal */}
-      <Dialog open={showDeleteDeckModal} onOpenChange={setShowDeleteDeckModal}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl flex items-center gap-2 text-destructive">
-              <Trash2 className="w-5 h-5" />
-              Eliminar Mazo
-            </DialogTitle>
+      <Dialog
+        open={showDeleteDeckModal}
+        onOpenChange={(open) => {
+          if (!isDeletingDeck) {
+            setShowDeleteDeckModal(open);
+            if (!open) setDeckToDelete(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] p-6 overflow-hidden">
+          <DialogHeader className="space-y-3 pb-1">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border-[2px] border-rose-500 flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
+                <Trash2 className="w-6 h-6 text-rose-500" />
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="font-display text-xl font-black uppercase tracking-wider text-foreground">
+                  Eliminar Mazo
+                </DialogTitle>
+                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">
+                  Confirmación requerida
+                </p>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground">
-              ¿Estás seguro de que deseas eliminar el mazo <span className="font-semibold text-foreground">"{deckToDelete?.nombre}"</span>?
-            </p>
-            <p className="text-sm text-destructive mt-2">
-              Esta acción eliminará todas las tarjetas ({deckToDelete?.total_cards}) y no se puede deshacer.
+
+          {/* Deck Preview Card */}
+          <div className="my-2 p-4 rounded-xl bg-card border-[2px] border-foreground shadow-[3px_3px_0_0_#000] space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">
+                  Mazo a eliminar
+                </span>
+                <h4 className="font-display font-black text-base uppercase text-foreground truncate" title={deckToDelete?.nombre}>
+                  {deckToDelete?.nombre}
+                </h4>
+              </div>
+              <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-secondary border-[2px] border-foreground shrink-0 shadow-[1px_1px_0_0_#000]">
+                {deckToDelete?.subject?.nombre || "General"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2.5 border-t border-border/80 text-xs font-bold text-muted-foreground">
+              <Layers className="w-4 h-4 text-foreground shrink-0" />
+              <span>
+                Contiene <strong className="text-foreground font-black">{deckToDelete?.total_cards ?? 0}</strong> {deckToDelete?.total_cards === 1 ? "tarjeta" : "tarjetas"} de estudio
+              </span>
+            </div>
+          </div>
+
+          {/* Warning Notice */}
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border-[2px] border-rose-500/40 flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+            <p className="text-xs font-bold text-rose-600 dark:text-rose-400 leading-relaxed">
+              Esta acción es <strong className="font-black underline">permanente e irreversible</strong>. Se eliminará el mazo junto con todas sus tarjetas y su historial de repasos.
             </p>
           </div>
-          <div className="flex gap-3">
+
+          {/* Action buttons */}
+          <div className="flex flex-col-reverse sm:flex-row gap-3 mt-4 pt-1">
             <button
+              type="button"
               onClick={() => setShowDeleteDeckModal(false)}
-              className="flex-1 py-3 bg-secondary rounded-xl font-semibold hover:bg-secondary/80 transition-colors"
+              disabled={isDeletingDeck}
+              className="flex-1 py-3 px-4 bg-background hover:bg-secondary text-foreground rounded-xl font-black uppercase tracking-wider text-xs border-[2px] border-foreground shadow-[3px_3px_0_0_#000] hover:shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancelar
             </button>
             <button
+              type="button"
               onClick={confirmDeleteDeck}
-              className="flex-1 py-3 bg-destructive text-destructive-foreground rounded-xl font-semibold hover:bg-destructive/90 transition-colors"
+              disabled={isDeletingDeck}
+              className="flex-1 py-3 px-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black uppercase tracking-wider text-xs border-[2px] border-foreground shadow-[3px_3px_0_0_#000] hover:shadow-[5px_5px_0_0_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Eliminar
+              {isDeletingDeck ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Eliminando...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Sí, Eliminar Mazo</span>
+                </>
+              )}
             </button>
           </div>
         </DialogContent>

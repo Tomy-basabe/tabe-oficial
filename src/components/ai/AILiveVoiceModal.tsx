@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   X, Mic, MicOff, Video, VideoOff, SwitchCamera, Monitor, MonitorOff,
   Volume2, VolumeX, Sparkles, Radio, ChevronDown, ChevronUp, Send,
-  Zap, Volume1, CheckCircle2
+  Zap, Volume1, CheckCircle2, Square
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -70,6 +70,16 @@ function cleanTextForSpeech(text: string): string {
 // Select natural human voice based on language mode
 function pickBestVoice(voices: SpeechSynthesisVoice[], langMode: VoiceLanguageMode): SpeechSynthesisVoice | null {
   if (!voices || voices.length === 0) return null;
+
+  if (typeof window !== "undefined") {
+    try {
+      const savedVoiceName = localStorage.getItem("tabe_study_voice_name");
+      if (savedVoiceName) {
+        const match = voices.find((v) => v.name === savedVoiceName);
+        if (match) return match;
+      }
+    } catch (_) {}
+  }
 
   // Filter out any robotic desktop/SAPI legacy voices
   const naturalVoices = voices.filter(v => {
@@ -163,11 +173,32 @@ export function AILiveVoiceModal({
   const activeUtterancesRef = useRef<Set<SpeechSynthesisUtterance>>(new Set());
   const keepAliveTimerRef = useRef<any>(null);
 
+  // Synchronized state references to prevent continuous recreation loops in recognition
+  const liveStateRef = useRef<LiveState>("listening");
+  const isMicMutedRef = useRef(isMicMuted);
+  const handleUserSpokeRef = useRef<(text: string) => Promise<void>>(async () => {});
+  const scheduleSubmissionRef = useRef<(delayMs: number) => void>(() => {});
+  const stopAudioRef = useRef<() => void>(() => {});
+  const startRecognitionRef = useRef<() => void>(() => {});
+
+  // Turn concurrency locking and anti-duplicate guards
+  const isTurnLockedRef = useRef(false);
+  const lastSubmittedQueryRef = useRef({ text: "", timestamp: 0 });
+
+  useEffect(() => {
+    liveStateRef.current = liveState;
+  }, [liveState]);
+
+  useEffect(() => {
+    isMicMutedRef.current = isMicMuted;
+  }, [isMicMuted]);
+
   // Stop any playing audio immediately (Instant Barge-in)
   const stopAudio = useCallback(() => {
     audioQueueRef.current = [];
     isPlayingAudioQueueRef.current = false;
     isSpeakingTtsRef.current = false;
+    isTurnLockedRef.current = false;
     sentenceBufferRef.current = "";
 
     if (keepAliveTimerRef.current) {
@@ -182,6 +213,10 @@ export function AILiveVoiceModal({
     }
     activeUtterancesRef.current.clear();
   }, []);
+
+  useEffect(() => {
+    stopAudioRef.current = stopAudio;
+  }, [stopAudio]);
 
   // Speak a single sentence using SpeechSynthesis with GC protection and Watchdog
   const speakUtterance = useCallback((textToSpeak: string, voice: SpeechSynthesisVoice | null): Promise<void> => {
@@ -234,6 +269,16 @@ export function AILiveVoiceModal({
       isSpeakingTtsRef.current = false;
       if (!isStreamingAiRef.current) {
         setLiveState("listening");
+        setUserInterimTranscript("");
+        lastRecognizedRef.current = "";
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        // Cool-down period (280ms) ensures room speaker echo decays before unlocking user turn
+        setTimeout(() => {
+          isTurnLockedRef.current = false;
+          if (!isSpeakingTtsRef.current && isComponentActiveRef.current && !isMicMutedRef.current) {
+            startRecognitionRef.current?.();
+          }
+        }, 280);
       }
       return;
     }
@@ -355,10 +400,24 @@ export function AILiveVoiceModal({
   // Send completed user utterance to AI Stream
   const handleUserSpoke = useCallback(async (spokenText: string) => {
     const text = spokenText.trim();
-    if (!text || isStreamingAiRef.current) return;
+    const now = Date.now();
+    if (!text) return;
+    if (isStreamingAiRef.current || isTurnLockedRef.current) return;
+
+    // Strict deduplication: ignore identical phrase within 4 seconds
+    if (
+      lastSubmittedQueryRef.current.text.toLowerCase() === text.toLowerCase() &&
+      now - lastSubmittedQueryRef.current.timestamp < 4000
+    ) {
+      console.warn("Ignored duplicate query:", text);
+      return;
+    }
+    lastSubmittedQueryRef.current = { text, timestamp: now };
+    isTurnLockedRef.current = true;
 
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     setUserInterimTranscript("");
+    lastRecognizedRef.current = "";
     setIsUserTalking(false);
     setLiveState("thinking");
     isStreamingAiRef.current = true;
@@ -452,6 +511,7 @@ export function AILiveVoiceModal({
         // onError
         (err: Error) => {
           isStreamingAiRef.current = false;
+          isTurnLockedRef.current = false;
           setLiveState("listening");
           toast.error("Error al procesar respuesta de voz");
           console.error("Live voice streaming error:", err);
@@ -464,6 +524,7 @@ export function AILiveVoiceModal({
       );
     } catch (e: any) {
       isStreamingAiRef.current = false;
+      isTurnLockedRef.current = false;
       setLiveState("listening");
       toast.error(e.message || "Error al conectar con la IA");
     }
@@ -479,21 +540,40 @@ export function AILiveVoiceModal({
     stopAudio
   ]);
 
+  useEffect(() => {
+    handleUserSpokeRef.current = handleUserSpoke;
+  }, [handleUserSpoke]);
+
   // Trigger submission with debounced silence detection
   const scheduleSubmission = useCallback((delayMs: number) => {
+    if (isTurnLockedRef.current || isStreamingAiRef.current || isSpeakingTtsRef.current) {
+      return;
+    }
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     silenceTimerRef.current = setTimeout(() => {
-      if (lastRecognizedRef.current && isComponentActiveRef.current && !isStreamingAiRef.current) {
-        const query = lastRecognizedRef.current;
+      if (
+        lastRecognizedRef.current &&
+        isComponentActiveRef.current &&
+        !isStreamingAiRef.current &&
+        !isSpeakingTtsRef.current &&
+        !isTurnLockedRef.current
+      ) {
+        const query = lastRecognizedRef.current.trim();
         lastRecognizedRef.current = "";
-        handleUserSpoke(query);
+        if (query) {
+          handleUserSpokeRef.current(query);
+        }
       }
     }, delayMs);
-  }, [handleUserSpoke]);
+  }, []);
+
+  useEffect(() => {
+    scheduleSubmissionRef.current = scheduleSubmission;
+  }, [scheduleSubmission]);
 
   // Safely start or restart recognition
   const startRecognition = useCallback(() => {
-    if (!recognitionRef.current || !isComponentActiveRef.current || isMicMuted) return;
+    if (!recognitionRef.current || !isComponentActiveRef.current || isMicMutedRef.current) return;
     if (isRecognizingRef.current) return;
 
     try {
@@ -504,12 +584,28 @@ export function AILiveVoiceModal({
         isRecognizingRef.current = true;
       }
     }
-  }, [isMicMuted]);
+  }, []);
+
+  useEffect(() => {
+    startRecognitionRef.current = startRecognition;
+  }, [startRecognition]);
 
   // Voice Activity & Continuous Speech Recognition Setup (Zero-Contention, Snappy Turnaround)
   useEffect(() => {
     if (!isOpen) return;
     isComponentActiveRef.current = true;
+
+    // Prompt microphone permissions explicitly to prevent silent block on Chromium
+    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((stream) => {
+          // Release immediate audio stream so Web Speech API has exclusive hardware access
+          stream.getTracks().forEach((t) => t.stop());
+        })
+        .catch((err) => {
+          console.warn("Permiso de micrófono no otorgado previamente:", err);
+        });
+    }
 
     // @ts-ignore
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -527,40 +623,47 @@ export function AILiveVoiceModal({
 
     recognition.onstart = () => {
       isRecognizingRef.current = true;
-      if (liveState === "idle") setLiveState("listening");
+      if (liveStateRef.current === "idle") setLiveState("listening");
     };
 
     recognition.onspeechstart = () => {
+      // If AI is talking, streaming or turn is locked, ignore acoustic feedback!
+      if (isSpeakingTtsRef.current || isStreamingAiRef.current || isTurnLockedRef.current) return;
       setIsUserTalking(true);
-      // Instant Barge-In: User spoke, cut AI speech immediately!
-      if (isSpeakingTtsRef.current || isStreamingAiRef.current) {
-        stopAudio();
-        isStreamingAiRef.current = false;
-        setLiveState("listening");
-      }
     };
 
     recognition.onspeechend = () => {
+      if (isSpeakingTtsRef.current || isStreamingAiRef.current || isTurnLockedRef.current) return;
       setIsUserTalking(false);
-      // When user stops speaking, submit fast (300ms)
       if (lastRecognizedRef.current.trim().length > 1) {
-        scheduleSubmission(300);
+        scheduleSubmissionRef.current?.(300);
       }
     };
 
     recognition.onsoundstart = () => {
-      setIsUserTalking(true);
+      if (!isSpeakingTtsRef.current && !isStreamingAiRef.current && !isTurnLockedRef.current) {
+        setIsUserTalking(true);
+      }
     };
 
     recognition.onsoundend = () => {
-      setIsUserTalking(false);
-      if (lastRecognizedRef.current.trim().length > 1) {
-        scheduleSubmission(350);
+      if (!isSpeakingTtsRef.current && !isStreamingAiRef.current && !isTurnLockedRef.current) {
+        setIsUserTalking(false);
+        if (lastRecognizedRef.current.trim().length > 1) {
+          scheduleSubmissionRef.current?.(350);
+        }
       }
     };
 
     recognition.onresult = (event: any) => {
-      if (isMicMuted) return;
+      if (
+        isMicMutedRef.current ||
+        isSpeakingTtsRef.current ||
+        isStreamingAiRef.current ||
+        isTurnLockedRef.current
+      ) {
+        return;
+      }
 
       let interim = "";
       let final = "";
@@ -575,29 +678,19 @@ export function AILiveVoiceModal({
       }
 
       const currentChunk = (final || interim).trim();
+      if (!currentChunk) return;
 
-      // BARGE-IN: Natural user interruption!
-      if (currentChunk.length > 1 && (isSpeakingTtsRef.current || isStreamingAiRef.current)) {
-        stopAudio();
-        isStreamingAiRef.current = false;
-        setLiveState("listening");
-      }
-
-      if (currentChunk) {
-        setUserInterimTranscript(currentChunk);
-        lastRecognizedRef.current = currentChunk;
-        setLiveState("listening");
-        setIsUserTalking(true);
-      }
+      setUserInterimTranscript(currentChunk);
+      lastRecognizedRef.current = currentChunk;
+      setLiveState("listening");
+      setIsUserTalking(true);
 
       if (final.trim()) {
         lastRecognizedRef.current = final.trim();
-        // Snappy turnaround: 280ms of silence after final result before submitting to AI
-        scheduleSubmission(280);
+        scheduleSubmissionRef.current?.(280);
       } else if (interim.trim().length > 1) {
         lastRecognizedRef.current = interim.trim();
-        // If user pauses for 600ms on interim without explicit final, auto-submit
-        scheduleSubmission(600);
+        scheduleSubmissionRef.current?.(600);
       }
     };
 
@@ -614,8 +707,8 @@ export function AILiveVoiceModal({
     recognition.onend = () => {
       isRecognizingRef.current = false;
       setIsUserTalking(false);
-      // Auto-restart continuous recognition with small safe delay to prevent InvalidStateError
-      if (isComponentActiveRef.current && !isMicMuted) {
+      // Auto-restart continuous recognition safely if active and not muted
+      if (isComponentActiveRef.current && !isMicMutedRef.current) {
         restartTimeoutRef.current = setTimeout(() => {
           startRecognition();
         }, 120);
@@ -633,7 +726,19 @@ export function AILiveVoiceModal({
         recognition.stop();
       } catch (_) {}
     };
-  }, [isOpen, isMicMuted, voiceLang, scheduleSubmission, startRecognition, stopAudio, liveState]);
+  }, [isOpen, voiceLang, startRecognition]);
+
+  // Handle microphone mute toggle without rebuilding the recognition session
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isMicMuted) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) {}
+      }
+    } else {
+      startRecognition();
+    }
+  }, [isMicMuted, isOpen, startRecognition]);
 
   // Keep-alive Heartbeat for SpeechRecognition
   useEffect(() => {
@@ -641,17 +746,17 @@ export function AILiveVoiceModal({
     const heartbeat = setInterval(() => {
       if (
         isComponentActiveRef.current &&
-        !isMicMuted &&
+        !isMicMutedRef.current &&
         !isRecognizingRef.current &&
-        liveState === "listening" &&
+        !isSpeakingTtsRef.current &&
         !isStreamingAiRef.current
       ) {
         startRecognition();
       }
-    }, 1200);
+    }, 1500);
 
     return () => clearInterval(heartbeat);
-  }, [isOpen, isMicMuted, liveState, startRecognition]);
+  }, [isOpen, startRecognition]);
 
   // Thinking State Watchdog (Never get stuck thinking for > 7.5s)
   useEffect(() => {
@@ -794,11 +899,16 @@ export function AILiveVoiceModal({
 
   // Manual Trigger: User taps the Orb to talk or send immediately
   const handleOrbTap = () => {
-    // If AI is speaking, tap interrupts and listens
-    if (isSpeakingTtsRef.current || isStreamingAiRef.current) {
+    // If AI is speaking, streaming, or turn is active, tap interrupts and listens
+    if (isSpeakingTtsRef.current || isStreamingAiRef.current || isTurnLockedRef.current) {
       stopAudio();
       isStreamingAiRef.current = false;
+      isTurnLockedRef.current = false;
       setLiveState("listening");
+      setUserInterimTranscript("");
+      lastRecognizedRef.current = "";
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      startRecognition();
       toast.info("Interrumpido. Te escucho...");
       return;
     }
@@ -808,6 +918,7 @@ export function AILiveVoiceModal({
       const textToSend = userInterimTranscript || lastRecognizedRef.current;
       setUserInterimTranscript("");
       lastRecognizedRef.current = "";
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       handleUserSpoke(textToSend);
       return;
     }
@@ -1133,6 +1244,8 @@ export function AILiveVoiceModal({
                     if (userInterimTranscript) {
                       const text = userInterimTranscript;
                       setUserInterimTranscript("");
+                      lastRecognizedRef.current = "";
+                      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
                       handleUserSpoke(text);
                     }
                   }}
@@ -1144,9 +1257,29 @@ export function AILiveVoiceModal({
                 </button>
               </div>
             ) : currentAiSpeechText && liveState === "speaking" ? (
-              <p className="text-sm sm:text-base font-semibold text-slate-200 max-w-lg leading-relaxed px-4 py-2 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-md animate-in fade-in">
-                {currentAiSpeechText}
-              </p>
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-sm sm:text-base font-semibold text-slate-200 max-w-lg leading-relaxed px-4 py-2 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-md animate-in fade-in">
+                  {currentAiSpeechText}
+                </p>
+                <button
+                  onClick={() => {
+                    stopAudio();
+                    isStreamingAiRef.current = false;
+                    isTurnLockedRef.current = false;
+                    setLiveState("listening");
+                    setUserInterimTranscript("");
+                    lastRecognizedRef.current = "";
+                    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                    startRecognition();
+                    toast.info("Interrumpido. Te escucho...");
+                  }}
+                  className="px-3.5 py-1 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-[11px] font-black uppercase tracking-wider text-red-200 flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+                  title="Interrumpir voz de la IA"
+                >
+                  <Square className="w-3 h-3 fill-red-400 stroke-none" />
+                  <span>Interrumpir</span>
+                </button>
+              </div>
             ) : (
               <p className="text-xs sm:text-sm font-bold text-slate-400 tracking-wide">
                 Respuestas concisas y directas en voz humana natural. Puedes hablar sin tocar botones.

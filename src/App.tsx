@@ -59,6 +59,7 @@ const TicTacToeGame = lazy(() => import("@/pages/TicTacToeGame"));
 const ChessGame = lazy(() => import("@/pages/ChessGame"));
 const Tasks = lazy(() => import("@/pages/Tasks"));
 const TabeGochi = lazy(() => import("@/pages/TabeGochi"));
+const StudyRoadmapPage = lazy(() => import("@/pages/StudyRoadmapPage"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
@@ -185,6 +186,9 @@ const AppRoutes = () => (
       <Route path="/metricas" element={<Metrics />} />
       <Route path="/asistente" element={<Navigate to="/TABEAI" replace />} />
       <Route path="/TABEAI" element={<AIAssistant />} />
+      <Route path="/tabe-ai/examenes" element={<StudyRoadmapPage />} />
+      <Route path="/TABEAI/examenes" element={<StudyRoadmapPage />} />
+      <Route path="/asistente/examenes" element={<StudyRoadmapPage />} />
       <Route path="/flashcards" element={<Flashcards />} />
       <Route path="/cuestionarios" element={<Quizzes />} />
       <Route path="/marketplace" element={<PremiumGate feature="Marketplace"><Marketplace /></PremiumGate>} />

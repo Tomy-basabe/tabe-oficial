@@ -79,24 +79,29 @@ export function useStreamingChat(
           }
         }
 
-        // 2. Build context: For live voice, use an ultra-fast conversational prompt (0ms) so response starts immediately
-        const isLiveVoice = context_page === "Modo Live de Voz Fluida";
+        // 2. Build complete student context (cached in memory for <1ms overhead)
         const studentName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Estudiante";
+        const studentContext = await buildStudentContext(
+          user?.id || "guest",
+          personaPrompt,
+          personaName,
+          studentName,
+          targetPower
+        );
 
+        const isLiveVoice = context_page === "Modo Live de Voz Fluida";
         const systemPrompt = isLiveVoice
-          ? `Sos ${personaName}, asistente académico en MODO VOZ EN VIVO (llamada de audio en tiempo real con ${studentName}).
-REGLAS OBLIGATORIAS PARA CONVERSACIÓN FLUIDA EN TIEMPO REAL:
-1. Sé ultra conciso: MÁXIMO 1 o 2 oraciones breves (20 a 35 palabras por respuesta). NUNCA des discursos ni párrafos largos, porque estamos hablando por voz.
-2. Hablá en tono 100% natural, humano, cálido y cercano (español rioplatense si el usuario lo habla).
-3. Responde directamente la duda del usuario sin rodeos, introducciones innecesarias ni saludos repetitivos.
-4. NO uses asteriscos, viñetas ni títulos markdown, porque se van a escuchar directamente por audio.`
-          : await buildStudentContext(
-              user?.id || "guest",
-              personaPrompt,
-              personaName,
-              studentName,
-              targetPower
-            );
+          ? `${studentContext}
+
+═══════════════════════════════════════════════════════════
+[MODO LLAMADA DE VOZ EN VIVO ACTIVO]
+Estás en una llamada de audio interactiva en tiempo real con ${studentName}.
+REGLAS OBLIGATORIAS PARA HABLAR POR VOZ:
+1. INFORMACIÓN ACADÉMICA EXACTA: Tienes todo el expediente académico del estudiante en este contexto (materias aprobadas, regulares, notas de cada materia, promedio general exacto, exámenes y eventos). Cuando te pregunte sobre su promedio, notas o situación académica, responde directamente con sus datos reales del expediente.
+2. SÉ CONCISO Y DIRECTO: MÁXIMO 1 o 2 oraciones breves (20 a 35 palabras por respuesta). Nunca des discursos extensos ni párrafos largos que cansen por audio.
+3. TONO HUMANO Y NATURAL: Habla con calidez y naturalidad (en español rioplatense si el usuario es de Argentina o te habla de vos/che).
+4. SIN SÍMBOLOS MARKDOWN: NUNCA uses asteriscos (**), numerales (#), viñetas (-) ni tablas, porque estamos sintetizando tu voz a audio y esos caracteres traban o ensucian la pronunciación.`
+          : studentContext;
 
         // 3. Stream with automatic provider fallback and power level
         await streamAIChat({
