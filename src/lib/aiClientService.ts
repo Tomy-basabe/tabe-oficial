@@ -348,11 +348,12 @@ export async function buildStudentContext(
 
         const notasAprobadasDetalle = aprobadas
           .filter((s) => s.nota !== null && !isNaN(s.nota) && s.nota > 0)
-          .map((s) => ({ nombre: s.nombre, nota: s.nota as number }));
+          .map((s) => ({ nombre: s.nombre, nota: s.nota as number, año: s.año || 1 }));
 
+        const sumaNotas = notasAprobadasDetalle.reduce((a, b) => a + b.nota, 0);
         const promedioNum =
           notasAprobadasDetalle.length > 0
-            ? notasAprobadasDetalle.reduce((a, b) => a + b.nota, 0) / notasAprobadasDetalle.length
+            ? sumaNotas / notasAprobadasDetalle.length
             : null;
         const promedio = promedioNum !== null ? promedioNum.toFixed(2) : "Sin notas numéricas registradas aún";
         const pctProgreso =
@@ -360,14 +361,28 @@ export async function buildStudentContext(
             ? ((aprobadas.length / mergedSubjects.length) * 100).toFixed(1)
             : "0";
 
+        const noAprobadas = mergedSubjects.filter((s) => s.estado !== "aprobada");
+        const pendientesPorAnioObj: Record<number, string[]> = {};
+        for (const s of noAprobadas) {
+          const yr = s.año || 1;
+          if (!pendientesPorAnioObj[yr]) pendientesPorAnioObj[yr] = [];
+          pendientesPorAnioObj[yr].push(s.nombre);
+        }
+        const pendientesPorAnioStr = Object.keys(pendientesPorAnioObj)
+          .sort((a, b) => Number(a) - Number(b))
+          .map((yr) => `${yr}° Año: ${pendientesPorAnioObj[Number(yr)].length} (${pendientesPorAnioObj[Number(yr)].join(", ")})`)
+          .join(" | ");
+
         summarySection = `- Materias totales en el plan: ${mergedSubjects.length}
 - Progreso de carrera: ${aprobadas.length}/${mergedSubjects.length} materias aprobadas (${pctProgreso}%)
-- Promedio general (materias aprobadas): ${promedio} (${notasAprobadasDetalle.length} materias computadas)
-- Detalle de notas aprobadas: ${notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n) => `${n.nombre}: ${n.nota.toFixed(2)}`).join(", ") : "Ninguna nota registrada"}
+- Promedio general actual (materias aprobadas): ${promedio} (${notasAprobadasDetalle.length} materias con nota computadas, suma acumulada de notas = ${sumaNotas.toFixed(2)})
+- Detalle de notas aprobadas: ${notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n) => `${n.nombre} (${n.año}° año): ${n.nota.toFixed(2)}`).join(", ") : "Ninguna nota registrada"}
 - Aprobadas: ${aprobadas.length}
 - Regulares (cursadas aprobadas, listas para rendir final): ${regulares.length}
 - En curso: ${enCurso.length}
-- Sin cursar: ${sinCursar.length}`;
+- Sin cursar: ${sinCursar.length}
+- Materias pendientes de aprobar (total: ${noAprobadas.length}) desglosadas por año: ${pendientesPorAnioStr || "Ninguna"}
+- Fórmula exacta para calcular qué nota promedio mínima (X) necesita sacarse en M materias restantes para alcanzar un promedio objetivo (P): X = ((P * (${notasAprobadasDetalle.length} + M)) - ${sumaNotas.toFixed(2)}) / M`;
 
         // Group subjects by year
         if (mergedSubjects.length > 0) {
@@ -816,6 +831,7 @@ export async function streamAIChat(params: {
     success = await runTier((delta) =>
       streamFromOfflineLocal({
         messages,
+        systemPrompt,
         onDelta: delta,
       })
     );
@@ -1052,34 +1068,73 @@ async function streamFromLocal(opts: {
  */
 async function streamFromOfflineLocal(opts: {
   messages: Array<{ role: string; content: string }>;
+  systemPrompt?: string;
   onDelta: (text: string) => void;
 }): Promise<boolean> {
   const lastUserMessage = [...opts.messages].reverse().find((message) => message.role === "user")?.content?.trim();
   const normalized = (lastUserMessage || "").toLowerCase();
-  const arithmeticMatch = normalized.match(/(?:cu[aá]nto\s+es|resuelve|calcula)\s+([0-9+\-*/().\s]+)[?¿!！。]?$/i);
-  let arithmeticResult: number | null = null;
-  if (arithmeticMatch && /^[0-9+\-*/().\s]+$/.test(arithmeticMatch[1])) {
-    try {
-      const value = Function(`"use strict"; return (${arithmeticMatch[1]})`)();
-      if (typeof value === "number" && Number.isFinite(value)) arithmeticResult = value;
-    } catch {
-      arithmeticResult = null;
-    }
-  }
+  const sys = opts.systemPrompt || "";
 
-  const content = arithmeticResult !== null
-    ? `El resultado es **${arithmeticResult}**.`
-    : normalized.match(/^(hola|buenas|buen d[ií]a)/)
-    ? "¡Hola! Soy TABE AI, tu asistente académico. Tengo acceso total al 100% de tu información universitaria. Preguntame sobre tus materias, notas, calendario o exámenes y te respondo al instante."
-    : normalized.includes("como estas") || normalized.includes("cómo estás")
-      ? "¡Excelente! Estoy conectado con toda tu información académica, listo para ayudarte a organizar tus materias, preparar un examen o responder cualquier duda. ¿Qué necesitás hoy?"
-    : normalized.includes("plan")
-      ? "Para armar tu plan: elegí la materia, anotá el objetivo del examen, separá el contenido en bloques y trabajá en sesiones de 25 minutos con repasos al final de cada bloque."
-      : normalized.includes("flashcard") || normalized.includes("tarjeta")
-        ? "Las flashcards funcionan mejor con una pregunta concreta adelante y una respuesta breve atrás. Separá las tarjetas difíciles y repasá esas con mayor frecuencia."
-        : normalized.includes("quiz") || normalized.includes("simulacro")
-          ? "Para un buen simulacro, respondé sin mirar apuntes, marcá tus dudas y corregí cada error escribiendo por qué la respuesta correcta es la correcta."
-          : "TABE AI está funcionando en modo local. Tu perfil y materias están conectados. En breve se restablecerá la conexión de red completa.";
+  // Helper to extract values from systemPrompt
+  const extractFromPrompt = (label: string): string | null => {
+    const regex = new RegExp(`${label}:?\\s*([^\\n]+)`, "i");
+    const m = sys.match(regex);
+    return m ? m[1].trim() : null;
+  };
+
+  const promedioActual = extractFromPrompt("Promedio general actual") || extractFromPrompt("Promedio general") || extractFromPrompt("Promedio General");
+  const detalleNotas = extractFromPrompt("Detalle de notas aprobadas") || extractFromPrompt("Detalle de materias aprobadas y notas");
+  const materiasAprobadasCount = extractFromPrompt("Aprobadas");
+  const progresoCarrera = extractFromPrompt("Progreso de carrera") || extractFromPrompt("Progreso");
+  const pendientesDesglose = extractFromPrompt("Materias pendientes de aprobar");
+
+  let content = "";
+
+  // 1. Duda de promedio / notas / calificaciones
+  if (
+    normalized.includes("promedio") ||
+    normalized.includes("notas") ||
+    normalized.includes("calificaciones") ||
+    normalized.includes("cuánto me tengo que sacar") ||
+    normalized.includes("que me tendría que sacar") ||
+    normalized.includes("qué me tendría que sacar")
+  ) {
+    // Si el usuario pregunta qué necesita sacarse para llegar a X promedio
+    const targetAvgMatch = normalized.match(/(?:promedio\s+de|llegar\s+a(?:l)?\s+|sacar(?:me)?\s+)?(\d+(?:[.,]\d+)?)/);
+    const targetAvg = targetAvgMatch ? parseFloat(targetAvgMatch[1].replace(",", ".")) : null;
+
+    if (promedioActual) {
+      content = `📊 **Tu situación académica actual:**\n\n`;
+      content += `• **Promedio general actual:** **${promedioActual}**\n`;
+      if (progresoCarrera) content += `• **Progreso de carrera:** ${progresoCarrera}\n`;
+      if (detalleNotas && !detalleNotas.toLowerCase().includes("ninguna")) {
+        content += `• **Materias aprobadas con nota:** ${detalleNotas}\n\n`;
+      }
+
+      if (targetAvg && targetAvg >= 4 && targetAvg <= 10) {
+        content += `🎯 **Para alcanzar un promedio de ${targetAvg.toFixed(2)}:**\n`;
+        if (pendientesDesglose) {
+          content += `• **Materias pendientes por cursar/aprobar:** ${pendientesDesglose}\n`;
+        }
+        content += `• Si mantenés un rendimiento superior a **${targetAvg.toFixed(2)}** en las próximas materias (promediando entre **${Math.min(10, Math.max(targetAvg, 8)).toFixed(1)}** y **${Math.min(10, targetAvg + 0.5).toFixed(1)}**), tu promedio subirá de forma sostenida.\n\n`;
+      }
+      content += `¡Vas con buen ritmo! Si querés que analicemos una materia o final en específico, decime y lo vemos juntos.`;
+    } else {
+      content = `Actualmente tu promedio está conectado a tu cuenta. Podés cargar tus notas finales en la sección de Materias para calcular la proyección exacta hacia el promedio deseado.`;
+    }
+  } else if (normalized.match(/^(hola|buenas|buen d[ií]a)/)) {
+    content = "¡Hola! Soy TABE AI, tu asistente académico. Tengo acceso al 100% de tu información universitaria. Preguntame sobre tus materias, notas, calendario o exámenes y te respondo al instante.";
+  } else if (normalized.includes("como estas") || normalized.includes("cómo estás")) {
+    content = "¡Excelente! Estoy conectado con toda tu información académica, listo para ayudarte a organizar tus materias, preparar un examen o responder cualquier duda. ¿Qué necesitás hoy?";
+  } else if (normalized.includes("plan")) {
+    content = "Para armar tu plan: elegí la materia, anotá el objetivo del examen, separá el contenido en bloques y trabajá en sesiones de 25 minutos con repasos al final de cada bloque.";
+  } else if (normalized.includes("flashcard") || normalized.includes("tarjeta")) {
+    content = "Las flashcards funcionan mejor con una pregunta concreta adelante y una respuesta breve atrás. Separá las tarjetas difíciles y repasá esas con mayor frecuencia.";
+  } else if (normalized.includes("quiz") || normalized.includes("simulacro")) {
+    content = "Para un buen simulacro, respondé sin mirar apuntes, marcá tus dudas y corregí cada error escribiendo por qué la respuesta correcta es la correcta.";
+  } else {
+    content = `¡Hola! Estoy conectado a tu información académica. Tenés registradas ${materiasAprobadasCount || "tus"} materias y un promedio de **${promedioActual || "tu carrera"}**. ¿En qué materia o duda puntual te gustaría que nos enfoquemos?`;
+  }
 
   for (let index = 0; index < content.length; index += 8) {
     opts.onDelta(content.slice(index, index + 8));

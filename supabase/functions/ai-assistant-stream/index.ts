@@ -1,11 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Security: Restrict CORS to known origins
+// Security: Restrict CORS to known origins (including web domains, Vercel previews, and Capacitor mobile app)
 const ALLOWED_ORIGINS = [
   "https://tabe.com.ar",
   "https://www.tabe.com.ar",
+  "https://tabe.software",
+  "https://www.tabe.software",
   "https://tabe-oficial.vercel.app",
+  "capacitor://localhost",
+  "http://localhost",
+  "https://localhost",
   "http://localhost:8080",
   "http://127.0.0.1:8080",
   "http://localhost:5173",
@@ -14,11 +19,18 @@ const ALLOWED_ORIGINS = [
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("Origin") || "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const isAllowed =
+    ALLOWED_ORIGINS.includes(origin) ||
+    origin.endsWith(".vercel.app") ||
+    origin.endsWith(".tabe.com.ar") ||
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:");
+  const allowedOrigin = isAllowed && origin ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
     "X-Content-Type-Options": "nosniff",
   };
 }
@@ -957,8 +969,8 @@ serve(async (req) => {
     // - openai/gpt-oss-20b: 20B parámetros, respuesta instantánea (~430ms) para consultas ágiles
     // - qwen/qwen3.8-27b: 27B parámetros, alta velocidad y precisión (~340ms)
     const candidateGroqModels = power_level === "bajo"
-      ? ["openai/gpt-oss-20b", "qwen/qwen3.8-27b", "openai/gpt-oss-120b"]
-      : ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
+      ? ["openai/gpt-oss-20b", "llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-120b"]
+      : ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"];
 
     const temperature = power_level === "bajo" ? 0.2 : power_level === "alto" ? 0.35 : 0.25;
 
