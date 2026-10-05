@@ -1,5 +1,6 @@
 /* REGLA ARQUITECTÓNICA: NINGÚN COMPONENTE VISUAL, HOOK O FUNCIONALIDAD PÚBLICA DEBE CONDICIONARSE AL ROL ADMIN. TODOS LOS USUARIOS USAN LA MISMA UI Y LÓGICA DE NEGOCIO SALVO LA RUTA PRIVADA /admin */
 
+import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toaster";
 import { DiscordVoiceProvider } from "@/contexts/DiscordVoiceContext";
 import { GlobalDiscordVoiceWidget } from "@/components/discord/GlobalDiscordVoiceWidget";

@@ -1318,8 +1318,8 @@ export default function Library() {
       if (!data.success) throw new Error(data.error);
 
       if (type === 'flashcards') {
-        const cards = data.data.cards;
-        if (!cards || cards.length === 0) throw new Error("No flashcards generated");
+        const rawCards = Array.isArray(data.data) ? data.data : (data.data?.cards || data.cards || []);
+        if (!rawCards || rawCards.length === 0) throw new Error("No se generaron flashcards");
 
         const { data: deck, error: deckError } = await supabase
           .from("flashcard_decks")
@@ -1327,7 +1327,7 @@ export default function Library() {
             user_id: user.id,
             subject_id: file.subject_id,
             nombre: `Flashcards: ${file.nombre.substring(0, 30)}...`,
-            total_cards: cards.length,
+            total_cards: rawCards.length,
             is_public: false
           })
           .select()
@@ -1335,11 +1335,11 @@ export default function Library() {
 
         if (deckError) throw deckError;
 
-        const cardRows = cards.map((c: any) => ({
+        const cardRows = rawCards.map((c: any) => ({
           deck_id: deck.id,
           user_id: user.id,
-          pregunta: c.pregunta,
-          respuesta: c.respuesta
+          pregunta: c.pregunta || c.question,
+          respuesta: c.respuesta || c.answer
         }));
 
         const { error: cardsError } = await supabase
@@ -1348,9 +1348,9 @@ export default function Library() {
 
         if (cardsError) throw cardsError;
 
-        toast.success(`¡Mazo de ${cards.length} flashcards creado!`);
+        toast.success(`¡Mazo de ${rawCards.length} flashcards creado!`);
       } else if (type === 'quiz') {
-        const questions = data.data.questions;
+        const questions = Array.isArray(data.data) ? data.data : (data.data?.questions || data.questions || []);
         if (!questions || questions.length === 0) throw new Error("No se generaron preguntas");
 
         const { data: quizDeck, error: qdErr } = await supabase

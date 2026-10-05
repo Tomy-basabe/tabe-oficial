@@ -5,9 +5,7 @@ import { cn } from "@/lib/utils";
 import { useAIPersonas } from "@/hooks/useAIPersonas";
 import { useAIChat, DisplayMessage } from "@/contexts/AIChatContext";
 import { useAuth } from "@/contexts/AuthContext";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+import { ChatMessageContent } from "@/components/ai/ChatMessage";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
 import "katex/dist/katex.min.css";
@@ -261,14 +259,7 @@ export function AIBubbleWidget() {
                                         <AIThinkingIndicator personaName={activePersona?.name} />
                                     )}
                                     {msg.content && msg.role === "assistant" ? (
-                                        <div className="prose prose-sm dark:prose-invert prose-p:leading-snug prose-p:my-1 prose-pre:bg-black/50 prose-pre:p-2 prose-pre:rounded-lg prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground">
-                                            <ReactMarkdown
-                                                remarkPlugins={[remarkMath]}
-                                                rehypePlugins={[rehypeKatex]}
-                                            >
-                                                {msg.content}
-                                            </ReactMarkdown>
-                                        </div>
+                                        <ChatMessageContent content={msg.content} className="prose-p:leading-snug prose-p:my-1 text-xs md:text-sm" />
                                     ) : (
                                         <span className="whitespace-pre-wrap">{msg.content}</span>
                                     )}

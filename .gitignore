@@ -45,4 +45,10 @@ android/build
 android/app/build
 android/captures
 *.apk
-*.aab
+*.aab
+
+# Graphify artifacts
+graphify-out/
+
+# Supabase temp
+supabase/.temp/

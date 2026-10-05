@@ -21,9 +21,7 @@ import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
 import { AILiveVoiceModal } from "@/components/ai/AILiveVoiceModal";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+import { ChatMessageContent } from "@/components/ai/ChatMessage";
 import "katex/dist/katex.min.css";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -653,16 +651,7 @@ export default function AIAssistant() {
       return content.split("\n").map((line, i) => <div key={i} className="text-black leading-relaxed font-bold">{line}</div>);
     }
 
-    return (
-      <div className="prose prose-sm md:prose-base dark:prose-invert prose-p:leading-relaxed prose-p:my-2 prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:p-3 prose-pre:rounded-xl prose-math:text-base prose-math:font-medium max-w-none break-words text-foreground font-normal">
-        <ReactMarkdown
-          remarkPlugins={[remarkMath]}
-          rehypePlugins={[rehypeKatex]}
-        >
-          {content}
-        </ReactMarkdown>
-      </div>
-    );
+    return <ChatMessageContent content={content} />;
   };
 
   if (loading) {

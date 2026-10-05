@@ -765,8 +765,8 @@ export default function Notion() {
       if (!data.success) throw new Error(data.error);
 
       if (aiGenType === 'flashcards') {
-        const cards = data.data.cards;
-        if (!cards || cards.length === 0) throw new Error("No se pudieron generar flashcards.");
+        const rawCards = Array.isArray(data.data) ? data.data : (data.data?.cards || data.cards || []);
+        if (!rawCards || rawCards.length === 0) throw new Error("No se pudieron generar flashcards.");
 
         const { data: deck, error: deckError } = await supabase
           .from("flashcard_decks")
@@ -774,7 +774,7 @@ export default function Notion() {
             user_id: user.id,
             subject_id: activeDocument.subject_id,
             nombre: `IA: ${activeDocument.titulo?.substring(0, 30)}`,
-            total_cards: cards.length,
+            total_cards: rawCards.length,
             is_public: false
           })
           .select()
@@ -782,11 +782,11 @@ export default function Notion() {
 
         if (deckError) throw deckError;
 
-        const cardRows = cards.map((c: any) => ({
+        const cardRows = rawCards.map((c: any) => ({
           deck_id: deck.id,
           user_id: user.id,
-          pregunta: c.pregunta,
-          respuesta: c.respuesta
+          pregunta: c.pregunta || c.question,
+          respuesta: c.respuesta || c.answer
         }));
 
         const { error: cardsError } = await supabase
@@ -795,9 +795,9 @@ export default function Notion() {
 
         if (cardsError) throw cardsError;
 
-        toast.success(`¡Mazo de ${cards.length} flashcards creado en la sección de Flashcards!`, { id: toastId });
+        toast.success(`¡Mazo de ${rawCards.length} flashcards creado en la sección de Flashcards!`, { id: toastId });
       } else {
-        const questions = data.data.questions;
+        const questions = Array.isArray(data.data) ? data.data : (data.data?.questions || data.questions || []);
         if (!questions || questions.length === 0) throw new Error("No se pudieron generar preguntas.");
 
         const { data: quizDeck, error: qdErr } = await supabase
