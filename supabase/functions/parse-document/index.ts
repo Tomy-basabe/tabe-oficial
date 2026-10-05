@@ -87,8 +87,18 @@ serve(async (req) => {
 
     const userId = user.id;
 
+    // MED-4 FIX: Verificar tamaño del request antes de leer el body (previene DoS por bodies gigantes)
+    const contentLength = req.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > 2_000_000) {
+      return new Response(JSON.stringify({ error: "Request body too large (max 2MB JSON)" }), {
+        status: 413,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+      });
+    }
+
     const requestBody = await req.json();
-    console.log("Request Payload:", JSON.stringify(requestBody));
+    // LOW-2 FIX: No loguear el body completo (puede contener URLs de archivos privados, PII)
+    console.log("Request action:", requestBody?.action || "parse", "fileName:", requestBody?.fileName?.slice(0, 50));
 
     let { fileUrl, storagePath, fileName, fileType } = requestBody as ParseDocumentRequest;
 

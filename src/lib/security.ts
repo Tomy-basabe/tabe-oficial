@@ -348,121 +348,33 @@ export function detectUnexpectedFields<T extends Record<string, unknown>>(
 }
 
 // ============================================================
-// 20. CLIENT PROTECTION & ANTI-INSPECTION
+// 20. PRODUCCIÓN: ADVERTENCIA EN CONSOLA
 // ============================================================
 
 /**
- * Sistema de Protección Global y Seguridad de T.A.B.E.
- * Protege contra:
- * 1. Clic derecho (Menú contextual para inspeccionar elementos o ver estilos)
- * 2. Atajos de inspección de DevTools (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, etc.)
- * 3. Descarga directa del código fuente (Ctrl+S)
- * 4. Extracción de scripts y consola de desarrollo en producción
+ * Muestra una advertencia de seguridad en la consola en producción.
+ * NO bloquea DevTools — la seguridad real viene del servidor (RLS, JWT).
+ * Bloquear F12/Ctrl+Shift+I es seguridad por oscuridad: bypasseable trivialmente
+ * y perjudica la experiencia de desarrolladores y usuarios avanzados.
  */
 export function initSecurityProtection() {
   if (typeof window === "undefined" || typeof document === "undefined") return;
 
-  // 1. Deshabilitar menú contextual (clic derecho) en todo el documento
-  document.addEventListener(
-    "contextmenu",
-    (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    },
-    { capture: true }
-  );
-
-  // 2. Bloquear atajos de teclado asociados a DevTools y Ver Código Fuente (Windows, Linux y macOS)
-  document.addEventListener(
-    "keydown",
-    (e) => {
-      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-      const isShift = e.shiftKey;
-      const isAlt = e.altKey;
-      const key = e.key ? e.key.toUpperCase() : "";
-      const keyCode = e.keyCode || e.which;
-
-      // F12
-      if (key === "F12" || keyCode === 123) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-
-      // Windows/Linux/Mac: Ctrl/Cmd + Shift + I/J/C/K/E/S (DevTools, Consola, Inspector, Network, Debugger)
-      if (
-        isCtrlOrCmd &&
-        isShift &&
-        (key === "I" || key === "J" || key === "C" || key === "K" || key === "E" || key === "S" ||
-         keyCode === 73 || keyCode === 74 || keyCode === 67 || keyCode === 75 || keyCode === 69 || keyCode === 83)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-
-      // macOS: Cmd + Alt + I / Cmd + Alt + J / Cmd + Alt + C / Cmd + Alt + U
-      if (
-        isCtrlOrCmd &&
-        isAlt &&
-        (key === "I" || key === "J" || key === "C" || key === "U" ||
-         keyCode === 73 || keyCode === 74 || keyCode === 67 || keyCode === 85)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-
-      // Ctrl/Cmd + U (Ver código fuente)
-      if (isCtrlOrCmd && (key === "U" || keyCode === 85)) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-
-      // Ctrl/Cmd + S (Prevenir descarga directa del HTML)
-      if (isCtrlOrCmd && (key === "S" || keyCode === 83)) {
-        e.preventDefault();
-      }
-    },
-    { capture: true }
-  );
-
-  // 3. Protección de consola y advertencia de seguridad en producción
+  // Solo en producción: mostrar advertencia de Social Engineering en consola
   if (import.meta.env.PROD) {
-    const showWarning = () => {
+    // Usamos un timeout para no bloquear la carga inicial
+    setTimeout(() => {
       try {
-        console.clear();
-        originalLog(
-          "%c¡ALTO! %cÁrea Protegida",
-          "color: #ef4444; font-size: 28px; font-weight: 900; -webkit-text-stroke: 1px black;",
-          "color: #f59e0b; font-size: 18px; font-weight: bold;"
+        console.log(
+          "%c¡ATENCIÓN! %cÁrea Protegida",
+          "color: #ef4444; font-size: 24px; font-weight: 900;",
+          "color: #f59e0b; font-size: 16px; font-weight: bold;"
         );
-        originalLog(
-          "%cEl código fuente, estilos CSS y arquitectura de T.A.B.E. están protegidos bajo propiedad intelectual y medidas de seguridad.",
+        console.log(
+          "%cSi alguien te pidió copiar o pegar comandos aquí, es un intento de robo de cuenta (ataque de ingeniería social). Cerrá esta ventana inmediatamente.",
           "font-size: 13px; color: #94a3b8; font-weight: 500;"
         );
-        originalLog(
-          "%cSi alguien te pidió copiar o pegar comandos aquí, es un intento de vulneración de seguridad.",
-          "font-size: 13px; color: #ef4444; font-weight: bold;"
-        );
       } catch (_) {}
-    };
-
-    const originalLog = console.log.bind(console);
-
-    // Silenciar métodos de consola superfluos en producción pero conservar error y warn para diagnóstico
-    const noop = () => {};
-    console.log = noop;
-    console.debug = noop;
-    console.info = noop;
-    console.dir = noop;
-    console.table = noop;
-    console.trace = noop;
-
-    // Mostrar advertencia inicial limpia una sola vez
-    showWarning();
+    }, 1000);
   }
 }
-

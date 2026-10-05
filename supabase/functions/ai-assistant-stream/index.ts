@@ -133,25 +133,22 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Extracción instantánea de userId desde el JWT en 0ms (evita roundtrip HTTPS a GoTrue auth)
-    let userId: string | null = null;
-    try {
-      const token = authHeader.replace("Bearer ", "").trim();
-      const parts = token.split(".");
-      if (parts.length === 3) {
-        const payloadStr = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-        const payload = JSON.parse(payloadStr);
-        if (payload.sub && payload.role === "authenticated") {
-          userId = payload.sub;
-        }
-      }
-    } catch (_) {}
+    // HIGH-2 FIX: Siempre verificar el JWT usando auth.getUser() (verifica firma criptográfica en GoTrue)
+    // Nunca decodificar manualmente el JWT sin verificar firma — un payload falsificado pasaría el check
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: { user: authUser }, error: authError } = await authClient.auth.getUser()
+      .catch(() => ({ data: { user: null }, error: new Error("Auth service unreachable") }));
 
-    if (!userId) {
-      const authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-      const { data: { user } } = await authClient.auth.getUser().catch(() => ({ data: { user: null } }));
-      userId = user?.id || null;
+    if (authError || !authUser) {
+      return new Response(JSON.stringify({ error: "Unauthorized: invalid or expired token" }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+      });
     }
+
+    const userId: string = authUser.id;
 
     const reqBody = await req.json();
 

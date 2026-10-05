@@ -21,9 +21,14 @@ function getCorsHeaders(req: Request) {
   };
 }
 
-const VAPID_PUBLIC_KEY = "BNaibveUWxGdggaWEWGFg07YbIg5feJ67xDzCcf41L8J8W93Xf-89LJWZZl_kVYN9ZZZ8XnrXkXuP2Us_BP15Qg";
-const VAPID_PRIVATE_KEY = "vlJOxv6GvlLobTIITI0iTC7byz6tCvNm2vo4o4LjuT8";
-const VAPID_SUBJECT = "mailto:soporte@tabe.com.ar";
+// CRIT-1 FIX: VAPID keys desde variables de entorno, nunca hardcodeadas
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || "";
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || "";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:soporte@tabe.com.ar";
+
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  console.error("[send-web-push] VAPID_PUBLIC_KEY o VAPID_PRIVATE_KEY no configuradas en env secrets");
+}
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
@@ -121,138 +126,182 @@ serve(async (req) => {
   const cors = getCorsHeaders(req);
 
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const body = await req.json().catch(() => ({}));
     const action = body.action || "send_to_user";
 
-    // ───────────────── 0. SAVE PUSH SUBSCRIPTION (BYPASS RLS VIA SERVICE ROLE) ─────────────────
-    if (action === "save_subscription") {
-      const { user_id, endpoint, p256dh, auth, user_agent } = body;
-      if (!user_id || !endpoint || !p256dh || !auth) {
-        return new Response(JSON.stringify({ error: "Missing required subscription fields" }), {
-          status: 400,
-          headers: { ...cors, "Content-Type": "application/json" }
-        });
-      }
-
-      const { data, error } = await supabase
-        .from("push_subscriptions")
-        .upsert({
-          user_id,
-          endpoint,
-          p256dh,
-          auth,
-          user_agent: user_agent || "",
-          updated_at: new Date().toISOString()
-        }, { onConflict: "endpoint" })
-        .select();
-
-      if (error) throw error;
-
-      return new Response(JSON.stringify({
-        success: true,
-        message: "Suscripción Web Push guardada exitosamente en el servidor",
-        data
-      }), {
-        headers: { ...cors, "Content-Type": "application/json" }
-      });
-    }
-
-    // ───────────────── 1. SEND IMMEDIATE PUSH TO USER ─────────────────
-    if (action === "send_to_user" || action === "test_push") {
-      const userId = body.user_id;
-      if (!userId) {
-        return new Response(JSON.stringify({ error: "Missing user_id" }), {
-          status: 400,
-          headers: { ...cors, "Content-Type": "application/json" }
-        });
-      }
-
-      const result = await sendPushToUser(supabase, userId, {
-        title: body.title,
-        body: body.body,
-        url: body.url,
-        tag: body.tag
-      });
-
-      return new Response(JSON.stringify(result), {
-        headers: { ...cors, "Content-Type": "application/json" }
-      });
-    }
-
-    // ───────────────── 2. SCHEDULE DELAYED PUSH (E.G. 3 MINUTES AFTER ACTIVATION) ─────────────────
-    if (action === "schedule_delayed_greeting" || action === "schedule_delayed_push") {
-      const userId = body.user_id;
-      const delaySeconds = Math.max(5, Math.min(300, Number(body.delay_seconds) || 180)); // 3 minutos por defecto (180 seg)
-      const title = body.title || "¡Hola de parte de TABE! 👋";
-      const pushBody = body.body || "¡Funciona perfecto! Esta notificación te llegó 3 minutos después con la app cerrada. Ya estás al día con tus parciales y tareas.";
-      const url = body.url || "/configuracion";
-
-      if (!userId) {
-        return new Response(JSON.stringify({ error: "Missing user_id" }), {
-          status: 400,
-          headers: { ...cors, "Content-Type": "application/json" }
-        });
-      }
-
-      console.log(`[Scheduled Push] Initiating delayed push for user ${userId} in ${delaySeconds} seconds`);
-
-      // 1. Enviar notificación push instantánea de confirmación para que el usuario compruebe que su cel recibe pushes
-      try {
-        await sendPushToUser(supabase, userId, {
-          title: "¡Dispositivo Vinculado a TABE! 🎓",
-          body: "¡Las notificaciones funcionan! Cerrá la app ahora: en 3 minutos te enviaremos el saludo de prueba.",
-          url: "/configuracion",
-          tag: "instant-welcome-" + Date.now()
-        });
-      } catch (welcomeErr) {
-        console.warn("[Scheduled Push] Error sending immediate welcome push:", welcomeErr);
-      }
-
-      // 2. Programar el saludo de los 3 minutos con chunks de keep-alive
-      const delayedTask = async () => {
-        try {
-          console.log(`[Scheduled Push] Waiting ${delaySeconds}s for user ${userId}...`);
-          const startTime = Date.now();
-          const targetTime = startTime + delaySeconds * 1000;
-          while (Date.now() < targetTime) {
-            const sleepMs = Math.min(10000, targetTime - Date.now());
-            if (sleepMs > 0) {
-              await new Promise((r) => setTimeout(r, sleepMs));
-            }
-          }
-          console.log(`[Scheduled Push] Sending 3-min delayed push now to user ${userId}`);
-          const res = await sendPushToUser(supabase, userId, {
-            title,
-            body: pushBody,
-            url,
-            tag: "delayed-greeting-" + Date.now()
+    // ─── CRON / Internal actions: verificar por secret key en lugar de JWT de usuario ───
+    // El cron "check_and_send_all_reminders" lo invoca Supabase internamente con la service key
+    if (action === "check_and_send_all_reminders") {
+      const internalSecret = req.headers.get("x-internal-secret");
+      const expectedSecret = Deno.env.get("INTERNAL_CRON_SECRET");
+      if (!expectedSecret || internalSecret !== expectedSecret) {
+        // Fallback: también aceptar si viene del mismo proyecto Supabase (service role)
+        const authHeader = req.headers.get("Authorization") || "";
+        const serviceKey = SUPABASE_SERVICE_ROLE_KEY;
+        if (!serviceKey || !authHeader.includes(serviceKey)) {
+          return new Response(JSON.stringify({ error: "Unauthorized cron request" }), {
+            status: 401,
+            headers: { ...cors, "Content-Type": "application/json" }
           });
-          console.log(`[Scheduled Push] Sent result for ${userId}:`, res);
-        } catch (err) {
-          console.error(`[Scheduled Push] Error sending delayed push to ${userId}:`, err);
         }
-      };
-
-      // @ts-ignore
-      if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
-        // @ts-ignore
-        EdgeRuntime.waitUntil(delayedTask());
-      } else {
-        delayedTask();
+      }
+      // Procesar cron (continúa abajo)
+    } else {
+      // ─── CRIT-2 FIX: Todas las demás acciones requieren JWT válido de usuario ───
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized: missing token" }), {
+          status: 401,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
       }
 
-      return new Response(JSON.stringify({
-        success: true,
-        delay_seconds: delaySeconds,
-        scheduled_at: new Date(Date.now() + delaySeconds * 1000).toISOString(),
-        message: `Notificación programada para dentro de ${Math.round(delaySeconds / 60)} minutos. ¡Ya podés cerrar la app o bloquear la pantalla para probar!`
-      }), {
+      const authClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const anonAuthClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || SUPABASE_SERVICE_ROLE_KEY, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: { user }, error: authError } = await anonAuthClient.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized: invalid token" }), {
+          status: 401,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+
+      const authenticatedUserId = user.id;
+
+      // ─── 0. SAVE PUSH SUBSCRIPTION ───
+      if (action === "save_subscription") {
+        const { endpoint, p256dh, auth, user_agent } = body;
+        if (!endpoint || !p256dh || !auth) {
+          return new Response(JSON.stringify({ error: "Missing required subscription fields" }), {
+            status: 400,
+            headers: { ...cors, "Content-Type": "application/json" }
+          });
+        }
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data, error } = await supabase
+          .from("push_subscriptions")
+          .upsert({
+            user_id: authenticatedUserId, // Siempre usar el userId del JWT, nunca del body
+            endpoint,
+            p256dh,
+            auth,
+            user_agent: user_agent || "",
+            updated_at: new Date().toISOString()
+          }, { onConflict: "endpoint" })
+          .select();
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: "Suscripción Web Push guardada exitosamente en el servidor",
+          data
+        }), {
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+
+      // ─── 1. SEND IMMEDIATE PUSH TO USER ───
+      if (action === "send_to_user" || action === "test_push") {
+        // Solo puede enviarse push al usuario autenticado (no a terceros)
+        const targetUserId = body.user_id;
+        if (targetUserId && targetUserId !== authenticatedUserId) {
+          return new Response(JSON.stringify({ error: "Forbidden: cannot send push to another user" }), {
+            status: 403,
+            headers: { ...cors, "Content-Type": "application/json" }
+          });
+        }
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const result = await sendPushToUser(supabase, authenticatedUserId, {
+          title: body.title,
+          body: body.body,
+          url: body.url,
+          tag: body.tag
+        });
+
+        return new Response(JSON.stringify(result), {
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+
+      // ─── 2. SCHEDULE DELAYED PUSH ───
+      if (action === "schedule_delayed_greeting" || action === "schedule_delayed_push") {
+        const delaySeconds = Math.max(5, Math.min(300, Number(body.delay_seconds) || 180));
+        const title = body.title || "¡Hola de parte de TABE! 👋";
+        const pushBody = body.body || "¡Funciona perfecto! Esta notificación te llegó 3 minutos después con la app cerrada. Ya estás al día con tus parciales y tareas.";
+        const url = body.url || "/configuracion";
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+        console.log(`[Scheduled Push] Initiating delayed push for user ${authenticatedUserId} in ${delaySeconds} seconds`);
+
+        try {
+          await sendPushToUser(supabase, authenticatedUserId, {
+            title: "¡Dispositivo Vinculado a TABE! 🎓",
+            body: "¡Las notificaciones funcionan! Cerrá la app ahora: en 3 minutos te enviaremos el saludo de prueba.",
+            url: "/configuracion",
+            tag: "instant-welcome-" + Date.now()
+          });
+        } catch (welcomeErr) {
+          console.warn("[Scheduled Push] Error sending immediate welcome push:", welcomeErr);
+        }
+
+        const delayedTask = async () => {
+          try {
+            const startTime = Date.now();
+            const targetTime = startTime + delaySeconds * 1000;
+            while (Date.now() < targetTime) {
+              const sleepMs = Math.min(10000, targetTime - Date.now());
+              if (sleepMs > 0) await new Promise((r) => setTimeout(r, sleepMs));
+            }
+            const res = await sendPushToUser(supabase, authenticatedUserId, {
+              title,
+              body: pushBody,
+              url,
+              tag: "delayed-greeting-" + Date.now()
+            });
+            console.log(`[Scheduled Push] Sent result for ${authenticatedUserId}:`, res);
+          } catch (err) {
+            console.error(`[Scheduled Push] Error sending delayed push to ${authenticatedUserId}:`, err);
+          }
+        };
+
+        // @ts-ignore
+        if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
+          // @ts-ignore
+          EdgeRuntime.waitUntil(delayedTask());
+        } else {
+          delayedTask();
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          delay_seconds: delaySeconds,
+          scheduled_at: new Date(Date.now() + delaySeconds * 1000).toISOString(),
+          message: `Notificación programada para dentro de ${Math.round(delaySeconds / 60)} minutos. ¡Ya podés cerrar la app o bloquear la pantalla para probar!`
+        }), {
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+
+      return new Response(JSON.stringify({ error: "Unknown action" }), {
+        status: 400,
         headers: { ...cors, "Content-Type": "application/json" }
       });
     }
 
-    // ───────────────── 2. CHECK AND SEND PROACTIVE REMINDERS (BACKGROUND CRON) ─────────────────
+    // ─── CRON: check_and_send_all_reminders ───
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+
+    // ─── CRON: check_and_send_all_reminders ──────────────────────────────────────
     if (action === "check_and_send_all_reminders") {
       const now = new Date();
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
