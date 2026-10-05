@@ -119,7 +119,20 @@ function setStoredRoutines(userId: string, routines: Routine[], overrides: Routi
 function areRoutinesEqual(a: Routine[], b: Routine[]): boolean {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) {
-        if (a[i].id !== b[i].id || a[i].name !== b[i].name || a[i].start_time !== b[i].start_time || a[i].end_time !== b[i].end_time) {
+        if (
+            a[i].id !== b[i].id ||
+            a[i].name !== b[i].name ||
+            a[i].description !== b[i].description ||
+            a[i].start_time !== b[i].start_time ||
+            a[i].end_time !== b[i].end_time ||
+            a[i].color !== b[i].color ||
+            a[i].category !== b[i].category ||
+            a[i].subject_id !== b[i].subject_id ||
+            a[i].start_date !== b[i].start_date ||
+            a[i].end_date !== b[i].end_date ||
+            a[i].is_active !== b[i].is_active ||
+            JSON.stringify(a[i].days_of_week) !== JSON.stringify(b[i].days_of_week)
+        ) {
             return false;
         }
     }
@@ -237,7 +250,7 @@ export function useRoutines() {
             _cachedOverrides = overridesData;
             setStoredRoutines(userId, routinesData, overridesData);
 
-            setRoutines(prev => areRoutinesEqual(prev, routinesData) ? prev : routinesData);
+            setRoutines([...routinesData]);
             setOverrides(overridesData);
         } catch (error) {
             console.error("Error fetching routines:", error);
@@ -282,7 +295,7 @@ export function useRoutines() {
     const createRoutine = async (formData: RoutineFormData) => {
         if (!userId) return;
         try {
-            const { error } = await supabase.from("routines").insert({
+            const insertPayload = {
                 user_id: userId,
                 name: formData.name,
                 description: formData.description || null,
@@ -294,8 +307,12 @@ export function useRoutines() {
                 days_of_week: formData.days_of_week,
                 start_date: formData.start_date,
                 end_date: formData.end_date || null,
-            });
+            };
+            const { data, error } = await supabase.from("routines").insert(insertPayload).select().single();
             if (error) throw error;
+            if (data) {
+                setRoutines(prev => [...prev, data as Routine].sort((a, b) => a.start_time.localeCompare(b.start_time)));
+            }
             toast.success("✅ Rutina creada");
             await fetchRoutines();
         } catch (error: any) {
@@ -306,14 +323,45 @@ export function useRoutines() {
 
     const updateRoutine = async (id: string, formData: Partial<RoutineFormData>) => {
         if (!userId) return;
+        // Optimistic update inmediato en el estado local
+        setRoutines(prev => prev.map(r => {
+            if (r.id !== id) return r;
+            return {
+                ...r,
+                ...(formData.name !== undefined ? { name: formData.name } : {}),
+                ...(formData.description !== undefined ? { description: formData.description || null } : {}),
+                ...(formData.category !== undefined ? { category: formData.category } : {}),
+                ...(formData.subject_id !== undefined ? { subject_id: formData.subject_id || null } : {}),
+                ...(formData.color !== undefined ? { color: formData.color } : {}),
+                ...(formData.start_time !== undefined ? { start_time: formData.start_time } : {}),
+                ...(formData.end_time !== undefined ? { end_time: formData.end_time } : {}),
+                ...(formData.days_of_week !== undefined ? { days_of_week: formData.days_of_week } : {}),
+                ...(formData.start_date !== undefined ? { start_date: formData.start_date } : {}),
+                ...(formData.end_date !== undefined ? { end_date: formData.end_date || null } : {}),
+            };
+        }));
+
         try {
-            const { error } = await supabase.from("routines").update(formData as any).eq("id", id).eq("user_id", userId);
+            const updatePayload: Record<string, any> = {};
+            if (formData.name !== undefined) updatePayload.name = formData.name;
+            if (formData.description !== undefined) updatePayload.description = formData.description || null;
+            if (formData.category !== undefined) updatePayload.category = formData.category;
+            if (formData.subject_id !== undefined) updatePayload.subject_id = formData.subject_id || null;
+            if (formData.color !== undefined) updatePayload.color = formData.color;
+            if (formData.start_time !== undefined) updatePayload.start_time = formData.start_time;
+            if (formData.end_time !== undefined) updatePayload.end_time = formData.end_time;
+            if (formData.days_of_week !== undefined) updatePayload.days_of_week = formData.days_of_week;
+            if (formData.start_date !== undefined) updatePayload.start_date = formData.start_date;
+            if (formData.end_date !== undefined) updatePayload.end_date = formData.end_date || null;
+
+            const { error } = await supabase.from("routines").update(updatePayload).eq("id", id).eq("user_id", userId);
             if (error) throw error;
             toast.success("Rutina actualizada");
             await fetchRoutines();
         } catch (error: any) {
             toast.error("Error al actualizar: " + error.message);
             console.error("Update routine error:", error);
+            await fetchRoutines();
         }
     };
 
@@ -341,6 +389,7 @@ export function useRoutines() {
     const stopRoutine = async (id: string) => {
         if (!userId) return;
         const today = format(new Date(), "yyyy-MM-dd");
+        setRoutines(prev => prev.map(r => r.id === id ? { ...r, end_date: today } : r));
         try {
             const { error } = await supabase.from("routines").update({ end_date: today }).eq("id", id).eq("user_id", userId);
             if (error) throw error;
@@ -349,11 +398,13 @@ export function useRoutines() {
         } catch (error: any) {
             toast.error("Error al cortar rutina: " + error.message);
             console.error("Stop routine error:", error);
+            await fetchRoutines();
         }
     };
 
     const deleteRoutine = async (id: string) => {
         if (!userId) return;
+        setRoutines(prev => prev.filter(r => r.id !== id));
         try {
             const { error } = await supabase.from("routines").update({ is_active: false }).eq("id", id).eq("user_id", userId);
             if (error) throw error;
@@ -365,6 +416,7 @@ export function useRoutines() {
         } catch (error: any) {
             toast.error("Error al eliminar: " + error.message);
             console.error("Delete routine error:", error);
+            await fetchRoutines();
         }
     };
 

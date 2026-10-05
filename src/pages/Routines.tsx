@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { format, addDays, isToday, isFuture, isPast, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 import {
     ChevronLeft, ChevronRight, Plus, Pencil, Trash2,
     CheckCircle, XCircle, CalendarDays, Flame,
@@ -103,6 +104,9 @@ interface FormDialogProps {
 }
 
 function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDialogProps) {
+    const defaultStart = format(new Date(), "yyyy-MM-dd");
+    const defaultEnd = format(addDays(new Date(), 120), "yyyy-MM-dd");
+
     const [name, setName] = useState(initial?.name ?? "");
     const [desc, setDesc] = useState(initial?.description ?? "");
     const [category, setCategory] = useState(initial?.category ?? "general");
@@ -111,13 +115,14 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
     const [startTime, setStartTime] = useState(initial?.start_time?.slice(0, 5) ?? "08:00");
     const [endTime, setEndTime] = useState(initial?.end_time?.slice(0, 5) ?? "10:00");
     const [days, setDays] = useState<number[]>(initial?.days_of_week ?? []);
-    const [startDate, setStartDate] = useState(initial?.start_date ?? format(new Date(), "yyyy-MM-dd"));
-    const [hasEnd, setHasEnd] = useState(!!initial?.end_date);
-    const [endDate, setEndDate] = useState(initial?.end_date ?? "");
+    const [startDate, setStartDate] = useState(initial?.start_date ?? defaultStart);
+    const [endDate, setEndDate] = useState(initial?.end_date ?? defaultEnd);
 
     // Sync state when 'initial' changes or dialog opens
     useEffect(() => {
         if (open) {
+            const start = initial?.start_date ?? format(new Date(), "yyyy-MM-dd");
+            const end = initial?.end_date ?? format(addDays(initial?.start_date ? parseISO(initial.start_date) : new Date(), 120), "yyyy-MM-dd");
             setName(initial?.name ?? "");
             setDesc(initial?.description ?? "");
             setCategory(initial?.category ?? "general");
@@ -126,9 +131,8 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
             setStartTime(initial?.start_time?.slice(0, 5) ?? "08:00");
             setEndTime(initial?.end_time?.slice(0, 5) ?? "10:00");
             setDays(initial?.days_of_week ?? []);
-            setStartDate(initial?.start_date ?? format(new Date(), "yyyy-MM-dd"));
-            setHasEnd(!!initial?.end_date);
-            setEndDate(initial?.end_date ?? "");
+            setStartDate(start);
+            setEndDate(end);
         }
     }, [initial, open]);
 
@@ -136,7 +140,27 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
         setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort());
 
     const handleSave = () => {
-        if (!name.trim() || days.length === 0) return;
+        if (!name.trim()) {
+            toast.error("Ingresa un nombre para la rutina");
+            return;
+        }
+        if (days.length === 0) {
+            toast.error("Selecciona al menos un día de la semana");
+            return;
+        }
+        if (!startDate) {
+            toast.error("Ingresa una fecha de inicio");
+            return;
+        }
+        if (!endDate) {
+            toast.error("La fecha de fin es obligatoria");
+            return;
+        }
+        if (endDate < startDate) {
+            toast.error("La fecha de fin no puede ser anterior a la fecha de inicio");
+            return;
+        }
+
         onSave({
             name: name.trim(),
             description: desc.trim() || undefined,
@@ -147,7 +171,7 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
             end_time: endTime,
             days_of_week: days,
             start_date: startDate,
-            end_date: hasEnd ? endDate : undefined,
+            end_date: endDate,
         });
         onClose();
     };
@@ -274,14 +298,31 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
                     {/* Dates */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Fecha de inicio</Label>
-                            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground" />
+                            <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Fecha de inicio *</Label>
+                            <Input 
+                                type="date" 
+                                value={startDate} 
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setStartDate(val);
+                                    if (endDate && val && endDate < val) {
+                                        setEndDate(val);
+                                    }
+                                }} 
+                                className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground" 
+                            />
                         </div>
                         <div>
-                            <Label className="font-bold text-foreground uppercase tracking-wider text-xs flex items-center gap-2">
-                                Fecha fin <input type="checkbox" checked={hasEnd} onChange={e => setHasEnd(e.target.checked)} className="ml-1 w-4 h-4 border-2 border-foreground rounded accent-primary" />
+                            <Label className="font-bold text-foreground uppercase tracking-wider text-xs">
+                                Fecha fin *
                             </Label>
-                            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} disabled={!hasEnd} className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground disabled:opacity-50" />
+                            <Input 
+                                type="date" 
+                                min={startDate}
+                                value={endDate} 
+                                onChange={e => setEndDate(e.target.value)} 
+                                className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground" 
+                            />
                         </div>
                     </div>
                 </div>
@@ -290,7 +331,7 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
                     <button onClick={onClose} className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase bg-card text-foreground hover:bg-muted transition-colors w-full sm:w-auto">
                         Cancelar
                     </button>
-                    <button onClick={handleSave} disabled={!name.trim() || days.length === 0}
+                    <button onClick={handleSave} disabled={!name.trim() || days.length === 0 || !startDate || !endDate}
                         className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all bg-[#00E5FF] text-black disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] w-full sm:w-auto">
                         {initial ? "Guardar" : "Crear"}
                     </button>
