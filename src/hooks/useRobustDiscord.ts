@@ -182,82 +182,93 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             return next;
         });
 
-        // 1. Añadir tracks locales
-        if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => {
-                pc.addTrack(track, localStreamRef.current!);
+        // 1. Añadir tracks locales (audio SIEMPRE, video si está disponible)
+        const localStream = localStreamRef.current;
+        if (localStream && localStream.getTracks().length > 0) {
+            localStream.getTracks().forEach(track => {
+                pc.addTrack(track, localStream);
+                console.log(`[WebRTC] Track local ${track.kind} (enabled=${track.enabled}) añadido a peer ${targetId}`);
             });
+        } else {
+            // FIX: Si el stream aún no está listo, agregar transceivers vacíos
+            // para que el SDP incluya m-lines. renegotiateAllPeers() los rellenará luego.
+            console.warn(`[WebRTC] localStream no disponible para ${targetId}, usando transceivers vacíos`);
+            pc.addTransceiver('audio', { direction: 'sendrecv' });
+            pc.addTransceiver('video', { direction: 'sendrecv' });
         }
-        
-        // 2. Añadir track de pantalla si existe (en un stream separado para que no se mezcle)
+
+        // 2. Añadir track de pantalla si existe
         if (screenStreamRef.current) {
             screenStreamRef.current.getTracks().forEach(track => {
                 pc.addTrack(track, screenStreamRef.current!);
             });
         }
 
-        // 3. Manejar ICE Candidates
+        // 3. ICE Candidates
         pc.onicecandidate = (event) => {
             if (event.candidate && channelRef.current && localUserId) {
                 channelRef.current.send({
                     type: 'broadcast',
                     event: 'webrtc_ice_candidate',
-                    payload: {
-                        targetId,
-                        senderId: localUserId,
-                        candidate: event.candidate
-                    }
+                    payload: { targetId, senderId: localUserId, candidate: event.candidate }
                 });
             }
         };
 
-        // 4. Recibir Tracks (ONTRACK CRÍTICO)
+        // 4. Recibir Tracks remotos
+        // FIX: manejar múltiples streams del mismo peer (cámara + pantalla)
         pc.ontrack = (event) => {
-            const stream = event.streams[0];
-            if (!stream) return;
-            
-            // Detectar si el stream es de pantalla (por convención, si tiene video y un ID distinto, aunque lo mejor es
-            // separarlos por el tipo de track o el msid. Aquí nos basamos en el track de video).
-            // Para simplificar, asumimos que el primer stream con audio/video es el de cámara, 
-            // y si llega un segundo stream es el de pantalla.
-            
-            const isScreenTrack = event.track.kind === 'video' && event.track.label.toLowerCase().includes('screen');
-            // Como Safari no siempre respeta el label, usamos heurísticas o simplemente actualizamos el mapa reactivo.
-            
-            // Por simplicidad en la malla: si el stream tiene un video track que NO es la cámara principal:
-            // Vamos a registrar el stream remoto asociándolo al targetId.
+            console.log(`[WebRTC] ontrack de ${targetId}: kind=${event.track.kind}, streams=${event.streams.length}`);
+            const incomingStream = event.streams[0];
+            if (!incomingStream) return;
+
             setRemoteStreams(prev => {
                 const next = new Map(prev);
-                // Si el evento es para pantalla (podemos inferirlo de remoteMediaStates)
-                // Para evitar complicaciones extremas sin transceivers dirigidos, lo guardamos en remoteStreams
-                // La UI usará el track de video correspondiente.
-                next.set(targetId, stream);
+                const existing = next.get(targetId);
+                if (existing && existing.id !== incomingStream.id) {
+                    // Stream distinto al principal = pantalla
+                    setRemoteScreenStreams(ss => {
+                        const ssNext = new Map(ss);
+                        ssNext.set(targetId, incomingStream);
+                        return ssNext;
+                    });
+                    return next;
+                }
+                next.set(targetId, incomingStream);
                 return next;
             });
         };
 
         pc.oniceconnectionstatechange = () => {
-            setPeerStates(prev => {
-                const next = new Map(prev);
-                next.set(targetId, pc.iceConnectionState);
-                return next;
-            });
-            
-            if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
-                setRemoteStreams(prev => {
-                    const next = new Map(prev);
-                    next.delete(targetId);
-                    return next;
-                });
-                setRemoteScreenStreams(prev => {
-                    const next = new Map(prev);
-                    next.delete(targetId);
-                    return next;
-                });
+            const state = pc.iceConnectionState;
+            setPeerStates(prev => { const n = new Map(prev); n.set(targetId, state); return n; });
+            console.log(`[WebRTC] ICE state con ${targetId}: ${state}`);
+
+            if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+                setRemoteStreams(prev => { const n = new Map(prev); n.delete(targetId); return n; });
+                setRemoteScreenStreams(prev => { const n = new Map(prev); n.delete(targetId); return n; });
+
+                // ICE restart automático en disconnected
+                if (state === 'disconnected') {
+                    setTimeout(() => {
+                        const currentPc = peerConnections.current.get(targetId);
+                        if (currentPc === pc && pc.iceConnectionState === 'disconnected') {
+                            console.log(`[WebRTC] ICE restart con ${targetId}`);
+                            pc.createOffer({ iceRestart: true })
+                                .then(o => pc.setLocalDescription(o))
+                                .then(() => channelRef.current?.send({
+                                    type: 'broadcast',
+                                    event: 'webrtc_offer',
+                                    payload: { targetId, senderId: localUserId, offer: pc.localDescription }
+                                }))
+                                .catch(() => {});
+                        }
+                    }, 3000);
+                }
             }
         };
 
-        // Negociación
+        // Negociación inicial
         if (isInitiator) {
             pc.createOffer()
                 .then(offer => pc.setLocalDescription(offer))
@@ -265,11 +276,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                     channelRef.current?.send({
                         type: 'broadcast',
                         event: 'webrtc_offer',
-                        payload: {
-                            targetId,
-                            senderId: localUserId,
-                            offer: pc.localDescription
-                        }
+                        payload: { targetId, senderId: localUserId, offer: pc.localDescription }
                     });
                 })
                 .catch(e => console.error("[WebRTC] Error creando oferta:", e));
@@ -284,6 +291,9 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         createPeerConnection(newUserId, true);
     }, [localUserId]);
 
+    // Buffer de ICE candidates que llegan antes de setRemoteDescription
+    const iceCandidateBuffer = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+
     // --- EFECTO PRINCIPAL DE CONEXIÓN A SALA ---
 
     useEffect(() => {
@@ -292,40 +302,73 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         let active = true;
 
         const connect = async () => {
-            // Inicializar medios primero
-            await initLocalMedia();
+            const stream = await initLocalMedia();
             if (!active) return;
 
-            // Conectar a canal Realtime
-            const channel = supabase.channel(`room_${channelId}`);
+            // FIX: usar presence para detectar quién ya está en la sala
+            const channel = supabase.channel(`room_${channelId}`, {
+                config: {
+                    broadcast: { self: false },
+                    presence: { key: localUserId },
+                },
+            });
             channelRef.current = channel;
 
             channel
+                // FIX: user_joined broadcast — TODOS los peers existentes se conectan al nuevo
                 .on('broadcast', { event: 'user_joined' }, ({ payload }) => {
                     if (payload.userId !== localUserId) {
-                        handleNewPeer(payload.userId);
+                        console.log(`[WebRTC] user_joined de ${payload.userId} — conectando`);
+                        // Cerrar conexión previa si existía (evita duplicados)
+                        const old = peerConnections.current.get(payload.userId);
+                        if (old) { old.close(); peerConnections.current.delete(payload.userId); }
+                        createPeerConnection(payload.userId, true);
                         broadcastMediaState();
+                    }
+                })
+                // FIX: presence join — cuando nosotros llegamos y ya hay gente, ellos nos ven por presence
+                // y crean su offer hacia nosotros (isInitiator=true desde su lado)
+                .on('presence', { event: 'join' }, ({ key }) => {
+                    if (key !== localUserId) {
+                        console.log(`[WebRTC] Presence join de ${key}`);
+                        if (!peerConnections.current.has(key)) {
+                            createPeerConnection(key, true);
+                        }
+                    }
+                })
+                .on('presence', { event: 'leave' }, ({ key }) => {
+                    if (key !== localUserId) {
+                        const pc = peerConnections.current.get(key);
+                        if (pc) { pc.close(); peerConnections.current.delete(key); }
+                        iceCandidateBuffer.current.delete(key);
+                        setRemoteStreams(prev => { const m = new Map(prev); m.delete(key); return m; });
+                        setRemoteMediaStates(prev => { const m = new Map(prev); m.delete(key); return m; });
+                        setPeerStates(prev => { const m = new Map(prev); m.delete(key); return m; });
                     }
                 })
                 .on('broadcast', { event: 'webrtc_offer' }, async ({ payload }) => {
                     if (payload.targetId !== localUserId) return;
                     try {
+                        const old = peerConnections.current.get(payload.senderId);
+                        if (old && old.signalingState !== 'closed') { old.close(); }
                         const pc = createPeerConnection(payload.senderId, false);
                         await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+
+                        // Aplicar ICE candidates bufferizados
+                        const buffered = iceCandidateBuffer.current.get(payload.senderId) || [];
+                        for (const c of buffered) {
+                            try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+                        }
+                        iceCandidateBuffer.current.delete(payload.senderId);
+
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
                         channel.send({
                             type: 'broadcast',
                             event: 'webrtc_answer',
-                            payload: {
-                                targetId: payload.senderId,
-                                senderId: localUserId,
-                                answer: pc.localDescription
-                            }
+                            payload: { targetId: payload.senderId, senderId: localUserId, answer: pc.localDescription }
                         });
-                    } catch (e) {
-                        console.error("[WebRTC] Error procesando oferta:", e);
-                    }
+                    } catch (e) { console.error("[WebRTC] Error procesando oferta:", e); }
                 })
                 .on('broadcast', { event: 'webrtc_answer' }, async ({ payload }) => {
                     if (payload.targetId !== localUserId) return;
@@ -333,20 +376,26 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                     if (pc && pc.signalingState !== 'closed') {
                         try {
                             await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
-                        } catch (e) {
-                            console.error("[WebRTC] Error procesando respuesta:", e);
-                        }
+                            // Aplicar ICE candidates bufferizados tras setRemoteDescription
+                            const buffered = iceCandidateBuffer.current.get(payload.senderId) || [];
+                            for (const c of buffered) {
+                                try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+                            }
+                            iceCandidateBuffer.current.delete(payload.senderId);
+                        } catch (e) { console.error("[WebRTC] Error procesando respuesta:", e); }
                     }
                 })
                 .on('broadcast', { event: 'webrtc_ice_candidate' }, async ({ payload }) => {
                     if (payload.targetId !== localUserId) return;
                     const pc = peerConnections.current.get(payload.senderId);
-                    if (pc && pc.signalingState !== 'closed') {
-                        try {
-                            await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-                        } catch (e) {
-                            console.error("[WebRTC] Error procesando ICE:", e);
-                        }
+                    if (pc && pc.signalingState !== 'closed' && pc.remoteDescription) {
+                        try { await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)); }
+                        catch (e) { console.error("[WebRTC] Error ICE:", e); }
+                    } else {
+                        // FIX: Bufferizar ICE que llegan antes de remoteDescription
+                        const buf = iceCandidateBuffer.current.get(payload.senderId) || [];
+                        buf.push(payload.candidate);
+                        iceCandidateBuffer.current.set(payload.senderId, buf);
                     }
                 })
                 .on('broadcast', { event: 'media_state' }, ({ payload }) => {
@@ -364,6 +413,9 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 })
                 .subscribe(async (status) => {
                     if (status === 'SUBSCRIBED') {
+                        // FIX: Trackear presence para que los peers existentes nos detecten
+                        await channel.track({ user_id: localUserId, joined_at: Date.now() });
+                        // Doble mecanismo: broadcast user_joined para peers que no usen presence
                         channel.send({
                             type: 'broadcast',
                             event: 'user_joined',
@@ -376,27 +428,40 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
         connect();
 
-        // Cleanup
+        // FIX: Re-anunciar presencia al volver de otra pestaña
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && channelRef.current && localUserId) {
+                console.log('[WebRTC] Visibilidad restaurada — re-anunciando y re-negociando');
+                channelRef.current.send({
+                    type: 'broadcast',
+                    event: 'user_joined',
+                    payload: { userId: localUserId }
+                });
+                broadcastMediaState();
+                // Re-negociar peers caídos durante el background
+                peerConnections.current.forEach((pc, targetId) => {
+                    if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+                        console.log(`[WebRTC] Re-negociando con ${targetId}`);
+                        pc.close();
+                        peerConnections.current.delete(targetId);
+                        createPeerConnection(targetId, true);
+                    }
+                });
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         return () => {
             active = false;
-            if (channelRef.current) {
-                channelRef.current.unsubscribe();
-            }
-            
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (channelRef.current) channelRef.current.unsubscribe();
             peerConnections.current.forEach(pc => pc.close());
             peerConnections.current.clear();
-            
-            if (localStreamRef.current) {
-                localStreamRef.current.getTracks().forEach(t => t.stop());
-            }
-            if (screenStreamRef.current) {
-                screenStreamRef.current.getTracks().forEach(t => t.stop());
-            }
-            
+            iceCandidateBuffer.current.clear();
+            if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
+            if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach(t => t.stop());
             if (vadIntervalRef.current) clearInterval(vadIntervalRef.current);
             if (audioContextRef.current) audioContextRef.current.close();
-            
-            // Limpiar BD
             supabase.from('discord_voice_participants')
                 .delete()
                 .eq('channel_id', channelId)
