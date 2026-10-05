@@ -23,6 +23,7 @@ interface TaskModalProps {
   initialTask?: StudyTask | null;
   subjects: SubjectOption[];
   defaultSubjectId?: string | null;
+  defaultStatus?: TaskStatus;
 }
 
 const PRESETS = [
@@ -41,11 +42,12 @@ export function TaskModal({
   initialTask,
   subjects,
   defaultSubjectId,
+  defaultStatus,
 }: TaskModalProps) {
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [subjectId, setSubjectId] = useState<string>("");
-  const [estado, setEstado] = useState<TaskStatus>("todo");
+  const [estado, setEstado] = useState<TaskStatus>(defaultStatus || "todo");
   const [prioridad, setPrioridad] = useState<TaskPriority>("media");
   const [fechaLimite, setFechaLimite] = useState("");
   const [pomodorosEstimados, setPomodorosEstimados] = useState(2);
@@ -64,12 +66,12 @@ export function TaskModal({
       setTitulo("");
       setDescripcion("");
       setSubjectId(defaultSubjectId && defaultSubjectId !== "all" ? defaultSubjectId : "");
-      setEstado("todo");
+      setEstado(defaultStatus || "todo");
       setPrioridad("media");
       setFechaLimite("");
       setPomodorosEstimados(2);
     }
-  }, [initialTask, defaultSubjectId, isOpen]);
+  }, [initialTask, defaultSubjectId, defaultStatus, isOpen]);
 
   if (!isOpen) return null;
 

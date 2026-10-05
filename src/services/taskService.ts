@@ -31,7 +31,7 @@ export async function fetchUserTasks(userId: string, subjectId?: string | null):
   try {
     let query = supabase
       .from("study_tasks" as any)
-      .select("id, user_id, subject_id, titulo, descripcion, estado, prioridad, fecha_limite, pomodoros_estimados, pomodoros_completados, posicion, created_at, updated_at, subjects(id, nombre, codigo)")
+      .select("id, user_id, subject_id, titulo, descripcion, estado, prioridad, fecha_limite, pomodoros_estimados, pomodoros_completados, posicion, created_at, updated_at, subjects(id, nombre, codigo, año)")
       .eq("user_id", userId)
       .order("posicion", { ascending: true })
       .order("created_at", { ascending: false })
@@ -97,11 +97,13 @@ export async function createStudyTask(userId: string, input: CreateTaskInput): P
         pomodoros_completados: 0,
         posicion: 0,
       })
-      .select("id, user_id, subject_id, titulo, descripcion, estado, prioridad, fecha_limite, pomodoros_estimados, pomodoros_completados, posicion, created_at, updated_at, subjects(id, nombre, codigo)")
+      .select("id, user_id, subject_id, titulo, descripcion, estado, prioridad, fecha_limite, pomodoros_estimados, pomodoros_completados, posicion, created_at, updated_at, subjects(id, nombre, codigo, año)")
       .single();
 
     if (error) throw error;
-    return data as StudyTask;
+    const task = data as StudyTask;
+    saveLocalTasks([task, ...getLocalTasks().filter(t => t.id !== task.id)]);
+    return task;
   } catch (error) {
     console.error("Error creating study task:", error);
     return null;

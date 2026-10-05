@@ -1,4 +1,4 @@
-﻿export type TaskStatus = 'todo' | 'in_progress' | 'done';
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'baja' | 'media' | 'alta';
 
 export interface StudyTask {
@@ -20,6 +20,7 @@ export interface StudyTask {
     nombre: string;
     codigo?: string;
     color?: string;
+    año?: number;
   } | null;
 }
 

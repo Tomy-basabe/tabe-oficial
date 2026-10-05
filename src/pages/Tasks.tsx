@@ -168,8 +168,10 @@ export default function Tasks() {
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       const taskSubject = subjects.find((s) => s.id === t.subject_id);
+      const isGeneralTask = !t.subject_id;
       const matchYear =
         selectedYearFilter === "all" ||
+        isGeneralTask ||
         (t.subjects && t.subjects.año === Number(selectedYearFilter)) ||
         (taskSubject && taskSubject.year === Number(selectedYearFilter));
 
@@ -199,9 +201,13 @@ export default function Tasks() {
   // Handlers
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     // Optimistic update
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, estado: newStatus } : t))
-    );
+    setTasks((prev) => {
+      const updated = prev.map((t) => (t.id === taskId ? { ...t, estado: newStatus } : t));
+      if (_tasksCache) {
+        _tasksCache = { ..._tasksCache, tasks: updated, timestamp: Date.now() };
+      }
+      return updated;
+    });
     const ok = await updateTaskStatus(taskId, newStatus);
     if (ok) {
       toast.success(
@@ -217,6 +223,9 @@ export default function Tasks() {
       const effectiveUserId = user?.id || "guest";
       const fresh = await fetchUserTasks(effectiveUserId);
       setTasks(fresh);
+      if (_tasksCache) {
+        _tasksCache = { ..._tasksCache, tasks: fresh, timestamp: Date.now() };
+      }
     }
   };
 
@@ -233,7 +242,13 @@ export default function Tasks() {
 
   const handleDelete = async (taskId: string) => {
     if (!confirm("¿Eliminar esta tarea de estudio?")) return;
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setTasks((prev) => {
+      const updated = prev.filter((t) => t.id !== taskId);
+      if (_tasksCache) {
+        _tasksCache = { ..._tasksCache, tasks: updated, timestamp: Date.now() };
+      }
+      return updated;
+    });
     const ok = await deleteStudyTask(taskId);
     if (ok) {
       toast.success("Tarea eliminada");
@@ -242,6 +257,9 @@ export default function Tasks() {
       const effectiveUserId = user?.id || "guest";
       const fresh = await fetchUserTasks(effectiveUserId);
       setTasks(fresh);
+      if (_tasksCache) {
+        _tasksCache = { ..._tasksCache, tasks: fresh, timestamp: Date.now() };
+      }
     }
   };
 
@@ -253,18 +271,60 @@ export default function Tasks() {
         toast.success("Tarea actualizada");
         const fresh = await fetchUserTasks(effectiveUserId);
         setTasks(fresh);
+        if (_tasksCache) {
+          _tasksCache = { ..._tasksCache, tasks: fresh, timestamp: Date.now() };
+        }
       } else {
         toast.error("Error al actualizar la tarea");
       }
     } else {
+      // Respect the user's selected status or default from the column clicked
+      const statusToUse = taskData.estado || defaultStatusForNew || "todo";
       const newTask = await createStudyTask(effectiveUserId, {
         ...taskData,
-        estado: defaultStatusForNew,
+        estado: statusToUse,
       });
       if (newTask) {
         toast.success("¡Tarea creada con éxito!");
-        const fresh = await fetchUserTasks(effectiveUserId);
-        setTasks(fresh);
+        const subObj = subjects.find((s) => s.id === newTask.subject_id);
+        const enrichedNewTask: StudyTask = {
+          ...newTask,
+          subjects: subObj ? { id: subObj.id, nombre: subObj.nombre, codigo: subObj.codigo, año: subObj.year } : newTask.subjects,
+        };
+
+        // Instant optimistic update in local state & cache
+        setTasks((prev) => {
+          const updated = [enrichedNewTask, ...prev.filter((t) => t.id !== enrichedNewTask.id)];
+          _tasksCache = {
+            tasks: updated,
+            subjects,
+            timestamp: Date.now(),
+          };
+          return updated;
+        });
+
+        // Si hay un filtro activo que ocultaría la tarea recién creada, restablecemos para que sea visible
+        if (selectedSubjectFilter !== "all" && newTask.subject_id !== selectedSubjectFilter) {
+          setSelectedSubjectFilter("all");
+        }
+        if (selectedYearFilter !== "all" && subObj?.year && subObj.year !== Number(selectedYearFilter)) {
+          setSelectedYearFilter("all");
+        }
+        if (searchQuery) {
+          setSearchQuery("");
+        }
+
+        // Refresco en segundo plano para persistencia exacta
+        fetchUserTasks(effectiveUserId).then((fresh) => {
+          if (fresh && fresh.length > 0) {
+            setTasks(fresh);
+            _tasksCache = {
+              tasks: fresh,
+              subjects,
+              timestamp: Date.now(),
+            };
+          }
+        });
       } else {
         toast.error("Error al crear la tarea");
       }
@@ -303,21 +363,21 @@ export default function Tasks() {
           </p>
         </div>
 
-        <div className="relative z-10 flex items-center gap-2.5">
-          <button
-            onClick={() => navigate("/pomodoro")}
-            className="px-4 py-2.5 rounded-xl bg-white text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-2"
-          >
-            <Timer className="w-4 h-4 text-[#ff4747]" />
-            <span>Ir al Pomodoro</span>
-          </button>
-
+        <div className="relative z-10 flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => handleOpenCreateModal("todo")}
             className="px-4 py-2.5 rounded-xl bg-[#00FF9D] text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Nueva Tarea</span>
+          </button>
+
+          <button
+            onClick={() => navigate("/pomodoro")}
+            className="px-4 py-2.5 rounded-xl bg-white text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Timer className="w-4 h-4 text-[#ff4747]" />
+            <span>Ir al Pomodoro</span>
           </button>
         </div>
       </div>
@@ -503,6 +563,7 @@ export default function Tasks() {
         initialTask={editingTask}
         subjects={subjects}
         defaultSubjectId={selectedSubjectFilter}
+        defaultStatus={defaultStatusForNew}
       />
     </div>
   );
