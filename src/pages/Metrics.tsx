@@ -502,20 +502,22 @@ export default function Metrics() {
                   <div className="w-8 h-8 border-4 border-foreground border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
-                <div className="flex items-end justify-between gap-2 h-48 overflow-x-auto pb-2 px-2 border-b-4 border-foreground">
+                <div className="flex items-end justify-between gap-2 h-52 pt-8 overflow-x-auto pb-2 px-2 border-b-4 border-foreground">
                   {chartData.map((item, idx) => (
                     <div key={`${item.date}-${idx}`} className="flex-1 min-w-[32px] max-w-[60px] flex flex-col items-center justify-end gap-2 h-full">
                       <div
                         className={cn(
-                          "w-full transition-all duration-500 relative group rounded-t-sm",
-                          item.hours > 0 ? "bg-[#BFFF00] border-2 border-foreground border-b-0 shadow-[2px_0_0_0_hsl(var(--foreground))]" : "bg-muted border-2 border-transparent"
+                          "w-full transition-all duration-300 relative group rounded-t-sm cursor-pointer",
+                          item.hours > 0 
+                            ? "bg-[#BFFF00] hover:bg-[#a6e600] border-2 border-foreground border-b-0 shadow-[2px_0_0_0_hsl(var(--foreground))]" 
+                            : "bg-muted border-2 border-transparent"
                         )}
                         style={{
-                          height: `${Math.max((item.hours / maxHours) * 100, 4)}%`,
+                          height: `${Math.max((item.hours / maxHours) * 72, item.hours > 0 ? 8 : 4)}%`,
                         }}
                       >
                         {item.hours > 0 && (
-                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background px-2 py-1 rounded text-xs font-bold whitespace-nowrap z-10 pointer-events-none">
+                          <div className="absolute -top-9 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 bg-foreground text-background px-2.5 py-1 rounded-lg text-xs font-black whitespace-nowrap z-30 pointer-events-none shadow-[2px_2px_0_0_rgba(0,0,0,0.4)] border border-background/20">
                             {formatHours(item.hours)}
                             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45"></div>
                           </div>

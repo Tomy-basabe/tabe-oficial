@@ -7,7 +7,8 @@ import {
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
   Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
-  GraduationCap, ChevronRight, Share2, Play, Pause
+  GraduationCap, ChevronRight, Share2, Play, Pause,
+  Layers, HelpCircle, Brain, Zap
 } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
@@ -2353,11 +2354,12 @@ export default function Notion() {
                 {/* AI Generation */}
                 <button
                   type="button"
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-500/15 via-pink-500/15 to-cyan-500/15 hover:from-purple-500/25 hover:via-pink-500/25 hover:to-cyan-500/25 text-purple-400 hover:text-purple-300 border border-purple-500/30 hover:border-purple-400/50 shadow-[0_0_12px_rgba(168,85,247,0.15)] hover:shadow-[0_0_18px_rgba(168,85,247,0.3)] transition-all font-bold text-xs"
                   onClick={() => setShowAIModal(true)}
-                  title="Generar material de estudio con IA"
+                  title="Generar Flashcards o Cuestionarios con IA a partir de este apunte"
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+                  <span className="hidden sm:inline font-black tracking-wide">Magia AI</span>
                 </button>
 
                 {/* PDF Export */}
@@ -3458,85 +3460,184 @@ export default function Notion() {
       )}
       {/* AI Material Generation Modal */}
       <Dialog open={showAIModal} onOpenChange={(val) => !isGeneratingAI && setShowAIModal(val)}>
-        <DialogContent className="sm:max-w-[450px] border-primary/20 bg-[#0d0d0d] shadow-[0_0_30px_rgba(168,85,247,0.15)]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-display font-bold">
-              <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-              <span>Magia de Tabe AI</span>
-            </DialogTitle>
+        <DialogContent className="sm:max-w-[500px] border border-purple-500/30 bg-[#0d0d12]/95 backdrop-blur-xl shadow-[0_0_50px_rgba(168,85,247,0.25)] rounded-2xl p-6 overflow-hidden">
+          <DialogHeader className="space-y-1.5 pb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 p-0.5 shadow-[0_0_15px_rgba(168,85,247,0.4)] shrink-0">
+                <div className="w-full h-full bg-[#0d0d12] rounded-[10px] flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
+                </div>
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-display font-black tracking-tight text-white flex items-center gap-2">
+                  <span>Magia de Tabe AI</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Estudio Inteligente
+                  </span>
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground truncate max-w-[340px]">
+                  Genera material interactivo desde: <span className="text-white font-semibold">{localTitle || activeDocument?.titulo || "Este apunte"}</span>
+                </p>
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="py-6 space-y-6">
-            <div className="space-y-4">
-              <label className="text-sm font-medium text-muted-foreground">¿Qué quieres generar?</label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => setAiGenType('flashcards')}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-xl border transition-all gap-2",
-                    aiGenType === 'flashcards' 
-                      ? "bg-primary/10 border-primary text-primary" 
-                      : "bg-secondary/40 border-border hover:border-primary/40 text-muted-foreground"
-                  )}
-                >
-                  <Star className="w-6 h-6" />
-                  <span className="font-bold text-sm">Flashcards</span>
-                </button>
-                <button
-                  onClick={() => setAiGenType('quiz')}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-xl border transition-all gap-2",
-                    aiGenType === 'quiz' 
-                      ? "bg-primary/10 border-primary text-primary" 
-                      : "bg-secondary/40 border-border hover:border-primary/40 text-muted-foreground"
-                  )}
-                >
-                  <Keyboard className="w-6 h-6" />
-                  <span className="font-bold text-sm">Cuestionario</span>
-                </button>
+          {isGeneratingAI ? (
+            <div className="py-10 space-y-6 text-center">
+              <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-cyan-400 animate-spin blur-md opacity-60" />
+                <div className="relative z-10 w-16 h-16 rounded-full bg-[#0d0d12] border border-purple-400/40 flex items-center justify-center shadow-inner">
+                  <Brain className="w-8 h-8 text-purple-400 animate-pulse" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-base font-black text-white tracking-wide">Tabe AI está procesando tu apunte...</h4>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                  Extrayendo conceptos clave y estructurando {aiGenType === 'flashcards' ? 'tus flashcards de repaso' : 'tu cuestionario tipo examen'}.
+                </p>
+              </div>
+              <div className="w-full bg-purple-950/40 rounded-full h-2 overflow-hidden border border-purple-500/20 max-w-xs mx-auto">
+                <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 h-full w-full animate-pulse" />
               </div>
             </div>
+          ) : (
+            <div className="py-4 space-y-5">
+              {/* Type selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-purple-400" />
+                  ¿Qué deseas generar?
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAiGenType('flashcards')}
+                    className={cn(
+                      "p-3.5 rounded-xl border-2 text-left transition-all relative overflow-hidden group flex flex-col justify-between h-32",
+                      aiGenType === 'flashcards'
+                        ? "bg-purple-500/15 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.25)] text-white"
+                        : "bg-secondary/20 border-border/70 hover:border-purple-500/40 text-muted-foreground hover:bg-secondary/40"
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                        aiGenType === 'flashcards' ? "bg-purple-500 text-white" : "bg-muted text-muted-foreground group-hover:text-purple-400"
+                      )}>
+                        <Layers className="w-4 h-4" />
+                      </div>
+                      {aiGenType === 'flashcards' && (
+                        <span className="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-black text-sm text-white">Mazo Flashcards</div>
+                      <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                        Preguntas y respuestas para repetición espaciada.
+                      </div>
+                    </div>
+                  </button>
 
-            <div className="space-y-3 px-1">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-muted-foreground">Cantidad de items</label>
-                <span className="text-sm font-bold text-primary">{aiGenCount}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAiGenType('quiz')}
+                    className={cn(
+                      "p-3.5 rounded-xl border-2 text-left transition-all relative overflow-hidden group flex flex-col justify-between h-32",
+                      aiGenType === 'quiz'
+                        ? "bg-cyan-500/15 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.25)] text-white"
+                        : "bg-secondary/20 border-border/70 hover:border-cyan-500/40 text-muted-foreground hover:bg-secondary/40"
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                        aiGenType === 'quiz' ? "bg-cyan-500 text-black font-bold" : "bg-muted text-muted-foreground group-hover:text-cyan-400"
+                      )}>
+                        <HelpCircle className="w-4 h-4" />
+                      </div>
+                      {aiGenType === 'quiz' && (
+                        <span className="w-5 h-5 rounded-full bg-cyan-500 text-black font-bold flex items-center justify-center text-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-black text-sm text-white">Cuestionario Test</div>
+                      <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                        Preguntas tipo examen con justificación.
+                      </div>
+                    </div>
+                  </button>
+                </div>
               </div>
-              <input 
-                type="range"
-                min="5"
-                max="30"
-                step="5"
-                value={aiGenCount}
-                onChange={(e) => setAiGenCount(parseInt(e.target.value))}
-                className="w-full accent-primary bg-secondary h-1.5 rounded-full appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
-                <span>Poco</span>
-                <span>Normal</span>
-                <span>Mucho</span>
+
+              {/* Count selection */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                    Cantidad de elementos
+                  </label>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    {aiGenCount} {aiGenType === 'flashcards' ? 'tarjetas' : 'preguntas'}
+                  </span>
+                </div>
+
+                {/* Preset buttons */}
+                <div className="flex items-center gap-2">
+                  {[5, 10, 15, 20, 30].map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setAiGenCount(count)}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                        aiGenCount === count
+                          ? "bg-purple-500 text-white border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                          : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary hover:text-white"
+                      )}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="range"
+                  min="5"
+                  max="30"
+                  step="5"
+                  value={aiGenCount}
+                  onChange={(e) => setAiGenCount(parseInt(e.target.value))}
+                  className="w-full accent-purple-500 bg-secondary/70 h-2 rounded-full appearance-none cursor-pointer"
+                />
+              </div>
+
+              {/* Informative box */}
+              <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-500/20 flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Tabe AI procesará el texto de este apunte y creará el material en tu sección de{" "}
+                  <span className="text-white font-semibold">{aiGenType === 'flashcards' ? 'Flashcards' : 'Cuestionarios'}</span>, vinculado automáticamente a esta materia para estudiar cuando quieras.
+                </p>
               </div>
             </div>
+          )}
 
-            <p className="text-[11px] text-muted-foreground leading-relaxed italic opacity-80 bg-secondary/30 p-3 rounded-lg border border-border/50">
-              Tabe AI analizará todo el contenido de este apunte para crear material de estudio personalizado. 
-              El resultado se guardará automáticamente en su sección correspondiente vinculada a esta materia.
-            </p>
-          </div>
-
-          <DialogFooter>
+          <DialogFooter className="pt-2 flex items-center justify-between gap-2">
             <Button
               variant="ghost"
               onClick={() => setShowAIModal(false)}
               disabled={isGeneratingAI}
-              className="font-bold tracking-tight text-xs uppercase"
+              className="font-bold tracking-tight text-xs uppercase text-muted-foreground hover:text-white"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleGenerateAI}
               disabled={isGeneratingAI}
-              className="bg-gradient-to-r from-neon-purple to-neon-cyan text-white border-white/10 shadow-lg shadow-primary/20 font-bold tracking-tight text-xs uppercase px-8"
+              className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white font-black tracking-wider text-xs uppercase px-6 py-2.5 rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition-all active:scale-95 disabled:opacity-50"
             >
               {isGeneratingAI ? (
                 <>

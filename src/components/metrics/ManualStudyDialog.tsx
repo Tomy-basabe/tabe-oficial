@@ -3,13 +3,12 @@ import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogDescription, DialogFooter
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Clock, BookOpen, CloudMoon } from "lucide-react";
+import { Clock, BookOpen, Sparkles, Coins, Calendar, Check, Zap } from "lucide-react";
 import { toLocalDateStr } from "@/lib/utils";
 
 interface ManualStudyDialogProps {
@@ -18,6 +17,15 @@ interface ManualStudyDialogProps {
   onSuccess: () => void;
   subjects: { id: string; nombre: string; año?: number }[];
 }
+
+const PRESET_DURATIONS = [
+  { label: "25m", sub: "Pomodoro", h: "0", m: "25" },
+  { label: "45m", sub: "Bloque", h: "0", m: "45" },
+  { label: "1h 00m", sub: "Estándar", h: "1", m: "0" },
+  { label: "1h 30m", sub: "Intenso", h: "1", m: "30" },
+  { label: "2h 00m", sub: "Maratón", h: "2", m: "0" },
+  { label: "3h 00m", sub: "Profundo", h: "3", m: "0" },
+];
 
 export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: ManualStudyDialogProps) {
   const { user } = useAuth();
@@ -50,21 +58,31 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
       subjects: filteredSubjects.filter(s => (s.año || 0) === year),
     }));
 
+  const h = parseFloat(horas) || 0;
+  const m = parseFloat(minutos) || 0;
+  const totalSeconds = Math.round(h * 3600 + m * 60);
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const xpGained = totalMinutes * 2;
+  const creditsGained = totalMinutes;
+
+  const handleSetToday = () => setFecha(toLocalDateStr(new Date()));
+  const handleSetYesterday = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    setFecha(toLocalDateStr(yesterday));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    const h = parseFloat(horas) || 0;
-    const m = parseFloat(minutos) || 0;
-    const totalSeconds = Math.round(h * 3600 + m * 60);
-
     if (totalSeconds <= 0) {
-      toast.error("La duración debe ser mayor a 0");
+      toast.error("La duración debe ser mayor a 0 minutos");
       return;
     }
 
     if (totalSeconds > 86400) {
-      toast.error("No puedes registrar más de 24 horas en una sesión manual");
+      toast.error("No puedes registrar más de 24 horas en una sesión");
       return;
     }
 
@@ -83,29 +101,35 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
 
       if (error) throw error;
 
-      // Actualizar XP y Créditos en el frontend (igual que Pomodoro)
+      // Actualizar XP y Créditos en user_stats
       const hours = Math.floor(totalSeconds / 3600);
-      const xpGained = Math.floor(totalSeconds / 60) * 2; // 2 XP por minuto
+      const { data: stats } = await supabase
+        .from("user_stats")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      const { data: stats } = await supabase.from("user_stats").select("*").eq("user_id", user.id).single();
       if (stats) {
-          const currentStats = stats as any;
-          await supabase.from("user_stats").update({
-              horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
-              xp_total: (currentStats.xp_total || 0) + xpGained,
-              credits: (currentStats.credits || 0) + Math.floor(totalSeconds / 60), // 1 Crédito por min
-              nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1 // Subir de nivel automáticamente
-          }).eq("user_id", user.id);
-          
-          await supabase.rpc('check_and_unlock_achievements', { p_user_id: user.id });
+        const currentStats = stats as any;
+        await supabase
+          .from("user_stats")
+          .update({
+            horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
+            xp_total: (currentStats.xp_total || 0) + xpGained,
+            credits: (currentStats.credits || 0) + creditsGained,
+            nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1,
+          })
+          .eq("user_id", user.id);
+
+        await supabase.rpc("check_and_unlock_achievements", { p_user_id: user.id });
       }
 
-      toast.success(`Tiempo registrado. +${xpGained} XP ganados`);
+      toast.success(`¡Tiempo guardado! +${xpGained} XP y +${creditsGained} Créditos ganados`);
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error adding manual study time:", error);
-      toast.error(`Error al registrar: ${error?.message || 'Contacte soporte'}`);
+      toast.error(`Error al registrar: ${error?.message || "Contacte soporte"}`);
     } finally {
       setLoading(false);
     }
@@ -113,131 +137,209 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-gradient-card border-primary/30 overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:height-[1px] before:bg-gradient-to-r before:from-transparent before:via-neon-cyan/50 before:to-transparent">
-        <DialogHeader>
-          <DialogTitle className="font-display font-bold text-xl gradient-text flex items-center gap-2">
-            <Clock className="w-5 h-5 text-neon-cyan" />
-            Cargar Tiempo de Estudio
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Registra manualmente el tiempo que dedicaste a estudiar una materia.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[480px] bg-card border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6 overflow-hidden">
+        <DialogHeader className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#BFFF00] border-2 border-foreground rounded-xl flex items-center justify-center -rotate-3 shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
+              <Clock className="w-5 h-5 text-black" strokeWidth={2.5} />
+            </div>
+            <div>
+              <DialogTitle className="font-black text-xl uppercase tracking-wider text-foreground">
+                Cargar Tiempo Manual
+              </DialogTitle>
+              <DialogDescription className="text-xs font-bold text-muted-foreground uppercase">
+                Registra horas de estudio presencial, libros o apuntes
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 py-4">
-          {/* Date */}
-          <div className="space-y-2">
-            <Label htmlFor="manual-fecha" className="text-sm font-medium">Fecha</Label>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {/* Quick Presets */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-[#FFD700]" />
+              Duración Rápida
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {PRESET_DURATIONS.map((preset) => {
+                const isSelected = horas === preset.h && minutos === preset.m;
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      setHoras(preset.h);
+                      setMinutos(preset.m);
+                    }}
+                    className={`py-1.5 px-2 rounded-lg border-2 border-foreground text-left transition-all ${
+                      isSelected
+                        ? "bg-[#BFFF00] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-x-[-1px] translate-y-[-1px]"
+                        : "bg-muted/50 hover:bg-muted text-foreground hover:translate-y-[-1px]"
+                    }`}
+                  >
+                    <div className="font-black text-xs leading-none">{preset.label}</div>
+                    <div className="text-[10px] font-bold text-muted-foreground leading-tight mt-0.5">{preset.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Manual Duration (Hours and Minutes) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="manual-horas" className="text-xs font-black uppercase text-foreground">
+                Horas
+              </Label>
+              <Input
+                id="manual-horas"
+                type="number"
+                min="0"
+                max="24"
+                value={horas}
+                onChange={(e) => setHoras(e.target.value)}
+                className="bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black text-base text-foreground rounded-lg h-10"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="manual-minutos" className="text-xs font-black uppercase text-foreground">
+                Minutos
+              </Label>
+              <Input
+                id="manual-minutos"
+                type="number"
+                min="0"
+                max="59"
+                value={minutos}
+                onChange={(e) => setMinutos(e.target.value)}
+                className="bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black text-base text-foreground rounded-lg h-10"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Date with quick buttons */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="manual-fecha" className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[#00E5FF]" />
+                Fecha
+              </Label>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleSetToday}
+                  className="text-[10px] font-black uppercase px-2 py-0.5 rounded border border-foreground bg-muted hover:bg-muted/80 text-foreground transition-all"
+                >
+                  Hoy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSetYesterday}
+                  className="text-[10px] font-black uppercase px-2 py-0.5 rounded border border-foreground bg-muted hover:bg-muted/80 text-foreground transition-all"
+                >
+                  Ayer
+                </button>
+              </div>
+            </div>
             <Input
               id="manual-fecha"
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              className="bg-secondary/50 border-border focus:border-primary/50"
+              className="bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-bold text-sm text-foreground rounded-lg h-10"
               required
             />
           </div>
 
-          {/* Year Filter */}
-          {years.length > 1 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Filtrar por año</Label>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setYearFilter("")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                    yearFilter === ""
-                      ? "bg-primary/20 text-primary border-primary/40"
-                      : "bg-secondary text-muted-foreground border-transparent hover:bg-secondary/80"
-                  }`}
-                >
-                  Todos
-                </button>
-                {years.map(y => (
+          {/* Subject Selector */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-[#FF9B71]" />
+                Materia (Opcional)
+              </Label>
+              {years.length > 1 && (
+                <div className="flex items-center gap-1">
                   <button
-                    key={y}
                     type="button"
-                    onClick={() => setYearFilter(y)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                      yearFilter === y
-                        ? "bg-primary/20 text-primary border-primary/40"
-                        : "bg-secondary text-muted-foreground border-transparent hover:bg-secondary/80"
+                    onClick={() => setYearFilter("")}
+                    className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${
+                      yearFilter === ""
+                        ? "bg-[#BFFF00] text-black border-foreground"
+                        : "bg-muted text-muted-foreground border-transparent"
                     }`}
                   >
-                    Año {y}
+                    Todas
                   </button>
-                ))}
-              </div>
+                  {years.map((y) => (
+                    <button
+                      key={y}
+                      type="button"
+                      onClick={() => setYearFilter(y)}
+                      className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${
+                        yearFilter === y
+                          ? "bg-[#BFFF00] text-black border-foreground"
+                          : "bg-muted text-muted-foreground border-transparent"
+                      }`}
+                    >
+                      {y}°
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Subject */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              Materia
-            </Label>
             <select
               value={subjectId}
               onChange={(e) => setSubjectId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+              className="w-full px-3 py-2 bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold text-sm text-foreground focus:outline-none focus:ring-0"
             >
-              <option value="">Sin materia específica</option>
+              <option value="">Sin materia específica (Estudio general)</option>
               {subjectsByYear.map(({ year, subjects: ys }) => (
-                <optgroup key={year} label={year ? `Año ${year}` : "Sin año"}>
-                  {ys.map(s => (
-                    <option key={s.id} value={s.id}>{s.nombre}</option>
+                <optgroup key={year} label={year ? `Año ${year}` : "Otras materias"}>
+                  {ys.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre}
+                    </option>
                   ))}
                 </optgroup>
               ))}
             </select>
           </div>
 
-          {/* Duration */}
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Duración del estudio</Label>
-            <div className="flex gap-4">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="manual-horas" className="text-xs text-muted-foreground font-medium">Horas</Label>
-                <div className="relative">
-                  <Input
-                    id="manual-horas"
-                    type="number"
-                    min="0"
-                    max="24"
-                    value={horas}
-                    onChange={(e) => setHoras(e.target.value)}
-                    className="bg-secondary/50 border-border focus:border-primary/50 pl-10"
-                    required
-                  />
-                  <CloudMoon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                </div>
-              </div>
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="manual-minutos" className="text-xs text-muted-foreground font-medium">Minutos</Label>
-                <Input
-                  id="manual-minutos"
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={minutos}
-                  onChange={(e) => setMinutos(e.target.value)}
-                  className="bg-secondary/50 border-border focus:border-primary/50"
-                  required
-                />
-              </div>
+          {/* Live Rewards Estimate Card */}
+          <div className="bg-[#FFE600]/20 border-2 border-dashed border-foreground/40 rounded-xl p-3 flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wide text-foreground flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#FFD700] fill-current" />
+              Recompensas calculadas:
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="bg-[#BFFF00] text-black font-black text-xs px-2 py-0.5 rounded border border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))]">
+                +{xpGained} XP
+              </span>
+              <span className="bg-[#00E5FF] text-black font-black text-xs px-2 py-0.5 rounded border border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] flex items-center gap-1">
+                <Coins className="w-3 h-3" /> +{creditsGained}
+              </span>
             </div>
           </div>
 
-          <DialogFooter className="pt-4">
-            <Button
+          <DialogFooter className="pt-2">
+            <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-neon-cyan to-neon-purple text-background font-bold hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all"
+              disabled={loading || totalSeconds <= 0}
+              className="w-full bg-[#BFFF00] text-black font-black uppercase text-xs sm:text-sm py-3 px-4 rounded-xl border-3 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-[1px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Guardando..." : "Registrar Tiempo"}
-            </Button>
+              {loading ? (
+                <span>Guardando...</span>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>Registrar {h > 0 ? `${h}h ` : ""}{m > 0 ? `${m}m` : ""} de Estudio</span>
+                </>
+              )}
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>
