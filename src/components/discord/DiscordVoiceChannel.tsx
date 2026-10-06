@@ -339,7 +339,7 @@ function VideoTile({
 
   const videoTracks = stream ? stream.getVideoTracks() : [];
   const hasLiveVideo = videoTracks.some(t => t.readyState === 'live');
-  const showVideo = Boolean(videoTracks.length > 0 && (isVideoEnabled || hasLiveVideo));
+  const showVideo = Boolean(isVideoEnabled && videoTracks.length > 0 && hasLiveVideo);
 
   // Vincular stream al elemento de video
   useEffect(() => {
@@ -355,7 +355,7 @@ function VideoTile({
       el.srcObject = stream;
     }
     el.play().catch((err) => console.log('AutoPlay prevented:', err));
-  }, [stream]); // NO DEPENDER DE showVideo, SINO CORTA EL AUDIO
+  }, [stream, showVideo]);
 
   // Escuchar adición o remoción de pistas en caliente (cámara on/off, pantalla on/off)
   useEffect(() => {
@@ -448,7 +448,7 @@ function SmallTile({
 
   const videoTracks = stream ? stream.getVideoTracks() : [];
   const hasLiveVideo = videoTracks.some(t => t.readyState === 'live');
-  const showVideo = Boolean(videoTracks.length > 0 && (isVideoEnabled || hasLiveVideo));
+  const showVideo = Boolean(isVideoEnabled && videoTracks.length > 0 && hasLiveVideo);
 
   useEffect(() => {
     const el = videoRef.current;
