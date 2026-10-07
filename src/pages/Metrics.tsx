@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3, Clock, BookOpen,
   Timer, Layers, Calendar, Library,
-  ChevronLeft, ChevronRight, Plus, GraduationCap
+  ChevronLeft, ChevronRight, Plus, GraduationCap, Trash2
 } from "lucide-react";
 import { 
   subDays, addDays, eachDayOfInterval, format, differenceInDays, 
@@ -17,12 +17,14 @@ import { RoutineStats } from "@/components/metrics/RoutineStats";
 import { SleepStats } from "@/components/metrics/SleepStats";
 import { CareerAnalytics } from "@/components/metrics/CareerAnalytics";
 import { ManualStudyDialog } from "@/components/metrics/ManualStudyDialog";
+import { DeleteStudyTimeDialog } from "@/components/metrics/DeleteStudyTimeDialog";
 import { Button } from "@/components/ui/button";
 import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
 import { Moon } from "lucide-react";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 interface StudySession {
+  id?: string;
   fecha: string;
   duracion_segundos: number;
   tipo: string;
@@ -50,6 +52,9 @@ export default function Metrics() {
   const [activeTab, setActiveTab] = useState<"general" | "carrera" | "flashcards" | "rutinas" | "sueno">("general");
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
   const [showManualDialog, setShowManualDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedDeleteDate, setSelectedDeleteDate] = useState<string | undefined>();
+  const [selectedDeleteSubjectId, setSelectedDeleteSubjectId] = useState<string | undefined>();
 
   const fetchData = useCallback(async (isInitial = false) => {
     if (!user && !isGuest) {
@@ -96,7 +101,7 @@ export default function Metrics() {
 
       const { data: sessionData } = await supabase
         .from("study_sessions")
-        .select("fecha, duracion_segundos, tipo, subject_id")
+        .select("id, fecha, duracion_segundos, tipo, subject_id")
         .eq("user_id", user.id)
         .gte("fecha", fromStr)
         .lte("fecha", `${toStr}T23:59:59.999Z`)
@@ -275,23 +280,24 @@ export default function Metrics() {
     const subjectMap: Record<string, { total_seconds: number; sessions_count: number }> = {};
 
     sessions.forEach(session => {
-      if (session.subject_id) {
-        if (!subjectMap[session.subject_id]) {
-          subjectMap[session.subject_id] = { total_seconds: 0, sessions_count: 0 };
-        }
-        subjectMap[session.subject_id].total_seconds += session.duracion_segundos;
-        subjectMap[session.subject_id].sessions_count += 1;
+      const subId = session.subject_id || "unassigned";
+      if (!subjectMap[subId]) {
+        subjectMap[subId] = { total_seconds: 0, sessions_count: 0 };
       }
+      subjectMap[subId].total_seconds += session.duracion_segundos;
+      subjectMap[subId].sessions_count += 1;
     });
 
     return Object.entries(subjectMap)
       .map(([subject_id, data]) => ({
         subject_id,
-        nombre: subjects.find(s => s.id === subject_id)?.nombre || "Sin materia",
+        nombre: subject_id === "unassigned"
+          ? "Sin materia / General"
+          : (subjects.find(s => s.id === subject_id)?.nombre || "Materia no encontrada"),
         ...data,
       }))
       .sort((a, b) => b.total_seconds - a.total_seconds)
-      .slice(0, 5);
+      .slice(0, 8);
   };
 
   const chartData = getChartData();
@@ -445,6 +451,17 @@ export default function Metrics() {
               <Plus className="w-4 h-4" strokeWidth={3} />
               Cargar Tiempo Manual
             </button>
+            <button
+              onClick={() => {
+                setSelectedDeleteDate(toLocalDateStr(new Date()));
+                setSelectedDeleteSubjectId("all");
+                setShowDeleteDialog(true);
+              }}
+              className="bg-red-500 text-white font-black uppercase text-xs px-4 py-2 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2 active:translate-x-[2px] active:translate-y-[2px]"
+            >
+              <Trash2 className="w-4 h-4" strokeWidth={2.5} />
+              Eliminar Tiempo
+            </button>
           </div>
 
           {/* Stats Cards */}
@@ -504,43 +521,72 @@ export default function Metrics() {
               ) : (
                 <div className="flex items-end justify-between gap-2 h-52 pt-8 overflow-x-auto pb-2 px-2 border-b-4 border-foreground">
                   {chartData.map((item, idx) => (
-                    <div key={`${item.date}-${idx}`} className="flex-1 min-w-[32px] max-w-[60px] flex flex-col items-center justify-end gap-2 h-full">
+                    <div
+                      key={`${item.date}-${idx}`}
+                      onClick={() => {
+                        setSelectedDeleteDate(item.date);
+                        setSelectedDeleteSubjectId("all");
+                        setShowDeleteDialog(true);
+                      }}
+                      className="flex-1 min-w-[32px] max-w-[60px] flex flex-col items-center justify-end gap-2 h-full cursor-pointer group/col"
+                      title="Click para ajustar o eliminar tiempo de este día"
+                    >
                       <div
                         className={cn(
-                          "w-full transition-all duration-300 relative group rounded-t-sm cursor-pointer",
+                          "w-full transition-all duration-300 relative rounded-t-sm group-hover/col:scale-105 active:scale-95",
                           item.hours > 0 
                             ? "bg-[#BFFF00] hover:bg-[#a6e600] border-2 border-foreground border-b-0 shadow-[2px_0_0_0_hsl(var(--foreground))]" 
-                            : "bg-muted border-2 border-transparent"
+                            : "bg-muted border-2 border-transparent hover:border-foreground/30"
                         )}
                         style={{
                           height: `${Math.max((item.hours / maxHours) * 72, item.hours > 0 ? 8 : 4)}%`,
                         }}
                       >
                         {item.hours > 0 && (
-                          <div className="absolute -top-9 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 bg-foreground text-background px-2.5 py-1 rounded-lg text-xs font-black whitespace-nowrap z-30 pointer-events-none shadow-[2px_2px_0_0_rgba(0,0,0,0.4)] border border-background/20">
-                            {formatHours(item.hours)}
+                          <div className="absolute -top-11 left-1/2 -translate-x-1/2 opacity-0 group-hover/col:opacity-100 transition-all duration-150 bg-foreground text-background px-2.5 py-1 rounded-lg text-xs font-black whitespace-nowrap z-30 pointer-events-none shadow-[2px_2px_0_0_rgba(0,0,0,0.4)] border border-background/20 flex flex-col items-center">
+                            <span>{formatHours(item.hours)}</span>
+                            <span className="text-[9px] font-bold text-red-400">Click p/ editar</span>
                             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45"></div>
                           </div>
                         )}
                       </div>
-                      <span className="text-xs font-bold text-foreground">{item.label}</span>
+                      <span className="text-xs font-bold text-foreground group-hover/col:text-[#BFFF00] transition-colors">{item.label}</span>
                       <span className="text-[10px] font-bold text-muted-foreground">{item.sublabel}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="mt-6 pt-6 border-t-4 border-foreground">
-                <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Promedio diario</p>
-                <p className="text-4xl font-black text-foreground">
-                  {formatHours(totalHours / totalDays)}
-                </p>
+              <div className="mt-6 pt-6 border-t-4 border-foreground flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Promedio diario</p>
+                  <p className="text-4xl font-black text-foreground">
+                    {formatHours(totalHours / totalDays)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDeleteDate(toLocalDateStr(new Date()));
+                    setSelectedDeleteSubjectId("all");
+                    setShowDeleteDialog(true);
+                  }}
+                  className="text-xs font-black uppercase text-muted-foreground hover:text-red-500 border border-border hover:border-red-500 px-3 py-1.5 transition-all flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Ajustar horas
+                </button>
               </div>
             </div>
 
             {/* Subject Progress */}
             <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5">
-              <h3 className="font-black uppercase text-lg mb-4 text-foreground">Por Materia</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-black uppercase text-lg text-foreground">Por Materia</h3>
+                <span className="text-[10px] font-black uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
+                  Click p/ eliminar
+                </span>
+              </div>
 
               {loading && subjects.length === 0 ? (
                 <div className="space-y-4">
@@ -556,7 +602,7 @@ export default function Metrics() {
                   No hay datos de estudio aún
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {subjectProgress.map((subject, i) => {
                     const maxSeconds = subjectProgress[0]?.total_seconds || 1;
                     const progress = (subject.total_seconds / maxSeconds) * 100;
@@ -564,14 +610,26 @@ export default function Metrics() {
                     const color = colors[i % colors.length];
 
                     return (
-                      <div key={subject.subject_id}>
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="font-bold text-foreground truncate">{subject.nombre}</span>
+                      <div
+                        key={subject.subject_id}
+                        onClick={() => {
+                          setSelectedDeleteDate(toLocalDateStr(new Date()));
+                          setSelectedDeleteSubjectId(subject.subject_id === "unassigned" ? "none" : subject.subject_id);
+                          setShowDeleteDialog(true);
+                        }}
+                        className="p-2 -mx-2 rounded-lg hover:bg-muted/80 border border-transparent hover:border-foreground/20 transition-all cursor-pointer group/sub"
+                        title={`Click para eliminar tiempo de ${subject.nombre}`}
+                      >
+                        <div className="flex items-center justify-between text-sm mb-1.5">
+                          <span className="font-bold text-foreground truncate flex items-center gap-1.5">
+                            <span>{subject.nombre}</span>
+                            <Trash2 className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover/sub:opacity-100 hover:text-red-500 transition-opacity" />
+                          </span>
                           <span className="font-black text-foreground">
                             {formatHours(subject.total_seconds / 3600)}
                           </span>
                         </div>
-                        <div className="h-4 border-2 border-foreground bg-muted rounded-full overflow-hidden shadow-[inset_2px_2px_0_0_rgba(0,0,0,0.1)]">
+                        <div className="h-3.5 border-2 border-foreground bg-muted rounded-full overflow-hidden shadow-[inset_2px_2px_0_0_rgba(0,0,0,0.1)]">
                           <div
                             className="h-full border-r-2 border-foreground transition-all duration-500"
                             style={{
@@ -656,6 +714,15 @@ export default function Metrics() {
             onOpenChange={setShowManualDialog}
             onSuccess={fetchData}
             subjects={subjects}
+          />
+          <DeleteStudyTimeDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            onSuccess={() => fetchData(false)}
+            subjects={subjects}
+            sessions={sessions}
+            initialDate={selectedDeleteDate}
+            initialSubjectId={selectedDeleteSubjectId}
           />
         </>
       ) : activeTab === "carrera" ? (
