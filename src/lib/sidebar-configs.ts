@@ -27,6 +27,7 @@ import { ApuntesIcon, NotionIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { TabetalkIcon } from "@/components/icons/TabetalkIcon";
 import { ArcadeIcon } from "@/components/icons/ArcadeIcon";
+import { ComunidadIcon } from "@/components/icons/ComunidadIcon";
 
 export interface NavItem {
   icon: any;
@@ -52,7 +53,8 @@ export const ICON_MAP: Record<string, any> = {
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
   ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Tabetalk: TabetalkIcon,
   Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous,
-  Gamepad2, Arcade: ArcadeIcon, ArcadeIcon
+  Gamepad2, Arcade: ArcadeIcon, ArcadeIcon,
+  ComunidadIcon, Comunidad: ComunidadIcon
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);
@@ -64,8 +66,8 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/apuntes": "ApuntesIcon",
   "/flashcards": "Layers",
   "/cuestionarios": "ClipboardList",
-  "/comunidad": "Users",
-  "/marketplace": "Users",
+  "/comunidad": "ComunidadIcon",
+  "/marketplace": "ComunidadIcon",
   "/biblioteca": "Library",
   "/calendario": "Calendar",
   "/rutinas": "Repeat2",
@@ -140,7 +142,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
       { id: "item-/tabegochi", path: "/tabegochi", label: "TabeGochi", type: "item", iconName: "Sparkles" },
       { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Arcade" },
       { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
-      { id: "item-/comunidad", path: "/comunidad", label: "Comunidad", type: "item", iconName: "Users" }
+      { id: "item-/comunidad", path: "/comunidad", label: "Comunidad", type: "item", iconName: "ComunidadIcon" }
     ]
   },
   {
@@ -175,7 +177,7 @@ export const baseNavItems: NavItem[] = [
   { icon: ApuntesIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-apuntes tour-sidebar-notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
-  { icon: Users, label: "Comunidad", path: "/comunidad", tourClass: "tour-sidebar-comunidad" },
+  { icon: ComunidadIcon, label: "Comunidad", path: "/comunidad", tourClass: "tour-sidebar-comunidad" },
   { icon: Library, label: "Biblioteca", path: "/biblioteca", tourClass: "tour-sidebar-biblioteca" },
   { icon: Calendar, label: "Calendario", path: "/calendario", tourClass: "tour-sidebar-calendar" },
   { icon: Repeat2, label: "Rutinas", path: "/rutinas", tourClass: "tour-sidebar-rutinas" },
@@ -342,7 +344,7 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
     });
   };
 
-  // Replace legacy /marketplace references with /comunidad and Users icon
+  // Replace legacy /marketplace references with /comunidad and ComunidadIcon
   const replaceMarketplaceWithComunidad = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
     return list.map(item => {
       let updated = { ...item };
@@ -350,12 +352,13 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
         updated.path === "/marketplace" || 
         updated.id === "item-/marketplace" || 
         updated.label?.toLowerCase() === "marketplace" ||
-        updated.iconName === "Store"
+        updated.iconName === "Store" ||
+        ((updated.path === "/comunidad" || updated.id === "item-/comunidad") && updated.iconName === "Users")
       ) {
         if (updated.path === "/marketplace") updated.path = "/comunidad";
         if (updated.id === "item-/marketplace") updated.id = "item-/comunidad";
         if (updated.label?.toLowerCase() === "marketplace") updated.label = "Comunidad";
-        if (updated.iconName === "Store") updated.iconName = "Users";
+        if (updated.iconName === "Store" || updated.iconName === "Users") updated.iconName = "ComunidadIcon";
       }
       if (updated.items && updated.items.length > 0) {
         updated.items = replaceMarketplaceWithComunidad(updated.items);

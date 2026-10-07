@@ -5,6 +5,7 @@ import {
   HelpCircle, ShieldCheck, Check, ArrowUpDown
 } from "lucide-react";
 import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz } from "@/hooks/useMarketplace";
+import { ComunidadIcon } from "@/components/icons/ComunidadIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -402,7 +403,7 @@ export default function Marketplace() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card border-4 border-foreground rounded-2xl p-6 shadow-[6px_6px_0_0_hsl(var(--foreground))]">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl border-4 border-foreground bg-[#14B8A6] text-white flex items-center justify-center shadow-[4px_4px_0_0_hsl(var(--foreground))] shrink-0">
-            <Users className="w-9 h-9 stroke-[2.5]" />
+            <ComunidadIcon className="w-10 h-10" />
           </div>
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
