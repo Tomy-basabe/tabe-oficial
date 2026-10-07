@@ -191,8 +191,8 @@ const AppRoutes = () => (
       <Route path="/asistente/examenes" element={<StudyRoadmapPage />} />
       <Route path="/flashcards" element={<Flashcards />} />
       <Route path="/cuestionarios" element={<Quizzes />} />
-      <Route path="/marketplace" element={<PremiumGate feature="Comunidad"><Marketplace /></PremiumGate>} />
-      <Route path="/comunidad" element={<Navigate to="/marketplace" replace />} />
+      <Route path="/comunidad" element={<PremiumGate feature="Comunidad"><Marketplace /></PremiumGate>} />
+      <Route path="/marketplace" element={<Navigate to="/comunidad" replace />} />
       <Route path="/biblioteca" element={<Library />} />
       <Route path="/logros" element={<Achievements />} />
       <Route path="/notion" element={<Navigate to="/apuntes" replace />} />

@@ -64,7 +64,8 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/apuntes": "ApuntesIcon",
   "/flashcards": "Layers",
   "/cuestionarios": "ClipboardList",
-  "/marketplace": "Store",
+  "/comunidad": "Users",
+  "/marketplace": "Users",
   "/biblioteca": "Library",
   "/calendario": "Calendar",
   "/rutinas": "Repeat2",
@@ -139,7 +140,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
       { id: "item-/tabegochi", path: "/tabegochi", label: "TabeGochi", type: "item", iconName: "Sparkles" },
       { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Arcade" },
       { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
-      { id: "item-/marketplace", path: "/marketplace", label: "Comunidad", type: "item", iconName: "Store" }
+      { id: "item-/comunidad", path: "/comunidad", label: "Comunidad", type: "item", iconName: "Users" }
     ]
   },
   {
@@ -174,7 +175,7 @@ export const baseNavItems: NavItem[] = [
   { icon: ApuntesIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-apuntes tour-sidebar-notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
-  { icon: Store, label: "Comunidad", path: "/marketplace", tourClass: "tour-sidebar-marketplace" },
+  { icon: Users, label: "Comunidad", path: "/comunidad", tourClass: "tour-sidebar-comunidad" },
   { icon: Library, label: "Biblioteca", path: "/biblioteca", tourClass: "tour-sidebar-biblioteca" },
   { icon: Calendar, label: "Calendario", path: "/calendario", tourClass: "tour-sidebar-calendar" },
   { icon: Repeat2, label: "Rutinas", path: "/rutinas", tourClass: "tour-sidebar-rutinas" },
@@ -341,7 +342,29 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
     });
   };
 
-  const migrated = replaceDiscordWithTabetalk(cleaned);
+  // Replace legacy /marketplace references with /comunidad and Users icon
+  const replaceMarketplaceWithComunidad = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
+    return list.map(item => {
+      let updated = { ...item };
+      if (
+        updated.path === "/marketplace" || 
+        updated.id === "item-/marketplace" || 
+        updated.label?.toLowerCase() === "marketplace" ||
+        updated.iconName === "Store"
+      ) {
+        if (updated.path === "/marketplace") updated.path = "/comunidad";
+        if (updated.id === "item-/marketplace") updated.id = "item-/comunidad";
+        if (updated.label?.toLowerCase() === "marketplace") updated.label = "Comunidad";
+        if (updated.iconName === "Store") updated.iconName = "Users";
+      }
+      if (updated.items && updated.items.length > 0) {
+        updated.items = replaceMarketplaceWithComunidad(updated.items);
+      }
+      return updated;
+    });
+  };
+
+  const migrated = replaceMarketplaceWithComunidad(replaceDiscordWithTabetalk(cleaned));
 
   // Remove Tabetalk from any category items so it becomes an independent root item
   const cleanTabetalkFromCategories = (list: CustomSidebarItem[]): CustomSidebarItem[] => {

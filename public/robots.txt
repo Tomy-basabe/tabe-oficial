@@ -37,5 +37,6 @@ Disallow: /rutinas
 Disallow: /discord
 Disallow: /mapa
 Disallow: /marketplace
+Disallow: /comunidad
 
 Sitemap: https://tabe.com.ar/sitemap.xml

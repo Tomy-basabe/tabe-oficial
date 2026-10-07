@@ -10,6 +10,7 @@ const routeLoaders: Record<string, () => Promise<any>> = {
   "/flashcards": () => import("@/pages/Flashcards"),
   "/cuestionarios": () => import("@/pages/Quizzes"),
   "/marketplace": () => import("@/pages/Marketplace"),
+  "/comunidad": () => import("@/pages/Marketplace"),
   "/biblioteca": () => import("@/pages/Library"),
   "/logros": () => import("@/pages/Achievements"),
   "/notion": () => import("@/pages/Notion"),

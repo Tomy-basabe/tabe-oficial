@@ -211,7 +211,7 @@ export default function Marketplace() {
     const [hoverRating, setHoverRating] = useState<number | null>(null);
     const avg = getAverageRating(item);
     const userVote = userRatings[item.id];
-    const canRate = type === "apunte" || type === "deck";
+    const canRate = Boolean(user);
 
     return (
       <div 
@@ -233,16 +233,19 @@ export default function Marketplace() {
                 key={star}
                 type="button"
                 disabled={!canRate}
-                title={canRate ? (userVote ? `Cambiar mi calificación a ${star} ★` : `Calificar con ${star} ★`) : undefined}
+                title={!user ? "Inicia sesión para calificar" : (userVote ? `Cambiar mi calificación a ${star} ★` : `Calificar con ${star} ★`)}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (!canRate) return;
+                  if (!canRate) {
+                    toast.error("Inicia sesión para calificar este recurso");
+                    return;
+                  }
                   rateResource(type, item.id, star);
                 }}
                 onMouseEnter={() => canRate && setHoverRating(star)}
                 className={cn(
                   "p-0.5 transition-transform",
-                  canRate ? "hover:scale-125 cursor-pointer focus:outline-none" : "cursor-default"
+                  canRate ? "hover:scale-125 cursor-pointer focus:outline-none" : "cursor-not-allowed opacity-60"
                 )}
                 aria-label={`Calificar con ${star} estrellas`}
               >

@@ -234,6 +234,16 @@ export function TutorialTour() {
                 disableScrolling: true,
             }
         ],
+        "/comunidad": [
+            {
+                target: '.tour-marketplace-decks',
+                content: '¡Descubre el contenido de la Comunidad! Aquí puedes explorar y compartir mazos, cuestionarios, apuntes y recursos académicos creados por estudiantes.',
+                placement: 'bottom',
+                locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente', last: 'Siguiente' },
+                disableBeacon: true,
+                disableScrolling: true,
+            }
+        ],
         "/biblioteca": [
             {
                 target: '.tour-library-upload',

@@ -242,7 +242,10 @@ export function MainLayout() {
         const hasTabetalk = parsed?.some((i: any) => 
           (i.path || i.id) === "/tabetalk" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/tabetalk"))
         );
-        if (!hasTareas || !hasTabetalk) {
+        const hasMarketplace = parsed?.some((i: any) => 
+          (i.path || i.id) === "/marketplace" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/marketplace"))
+        );
+        if (!hasTareas || !hasTabetalk || hasMarketplace) {
           localStorage.setItem("tabe-custom-sidebar-config", JSON.stringify(displayItems));
         }
       }
