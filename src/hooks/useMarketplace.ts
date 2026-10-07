@@ -215,10 +215,24 @@ export function useMarketplace() {
       const userIds = [...new Set(allResources.map(r => r.user_id))];
       const subjectIds = [...new Set(allResources.map(r => r.subject_id).filter(Boolean))];
 
-      const [profilesResult, statsResult, subjectsResult] = await Promise.all([
+      const [
+        profilesResult, 
+        statsResult, 
+        subjectsResult, 
+        deckRatingsRes, 
+        apunteRatingsRes, 
+        quizRatingsRes, 
+        fileRatingsRes, 
+        folderRatingsRes
+      ] = await Promise.all([
         userIds.length > 0 ? supabase.from("public_profiles" as any).select("user_id, username, display_id, nombre, facultad, carrera").in("user_id", userIds) : Promise.resolve({ data: [], error: null }),
         userIds.length > 0 ? supabase.from("user_stats").select("user_id, nivel").in("user_id", userIds) : Promise.resolve({ data: [], error: null }),
-        subjectIds.length > 0 ? supabase.from("subjects").select("id, nombre, año").in("id", subjectIds) : Promise.resolve({ data: [], error: null })
+        subjectIds.length > 0 ? supabase.from("subjects").select("id, nombre, año").in("id", subjectIds) : Promise.resolve({ data: [], error: null }),
+        supabase.from("deck_ratings").select("deck_id, rating"),
+        supabase.from("apunte_ratings" as any).select("apunte_id, rating") as any,
+        supabase.from("quiz_ratings" as any).select("quiz_deck_id, rating") as any,
+        supabase.from("file_ratings" as any).select("file_id, rating") as any,
+        supabase.from("folder_ratings" as any).select("folder_id, rating") as any,
       ]);
 
       const profileMap = new Map<string, ProfileData>((profilesResult.data || []).map((p: ProfileData) => [p.user_id, p]));
@@ -228,14 +242,40 @@ export function useMarketplace() {
         subjectMap.set(s.id, { id: s.id, nombre: s.nombre, year: s.año });
       });
 
-      const enrich = (item: any) => {
+      const aggRatings = (res: any, key: string) => {
+        const m = new Map<string, { sum: number; count: number }>();
+        if (res && res.data) {
+          res.data.forEach((r: any) => {
+            const id = r[key];
+            if (!id) return;
+            const cur = m.get(id) || { sum: 0, count: 0 };
+            m.set(id, { sum: cur.sum + Number(r.rating || 0), count: cur.count + 1 });
+          });
+        }
+        return m;
+      };
+
+      const deckRatingMap = aggRatings(deckRatingsRes, "deck_id");
+      const apunteRatingMap = aggRatings(apunteRatingsRes, "apunte_id");
+      const quizRatingMap = aggRatings(quizRatingsRes, "quiz_deck_id");
+      const fileRatingMap = aggRatings(fileRatingsRes, "file_id");
+      const folderRatingMap = aggRatings(folderRatingsRes, "folder_id");
+
+      const enrich = (item: any, type: "deck" | "quiz" | "apunte" | "file" | "folder") => {
         const isAnon = !!item.is_anonymous;
         const profile = profileMap.get(item.user_id);
         const stats = statsMap.get(item.user_id);
         const subject = item.subject_id ? subjectMap.get(item.subject_id) : null;
 
+        const ratingMap = type === "deck" ? deckRatingMap : type === "quiz" ? quizRatingMap : type === "apunte" ? apunteRatingMap : type === "file" ? fileRatingMap : folderRatingMap;
+        const agg = ratingMap.get(item.id);
+        const finalRatingSum = agg ? agg.sum : Number(item.rating_sum || 0);
+        const finalRatingCount = agg ? agg.count : Number(item.rating_count || 0);
+
         return {
           ...item,
+          rating_sum: finalRatingSum,
+          rating_count: finalRatingCount,
           is_anonymous: isAnon,
           creator: isAnon
             ? {
@@ -296,11 +336,11 @@ export function useMarketplace() {
         });
       };
 
-      setPublicDecks(filter((decksRes.data || []).map(enrich)));
-      setPublicFiles(filter((filesRes.data || []).map(enrich)));
-      setPublicFolders(filter((foldersRes.data || []).map(enrich)));
-      setPublicQuizzes(filter((quizzesRes.data || []).map(enrich)));
-      setPublicApuntes(filter((apuntesRes.data || []).map((a: any) => enrich({ ...a, nombre: a.titulo }))));
+      setPublicDecks(filter((decksRes.data || []).map(d => enrich(d, "deck"))));
+      setPublicFiles(filter((filesRes.data || []).map(f => enrich(f, "file"))));
+      setPublicFolders(filter((foldersRes.data || []).map(fld => enrich(fld, "folder"))));
+      setPublicQuizzes(filter((quizzesRes.data || []).map(q => enrich(q, "quiz"))));
+      setPublicApuntes(filter((apuntesRes.data || []).map((a: any) => enrich({ ...a, nombre: a.titulo }, "apunte"))));
 
     } catch (error) {
       console.error("Error fetching public resources:", error);
@@ -683,20 +723,24 @@ export function useMarketplace() {
       if (existing) {
         const diff = rating - existing.rating;
         await (supabase.from(ratingTable as any) as any).update({ rating }).eq("id", existing.id);
-        const { data: parent } = await supabase.from(parentTable as any).select("rating_sum").eq("id", id).maybeSingle();
-        if (parent) {
-          await supabase.from(parentTable as any).update({ rating_sum: Math.max(0, Number((parent as any).rating_sum || 0) + diff) } as any).eq("id", id);
-        }
+        try {
+          const { data: parent } = await supabase.from(parentTable as any).select("rating_sum").eq("id", id).maybeSingle();
+          if (parent) {
+            await supabase.from(parentTable as any).update({ rating_sum: Math.max(0, Number((parent as any).rating_sum || 0) + diff) } as any).eq("id", id);
+          }
+        } catch (_) {}
         toast.success(`Calificación actualizada a ${rating} ★`);
       } else {
         await (supabase.from(ratingTable as any) as any).insert({ [idCol]: id, user_id: user.id, rating });
-        const { data: parent } = await supabase.from(parentTable as any).select("rating_sum, rating_count").eq("id", id).maybeSingle();
-        if (parent) {
-          await supabase.from(parentTable as any).update({
-            rating_sum: Number((parent as any).rating_sum || 0) + rating,
-            rating_count: Number((parent as any).rating_count || 0) + 1,
-          } as any).eq("id", id);
-        }
+        try {
+          const { data: parent } = await supabase.from(parentTable as any).select("rating_sum, rating_count").eq("id", id).maybeSingle();
+          if (parent) {
+            await supabase.from(parentTable as any).update({
+              rating_sum: Number((parent as any).rating_sum || 0) + rating,
+              rating_count: Number((parent as any).rating_count || 0) + 1,
+            } as any).eq("id", id);
+          }
+        } catch (_) {}
         toast.success(`¡Calificaste este recurso con ${rating} ★!`);
       }
 

@@ -399,20 +399,75 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen p-4 md:p-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-black uppercase text-foreground flex items-center gap-3">
-            <Users className="w-10 h-10 text-foreground" strokeWidth={3} /> Comunidad
-          </h1>
-          <p className="text-muted-foreground font-bold uppercase mt-1">Descubre recursos compartidos por la comunidad</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card border-4 border-foreground rounded-2xl p-6 shadow-[6px_6px_0_0_hsl(var(--foreground))]">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl border-4 border-foreground bg-[#14B8A6] text-white flex items-center justify-center shadow-[4px_4px_0_0_hsl(var(--foreground))] shrink-0">
+            <Users className="w-9 h-9 stroke-[2.5]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground">
+                Comunidad
+              </h1>
+              <span className="bg-[#BFFF00] text-black border-2 border-foreground text-xs px-2.5 py-0.5 rounded-md font-black uppercase tracking-wider shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                Colaborativo
+              </span>
+            </div>
+            <p className="text-muted-foreground font-bold uppercase text-xs md:text-sm mt-1">
+              Explora, califica y comparte mazos, cuestionarios, apuntes y archivos con otros estudiantes
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full md:w-auto shrink-0">
           <Button 
             onClick={() => setPublishSelectOpen(true)}
-            className="w-full md:w-auto bg-[#00E5FF] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all font-black uppercase h-14 px-6 rounded-xl text-lg"
+            className="w-full md:w-auto bg-[#00E5FF] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all font-black uppercase h-14 px-6 rounded-xl text-lg"
           >
-            <Upload className="w-6 h-6 mr-2" strokeWidth={3} /> Publicar Recurso
+            <Upload className="w-6 h-6 mr-2 stroke-[3]" /> Publicar Recurso
           </Button>
+        </div>
+      </div>
+
+      {/* Stats bar */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-4 flex items-center gap-3.5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#C688EB]/25 text-[#A855F7] flex items-center justify-center shrink-0">
+            <Layers className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <p className="text-2xl md:text-3xl font-display font-black leading-none text-foreground">{publicDecks.length}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Mazos</p>
+          </div>
+        </div>
+
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-4 flex items-center gap-3.5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#FFD700]/25 text-[#CA8A04] flex items-center justify-center shrink-0">
+            <HelpCircle className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <p className="text-2xl md:text-3xl font-display font-black leading-none text-foreground">{publicQuizzes.length}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Quizzes</p>
+          </div>
+        </div>
+
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-4 flex items-center gap-3.5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#FF9B71]/25 text-[#EA580C] flex items-center justify-center shrink-0">
+            <GraduationCap className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <p className="text-2xl md:text-3xl font-display font-black leading-none text-foreground">{publicApuntes.length}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Apuntes</p>
+          </div>
+        </div>
+
+        <div className="bg-card border-[3px] border-foreground rounded-xl p-4 flex items-center gap-3.5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
+          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#00E5FF]/25 text-[#0891B2] flex items-center justify-center shrink-0">
+            <FileText className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <p className="text-2xl md:text-3xl font-display font-black leading-none text-foreground">{publicFiles.length + publicFolders.length}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Archivos</p>
+          </div>
         </div>
       </div>
 
