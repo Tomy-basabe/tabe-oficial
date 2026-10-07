@@ -103,7 +103,7 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
                   className="cursor-pointer font-bold uppercase tracking-wider text-xs text-[#00ffcc] focus:bg-background focus:text-[#00ffcc] rounded-lg p-3"
                 >
                   <ShoppingBag className="w-4 h-4 mr-2" />
-                  Publicar en Marketplace
+                  Publicar en la Comunidad
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onDeleteDeck(deck); }}
@@ -179,7 +179,7 @@ export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onM
           <button
             onClick={(e) => { e.stopPropagation(); onPublishDeck(deck); }}
             className="px-3 py-3 bg-[#00ffcc] text-black rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-y-1 transition-all"
-            title="Publicar en Marketplace"
+            title="Publicar en la Comunidad"
           >
             <ShoppingBag className="w-5 h-5" />
           </button>

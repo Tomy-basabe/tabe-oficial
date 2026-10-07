@@ -6,7 +6,7 @@ export function PricingSection() {
         "Acceso ilimitado a todo el contenido",
         "Asistente IA sin restricciones",
         "Flashcards y Cuestionarios sin límites",
-        "Marketplace totalmente abierto",
+        "Comunidad totalmente abierta",
         "Estadísticas avanzadas para todos",
     ];
 

@@ -102,7 +102,7 @@ export const ALL_MOBILE_NAV_ITEMS: {
       { icon: Gamepad2, label: "Juegos", path: "/juegos", badge: "HOT", color: "text-[#F97316]", bgActive: "bg-[#F97316] text-white" },
       { icon: Users, label: "Amigos", path: "/amigos", color: "text-[#06B6D4]", bgActive: "bg-[#06B6D4] text-black" },
       { icon: Trophy, label: "Logros", path: "/logros", color: "text-[#FACC15]", bgActive: "bg-[#FACC15] text-black" },
-      { icon: Store, label: "Marketplace", path: "/marketplace", color: "text-[#14B8A6]", bgActive: "bg-[#14B8A6] text-white" },
+      { icon: Store, label: "Comunidad", path: "/marketplace", color: "text-[#14B8A6]", bgActive: "bg-[#14B8A6] text-white" },
       { icon: Settings, label: "Ajustes", path: "/configuracion", color: "text-[#64748B]", bgActive: "bg-[#64748B] text-white" },
     ]
   }

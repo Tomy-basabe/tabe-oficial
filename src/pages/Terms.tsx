@@ -31,7 +31,7 @@ const SECTIONS: SectionItem[] = [
   { id: "servicios-ia", title: "2. Asistencia por IA", icon: Brain, badge: "Uso Asistivo" },
   { id: "cuentas-seguridad", title: "3. Cuentas y Seguridad", icon: Lock, badge: "Acceso" },
   { id: "propiedad-intelectual", title: "4. Propiedad Intelectual y Apuntes", icon: FileText, badge: "Autoría" },
-  { id: "marketplace", title: "5. Marketplace y Terceros", icon: ShoppingBag, badge: "Limitación" },
+  { id: "marketplace", title: "5. Comunidad y Terceros", icon: ShoppingBag, badge: "Limitación" },
   { id: "uso-aceptable", title: "6. Uso Aceptable y Prohibiciones", icon: AlertTriangle, badge: "Reglas" },
   { id: "supresion-terminacion", title: "7. Supresión y Terminación", icon: UserCheck, badge: "Derechos" },
   { id: "ley-jurisdiccion", title: "8. Legislación y Contacto", icon: Scale, badge: "Jurisdicción" },
@@ -296,11 +296,11 @@ export default function Terms() {
                 <span>Cláusula 5</span>
               </div>
               <h2 className="text-2xl font-black uppercase tracking-tight mb-4">
-                5. Marketplace y Limitación de Responsabilidad de Terceros
+                5. Comunidad y Limitación de Responsabilidad de Terceros
               </h2>
               <div className="space-y-3 text-xs md:text-sm font-bold text-muted-foreground leading-relaxed">
                 <p>
-                  <strong>a) Rol de Intermediario Técnico (Puerto Seguro):</strong> El Marketplace de TABE opera como un repositorio comunitario de intercambio entre estudiantes. TABE no supervisa de manera preliminar ni avala la exactitud, calidad, integridad o legalidad de los materiales compartidos por los usuarios.
+                  <strong>a) Rol de Intermediario Técnico (Puerto Seguro):</strong> La Comunidad de TABE opera como un repositorio comunitario de intercambio entre estudiantes. TABE no supervisa de manera preliminar ni avala la exactitud, calidad, integridad o legalidad de los materiales compartidos por los usuarios.
                 </p>
                 <p>
                   <strong>b) Responsabilidad del Usuario Emisor:</strong> El usuario que comparte o comercializa un apunte garantiza ser el autor legítimo del material o contar con las autorizaciones pertinentes, respondiendo íntegramente por reclamos de terceros relativos a plagio o vulneración de copyright.

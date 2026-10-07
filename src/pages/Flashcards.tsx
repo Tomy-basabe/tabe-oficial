@@ -1857,14 +1857,14 @@ export default function Flashcards() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Modal de Publicar en Marketplace */}
+      {/* Modal de Publicar en la Comunidad */}
       <Dialog open={showPublishModal} onOpenChange={(open) => {
         setShowPublishModal(open);
         if (!open) setPubIsAnonymous(false);
       }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle>Publicar mazo en el Marketplace</DialogTitle>
+            <DialogTitle>Publicar mazo en la Comunidad</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">

@@ -185,11 +185,11 @@ export function useMarketplace() {
 
     try {
       const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
-        supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, descripcion, total_cards, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).gt("total_cards", 0).order("download_count", { ascending: false }).limit(30),
-        supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(30),
-        supabase.from("library_folders").select("id, user_id, subject_id, nombre, color, icon, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(30),
-        supabase.from("quiz_decks").select("id, user_id, subject_id, titulo, descripcion, total_preguntas, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(30),
-        supabase.from("notion_documents").select("id, user_id, subject_id, titulo, description, category, emoji, cover_url, download_count, rating_sum, rating_count, created_at, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(30)
+        supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, description, category, total_cards, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
+        supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, category, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
+        supabase.from("library_folders").select("id, user_id, subject_id, nombre, color, icon, category, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
+        supabase.from("quiz_decks").select("id, user_id, subject_id, nombre, description, category, total_questions, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
+        supabase.from("notion_documents").select("id, user_id, subject_id, titulo, description, category, emoji, cover_url, download_count, rating_sum, rating_count, created_at, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50)
       ]);
 
       const allResources = [
@@ -260,8 +260,8 @@ export function useMarketplace() {
         if (searchTerm) {
           const lowerSearch = searchTerm.toLowerCase();
           filtered = filtered.filter(d =>
-            d.nombre.toLowerCase().includes(lowerSearch) ||
-            d.description?.toLowerCase().includes(lowerSearch)
+            (d.nombre || "").toLowerCase().includes(lowerSearch) ||
+            (d.description || "").toLowerCase().includes(lowerSearch)
           );
         }
         if (categoryFilter) filtered = filtered.filter(d => d.category === categoryFilter);
@@ -301,7 +301,7 @@ export function useMarketplace() {
   const fetchMyPublicDecks = useCallback(async () => {
     if (!user) return;
     const [decks] = await Promise.all([
-      supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, descripcion, total_cards, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).eq("is_public", true).limit(50)
+      supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, description, category, total_cards, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).eq("is_public", true).limit(50)
     ]);
     setMyPublicDecks((decks.data || []) as PublicDeck[]);
   }, [user]);
@@ -327,7 +327,7 @@ export function useMarketplace() {
       return false;
     }
 
-    toast.success(`¡${typeLabel} publicado en el marketplace${isAnonymous ? " de forma anónima" : ""}!`);
+    toast.success(`¡${typeLabel} publicado en la comunidad${isAnonymous ? " de forma anónima" : ""}!`);
     await Promise.all([fetchMyPublicDecks(), fetchPublicResources()]);
     return true;
   };
@@ -347,7 +347,7 @@ export function useMarketplace() {
       return false;
     }
 
-    toast.success(`${typeLabel} retirado del marketplace`);
+    toast.success(`${typeLabel} retirado de la comunidad`);
     await Promise.all([fetchMyPublicDecks(), fetchPublicResources()]);
     return true;
   };

@@ -923,9 +923,9 @@ export default function Quizzes() {
             updated_at: new Date().toISOString()
         } as any).eq("id", manageDeck.id);
         if (error) {
-            toast.error("Error al publicar en Marketplace");
+            toast.error("Error al publicar en la Comunidad");
         } else {
-            toast.success("¡Cuestionario publicado en el Marketplace!");
+            toast.success("¡Cuestionario publicado en la Comunidad!");
             setShowPublishDialog(false);
             setPublishDescription("");
             setPublishCategory("");
@@ -940,9 +940,9 @@ export default function Quizzes() {
             updated_at: new Date().toISOString()
         } as any).eq("id", manageDeck.id);
         if (error) {
-            toast.error("Error al retirar del Marketplace");
+            toast.error("Error al retirar de la Comunidad");
         } else {
-            toast.success("Cuestionario retirado del Marketplace");
+            toast.success("Cuestionario retirado de la Comunidad");
         }
     };
 
@@ -1691,7 +1691,7 @@ export default function Quizzes() {
                         <DialogHeader>
                             <DialogTitle className="font-display font-black uppercase tracking-widest text-xl flex items-center gap-2">
                                 <Store className="w-6 h-6 text-foreground" />
-                                Publicar en Marketplace
+                                Publicar en la Comunidad
                             </DialogTitle>
                         </DialogHeader>
                         <div className="space-y-6 pt-4">

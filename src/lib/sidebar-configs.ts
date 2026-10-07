@@ -139,7 +139,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
       { id: "item-/tabegochi", path: "/tabegochi", label: "TabeGochi", type: "item", iconName: "Sparkles" },
       { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Arcade" },
       { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
-      { id: "item-/marketplace", path: "/marketplace", label: "Marketplace", type: "item", iconName: "Store" }
+      { id: "item-/marketplace", path: "/marketplace", label: "Comunidad", type: "item", iconName: "Store" }
     ]
   },
   {
@@ -174,7 +174,7 @@ export const baseNavItems: NavItem[] = [
   { icon: ApuntesIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-apuntes tour-sidebar-notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
-  { icon: Store, label: "Marketplace", path: "/marketplace", tourClass: "tour-sidebar-marketplace" },
+  { icon: Store, label: "Comunidad", path: "/marketplace", tourClass: "tour-sidebar-marketplace" },
   { icon: Library, label: "Biblioteca", path: "/biblioteca", tourClass: "tour-sidebar-biblioteca" },
   { icon: Calendar, label: "Calendario", path: "/calendario", tourClass: "tour-sidebar-calendar" },
   { icon: Repeat2, label: "Rutinas", path: "/rutinas", tourClass: "tour-sidebar-rutinas" },

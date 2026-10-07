@@ -1949,7 +1949,7 @@ export default function Library() {
                       setShowPublishModal(true);
                     }}
                     className="p-1.5 bg-[#1475e5] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Publicar en Marketplace"
+                    title="Publicar en la Comunidad"
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
                   </button>
@@ -2034,7 +2034,7 @@ export default function Library() {
                       setShowPublishModal(true);
                     }}
                     className="p-1.5 bg-[#1475e5] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Publicar en Marketplace"
+                    title="Publicar en la Comunidad"
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
                   </button>
@@ -2613,7 +2613,7 @@ export default function Library() {
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
               <ShoppingBag className="w-6 h-6 text-[#1475e5]" />
-              PUBLICAR A MARKETPLACE
+              PUBLICAR EN LA COMUNIDAD
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">

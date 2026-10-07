@@ -30,7 +30,7 @@ const PAGE_CONTEXT_MAP: Record<string, string> = {
     "/pomodoro": "Pomodoro - Timer de estudio",
     "/metricas": "Métricas - Estadísticas de estudio",
     "/flashcards": "Flashcards - Mazos de estudio",
-    "/marketplace": "Marketplace - Tienda de mazos",
+    "/marketplace": "Comunidad - Recursos y aportes de estudiantes",
     "/biblioteca": "Biblioteca - Archivos y documentos",
     "/logros": "Logros - Achievements del estudiante",
     "/apuntes": "Apuntes - Documentos y notas",

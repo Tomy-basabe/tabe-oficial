@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Store, Search, Download, Star, User, Tag, Eye, ChevronLeft, ChevronRight,
+  Store, Search, Download, Star, User, Users, Tag, Eye, ChevronLeft, ChevronRight,
   Layers, Upload, X, GraduationCap, Calendar, FileText, Folder, Loader2,
   HelpCircle, ShieldCheck, Check, ArrowUpDown
 } from "lucide-react";
@@ -109,10 +109,10 @@ export default function Marketplace() {
 
       if (user) {
         const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
-          supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, descripcion, total_cards, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).gt("total_cards", 0).limit(50),
-          supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
-          supabase.from("library_folders").select("id, user_id, subject_id, nombre, color, icon, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
-          supabase.from("quiz_decks").select("id, user_id, subject_id, titulo, descripcion, total_preguntas, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
+          supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, description, category, total_cards, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
+          supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, category, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
+          supabase.from("library_folders").select("id, user_id, subject_id, nombre, color, icon, category, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
+          supabase.from("quiz_decks").select("id, user_id, subject_id, nombre, description, category, total_questions, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
           supabase.from("notion_documents").select("id, titulo, emoji, subject_id, parent_id, is_public, description, category, is_anonymous, created_at").eq("user_id", user.id).limit(50)
         ]);
 
@@ -291,7 +291,7 @@ export default function Marketplace() {
               <div className="min-w-0 flex-1">
                 <h3 className="font-black text-lg uppercase leading-tight line-clamp-2 text-foreground">{item.nombre}</h3>
                 <p className="font-bold text-muted-foreground text-xs mt-1 uppercase">
-                  {type === 'deck' ? `${item.total_cards} tarjetas` : type === 'quiz' ? `${item.total_questions} preguntas` : type === 'file' ? 'Archivo individual' : type === 'apunte' ? 'Apunte' : 'Carpeta completa'}
+                  {type === 'deck' ? `${item.total_cards ?? 0} tarjetas` : type === 'quiz' ? `${item.total_questions ?? 0} preguntas` : type === 'file' ? 'Archivo individual' : type === 'apunte' ? 'Apunte' : 'Carpeta completa'}
                 </p>
               </div>
             </div>
@@ -399,7 +399,7 @@ export default function Marketplace() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-black uppercase text-foreground flex items-center gap-3">
-            <Store className="w-10 h-10 text-foreground" strokeWidth={3} /> Marketplace
+            <Users className="w-10 h-10 text-foreground" strokeWidth={3} /> Comunidad
           </h1>
           <p className="text-muted-foreground font-bold uppercase mt-1">Descubre recursos compartidos por la comunidad</p>
         </div>
@@ -418,7 +418,7 @@ export default function Marketplace() {
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" strokeWidth={3} />
             <Input
-              placeholder="Buscar en el marketplace..."
+              placeholder="Buscar en la comunidad..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-12 h-14 bg-background text-foreground border-4 border-foreground rounded-xl font-bold text-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
@@ -519,7 +519,7 @@ export default function Marketplace() {
         <TabsContent value="my-posts" className="space-y-6">
           <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl overflow-hidden text-foreground">
             <div className="bg-foreground text-background p-4">
-              <h2 className="font-black uppercase text-xl">Tus contribuciones al Marketplace</h2>
+              <h2 className="font-black uppercase text-xl">Tus contribuciones a la Comunidad</h2>
             </div>
             <div className="p-4 space-y-3">
               {myResources.filter(r => r.is_public).map(resource => (
@@ -540,7 +540,7 @@ export default function Marketplace() {
                           </span>
                         )}
                       </div>
-                      <span className="font-bold text-muted-foreground text-xs uppercase">{resource.type === 'apunte' ? 'Apunte' : resource.type}</span>
+                      <span className="font-bold text-muted-foreground text-xs uppercase">{resource.type === 'apunte' ? 'Apunte' : resource.type === 'deck' ? 'Mazo' : resource.type === 'quiz' ? 'Cuestionario' : resource.type === 'file' ? 'Archivo' : 'Carpeta'}</span>
                     </div>
                   </div>
                   <Button 
@@ -556,7 +556,7 @@ export default function Marketplace() {
                   </Button>
                 </div>
               ))}
-              {myResources.filter(r => r.is_public).length === 0 && <p className="text-center py-10 font-black text-muted-foreground uppercase text-lg">Aún no has participado en el marketplace</p>}
+              {myResources.filter(r => r.is_public).length === 0 && <p className="text-center py-10 font-black text-muted-foreground uppercase text-lg">Aún no has compartido publicaciones en la comunidad</p>}
             </div>
           </div>
         </TabsContent>

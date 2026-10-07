@@ -227,7 +227,7 @@ export function TutorialTour() {
         "/marketplace": [
             {
                 target: '.tour-marketplace-decks',
-                content: '¡Gasta tus Monedas de Tabe! Aquí puedes comprar fondos, pócimas de XP y herramientas para potenciar tu estudio.',
+                content: '¡Descubre el contenido de la Comunidad! Aquí puedes explorar y compartir mazos, cuestionarios, apuntes y recursos académicos creados por estudiantes.',
                 placement: 'bottom',
                 locale: { skip: 'Saltar', back: 'Atrás', next: 'Siguiente', last: 'Siguiente' },
                 disableBeacon: true,

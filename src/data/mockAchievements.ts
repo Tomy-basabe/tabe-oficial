@@ -353,10 +353,10 @@ export const guestMockAchievements: Achievement[] = [
     { "id": "rut-25", "nombre": "Estudiante Disciplinado", "descripcion": "Tené al menos una rutina activa de estudio", "icono": "book-open", "categoria": "uso", "condicion_tipo": "rutina_categoria_estudio", "condicion_valor": 1, "xp_reward": 80 },
     { "id": "rut-26", "nombre": "Estilo de Vida Completo", "descripcion": "Tené rutinas de 3 categorías diferentes simultáneamente", "icono": "globe", "categoria": "uso", "condicion_tipo": "rutinas_multiples_categorias", "condicion_valor": 3, "xp_reward": 250 },
     { "id": "rut-27", "nombre": "Vida en Balance", "descripcion": "Tené rutinas de 4 categorías diferentes simultáneamente", "icono": "scale", "categoria": "uso", "condicion_tipo": "rutinas_multiples_categorias", "condicion_valor": 4, "xp_reward": 400 },
-    // Marketplace
-    { "id": "mkt-1", "nombre": "Primer Aporte", "descripcion": "Publicaste tu primer apunte comunitario en el Marketplace", "icono": "shopping-bag", "categoria": "uso", "condicion_tipo": "apuntes_publicados", "condicion_valor": 1, "xp_reward": 100 },
-    { "id": "mkt-2", "nombre": "Colaborador Activo", "descripcion": "Publicaste 3 apuntes en el Marketplace", "icono": "shopping-bag", "categoria": "uso", "condicion_tipo": "apuntes_publicados", "condicion_valor": 3, "xp_reward": 200 },
-    { "id": "mkt-3", "nombre": "Crítico Académico", "descripcion": "Calificaste un apunte en el Marketplace", "icono": "star", "categoria": "uso", "condicion_tipo": "apuntes_calificados", "condicion_valor": 1, "xp_reward": 50 },
+    // Comunidad
+    { "id": "mkt-1", "nombre": "Primer Aporte", "descripcion": "Publicaste tu primer apunte comunitario en la Comunidad", "icono": "shopping-bag", "categoria": "uso", "condicion_tipo": "apuntes_publicados", "condicion_valor": 1, "xp_reward": 100 },
+    { "id": "mkt-2", "nombre": "Colaborador Activo", "descripcion": "Publicaste 3 apuntes en la Comunidad", "icono": "shopping-bag", "categoria": "uso", "condicion_tipo": "apuntes_publicados", "condicion_valor": 3, "xp_reward": 200 },
+    { "id": "mkt-3", "nombre": "Crítico Académico", "descripcion": "Calificaste un apunte en la Comunidad", "icono": "star", "categoria": "uso", "condicion_tipo": "apuntes_calificados", "condicion_valor": 1, "xp_reward": 50 },
     { "id": "mkt-4", "nombre": "Evaluador Experto", "descripcion": "Calificaste 5 apuntes de la comunidad", "icono": "star", "categoria": "uso", "condicion_tipo": "apuntes_calificados", "condicion_valor": 5, "xp_reward": 150 },
     // Juegos
     { "id": "game-1", "nombre": "Primer Desafío", "descripcion": "Jugaste tu primera partida en los juegos de TABE", "icono": "gamepad-2", "categoria": "juegos", "condicion_tipo": "partidas_jugadas", "condicion_valor": 1, "xp_reward": 75 },

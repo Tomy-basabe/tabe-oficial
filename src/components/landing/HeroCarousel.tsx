@@ -44,8 +44,8 @@ const slides = [
     },
     {
         id: 6,
-        title: "Marketplace",
-        description: "Adquiere mazos de estudio, temas y pócimas gastando tus XP ganados.",
+        title: "Comunidad",
+        description: "Encuentra y comparte mazos de estudio, cuestionarios y apuntes con la comunidad.",
         icon: Store,
         color: "from-orange-500 to-red-500",
         image: "/screenshots/marketplace.png"
