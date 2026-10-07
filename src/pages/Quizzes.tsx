@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { SubjectSelect } from "@/components/subjects/SubjectSelect";
 
 interface QuizDeck {
     id: string;
@@ -1581,35 +1582,15 @@ export default function Quizzes() {
                             </div>
                             
                             <div className="w-full md:w-auto flex-1 max-w-md">
-                                <Select 
-                                    value={manageDeck.subject_id || "none"}
-                                    onValueChange={(val) => {
-                                        if (val !== "none") updateDeckSubject(manageDeck.id, val);
+                                <SubjectSelect
+                                    value={manageDeck.subject_id || ""}
+                                    onChange={(val) => {
+                                        if (val) updateDeckSubject(manageDeck.id, val);
                                     }}
-                                >
-                                    <SelectTrigger className="w-full px-4 py-6 h-auto bg-background rounded-xl border-[3px] border-foreground font-black shadow-[4px_4px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[6px_6px_0_0_#000] transition-all text-sm data-[state=open]:shadow-[6px_6px_0_0_#000]">
-                                        <SelectValue placeholder="Sin materia asignada" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-xl">
-                                        <SelectItem value="none" className="font-bold uppercase tracking-widest text-muted-foreground focus:bg-secondary cursor-pointer rounded-lg my-1">
-                                            Sin materia asignada
-                                        </SelectItem>
-                                        {[1, 2, 3, 4, 5, 6].map(year => {
-                                            const yearSubjects = subjects.filter(s => s.año === year);
-                                            if (yearSubjects.length === 0) return null;
-                                            return (
-                                                <SelectGroup key={year}>
-                                                    <SelectLabel className="font-black uppercase tracking-widest text-muted-foreground">{year}° Año</SelectLabel>
-                                                    {yearSubjects.map(s => (
-                                                        <SelectItem key={s.id} value={s.id} className="font-bold focus:bg-secondary cursor-pointer rounded-lg my-1">
-                                                            {s.nombre}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectGroup>
-                                            );
-                                        })}
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="Sin materia asignada"
+                                    allowNone={false}
+                                    showYearFilter
+                                />
                             </div>
 
                             {manageDeck.subject && (

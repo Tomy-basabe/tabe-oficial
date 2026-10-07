@@ -1982,10 +1982,15 @@ export default function Notion() {
 
   // Filtered subjects for new doc modal
   const [modalYear, setModalYear] = useState<number | null>(null);
-  const modalSubjects = useMemo(
-    () => (modalYear ? subjects.filter((s) => s.año === modalYear) : subjects),
-    [subjects, modalYear]
-  );
+  const modalSubjects = useMemo(() => {
+    const list = modalYear ? subjects.filter((s) => s.año === modalYear) : subjects;
+    return [...list].sort((a, b) => {
+      const aApp = a.status === "aprobada";
+      const bApp = b.status === "aprobada";
+      if (aApp !== bApp) return aApp ? 1 : -1;
+      return a.nombre.localeCompare(b.nombre);
+    });
+  }, [subjects, modalYear]);
   const selectedDocSubject = useMemo(
     () => (newDocSubjectId ? subjects.find((s) => s.id === newDocSubjectId) : null),
     [subjects, newDocSubjectId]
@@ -3081,12 +3086,6 @@ export default function Notion() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setShowNewDocModal(false)}
-              className="p-1.5 rounded-lg border-2 border-foreground bg-card hover:bg-[#FF5C5C] hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all text-foreground shrink-0"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           <div className="space-y-5 pt-4">
@@ -3171,24 +3170,37 @@ export default function Notion() {
                   <div>
                     <span className="text-[11px] font-bold text-muted-foreground uppercase block mb-1.5">Elegí la materia:</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
-                      {modalSubjects.map((subject) => (
-                        <button
-                          key={subject.id}
-                          type="button"
-                          onClick={() => setNewDocSubjectId(subject.id)}
-                          className="p-2.5 rounded-xl border-2 border-foreground/50 bg-card text-foreground text-left transition-all hover:border-foreground hover:bg-accent hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] group"
-                        >
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <span className="text-[10px] font-black uppercase px-1.5 py-0.5 bg-[#00E5FF] text-black border border-foreground rounded">
-                              {subject.codigo || `Año ${subject.año}`}
-                            </span>
-                            <span className="text-[10px] font-bold text-muted-foreground">Año {subject.año}</span>
-                          </div>
-                          <p className="font-bold text-xs text-foreground truncate group-hover:text-primary transition-colors">
-                            {subject.nombre}
-                          </p>
-                        </button>
-                      ))}
+                      {modalSubjects.map((subject) => {
+                        const isApproved = subject.status === "aprobada";
+                        return (
+                          <button
+                            key={subject.id}
+                            type="button"
+                            onClick={() => setNewDocSubjectId(subject.id)}
+                            className={cn(
+                              "p-2.5 rounded-xl border-2 text-left transition-all hover:translate-y-[-1px] group",
+                              isApproved
+                                ? "border-emerald-500/60 bg-emerald-500/5 hover:border-emerald-500 hover:shadow-[2px_2px_0_0_#10b981]"
+                                : "border-foreground/50 bg-card hover:border-foreground hover:bg-accent hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className={cn(
+                                "text-[9px] font-black uppercase px-1.5 py-0.5 border rounded",
+                                isApproved
+                                  ? "bg-emerald-500 text-black border-black"
+                                  : "bg-[#00E5FF] text-black border-foreground"
+                              )}>
+                                {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
+                              </span>
+                              <span className="text-[10px] font-bold text-muted-foreground">Año {subject.año}</span>
+                            </div>
+                            <p className="font-bold text-xs text-foreground truncate group-hover:text-primary transition-colors">
+                              {subject.nombre}
+                            </p>
+                          </button>
+                        );
+                      })}
                       {modalSubjects.length === 0 && (
                         <div className="col-span-full py-4 text-center text-xs font-bold text-muted-foreground">
                           No hay materias registradas para este filtro.

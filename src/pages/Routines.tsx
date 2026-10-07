@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { useSubjects, type Subject } from "@/hooks/useSubjects";
+import { SubjectSelect } from "@/components/subjects/SubjectSelect";
 import {
     useRoutines,
     type Routine,
@@ -233,24 +234,15 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
                     </div>
 
                     {/* Materia */}
-                    <div>
-                        <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Materia (opcional)</Label>
-                        <Select value={subjectId} onValueChange={setSubjectId}>
-                            <SelectTrigger className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:ring-0 focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground text-left truncate">
-                                <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] max-h-[200px] text-foreground">
-                                <SelectItem value="none" className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">General (sin materia)</SelectItem>
-                                {Object.entries(subjectsByYear).sort(([a], [b]) => Number(a) - Number(b)).map(([año, subs]) => (
-                                    subs.map(sub => (
-                                        <SelectItem key={sub.id} value={sub.id} className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">
-                                            {año}° — {sub.nombre}
-                                        </SelectItem>
-                                    ))
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    <SubjectSelect
+                        value={subjectId === "none" ? "" : subjectId}
+                        onChange={(val) => setSubjectId(val || "none")}
+                        label="Materia (opcional)"
+                        placeholder="General (sin materia)"
+                        allowNone
+                        noneLabel="General (sin materia)"
+                        showYearFilter
+                    />
 
                     {/* Category */}
                     <div>

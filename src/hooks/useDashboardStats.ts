@@ -138,6 +138,17 @@ function setStoredDashboardStats(userId: string, userStats: UserStats, studySess
   } catch (e) {}
 }
 
+export function invalidateDashboardStatsCache() {
+  _cachedUserStats = null;
+  _cachedStudySessions = null;
+  try {
+    localStorage.removeItem(DASHBOARD_STATS_CACHE_KEY);
+  } catch (e) {}
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("tabe:dashboard-stats-invalidated"));
+  }
+}
+
 export function useDashboardStats() {
   const { user, isGuest } = useAuth();
   const { subjects } = useSubjects();
@@ -301,6 +312,17 @@ export function useDashboardStats() {
     }
     fetchStats(!_cachedUserStats);
   }, [fetchStats, user]);
+
+  // Refrescar inmediatamente si se invalida la caché de estadísticas desde cualquier pantalla
+  useEffect(() => {
+    const handleInvalidate = () => {
+      fetchStats(false);
+    };
+    window.addEventListener("tabe:dashboard-stats-invalidated", handleInvalidate);
+    return () => {
+      window.removeEventListener("tabe:dashboard-stats-invalidated", handleInvalidate);
+    };
+  }, [fetchStats]);
 
   // Calculate subject statistics
   const subjectStats = {

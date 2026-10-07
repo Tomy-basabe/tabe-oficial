@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Clock, BookOpen, Sparkles, Coins, Calendar, Check, Zap, ChevronDown } from "lucide-react";
+import { Clock, BookOpen, Sparkles, Coins, Calendar, Check, Zap, ChevronDown, CheckCircle2 } from "lucide-react";
 import { toLocalDateStr } from "@/lib/utils";
+import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
 interface ManualStudyDialogProps {
   open: boolean;
@@ -127,6 +128,9 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
 
         await supabase.rpc("check_and_unlock_achievements", { p_user_id: user.id });
       }
+
+      // Invalidar caché del dashboard para reflejar el nuevo tiempo inmediatamente
+      invalidateDashboardStatsCache();
 
       toast.success(`¡Tiempo guardado! +${xpGained} XP y +${creditsGained} Créditos ganados`);
       onSuccess();
@@ -306,22 +310,46 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                 <SelectItem value="none" className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black">
                   Sin materia específica (Estudio general)
                 </SelectItem>
-                {subjectsByYear.map(({ year, subjects: ys }) => (
-                  <SelectGroup key={year}>
-                    <SelectLabel className="text-[11px] font-black uppercase text-muted-foreground px-3 py-1 bg-muted/60 border-y border-foreground/10">
-                      {year ? `Año ${year}` : "Otras materias"}
+
+                {filteredSubjects.filter(s => (s as any).status !== "aprobada").length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[11px] font-black uppercase text-muted-foreground px-3 py-1.5 bg-muted/60 border-y border-foreground/10 flex items-center gap-1.5 tracking-wider my-1">
+                      <BookOpen className="w-3.5 h-3.5 text-cyan-500" />
+                      📖 Materias en Cursada / Pendientes
                     </SelectLabel>
-                    {ys.map((s) => (
-                      <SelectItem
-                        key={s.id}
-                        value={s.id}
-                        className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black"
-                      >
-                        {s.nombre}
-                      </SelectItem>
-                    ))}
+                    {filteredSubjects
+                      .filter(s => (s as any).status !== "aprobada")
+                      .map((s) => (
+                        <SelectItem
+                          key={s.id}
+                          value={s.id}
+                          className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black"
+                        >
+                          {s.nombre} {s.año ? `[Año ${s.año}]` : ""}
+                        </SelectItem>
+                      ))}
                   </SelectGroup>
-                ))}
+                )}
+
+                {filteredSubjects.filter(s => (s as any).status === "aprobada").length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400 px-3 py-1.5 bg-emerald-500/10 border-y border-foreground/10 flex items-center gap-1.5 tracking-wider my-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      ✅ Materias Aprobadas
+                    </SelectLabel>
+                    {filteredSubjects
+                      .filter(s => (s as any).status === "aprobada")
+                      .map((s) => (
+                        <SelectItem
+                          key={s.id}
+                          value={s.id}
+                          className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black"
+                        >
+                          {s.nombre} {s.año ? `[Año ${s.año}]` : ""}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
           </div>

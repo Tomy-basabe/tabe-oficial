@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Trash2, Clock, Calendar, AlertTriangle, BookOpen, Filter } from "lucide-react";
+import { Trash2, Clock, Calendar, AlertTriangle, BookOpen, Filter, CheckCircle2 } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
+import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
 export interface StudySessionItem {
   id?: string;
@@ -225,6 +226,9 @@ export function DeleteStudyTimeDialog({
           .eq("user_id", user.id);
       }
 
+      // Invalidar caché del dashboard para reflejar las nuevas horas y XP inmediatamente
+      invalidateDashboardStatsCache();
+
       toast.success(`Se eliminaron ${formatDuration(totalSecondsToDelete)} de estudio correctamente`);
       onOpenChange(false);
       onSuccess();
@@ -335,31 +339,55 @@ export function DeleteStudyTimeDialog({
               <SelectTrigger className="border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-none font-bold bg-card text-foreground">
                 <SelectValue placeholder="Selecciona materia" />
               </SelectTrigger>
-              <SelectContent className="border-2 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-none bg-card text-foreground z-[9999]">
+              <SelectContent className="border-2 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-none bg-card text-foreground z-[9999] max-h-72">
                 <SelectItem value="all" className="font-black focus:bg-red-500 focus:text-white">
                   Todas las materias de este día
                 </SelectItem>
                 <SelectItem value="none" className="font-bold focus:bg-red-500 focus:text-white">
                   Sin materia asignada / General
                 </SelectItem>
-                {subjectsByYear.map(({ year, subjects: yearSubs }) => (
-                  <SelectGroup key={year}>
-                    {year > 0 && (
-                      <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground bg-muted/60 px-2 py-1">
-                        {year}° Año
-                      </SelectLabel>
-                    )}
-                    {yearSubs.map((s) => (
-                      <SelectItem
-                        key={s.id}
-                        value={s.id}
-                        className="font-bold focus:bg-red-500 focus:text-white"
-                      >
-                        {s.nombre}
-                      </SelectItem>
-                    ))}
+
+                {/* Materias en Cursada / Pendientes */}
+                {filteredSubjects.filter(s => (s as any).status !== "aprobada").length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground bg-muted/60 px-2 py-1 tracking-wider flex items-center gap-1.5 my-1">
+                      <BookOpen className="w-3 h-3 text-cyan-500" />
+                      📖 Materias en Cursada / Pendientes
+                    </SelectLabel>
+                    {filteredSubjects
+                      .filter(s => (s as any).status !== "aprobada")
+                      .map((s) => (
+                        <SelectItem
+                          key={s.id}
+                          value={s.id}
+                          className="font-bold focus:bg-red-500 focus:text-white"
+                        >
+                          {s.nombre} {s.año ? `[Año ${s.año}]` : ""}
+                        </SelectItem>
+                      ))}
                   </SelectGroup>
-                ))}
+                )}
+
+                {/* Materias Aprobadas */}
+                {filteredSubjects.filter(s => (s as any).status === "aprobada").length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 tracking-wider flex items-center gap-1.5 my-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      ✅ Materias Aprobadas
+                    </SelectLabel>
+                    {filteredSubjects
+                      .filter(s => (s as any).status === "aprobada")
+                      .map((s) => (
+                        <SelectItem
+                          key={s.id}
+                          value={s.id}
+                          className="font-bold focus:bg-red-500 focus:text-white"
+                        >
+                          {s.nombre} {s.año ? `[Año ${s.año}]` : ""}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
           </div>

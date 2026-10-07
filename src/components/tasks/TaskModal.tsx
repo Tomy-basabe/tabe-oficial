@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SubjectSelect } from "@/components/subjects/SubjectSelect";
 
 interface SubjectOption {
   id: string;
@@ -167,29 +168,15 @@ export function TaskModal({
           </div>
 
           {/* Materia Asociada */}
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase text-foreground">
-              Materia Asociada
-            </label>
-            <Select
-              value={subjectId || "none"}
-              onValueChange={(val) => setSubjectId(val === "none" ? "" : val)}
-            >
-              <SelectTrigger className="w-full px-3.5 py-2.5 h-auto bg-background border-2 border-foreground rounded-xl text-sm font-bold text-foreground focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-                <SelectValue placeholder="Sin materia específica (General)" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl max-h-60">
-                <SelectItem value="none" className="font-bold cursor-pointer rounded-lg text-sm">
-                  Sin materia específica (General)
-                </SelectItem>
-                {subjects.map((sub) => (
-                  <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer rounded-lg text-sm my-0.5">
-                    {sub.nombre} {sub.codigo ? `(${sub.codigo})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <SubjectSelect
+            value={subjectId || ""}
+            onChange={(val) => setSubjectId(val)}
+            label="Materia Asociada"
+            placeholder="Sin materia específica (General)"
+            allowNone
+            noneLabel="Sin materia específica (General)"
+            showYearFilter
+          />
 
           {/* Estado & Prioridad */}
           <div className="grid grid-cols-2 gap-3">

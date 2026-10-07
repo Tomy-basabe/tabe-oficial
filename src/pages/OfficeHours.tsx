@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { SubjectSelect } from "@/components/subjects/SubjectSelect";
 
 const SUBJECT_COLORS = [
   { bg: "bg-[#FF5C5C]", border: "border-black", text: "text-black", solid: "#FF5C5C", label: "Rojo Fuerte" },
@@ -805,26 +806,16 @@ export default function OfficeHours() {
               </div>
 
               {/* Subject */}
-              <div>
-                <label className="text-sm font-black uppercase text-foreground/80">Materia *</label>
-                <div className="mt-1">
-                  <Select
-                    value={formSubjectId}
-                    onValueChange={setFormSubjectId}
-                  >
-                    <SelectTrigger className="w-full h-auto px-4 py-3 bg-background text-foreground rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold text-left truncate">
-                      <SelectValue placeholder="Seleccionar materia..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card text-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl max-h-[200px]">
-                      {(allSubjects || []).map(sub => (
-                        <SelectItem key={sub.id} value={sub.id} className="font-bold focus:bg-accent focus:text-foreground cursor-pointer">
-                          Año {sub.año} – {sub.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <SubjectSelect
+                value={formSubjectId}
+                onChange={setFormSubjectId}
+                placeholder="Seleccionar materia..."
+                allowNone={false}
+                showYearFilter={true}
+                label="Materia"
+                required={true}
+                triggerClassName="py-3"
+              />
 
               {/* Rol */}
               <div>
