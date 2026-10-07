@@ -334,10 +334,25 @@ export function useNotionDocuments() {
       return true;
     }
 
+    // PROTECCIÓN CONTRA PÉRDIDA DE DATOS:
+    // Si el apunte tenía contenido extenso en caché o sesión (> 3,000 bytes)
+    // y la nueva actualización viene con un contenido casi vacío (< 150 bytes, ej: [{"type":"paragraph"}]),
+    // bloquear el guardado destructivo para no borrar accidentalmente notas por errores de carga.
+    if (updates.contenido) {
+      const prevCached = contentCacheRef.current.get(id);
+      const prevLen = prevCached ? JSON.stringify(prevCached).length : 0;
+      const newLen = JSON.stringify(updates.contenido).length;
+      if (prevLen > 3000 && newLen < 150) {
+        console.warn(`[AntiDataLoss] Guardado cancelado para ${id}: intento de sobreescribir documento extenso (${prevLen}b) con contenido vacío (${newLen}b).`);
+        return false;
+      }
+    }
+
     let { error } = await supabase
       .from("notion_documents")
       .update(updates)
       .eq("id", id);
+
 
     if (error && (updates.is_shared !== undefined || updates.share_token !== undefined || updates.share_permission !== undefined)) {
       console.warn("Update with cooperative columns failed, retrying without them:", error.message);
@@ -486,10 +501,10 @@ export function useNotionDocuments() {
       } catch (e) {}
     }
 
-    try {
-      // Timeout de seguridad de 5 segundos para que la apertura de un apunte nunca se quede colgada
+    // Helper interno para consultar a Supabase con timeout de 30 segundos
+    const executeQuery = async () => {
       const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
-        setTimeout(() => resolve({ data: null, error: { message: "FETCH_CONTENT_TIMEOUT" } }), 5000);
+        setTimeout(() => resolve({ data: null, error: { message: "FETCH_CONTENT_TIMEOUT" } }), 30000);
       });
 
       const fetchPromise = supabase
@@ -498,37 +513,55 @@ export function useNotionDocuments() {
         .eq("id", docId)
         .single();
 
-      const res = await Promise.race([fetchPromise, timeoutPromise]);
-      const { data, error } = res as any;
+      return Promise.race([fetchPromise, timeoutPromise]);
+    };
+
+    try {
+      let res = await executeQuery();
+      let { data, error } = res as any;
+
+      // Reintento automático único si la primera solicitud tuvo un hipo de red o timeout
+      if (error) {
+        console.warn("fetchDocumentContent primer intento falló, reintentando...", error.message);
+        await new Promise((r) => setTimeout(r, 800));
+        res = await executeQuery();
+        data = (res as any).data;
+        error = (res as any).error;
+      }
 
       if (error) {
-        if (error.message === "FETCH_CONTENT_TIMEOUT") {
-          console.warn("fetchDocumentContent timed out, checking fallback cache");
-          const fallback = contentCacheRef.current.get(docId);
-          if (fallback) return fallback;
-        }
+        const fallback = contentCacheRef.current.get(docId);
+        if (fallback) return fallback;
         throw error;
       }
-      
-      // Store in memory and persistent session cache
-      if (data && data.contenido) {
-        contentCacheRef.current.set(docId, data.contenido);
+
+      let parsedContenido = data?.contenido;
+      if (typeof parsedContenido === "string") {
         try {
-          sessionStorage.setItem(`tabe_doc_content_${docId}`, JSON.stringify(data.contenido));
+          parsedContenido = JSON.parse(parsedContenido);
+        } catch (e) {
+          console.warn("Contenido de apunte vino como string pero no JSON:", e);
+        }
+      }
+
+      // Almacenar en caché de memoria y sessionStorage
+      if (parsedContenido) {
+        contentCacheRef.current.set(docId, parsedContenido);
+        try {
+          sessionStorage.setItem(`tabe_doc_content_${docId}`, JSON.stringify(parsedContenido));
         } catch (e) {}
       }
 
-      setDocuments(prev => prev.map(doc => 
-        doc.id === docId ? { ...doc, contenido: data?.contenido } : doc
-      ));
+      setDocuments((prev) =>
+        prev.map((doc) => (doc.id === docId ? { ...doc, contenido: parsedContenido } : doc))
+      );
 
-      return data?.contenido || null;
+      return parsedContenido || null;
     } catch (error: any) {
       console.error("Error fetching document content:", error);
-      // Fallback a caché si la red falló
       const fallback = contentCacheRef.current.get(docId);
       if (fallback) return fallback;
-      toast.error("Error al cargar el contenido del documento");
+      toast.error("Error al descargar el apunte extenso. Por favor, reintenta.");
       return null;
     }
   };

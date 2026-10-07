@@ -1325,23 +1325,30 @@ export default function Notion() {
     setActiveDocument(doc);
     activeDocumentRef.current = doc;
     setLastSaved(null);
-    // Explicitly reset editor content to avoid stale content being displayed
     setEditorContent(null);
     editorContentRef.current = null;
 
-    const safetyTimer = setTimeout(() => setIsOpeningDoc(false), 5000);
     try {
       rawContent = await fetchDocumentContent(doc.id, false);
       if (rawContent) {
         tabContentCacheRef.current.set(doc.id, rawContent);
       }
     } finally {
-      clearTimeout(safetyTimer);
       setIsOpeningDoc(false);
     }
 
     // If active document changed while awaiting DB fetch, discard stale response
     if (activeDocumentRef.current?.id !== doc.id) {
+      return;
+    }
+
+    if (!rawContent) {
+      toast.error("No se pudo cargar el contenido del apunte. Haz clic para reintentar.", {
+        action: {
+          label: "Reintentar",
+          onClick: () => openDocument(doc),
+        },
+      });
       return;
     }
 
@@ -1360,13 +1367,17 @@ export default function Notion() {
 
     const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
     if (editor && !editor.isDestroyed) {
-      const isCollab = isDocOrAncestorCollaborative(doc);
-      if (!isCollab) {
-        editor.commands.setContent(content, false);
-      } else if (ydoc && ydoc.getXmlFragment('default').length === 0) {
-        editor.commands.setContent(content, false);
+      try {
+        const isCollab = isDocOrAncestorCollaborative(doc);
+        if (!isCollab) {
+          editor.commands.setContent(content, false);
+        } else if (ydoc && ydoc.getXmlFragment('default').length === 0) {
+          editor.commands.setContent(content, false);
+        }
+        editor.commands.setTextSelection(0);
+      } catch (err) {
+        console.error("Error setting editor content:", err);
       }
-      editor.commands.setTextSelection(0);
       const canEditDoc = doc.user_id === user?.id || (
         (doc.is_shared && doc.share_permission === 'edit') ||
         doc.user_permission === 'edit' ||
@@ -3352,30 +3363,43 @@ export default function Notion() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Eliminar Página</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[380px] border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-none p-0 overflow-hidden">
+          {/* Header rojo */}
+          <div className="bg-red-500 px-6 pt-6 pb-4 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-none border-2 border-white/80 bg-red-600 flex items-center justify-center shrink-0 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)]">
+              <Trash2 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <DialogTitle className="text-white text-lg font-black tracking-tight leading-tight">
+                ¿Mover a papelera?
+              </DialogTitle>
+              <p className="text-red-100 text-xs font-medium mt-0.5">Esta acción es reversible por 30 min</p>
+            </div>
+          </div>
 
-          <p className="text-muted-foreground text-sm">
-            ¿Estás seguro de mover a la papelera "
-            <span className="font-semibold text-foreground">{docToDelete?.titulo || "Sin título"}</span>"?
-            Tendrás <span className="text-amber-500 font-bold">30 minutos</span> para recuperarla antes de que se elimine definitivamente de la base de datos.
-          </p>
+          <div className="px-6 py-4 space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Moverás{" "}
+              <span className="font-black text-foreground">"{docToDelete?.titulo || "Sin título"}"</span>{" "}
+              a la papelera. Tendrás{" "}
+              <span className="text-amber-500 font-black">30 minutos</span>{" "}
+              para recuperarla antes de que se elimine definitivamente.
+            </p>
 
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={() => setShowDeleteModal(false)}
-              className="flex-1 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 font-medium transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleDeleteDocument}
-              className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium transition-colors"
-            >
-              Mover a papelera
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-2.5 border-2 border-foreground font-bold text-sm transition-all hover:bg-secondary shadow-[3px_3px_0_0_hsl(var(--foreground))] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteDocument}
+                className="flex-1 py-2.5 bg-red-500 text-white border-2 border-foreground font-black text-sm transition-all hover:bg-red-600 shadow-[3px_3px_0_0_hsl(var(--foreground))] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]"
+              >
+                Mover a papelera
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -3460,23 +3484,23 @@ export default function Notion() {
       )}
       {/* AI Material Generation Modal */}
       <Dialog open={showAIModal} onOpenChange={(val) => !isGeneratingAI && setShowAIModal(val)}>
-        <DialogContent className="sm:max-w-[500px] border border-purple-500/30 bg-[#0d0d12]/95 backdrop-blur-xl shadow-[0_0_50px_rgba(168,85,247,0.25)] rounded-2xl p-6 overflow-hidden">
+        <DialogContent className="sm:max-w-[500px] border border-purple-500/30 bg-card backdrop-blur-xl shadow-[0_0_50px_rgba(168,85,247,0.15)] rounded-2xl p-6 overflow-hidden">
           <DialogHeader className="space-y-1.5 pb-2">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 p-0.5 shadow-[0_0_15px_rgba(168,85,247,0.4)] shrink-0">
-                <div className="w-full h-full bg-[#0d0d12] rounded-[10px] flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
+                <div className="w-full h-full bg-card rounded-[10px] flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-purple-500 animate-pulse" />
                 </div>
               </div>
               <div>
-                <DialogTitle className="text-xl font-display font-black tracking-tight text-white flex items-center gap-2">
+                <DialogTitle className="text-xl font-display font-black tracking-tight text-foreground flex items-center gap-2">
                   <span>Magia de Tabe AI</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-500 border border-purple-500/30">
                     Estudio Inteligente
                   </span>
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground truncate max-w-[340px]">
-                  Genera material interactivo desde: <span className="text-white font-semibold">{localTitle || activeDocument?.titulo || "Este apunte"}</span>
+                  Genera material interactivo desde: <span className="text-foreground font-semibold">{localTitle || activeDocument?.titulo || "Este apunte"}</span>
                 </p>
               </div>
             </div>
@@ -3486,17 +3510,17 @@ export default function Notion() {
             <div className="py-10 space-y-6 text-center">
               <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
                 <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-cyan-400 animate-spin blur-md opacity-60" />
-                <div className="relative z-10 w-16 h-16 rounded-full bg-[#0d0d12] border border-purple-400/40 flex items-center justify-center shadow-inner">
-                  <Brain className="w-8 h-8 text-purple-400 animate-pulse" />
+                <div className="relative z-10 w-16 h-16 rounded-full bg-card border border-purple-400/40 flex items-center justify-center shadow-inner">
+                  <Brain className="w-8 h-8 text-purple-500 animate-pulse" />
                 </div>
               </div>
               <div className="space-y-2">
-                <h4 className="text-base font-black text-white tracking-wide">Tabe AI está procesando tu apunte...</h4>
+                <h4 className="text-base font-black text-foreground tracking-wide">Tabe AI está procesando tu apunte...</h4>
                 <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
                   Extrayendo conceptos clave y estructurando {aiGenType === 'flashcards' ? 'tus flashcards de repaso' : 'tu cuestionario tipo examen'}.
                 </p>
               </div>
-              <div className="w-full bg-purple-950/40 rounded-full h-2 overflow-hidden border border-purple-500/20 max-w-xs mx-auto">
+              <div className="w-full bg-purple-500/20 rounded-full h-2 overflow-hidden border border-purple-500/30 max-w-xs mx-auto">
                 <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 h-full w-full animate-pulse" />
               </div>
             </div>
@@ -3505,7 +3529,7 @@ export default function Notion() {
               {/* Type selection */}
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-purple-400" />
+                  <Zap className="w-3.5 h-3.5 text-purple-500" />
                   ¿Qué deseas generar?
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -3515,7 +3539,7 @@ export default function Notion() {
                     className={cn(
                       "p-3.5 rounded-xl border-2 text-left transition-all relative overflow-hidden group flex flex-col justify-between h-32",
                       aiGenType === 'flashcards'
-                        ? "bg-purple-500/15 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.25)] text-white"
+                        ? "bg-purple-500/15 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.25)] text-foreground"
                         : "bg-secondary/20 border-border/70 hover:border-purple-500/40 text-muted-foreground hover:bg-secondary/40"
                     )}
                   >
@@ -3533,7 +3557,7 @@ export default function Notion() {
                       )}
                     </div>
                     <div>
-                      <div className="font-black text-sm text-white">Mazo Flashcards</div>
+                      <div className="font-black text-sm text-foreground">Mazo Flashcards</div>
                       <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
                         Preguntas y respuestas para repetición espaciada.
                       </div>
@@ -3546,7 +3570,7 @@ export default function Notion() {
                     className={cn(
                       "p-3.5 rounded-xl border-2 text-left transition-all relative overflow-hidden group flex flex-col justify-between h-32",
                       aiGenType === 'quiz'
-                        ? "bg-cyan-500/15 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.25)] text-white"
+                        ? "bg-cyan-500/15 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.25)] text-foreground"
                         : "bg-secondary/20 border-border/70 hover:border-cyan-500/40 text-muted-foreground hover:bg-secondary/40"
                     )}
                   >
@@ -3564,7 +3588,7 @@ export default function Notion() {
                       )}
                     </div>
                     <div>
-                      <div className="font-black text-sm text-white">Cuestionario Test</div>
+                      <div className="font-black text-sm text-foreground">Cuestionario Test</div>
                       <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
                         Preguntas tipo examen con justificación.
                       </div>
@@ -3579,7 +3603,7 @@ export default function Notion() {
                   <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
                     Cantidad de elementos
                   </label>
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30">
                     {aiGenCount} {aiGenType === 'flashcards' ? 'tarjetas' : 'preguntas'}
                   </span>
                 </div>
@@ -3595,7 +3619,7 @@ export default function Notion() {
                         "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border",
                         aiGenCount === count
                           ? "bg-purple-500 text-white border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-                          : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary hover:text-white"
+                          : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
                       )}
                     >
                       {count}
@@ -3615,11 +3639,11 @@ export default function Notion() {
               </div>
 
               {/* Informative box */}
-              <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-500/20 flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
                   Tabe AI procesará el texto de este apunte y creará el material en tu sección de{" "}
-                  <span className="text-white font-semibold">{aiGenType === 'flashcards' ? 'Flashcards' : 'Cuestionarios'}</span>, vinculado automáticamente a esta materia para estudiar cuando quieras.
+                  <span className="text-foreground font-semibold">{aiGenType === 'flashcards' ? 'Flashcards' : 'Cuestionarios'}</span>, vinculado automáticamente a esta materia para estudiar cuando quieras.
                 </p>
               </div>
             </div>
@@ -3630,7 +3654,7 @@ export default function Notion() {
               variant="ghost"
               onClick={() => setShowAIModal(false)}
               disabled={isGeneratingAI}
-              className="font-bold tracking-tight text-xs uppercase text-muted-foreground hover:text-white"
+              className="font-bold tracking-tight text-xs uppercase text-muted-foreground hover:text-foreground"
             >
               Cancelar
             </Button>

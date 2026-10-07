@@ -426,14 +426,14 @@ function contentToHtml(content: JSONContent[] | undefined): string {
  * Detects if content is in EditorJS format (has blocks array)
  */
 export function isEditorJSFormat(content: any): content is OutputData {
-  return content && Array.isArray(content.blocks);
+  return content && typeof content === "object" && Array.isArray(content.blocks);
 }
 
 /**
  * Detects if content is in TipTap format (has type: "doc")
  */
 export function isTipTapFormat(content: any): content is JSONContent {
-  return content && content.type === "doc";
+  return content && typeof content === "object" && content.type === "doc" && Array.isArray(content.content);
 }
 
 /**
@@ -441,7 +441,49 @@ export function isTipTapFormat(content: any): content is JSONContent {
  */
 export function ensureTipTapFormat(content: any): JSONContent | null {
   if (!content) return null;
-  if (isTipTapFormat(content)) return content;
-  if (isEditorJSFormat(content)) return editorJSToTipTap(content);
+
+  // 1. Si viene como string, intentar deserializarlo
+  let parsed = content;
+  if (typeof content === "string") {
+    const trimmed = content.trim();
+    if (!trimmed) return null;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      // Si no es JSON válido (ej. texto plano o markdown importado), convertir por líneas
+      const lines = trimmed.split("\n").filter(Boolean);
+      return {
+        type: "doc",
+        content: lines.map((line) => ({
+          type: "paragraph",
+          content: [{ type: "text", text: line }],
+        })),
+      };
+    }
+  }
+
+  // 2. Si ya es formato TipTap doc válido
+  if (isTipTapFormat(parsed)) return parsed;
+
+  // 3. Si viene como un objeto doc con content pero faltaba array
+  if (parsed && typeof parsed === "object" && parsed.type === "doc") {
+    return {
+      type: "doc",
+      content: Array.isArray(parsed.content) ? parsed.content : [{ type: "paragraph" }],
+    };
+  }
+
+  // 4. Si es un array de nodos TipTap directos
+  if (Array.isArray(parsed)) {
+    return {
+      type: "doc",
+      content: parsed.length > 0 ? parsed : [{ type: "paragraph" }],
+    };
+  }
+
+  // 5. Si es formato EditorJS
+  if (isEditorJSFormat(parsed)) return editorJSToTipTap(parsed);
+
   return null;
 }
+

@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogDescription, DialogFooter
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectGroup,
+  SelectItem, SelectLabel, SelectTrigger, SelectValue
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Clock, BookOpen, Sparkles, Coins, Calendar, Check, Zap } from "lucide-react";
+import { Clock, BookOpen, Sparkles, Coins, Calendar, Check, Zap, ChevronDown } from "lucide-react";
 import { toLocalDateStr } from "@/lib/utils";
 
 interface ManualStudyDialogProps {
@@ -291,22 +294,35 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                 </div>
               )}
             </div>
-            <select
-              value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-              className="w-full px-3 py-2 bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold text-sm text-foreground focus:outline-none focus:ring-0"
+            <Select
+              value={subjectId || "none"}
+              onValueChange={(val) => setSubjectId(val === "none" ? "" : val)}
             >
-              <option value="">Sin materia específica (Estudio general)</option>
-              {subjectsByYear.map(({ year, subjects: ys }) => (
-                <optgroup key={year} label={year ? `Año ${year}` : "Otras materias"}>
-                  {ys.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.nombre}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              <SelectTrigger className="w-full h-11 bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold text-sm text-foreground focus:ring-0 focus:ring-offset-0 px-3 cursor-pointer">
+                <SelectValue placeholder="Sin materia específica (Estudio general)" />
+              </SelectTrigger>
+              <SelectContent className="bg-card text-foreground border-2 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-xl max-h-64 z-[9999]">
+                <SelectItem value="none" className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black">
+                  Sin materia específica (Estudio general)
+                </SelectItem>
+                {subjectsByYear.map(({ year, subjects: ys }) => (
+                  <SelectGroup key={year}>
+                    <SelectLabel className="text-[11px] font-black uppercase text-muted-foreground px-3 py-1 bg-muted/60 border-y border-foreground/10">
+                      {year ? `Año ${year}` : "Otras materias"}
+                    </SelectLabel>
+                    {ys.map((s) => (
+                      <SelectItem
+                        key={s.id}
+                        value={s.id}
+                        className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black"
+                      >
+                        {s.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Live Rewards Estimate Card */}
