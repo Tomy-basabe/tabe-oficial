@@ -1,4 +1,4 @@
-import { Bell, BellOff, Clock, Calendar } from "lucide-react";
+import { Bell, BellOff, Clock, Calendar, Heart } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
@@ -78,7 +78,7 @@ export function NotificationSettings() {
               </div>
               <div>
                 <h4 className="font-black uppercase text-sm text-foreground">Recordatorio Diario</h4>
-                <p className="font-bold text-xs text-muted-foreground">Aviso diario para mantener tu racha</p>
+                <p className="font-bold text-xs text-muted-foreground">Aviso diario a las 9 AM para mantener tu racha</p>
               </div>
             </div>
             <Switch
@@ -100,8 +100,31 @@ export function NotificationSettings() {
           )}
         </div>
 
-        {/* Exam Reminders */}
+        {/* Pet Reminders */}
         <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#FF2E93] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] flex items-center justify-center">
+                <Heart className="w-5 h-5 text-white" strokeWidth={2.5} />
+              </div>
+              <div>
+                <h4 className="font-black uppercase text-sm text-foreground">Cuidado de Mascota</h4>
+                <p className="font-bold text-xs text-muted-foreground">Alertas para alimentar y salvar a tu mascota</p>
+              </div>
+            </div>
+            <Switch
+              checked={settings.petReminders ?? true}
+              onCheckedChange={(checked) => updateSettings({ petReminders: checked })}
+            />
+          </div>
+
+          <div className="pt-3 border-t-2 border-border/70 text-[11px] font-bold text-muted-foreground">
+            Llegan a las 9:00 AM incluso con la app cerrada si tu mascota pasa más de 16-24 hs sin atención.
+          </div>
+        </div>
+
+        {/* Exam Reminders */}
+        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4 md:col-span-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000] flex items-center justify-center">
@@ -109,7 +132,7 @@ export function NotificationSettings() {
               </div>
               <div>
                 <h4 className="font-black uppercase text-sm text-foreground">Avisos de Exámenes</h4>
-                <p className="font-bold text-xs text-muted-foreground">Alertas antes de cada parcial o final</p>
+                <p className="font-bold text-xs text-muted-foreground">Alertas antes de cada parcial o final (excluye clases o entregas)</p>
               </div>
             </div>
             <Switch

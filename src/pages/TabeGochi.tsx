@@ -60,6 +60,34 @@ export default function TabeGochi() {
     recordMiniGame,
   } = useTabeGochi();
 
+  // Sincronizar estado vital de la mascota a IndexedDB para recordatorios en segundo plano con app cerrada
+  useEffect(() => {
+    if (!activePet) return;
+    try {
+      if (typeof window !== "undefined" && "indexedDB" in window) {
+        const request = indexedDB.open("tabe_alarms_db", 1);
+        request.onsuccess = (e: any) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains("alarms")) return;
+          const tx = db.transaction("alarms", "readwrite");
+          const store = tx.objectStore("alarms");
+          store.put({
+            id: "pet_reminder",
+            petName: activePet.name,
+            hunger: activePet.hunger,
+            health: activePet.health,
+            isSick: !!activePet.isSick,
+            isDead: !!activePet.isDead,
+            lastUpdated: activePet.lastUpdated,
+            hour: 9,
+            enabled: true,
+            lastSentDate: null,
+          });
+        };
+      }
+    } catch (_) {}
+  }, [activePet?.lastUpdated, activePet?.health, activePet?.hunger, activePet?.isDead, activePet?.isSick]);
+
   // Modals state
   const [showAdoptModal, setShowAdoptModal] = useState(false);
   const [showShopModal, setShowShopModal] = useState(false);

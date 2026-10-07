@@ -330,7 +330,7 @@ serve(async (req) => {
 
       for (const [userId, subs] of userMap.entries()) {
         try {
-          const { data: exams } = await supabase
+          const { data: events } = await supabase
             .from("calendar_events")
             .select("titulo, tipo_examen, fecha, subjects(nombre)")
             .eq("user_id", userId)
@@ -341,13 +341,39 @@ serve(async (req) => {
           let pushBody = "";
           let pushUrl = "/dashboard";
 
-          if (exams && exams.length > 0) {
-            const ex = exams[0];
-            const examType = ex.tipo_examen || "Examen";
-            const subject = (ex as any).subjects?.nombre || ex.titulo;
-            pushTitle = `📝 ${examType}: ${subject}`;
-            pushBody = "Mañana tenés fecha de examen en TABE. ¡Hacé un repaso rápido para llegar al 100%!";
-            pushUrl = "/calendario";
+          const isActualExam = (tipo?: string | null): boolean => {
+            if (!tipo) return false;
+            const t = tipo.trim().toLowerCase();
+            const nonExams = ["clase", "tp", "entrega", "estudio", "otro", "reunión", "reunion", "tarea"];
+            if (nonExams.includes(t)) return false;
+            return (
+              tipo.startsWith("P") ||
+              tipo.includes("Global") ||
+              tipo.includes("Final") ||
+              tipo.includes("Recuperatorio") ||
+              t.includes("parcial") ||
+              t.includes("examen")
+            );
+          };
+
+          if (events && events.length > 0) {
+            const ev = events[0];
+            const examType = ev.tipo_examen || "Examen";
+            const subject = (ev as any).subjects?.nombre || ev.titulo;
+
+            if (isActualExam(ev.tipo_examen)) {
+              pushTitle = `📝 ${examType}: ${subject}`;
+              pushBody = "Mañana tenés fecha de examen en TABE. ¡Hacé un repaso rápido para llegar al 100%!";
+              pushUrl = "/calendario";
+            } else if (ev.tipo_examen === "Entrega" || ev.tipo_examen === "TP") {
+              pushTitle = `📋 Entrega: ${subject}`;
+              pushBody = "Mañana tenés una entrega pendiente en TABE. ¡Revisá tus tareas!";
+              pushUrl = "/calendario";
+            } else {
+              pushTitle = `📅 Evento: ${subject}`;
+              pushBody = `Mañana tenés ${subject} programado en tu calendario de TABE.`;
+              pushUrl = "/calendario";
+            }
           } else {
             const { data: stats } = await supabase
               .from("user_stats")
@@ -366,6 +392,11 @@ serve(async (req) => {
               pushTitle = "🔥 ¡Tu racha en TABE está en juego!";
               pushBody = `Llevás ${stats.racha_actual} días consecutivos. Dedicále 15 minutos hoy para no perderla.`;
               pushUrl = "/pomodoro";
+            } else {
+              // Recordatorio de cuidado de mascota en segundo plano
+              pushTitle = "🐾 ¡Cuidá a tu mascota en TABE! ❤️";
+              pushBody = "¡Recordá alimentarla y mimarla hoy en TABE-GOTCHI para mantenerla sana y que no muera!";
+              pushUrl = "/tabe-gotchi";
             }
           }
 

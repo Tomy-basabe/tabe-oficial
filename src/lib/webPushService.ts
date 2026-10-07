@@ -181,9 +181,19 @@ export interface SyncAlarmsParams {
     id: string;
     title: string;
     examType: string;
+    isExam?: boolean;
     date: string;
     daysBefore: number;
   }>;
+  pet?: {
+    name: string;
+    hunger: number;
+    health: number;
+    isSick: boolean;
+    isDead: boolean;
+    lastUpdated: number;
+    enabled: boolean;
+  };
 }
 
 export function syncAlarmsToIndexedDB(params: SyncAlarmsParams): Promise<void> {
@@ -206,23 +216,41 @@ export function syncAlarmsToIndexedDB(params: SyncAlarmsParams): Promise<void> {
       const tx = db.transaction("alarms", "readwrite");
       const store = tx.objectStore("alarms");
 
-      // Store study reminder
+      // 1. Guardar recordatorio de estudio diario (9:00 AM)
       store.put({
         id: "study_reminder",
-        hour: params.studyReminderHour,
-        minute: params.studyReminderMinute,
+        hour: params.studyReminderHour ?? 9,
+        minute: params.studyReminderMinute ?? 0,
         enabled: params.studyReminderEnabled,
         lastSentDate: null,
       });
 
-      // Store upcoming exams
+      // 2. Guardar recordatorio de cuidado de mascota (TABE-GOTCHI)
+      if (params.pet) {
+        store.put({
+          id: "pet_reminder",
+          petName: params.pet.name,
+          hunger: params.pet.hunger,
+          health: params.pet.health,
+          isSick: params.pet.isSick,
+          isDead: params.pet.isDead,
+          lastUpdated: params.pet.lastUpdated,
+          hour: params.studyReminderHour ?? 9,
+          enabled: params.pet.enabled,
+          lastSentDate: null,
+        });
+      }
+
+      // 3. Guardar eventos de calendario distinguiendo exámenes reales
       params.exams.forEach((ex) => {
         store.put({
           id: `exam_${ex.id}`,
           type: "exam",
           title: ex.title,
           examType: ex.examType,
+          isExam: ex.isExam !== undefined ? ex.isExam : true,
           examDate: ex.date,
+          hour: params.studyReminderHour ?? 9,
           daysBefore: ex.daysBefore,
           lastSentDate: null,
         });

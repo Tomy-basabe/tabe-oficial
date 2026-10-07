@@ -12,6 +12,7 @@ interface PixelPetSpriteProps {
   colorSkin?: string;
   isSleeping?: boolean;
   isSick?: boolean;
+  isDead?: boolean;
   isEating?: boolean;
   isHappy?: boolean;
   foodId?: string;
@@ -84,6 +85,7 @@ export function PixelPetSprite({
   colorSkin,
   isSleeping = false,
   isSick = false,
+  isDead = false,
   isEating = false,
   isHappy = false,
   foodId,
@@ -847,6 +849,63 @@ export function PixelPetSprite({
       </g>
     );
   };
+
+  if (isDead) {
+    return (
+      <div
+        style={{ width: size, height: size }}
+        className={cn(
+          "relative flex items-center justify-center select-none transition-transform",
+          className
+        )}
+      >
+        <svg
+          viewBox="0 0 32 32"
+          width={size}
+          height={size}
+          style={{ shapeRendering: "crispEdges", imageRendering: "pixelated" }}
+          className="w-full h-full filter drop-shadow-sm"
+        >
+          {/* Lápida estilo Tamagotchi retro */}
+          <g id="tombstone">
+            {/* Base de tierra */}
+            <rect x="5" y="27" width="22" height="2" fill="#3F3F46" />
+            <rect x="3" y="28" width="26" height="2" fill="#18181B" />
+            
+            {/* Bloque principal de la lápida */}
+            <rect x="8" y="10" width="16" height="17" fill="#71717A" />
+            <rect x="9" y="8" width="14" height="2" fill="#71717A" />
+            <rect x="11" y="7" width="10" height="1" fill="#71717A" />
+            
+            {/* Borde de luz */}
+            <rect x="8" y="10" width="1" height="17" fill="#A1A1AA" />
+            <rect x="9" y="8" width="1" height="2" fill="#A1A1AA" />
+            <rect x="11" y="7" width="10" height="1" fill="#D4D4D8" />
+            
+            {/* Texto R.I.P. en píxeles */}
+            {/* R */}
+            <path d="M10 12 h3 v2 h-2 v1 h-1 z M12 14 l1 2 h-1 l-1 -2 z" fill="#18181B" />
+            {/* I */}
+            <rect x="15" y="12" width="1" height="4" fill="#18181B" />
+            {/* P */}
+            <path d="M18 12 h3 v3 h-2 v1 h-1 z" fill="#18181B" />
+            
+            {/* Cruz grabada / grieta */}
+            <rect x="15" y="19" width="2" height="6" fill="#52525B" />
+            <rect x="13" y="21" width="6" height="2" fill="#52525B" />
+            
+            {/* Fantasmita alado flotando */}
+            <g className="animate-bounce">
+              <rect x="13" y="2" width="6" height="4" fill="#F4F4F5" opacity="0.9" />
+              <rect x="14" y="3" width="1" height="1" fill="#18181B" />
+              <rect x="17" y="3" width="1" height="1" fill="#18181B" />
+              <rect x="13" y="0" width="6" height="1" fill="#FACC15" />
+            </g>
+          </g>
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div

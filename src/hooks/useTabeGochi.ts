@@ -32,6 +32,7 @@ function createDefaultPet(name: string, species: PetSpecies): TabeGochiPet {
     health: 100,
     isSleeping: false,
     isSick: false,
+    isDead: false,
     poopCount: 0,
     hat: undefined,
     background: "room",
@@ -41,13 +42,14 @@ function createDefaultPet(name: string, species: PetSpecies): TabeGochiPet {
 }
 
 /**
- * Calcula la progresión pasiva real en un ciclo de 24 HORAS (interacción 1 vez al día).
- * - Hambre baja ~60% en 24h (2.5% por hora)
- * - Felicidad baja ~50% en 24h (~2.1% por hora)
- * - Energía e Higiene bajan ~45% en 24h (~1.9% por hora)
- * - Máximo 1-2 caquitas por día (cada 12h)
+ * Calcula la progresión pasiva real en un ciclo de 24 HORAS:
+ * - A las 24 horas sin atención: hambre e higiene en 0, 3-4 caquitas, enferma,
+ *   y salud baja drásticamente a nivel crítico (~10-15%, "jodida").
+ * - Pasadas las 24 horas (26-28h) sin comida ni cuidado: la salud llega a 0 y la mascota muere (isDead = true).
  */
 function applyRealTimeDailyDecay(pet: TabeGochiPet, now: number): TabeGochiPet {
+  if (pet.isDead) return pet;
+
   const last = pet.lastUpdated || now;
   const elapsedMs = Math.max(0, now - last);
   const elapsedHours = elapsedMs / (1000 * 60 * 60);
@@ -58,9 +60,9 @@ function applyRealTimeDailyDecay(pet: TabeGochiPet, now: number): TabeGochiPet {
     if (elapsedMinutes < 1) return pet;
 
     const energyGain = Math.floor(elapsedMinutes * 2);
-    const hungerDrop = Math.floor(elapsedHours * 1.2); // Baja muy lento al dormir
+    const hungerDrop = Math.floor(elapsedHours * 2.0); // Baja al dormir
     const newEnergy = Math.min(100, pet.energy + energyGain);
-    const newHunger = Math.max(15, pet.hunger - hungerDrop);
+    const newHunger = Math.max(0, pet.hunger - hungerDrop);
 
     return {
       ...pet,
@@ -72,38 +74,54 @@ function applyRealTimeDailyDecay(pet: TabeGochiPet, now: number): TabeGochiPet {
     };
   }
 
-  // Mientras está despierta: solo aplicamos descuento cuando pasó al menos 24 min (~0.4h = 1% de cambio)
-  // para evitar pérdidas por redondeo y garantizar ritmo real de 24 horas.
-  if (elapsedHours < 0.4) {
+  // Mientras está despierta: descuento mínimo si pasaron al menos 15 min (~0.25h)
+  if (elapsedHours < 0.25) {
     return pet;
   }
 
-  // Limitar caída máxima acumulada para que nunca muera de golpe
-  const effectiveHours = Math.min(elapsedHours, 36);
+  const effectiveHours = Math.min(elapsedHours, 48);
 
-  const hungerDrop = Math.round(effectiveHours * 2.5);     // 60% en 24 horas
-  const happinessDrop = Math.round(effectiveHours * 2.08); // 50% en 24 horas
-  const energyDrop = Math.round(effectiveHours * 1.85);    // 44% en 24 horas
-  const hygieneDrop = Math.round(effectiveHours * 1.85);   // 44% en 24 horas
+  const hungerDrop = Math.round(effectiveHours * 4.16);     // 100% de hambre consumida en 24h
+  const happinessDrop = Math.round(effectiveHours * 3.8);   // ~91% de felicidad en 24h
+  const energyDrop = Math.round(effectiveHours * 3.5);      // ~84% de energía en 24h
+  const hygieneDrop = Math.round(effectiveHours * 3.8);     // ~91% de higiene en 24h
 
-  const newHunger = Math.max(10, pet.hunger - hungerDrop);
-  const newHappiness = Math.max(15, pet.happiness - happinessDrop);
-  const newEnergy = Math.max(15, pet.energy - energyDrop);
+  const newHunger = Math.max(0, pet.hunger - hungerDrop);
+  const newHappiness = Math.max(0, pet.happiness - happinessDrop);
+  const newEnergy = Math.max(0, pet.energy - energyDrop);
 
-  // 1 caquita cada 12 horas transcurridas (máximo 3)
-  const newPoops = Math.min(3, pet.poopCount + Math.floor(effectiveHours / 12));
-  const newHygiene = Math.max(10, pet.hygiene - hygieneDrop - (newPoops > pet.poopCount ? 10 : 0));
+  // 1 caquita cada 6 horas transcurridas (máximo 4)
+  const newPoops = Math.min(4, pet.poopCount + Math.floor(effectiveHours / 6));
+  const newHygiene = Math.max(0, pet.hygiene - hygieneDrop - (newPoops > pet.poopCount ? 10 : 0));
 
-  // Solo se enferma si lleva más de 24-30 horas sin atención (hambre e higiene críticas)
-  const becomesSick = pet.isSick || (newHunger <= 15 && newHygiene <= 20 && effectiveHours >= 20);
-  const newHealth = becomesSick
-    ? Math.max(30, pet.health - Math.round(effectiveHours * 1.2))
-    : Math.min(100, pet.health + 5);
+  // Se enferma si pasa más de 16 horas sin atención o si el hambre y la higiene son críticas
+  const becomesSick = pet.isSick || (effectiveHours >= 16 || (newHunger <= 15 && newHygiene <= 20));
+
+  let newHealth = pet.health;
+  let isDead = false;
+
+  if (becomesSick) {
+    // Si sobrepasa las 16 horas sin cuidado, la salud se desgasta:
+    // A las 24 horas exactas (8h de desatención extrema): 8 * 11 = ~88 puntos de daño -> Salud queda en ~12% ("jodida")
+    // Pasadas las 24 horas (a partir de ~26-27 horas): salud llega a 0 y muere
+    const severeHours = Math.max(0, effectiveHours - 16);
+    const healthDamage = Math.round(severeHours * 11);
+    newHealth = Math.max(0, pet.health - healthDamage);
+
+    if (newHealth <= 0 || effectiveHours >= 27) {
+      newHealth = 0;
+      isDead = true;
+    }
+  } else {
+    newHealth = Math.min(100, pet.health + 2);
+  }
 
   let stage = pet.stage;
-  if (pet.level >= 10 && stage !== "legendary") stage = "legendary";
-  else if (pet.level >= 6 && stage !== "adult" && stage !== "legendary") stage = "adult";
-  else if (pet.level >= 3 && stage === "baby") stage = "child";
+  if (!isDead) {
+    if (pet.level >= 10 && stage !== "legendary") stage = "legendary";
+    else if (pet.level >= 6 && stage !== "adult" && stage !== "legendary") stage = "adult";
+    else if (pet.level >= 3 && stage === "baby") stage = "child";
+  }
 
   return {
     ...pet,
@@ -113,7 +131,9 @@ function applyRealTimeDailyDecay(pet: TabeGochiPet, now: number): TabeGochiPet {
     hygiene: newHygiene,
     health: newHealth,
     poopCount: newPoops,
-    isSick: becomesSick,
+    isSick: becomesSick && !isDead,
+    isDead,
+    diedAt: isDead ? (pet.diedAt || now) : undefined,
     stage,
     ageDays: Math.max(1, Math.floor((now - (pet.createdAt || now)) / 86400000) + 1),
     lastUpdated: now,
@@ -254,6 +274,12 @@ export function useTabeGochi() {
     if (!activePet) return;
     if (!checkActionCooldown("feed", 700)) return;
 
+    if (activePet.isDead) {
+      toast.error(`¡${activePet.name} ha fallecido por falta de atención! Usa [Revivir] para salvarlo.`);
+      TabeGochiAudio.playClick();
+      return;
+    }
+
     if (activePet.isSleeping) {
       toast.error(`¡${activePet.name} está durmiendo! Despiértalo primero.`);
       return;
@@ -316,6 +342,12 @@ export function useTabeGochi() {
     if (!activePet) return;
     if (!checkActionCooldown("pet", 500)) return;
 
+    if (activePet.isDead) {
+      toast.error(`¡${activePet.name} ha fallecido! Usa [Revivir] para revivirlo.`);
+      TabeGochiAudio.playClick();
+      return;
+    }
+
     if (activePet.isSleeping) {
       toast.info(`¡${activePet.name} duerme plácidamente!`);
       return;
@@ -348,6 +380,12 @@ export function useTabeGochi() {
   const cleanPet = () => {
     if (!activePet) return;
     if (!checkActionCooldown("clean", 700)) return;
+
+    if (activePet.isDead) {
+      toast.error(`¡${activePet.name} ha fallecido! Debes revivirlo primero.`);
+      TabeGochiAudio.playClick();
+      return;
+    }
 
     TabeGochiAudio.playClean();
 
@@ -386,6 +424,12 @@ export function useTabeGochi() {
     if (!activePet) return;
     if (!checkActionCooldown("sleep", 700)) return;
 
+    if (activePet.isDead) {
+      toast.error(`¡${activePet.name} ha fallecido!`);
+      TabeGochiAudio.playClick();
+      return;
+    }
+
     const willSleep = !activePet.isSleeping;
 
     if (willSleep) {
@@ -403,10 +447,38 @@ export function useTabeGochi() {
     }));
   };
 
-  // Action: Heal (Medicar si está enfermo)
+  // Action: Revive Pet (Revivir mascota fallecida con segunda oportunidad)
+  const revivePet = () => {
+    if (!activePet) return;
+    if (!checkActionCooldown("revive", 700)) return;
+
+    TabeGochiAudio.playHeal();
+
+    updateActivePet(p => ({
+      ...p,
+      isDead: false,
+      isSick: false,
+      health: 65,
+      hunger: 60,
+      happiness: 60,
+      energy: 80,
+      hygiene: 70,
+      poopCount: 0,
+      lastUpdated: Date.now(),
+    }));
+
+    toast.success(`✨ ¡Reviviste a ${activePet.name}! Ahora cuídalo todos los días para que no vuelva a morir.`);
+  };
+
+  // Action: Heal (Medicar si está enfermo o revivir si falleció)
   const healPet = () => {
     if (!activePet) return;
     if (!checkActionCooldown("heal", 700)) return;
+
+    if (activePet.isDead) {
+      revivePet();
+      return;
+    }
 
     if (!activePet.isSick) {
       toast.info(`¡${activePet.name} está en perfecto estado de salud! (+0 Monedas)`);
@@ -562,6 +634,7 @@ export function useTabeGochi() {
     cleanPoop: cleanPet,
     toggleSleep,
     healPet,
+    revivePet,
     adoptPet,
     switchPet,
     releasePet,

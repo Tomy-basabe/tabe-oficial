@@ -4,6 +4,8 @@ import { subscribeUserToPush, syncAlarmsToIndexedDB, getPushSubscriptionStatus }
 import { supabase } from "@/integrations/supabase/client";
 import { Bell, Check, X } from "lucide-react";
 
+import { isExamType } from "@/hooks/useCalendarEvents";
+
 export function GlobalNotificationManager() {
   const { user } = useAuth();
   const [showPrompt, setShowPrompt] = useState(false);
@@ -46,7 +48,7 @@ export function GlobalNotificationManager() {
     };
   }, [user]);
 
-  // Sync exams & study reminders from Supabase into IndexedDB
+  // Sync exams & study reminders & pet reminders from Supabase into IndexedDB
   async function syncUpcomingAlarms(userId: string) {
     try {
       const today = new Date();
@@ -84,20 +86,88 @@ export function GlobalNotificationManager() {
         } catch (_) {}
       }
 
+      // Filtrar y clasificar eventos distinguiendo exámenes reales
       const formattedExams = (events || []).map((e) => ({
         id: e.id,
         title: e.titulo,
         examType: e.tipo_examen,
+        isExam: isExamType(e.tipo_examen),
         date: e.fecha,
         daysBefore,
       }));
+
+      // Extraer datos de la mascota activa para programar recordatorios de cuidado
+      let petInfo: any = undefined;
+      try {
+        const rawPets = localStorage.getItem("tabe_gochi_pets_v1");
+        const activePetId = localStorage.getItem("tabe_gochi_active_pet_id_v1");
+        if (rawPets) {
+          const parsedPets = JSON.parse(rawPets);
+          const currentPet = (Array.isArray(parsedPets) && parsedPets.length > 0)
+            ? (parsedPets.find((p: any) => p.id === activePetId) || parsedPets[0])
+            : null;
+          if (currentPet) {
+            petInfo = {
+              name: currentPet.name || "tu mascota",
+              hunger: currentPet.hunger ?? 100,
+              health: currentPet.health ?? 100,
+              isSick: !!currentPet.isSick,
+              isDead: !!currentPet.isDead,
+              lastUpdated: currentPet.lastUpdated || Date.now(),
+              enabled: true,
+            };
+          }
+        }
+      } catch (_) {}
 
       await syncAlarmsToIndexedDB({
         studyReminderHour: studyHour,
         studyReminderMinute: studyMinute,
         studyReminderEnabled: studyEnabled,
         exams: formattedExams,
+        pet: petInfo,
       });
+
+      // Programar Notification Triggers a las 9 AM en navegadores compatibles (Chromium PWA)
+      if ("serviceWorker" in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          // @ts-ignore
+          if (typeof window !== "undefined" && window.Notification && "showTrigger" in Notification.prototype && (window as any).TimestampTrigger) {
+            const next9AM = new Date(today.getFullYear(), today.getMonth(), today.getDate(), studyHour, studyMinute, 0);
+            if (next9AM <= today) {
+              next9AM.setDate(next9AM.getDate() + 1);
+            }
+            // Disparador de estudio diario
+            // @ts-ignore
+            await reg.showNotification("¡Hora de estudiar! 📚", {
+              body: "Mantené tu racha de estudio activa en TABE.",
+              icon: "/pwa-192x192.png",
+              badge: "/pwa-192x192.png",
+              tag: "study-reminder-9am",
+              // @ts-ignore
+              showTrigger: new (window as any).TimestampTrigger(next9AM.getTime()),
+              data: { url: "/pomodoro" },
+              vibrate: [200, 100, 200]
+            } as any);
+
+            // Disparador de cuidado de mascota
+            if (petInfo) {
+              // @ts-ignore
+              await reg.showNotification(`🐾 ¡Cuidá a ${petInfo.name} en TABE! ❤️`, {
+                body: "¡No olvides darle de comer y mimarla hoy para que no se enferme!",
+                icon: "/pwa-192x192.png",
+                badge: "/pwa-192x192.png",
+                tag: "pet-reminder-9am",
+                // @ts-ignore
+                showTrigger: new (window as any).TimestampTrigger(next9AM.getTime() + 1000),
+                data: { url: "/tabe-gotchi" },
+                vibrate: [200, 100, 200]
+              } as any);
+            }
+          }
+        } catch (_) {}
+      }
     } catch (e) {
       console.warn("Could not sync exams to IndexedDB:", e);
     }

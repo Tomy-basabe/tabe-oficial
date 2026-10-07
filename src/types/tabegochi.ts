@@ -29,11 +29,13 @@ export interface TabeGochiPet {
   happiness: number;  // 100 = ecstatic, 0 = depressed
   energy: number;     // 100 = fully rested, 0 = exhausted
   hygiene: number;    // 100 = sparkling clean, 0 = dirty
-  health: number;     // 100 = healthy, < 50 = sick
+  health: number;     // 100 = healthy, < 50 = sick, 0 = dead
 
   // Transient state & Customization
   isSleeping: boolean;
   isSick: boolean;
+  isDead?: boolean;   // Si pasa 24hs sin atencion se enferma y muere
+  diedAt?: number;
   poopCount: number;  // 0 to 4 poops on screen
   hat?: string;
   outfit?: string;

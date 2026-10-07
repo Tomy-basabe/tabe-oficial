@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { useCalendarEvents, CalendarEvent } from "@/hooks/useCalendarEvents";
+import { useCalendarEvents, CalendarEvent, isExamType } from "@/hooks/useCalendarEvents";
 import { useSubjects, Subject } from "@/hooks/useSubjects";
 import { 
   Calendar as CalendarIcon, 
@@ -80,12 +80,7 @@ export default function Exams() {
 
     return events
       .filter((e) => {
-        const isExam = e.tipo_examen.startsWith("P") || 
-                       e.tipo_examen.includes("Global") || 
-                       e.tipo_examen.includes("Final") ||
-                       e.tipo_examen.includes("Recuperatorio");
-        
-        if (!isExam) return false;
+        if (!isExamType(e.tipo_examen)) return false;
         
         const eventDate = parseLocalDate(e.fecha);
         eventDate.setHours(0, 0, 0, 0);

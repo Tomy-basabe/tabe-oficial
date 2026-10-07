@@ -11,10 +11,12 @@ import {
   PushSubscriptionStatus 
 } from "@/lib/webPushService";
 import { parseLocalDate, toLocalDateStr } from "@/lib/utils";
+import { isExamType } from "@/hooks/useCalendarEvents";
 
 export interface NotificationSettings {
   studyReminders: boolean;
   examReminders: boolean;
+  petReminders?: boolean;
   reminderTime: string; // HH:mm format
   daysBeforeExam: number;
 }
@@ -22,6 +24,7 @@ export interface NotificationSettings {
 const DEFAULT_SETTINGS: NotificationSettings = {
   studyReminders: true,
   examReminders: true,
+  petReminders: true,
   reminderTime: "09:00",
   daysBeforeExam: 1,
 };
@@ -249,15 +252,40 @@ export function useNotifications() {
 
     const timeUntilReminder = reminderTime.getTime() - now.getTime();
 
-    // 1. Sync alarm to IndexedDB so Service Worker has it offline
+    // 1. Obtener datos de la mascota activa para programar recordatorio
+    let activePetData: any = undefined;
+    try {
+      const rawPets = localStorage.getItem("tabe_gochi_pets_v1");
+      const activePetId = localStorage.getItem("tabe_gochi_active_pet_id_v1");
+      if (rawPets) {
+        const parsed = JSON.parse(rawPets);
+        const currentPet = (Array.isArray(parsed) && parsed.length > 0)
+          ? (parsed.find((p: any) => p.id === activePetId) || parsed[0])
+          : null;
+        if (currentPet) {
+          activePetData = {
+            name: currentPet.name || "tu mascota",
+            hunger: currentPet.hunger ?? 100,
+            health: currentPet.health ?? 100,
+            isSick: !!currentPet.isSick,
+            isDead: !!currentPet.isDead,
+            lastUpdated: currentPet.lastUpdated || Date.now(),
+            enabled: true,
+          };
+        }
+      }
+    } catch (_) {}
+
+    // 2. Sync alarm to IndexedDB so Service Worker has it offline (a las 9 AM)
     syncAlarmsToIndexedDB({
       studyReminderHour: hours,
       studyReminderMinute: minutes,
       studyReminderEnabled: settings.studyReminders,
       exams: [], // exams synced separately
+      pet: activePetData,
     });
 
-    // 2. Schedule via Chromium Notification Triggers if supported
+    // 3. Schedule via Chromium Notification Triggers if supported
     if ("serviceWorker" in navigator) {
       try {
         const reg = await navigator.serviceWorker.ready;
@@ -275,12 +303,26 @@ export function useNotifications() {
               data: { url: "/pomodoro" },
               vibrate: [200, 100, 200]
             } as any);
+
+            if (activePetData) {
+              // @ts-ignore
+              await reg.showNotification(`🐾 ¡Cuidá a ${activePetData.name} en TABE! ❤️`, {
+                body: "No olvides darle de comer y mimarla hoy para mantenerla sana.",
+                icon: "/pwa-192x192.png",
+                badge: "/pwa-192x192.png",
+                tag: "pet-reminder-trigger",
+                // @ts-ignore
+                showTrigger: new (window as any).TimestampTrigger(reminderTime.getTime() + 1000),
+                data: { url: "/tabe-gotchi" },
+                vibrate: [200, 100, 200]
+              } as any);
+            }
           } catch (_) {}
         }
       } catch (_) {}
     }
 
-    // 3. In-memory backup while window is active
+    // 4. In-memory backup while window is active
     if (reminderTimeoutRef.current) {
       clearTimeout(reminderTimeoutRef.current);
     }
@@ -322,6 +364,7 @@ export function useNotifications() {
             id: e.id,
             title: e.titulo,
             examType: e.tipo_examen,
+            isExam: isExamType(e.tipo_examen),
             date: e.fecha,
             daysBefore: settings.daysBeforeExam,
           })),
@@ -331,9 +374,24 @@ export function useNotifications() {
           const eventDate = parseLocalDate(event.fecha);
           const daysUntil = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
           const dayText = daysUntil === 0 ? "¡Hoy!" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
+          const isActualExam = isExamType(event.tipo_examen);
 
-          sendNotification(`📝 ${event.tipo_examen}: ${event.titulo}`, {
-            body: `Tenés un examen ${dayText}. ¡A no aflojar el repaso!`,
+          let notifTitle = "";
+          let notifBody = "";
+
+          if (isActualExam) {
+            notifTitle = `📝 ${event.tipo_examen}: ${event.titulo}`;
+            notifBody = `Tenés un examen ${dayText}. ¡A no aflojar el repaso!`;
+          } else if (event.tipo_examen === "Entrega" || event.tipo_examen === "TP") {
+            notifTitle = `📋 Entrega: ${event.titulo}`;
+            notifBody = `Tenés una entrega pendiente ${dayText}. ¡Revisá tus tareas!`;
+          } else {
+            notifTitle = `📅 ${event.tipo_examen}: ${event.titulo}`;
+            notifBody = `Tenés una actividad programada ${dayText}.`;
+          }
+
+          sendNotification(notifTitle, {
+            body: notifBody,
             tag: `exam-${event.fecha}`,
             data: { url: "/calendario" }
           } as any);

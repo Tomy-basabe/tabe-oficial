@@ -153,9 +153,10 @@ function checkOfflineReminders() {
         var currentMins = now.getMinutes();
 
         items.forEach(function (item) {
-          // Check study reminder
+          // 1. Check study reminder (9 AM por defecto)
           if (item.id === 'study_reminder' && item.enabled) {
-            if (item.lastSentDate !== todayStr && currentHours >= item.hour) {
+            var studyHour = typeof item.hour === 'number' ? item.hour : 9;
+            if (item.lastSentDate !== todayStr && currentHours >= studyHour) {
               self.registration.showNotification('¡Hora de estudiar! 📚', {
                 body: 'Mantené tu racha de estudio activa en TABE. ¡Solo unos minutos hacen la diferencia!',
                 icon: '/pwa-192x192.png',
@@ -169,16 +170,56 @@ function checkOfflineReminders() {
             }
           }
 
-          // Check upcoming exams
-          if (item.type === 'exam' && item.examDate) {
-            var diffDays = Math.ceil((new Date(item.examDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            if (diffDays <= item.daysBefore && diffDays >= 0 && item.lastSentDate !== todayStr) {
-              var dayText = diffDays === 0 ? '¡Hoy!' : diffDays === 1 ? 'mañana' : ('en ' + diffDays + ' días');
-              self.registration.showNotification('📝 ' + (item.examType || 'Examen') + ': ' + item.title, {
-                body: 'Tenés un examen ' + dayText + '. ¡A no aflojar el repaso!',
+          // 2. Check pet reminder (TABE-GOTCHI a las 9 AM)
+          if (item.id === 'pet_reminder' && item.enabled) {
+            var petHour = typeof item.hour === 'number' ? item.hour : 9;
+            if (item.lastSentDate !== todayStr && currentHours >= petHour) {
+              var isCritical = item.isDead || item.isSick || (typeof item.health === 'number' && item.health <= 25) || (typeof item.hunger === 'number' && item.hunger <= 25);
+              var petTitle = isCritical
+                ? '🚨 ¡' + (item.petName || 'Tu mascota') + ' te necesita urgente! 💔'
+                : '🐾 ¡Cuidá a ' + (item.petName || 'tu mascota') + ' en TABE! ❤️';
+              var petBody = isCritical
+                ? 'Tiene hambre extrema o salud crítica. ¡Entrá a cuidarla antes de que se muera!'
+                : 'No te olvides de darle de comer y mimarla hoy para mantenerla sana y con vida.';
+              self.registration.showNotification(petTitle, {
+                body: petBody,
                 icon: '/pwa-192x192.png',
                 badge: '/pwa-192x192.png',
-                tag: 'exam-' + item.id + '-' + todayStr,
+                tag: 'pet-reminder-' + todayStr,
+                data: { url: '/tabe-gotchi' },
+                vibrate: [200, 100, 200, 100, 200]
+              });
+              item.lastSentDate = todayStr;
+              store.put(item);
+            }
+          }
+
+          // 3. Check upcoming exams y eventos (solo decir examen a los que realmente lo son)
+          if (item.type === 'exam' && item.examDate) {
+            var eventHour = typeof item.hour === 'number' ? item.hour : 9;
+            var diffDays = Math.ceil((new Date(item.examDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays <= item.daysBefore && diffDays >= 0 && item.lastSentDate !== todayStr && currentHours >= eventHour) {
+              var dayText = diffDays === 0 ? '¡Hoy!' : diffDays === 1 ? 'mañana' : ('en ' + diffDays + ' días');
+              var isActualExam = item.isExam !== false;
+              var notifTitle = '';
+              var notifBody = '';
+
+              if (isActualExam) {
+                notifTitle = '📝 ' + (item.examType || 'Examen') + ': ' + item.title;
+                notifBody = 'Tenés un examen ' + dayText + '. ¡A no aflojar el repaso!';
+              } else if (item.examType === 'Entrega' || item.examType === 'TP') {
+                notifTitle = '📋 Entrega: ' + item.title;
+                notifBody = 'Tenés una entrega pendiente ' + dayText + '. ¡Revisá tus tareas!';
+              } else {
+                notifTitle = '📅 ' + (item.examType || 'Evento') + ': ' + item.title;
+                notifBody = 'Tenés una actividad programada ' + dayText + '.';
+              }
+
+              self.registration.showNotification(notifTitle, {
+                body: notifBody,
+                icon: '/pwa-192x192.png',
+                badge: '/pwa-192x192.png',
+                tag: 'event-' + item.id + '-' + todayStr,
                 data: { url: '/calendario' },
                 vibrate: [200, 100, 200]
               });

@@ -272,6 +272,7 @@ export function TabeGochiDevice({
                   colorSkin={pet.colorSkin}
                   isSleeping={pet.isSleeping}
                   isSick={pet.isSick}
+                  isDead={pet.isDead}
                   isEating={actionEffect === "feed"}
                   isHappy={actionEffect === "love" || pet.happiness > 75}
                   foodId={actionEffect === "feed" ? "nano_banana" : undefined}
@@ -279,17 +280,34 @@ export function TabeGochiDevice({
                 />
 
                 {/* Diálogo / Estado emocional estilo retro arcade */}
-                <div className="text-[10px] font-black uppercase tracking-wider text-black bg-black/10 px-2 py-0.5 rounded border border-black/20 mt-0.5 font-mono">
-                  {pet.isSleeping 
+                <div className="text-[10px] font-black uppercase tracking-wider text-black bg-black/10 px-2 py-0.5 rounded border border-black/20 mt-0.5 font-mono text-center">
+                  {pet.isDead
+                    ? "ESTADO: FALLECIDO 🪦 / D.E.P."
+                    : pet.isSleeping 
                     ? "MODO: REPOSO ZZZ" 
                     : pet.isSick 
                     ? "ESTADO: ENFERMO / DAR MEDICINA" 
+                    : pet.health <= 20
+                    ? "ESTADO: CRÍTICO 🚨 / ¡ALIMENTAR YA!"
                     : pet.hunger < 30 
                     ? "ESTADO: HAMBRIENTO / ALIMENTAR" 
                     : pet.happiness < 40 
                     ? "ESTADO: DESANIMADO / JUGAR" 
                     : "ESTADO: FELIZ Y SALUDABLE"}
                 </div>
+
+                {pet.isDead && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectOption?.("heal");
+                    }}
+                    className="mt-1 px-3 py-1 rounded-lg bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black uppercase text-[10px] border-2 border-black shadow-[2px_2px_0_#000] cursor-pointer animate-pulse"
+                  >
+                    ✨ [REVIVIR MASCOTA]
+                  </button>
+                )}
               </div>
             )}
 
