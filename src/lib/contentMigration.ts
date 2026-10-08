@@ -173,9 +173,10 @@ function parseInlineContent(html: string): JSONContent[] {
   // Simple HTML tag parser for inline formatting
   const result: JSONContent[] = [];
   
-  // Create a temporary element to parse HTML
-  const temp = document.createElement("div");
-  temp.innerHTML = html;
+  // Create an inert DOM parser to parse HTML safely without executing scripts
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const temp = doc.body;
 
   const processNode = (node: Node): JSONContent[] => {
     const items: JSONContent[] = [];

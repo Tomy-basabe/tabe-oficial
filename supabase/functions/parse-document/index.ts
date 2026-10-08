@@ -62,7 +62,7 @@ async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -146,6 +146,12 @@ serve(async (req) => {
         throw new Error("Invalid file URL - must be from storage");
       }
 
+      // Security check: ensure URL points to the user's directory
+      const urlMatchesUser = fileUrl.includes(`/${userId}/`);
+      if (!urlMatchesUser) {
+        throw new Error("Access denied: File URL does not belong to the authenticated user");
+      }
+
       console.log(`Fetching from URL: ${fileUrl}`);
       const fileResponse = await fetch(fileUrl);
       if (!fileResponse.ok) {
@@ -186,7 +192,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, content: tiptapContent, fileName }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -355,7 +361,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
 
     return new Response(
       JSON.stringify({ success: true, content: tiptapContent, fileName, model: usedModel }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
@@ -363,7 +369,7 @@ Extrae todo el contenido. Responde SOLO con el JSON.`;
     // Return detailed error message for debugging
     return new Response(
       JSON.stringify({ success: false, error: error.message || "Unknown server error" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

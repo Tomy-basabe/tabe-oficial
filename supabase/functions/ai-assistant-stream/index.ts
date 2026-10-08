@@ -21,8 +21,9 @@ function getCorsHeaders(req: Request) {
   const origin = req.headers.get("Origin") || "";
   const isAllowed =
     ALLOWED_ORIGINS.includes(origin) ||
-    origin.endsWith(".vercel.app") ||
-    origin.endsWith(".tabe.com.ar") ||
+    Boolean(origin.match(/^https:\/\/tabe(-[a-z0-9-]+)?\.vercel\.app$/)) ||
+    Boolean(origin.match(/^https:\/\/([a-z0-9-]+\.)?tabe\.com\.ar$/)) ||
+    Boolean(origin.match(/^https:\/\/([a-z0-9-]+\.)?tabe\.software$/)) ||
     origin.startsWith("http://localhost:") ||
     origin.startsWith("http://127.0.0.1:");
   const allowedOrigin = isAllowed && origin ? origin : ALLOWED_ORIGINS[0];

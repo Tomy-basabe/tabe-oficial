@@ -78,6 +78,9 @@ serve(async (req) => {
     if (!hasRawText) {
       let fileBuffer: ArrayBuffer;
       if (storagePath) {
+        if (!storagePath.startsWith(`${user.id}/`)) {
+          throw new Error("Access denied: File does not belong to the authenticated user");
+        }
         const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
         const { data: fileData, error: downloadError } = await serviceClient.storage
@@ -89,6 +92,12 @@ serve(async (req) => {
         }
         fileBuffer = await fileData.arrayBuffer();
       } else if (fileUrl) {
+        if (!fileUrl.startsWith(`${supabaseUrl}/storage/`)) {
+          throw new Error("Invalid file URL - must be from storage");
+        }
+        if (!fileUrl.includes(`/${user.id}/`)) {
+          throw new Error("Access denied: File does not belong to the authenticated user");
+        }
         const fileResponse = await fetch(fileUrl);
         if (!fileResponse.ok) throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
         fileBuffer = await fileResponse.arrayBuffer();

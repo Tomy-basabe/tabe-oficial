@@ -721,7 +721,37 @@ serve(async (req) => {
 
     // ───────────────── PROACTIVE NOTIFICATIONS & REMINDERS ─────────────────
     if (body && body.action === "send_proactive_reminders") {
+      const authHeader = req.headers.get("Authorization");
+      const cronSecret = req.headers.get("x-internal-secret") || req.headers.get("x-cron-secret");
+      const expectedCronSecret = Deno.env.get("INTERNAL_CRON_SECRET");
+
+      const isServiceOrCron = Boolean(expectedCronSecret && cronSecret === expectedCronSecret) ||
+                             Boolean(authHeader && SUPABASE_SERVICE_ROLE_KEY && authHeader.includes(SUPABASE_SERVICE_ROLE_KEY));
+
       const targetUserId = body.target_user_id;
+
+      if (!isServiceOrCron) {
+        if (!authHeader?.startsWith("Bearer ")) {
+          return new Response(JSON.stringify({ error: "Unauthorized: Missing authentication" }), {
+            status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+          });
+        }
+        const authClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || SUPABASE_SERVICE_ROLE_KEY, {
+          global: { headers: { Authorization: authHeader } }
+        });
+        const { data: { user: callerUser }, error: callerErr } = await authClient.auth.getUser();
+        if (callerErr || !callerUser) {
+          return new Response(JSON.stringify({ error: "Unauthorized: Invalid token" }), {
+            status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+          });
+        }
+        if (!targetUserId || targetUserId !== callerUser.id) {
+          return new Response(JSON.stringify({ error: "Forbidden: Cannot trigger reminders for other users" }), {
+            status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
+          });
+        }
+      }
+
       let botsQuery = supabase.from('user_bots').select('user_id, telegram_id, whatsapp_number');
       if (targetUserId) {
         botsQuery = botsQuery.eq('user_id', targetUserId);

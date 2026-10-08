@@ -142,7 +142,6 @@ export const ALLOWED_FILE_TYPES: Record<string, string[]> = {
     "image/png",
     "image/gif",
     "image/webp",
-    "image/svg+xml",
   ],
   spreadsheet: [
     "application/vnd.ms-excel",

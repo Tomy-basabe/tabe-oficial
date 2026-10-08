@@ -163,17 +163,16 @@ serve(async (req) => {
     });
 
     // Verify the token and get the authenticated user
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    const { data: { user: authUser }, error: userError } = await authClient.auth.getUser();
 
-    if (claimsError || !claimsData?.claims?.sub) {
+    if (userError || !authUser) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
 
     // Use the authenticated user's ID - IGNORE any client-supplied userId
-    const userId = claimsData.claims.sub as string;
+    const userId = authUser.id;
 
     const { messages, personality = "motivador" } = await req.json();
 
