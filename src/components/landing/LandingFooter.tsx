@@ -46,7 +46,7 @@ export function LandingFooter() {
                 </div>
                 <div className="mt-10 pt-6 border-t-2 border-border flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p className="text-xs text-muted-foreground flex items-center gap-1 font-bold">
-                        Hecho por estudiantes y para estudiantes <Heart className="w-3 h-3 text-[#ff9415] fill-[#ff9415]" />
+                        Hecho por un estudiante para estudiantes <Heart className="w-3 h-3 text-[#ff9415] fill-[#ff9415]" />
                     </p>
                     <p className="text-xs text-muted-foreground font-bold">© {new Date().getFullYear()} TABE. Todos los derechos reservados.</p>
                 </div>

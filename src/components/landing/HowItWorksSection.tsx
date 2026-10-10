@@ -1,4 +1,6 @@
 import { UserPlus, Compass, BookOpen, Rocket } from "lucide-react";
+import { motion } from "framer-motion";
+import { KineticHeading } from "@/components/ui/kinetic-heading";
 
 const steps = [
     { icon: UserPlus, title: "Creá tu cuenta", desc: "Registrate gratis y elegí tu carrera. En 30 segundos ya tenés tu espacio listo.", color: "#ff9415" },
@@ -11,17 +13,24 @@ export function HowItWorksSection() {
     return (
         <section className="py-20 md:py-28">
             <div className="container mx-auto px-4 md:px-6">
-                <div className="text-center max-w-2xl mx-auto mb-16">
-                    <span className="inline-block px-4 py-2 rounded-lg bg-[#ff9415]/10 border-2 border-[#ff9415]/20 text-sm font-extrabold text-[#ff9415] mb-5">
-                        🚀 Cómo funciona
-                    </span>
-                    <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">
+                <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
+                    <KineticHeading
+                        as="h2"
+                        effect="comic-pop"
+                        badge="CÓMO FUNCIONA // PASO A PASO"
+                        badgeColor="orange"
+                        className="text-3xl md:text-5xl font-black tracking-tight"
+                    >
                         Empezar es{" "}
-                        <span className="relative inline-block text-[#ff9415] transition-transform duration-200 hover:scale-105 hover:rotate-1 cursor-pointer">
-                            muy fácil
-                            <span className="absolute -bottom-1 left-0 w-full h-1 bg-[#ff9415]/30 rounded-full" />
-                        </span>
-                    </h2>
+                        <motion.span 
+                            whileHover={{ scale: 1.1, rotate: 2 }}
+                            className="relative inline-block text-[#ff9415] transition-transform duration-200 cursor-pointer px-1.5"
+                        >
+                            <span className="relative z-10 underline decoration-[#ff9415] decoration-wavy">muy fácil</span>
+                            <span className="absolute -bottom-1 left-0 w-full h-2 bg-[#ff9415]/30 rounded-full" />
+                        </motion.span>
+                    </KineticHeading>
+                    <p className="text-lg text-muted-foreground font-bold">Sin configuraciones eternas. Entrás, organizás y empezás a estudiar.</p>
                 </div>
 
                 <div className="max-w-3xl mx-auto space-y-0">

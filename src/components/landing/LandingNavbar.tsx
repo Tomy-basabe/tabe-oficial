@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Moon, Sun, Menu, X, ChevronRight } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
+import { useSmoothScroll } from "./SmoothScrollProvider";
 
 export function LandingNavbar() {
     const { toggleTheme, resolvedTheme } = useTheme();
+    const { scrollTo } = useSmoothScroll();
     const [scrolled, setScrolled] = useState(false);
     const [open, setOpen] = useState(false);
 
@@ -17,6 +19,8 @@ export function LandingNavbar() {
     const logo = "/logo.png";
 
     const links = [
+        { to: "/#story-journey", label: "Recorrido", scroll: true },
+        { to: "/#superpoderes", label: "Superpoderes", scroll: true },
         { to: "/carreras", label: "Carreras" },
         { to: "/#metodologia", label: "Metodología", scroll: true },
         { to: "/#faq", label: "FAQ", scroll: true },
@@ -28,7 +32,7 @@ export function LandingNavbar() {
         if (window.location.pathname !== "/") return;
         e.preventDefault();
         const id = href.replace("/#", "");
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+        scrollTo(`#${id}`, -80);
         setOpen(false);
     };
 
@@ -63,11 +67,13 @@ export function LandingNavbar() {
                 <div className="hidden md:flex items-center gap-3">
                     <button onClick={toggleTheme}
                         aria-label="Cambiar tema"
-                        className="p-2.5 rounded-lg border-2 border-border bg-card hover:bg-secondary transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+                        data-cursor-text="MODO"
+                        className="p-2.5 rounded-lg border-2 border-border bg-card hover:bg-secondary transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
                         {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                     </button>
                     <Link to="/registro"
-                        className="group flex items-center gap-2 px-5 py-2.5 bg-foreground text-background rounded-lg font-extrabold text-sm border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--tab-orange))] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_hsl(var(--tab-orange))] active:translate-y-0.5 active:shadow-none">
+                        data-cursor-text="ENTRAR"
+                        className="group flex items-center gap-2 px-5 py-2.5 bg-foreground text-background rounded-lg font-extrabold text-sm border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--tab-orange))] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_hsl(var(--tab-orange))] active:translate-y-0.5 active:shadow-none cursor-pointer">
                         Entrar a la App
                         <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                     </Link>

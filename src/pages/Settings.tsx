@@ -251,20 +251,20 @@ export default function Settings() {
       </div>
 
       {/* Profile Card */}
-      <div className="bg-[#BFFF00] text-black border-3 sm:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4 sm:p-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-10 -mt-10 blur-2xl pointer-events-none"></div>
+      <div className="bg-card dark:bg-card border-3 sm:border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4 sm:p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-10 -mt-10 blur-2xl pointer-events-none"></div>
         <div className="flex items-center gap-3.5 sm:gap-5 relative z-10 min-w-0">
-          <div className="w-13 h-13 sm:w-16 sm:h-16 shrink-0 rounded-xl border-3 sm:border-4 border-black shadow-[3px_3px_0_0_#000] bg-white flex items-center justify-center text-black font-black text-xl sm:text-2xl uppercase">
+          <div className="w-13 h-13 sm:w-16 sm:h-16 shrink-0 rounded-xl border-3 sm:border-4 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] bg-muted flex items-center justify-center text-foreground font-black text-xl sm:text-2xl uppercase">
             {userInitials}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-black text-lg sm:text-2xl uppercase tracking-tight text-black truncate">{userName}</h2>
-              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-black text-white shrink-0">
+              <h2 className="font-black text-lg sm:text-2xl uppercase tracking-tight text-foreground truncate">{userName}</h2>
+              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-foreground text-background shrink-0">
                 {isGuest ? "Invitado" : "Estudiante"}
               </span>
             </div>
-            <p className="font-bold text-black/80 mt-0.5 text-xs sm:text-sm truncate">{userEmail}</p>
+            <p className="font-bold text-muted-foreground mt-0.5 text-xs sm:text-sm truncate">{userEmail}</p>
           </div>
         </div>
       </div>
@@ -541,7 +541,7 @@ export default function Settings() {
                     <div className="flex items-center gap-2">
                       {botStatus?.telegram_id ? (
                         <>
-                          <span className="text-xs px-3 py-1 font-black uppercase rounded bg-[#BFFF00] text-black border-2 border-foreground">Vinculado</span>
+                          <span className="text-xs px-3 py-1 font-black uppercase rounded bg-emerald-500 text-black dark:text-zinc-950 border-2 border-foreground">Vinculado</span>
                           <button
                             onClick={() => handleUnlinkBot('telegram')}
                             className="text-xs px-2 py-1 font-bold text-red-500 hover:underline cursor-pointer"
@@ -566,7 +566,7 @@ export default function Settings() {
                     <div className="flex items-center gap-2">
                       {botStatus?.whatsapp_number ? (
                         <>
-                          <span className="text-xs px-3 py-1 font-black uppercase rounded bg-[#BFFF00] text-black border-2 border-foreground">Vinculado</span>
+                          <span className="text-xs px-3 py-1 font-black uppercase rounded bg-emerald-500 text-black dark:text-zinc-950 border-2 border-foreground">Vinculado</span>
                           <button
                             onClick={() => handleUnlinkBot('whatsapp')}
                             className="text-xs px-2 py-1 font-bold text-red-500 hover:underline cursor-pointer"
@@ -664,8 +664,8 @@ export default function Settings() {
                     </div>
                   )}
 
-                  <div className="p-4 rounded-xl bg-[#FFD700] text-black border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-                    <p className="text-sm font-bold text-black">
+                  <div className="p-4 rounded-xl bg-amber-400/20 dark:bg-amber-400/10 text-foreground border-2 sm:border-3 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                    <p className="text-sm font-bold text-foreground">
                       <span className="font-black uppercase">Instrucciones:</span> Hacé clic en "Generar Código de Vínculo" y mandáselo al bot de WhatsApp o a @tabeai_bot en Telegram.
                     </p>
                   </div>
@@ -847,7 +847,7 @@ export default function Settings() {
               type="button"
               onClick={() => setTheme("light")}
               className={`flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 sm:border-4 transition-all cursor-pointer ${theme === "light"
-                ? "bg-[#BFFF00] text-black border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
+                ? "bg-primary text-primary-foreground border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
                 : "bg-card text-foreground border-foreground/50 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
                 }`}
             >
@@ -859,7 +859,7 @@ export default function Settings() {
               type="button"
               onClick={() => setTheme("dark")}
               className={`flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 sm:border-4 transition-all cursor-pointer ${theme === "dark"
-                ? "bg-[#00E5FF] text-black border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
+                ? "bg-primary text-primary-foreground border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
                 : "bg-card text-foreground border-foreground/50 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
                 }`}
             >
@@ -871,7 +871,7 @@ export default function Settings() {
               type="button"
               onClick={() => setTheme("system")}
               className={`flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 sm:border-4 transition-all cursor-pointer ${theme === "system"
-                ? "bg-[#FFD700] text-black border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
+                ? "bg-primary text-primary-foreground border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
                 : "bg-card text-foreground border-foreground/50 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/50"
                 }`}
             >
@@ -901,7 +901,7 @@ export default function Settings() {
                 { id: "theme-black", label: "Negro", color: "#18181B" },
                 { id: "theme-white", label: "Blanco", color: "#F4F4F5" },
               ].map((accent) => {
-                const isSelected = profile?.active_theme === accent.id || (!profile?.active_theme && accent.id === "theme-cyan");
+                const isSelected = profile?.active_theme === accent.id || (!profile?.active_theme && accent.id === "theme-neon-gold");
                 return (
                   <button
                     key={accent.id}
@@ -977,7 +977,7 @@ export default function Settings() {
               <button
                 type="button"
                 onClick={() => updatePomodoroSetting("shortBreak", 1)}
-                className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-foreground rounded-lg bg-[#BFFF00] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[1px] active:translate-y-[2px] hover:shadow-none transition-all font-black text-lg cursor-pointer"
+                className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-foreground rounded-lg bg-emerald-500 text-black dark:text-zinc-900 shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center hover:translate-y-[1px] active:translate-y-[2px] hover:shadow-none transition-all font-black text-lg cursor-pointer"
               >
                 +
               </button>

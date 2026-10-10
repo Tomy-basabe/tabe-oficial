@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (newUser) {
         setIsGuest(false);
         try { localStorage.removeItem("tabe_guest_mode"); } catch {}
-        const savedTheme = localStorage.getItem("active-theme-color");
+        const savedTheme = localStorage.getItem("active-theme-color") || "theme-neon-gold";
         if (savedTheme) {
           applyTheme(savedTheme);
         }
@@ -218,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         currentUserId = null;
         setIsGuest(true);
-        const savedTheme = localStorage.getItem("active-theme-color");
+        const savedTheme = localStorage.getItem("active-theme-color") || "theme-neon-gold";
         setProfile({ active_theme: savedTheme, active_badge: null, sidebar_config: null });
         applyTheme(savedTheme);
       }

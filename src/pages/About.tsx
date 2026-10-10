@@ -40,7 +40,7 @@ export default function About() {
                                 Hoy, somos un equipo multidisciplinario que combina pedagogía, psicología cognitiva y desarrollo de software de vanguardia. Nuestra visión es transformar la educación superior, proporcionando a cada estudiante un asistente que no solo organiza, sino que enseña a aprender.
                             </p>
                             <div className="flex flex-wrap gap-3">
-                                {["Hecho por estudiantes", "Validado en facultades", "Open Source spirit"].map(t => (
+                                {["Hecho por un estudiante para estudiantes", "Validado en facultades", "Open Source spirit"].map(t => (
                                     <span key={t} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border-2 border-border text-sm font-bold text-muted-foreground hover:border-[#1475e5] hover:text-[#1475e5] transition-colors">
                                         {t}
                                     </span>

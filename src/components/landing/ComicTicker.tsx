@@ -13,10 +13,10 @@ const TICKER_ITEMS = [
 
 export function ComicTicker() {
   return (
-    <div className="relative py-4 bg-[#FFE600] border-y-4 border-black overflow-hidden -rotate-1 shadow-[0_6px_0_0_#000] z-20 select-none my-6">
+    <div className="relative py-3.5 bg-[#FFE600] dark:bg-amber-400 border-y-2 border-black dark:border-white/20 overflow-hidden -rotate-1 shadow-sm z-20 select-none my-6">
       {/* Ben-Day Dots Background Pattern */}
       <div 
-        className="absolute inset-0 opacity-15 pointer-events-none"
+        className="absolute inset-0 opacity-10 pointer-events-none"
         style={{
           backgroundImage: `radial-gradient(circle, #000 1.5px, transparent 1.5px)`,
           backgroundSize: "8px 8px",
@@ -25,17 +25,17 @@ export function ComicTicker() {
 
       <div className="flex w-fit">
         <motion.div
-          className="flex items-center gap-8 whitespace-nowrap text-black font-black text-sm sm:text-base uppercase tracking-wider"
+          className="flex items-center gap-6 whitespace-nowrap text-zinc-950 font-black text-xs sm:text-sm uppercase tracking-wider"
           animate={{ x: [0, -1000] }}
           transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
         >
           {[...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS].map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div key={idx} className="flex items-center gap-2.5 px-3 py-1 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000]">
-                <Icon className="w-4 h-4 text-black fill-black" />
-                <span>{item.text}</span>
-                <span className="text-black font-black">✦</span>
+              <div key={idx} className="flex items-center gap-2 px-3 py-1 bg-white/90 dark:bg-zinc-900 border border-black/30 dark:border-white/20 rounded-lg shadow-xs text-zinc-900 dark:text-zinc-100">
+                <Icon className="w-3.5 h-3.5 text-[#1475e5] dark:text-amber-400 fill-current" />
+                <span className="font-extrabold">{item.text}</span>
+                <span className="text-muted-foreground font-black">✦</span>
               </div>
             );
           })}

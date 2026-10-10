@@ -106,7 +106,7 @@ export function LandingBackground() {
         className="hidden min-[1640px]:flex absolute top-32 right-8 items-center gap-2 px-3 py-1.5 bg-card/80 backdrop-blur-xs border-2 border-foreground/30 rounded-xl shadow-[3px_3px_0_0_#1475e5] text-[11px] font-black uppercase text-foreground/80"
       >
         <Coffee className="w-3.5 h-3.5 text-[#1475e5]" />
-        <span>Modo Parcial ☕</span>
+        <span>Modo Parcial</span>
       </motion.div>
 
       {/* Middle Left: Racha de Estudio */}
@@ -116,7 +116,7 @@ export function LandingBackground() {
         className="hidden min-[1640px]:flex absolute top-[68%] left-8 items-center gap-2 px-3 py-1.5 bg-card/80 backdrop-blur-xs border-2 border-foreground/30 rounded-xl shadow-[3px_3px_0_0_#48bd22] text-[11px] font-black uppercase text-foreground/80"
       >
         <Zap className="w-3.5 h-3.5 text-[#48bd22]" />
-        <span>Racha: 14 Días 🔥</span>
+        <span>Racha: 14 Días</span>
       </motion.div>
 
       {/* Middle Right: Flashcards 3D */}

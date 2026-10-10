@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, RotateCw, Trophy, Zap, Sparkles, MessageSquare, Flame } from "lucide-react";
+import { CheckCircle, CheckCircle2, RotateCw, Trophy, Zap, Sparkles, MessageSquare, Flame, HelpCircle, GraduationCap } from "lucide-react";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { useComic } from "@/components/comic/ComicEffectsProvider";
 import { ComicBadge } from "@/components/comic/ComicBadge";
+import { KineticHeading } from "@/components/ui/kinetic-heading";
 import { cn } from "@/lib/utils";
 
 const IA_TIPS = [
-  "☕ Tip #1: La cafeína no reemplaza el sueño, pero estudiar con Pomodoros de 25 min duplica tu retención.",
-  "🧠 Tip #2: Resumir con tus propias palabras en Flashcards activa tu memoria activa un 40% más rápido.",
-  "📚 Tip #3: Los parciales no se aprueban por ósmosis: desbloqueá logros y subí de nivel con cada apunte.",
-  "🌲 Tip #4: Plantar árboles en 'Mi Bosque' mientras estudiás te aleja del celular y las redes.",
-  "⚡ Tip #5: Repasar 15 minutos antes de dormir consolida los conceptos en tu memoria de largo plazo.",
+  "Tip #1: La cafeína no reemplaza el sueño, pero estudiar con Pomodoros de 25 min duplica tu retención.",
+  "Tip #2: Resumir con tus propias palabras en Flashcards activa tu memoria activa un 40% más rápido.",
+  "Tip #3: Los parciales no se aprueban por ósmosis: desbloqueá logros y subí de nivel con cada apunte.",
+  "Tip #4: Cuidar tu bosque virtual mientras estudiás te aleja del celular y las distracciones.",
+  "Tip #5: Repasar 15 minutos antes de dormir consolida los conceptos en tu memoria de largo plazo.",
 ];
 
 export function ComicInteractiveDemo() {
@@ -73,26 +74,29 @@ export function ComicInteractiveDemo() {
   };
 
   return (
-    <section className="relative py-20 px-4 md:px-6 overflow-hidden">
+    <section id="demo-interactiva" className="relative py-20 px-4 md:px-6 overflow-hidden">
       {/* Decorative Halftone strips */}
       <div className="absolute inset-0 comic-dots-overlay pointer-events-none opacity-40" />
 
       <div className="container mx-auto max-w-6xl relative z-10">
         {/* Section Title */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <ComicBadge variant="yellow" rotate="left" size="md">
-              <Zap className="w-3.5 h-3.5 fill-black" /> ZONA INTERACTIVA
-            </ComicBadge>
-            <ComicBadge variant="cyan" rotate="right" size="md">
-              <Sparkles className="w-3.5 h-3.5" /> PROBALO EN VIVO
-            </ComicBadge>
-          </div>
-
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-foreground">
-            Tocá, jugá y sentí el estilo <span className="text-[#1475e5] underline decoration-wavy decoration-[#FFE600]">Cómic</span>
-          </h2>
-          <p className="text-muted-foreground text-base sm:text-lg font-bold">
+          <KineticHeading
+            as="h2"
+            effect="gradient-shift"
+            badge="ZONA INTERACTIVA // PROBALO EN VIVO"
+            badgeColor="yellow"
+            className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-foreground"
+          >
+            Tocá, jugá y sentí el estilo{" "}
+            <motion.span
+              whileHover={{ scale: 1.1, rotate: -2 }}
+              className="text-[#1475e5] underline decoration-wavy decoration-[#FFE600] inline-block cursor-pointer"
+            >
+              Cómic
+            </motion.span>
+          </KineticHeading>
+          <p className="text-muted-foreground text-base sm:text-lg font-bold max-w-xl mx-auto">
             Hacé clic en las tarjetas interactivas y descubrí cómo TABE transforma tus horas de estudio en una experiencia de juego.
           </p>
         </div>
@@ -109,7 +113,7 @@ export function ComicInteractiveDemo() {
                 <ComicBadge variant="pink" rotate="none" size="sm">
                   MISIÓN ACADÉMICA
                 </ComicBadge>
-                <span className="text-xs font-black px-2 py-1 rounded bg-[#FFE600] text-black border border-black shadow-[1.5px_1.5px_0_0_#000]">
+                <span className="text-xs font-black px-2 py-1 rounded bg-amber-400 text-zinc-950 border border-black dark:bg-amber-400/20 dark:text-amber-300 dark:border-amber-400/40 shadow-[1.5px_1.5px_0_0_#000] dark:shadow-none">
                   +350 XP
                 </span>
               </div>
@@ -198,28 +202,28 @@ export function ComicInteractiveDemo() {
                       exit={{ opacity: 0, rotateY: -90 }}
                       className="space-y-1.5"
                     >
-                      <span className="text-2xl">🎓</span>
+                      <GraduationCap className="w-8 h-8 text-[#00E5FF] mx-auto" />
                       <p className="font-black text-xs sm:text-sm text-foreground">
                         ¡Estudiar 25 min de Pomodoro diario con TABE y no dejar todo para la última noche!
                       </p>
-                      <span className="inline-block text-[10px] font-bold text-[#00E5FF] uppercase">
-                        ✓ Respuesta Correcta
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#00E5FF] uppercase">
+                        <CheckCircle2 className="w-3 h-3" /> Respuesta Correcta
                       </span>
                     </motion.div>
                   ) : (
                     <motion.div
                       key="front"
-                      initial={{ opacity: 0, rotateY: -90 }}
+                      initial={{ opacity: 0, rotateY: 90 }}
                       animate={{ opacity: 1, rotateY: 0 }}
                       exit={{ opacity: 0, rotateY: 90 }}
                       className="space-y-1.5"
                     >
-                      <span className="text-2xl">❓</span>
+                      <HelpCircle className="w-8 h-8 text-amber-400 mx-auto" />
                       <p className="font-black text-sm text-foreground">
                         ¿Cuál es el secreto de los mejores promedios de la carrera?
                       </p>
-                      <span className="inline-block text-[10px] font-bold text-muted-foreground uppercase">
-                        👉 Hacé click para ver la respuesta
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase">
+                        <Sparkles className="w-3 h-3 text-amber-400" /> Hacé click para ver la respuesta
                       </span>
                     </motion.div>
                   )}
@@ -256,7 +260,7 @@ export function ComicInteractiveDemo() {
               </div>
 
               {/* Comic Speech Bubble */}
-              <div className="p-3.5 rounded-xl bg-card border-2 border-foreground shadow-[3px_3px_0_0_#FFE600] min-h-[110px] flex items-center">
+              <div className="p-3.5 rounded-xl bg-card border-2 border-foreground shadow-[3px_3px_0_0_#FFE600] dark:shadow-none min-h-[110px] flex items-center">
                 <p className="text-xs sm:text-sm font-black text-foreground leading-snug">
                   {IA_TIPS[currentTipIndex]}
                 </p>
@@ -266,7 +270,7 @@ export function ComicInteractiveDemo() {
             <div className="pt-4 flex items-center gap-2">
               <button
                 onClick={handleNextTip}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-xs uppercase bg-[#FFE600] text-black border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:bg-[#edd400] transition-all active:translate-y-0.5"
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-xs uppercase bg-[#FFE600] dark:bg-amber-400 text-zinc-950 border-2 border-foreground shadow-[3px_3px_0_0_#000] dark:shadow-none hover:bg-[#edd400] dark:hover:bg-amber-300 transition-all active:translate-y-0.5"
               >
                 <MessageSquare className="w-3.5 h-3.5" /> Siguiente Tip de IA
               </button>

@@ -14,8 +14,9 @@ export function PricingSection() {
         <section id="planes" className="py-20 md:py-28">
             <div className="container mx-auto px-4 md:px-6 max-w-4xl">
                 <div className="text-center mb-14">
-                    <span className="inline-block px-4 py-2 rounded-lg bg-[#1475e5]/10 border-2 border-[#1475e5]/20 text-sm font-extrabold text-[#1475e5] mb-6">
-                        ✨ Nueva Era TABE
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1475e5]/10 border-2 border-[#1475e5]/20 text-sm font-extrabold text-[#1475e5] mb-6">
+                        <Sparkles className="w-4 h-4 text-[#1475e5]" />
+                        <span>Nueva Era TABE</span>
                     </span>
                     <h2 className="text-3xl md:text-5xl font-black mb-5">
                         Todo es Gratis. <span className="text-[#1475e5]">Para Siempre.</span>

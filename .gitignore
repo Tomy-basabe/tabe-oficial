@@ -55,4 +55,8 @@ supabase/.temp/
 
 # User reference screenshots
 Referencia/
-public/Referencia/
+public/Referencia/
+
+# Local video assets
+videos/
+public/videos/

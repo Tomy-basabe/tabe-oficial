@@ -84,10 +84,26 @@ export default function CareerPlan() {
     }
   }, [years, selectedYear]);
 
+  // Prioridad de orden: materias no aprobadas primero, aprobadas al final
+  const getSubjectStatusPriority = (status: string): number => {
+    switch (status) {
+      case "cursable":
+        return 1;
+      case "regular":
+        return 2;
+      case "bloqueada":
+        return 3;
+      case "aprobada":
+        return 4;
+      default:
+        return 5;
+    }
+  };
+
   // Memoize filtered subjects
   const filteredSubjects = useMemo(() => {
     const query = searchQuery.toLowerCase();
-    return subjects.filter((subject) => {
+    const result = subjects.filter((subject) => {
       const matchesYear = selectedYear === null || subject.año === selectedYear;
       const matchesStatus = selectedStatus === "all" || subject.status === selectedStatus;
       const matchesSearch = !query ||
@@ -95,6 +111,14 @@ export default function CareerPlan() {
         subject.codigo.toLowerCase().includes(query);
       const matchesHideApproved = !hideApproved || subject.status !== "aprobada";
       return matchesYear && matchesStatus && matchesSearch && matchesHideApproved;
+    });
+
+    // Ordenar: primero las que no están aprobadas
+    return result.sort((a, b) => {
+      const priorityDiff = getSubjectStatusPriority(a.status) - getSubjectStatusPriority(b.status);
+      if (priorityDiff !== 0) return priorityDiff;
+      // Desempate por número de materia o código
+      return (a.numero_materia || 0) - (b.numero_materia || 0);
     });
   }, [subjects, selectedYear, selectedStatus, searchQuery, hideApproved]);
 
@@ -345,7 +369,7 @@ export default function CareerPlan() {
       </div>
 
       {/* Status Filter Pills */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {statusFilters.map((filter) => (
           <Button
             key={filter.value}
@@ -367,8 +391,13 @@ export default function CareerPlan() {
           variant={hideApproved ? "default" : "outline"}
           className={cn(hideApproved && "bg-[#ffd21c] text-black hover:bg-[#ffd21c]/90")}
         >
-          {hideApproved ? "Mostrando Pendientes" : "Ocultar Aprobadas"}
+          {hideApproved ? "Mostrando Solo Pendientes" : "Ocultar Aprobadas"}
         </Button>
+
+        {/* Indicador de orden para el usuario */}
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-muted text-[10px] sm:text-xs font-black uppercase tracking-wider text-muted-foreground border border-foreground/30">
+          ⚡ No aprobadas primero
+        </span>
       </div>
 
       {/* Empty State Banner if no subjects */}

@@ -1,5 +1,7 @@
 import { AlertTriangle, Clock, TrendingDown, BookX } from "lucide-react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { KineticHeading } from "@/components/ui/kinetic-heading";
 
 const problems = [
     { icon: BookX, title: "Material desorganizado", desc: "PDFs perdidos, apuntes sueltos y links olvidados.", color: "#ff9415" },
@@ -12,43 +14,44 @@ export function ProblemSection() {
     return (
         <section id="problema" className="py-20 md:py-28 relative">
             <div className="container mx-auto px-4 md:px-6">
-                <div className="text-center max-w-2xl mx-auto mb-14">
-                    <motion.span 
-                        whileHover={{ scale: 1.05, y: -2 }}
-                        className="inline-block px-4 py-2 rounded-lg bg-red-500/10 border-2 border-red-500/30 text-sm font-black text-red-500 mb-5 shadow-[2px_2px_0_0_#ef4444] cursor-pointer"
+                <div className="text-center max-w-2xl mx-auto mb-14 space-y-4">
+                    <KineticHeading
+                        as="h2"
+                        effect="strike-highlight"
+                        badge="EL PROBLEMA UNIVERSITARIO"
+                        badgeColor="pink"
+                        className="text-3xl md:text-5xl font-black"
                     >
-                        ⚠️ El problema
-                    </motion.span>
-                    <h2 className="text-3xl md:text-5xl font-black mb-4">
                         ¿Te suena{" "}
                         <motion.span 
-                            whileHover={{ scale: 1.08, rotate: 2 }}
-                            className="relative inline-block text-red-500 cursor-pointer px-1"
+                            whileHover={{ scale: 1.12, rotate: 3 }}
+                            className="relative inline-block text-red-500 cursor-pointer px-1.5"
                         >
-                            <span className="relative z-10">familiar?</span>
+                            <span className="relative z-10 underline decoration-red-500 decoration-wavy">familiar?</span>
                             <span className="absolute inset-x-0 bottom-1 h-3 bg-red-500/20 rotate-1 rounded-sm -z-0" />
                         </motion.span>
-                    </h2>
-                    <p className="text-lg text-muted-foreground">Los problemas más comunes que enfrentan los universitarios. TABE los resuelve.</p>
+                    </KineticHeading>
+                    <p className="text-lg text-muted-foreground font-bold">Los problemas más comunes que enfrentan los universitarios. TABE los resuelve.</p>
                 </div>
 
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
                     {problems.map((p, i) => {
                         const Icon = p.icon;
+                        const isLightYellow = p.color === "#ffd21c";
                         return (
                             <motion.div 
                                 key={i}
                                 whileHover={{ y: -6, scale: 1.03 }}
                                 whileTap={{ scale: 0.97 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                className="group bg-card rounded-xl p-6 border-[2.5px] border-foreground transition-all duration-200 cursor-pointer select-none"
+                                className="group bg-card rounded-xl p-6 border-[2.5px] border-foreground dark:border-zinc-800 transition-all duration-200 cursor-pointer select-none"
                                 style={{
                                     boxShadow: `5px 5px 0 0 ${p.color}`,
                                 }}
                             >
-                                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 border-2 border-foreground transition-transform duration-200 group-hover:scale-110 group-hover:rotate-6 shadow-[2px_2px_0_0_#000]"
+                                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 border-2 border-foreground dark:border-zinc-700 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-6 shadow-[2px_2px_0_0_#000] dark:shadow-none"
                                     style={{ backgroundColor: p.color }}>
-                                    <Icon className="w-6 h-6 text-black" />
+                                    <Icon className={cn("w-6 h-6", isLightYellow ? "text-zinc-950" : "text-white")} />
                                 </div>
                                 <h3 className="font-black text-lg mb-2 transition-colors duration-200 group-hover:text-foreground uppercase tracking-tight">{p.title}</h3>
                                 <p className="text-sm font-bold text-muted-foreground leading-relaxed">{p.desc}</p>

@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Zap, Brain, Target, Sparkles, Shield, Compass, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { useComic } from "@/components/comic/ComicEffectsProvider";
+import { ComicEffectsProvider, useComic } from "@/components/comic/ComicEffectsProvider";
 import { ComicBadge } from "@/components/comic/ComicBadge";
+import { KineticHeading } from "@/components/ui/kinetic-heading";
+import { LetterSwap3D } from "@/components/ui/3d-letter-swap";
 
 interface SuperpowerCard {
   id: string;
@@ -92,23 +95,24 @@ export function ComicSuperpowersSection() {
   };
 
   return (
-    <section className="py-24 px-4 md:px-6 relative overflow-hidden bg-secondary/30">
+    <section id="superpoderes" className="py-24 px-4 md:px-6 relative overflow-hidden bg-secondary/30">
       <div className="container mx-auto max-w-6xl relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <ComicBadge variant="orange" rotate="left" size="md">
-              <Shield className="w-3.5 h-3.5 fill-white" /> DECK DE HABILIDADES
-            </ComicBadge>
-            <ComicBadge variant="yellow" rotate="right" size="md">
-              <Star className="w-3.5 h-3.5 fill-black" /> EDICIÓN CÓMIC
-            </ComicBadge>
-          </div>
-
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-foreground">
-            Elegí tus <span className="text-[#FF2E93] underline decoration-wavy decoration-[#FFE600]">Superpoderes</span> Universitarios
-          </h2>
-          <p className="text-muted-foreground text-base sm:text-lg font-bold">
+          <KineticHeading
+            as="h2"
+            effect="glitch-tilt"
+            badge="DECK DE HABILIDADES // MÓDULOS ACTIVOS"
+            badgeColor="orange"
+            className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-foreground"
+          >
+            Elegí tus{" "}
+            <span className="text-[#FF2E93] inline-block cursor-pointer">
+              <LetterSwap3D label="Superpoderes" secondaryLabel="Habilidades!" flipDirection="top" className="text-[#FF2E93]" />
+            </span>{" "}
+            Universitarios
+          </KineticHeading>
+          <p className="text-muted-foreground text-base sm:text-lg font-bold max-w-xl mx-auto">
             Cada módulo de TABE funciona como un superpoder diseñado para que apruebes con menos esfuerzo y más diversión.
           </p>
         </div>
@@ -157,10 +161,10 @@ export function ComicSuperpowersSection() {
                       }}
                     />
                     <div
-                      className="w-16 h-16 rounded-2xl border-2 border-foreground flex items-center justify-center shadow-[3px_3px_0_0_#000]"
+                      className="w-16 h-16 rounded-2xl border-2 border-foreground flex items-center justify-center shadow-[3px_3px_0_0_#000] dark:shadow-none"
                       style={{ backgroundColor: card.themeColor }}
                     >
-                      <Icon className="w-8 h-8 text-black" />
+                      <Icon className={cn("w-8 h-8", card.themeColor === "#00FF66" ? "text-zinc-950" : "text-white")} />
                     </div>
                   </div>
 
@@ -208,7 +212,7 @@ export function ComicSuperpowersSection() {
                       color: isSelected ? "#000" : "inherit",
                     }}
                   >
-                    {isSelected ? "✦ ACTIVADO EN TABE" : "👆 PROBAR HABILIDAD"}
+                    {isSelected ? "HABILIDAD ACTIVA" : "PROBAR HABILIDAD"}
                   </div>
                 </div>
               </motion.div>

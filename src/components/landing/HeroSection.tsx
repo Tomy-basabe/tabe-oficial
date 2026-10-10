@@ -1,17 +1,22 @@
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, BookOpen, Sparkles, Flame, Zap, Heart } from "lucide-react";
+import { ArrowRight, CheckCircle2, BookOpen, Sparkles, Flame, Zap, Heart, GraduationCap, Brain } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ComicBadge } from "@/components/comic/ComicBadge";
 import { useComic } from "@/components/comic/ComicEffectsProvider";
 import { ComicAudio } from "@/components/comic/ComicAudio";
+import { TextScrollAnimation } from "@/components/ui/text-scroll-animation";
+import { KineticHeading } from "@/components/ui/kinetic-heading";
+import { TextScatter } from "@/components/ui/text-scatter";
+import { ShatterType } from "@/components/ui/shatter-type";
+import { LetterSwap3D } from "@/components/ui/3d-letter-swap";
 
 const MASCOT_QUOTES = [
-  "¡Hacé click en mí para ganar +50 XP! ⚡",
-  "¡Bienvenido a TABE! Estudiar nunca fue tan entretenido 🎮",
-  "¡Modo Cómic Activado! Mirá cómo explotan las viñetas 💥",
-  "¡Menos estrés, mejores notas! Sumate a la comunidad 🚀",
-  "¡Organizate como un pro y disfrutá tus findes! 🎯",
+  "¡Hacé click en mí para ganar +50 XP!",
+  "¡Bienvenido a TABE! Estudiar nunca fue tan ágil y entretenido.",
+  "¡Modo Cómic Activado! Tocá cualquier elemento para interactuar.",
+  "¡Menos estrés, mejores notas! Sumate a la comunidad universitaria.",
+  "¡Organizate como un profesional y disfrutá tus fines de semana!",
 ];
 
 export function HeroSection() {
@@ -31,8 +36,8 @@ export function HeroSection() {
 
     const burstWords = {
       normal: "TABE POWER!",
-      turbo: "⚡ TURBO SAIYAN!",
-      "200iq": "🧠 200 IQ GALAXY!",
+      turbo: "TURBO FOCUS!",
+      "200iq": "MAX PRODUCTIVIDAD!",
     };
     triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, burstWords[nextSkin]);
     ComicAudio.playPowerUp();
@@ -58,7 +63,7 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
+    <section id="hero" className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
       {/* Halftone & decorative bars */}
       <motion.div
         animate={{ x: [0, 20, 0] }}
@@ -90,68 +95,52 @@ export function HeroSection() {
             transition={{ duration: 0.5, ease: "easeOut" }}
             className="flex-1 max-w-2xl space-y-7 text-center lg:text-left"
           >
-            {/* Comic Pill Badges */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
-              <ComicBadge
-                variant="yellow"
-                rotate="left"
-                size="md"
-                className="cursor-pointer"
-                onClick={(e) => handleStickerClick(e, "TABE!")}
-              >
-                <Sparkles className="w-3.5 h-3.5 fill-black" /> TU ASISTENTE DE BOLSILLO ESTUDIANTIL
-              </ComicBadge>
-
-              <ComicBadge
-                variant="cyan"
-                rotate="right"
-                size="sm"
-                className="cursor-pointer hidden sm:inline-flex"
-                onClick={(e) => handleStickerClick(e, "POP ART!")}
-              >
-                <Zap className="w-3 h-3 fill-black" /> ESTILO DIBUJOS & CÓMIC
-              </ComicBadge>
+            {/* Subtle Clean Badge */}
+            <div className="flex items-center justify-center lg:justify-start">
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-card/60 backdrop-blur-xs text-xs font-semibold text-muted-foreground">
+                <Sparkles className="w-3.5 h-3.5 text-[#1475e5]" />
+                <span>Tu asistente de bolsillo estudiantil</span>
+              </span>
             </div>
 
-            {/* Headline with interactive words */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-black leading-[1.05] tracking-tight text-foreground">
-              <span className="text-[#1475e5]">TABE</span>: Estudiá con{" "}
-              <span className="relative inline-block cursor-pointer group">
-                <span className="relative z-10 transition-colors duration-200 group-hover:text-[#1475e5]">
-                  método.
-                </span>
-                <span className="absolute left-0 bottom-1.5 w-0 h-3 bg-[#1475e5]/25 -rotate-1 rounded-sm -z-0 transition-all duration-300 group-hover:w-full" />
-              </span>{" "}
-              <motion.span
-                whileHover={{ scale: 1.1, rotate: -3 }}
-                className="relative inline-block text-[#ff9415] cursor-pointer drop-shadow-sm px-1"
-                onClick={(e) => handleStickerClick(e, "APROBADO!")}
-              >
-                <span className="relative z-10">Aprobá</span>
-                <motion.span
-                  initial={{ scaleX: 0 }}
-                  whileHover={{ scaleX: 1 }}
-                  className="absolute inset-x-0 -bottom-1 h-3 bg-[#ff9415]/20 -rotate-2 rounded-md origin-left transition-transform duration-200"
-                />
-              </motion.span>{" "}
-              <span className="relative inline-block cursor-pointer group">
-                <span className="relative z-10 transition-colors duration-200 group-hover:text-[#48bd22]">
-                  con estilo.
-                </span>
-                <span className="absolute left-0 bottom-1.5 w-0 h-3 bg-[#48bd22]/25 rotate-1 rounded-sm -z-0 transition-all duration-300 group-hover:w-full" />
+            {/* Headline with diverse interactive typography */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.25rem] font-black leading-[1.08] tracking-tight text-foreground">
+              <TextScatter text="TABE" className="text-[#1475e5] mr-2" velocity={100} rotation={25} />
+              : Estudiá con{" "}
+              <span className="relative inline-block text-[#1475e5]">
+                <TextScatter text="método" velocity={80} rotation={20} />
+                <span className="absolute left-0 bottom-1 w-full h-1 bg-[#1475e5]/30 rounded-full" />
               </span>
+              .{" "}
+              <span className="relative inline-block text-[#ff9415] mx-1">
+                <ShatterType text="Aprobá" className="text-[#ff9415]" shardsCount={14} burstDistance={90} />
+                <span className="absolute left-0 bottom-1 w-full h-1 bg-[#ff9415]/30 rounded-full" />
+              </span>{" "}
+              con{" "}
+              <span className="relative inline-block text-[#48bd22]">
+                <LetterSwap3D label="estilo" flipDirection="top" className="text-[#48bd22]" />
+                <span className="absolute left-0 bottom-1 w-full h-1 bg-[#48bd22]/30 rounded-full" />
+              </span>
+              .
             </h1>
 
-            {/* Subtitle */}
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-lg mx-auto lg:mx-0 font-bold">
-              Tu asistente de bolsillo estudiantil: la plataforma todo‑en‑uno que combina organización académica, gamificación y diseño interactivo para que domines tus materias sin aburrirte.
-            </p>
+            {/* Subtitle with Text Scroll Animation */}
+            <div className="max-w-lg mx-auto lg:mx-0">
+              <TextScrollAnimation
+                text="Tu asistente de bolsillo estudiantil: la plataforma todo‑en‑uno que combina organización académica, gamificación y diseño interactivo para que domines tus materias sin aburrirte."
+                className="text-lg md:text-xl font-bold justify-center lg:justify-start"
+                wordClassName="text-muted-foreground"
+                highlightWords={["organización", "gamificación", "interactivo", "domines"]}
+                highlightColor="#1475e5"
+              />
+            </div>
 
             {/* CTAs — Inked neo-brutalist buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-2 justify-center lg:justify-start">
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
                 <Link
                   to="/registro"
+                  data-cursor-text="GRATIS"
                   className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-foreground text-background rounded-xl font-black text-lg border-2 border-foreground shadow-[4px_4px_0_0_#ff9415] transition-all duration-200 hover:-translate-y-1 hover:shadow-[7px_7px_0_0_#ff9415] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#ff9415]"
                 >
                   Empezar Gratis
@@ -161,6 +150,7 @@ export function HeroSection() {
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
                 <Link
                   to="/carreras"
+                  data-cursor-text="EXPLORAR"
                   className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-card text-foreground rounded-xl font-black text-lg border-2 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-200 hover:-translate-y-1 hover:shadow-[7px_7px_0_0_hsl(var(--foreground))] active:translate-y-0.5 active:shadow-none"
                 >
                   <BookOpen className="w-5 h-5 text-[#1475e5]" />
@@ -194,10 +184,10 @@ export function HeroSection() {
                   initial={{ opacity: 0, scale: 0.5, y: 15 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.5 }}
-                  className="absolute -top-16 md:-top-20 z-30 px-4 py-2.5 rounded-2xl bg-[#FFE600] text-black font-black text-xs md:text-sm border-2 border-black shadow-[4px_4px_0_0_#000] max-w-xs text-center"
+                  className="absolute -top-16 md:-top-20 z-30 px-4 py-2.5 rounded-2xl bg-[#FFE600] dark:bg-amber-400 text-zinc-950 font-black text-xs md:text-sm border-2 border-black dark:border-amber-400/50 shadow-[4px_4px_0_0_#000] dark:shadow-none max-w-xs text-center"
                 >
                   {MASCOT_QUOTES[mascotQuoteIndex]}
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-black" />
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-black dark:border-t-amber-400" />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -210,6 +200,7 @@ export function HeroSection() {
               whileHover={{ scale: 1.05, rotate: 2 }}
               whileTap={{ scale: 0.9, rotate: -6 }}
               onClick={handleMascotClick}
+              data-cursor-text="+50 XP"
               className="relative cursor-pointer group"
               title="¡Hacé click en la mascota para cambiar su modo y ganar XP!"
             >
@@ -243,29 +234,45 @@ export function HeroSection() {
 
               {/* Skin indicator badge on mascot */}
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-95 transition-opacity z-20">
-                <span className="px-3 py-1 rounded-full bg-black text-[#FFE600] font-black text-[10px] tracking-wider uppercase border border-[#FFE600] shadow-[2px_2px_0_0_#000] whitespace-nowrap">
-                  {mascotSkin === "normal" && "🎓 MODO ESTUDIANTE"}
-                  {mascotSkin === "turbo" && "⚡ MODO TURBO SAIYAN"}
-                  {mascotSkin === "200iq" && "🧠 MODO 200 IQ GALAXY"}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900/90 text-amber-300 dark:text-amber-200 font-black text-[10px] tracking-wider uppercase border border-amber-300/40 shadow-sm whitespace-nowrap backdrop-blur-xs">
+                  {mascotSkin === "normal" && (
+                    <>
+                      <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
+                      <span>MODO ESTUDIANTE</span>
+                    </>
+                  )}
+                  {mascotSkin === "turbo" && (
+                    <>
+                      <Zap className="w-3.5 h-3.5 text-cyan-300 fill-current" />
+                      <span>MODO ENFOQUE TURBO</span>
+                    </>
+                  )}
+                  {mascotSkin === "200iq" && (
+                    <>
+                      <Brain className="w-3.5 h-3.5 text-orange-300" />
+                      <span>MODO MENTE MAESTRA</span>
+                    </>
+                  )}
                 </span>
               </div>
             </motion.div>
 
             {/* Mascot Comic Skin Selector Bar */}
-            <div className="flex items-center gap-1.5 mt-4 p-1 rounded-xl bg-card border-2 border-foreground shadow-[2.5px_2.5px_0_0_#000] z-20 select-none">
+            <div className="flex items-center gap-1.5 mt-4 p-1.5 rounded-xl bg-card border border-border shadow-sm z-20 select-none">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setMascotSkin("normal");
                   ComicAudio.playPop();
                 }}
-                className={`px-2.5 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
                   mascotSkin === "normal"
-                    ? "bg-[#FFE600] text-black shadow-xs border border-black"
+                    ? "bg-[#FFE600] dark:bg-amber-400 text-zinc-950 shadow-xs font-black"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                🎓 Normal
+                <GraduationCap className="w-3 h-3" />
+                <span>Normal</span>
               </button>
               <button
                 onClick={(e) => {
@@ -273,13 +280,14 @@ export function HeroSection() {
                   setMascotSkin("turbo");
                   ComicAudio.playPowerUp();
                 }}
-                className={`px-2.5 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
                   mascotSkin === "turbo"
-                    ? "bg-[#00E5FF] text-black shadow-xs border border-black"
+                    ? "bg-[#00E5FF] dark:bg-cyan-400 text-zinc-950 shadow-xs font-black"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                ⚡ Turbo
+                <Zap className="w-3 h-3 fill-current" />
+                <span>Turbo</span>
               </button>
               <button
                 onClick={(e) => {
@@ -287,65 +295,31 @@ export function HeroSection() {
                   setMascotSkin("200iq");
                   ComicAudio.playPowerUp();
                 }}
-                className={`px-2.5 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
                   mascotSkin === "200iq"
-                    ? "bg-[#FF6B00] text-white shadow-xs border border-black"
+                    ? "bg-[#FF6B00] dark:bg-orange-500 text-white shadow-xs font-black"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                🧠 200 IQ
+                <Brain className="w-3 h-3" />
+                <span>Pro Focus</span>
               </button>
             </div>
 
-            {/* Interactive Comic Stickers Floating Around */}
-            {/* Top-Right Sticker: 100% GRATIS */}
-            <motion.div
-              whileHover={{ scale: 1.15, rotate: 6 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => handleStickerClick(e, "100% GRATIS!")}
-              className="absolute -top-4 right-0 sm:-right-2 md:right-2 z-20 cursor-pointer"
-            >
-              <ComicBadge variant="yellow" rotate="right" size="md">
-                ✦ 100% GRATIS
-              </ComicBadge>
-            </motion.div>
+            {/* Clean badges floating around mascot */}
+            <div className="absolute -top-3 right-0 sm:right-2 z-20">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold text-xs backdrop-blur-xs shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                <span>100% Gratuito</span>
+              </span>
+            </div>
 
-            {/* Top-Left Sticker: +1.200 ALUMNOS (interactive counter) */}
-            <motion.div
-              whileHover={{ scale: 1.15, rotate: -6 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleLikeStudents}
-              className="absolute top-8 left-0 sm:-left-4 md:-left-8 z-20 cursor-pointer"
-            >
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF2E93] text-white font-black text-xs border-2 border-black shadow-[3px_3px_0_0_#000] -rotate-3 hover:rotate-0 transition-transform">
-                <Flame className="w-4 h-4 fill-white" />
-                <span>+{studentsCount.toLocaleString()} ALUMNOS</span>
-              </div>
-            </motion.div>
-
-            {/* Bottom-Left Sticker: MODO TURBO */}
-            <motion.div
-              whileHover={{ scale: 1.15, rotate: 4 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => handleStickerClick(e, "TURBO ACTIVADO!")}
-              className="absolute bottom-6 left-0 sm:-left-2 md:-left-6 z-20 cursor-pointer"
-            >
-              <ComicBadge variant="cyan" rotate="left" size="sm">
-                <Zap className="w-3.5 h-3.5 fill-black" /> MODO TURBO
-              </ComicBadge>
-            </motion.div>
-
-            {/* Bottom-Right Sticker: CERO DISTRACCIONES */}
-            <motion.div
-              whileHover={{ scale: 1.15, rotate: -4 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => handleStickerClick(e, "SIN DISTRACCIONES!")}
-              className="absolute -bottom-2 right-1 sm:right-4 md:right-8 z-20 cursor-pointer"
-            >
-              <ComicBadge variant="green" rotate="right" size="sm">
-                <Heart className="w-3.5 h-3.5 fill-black" /> CERO HUMO
-              </ComicBadge>
-            </motion.div>
+            <div className="absolute top-8 -left-4 sm:-left-8 z-20">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-semibold text-xs backdrop-blur-xs shadow-xs">
+                <Flame className="w-3.5 h-3.5" />
+                <span>+350 alumnos</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>

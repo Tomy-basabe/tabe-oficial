@@ -26,10 +26,10 @@ interface ComicContextType {
 }
 
 const ComicContext = createContext<ComicContextType>({
-  comicMode: true,
+  comicMode: false,
   toggleComicMode: () => {},
   setComicMode: () => {},
-  soundEnabled: true,
+  soundEnabled: false,
   toggleSound: () => {},
   setSoundEnabled: () => {},
   triggerBurst: () => {},
@@ -85,9 +85,9 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem("tabe-comic-sound");
-      return saved !== null ? JSON.parse(saved) : true;
+      return saved !== null ? JSON.parse(saved) : false;
     } catch {
-      return true;
+      return false;
     }
   });
 
@@ -263,15 +263,62 @@ function ComicParticlesOverlay({ isApuntes, comicMode }: { isApuntes: boolean; c
             </span>
           ))}
 
+          {/* Comic Shockwave Ring */}
+          <div className="absolute -inset-4 rounded-full border-2 border-black dark:border-white/70 animate-comic-shockwave" />
+
+          {/* Comic Action Speed Lines */}
+          <svg viewBox="0 0 160 160" className="absolute -inset-4 w-20 h-20 pointer-events-none animate-comic-speedlines">
+            <line x1="80" y1="16" x2="80" y2="2" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+            <line x1="125" y1="35" x2="145" y2="22" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+            <line x1="144" y1="80" x2="158" y2="80" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+            <line x1="125" y1="125" x2="145" y2="138" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+            <line x1="80" y1="144" x2="80" y2="158" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+            <line x1="35" y1="125" x2="15" y2="138" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+            <line x1="16" y1="80" x2="2" y2="80" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+            <line x1="35" y1="35" x2="15" y2="22" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+
+          {/* Comic Starburst SVG Badge with Inked Edge & Sound FX Typography */}
           <div
-            className="relative px-3 py-1 rounded-xl font-black text-xs sm:text-sm tracking-widest uppercase border-2 border-black shadow-[3px_3px_0_0_#000] select-none whitespace-nowrap"
+            className="relative flex items-center justify-center select-none"
             style={{
-              backgroundColor: particle.color,
-              color: particle.textColor,
               transform: `rotate(${particle.tilt}deg)`,
             }}
           >
-            {particle.word}
+            <svg
+              viewBox="0 0 160 160"
+              className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-[2.5px_2.5px_0_#000] dark:drop-shadow-[2.5px_2.5px_0_rgba(0,0,0,0.8)] filter"
+            >
+              {/* Starburst base with 16 points */}
+              <polygon
+                points="80,2 96,44 144,14 124,60 158,84 116,104 140,146 95,126 80,158 65,126 20,146 44,104 2,84 36,60 16,14 64,44"
+                fill={particle.color}
+                stroke="#000"
+                strokeWidth="4"
+                strokeLinejoin="round"
+              />
+              {/* Inner highlight ring */}
+              <polygon
+                points="80,18 92,50 128,28 112,64 140,84 106,100 124,132 90,116 80,140 70,116 36,132 54,100 20,84 48,64 32,28 68,50"
+                fill="none"
+                stroke="rgba(255,255,255,0.45)"
+                strokeWidth="2"
+                strokeLinejoin="round"
+              />
+            </svg>
+
+            {/* Inked Onomatopoeia Text Centered */}
+            <span
+              className="absolute font-black italic tracking-tight text-[11px] sm:text-xs uppercase whitespace-nowrap"
+              style={{
+                color: particle.textColor,
+                textShadow:
+                  "1.5px 1.5px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 2px 0 #000",
+                transform: "rotate(-3deg)",
+              }}
+            >
+              {particle.word}
+            </span>
           </div>
         </div>
       ))}

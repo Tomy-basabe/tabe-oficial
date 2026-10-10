@@ -3,7 +3,7 @@ import {
     LayoutDashboard, GraduationCap, FileText, Layers, ClipboardList,
     ShoppingBag, BookOpen, CalendarDays, Timer, BarChart3,
     TreePine, Trophy, Users, Bot, Settings,
-    ChevronDown, ChevronUp, Sparkles, X
+    ChevronDown, ChevronUp, Sparkles, X, Search
 } from "lucide-react";
 
 interface FeaturePhoto { src: string; label: string; }
@@ -124,8 +124,9 @@ export function FeaturesShowcase() {
             <section id="funcionalidades" className="py-20 md:py-28 bg-secondary/40">
                 <div className="container mx-auto px-4 md:px-6">
                     <div className="text-center max-w-3xl mx-auto mb-20">
-                        <span className="inline-block px-4 py-2 rounded-lg bg-[#ff9415]/10 border-2 border-[#ff9415]/20 text-sm font-extrabold text-[#ff9415] mb-6">
-                            🔍 Explorá la Plataforma
+                        <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#ff9415]/10 border-2 border-[#ff9415]/20 text-sm font-extrabold text-[#ff9415] mb-6">
+                            <Search className="w-4 h-4" />
+                            <span>Explorá la Plataforma</span>
                         </span>
                         <h2 className="text-3xl md:text-5xl font-black mb-5">
                             Todo lo que necesitás para <span className="text-[#1475e5]">aprobar</span>

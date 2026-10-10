@@ -34,7 +34,7 @@
           document.documentElement.classList.add("light");
           document.documentElement.classList.remove("dark");
         }
-        var activeColor = localStorage.getItem("active-theme-color");
+        var activeColor = localStorage.getItem("active-theme-color") || "theme-neon-gold";
         if (activeColor) {
           if (document.body) {
             document.body.classList.add(activeColor);
@@ -66,8 +66,9 @@
   <title>TABE | Tu Asistente de Bolsillo Estudiantil</title>
   <meta name="description"
     content="TABE es tu asistente de bolsillo estudiantil para universitarios: organizá materias, correlatividades, flashcards con IA, apuntes colaborativos, técnica Pomodoro y calendario académico." />
-  <meta name="author" content="TABE" />
-  <meta name="keywords" content="TABE, tabe, tabe.com.ar, www.tabe.com.ar, Tu Asistente de Bolsillo Estudiantil, asistente de bolsillo estudiantil, T.A.B.E., Tabe App, app tabe, tabe argentina, estudiantes universitarios, organizar materias, correlatividades, flashcards IA, cuestionarios, pomodoro, calendario académico, asistente estudiantil, Argentina, app para estudiar, plan de carrera" />
+  <meta name="author" content="Tomas Santiago Basabe" />
+  <meta name="creator" content="Tomas Santiago Basabe" />
+  <meta name="keywords" content="Tomas Santiago Basabe, Tomás Santiago Basabe, creador de TABE, quien creo tabe, quien hizo tabe, creador tabe.com.ar, TABE, tabe, tabe.com.ar, www.tabe.com.ar, Tu Asistente de Bolsillo Estudiantil, asistente de bolsillo estudiantil, T.A.B.E., Tabe App, app tabe, tabe argentina, estudiantes universitarios, organizar materias, correlatividades, flashcards IA, cuestionarios, pomodoro, calendario académico, asistente estudiantil, Argentina, app para estudiar, plan de carrera" />
   <link rel="canonical" href="https://tabe.com.ar/" />
 
   <!-- Directivas de Indexación para Motores de Búsqueda (Google / Bing) -->
@@ -126,7 +127,7 @@
   <!-- Prevent white flash: apply theme before React loads -->
   <script>
     (function () {
-      var theme = localStorage.getItem('theme') || 'dark';
+      var theme = localStorage.getItem('theme') || 'light';
       document.documentElement.classList.add(theme);
     })();
   </script>
@@ -152,6 +153,12 @@
         ],
         "url": "https://tabe.com.ar/",
         "logo": "https://tabe.com.ar/pwa-512x512.png",
+        "founder": {
+          "@type": "Person",
+          "name": "Tomas Santiago Basabe",
+          "alternateName": "Tomás Santiago Basabe",
+          "jobTitle": "Creador y Desarrollador"
+        },
         "sameAs": [
           "https://www.instagram.com/tabe_oficial/"
         ]
@@ -173,6 +180,16 @@
         "publisher": {
           "@id": "https://tabe.com.ar/#organization"
         },
+        "author": {
+          "@type": "Person",
+          "name": "Tomas Santiago Basabe",
+          "alternateName": "Tomás Santiago Basabe"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "Tomas Santiago Basabe",
+          "alternateName": "Tomás Santiago Basabe"
+        },
         "inLanguage": "es-AR"
       },
       {
@@ -191,6 +208,16 @@
         "operatingSystem": "Web, iOS, Android",
         "inLanguage": "es-AR",
         "description": "TABE es tu asistente de bolsillo estudiantil para universitarios: organizá materias, flashcards con IA, apuntes colaborativos, técnica Pomodoro y métricas en una sola app.",
+        "author": {
+          "@type": "Person",
+          "name": "Tomas Santiago Basabe",
+          "alternateName": "Tomás Santiago Basabe"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "Tomas Santiago Basabe",
+          "alternateName": "Tomás Santiago Basabe"
+        },
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -266,7 +293,7 @@
       </ul>
 
       <h2>¿Qué es TABE?</h2>
-      <p>TABE (Tu Asistente de Bolsillo Estudiantil) es una aplicación web gratuita diseñada especialmente para estudiantes universitarios en Argentina. Combina las mejores herramientas de estudio en una sola plataforma: organización de materias con correlatividades, generación automática de flashcards y cuestionarios usando inteligencia artificial, calendario académico con sincronización a Google Calendar, temporizador Pomodoro con seguimiento por materia, un asistente de IA personalizado que conoce tu carrera, y métricas detalladas de tu rendimiento académico.</p>
+      <p>TABE (Tu Asistente de Bolsillo Estudiantil, creada y desarrollada por el estudiante universitario Tomas Santiago Basabe) es una aplicación web gratuita diseñada especialmente para estudiantes universitarios en Argentina. Hecho por un estudiante para estudiantes, combina las mejores herramientas de estudio en una sola plataforma: organización de materias con correlatividades, generación automática de flashcards y cuestionarios usando inteligencia artificial, calendario académico con sincronización a Google Calendar, temporizador Pomodoro con seguimiento por materia, un asistente de IA personalizado que conoce tu carrera, y métricas detalladas de tu rendimiento académico.</p>
 
       <h2>¿Cómo empezar?</h2>
       <p>Registrate gratis en <a href="https://tabe.com.ar/registro" style="color:#00d9ff;">tabe.com.ar/registro</a> y configurá tu carrera en minutos. TABE se adapta a cualquier universidad y plan de estudios.</p>

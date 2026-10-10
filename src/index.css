@@ -1494,26 +1494,67 @@
 }
 
 /* Comic Particle Pop Animations */
-@keyframes comic-pop-in {
+@keyframes comic-burst-pop {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.3) rotate(-15deg);
+    transform: translate(-50%, -50%) scale(0.2) rotate(-10deg);
   }
-  40% {
+  22% {
     opacity: 1;
-    transform: translate(-50%, -65%) scale(1.25) rotate(5deg);
+    transform: translate(-50%, -50%) scale(0.9) rotate(3deg);
   }
-  70% {
-    transform: translate(-50%, -85%) scale(1.05) rotate(-3deg);
+  45% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.8) rotate(-1deg);
+  }
+  75% {
+    opacity: 0.95;
+    transform: translate(-50%, -55%) scale(0.75) rotate(1deg);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -110%) scale(0.85) rotate(0deg);
+    transform: translate(-50%, -70%) scale(0.6) rotate(2deg);
   }
 }
 
+@keyframes comic-shockwave {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+.animate-comic-shockwave {
+  animation: comic-shockwave 0.45s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes comic-speedlines {
+  0% {
+    opacity: 1;
+    transform: scale(0.5) rotate(0deg);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.2) rotate(6deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5) rotate(12deg);
+  }
+}
+
+.animate-comic-speedlines {
+  animation: comic-speedlines 0.4s ease-out forwards;
+  pointer-events: none;
+}
+
 .animate-comic-pop {
-  animation: comic-pop-in 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  animation: comic-burst-pop 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   pointer-events: none;
   user-select: none;
 }
