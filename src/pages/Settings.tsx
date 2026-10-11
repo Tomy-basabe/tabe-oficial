@@ -45,6 +45,7 @@ import { ComicAudio } from "@/components/comic/ComicAudio";
 import { isGoogleCalendarConnected, getStoredGoogleFeedUrl } from "@/lib/googleCalendarSync";
 import { cn } from "@/lib/utils";
 import { usePomodoro } from "@/contexts/PomodoroContext";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface PomodoroSettingsType {
   work: number;
@@ -54,6 +55,7 @@ interface PomodoroSettingsType {
 }
 
 export default function Settings() {
+  const { confirm } = useConfirm();
   const { 
     user, 
     isGuest, 
@@ -108,7 +110,14 @@ export default function Settings() {
   };
 
   const handleUnlinkGoogle = async () => {
-    if (!confirm("¿Seguro que quieres desvincular tu cuenta de Google? Si no tienes una contraseña configurada para tu email, podrías no poder acceder.")) return;
+    const ok = await confirm({
+      title: "¿Desvincular cuenta de Google?",
+      description: "¿Seguro que quieres desvincular tu cuenta de Google? Si no tienes una contraseña configurada para tu email, podrías no poder acceder.",
+      confirmText: "Desvincular cuenta",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     setUnlinkingGoogle(true);
     try {
       const { error } = await unlinkGoogleAccount();

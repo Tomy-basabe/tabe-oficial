@@ -46,8 +46,8 @@ export const confirmGlobal = (input: ConfirmInput): Promise<boolean> => {
     return globalConfirmResolver(input);
   }
   // Fallback seguro si se invoca antes de montar el Provider
-  const msg = typeof input === "string" ? input : input.title;
-  return Promise.resolve(window.confirm(msg));
+  console.warn("ConfirmModalProvider no está montado aún.");
+  return Promise.resolve(false);
 };
 
 export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

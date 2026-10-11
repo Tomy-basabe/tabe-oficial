@@ -760,7 +760,13 @@ export default function Library() {
   const deleteSelected = async () => {
     if (selectedIds.size === 0) return;
 
-    const confirmDelete = window.confirm(`¿Estás seguro de que quieres eliminar ${selectedIds.size} elementos y todo su contenido?`);
+    const confirmDelete = await confirm({
+      title: "¿Eliminar elementos seleccionados?",
+      description: `¿Estás seguro de que quieres eliminar ${selectedIds.size} elementos y todo su contenido? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar selección",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
     if (!confirmDelete) return;
 
     const idsArray = Array.from(selectedIds);

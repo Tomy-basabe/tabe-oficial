@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface SubjectOption {
   id: string;
@@ -48,6 +49,7 @@ let _tasksCache: { tasks: StudyTask[]; subjects: SubjectOption[]; timestamp: num
 const TASKS_STALE_TIME = 3 * 60 * 1000; // 3 minutos
 
 export default function Tasks() {
+  const { confirm } = useConfirm();
   const { user, isGuest, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -241,7 +243,16 @@ export default function Tasks() {
   };
 
   const handleDelete = async (taskId: string) => {
-    if (!confirm("¿Eliminar esta tarea de estudio?")) return;
+    const taskToDelete = tasks.find((t) => t.id === taskId);
+    const ok = await confirm({
+      title: "¿Eliminar tarea de estudio?",
+      description: `¿Estás seguro de eliminar la tarea "${taskToDelete?.titulo || "esta tarea"}"? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar tarea",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
+
     setTasks((prev) => {
       const updated = prev.filter((t) => t.id !== taskId);
       if (_tasksCache) {
@@ -249,8 +260,8 @@ export default function Tasks() {
       }
       return updated;
     });
-    const ok = await deleteStudyTask(taskId);
-    if (ok) {
+    const okDelete = await deleteStudyTask(taskId);
+    if (okDelete) {
       toast.success("Tarea eliminada");
     } else {
       toast.error("Error al eliminar la tarea");

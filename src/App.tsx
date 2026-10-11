@@ -60,6 +60,7 @@ const ChessGame = lazy(() => import("@/pages/ChessGame"));
 const Tasks = lazy(() => import("@/pages/Tasks"));
 const TabeGochi = lazy(() => import("@/pages/TabeGochi"));
 const StudyRoadmapPage = lazy(() => import("@/pages/StudyRoadmapPage"));
+const DemoOne = lazy(() => import("@/components/ui/demo"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
@@ -169,6 +170,7 @@ const AppRoutes = () => (
       }
     />
     <Route path="/restablecer-contrasena" element={<ResetPassword />} />
+    <Route path="/demo/prompt-box" element={<DemoOne />} />
     <Route
       element={
         <ProtectedRoute>

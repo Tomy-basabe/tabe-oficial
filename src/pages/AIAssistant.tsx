@@ -511,19 +511,18 @@ export default function AIAssistant() {
     }
   };
 
-  // ---- Send message ----
-  const handleSend = async () => {
-    if (!inputValue.trim() && !attachedImage) return;
-
-    const imageToSend = attachedImage
-      ? { data: attachedImage.base64, mime_type: attachedImage.mimeType }
-      : undefined;
-    const previewToSend = attachedImage?.preview;
+  // ---- Send message logic ----
+  const executeSendMessage = async (
+    textContent: string,
+    imageToSend?: { data: string; mime_type: string },
+    previewToSend?: string
+  ) => {
+    if (!textContent.trim() && !imageToSend) return;
 
     const userMessage: DisplayMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: inputValue || (attachedImage ? "Analiza esta imagen adjunta:" : ""),
+      content: textContent || "Analiza esta imagen adjunta:",
       timestamp: new Date(),
       imageUrl: previewToSend,
     };
@@ -531,7 +530,7 @@ export default function AIAssistant() {
     setAttachedImage(null);
 
     // Limpiar saludo inicial para empezar el chat real
-    const existingMessages = messages.filter((m) => m.id !== "init");
+    const existingMessages = messages.filter((m) => !m.id?.startsWith("init"));
     const newMessages = [...existingMessages, userMessage];
     setMessages(newMessages);
     setInputValue("");
@@ -539,7 +538,7 @@ export default function AIAssistant() {
     // Create or reuse session
     let sessionId = currentSessionRef.current;
     if (!sessionId) {
-      const title = (inputValue || "Consulta con imagen").slice(0, 40);
+      const title = (textContent || "Consulta con imagen").slice(0, 40);
       const session = await createSession(activePersona.id, title);
       if (!session) {
         toast.error("Error al crear la sesión");
@@ -551,7 +550,7 @@ export default function AIAssistant() {
     }
 
     // Save user message to DB
-    const normalizedInput = inputValue.toLowerCase();
+    const normalizedInput = textContent.toLowerCase();
     const task: AITask = normalizedInput.includes("quiz") || normalizedInput.includes("simulacro")
       ? "quiz"
       : normalizedInput.includes("flashcard") || normalizedInput.includes("tarjeta")
@@ -655,6 +654,51 @@ export default function AIAssistant() {
       handleReset, // onReset
       imageToSend  // image
     );
+  };
+
+  const handleSend = async () => {
+    if (!inputValue.trim() && !attachedImage) return;
+    const imageToSend = attachedImage
+      ? { data: attachedImage.base64, mime_type: attachedImage.mimeType }
+      : undefined;
+    await executeSendMessage(inputValue, imageToSend, attachedImage?.preview);
+  };
+
+  const handlePromptBoxSend = async (message: string, files?: File[]) => {
+    let imageToSend: { data: string; mime_type: string } | undefined = undefined;
+    let previewToSend: string | undefined = undefined;
+
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/")) {
+        const base64Data = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const res = reader.result as string;
+            resolve(res.includes(",") ? res.split(",")[1] : res);
+          };
+          reader.readAsDataURL(file);
+        });
+        imageToSend = { data: base64Data, mime_type: file.type || "image/jpeg" };
+        previewToSend = URL.createObjectURL(file);
+      }
+    }
+
+    if (!message.trim() && !imageToSend) return;
+
+    let finalPrompt = message;
+    if (message.startsWith("[Search: ")) {
+      const query = message.replace(/^\[Search:\s*/, "").replace(/\]$/, "");
+      finalPrompt = `🔍 [Búsqueda e Investigación Web]: ${query}`;
+    } else if (message.startsWith("[Think: ")) {
+      const thoughtQuery = message.replace(/^\[Think:\s*/, "").replace(/\]$/, "");
+      finalPrompt = `🧠 [Modo Pensamiento Profundo / Razonamiento Académico]: ${thoughtQuery}`;
+    } else if (message.startsWith("[Canvas: ")) {
+      const canvasQuery = message.replace(/^\[Canvas:\s*/, "").replace(/\]$/, "");
+      finalPrompt = `🎨 [Modo Canvas / Esquema Estructurado]: ${canvasQuery}`;
+    }
+
+    await executeSendMessage(finalPrompt, imageToSend, previewToSend);
   };
 
   const handleQuickAction = (prompt: string) => setInputValue(prompt);
@@ -1073,179 +1117,202 @@ export default function AIAssistant() {
               </div>
             </div>
 
-            {/* Main Rounded Input Box */}
-            <div className="flex flex-col rounded-2xl sm:rounded-3xl border-2 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-within:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all overflow-hidden">
-              {/* Attached Image Preview */}
-              {attachedImage && (
-                <div className="p-2 border-b-2 border-foreground/20 bg-muted/50 flex items-center justify-between gap-2 animate-in fade-in slide-in-from-bottom-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <img
-                      src={attachedImage.preview}
-                      alt="Vista previa"
-                      className="w-11 h-11 rounded-xl object-cover border-2 border-foreground shadow-[1px_1px_0_0_#000]"
-                    />
-                    <div className="min-w-0">
-                      <span className="text-[11px] font-black uppercase text-foreground block truncate">
-                        {attachedImage.name}
-                      </span>
-                      <span className="text-[9px] font-bold text-muted-foreground block">
-                        Se analizará con IA multimodal al enviar
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setAttachedImage(null)}
-                    className="p-1 rounded-lg border-2 border-foreground bg-card hover:bg-destructive hover:text-white transition-colors"
-                    title="Quitar imagen"
-                  >
-                    <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </button>
-                </div>
-              )}
-
-              {/* Recording Indicator */}
-              {isRecording && (
-                <div className="p-2 border-b-2 border-destructive/20 bg-destructive/15 flex items-center justify-between gap-2 animate-pulse">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-ping" />
-                    <span className="text-xs font-black uppercase text-destructive tracking-wide">
-                      Grabando audio ({Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, "0")})...
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={stopVoiceRecording}
-                    className="px-2.5 py-1 rounded-lg border-2 border-foreground bg-destructive text-white text-[10px] font-black uppercase shadow-[1px_1px_0_0_#000] hover:scale-95 transition-transform cursor-pointer"
-                  >
-                    Detener y Transcribir ⏹️
-                  </button>
-                </div>
-              )}
-
-              {/* Textarea */}
-              <textarea
-                ref={textareaRef}
-                value={inputValue}
-                onPaste={handlePaste}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder={
-                  isUploading
-                    ? "Procesando archivo..."
-                    : attachedImage
-                      ? "Escribe tu pregunta sobre la foto..."
-                      : isRecording
-                        ? "Grabando tu voz..."
-                        : "Pregunta, habla o envía un archivo..."
-                }
-                className="w-full px-4 pt-3.5 pb-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-bold placeholder:text-muted-foreground/70 resize-none overflow-y-auto text-foreground"
-                style={{ minHeight: "44px", maxHeight: "140px" }}
-                rows={1}
-                disabled={isStreaming || isUploading}
-              />
-
-              {/* Action Toolbar */}
-              <div className="flex items-center justify-between px-3 pb-2.5 pt-1 gap-2">
-                {/* Left Controls: File/Image, Quick Notes, Model Selector */}
-                <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95 cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading || isStreaming}
-                    title="Adjuntar Imagen, Audio, PDF o Texto"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                    ) : (
-                      <ImageIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
-                    )}
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95 cursor-pointer hidden xs:flex"
-                    onClick={() => {
-                      setInputValue("Explicame en detalle y con ejemplos: ");
-                      textareaRef.current?.focus();
+            {/* Sub-toolbar: Mode Switch & Model / Voice controls */}
+            <div className="flex items-center justify-between gap-2 px-1 mb-2">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <div className="min-w-0 max-w-[280px] sm:max-w-[340px]">
+                  <ModelSelector
+                    selectedModel={selectedModel}
+                    onSelectModel={(m) => {
+                      setSelectedModel(m);
+                      toast.success(`${m.shortName || m.name}`);
+                    }}
+                    powerLevel={powerLevel}
+                    onSelectPowerLevel={(p) => {
+                      setPowerLevel(p);
+                      toast.success(`Potencia: ${p.toUpperCase()}`);
                     }}
                     disabled={isStreaming}
-                    title="Explicación detallada de concepto"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  </Button>
+                  />
+                </div>
 
-                  <div className="min-w-0 flex-1 overflow-hidden">
-                    <ModelSelector
-                      selectedModel={selectedModel}
-                      onSelectModel={(m) => {
-                        setSelectedModel(m);
-                        toast.success(`${m.shortName || m.name}`);
-                      }}
-                      powerLevel={powerLevel}
-                      onSelectPowerLevel={(p) => {
-                        setPowerLevel(p);
-                        toast.success(`Potencia: ${p.toUpperCase()}`);
+                {/* Switch between Modern AI Prompt Box and Classic Neo-Brutalist Box */}
+                <button
+                  type="button"
+                  onClick={() => setInputMode((prev) => (prev === "modern" ? "classic" : "modern"))}
+                  className="px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-bold border-2 border-foreground bg-card hover:bg-muted text-foreground transition-all shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] shrink-0 cursor-pointer"
+                  title="Cambiar diseño de caja de entrada"
+                >
+                  {inputMode === "modern" ? "✨ AI Box" : "⚡ Clásico"}
+                </button>
+              </div>
+
+              {/* Capsule: Habla con TABE AI */}
+              <button
+                type="button"
+                onClick={() => setShowLiveVoice(true)}
+                className="px-2.5 sm:px-3 py-1 rounded-xl bg-card hover:bg-muted border-2 border-foreground text-foreground font-black text-[10px] md:text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0"
+                title="Modo de Voz en Vivo con TABE AI"
+                disabled={isStreaming}
+              >
+                <Radio className="w-3.5 h-3.5 text-[#00E5FF] animate-pulse stroke-[2.5]" />
+                <span className="hidden sm:inline">Habla con TABE AI</span>
+                <Volume2 className="w-3.5 h-3.5 text-foreground hidden xs:inline" />
+              </button>
+            </div>
+
+            {/* Input Box: Modern AI Prompt Box or Classic */}
+            {inputMode === "modern" ? (
+              <div className="w-full animate-in fade-in zoom-in-95 duration-200">
+                <PromptInputBox
+                  onSend={handlePromptBoxSend}
+                  isLoading={isStreaming}
+                  placeholder="Pregunta a TABE AI, busca en la web, reflexiona o adjunta apuntes..."
+                />
+              </div>
+            ) : (
+              /* Main Rounded Input Box (Classic) */
+              <div className="flex flex-col rounded-2xl sm:rounded-3xl border-2 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-within:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all overflow-hidden">
+                {/* Attached Image Preview */}
+                {attachedImage && (
+                  <div className="p-2 border-b-2 border-foreground/20 bg-muted/50 flex items-center justify-between gap-2 animate-in fade-in slide-in-from-bottom-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img
+                        src={attachedImage.preview}
+                        alt="Vista previa"
+                        className="w-11 h-11 rounded-xl object-cover border-2 border-foreground shadow-[1px_1px_0_0_#000]"
+                      />
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-black uppercase text-foreground block truncate">
+                          {attachedImage.name}
+                        </span>
+                        <span className="text-[9px] font-bold text-muted-foreground block">
+                          Se analizará con IA multimodal al enviar
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAttachedImage(null)}
+                      className="p-1 rounded-lg border-2 border-foreground bg-card hover:bg-destructive hover:text-white transition-colors"
+                      title="Quitar imagen"
+                    >
+                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Recording Indicator */}
+                {isRecording && (
+                  <div className="p-2 border-b-2 border-destructive/20 bg-destructive/15 flex items-center justify-between gap-2 animate-pulse">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-ping" />
+                      <span className="text-xs font-black uppercase text-destructive tracking-wide">
+                        Grabando audio ({Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, "0")})...
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={stopVoiceRecording}
+                      className="px-2.5 py-1 rounded-lg border-2 border-foreground bg-destructive text-white text-[10px] font-black uppercase shadow-[1px_1px_0_0_#000] hover:scale-95 transition-transform cursor-pointer"
+                    >
+                      Detener y Transcribir ⏹️
+                    </button>
+                  </div>
+                )}
+
+                {/* Textarea */}
+                <textarea
+                  ref={textareaRef}
+                  value={inputValue}
+                  onPaste={handlePaste}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder={
+                    isUploading
+                      ? "Procesando archivo..."
+                      : attachedImage
+                        ? "Escribe tu pregunta sobre la foto..."
+                        : isRecording
+                          ? "Grabando tu voz..."
+                          : "Pregunta, habla o envía un archivo..."
+                  }
+                  className="w-full px-4 pt-3.5 pb-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-bold placeholder:text-muted-foreground/70 resize-none overflow-y-auto text-foreground"
+                  style={{ minHeight: "44px", maxHeight: "140px" }}
+                  rows={1}
+                  disabled={isStreaming || isUploading}
+                />
+
+                {/* Action Toolbar */}
+                <div className="flex items-center justify-between px-3 pb-2.5 pt-1 gap-2">
+                  <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95 cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading || isStreaming}
+                      title="Adjuntar Imagen, Audio, PDF o Texto"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                      ) : (
+                        <ImageIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95 cursor-pointer hidden xs:flex"
+                      onClick={() => {
+                        setInputValue("Explicame en detalle y con ejemplos: ");
+                        textareaRef.current?.focus();
                       }}
                       disabled={isStreaming}
-                    />
+                      title="Explicación detallada de concepto"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={cn(
+                        "border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 transition-transform active:scale-95 cursor-pointer",
+                        isRecording && "bg-destructive text-white border-destructive animate-pulse"
+                      )}
+                      onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                      title={isRecording ? "Detener grabación" : "Grabar audio / voz con IA"}
+                      disabled={isStreaming}
+                    >
+                      <Mic className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    </Button>
+
+                    {(inputValue.trim() || attachedImage) && (
+                      <Button
+                        onClick={handleSend}
+                        disabled={isStreaming}
+                        className="rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-7 sm:h-8 px-2.5 sm:px-3 flex items-center gap-1 shrink-0 bg-[#00E5FF] !text-black hover:bg-[#00cce6] shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[1px] cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      </Button>
+                    )}
                   </div>
                 </div>
-
-                {/* Right Controls: Mic, Live Voice Capsule, Send */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className={cn(
-                      "border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 transition-transform active:scale-95 cursor-pointer",
-                      isRecording && "bg-destructive text-white border-destructive animate-pulse"
-                    )}
-                    onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-                    title={isRecording ? "Detener grabación" : "Grabar audio / voz con IA"}
-                    disabled={isStreaming}
-                  >
-                    <Mic className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  </Button>
-
-                  {/* Capsule: Habla con TABE AI */}
-                  <button
-                    type="button"
-                    onClick={() => setShowLiveVoice(true)}
-                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-card hover:bg-muted border-2 border-foreground text-foreground font-black text-[10px] md:text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0"
-                    title="Modo de Voz en Vivo con TABE AI"
-                    disabled={isStreaming}
-                  >
-                    <Radio className="w-3.5 h-3.5 text-[#00E5FF] animate-pulse stroke-[2.5]" />
-                    <span className="hidden sm:inline">Habla con TABE AI</span>
-                    <Volume2 className="w-3.5 h-3.5 text-foreground hidden xs:inline" />
-                  </button>
-
-                  {/* Send Button */}
-                  {(inputValue.trim() || attachedImage) && (
-                    <Button
-                      onClick={handleSend}
-                      disabled={isStreaming}
-                      className="rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-7 sm:h-8 px-2.5 sm:px-3 flex items-center gap-1 shrink-0 bg-[#00E5FF] !text-black hover:bg-[#00cce6] shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[1px] cursor-pointer"
-                    >
-                      <Send className="w-3.5 h-3.5" strokeWidth={2.5} />
-                    </Button>
-                  )}
-                </div>
               </div>
-            </div>
+            )}
 
             <p className="text-[9px] text-center font-bold uppercase text-muted-foreground/70 mt-2 px-2">
               {activePersona?.name || "TABE AI"} puede cometer errores. Verifica información académica sensible.
