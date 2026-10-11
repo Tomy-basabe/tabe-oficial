@@ -13,12 +13,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SleepLogDialog } from "./SleepLogDialog";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface SleepStatsProps {
   dateRange: DateRange;
 }
 
 export function SleepStats({ dateRange }: SleepStatsProps) {
+  const { confirm } = useConfirm();
   const { getSleepLogs, deleteSleepLog } = useSleepLogs();
   const [logs, setLogs] = useState<SleepLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,15 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
   };
 
   const handleDelete = async (log: SleepLog) => {
-    if (confirm(`¿Eliminar el registro de descanso del ${format(parseISO(log.fecha), "d 'de' MMMM", { locale: es })}?`)) {
+    const formattedDate = format(parseISO(log.fecha), "d 'de' MMMM", { locale: es });
+    const ok = await confirm({
+      title: "¿Eliminar registro de descanso?",
+      description: `¿Estás seguro de eliminar el registro del ${formattedDate}? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (ok) {
       const success = await deleteSleepLog(log.id);
       if (success) fetchLogs();
     }

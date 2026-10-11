@@ -8,6 +8,12 @@ import {
 } from "@/types/tabegochi";
 import { TabeGochiAudio } from "@/lib/tabegochiAudio";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  fetchTabeGochiCloud, 
+  saveTabeGochiCloud, 
+  subscribeTabeGochiRemoteChanges 
+} from "@/services/tabegochiSyncService";
 
 const STORAGE_KEY_PETS = "tabe_gochi_pets_v1";
 const STORAGE_KEY_ACTIVE = "tabe_gochi_active_pet_id_v1";
@@ -141,6 +147,10 @@ function applyRealTimeDailyDecay(pet: TabeGochiPet, now: number): TabeGochiPet {
 }
 
 export function useTabeGochi() {
+  const { user } = useAuth();
+  const lastSaveTimeRef = useRef<number>(Date.now());
+  const isInitializedFromCloudRef = useRef<boolean>(false);
+
   const [pets, setPets] = useState<TabeGochiPet[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PETS);
@@ -206,7 +216,7 @@ export function useTabeGochi() {
     }
   }, [pets, activePetId]);
 
-  // Persist state to localStorage
+  // Persist state to localStorage inmediatamente
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_PETS, JSON.stringify(pets));
@@ -230,6 +240,134 @@ export function useTabeGochi() {
       localStorage.setItem(STORAGE_KEY_INVENTORY, JSON.stringify(inventory));
     } catch {}
   }, [inventory]);
+
+  // --- SINCRONIZACIÓN EN LA NUBE (SUPABASE) ENTRE NOTEBOOK Y TELÉFONO ---
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let isMounted = true;
+
+    const loadCloudData = async () => {
+      try {
+        const cloud = await fetchTabeGochiCloud(user.id);
+        if (!isMounted) return;
+
+        if (cloud && Array.isArray(cloud.pets) && cloud.pets.length > 0) {
+          const now = Date.now();
+          const cloudPetsWithDecay = cloud.pets.map(p => applyRealTimeDailyDecay(p, now));
+
+          setPets(cloudPetsWithDecay);
+          setActivePetId(cloud.activePetId || cloudPetsWithDecay[0]?.id || "");
+          setCoins(typeof cloud.coins === "number" ? cloud.coins : 50);
+          setInventory(Array.isArray(cloud.inventory) ? cloud.inventory : ["apple", "room"]);
+          lastSaveTimeRef.current = cloud.updatedAt || now;
+          isInitializedFromCloudRef.current = true;
+        } else {
+          // La nube aún no tiene datos: subimos el estado local actual a la cuenta
+          if (pets.length > 0 && !isInitializedFromCloudRef.current) {
+            isInitializedFromCloudRef.current = true;
+            await saveTabeGochiCloud(user.id, {
+              pets,
+              activePetId,
+              coins,
+              inventory,
+              updatedAt: Date.now(),
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("[TabeGochi] Error en carga inicial cloud:", err);
+      }
+    };
+
+    loadCloudData();
+
+    // Suscripción a cambios remotos en tiempo real desde otro dispositivo
+    const unsubscribe = subscribeTabeGochiRemoteChanges(user.id, (remoteState) => {
+      if (!isMounted || !remoteState) return;
+      if (remoteState.updatedAt > lastSaveTimeRef.current) {
+        const now = Date.now();
+        const remotePets = remoteState.pets.map(p => applyRealTimeDailyDecay(p, now));
+        setPets(remotePets);
+        setActivePetId(remoteState.activePetId || remotePets[0]?.id || "");
+        setCoins(typeof remoteState.coins === "number" ? remoteState.coins : 50);
+        setInventory(Array.isArray(remoteState.inventory) ? remoteState.inventory : ["apple", "room"]);
+        lastSaveTimeRef.current = remoteState.updatedAt;
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [user?.id]);
+
+  // Refrescar desde la nube cuando la pestaña/ventana vuelve al foco (cambio de teléfono a notebook)
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const handleVisibilityOrFocus = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          const cloud = await fetchTabeGochiCloud(user.id);
+          if (cloud && cloud.updatedAt > lastSaveTimeRef.current) {
+            const now = Date.now();
+            const updated = cloud.pets.map(p => applyRealTimeDailyDecay(p, now));
+            setPets(updated);
+            setActivePetId(cloud.activePetId || updated[0]?.id || "");
+            setCoins(typeof cloud.coins === "number" ? cloud.coins : 50);
+            setInventory(Array.isArray(cloud.inventory) ? cloud.inventory : ["apple", "room"]);
+            lastSaveTimeRef.current = cloud.updatedAt;
+          }
+        } catch {}
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+    };
+  }, [user?.id]);
+
+  // Guardado debounced hacia Supabase (2000 ms) respetando límites de red
+  useEffect(() => {
+    if (!user?.id || !isInitializedFromCloudRef.current) return;
+
+    const timer = setTimeout(() => {
+      const now = Date.now();
+      lastSaveTimeRef.current = now;
+      saveTabeGochiCloud(user.id, {
+        pets,
+        activePetId,
+        coins,
+        inventory,
+        updatedAt: now,
+      });
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [pets, activePetId, coins, inventory, user?.id]);
+
+  // Guardado inmediato al cerrar la pestaña
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const handleBeforeUnload = () => {
+      saveTabeGochiCloud(user.id, {
+        pets,
+        activePetId,
+        coins,
+        inventory,
+        updatedAt: Date.now(),
+      });
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [user?.id, pets, activePetId, coins, inventory]);
 
   const activePet = pets.find(p => p.id === activePetId) || pets[0] || null;
 
@@ -275,7 +413,7 @@ export function useTabeGochi() {
     if (!checkActionCooldown("feed", 700)) return;
 
     if (activePet.isDead) {
-      toast.error(`¡${activePet.name} ha fallecido por falta de atención! Usa [Revivir] para salvarlo.`);
+      toast.error(`¡${activePet.name} ha fallecido! No se puede revivir. Debes despedirlo y adoptar una nueva mascota.`);
       TabeGochiAudio.playClick();
       return;
     }
@@ -343,7 +481,7 @@ export function useTabeGochi() {
     if (!checkActionCooldown("pet", 500)) return;
 
     if (activePet.isDead) {
-      toast.error(`¡${activePet.name} ha fallecido! Usa [Revivir] para revivirlo.`);
+      toast.error(`¡${activePet.name} ha fallecido! No se puede revivir. Debes despedirlo para adoptar otra mascota.`);
       TabeGochiAudio.playClick();
       return;
     }
@@ -382,7 +520,7 @@ export function useTabeGochi() {
     if (!checkActionCooldown("clean", 700)) return;
 
     if (activePet.isDead) {
-      toast.error(`¡${activePet.name} ha fallecido! Debes revivirlo primero.`);
+      toast.error(`¡${activePet.name} ha fallecido! No se puede revivir. Debes despedirlo para adoptar otra mascota.`);
       TabeGochiAudio.playClick();
       return;
     }
@@ -447,36 +585,14 @@ export function useTabeGochi() {
     }));
   };
 
-  // Action: Revive Pet (Revivir mascota fallecida con segunda oportunidad)
-  const revivePet = () => {
-    if (!activePet) return;
-    if (!checkActionCooldown("revive", 700)) return;
-
-    TabeGochiAudio.playHeal();
-
-    updateActivePet(p => ({
-      ...p,
-      isDead: false,
-      isSick: false,
-      health: 65,
-      hunger: 60,
-      happiness: 60,
-      energy: 80,
-      hygiene: 70,
-      poopCount: 0,
-      lastUpdated: Date.now(),
-    }));
-
-    toast.success(`✨ ¡Reviviste a ${activePet.name}! Ahora cuídalo todos los días para que no vuelva a morir.`);
-  };
-
-  // Action: Heal (Medicar si está enfermo o revivir si falleció)
+  // Action: Heal (Medicar si está enfermo; las mascotas fallecidas no se pueden revivir)
   const healPet = () => {
     if (!activePet) return;
     if (!checkActionCooldown("heal", 700)) return;
 
     if (activePet.isDead) {
-      revivePet();
+      TabeGochiAudio.playClick();
+      toast.error(`¡${activePet.name} ha fallecido definitivamente! Las mascotas fallecidas no se pueden revivir. Debes despedirlo para adoptar otra mascota.`);
       return;
     }
 
@@ -634,7 +750,6 @@ export function useTabeGochi() {
     cleanPoop: cleanPet,
     toggleSleep,
     healPet,
-    revivePet,
     adoptPet,
     switchPet,
     releasePet,

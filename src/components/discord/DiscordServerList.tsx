@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { DiscordServer } from "@/hooks/useDiscord";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface DiscordServerListProps {
   servers: DiscordServer[];
@@ -54,6 +55,7 @@ export function DiscordServerList({
   defaultModalTab,
   prefillInviteCode,
 }: DiscordServerListProps) {
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const [internalOpenModal, setInternalOpenModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"create" | "join">(defaultModalTab || "create");
@@ -213,7 +215,14 @@ export function DiscordServerList({
                 <ContextMenuItem
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer group"
                   onClick={async () => {
-                    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el servidor "${server.name}" y todos sus canales y mensajes? Esta acción no se puede deshacer.`)) {
+                    const ok = await confirm({
+                      title: "¿Eliminar servidor permanentemente?",
+                      description: `¿Estás seguro de que deseas eliminar permanentemente el servidor "${server.name}" y todos sus canales y mensajes? Esta acción no se puede deshacer.`,
+                      confirmText: "Eliminar servidor",
+                      cancelText: "Cancelar",
+                      variant: "danger",
+                    });
+                    if (ok) {
                       await onDeleteServer(server.id);
                     }
                   }}
@@ -225,7 +234,14 @@ export function DiscordServerList({
                 <ContextMenuItem
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer group"
                   onClick={async () => {
-                    if (window.confirm(`¿Deseas salir del servidor "${server.name}"?`)) {
+                    const ok = await confirm({
+                      title: "¿Salir del servidor?",
+                      description: `¿Deseas salir del servidor "${server.name}"?`,
+                      confirmText: "Salir",
+                      cancelText: "Cancelar",
+                      variant: "warning",
+                    });
+                    if (ok) {
                       await onLeaveServer?.(server.id);
                     }
                   }}

@@ -4,6 +4,7 @@ import { TabeGochiPet, PET_SPECIES_LIST } from "@/types/tabegochi";
 import { PixelPetSprite } from "@/components/tabegochi/PixelPetSprite";
 import { Zap, Heart, Utensils, Droplets, Activity, Trash2, UserPlus, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface PetStatsModalProps {
   open: boolean;
@@ -24,19 +25,30 @@ export function PetStatsModal({
   onReleasePet,
   onAdoptNew,
 }: PetStatsModalProps) {
+  const { confirm } = useConfirm();
   if (!pet) return null;
   const species = PET_SPECIES_LIST.find(s => s.id === pet.species) || PET_SPECIES_LIST[0];
   const xpPercent = Math.min(100, Math.round((pet.xp % 100) / 100 * 100));
 
-  const handleAbandonAndAdopt = () => {
-    const confirmMsg = allPets.length <= 1
+  const handleAbandonAndAdopt = async () => {
+    const confirmMsg = pet.isDead
+      ? `¿Estás seguro de despedir a ${pet.name}? Tu mascota ha fallecido definitivamente y no se puede revivir. Se abrirá el Centro de Adopción para que elijas a tu nuevo compañero.`
+      : allPets.length <= 1
       ? `¿Estás seguro de despedir a ${pet.name}? Se abrirá el Centro de Adopción para que elijas tu nueva mascota virtual.`
       : `¿Estás seguro de despedir a ${pet.name}? Esta acción no se puede deshacer.`;
 
-    if (window.confirm(confirmMsg)) {
+    const ok = await confirm({
+      title: pet.isDead ? "Despedir a tu mascota" : "¿Despedir a tu mascota?",
+      description: confirmMsg,
+      confirmText: "Despedir",
+      cancelText: "Conservar",
+      variant: "danger",
+    });
+
+    if (ok) {
       onReleasePet(pet.id);
       onOpenChange(false);
-      if (allPets.length <= 1 && onAdoptNew) {
+      if ((pet.isDead || allPets.length <= 1) && onAdoptNew) {
         setTimeout(() => onAdoptNew(), 200);
       }
     }
@@ -244,7 +256,7 @@ export function PetStatsModal({
               className="text-red-600 hover:text-white hover:bg-red-600 border-2 border-red-600 text-xs font-black uppercase rounded-xl h-9 px-3 gap-1.5 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Abandonar y Elegir Otra</span>
+              <span>{pet.isDead ? "Despedir y Elegir Otra" : "Abandonar y Elegir Otra"}</span>
             </Button>
 
             <Button

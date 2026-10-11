@@ -25,7 +25,9 @@ function PomodoroGoalWidgetContent({ weekData, loading }: { weekData: any[]; loa
     return <Skeleton className="w-full h-48 rounded-2xl" />;
   }
 
-  const todayData = weekData && weekData.length > 0 ? weekData[weekData.length - 1] : { minutes: 0 };
+  const todayData = weekData && weekData.length > 0 
+    ? (weekData.find(d => d.isToday) || weekData[weekData.length - 1]) 
+    : { minutes: 0 };
   const todayMinutes = todayData.minutes;
   const dailyGoalMinutes = 120;
   const progressPercentage = Math.min(Math.round((todayMinutes / dailyGoalMinutes) * 100), 100);

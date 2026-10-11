@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toLocalDateStr } from "@/lib/utils";
 import { PomodoroPipWidget } from "@/components/pomodoro/PomodoroPipWidget";
+import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
 export type TimerMode = "work" | "shortBreak" | "longBreak";
 export type SoundType = "classic" | "zen" | "arcade";
@@ -373,6 +374,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             if (completed) {
                 setCompletedPomodoros(prev => prev + 1);
             }
+            invalidateDashboardStatsCache();
         } catch (e) {
             console.error("Save session error:", e);
         }

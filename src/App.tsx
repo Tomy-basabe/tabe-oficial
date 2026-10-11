@@ -234,6 +234,8 @@ import { useTheme } from "@/hooks/useTheme";
 import { DynamicTitleWatcher } from "@/hooks/useDynamicTitle";
 import { CookieConsent } from "@/components/legal/CookieConsent";
 
+import { ConfirmModalProvider } from "@/contexts/ConfirmModalContext";
+
 const App = () => {
   useTheme();
   // Security: debug logs removed for production
@@ -241,26 +243,28 @@ const App = () => {
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <PomodoroProvider>
-          <StudyTimerProvider>
-            <AIChatProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <FriendsSocialProvider>
-                  <DiscordVoiceProvider>
-                    <DynamicTitleWatcher />
-                    <AppRoutes />
-                    <GlobalDiscordVoiceWidget />
-                    <PWAInstallBanner />
-                    <IncomingChallengeModal />
-                    <CookieConsent />
-                  </DiscordVoiceProvider>
-                </FriendsSocialProvider>
-              </BrowserRouter>
-            </AIChatProvider>
-          </StudyTimerProvider>
-        </PomodoroProvider>
+        <ConfirmModalProvider>
+          <PomodoroProvider>
+            <StudyTimerProvider>
+              <AIChatProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <FriendsSocialProvider>
+                    <DiscordVoiceProvider>
+                      <DynamicTitleWatcher />
+                      <AppRoutes />
+                      <GlobalDiscordVoiceWidget />
+                      <PWAInstallBanner />
+                      <IncomingChallengeModal />
+                      <CookieConsent />
+                    </DiscordVoiceProvider>
+                  </FriendsSocialProvider>
+                </BrowserRouter>
+              </AIChatProvider>
+            </StudyTimerProvider>
+          </PomodoroProvider>
+        </ConfirmModalProvider>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

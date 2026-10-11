@@ -178,14 +178,16 @@ export function TabeGochiDevice({
               })}
             </div>
 
-            {/* Centro de la Pantalla: Mascota 2D Retro o Confirmación de Abandono */}
+            {/* Centro de la Pantalla: Mascota 2D Retro o Confirmación de Abandono / Despedida */}
             {confirmingAbandon ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center px-2 gap-2 z-30">
                 <p className="text-xs font-black uppercase text-black bg-[#FFE600] px-2 py-0.5 rounded border-2 border-black shadow-[2px_2px_0_#000]">
-                  ¿ABANDONAR A {pet.name}?
+                  {pet.isDead ? `¿DESPEDIR A ${pet.name}?` : `¿ABANDONAR A ${pet.name}?`}
                 </p>
                 <p className="text-[10px] font-bold leading-tight opacity-90 max-w-[220px]">
-                  Liberarás a esta mascota y podrás adoptar una nueva.
+                  {pet.isDead 
+                    ? "Tu mascota ha fallecido definitivamente y no puede revivir. Al despedirla podrás adoptar un nuevo compañero." 
+                    : "Liberarás a esta mascota y podrás adoptar una nueva."}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   <button
@@ -196,7 +198,7 @@ export function TabeGochiDevice({
                     }}
                     className="px-2.5 py-1 rounded-lg bg-[#ef4444] hover:bg-red-600 text-white border-2 border-black shadow-[2px_2px_0_#000] text-[10px] font-black uppercase cursor-pointer"
                   >
-                    [SÍ, ABANDONAR]
+                    {pet.isDead ? "[SÍ, DESPEDIR]" : "[SÍ, ABANDONAR]"}
                   </button>
                   <button
                     type="button"
@@ -301,11 +303,11 @@ export function TabeGochiDevice({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onSelectOption?.("heal");
+                      setConfirmingAbandon(true);
                     }}
-                    className="mt-1 px-3 py-1 rounded-lg bg-[#00FF9D] hover:bg-[#00E58D] text-black font-black uppercase text-[10px] border-2 border-black shadow-[2px_2px_0_#000] cursor-pointer animate-pulse"
+                    className="mt-1 px-3 py-1 rounded-lg bg-[#ef4444] hover:bg-red-600 text-white font-black uppercase text-[10px] border-2 border-black shadow-[2px_2px_0_#000] cursor-pointer"
                   >
-                    ✨ [REVIVIR MASCOTA]
+                    🪦 [DESPEDIR MASCOTA]
                   </button>
                 )}
               </div>

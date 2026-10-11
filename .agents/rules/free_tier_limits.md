@@ -49,3 +49,5 @@ El proyecto opera bajo planes gratuitos y **NUNCA DEBE EXCEDERSE** de las cuotas
 2. Realizar un único despliegue por instrucción/requerimiento.
 3. Ante cualquier nueva feature que involucre subida de datos o invocación de funciones, verificar previamente el impacto en cuotas de almacenamiento y CPU.
 4. Mantener actualizado el grafo de conocimiento local (`python -m graphify update .`) tras cada modificación.
+5. Recordatorio SQL: Notificar siempre y entregar al usuario de forma explícita y lista para copiar cualquier script o migración SQL que requiera ser ejecutado en el SQL Editor de Supabase.
+

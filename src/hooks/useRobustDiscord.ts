@@ -179,9 +179,10 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     const createPeerConnection = (targetId: string, isInitiator: boolean) => {
         if (peerConnections.current.has(targetId)) {
             const existingPc = peerConnections.current.get(targetId)!;
-            if (existingPc.signalingState !== 'closed') {
-                existingPc.close();
+            if (existingPc.signalingState !== 'closed' && existingPc.connectionState !== 'failed') {
+                return existingPc;
             }
+            existingPc.close();
         }
 
         const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -384,6 +385,9 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                                     isAudioEnabled: latest.isAudioEnabled !== false,
                                     isScreenSharing: Boolean(latest.isScreenSharing)
                                 });
+                                if (!peerConnections.current.has(userId) && localUserId.localeCompare(userId) < 0) {
+                                    createPeerConnection(userId, true);
+                                }
                             }
                         });
                         return next;
@@ -400,17 +404,13 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                                 return next;
                             });
                         }
-                        if (!peerConnections.current.has(payload.userId)) {
-                            createPeerConnection(payload.userId, true);
-                        }
                         // Responder con nuestro media state para que el nuevo usuario nos conozca
                         broadcastMediaState();
                     }
                 })
                 .on('presence', { event: 'join' }, ({ key }) => {
                     if (key !== localUserId) {
-                        console.log(`[WebRTC] Presence join de ${key}`);
-                        if (!peerConnections.current.has(key)) {
+                        if (!peerConnections.current.has(key) && localUserId.localeCompare(key) < 0) {
                             createPeerConnection(key, true);
                         }
                     }
@@ -625,13 +625,13 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             if (localStreamRef.current) {
                 const audioTrack = localStreamRef.current.getAudioTracks()[0];
                 const videoTrack = localStreamRef.current.getVideoTracks()[0];
-                
+
                 if (audioTrack) {
                     const audioSender = senders.find(s => s.track?.kind === 'audio');
                     if (audioSender) audioSender.replaceTrack(audioTrack);
                     else pc.addTrack(audioTrack, localStreamRef.current);
                 }
-                
+
                 const videoSender = senders.find(s => s.track?.kind === 'video' && !s.track.label.toLowerCase().includes('screen'));
                 if (videoTrack && isVideoEnabled) {
                     if (videoSender) videoSender.replaceTrack(videoTrack);

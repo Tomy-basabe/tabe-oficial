@@ -30,6 +30,7 @@ import { InviteFriendsModal } from "./InviteFriendsModal";
 import { DiscordServerSettingsModal } from "./DiscordServerSettingsModal";
 import { TabetalkUserSettingsModal } from "./TabetalkUserSettingsModal";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface DiscordChannelSidebarProps {
   server: DiscordServer;
@@ -84,6 +85,7 @@ export function DiscordChannelSidebar({
   onUpdateServer,
   onGetServerInviteCode,
 }: DiscordChannelSidebarProps) {
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const { canUse, incrementUsage, isPremium } = useUsageLimits();
   const [showCreateText, setShowCreateText] = useState(false);
@@ -164,7 +166,14 @@ export function DiscordChannelSidebar({
             <DropdownMenuItem
               className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer hover:bg-destructive/10 transition-colors font-medium"
               onClick={async () => {
-                if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el servidor "${server.name}" y todos sus canales y mensajes? Esta acción no se puede deshacer.`)) {
+                const ok = await confirm({
+                  title: "¿Eliminar servidor permanentemente?",
+                  description: `¿Estás seguro de que deseas eliminar permanentemente el servidor "${server.name}" y todos sus canales y mensajes? Esta acción no se puede deshacer.`,
+                  confirmText: "Eliminar servidor",
+                  cancelText: "Cancelar",
+                  variant: "danger",
+                });
+                if (ok) {
                   await onDeleteServer(server.id);
                 }
               }}
@@ -176,7 +185,14 @@ export function DiscordChannelSidebar({
             <DropdownMenuItem
               className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer hover:bg-destructive/10 transition-colors font-medium"
               onClick={async () => {
-                if (window.confirm(`¿Deseas salir del servidor "${server.name}"?`)) {
+                const ok = await confirm({
+                  title: "¿Salir del servidor?",
+                  description: `¿Deseas salir del servidor "${server.name}"?`,
+                  confirmText: "Salir",
+                  cancelText: "Cancelar",
+                  variant: "warning",
+                });
+                if (ok) {
                   await onLeaveServer(server.id);
                 }
               }}

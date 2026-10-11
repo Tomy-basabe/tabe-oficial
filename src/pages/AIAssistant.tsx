@@ -25,6 +25,7 @@ import { cleanAIResponse, transcribeAudio } from "@/lib/aiClientService";
 import { AVAILABLE_AI_MODELS, AITask } from "@/config/aiModels";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
 import { AILiveVoiceModal } from "@/components/ai/AILiveVoiceModal";
@@ -34,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Interface DisplayMessage is now exported from AIChatContext, we can import it
 import { DisplayMessage } from "@/contexts/AIChatContext";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 const quickActions = [
   { id: "roadmap", label: "Rutas de Examen", icon: Compass, prompt: "", path: "/tabe-ai/examenes" },
@@ -141,6 +143,7 @@ async function getProactiveGreeting(
 }
 
 export default function AIAssistant() {
+  const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
   const navigate = useNavigate();
   
@@ -188,6 +191,7 @@ export default function AIAssistant() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [showLiveVoice, setShowLiveVoice] = useState(false);
+  const [inputMode, setInputMode] = useState<"modern" | "classic">("modern");
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -266,7 +270,14 @@ export default function AIAssistant() {
   };
 
   const handleDeletePersona = async (id: string) => {
-    if (window.confirm("¿Seguro que querés eliminar esta IA y todo su historial?")) {
+    const okToProceed = await confirm({
+      title: "¿Eliminar IA y su historial?",
+      description: "¿Seguro que querés eliminar esta IA personalizada y todo su historial de chats? Esta acción no se puede deshacer.",
+      confirmText: "Eliminar IA",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (okToProceed) {
       const ok = await deletePersona(id);
       if (ok) {
         toast.success("IA eliminada corporativamente");
@@ -331,7 +342,14 @@ export default function AIAssistant() {
   const handleClearAllSessions = async () => {
     if (!activePersona) return;
     
-    if (!window.confirm("¿Seguro que querés borrar TODO el historial de sesiones de esta IA? Esta acción no se puede deshacer.")) {
+    const ok = await confirm({
+      title: "¿Borrar todo el historial?",
+      description: "Esta acción borrará TODAS las sesiones y conversaciones guardadas de esta IA. No se puede deshacer.",
+      confirmText: "Borrar todo",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) {
       return;
     }
 

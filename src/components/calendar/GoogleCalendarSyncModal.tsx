@@ -42,6 +42,7 @@ import {
 } from "@/lib/googleCalendarSync";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface GoogleCalendarSyncModalProps {
     open: boolean;
@@ -64,6 +65,7 @@ export function GoogleCalendarSyncModal({
     refetch,
     onCleanupDuplicates,
 }: GoogleCalendarSyncModalProps) {
+    const { confirm } = useConfirm();
     const { user, connectGoogleCalendar } = useAuth();
     const { feedToken, feedUrl, loading: feedLoading, generateToken, regenerateToken } =
         useCalendarFeed();
@@ -166,7 +168,14 @@ export function GoogleCalendarSyncModal({
 
     const handleRunCleanup = async () => {
         if (isCleaning) return;
-        if (!confirm("¿Deseas buscar y eliminar eventos duplicados entre TABE y Google Calendar? Se conservará la copia original más completa.")) {
+        const ok = await confirm({
+            title: "¿Limpiar eventos duplicados?",
+            description: "¿Deseas buscar y eliminar eventos duplicados entre TABE y Google Calendar? Se conservará la copia original más completa.",
+            confirmText: "Limpiar",
+            cancelText: "Cancelar",
+            variant: "warning",
+        });
+        if (!ok) {
             return;
         }
         setIsCleaning(true);
@@ -202,8 +211,15 @@ export function GoogleCalendarSyncModal({
         toast.success(next ? "Sincronización automática activada" : "Sincronización automática pausada");
     };
 
-    const handleDisconnect = () => {
-        if (confirm("¿Desconectar Google Calendar? Tus eventos guardados en TABE se mantendrán intactos.")) {
+    const handleDisconnect = async () => {
+        const ok = await confirm({
+            title: "¿Desconectar Google Calendar?",
+            description: "¿Desconectar Google Calendar? Tus eventos guardados en TABE se mantendrán intactos.",
+            confirmText: "Desconectar",
+            cancelText: "Cancelar",
+            variant: "danger",
+        });
+        if (ok) {
             disconnectGoogleCalendar();
             setConnected(false);
             setNeedsReauth(false);

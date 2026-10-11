@@ -12,6 +12,7 @@ import { Subject } from "@/hooks/useSubjects";
 import { stripGoogleEventId } from "@/lib/googleCalendarSync";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface AddEventModalProps {
   open: boolean;
@@ -45,6 +46,7 @@ const PRESET_COLORS = [
 ];
 
 export function AddEventModal({ open, onClose, onSubmit, onDelete, subjects, initialDate, editEvent }: AddEventModalProps) {
+  const { confirm } = useConfirm();
   const [titulo, setTitulo] = useState("");
   const [fecha, setFecha] = useState<Date | undefined>(new Date());
   const [hora, setHora] = useState("");
@@ -505,7 +507,14 @@ export function AddEventModal({ open, onClose, onSubmit, onDelete, subjects, ini
                 <button
                   type="button"
                   onClick={async () => {
-                    if (confirm("¿Estás seguro de eliminar este examen/evento?")) {
+                    const ok = await confirm({
+                      title: "¿Eliminar examen o evento?",
+                      description: "¿Estás seguro de eliminar este examen/evento? Esta acción no se puede deshacer.",
+                      confirmText: "Eliminar",
+                      cancelText: "Cancelar",
+                      variant: "danger",
+                    });
+                    if (ok) {
                       await onDelete(editEvent.id);
                       handleClose();
                     }

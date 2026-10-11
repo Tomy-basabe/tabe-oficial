@@ -24,6 +24,7 @@ import { performGlobalCalendarSync } from "@/lib/globalCalendarSync";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 const eventTypeColors: Record<EventType, string> = {
   P1: "bg-[#00FF9D] border-foreground text-black font-black",
@@ -54,6 +55,7 @@ const months = [
 ];
 
 export default function Calendar() {
+  const { confirm } = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const editEventId = searchParams.get("editEventId");
 
@@ -104,7 +106,14 @@ export default function Calendar() {
 
   const handleCleanupDuplicates = async () => {
     if (isCleaningDuplicates) return;
-    if (!confirm("¿Deseas buscar y eliminar todos los eventos duplicados en TABE y en Google Calendar? Conservaremos la copia más completa.")) {
+    const ok = await confirm({
+      title: "¿Limpiar eventos duplicados?",
+      description: "¿Deseas buscar y eliminar todos los eventos duplicados en TABE y en Google Calendar? Conservaremos la copia más completa.",
+      confirmText: "Limpiar duplicados",
+      cancelText: "Cancelar",
+      variant: "warning",
+    });
+    if (!ok) {
       return;
     }
     setIsCleaningDuplicates(true);
@@ -306,11 +315,17 @@ export default function Calendar() {
     const event = events.find(e => e.id === eventId);
     const isRecurring = event?.recurrence_rule || event?.isVirtual;
 
-    const message = isRecurring
-      ? "Este es un evento recurrente. ¿Eliminar TODAS las repeticiones?"
-      : "¿Eliminar este evento?";
+    const ok = await confirm({
+      title: isRecurring ? "¿Eliminar repeticiones del evento?" : "¿Eliminar este evento?",
+      description: isRecurring
+        ? `Este es un evento recurrente ("${event?.titulo || "Evento"}"). ¿Deseas eliminar TODAS sus repeticiones del calendario?`
+        : `¿Estás seguro de eliminar el evento "${event?.titulo || "Evento"}"? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
 
-    if (confirm(message)) {
+    if (ok) {
       await deleteEvent(eventId);
     }
   };

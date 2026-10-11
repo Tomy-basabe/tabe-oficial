@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
+import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
 export interface StudyTimerContextType {
   isActive: boolean;
@@ -192,6 +193,7 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
         detail: { seconds: unsaved, subjectId: targetSubId, tipo: "apuntes" }
       }));
       document.dispatchEvent(new CustomEvent("forest-activity-updated"));
+      invalidateDashboardStatsCache();
 
       console.log(`[StudyTimer] Guardados ${unsaved}s de estudio para materia ${targetSubId || 'general'}`);
     } catch (e) {

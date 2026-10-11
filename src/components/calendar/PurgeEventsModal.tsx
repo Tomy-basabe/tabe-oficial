@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { purgeEventsByTitle, isGoogleCalendarConnected } from "@/lib/googleCalen
 import { CalendarEvent } from "@/hooks/useCalendarEvents";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface PurgeEventsModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ export function PurgeEventsModal({
   events = [],
   onPurged,
 }: PurgeEventsModalProps) {
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const [targetText, setTargetText] = useState("gisela fabrega");
   const [deleteFromGoogle, setDeleteFromGoogle] = useState(true);
@@ -56,8 +58,14 @@ export function PurgeEventsModal({
       return;
     }
 
-    const confirmMsg = `¿Deseas eliminar TODOS los eventos que contengan "${targetText.trim()}"? (${matchingEvents.length} encontrados)`;
-    if (!confirm(confirmMsg)) {
+    const ok = await confirm({
+      title: "¿Confirmar purga de eventos?",
+      description: `¿Deseas eliminar TODOS los eventos que contengan "${targetText.trim()}"? (${matchingEvents.length} encontrados). Esta acción no se puede deshacer.`,
+      confirmText: "Purgar eventos",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) {
       return;
     }
 

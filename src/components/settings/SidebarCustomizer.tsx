@@ -35,8 +35,10 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ScrollArea as UIScrollArea } from "@/components/ui/scroll-area";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 export function SidebarCustomizer() {
+  const { confirm } = useConfirm();
   const { profile, updateSidebarConfig } = useAuth();
   const [config, setConfig] = useState<CustomSidebarItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -194,10 +196,17 @@ export function SidebarCustomizer() {
     toast.success(`${baseItem.label} movido a la categoría`);
   };
 
-  const deleteItem = (index: number) => {
+  const deleteItem = async (index: number) => {
     const item = config[index];
     if (item.type === "category" && item.items && item.items.length > 0) {
-      if (!confirm("Se eliminará la categoría y todos sus elementos internos. ¿Continuar?")) return;
+      const ok = await confirm({
+        title: "¿Eliminar categoría?",
+        description: `Se eliminará la categoría "${item.label}" y todos sus elementos internos (${item.items.length}). ¿Deseas continuar?`,
+        confirmText: "Eliminar",
+        cancelText: "Cancelar",
+        variant: "danger",
+      });
+      if (!ok) return;
     }
     const newConfig = config.filter((_, i) => i !== index);
     setConfig(newConfig);
@@ -280,8 +289,15 @@ export function SidebarCustomizer() {
     setShowIconPicker(null);
   };
 
-  const resetToDefault = () => {
-    if (!confirm("¿Restablecer el panel lateral a su estado original?")) return;
+  const resetToDefault = async () => {
+    const ok = await confirm({
+      title: "¿Restablecer panel lateral?",
+      description: "¿Estás seguro de restablecer el panel lateral a su estado original? Perderás tus personalizaciones actuales.",
+      confirmText: "Restablecer",
+      cancelText: "Cancelar",
+      variant: "warning",
+    });
+    if (!ok) return;
     
     const defaultConfig = ALL_AVAILABLE_ITEMS.map(item => ({
       id: `item-${item.path}`,

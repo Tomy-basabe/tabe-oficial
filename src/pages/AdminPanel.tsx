@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
 import { generateId } from "@/lib/utils/id";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface UserReview {
   id: string;
@@ -47,6 +48,7 @@ const PLAN_PRICES: Record<string, { label: string; price: string; months: number
 };
 
 const AdminPanel = () => {
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -125,7 +127,14 @@ const AdminPanel = () => {
   };
 
   const handleDeleteUser = async (id: string, email: string) => {
-    if (!confirm(`¿Estás COMPLETAMENTE SEGURO de eliminar al usuario ${email || 'con ID ' + id}? Esta acción destruirá toda su información de TABE y es IRREVERSIBLE.`)) return;
+    const ok = await confirm({
+      title: "¿Eliminar usuario definitivamente?",
+      description: `¿Estás COMPLETAMENTE SEGURO de eliminar al usuario ${email || 'con ID ' + id}? Esta acción destruirá toda su información de TABE y es IRREVERSIBLE.`,
+      confirmText: "Eliminar usuario",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const { error } = await supabase.rpc('delete_user_by_admin', {
@@ -179,7 +188,14 @@ const AdminPanel = () => {
   };
 
   const handleDeactivatePlan = async (profile: Profile) => {
-    if (!confirm(`¿Desactivar el plan Premium de ${profile.nombre || profile.email}?`)) return;
+    const ok = await confirm({
+      title: "¿Desactivar suscripción?",
+      description: `¿Desactivar el plan Premium de ${profile.nombre || profile.email}? El usuario volverá al plan gratuito.`,
+      confirmText: "Desactivar plan",
+      cancelText: "Cancelar",
+      variant: "warning",
+    });
+    if (!ok) return;
 
     try {
       const { error } = await supabase
@@ -273,7 +289,14 @@ const AdminPanel = () => {
         .limit(1);
 
       if (existingSubjects && existingSubjects.length > 0) {
-        if (!confirm(`${careerUser.nombre || careerUser.email} ya tiene materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar). ¿Continuar?`)) {
+        const ok = await confirm({
+          title: "¿Cargar materias adicionales?",
+          description: `${careerUser.nombre || careerUser.email} ya tiene materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar). ¿Continuar?`,
+          confirmText: "Cargar plan",
+          cancelText: "Cancelar",
+          variant: "warning",
+        });
+        if (!ok) {
           setCareerLoading(false);
           return;
         }
@@ -344,7 +367,14 @@ const AdminPanel = () => {
 
 
   const handleDeleteReview = async (id: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar esta valoración?")) return;
+    const ok = await confirm({
+      title: "¿Eliminar valoración?",
+      description: "¿Estás seguro de que deseas eliminar esta valoración de usuario?",
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const { error } = await supabase

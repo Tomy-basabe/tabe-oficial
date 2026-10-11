@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import { toast } from "sonner";
 import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface EventDetailsModalProps {
     event: CalendarEvent | null;
@@ -66,6 +67,7 @@ const eventTypeColors: Record<string, string> = {
 const getEventColor = (type: string) => eventTypeColors[type] || "text-black bg-[#E5E5E5] border-2 border-foreground";
 
 export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetailsModalProps) {
+    const { confirm } = useConfirm();
     if (!event) return null;
 
     const handleExportToGoogle = () => {
@@ -80,7 +82,14 @@ export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetai
     };
 
     const handleDelete = async () => {
-        if (confirm("¿Estás seguro de eliminar este evento?")) {
+        const ok = await confirm({
+            title: "¿Eliminar evento?",
+            description: `¿Estás seguro de eliminar el evento "${event.titulo}"? Esta acción no se puede deshacer.`,
+            confirmText: "Eliminar",
+            cancelText: "Cancelar",
+            variant: "danger"
+        });
+        if (ok) {
             await onDelete(event.id);
             onClose();
         }

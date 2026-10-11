@@ -445,26 +445,28 @@ export default function TabeGochi() {
             <Button
               onClick={() => {
                 healPet();
-                triggerEffect("heal");
+                if (!activePet.isDead) triggerEffect("heal");
               }}
               className={cn(
                 "font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_#000] active:translate-x-0 active:translate-y-0 h-14 flex flex-col items-center justify-center gap-1 font-mono",
-                activePet.isSick 
+                activePet.isDead
+                  ? "bg-muted text-muted-foreground opacity-60"
+                  : activePet.isSick 
                   ? "bg-[#FF5C5C] text-white animate-bounce" 
                   : "bg-card text-foreground hover:bg-muted"
               )}
             >
               <Stethoscope className="w-4 h-4 stroke-[2.5]" />
-              <span>{activePet.isSick ? "Curar Salud" : "Medicina"}</span>
+              <span>{activePet.isDead ? "Fallecido" : activePet.isSick ? "Curar Salud" : "Medicina"}</span>
             </Button>
 
-            {/* 6. Abandonar Mascota */}
+            {/* 6. Abandonar / Despedir Mascota */}
             <Button
               onClick={handleAbandonCurrentPet}
               className="bg-[#ef4444] hover:bg-red-600 text-white font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_#000] active:translate-x-0 active:translate-y-0 h-14 flex flex-col items-center justify-center gap-1 font-mono"
             >
               <Trash2 className="w-4 h-4 stroke-[2.5]" />
-              <span>Abandonar</span>
+              <span>{activePet.isDead ? "Despedir" : "Abandonar"}</span>
             </Button>
 
           </div>

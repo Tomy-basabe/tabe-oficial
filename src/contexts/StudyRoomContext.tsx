@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ICE_SERVERS } from "@/lib/webrtc-config";
 import { toLocalDateStr } from "@/lib/utils";
+import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
 export interface StudyRoom {
   id: string;
@@ -742,6 +743,7 @@ export function StudyRoomProvider({ children }: { children: ReactNode }) {
             })
             .eq("user_id", user.id);
         }
+        invalidateDashboardStatsCache();
       }
 
       if (currentRoom.host_id === user.id) {

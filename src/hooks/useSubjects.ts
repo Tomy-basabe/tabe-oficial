@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
 import { AVAILABLE_CAREERS } from "@/lib/careerData";
@@ -173,6 +174,7 @@ function setStoredDailySubjects(userId: string, subjects: Subject[], userStatuse
 }
 
 export function useSubjects() {
+  const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
 
   // Invalidate cache if user changes
@@ -997,7 +999,13 @@ export function useSubjects() {
         .limit(1);
 
       if (existingSubjects && existingSubjects.length > 0) {
-        const confirmImport = window.confirm("Ya tienes materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar). ¿Deseas continuar?");
+        const confirmImport = await confirm({
+          title: "¿Agregar nuevo plan de estudio?",
+          description: "Ya tienes materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar materias). ¿Deseas continuar?",
+          confirmText: "Continuar e importar",
+          cancelText: "Cancelar",
+          variant: "warning",
+        });
         if (!confirmImport) {
           setLoading(false);
           return;
