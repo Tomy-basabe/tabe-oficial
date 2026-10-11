@@ -74,6 +74,7 @@ interface ScheduleEntry {
 }
 
 export default function OfficeHours() {
+  const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
   const { rawSubjects: allSubjects, getYears, loading: subjectsLoading } = useSubjects();
 
@@ -296,7 +297,14 @@ export default function OfficeHours() {
 
   // Delete professor
   const handleDelete = async (profId: string) => {
-    if (!confirm("¿Eliminar este profesor y sus horarios?")) return;
+    const ok = await confirm({
+      title: "¿Eliminar profesor?",
+      description: "¿Estás seguro de eliminar este profesor y sus horarios de consulta asignados? Esta acción no se puede deshacer.",
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       const { error } = await supabase.from("professors").delete().eq("id", profId);
       if (error) throw error;
