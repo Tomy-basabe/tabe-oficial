@@ -60,6 +60,30 @@ export const TABE_AI_MODEL: AIModelOption = {
   },
 };
 
+export interface PowerEffortConfig {
+  name: string;
+  tag: string;
+  desc: string;
+}
+
+export const POWER_EFFORT_CONFIG: Record<PowerEffort, PowerEffortConfig> = {
+  bajo: {
+    name: "Rápido",
+    tag: "Flash",
+    desc: "Respuestas veloces y directas",
+  },
+  medio: {
+    name: "Equilibrado",
+    tag: "Pro",
+    desc: "Ideal para materias, apuntes y resúmenes",
+  },
+  alto: {
+    name: "Pensamiento",
+    tag: "Deep",
+    desc: "Razonamiento analítico paso a paso",
+  },
+};
+
 export const AVAILABLE_AI_MODELS: AIModelOption[] = [TABE_AI_MODEL];
 
 export const DEFAULT_AI_MODEL = TABE_AI_MODEL;

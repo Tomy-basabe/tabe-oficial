@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { useSubjects, type Subject } from "@/hooks/useSubjects";
 import { SubjectSelect } from "@/components/subjects/SubjectSelect";
+import HoldButton from "@/components/ui/HoldButton";
 import {
     useRoutines,
     type Routine,
@@ -876,22 +877,56 @@ export default function Routines() {
 
             {/* Delete Confirm Dialog */}
             <Dialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
-                <DialogContent className="max-w-sm bg-[#FF5C5C] border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl p-6">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl font-black uppercase text-black">
-                            <Trash2 className="w-6 h-6 text-black" /> ¿Eliminar rutina?
-                        </DialogTitle>
+                <DialogContent className="sm:max-w-lg w-[95vw] bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-6 overflow-hidden">
+                    <DialogHeader className="space-y-3 pb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border-[2px] border-rose-500 flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
+                                <Trash2 className="w-6 h-6 text-rose-500" />
+                            </div>
+                            <div>
+                                <DialogTitle className="font-display text-xl font-black uppercase tracking-wider text-foreground">
+                                    ¿Eliminar rutina?
+                                </DialogTitle>
+                                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">
+                                    Confirmación requerida
+                                </p>
+                            </div>
+                        </div>
                     </DialogHeader>
-                    <p className="font-bold text-black text-sm mt-2">
-                        Se eliminará la rutina y todos sus registros. Esta acción no se puede deshacer.
-                    </p>
-                    <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-3">
-                        <button onClick={() => setConfirmDelete(null)} className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase bg-card text-foreground hover:bg-muted transition-colors w-full sm:w-auto">
+
+                    {/* Warning Notice Box */}
+                    <div className="my-2 p-4 rounded-xl bg-rose-500/10 border-[2px] border-rose-500/40 flex items-start gap-3">
+                        <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                        <p className="text-xs font-bold text-rose-600 dark:text-rose-400 leading-relaxed">
+                            Se eliminará la rutina y todos sus registros de progreso acumulados. Esta acción es <strong className="font-black underline">permanente</strong> y no se puede deshacer.
+                        </p>
+                    </div>
+
+                    <DialogFooter className="mt-4 flex flex-col-reverse sm:flex-row gap-3">
+                        <button 
+                            onClick={() => setConfirmDelete(null)} 
+                            className="flex-1 py-3 px-4 rounded-xl border-[3px] border-foreground font-black uppercase bg-card text-foreground hover:bg-muted shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all text-xs"
+                        >
                             Cancelar
                         </button>
-                        <button onClick={() => { if (confirmDelete) deleteRoutine(confirmDelete); setConfirmDelete(null); }} className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all bg-black text-white w-full sm:w-auto flex justify-center items-center gap-2">
-                            Eliminar
-                        </button>
+                        <HoldButton
+                            size="md"
+                            holdTime={1400}
+                            backgroundColor="#ff4e4e"
+                            fillColor="#b91c1c"
+                            textColor="#ffffff"
+                            fillTextColor="#ffffff"
+                            icon={<Trash2 className="w-4 h-4 shrink-0 text-white" />}
+                            doneIcon={<Check className="w-4 h-4 shrink-0 text-white" />}
+                            doneLabel="Eliminada"
+                            onHold={() => {
+                                if (confirmDelete) deleteRoutine(confirmDelete);
+                                setConfirmDelete(null);
+                            }}
+                            className="flex-1 py-3 px-4 rounded-xl border-[3px] border-foreground font-black uppercase shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all text-xs"
+                        >
+                            Mantener para Eliminar
+                        </HoldButton>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

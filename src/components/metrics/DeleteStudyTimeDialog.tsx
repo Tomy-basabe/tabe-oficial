@@ -12,9 +12,10 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Trash2, Clock, Calendar, AlertTriangle, BookOpen, Filter, CheckCircle2 } from "lucide-react";
+import { Trash2, Clock, Calendar, AlertTriangle, BookOpen, Filter, CheckCircle2, Check } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
+import HoldButton from "@/components/ui/HoldButton";
 
 export interface StudySessionItem {
   id?: string;
@@ -495,13 +496,24 @@ export function DeleteStudyTimeDialog({
             >
               Cancelar
             </button>
-            <button
-              type="submit"
+            <HoldButton
+              size="md"
+              holdTime={1400}
               disabled={loading || !isValidAmount}
-              className="flex-1 py-2.5 bg-red-500 text-white border-2 border-foreground font-black text-xs uppercase transition-all hover:bg-red-600 shadow-[2px_2px_0_0_hsl(var(--foreground))] disabled:opacity-40 disabled:pointer-events-none active:translate-x-[2px] active:translate-y-[2px]"
+              backgroundColor="#ef4444"
+              fillColor="#b91c1c"
+              textColor="#ffffff"
+              fillTextColor="#ffffff"
+              icon={<Trash2 className="w-4 h-4 shrink-0" />}
+              doneIcon={<Check className="w-4 h-4 shrink-0" />}
+              doneLabel="Eliminado"
+              onHold={() => {
+                handleDelete({ preventDefault: () => {} } as any);
+              }}
+              className="flex-1 py-2.5 border-2 border-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] disabled:opacity-40"
             >
-              {loading ? "Eliminando..." : "Eliminar Tiempo"}
-            </button>
+              {loading ? "Eliminando..." : "Mantener para Eliminar"}
+            </HoldButton>
           </DialogFooter>
         </form>
       </DialogContent>

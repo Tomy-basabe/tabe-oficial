@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
-import { AlertTriangle, AlertCircle, Info, X, Check } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, X, Check, Trash2 } from "lucide-react";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { cn } from "@/lib/utils";
+import { HoldButton } from "@/components/ui/HoldButton";
 
 export type ConfirmVariant = "danger" | "warning" | "info";
 
@@ -234,22 +235,42 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 </button>
               )}
 
-              <button
-                type="button"
-                autoFocus
-                onClick={handleConfirm}
-                className={cn(
-                  "flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs sm:text-sm tracking-wider border-2 border-black dark:border-white shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-1.5",
-                  variant === "danger"
-                    ? "bg-[#FF5C5C] hover:bg-[#ff4444] text-black"
-                    : variant === "warning"
-                    ? "bg-[#FFD700] hover:bg-[#f5cb00] text-black"
-                    : "bg-[#00E5FF] hover:bg-[#00d0e6] text-black"
-                )}
-              >
-                <Check className="w-4 h-4 stroke-[3]" />
-                {options.confirmText}
-              </button>
+              {variant === "danger" ? (
+                <HoldButton
+                  backgroundColor="#FF5C5C"
+                  fillColor="#CC0000"
+                  textColor="#000000"
+                  fillTextColor="#ffffff"
+                  radius={12}
+                  size="md"
+                  holdTime={1500}
+                  icon={<Trash2 className="w-4 h-4 stroke-[2.5]" />}
+                  doneIcon={<Check className="w-4 h-4 stroke-[3]" />}
+                  doneLabel="¡Eliminado!"
+                  onHold={handleConfirm}
+                  onTap={() => {
+                    try { ComicAudio.playPop(); } catch {}
+                  }}
+                  className="flex-1 py-3 px-4 font-black uppercase text-xs sm:text-sm tracking-wider border-2 border-black dark:border-white shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff]"
+                >
+                  {options.confirmText ? `Mantener: ${options.confirmText}` : "Mantener para borrar"}
+                </HoldButton>
+              ) : (
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={handleConfirm}
+                  className={cn(
+                    "flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs sm:text-sm tracking-wider border-2 border-black dark:border-white shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                    variant === "warning"
+                      ? "bg-[#FFD700] hover:bg-[#f5cb00] text-black"
+                      : "bg-[#00E5FF] hover:bg-[#00d0e6] text-black"
+                  )}
+                >
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  {options.confirmText}
+                </button>
+              )}
             </div>
           </div>
         </div>

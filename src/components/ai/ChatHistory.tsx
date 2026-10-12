@@ -1,10 +1,10 @@
-
-import { MessageSquare, Trash2, Plus, MessageCircle } from "lucide-react";
+import { MessageSquare, Trash2, Plus, MessageCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import HoldButton from "@/components/ui/HoldButton";
 
 export interface ChatSession {
     id: string;
@@ -70,17 +70,21 @@ export function ChatHistory({
                                     )} />
                                     <span className="truncate text-xs leading-none py-1">{session.title}</span>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive shrink-0"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDeleteSession(session.id, e);
-                                    }}
-                                >
-                                    <Trash2 className="w-3 h-3" />
-                                </Button>
+                                <HoldButton
+                                    size="icon-sm"
+                                    holdTime={1000}
+                                    backgroundColor="transparent"
+                                    fillColor="#ef4444"
+                                    textColor="currentColor"
+                                    fillTextColor="#ffffff"
+                                    icon={<Trash2 className="w-3.5 h-3.5 text-muted-foreground group-hover:text-destructive shrink-0" />}
+                                    doneIcon={<Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                                    doneLabel=""
+                                    onHold={() => onDeleteSession(session.id, {} as any)}
+                                    title="Mantén presionado para borrar chat"
+                                    aria-label="Borrar chat"
+                                    className="opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 shrink-0"
+                                />
                             </div>
                         ))
                     )}

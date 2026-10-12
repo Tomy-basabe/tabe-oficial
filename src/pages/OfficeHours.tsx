@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubjects } from "@/hooks/useSubjects";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 import {
   Clock, Plus, Filter, Trash2, Edit2, X, User, BookOpen,
   ChevronLeft, ChevronRight, Loader2, Pencil, UserPlus, GraduationCap
@@ -296,7 +297,7 @@ export default function OfficeHours() {
   };
 
   // Delete professor
-  const handleDelete = async (profId: string) => {
+  const handleDeleteProfessor = async (profId: string) => {
     const ok = await confirm({
       title: "¿Eliminar profesor?",
       description: "¿Estás seguro de eliminar este profesor y sus horarios de consulta asignados? Esta acción no se puede deshacer.",
@@ -306,15 +307,18 @@ export default function OfficeHours() {
     });
     if (!ok) return;
     try {
+      // Eliminar primero horarios asociados para evitar violación de foreign key
+      await supabase.from("professor_office_hours").delete().eq("professor_id", profId);
       const { error } = await supabase.from("professors").delete().eq("id", profId);
       if (error) throw error;
       toast.success("Profesor eliminado");
       fetchData();
-    } catch (err) {
-      console.error("Error deleting:", err);
-      toast.error("Error al eliminar");
+    } catch (err: any) {
+      console.error("Error deleting professor:", err);
+      toast.error(err?.message || "Error al eliminar");
     }
   };
+  const handleDelete = handleDeleteProfessor;
 
   // Add schedule row in form
   const addScheduleRow = () => {

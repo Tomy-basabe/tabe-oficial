@@ -59,4 +59,7 @@ public/Referencia/
 
 # Local video assets
 videos/
-public/videos/
+public/videos/
+
+# Raw source assets
+TABE 2.0/

@@ -25,6 +25,7 @@ import { useAchievements } from "@/hooks/useAchievements";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { toLocalDateStr } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { HoldButton } from "@/components/ui/HoldButton";
 interface Deck {
   id: string;
   nombre: string;
@@ -1299,12 +1300,21 @@ export default function Flashcards() {
                             <span className="text-destructive">✗ {card.veces_incorrecta}</span>
                           </div>
                         </div>
-                        <button
-                          onClick={() => deleteCard(card.id)}
-                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <HoldButton
+                          size="icon-sm"
+                          radius={8}
+                          backgroundColor="transparent"
+                          fillColor="#f43f5e"
+                          textColor="currentColor"
+                          fillTextColor="#ffffff"
+                          holdTime={1100}
+                          icon={<Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-destructive" />}
+                          doneIcon={<Check className="w-4 h-4 text-white" />}
+                          doneLabel=""
+                          onHold={() => deleteCard(card.id)}
+                          className="rounded-lg transition-colors opacity-0 group-hover:opacity-100 hover:bg-destructive/10"
+                          title="Mantené presionado para borrar esta tarjeta"
+                        />
                       </div>
                     </div>
                   ))}
@@ -1836,24 +1846,23 @@ export default function Flashcards() {
             >
               Cancelar
             </button>
-            <button
-              type="button"
-              onClick={confirmDeleteDeck}
+            <HoldButton
+              backgroundColor="#f43f5e"
+              fillColor="#be123c"
+              textColor="#ffffff"
+              fillTextColor="#ffffff"
+              radius={12}
+              size="md"
+              holdTime={1500}
+              icon={<Trash2 className="w-4 h-4" />}
+              doneIcon={<Check className="w-4 h-4" />}
+              doneLabel="¡Mazo Eliminado!"
               disabled={isDeletingDeck}
-              className="flex-1 py-3 px-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black uppercase tracking-wider text-xs border-[2px] border-foreground shadow-[3px_3px_0_0_#000] hover:shadow-[5px_5px_0_0_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onHold={confirmDeleteDeck}
+              className="flex-1 py-3 px-4 font-black uppercase tracking-wider text-xs border-[2px] border-foreground shadow-[3px_3px_0_0_#000] hover:shadow-[5px_5px_0_0_#000]"
             >
-              {isDeletingDeck ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Eliminando...</span>
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4" />
-                  <span>Sí, Eliminar Mazo</span>
-                </>
-              )}
-            </button>
+              Mantener para Eliminar Mazo
+            </HoldButton>
           </div>
         </DialogContent>
       </Dialog>

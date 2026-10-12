@@ -25,6 +25,7 @@ import { cn, toLocalDateStr } from "@/lib/utils";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { SubjectSelect } from "@/components/subjects/SubjectSelect";
+import HoldButton from "@/components/ui/HoldButton";
 
 interface QuizDeck {
     id: string;
@@ -1475,20 +1476,22 @@ export default function Quizzes() {
                                         className="flex-1 px-4 py-2.5 bg-background text-foreground rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
                                     />
 
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDeleteOption(i)}
+                                    <HoldButton
+                                        size="icon"
+                                        holdTime={800}
                                         disabled={formOptions.length <= 2}
-                                        className={cn(
-                                            "w-10 h-10 flex items-center justify-center rounded-xl border-[2px] border-foreground transition-all shrink-0",
-                                            formOptions.length <= 2 
-                                                ? "opacity-30 cursor-not-allowed bg-secondary text-muted-foreground" 
-                                                : "bg-[#ff4e4e] text-white shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000] active:translate-y-0"
-                                        )}
-                                        title={formOptions.length <= 2 ? "Se requieren mínimo 2 opciones" : "Eliminar esta opción"}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                        backgroundColor="#ff4e4e"
+                                        fillColor="#b91c1c"
+                                        textColor="#ffffff"
+                                        fillTextColor="#ffffff"
+                                        icon={<Trash2 className="w-4 h-4 shrink-0" />}
+                                        doneIcon={<Check className="w-4 h-4 shrink-0" />}
+                                        doneLabel=""
+                                        onHold={() => handleDeleteOption(i)}
+                                        title={formOptions.length <= 2 ? "Se requieren mínimo 2 opciones" : "Mantén presionado para eliminar esta opción"}
+                                        aria-label="Eliminar esta opción"
+                                        className="w-10 h-10 border-[2px] border-foreground rounded-xl shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_#000] active:translate-y-0 shrink-0"
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -1643,13 +1646,21 @@ export default function Quizzes() {
                                             >
                                                 <Edit className="w-5 h-5" />
                                             </button>
-                                            <button 
-                                                onClick={() => deleteQuestion(q.id)}
-                                                className="w-10 h-10 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
-                                                title="Eliminar pregunta"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
+                                            <HoldButton
+                                                size="icon"
+                                                holdTime={1200}
+                                                backgroundColor="#ff4e4e"
+                                                fillColor="#b91c1c"
+                                                textColor="#ffffff"
+                                                fillTextColor="#ffffff"
+                                                icon={<Trash2 className="w-5 h-5 shrink-0" />}
+                                                doneIcon={<Check className="w-5 h-5 shrink-0" />}
+                                                doneLabel=""
+                                                onHold={() => deleteQuestion(q.id)}
+                                                title="Mantén presionado para eliminar pregunta"
+                                                aria-label="Eliminar pregunta"
+                                                className="w-10 h-10 border-[2px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none"
+                                            />
                                         </div>
                                     </div>
                                     <div className="grid gap-3 ml-11">
@@ -2003,14 +2014,21 @@ export default function Quizzes() {
                                                     >
                                                         <Edit className="w-3.5 h-3.5" />
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeQuestionFromDraft(qIdx)}
-                                                        className="w-8 h-8 flex items-center justify-center bg-[#ff4e4e] text-white border-[2px] border-foreground rounded-lg shadow-[1px_1px_0_0_#000] hover:-translate-y-0.5 transition-all"
-                                                        title="Eliminar de la lista"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
+                                                    <HoldButton
+                                                        size="icon-sm"
+                                                        holdTime={800}
+                                                        backgroundColor="#ff4e4e"
+                                                        fillColor="#b91c1c"
+                                                        textColor="#ffffff"
+                                                        fillTextColor="#ffffff"
+                                                        icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
+                                                        doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
+                                                        doneLabel=""
+                                                        onHold={() => removeQuestionFromDraft(qIdx)}
+                                                        title="Mantén presionado para quitar"
+                                                        aria-label="Quitar de la lista"
+                                                        className="w-8 h-8 border-[2px] border-foreground rounded-lg shadow-[1px_1px_0_0_#000] hover:-translate-y-0.5"
+                                                    />
                                                 </div>
                                             </div>
                                         ))}
@@ -2034,29 +2052,73 @@ export default function Quizzes() {
 
             {/* Delete Confirm Dialog */}
             <Dialog open={!!deleteDeck} onOpenChange={() => setDeleteDeck(null)}>
-                <DialogContent className="bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 font-black uppercase tracking-widest text-[#ff4e4e]">
-                            <AlertCircle className="w-6 h-6" />
-                            Eliminar Cuestionario
-                        </DialogTitle>
+                <DialogContent className="sm:max-w-lg w-[95vw] bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] p-6 overflow-hidden">
+                    <DialogHeader className="space-y-3 pb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border-[2px] border-rose-500 flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
+                                <Trash2 className="w-6 h-6 text-rose-500" />
+                            </div>
+                            <div>
+                                <DialogTitle className="font-display text-xl font-black uppercase tracking-wider text-foreground">
+                                    Eliminar Cuestionario
+                                </DialogTitle>
+                                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">
+                                    Confirmación requerida
+                                </p>
+                            </div>
+                        </div>
                     </DialogHeader>
-                    <p className="text-foreground font-medium py-2">
-                        ¿Estás seguro de que querés eliminar <strong>{deleteDeck?.nombre}</strong>? Se borrarán todas las preguntas.
-                    </p>
-                    <div className="flex gap-4 pt-4">
+
+                    {/* Preview box */}
+                    <div className="my-2 p-4 rounded-xl bg-card border-[2px] border-foreground shadow-[3px_3px_0_0_#000] space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">
+                            Cuestionario seleccionado
+                        </span>
+                        <div className="flex items-start justify-between gap-3">
+                            <h4 className="font-display font-black text-base uppercase text-foreground leading-snug">
+                                {deleteDeck?.nombre}
+                            </h4>
+                            {deleteDeck?.subject?.nombre && (
+                                <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-secondary border-[2px] border-foreground shrink-0 shadow-[1px_1px_0_0_#000]">
+                                    {deleteDeck.subject.nombre}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-xs font-bold text-muted-foreground pt-1 border-t border-border/80">
+                            Contiene <strong className="text-foreground font-black">{deleteDeck?.total_questions ?? 0}</strong> preguntas guardadas.
+                        </p>
+                    </div>
+
+                    {/* Warning Notice */}
+                    <div className="p-4 rounded-xl bg-rose-500/10 border-[2px] border-rose-500/40 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                        <p className="text-xs font-bold text-rose-600 dark:text-rose-400 leading-relaxed">
+                            Esta acción es <strong className="font-black underline">permanente e irreversible</strong>. Se eliminará el cuestionario junto con todas sus preguntas y opciones de respuesta asociadas.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 pt-3">
                         <button 
-                            className="flex-1 py-3 bg-background text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+                            className="flex-1 py-3 px-4 bg-background text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all text-xs"
                             onClick={() => setDeleteDeck(null)}
                         >
                             Cancelar
                         </button>
-                        <button 
-                            className="flex-1 py-3 bg-[#ff4e4e] text-white font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
-                            onClick={confirmDeleteDeck}
+                        <HoldButton
+                            size="md"
+                            holdTime={1400}
+                            backgroundColor="#ff4e4e"
+                            fillColor="#b91c1c"
+                            textColor="#ffffff"
+                            fillTextColor="#ffffff"
+                            icon={<Trash2 className="w-4 h-4 shrink-0" />}
+                            doneIcon={<Check className="w-4 h-4 shrink-0" />}
+                            doneLabel="Eliminado"
+                            onHold={confirmDeleteDeck}
+                            className="flex-1 py-3 px-4 border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] font-black uppercase tracking-widest text-xs"
                         >
-                            Eliminar
-                        </button>
+                            Mantener para Eliminar
+                        </HoldButton>
                     </div>
                 </DialogContent>
             </Dialog>

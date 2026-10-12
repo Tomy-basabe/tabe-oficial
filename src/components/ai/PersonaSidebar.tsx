@@ -1,9 +1,10 @@
-import { Plus, Trash2, MessageSquare, MessageCircle, Eraser, Pencil } from "lucide-react";
+import { Plus, Trash2, MessageSquare, MessageCircle, Eraser, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { AIPersona, AIChatSession } from "@/hooks/useAIPersonas";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
+import { HoldButton } from "@/components/ui/HoldButton";
 
 interface PersonaSidebarProps {
     personas: AIPersona[];
@@ -215,19 +216,29 @@ export function PersonaSidebar({
                             </button>
 
                             {/* Prominent, always-visible delete button */}
-                            <button
-                                type="button"
+                            <div
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
-                                    onDeleteSession(session.id);
                                 }}
-                                className="w-7 h-7 shrink-0 rounded-lg border-2 border-black bg-white hover:bg-[#FF5C5C] text-black hover:text-white flex items-center justify-center shadow-[1.5px_1.5px_0_0_#000] transition-transform active:scale-90 cursor-pointer"
-                                title="Eliminar este chat"
-                                aria-label="Eliminar este chat"
+                                className="shrink-0"
                             >
-                                <Trash2 className="w-3.5 h-3.5 text-red-600 hover:text-white" strokeWidth={2.5} />
-                            </button>
+                                <HoldButton
+                                    size="icon-sm"
+                                    radius={8}
+                                    backgroundColor="#ffffff"
+                                    fillColor="#FF5C5C"
+                                    textColor="#dc2626"
+                                    fillTextColor="#ffffff"
+                                    holdTime={1200}
+                                    icon={<Trash2 className="w-3.5 h-3.5 text-red-600" strokeWidth={2.5} />}
+                                    doneIcon={<Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />}
+                                    doneLabel=""
+                                    onHold={() => onDeleteSession(session.id)}
+                                    className="border-2 border-black shadow-[1.5px_1.5px_0_0_#000]"
+                                    title="Mantené presionado para eliminar este chat"
+                                />
+                            </div>
                         </div>
                     ))
                 )}

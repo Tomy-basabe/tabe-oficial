@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import FolderFloat from "@/components/ui/FolderFloat";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -23,6 +24,7 @@ import {
 import { markdownToTiptap } from "@/lib/markdownToTiptap";
 import JSZip from "jszip";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import HoldButton from "@/components/ui/HoldButton";
 import * as pdfjsLib from "pdfjs-dist";
 
 // Configure PDFJS worker
@@ -30,6 +32,7 @@ import * as pdfjsLib from "pdfjs-dist";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 import { validateFileUpload } from "@/lib/security";
+import BasketballFileUploader from "@/components/library/BasketballFileUploader";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 interface LibraryFolder {
@@ -548,7 +551,7 @@ export default function Library() {
         .select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, created_at, subjects(nombre, codigo, año)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(500);
 
       if (!error && data) {
         const mapped = data.map((d: any) => ({ ...d, subject: d.subjects })) as LibraryFile[];
@@ -562,7 +565,7 @@ export default function Library() {
           .select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(100);
+          .limit(500);
         if (rawFiles) {
           const subs = librarySubjectsCache || subjects;
           const mapped = rawFiles.map((d: any) => {
@@ -1130,7 +1133,7 @@ export default function Library() {
             user_id: user.id,
             nombre: folderName,
             color: folderColors[Math.floor(Math.random() * folderColors.length)].value,
-            parent_folder_id: parentId || currentFolderId,
+            parent_folder_id: (parentId || currentFolderId) || null,
             subject_id: getContextSubjectId() || null,
           })
           .select("id")
@@ -1140,65 +1143,71 @@ export default function Library() {
         folderMap.set(dirPath, data.id);
       }
 
-      // Create and upload files
-      let uploadedCount = 0;
-      for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
-        // Skip system files
-        if (file.name.startsWith(".")) continue;
+      // Subida en paralelo (4 a la vez) y un único insert en lote
+      const queue = Array.from(fileList).filter(f => !f.name.startsWith("."));
+      const rows: any[] = [];
+      let limitHit = false;
+      let usedBytes = 0;
+      const worker = async () => {
+        while (queue.length && !limitHit) {
+          const file = queue.shift()!;
+          if (!canUse("apuntes") || !canUse("storage_mb", usedBytes + file.size)) {
+            limitHit = true;
+            toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.", { id: toastId });
+            break;
+          }
+          usedBytes += file.size;
 
-        if (!canUse("apuntes") || !canUse("storage_mb", file.size)) {
-          toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.", { id: toastId });
-          break;
+          const parts = file.webkitRelativePath.split("/");
+          const folderId = folderMap.get(parts.slice(0, -1).join("/")) || currentFolderId;
+
+          let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
+          if (file.type === "application/pdf") tipo = "pdf";
+          else if (file.type.startsWith("image/")) tipo = "imagen";
+          else if (file.type.startsWith("video/")) tipo = "video";
+
+          const fileExt = file.name.split(".").pop();
+          const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("library-files")
+            .upload(filePath, file, { cacheControl: '31536000', upsert: false });
+          if (uploadError) {
+            console.error(`Error uploading ${file.name}:`, uploadError);
+            continue;
+          }
+          const signedUrl = await getSignedUrl(filePath);
+          if (!signedUrl) continue;
+
+          rows.push({
+            user_id: user.id,
+            subject_id: getContextSubjectId() || null,
+            folder_id: (folderId || currentFolderId) || null,
+            nombre: file.name,
+            tipo,
+            url: signedUrl,
+            storage_path: filePath,
+            tamaño_bytes: file.size,
+          });
+          toast.loading(`Subiendo carpeta (${rows.length}/${fileList.length} archivos)...`, { id: toastId });
         }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
 
-        const relPath = file.webkitRelativePath;
-        const parts = relPath.split("/");
-        const parentDirPath = parts.slice(0, -1).join("/");
-        const folderId = folderMap.get(parentDirPath) || currentFolderId;
-
-        let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
-        if (file.type === "application/pdf") tipo = "pdf";
-        else if (file.type.startsWith("image/")) tipo = "imagen";
-        else if (file.type.startsWith("video/")) tipo = "video";
-
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("library-files")
-          .upload(filePath, file, { cacheControl: '31536000', upsert: false });
-
-        if (uploadError) {
-          console.error(`Error uploading ${file.name}:`, uploadError);
-          continue; // Skip failed files, continue with the rest
-        }
-
-        const signedUrl = await getSignedUrl(filePath);
-        if (!signedUrl) continue;
-
-        await supabase.from("library_files").insert({
-          user_id: user.id,
-          subject_id: getContextSubjectId() || null,
-          folder_id: folderId,
-          nombre: file.name,
-          tipo,
-          url: signedUrl,
-          storage_path: filePath,
-          tamaño_bytes: file.size,
-        });
-
-        uploadedCount++;
-        toast.loading(`Subiendo carpeta (${uploadedCount}/${fileList.length} archivos)...`, { id: toastId });
+      if (rows.length) {
+        const { error: insertError } = await supabase.from("library_files").insert(rows);
+        if (insertError) throw insertError;
       }
+      const uploadedCount = rows.length;
 
       toast.success(`¡Carpeta subida! ${uploadedCount} archivos en ${sortedPaths.length} carpetas.`, { id: toastId });
-      fetchFolders();
-      fetchFiles();
-    } catch (error) {
+      libraryFoldersCache = null;
+      libraryFilesCache = null;
+      await fetchFolders();
+      await fetchFiles();
+    } catch (error: any) {
       console.error("Error uploading folder:", error);
-      toast.error("Error al subir la carpeta", { id: toastId });
+      toast.error(error?.message || "Error al subir la carpeta", { id: toastId });
     } finally {
       setUploading(false);
       if (folderInputRef.current) folderInputRef.current.value = "";
@@ -1444,26 +1453,46 @@ export default function Library() {
 
   // Filter folders and files based on year/subject
   const getFilteredFolders = () => {
-    let result = folders.filter(f => f.parent_folder_id === currentFolderId);
+    let result = folders.filter(f => (f.parent_folder_id || null) === (currentFolderId || null));
 
     if (selectedSubjectId) {
-      result = result.filter(f => f.subject_id === selectedSubjectId || !f.subject_id);
+      result = result.filter(f => {
+        if (f.subject_id === selectedSubjectId || !f.subject_id) return true;
+        // Also show folder if it contains files for this subject
+        return files.some(file => file.folder_id === f.id && file.subject_id === selectedSubjectId);
+      });
     } else if (selectedYear) {
-      const subjectIds = subjects.filter(s => s.año === selectedYear).map(s => s.id);
-      result = result.filter(f => !f.subject_id || subjectIds.includes(f.subject_id));
+      const targetYear = Number(selectedYear);
+      const subjectIds = new Set(subjects.filter(s => Number(s.año) === targetYear).map(s => s.id));
+      result = result.filter(f => {
+        if (!f.subject_id) return true;
+        if (subjectIds.has(f.subject_id)) return true;
+        if (f.subject?.año && Number(f.subject.año) === targetYear) return true;
+        // Show folder if it contains any files belonging to this year
+        return files.some(file => file.folder_id === f.id && (
+          (file.subject_id && subjectIds.has(file.subject_id)) ||
+          (file.subject?.año && Number(file.subject.año) === targetYear)
+        ));
+      });
     }
 
     return result;
   };
 
   const getFilteredFiles = () => {
-    let result = files.filter(f => f.folder_id === currentFolderId);
+    let result = files.filter(f => (f.folder_id || null) === (currentFolderId || null));
 
     if (selectedSubjectId) {
-      result = result.filter(f => f.subject_id === selectedSubjectId);
+      result = result.filter(f => f.subject_id === selectedSubjectId || !f.subject_id);
     } else if (selectedYear) {
-      const subjectIds = subjects.filter(s => s.año === selectedYear).map(s => s.id);
-      result = result.filter(f => f.subject_id && subjectIds.includes(f.subject_id));
+      const targetYear = Number(selectedYear);
+      const subjectIds = new Set(subjects.filter(s => Number(s.año) === targetYear).map(s => s.id));
+      result = result.filter(f => {
+        if (!f.subject_id) return true;
+        if (subjectIds.has(f.subject_id)) return true;
+        if (f.subject?.año && Number(f.subject.año) === targetYear) return true;
+        return false;
+      });
     }
 
     return result;
@@ -1476,7 +1505,7 @@ export default function Library() {
   const totalFilesInFilter = selectedSubjectId
     ? files.filter(f => f.subject_id === selectedSubjectId).length
     : selectedYear
-      ? files.filter(f => f.subject?.año === selectedYear).length
+      ? files.filter(f => Number(f.subject?.año) === Number(selectedYear) || (f.subject_id && subjects.some(s => s.id === f.subject_id && Number(s.año) === Number(selectedYear)))).length
       : files.length;
 
   // Time tracking for preview
@@ -1542,16 +1571,6 @@ export default function Library() {
             >
               <LinkIcon className="w-4 h-4" />
               <span className="hidden lg:inline">Agregar Link</span>
-            </button>
-            <div className="w-[3px] bg-foreground/20 rounded-full" />
-            <button
-              onClick={() => folderInputRef.current?.click()}
-              disabled={uploading || isGuest}
-              title="Subir Carpeta"
-              className="flex items-center gap-2 px-3 py-1.5 font-bold uppercase tracking-widest text-foreground hover:bg-foreground/10 rounded-lg transition-all text-xs disabled:opacity-50"
-            >
-              <FolderUp className="w-4 h-4" />
-              <span className="hidden lg:inline">Subir Carpeta</span>
             </button>
           </div>
           <button
@@ -1825,7 +1844,7 @@ export default function Library() {
                 key={folder.id}
                 onClick={() => navigateToFolder(folder.id)}
                 className={cn(
-                  "bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] p-4 rounded-xl cursor-pointer hover:-translate-y-1 hover:shadow-none transition-all group relative",
+                  "bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] p-4 rounded-xl cursor-pointer hover:-translate-y-1 hover:shadow-none hover:z-30 transition-all group relative",
                   dragOverFolderId === folder.id && "ring-[4px] ring-[#1475e5] bg-[#1475e5]/10 scale-[1.02]"
                 )}
                 onDragOver={(e) => {
@@ -1922,11 +1941,38 @@ export default function Library() {
                 </div>
 
                 <div className="flex items-center gap-3 mt-2">
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center border-[3px] border-foreground shadow-[2px_2px_0_0_#000]"
-                    style={{ backgroundColor: folder.color }}
-                  >
-                    <Folder className="w-6 h-6 text-foreground" fill="currentColor" />
+                  <div className="shrink-0 w-14" onClick={(e) => e.stopPropagation()}>
+                    <FolderFloat
+                      items={(() => {
+                        const childFolders = folders.filter(f => f.parent_folder_id === folder.id).map(f => ({ label: f.nombre, value: `folder:${f.id}` }));
+                        const childFiles = files.filter(f => f.folder_id === folder.id).map(f => ({ label: f.nombre, value: `file:${f.id}` }));
+                        return [...childFolders, ...childFiles].slice(0, 4).map((item) => ({
+                          label: item.label.length > 22 ? item.label.slice(0, 21) + "…" : item.label,
+                          value: item.value,
+                        }));
+                      })()}
+                      label=""
+                      sublabel=" "
+                      closeOnSelect={false}
+                      folderColor={folder.color}
+                      frontColor={folder.color}
+                      itemTextColor="#000"
+                      width={56}
+                      height={40}
+                      radius={8}
+                      spread={150}
+                      lift={14}
+                      onSelect={(val) => {
+                        if (typeof val === 'string' && val.startsWith('folder:')) {
+                          navigateToFolder(val.replace('folder:', ''));
+                        } else if (typeof val === 'string' && val.startsWith('file:')) {
+                          const targetFile = files.find(f => f.id === val.replace('file:', ''));
+                          if (targetFile) openPreview(targetFile);
+                        } else {
+                          navigateToFolder(folder.id);
+                        }
+                      }}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-black uppercase tracking-widest text-sm truncate">{folder.nombre}</h3>
@@ -1959,12 +2005,21 @@ export default function Library() {
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
-                    className="p-1.5 bg-[#ef4444] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <HoldButton
+                    size="icon-sm"
+                    holdTime={1100}
+                    backgroundColor="#ef4444"
+                    fillColor="#991b1b"
+                    textColor="#ffffff"
+                    fillTextColor="#ffffff"
+                    icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
+                    doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
+                    doneLabel=""
+                    onHold={() => deleteFolder(folder.id)}
+                    title="Mantén presionado para borrar carpeta"
+                    aria-label="Borrar carpeta"
+                    className="border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
+                  />
                 </div>
               </div>
             );
@@ -2068,13 +2123,21 @@ export default function Library() {
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={() => deleteFile(file)}
-                    className="p-1.5 bg-[#ef4444] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <HoldButton
+                    size="icon-sm"
+                    holdTime={1100}
+                    backgroundColor="#ef4444"
+                    fillColor="#991b1b"
+                    textColor="#ffffff"
+                    fillTextColor="#ffffff"
+                    icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
+                    doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
+                    doneLabel=""
+                    onHold={() => deleteFile(file)}
+                    title="Mantén presionado para borrar archivo"
+                    aria-label="Borrar archivo"
+                    className="border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
+                  />
                 </div>
               </div>
             );
@@ -2309,7 +2372,7 @@ export default function Library() {
         setShowUploadModal(open);
         if (open) setUploadYear(selectedYear); // Default to current filter
       }}>
-        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
               <Upload className="w-6 h-6" />
@@ -2364,26 +2427,14 @@ export default function Library() {
               </div>
             </div>
 
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-[3px] border-dashed border-foreground bg-background rounded-xl p-8 text-center transition-all cursor-pointer hover:bg-muted shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-y-0.5"
-            >
-              <Upload className="w-10 h-10 mx-auto mb-3 text-foreground" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-foreground mt-2">
-                {uploading ? "SUBIENDO..." : "CLICK PARA SELECCIONAR ARCHIVO"}
-              </p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">
-                PDF, IMÁGENES (MÁX 20MB)
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-            </div>
+            <BasketballFileUploader
+              disabled={uploading}
+              onFile={(file) => handleFileUpload({ target: { files: [file], value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>)}
+              onFolderFiles={(files) => handleFolderUpload({ target: { files: files as any, value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>)}
+            />
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">
+              PDF, IMÁGENES O CARPETAS COMPLETAS (MÁX 20MB POR ARCHIVO)
+            </p>
           </div>
         </DialogContent>
       </Dialog>
@@ -2493,13 +2544,21 @@ export default function Library() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={deleteSelected}
-                className="flex items-center gap-2 px-4 py-2 bg-[#ef4444] text-white border-[3px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-1 hover:shadow-none rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+              <HoldButton
+                size="sm"
+                holdTime={1400}
+                backgroundColor="#ef4444"
+                fillColor="#991b1b"
+                textColor="#ffffff"
+                fillTextColor="#ffffff"
+                icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
+                doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
+                doneLabel="ELIMINADOS"
+                onHold={deleteSelected}
+                className="px-4 py-2 border-[3px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-1 hover:shadow-none rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                ELIMINAR
-              </button>
+                MANTENER PARA ELIMINAR
+              </HoldButton>
               <button
                 onClick={clearSelection}
                 className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"

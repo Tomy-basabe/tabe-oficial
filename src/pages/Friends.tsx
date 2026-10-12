@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Users,
@@ -19,6 +19,7 @@ import {
   Send,
   CheckCheck,
   ArrowLeft,
+  IdCard,
 } from "lucide-react";
 import { useFriends } from "@/hooks/useFriends";
 import { useGameRoom } from "@/hooks/useGameRoom";
@@ -30,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import UserInfoCard from "@/components/friends/UserInfoCard";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 const QUICK_MESSAGES = [
@@ -307,30 +309,6 @@ export default function Friends() {
             </span>
           </Button>
 
-          {/* My ID Card */}
-          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] px-4 py-2 rounded-xl flex items-center justify-between gap-4 flex-1">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase text-muted-foreground leading-none">
-                Mi ID
-              </span>
-              <span className="font-black text-lg text-foreground leading-tight">
-                #{myProfile?.display_id || "..."}
-              </span>
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 bg-[#BFFF00] text-black border-2 border-foreground rounded-lg hover:bg-[#a6e600] hover:translate-y-[-2px] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all"
-              onClick={copyId}
-            >
-              {copied ? (
-                <Check className="w-5 h-5 text-black" strokeWidth={3} />
-              ) : (
-                <Copy className="w-5 h-5 text-black" strokeWidth={2.5} />
-              )}
-            </Button>
-          </div>
-
           {/* Add Friend Button */}
           <Dialog open={addFriendOpen} onOpenChange={setAddFriendOpen}>
             <DialogTrigger asChild>
@@ -371,50 +349,6 @@ export default function Friends() {
         </div>
       </div>
 
-      {/* Username Section */}
-      <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-xs font-black uppercase text-muted-foreground">Tu username</span>
-            {myProfile?.username ? (
-              <span className="font-black text-xl text-foreground">@{myProfile.username}</span>
-            ) : (
-              <span className="font-bold text-muted-foreground/60 italic">No configurado</span>
-            )}
-          </div>
-          {editingUsername ? (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <Input
-                value={newUsername}
-                onChange={e => setNewUsername(e.target.value)}
-                placeholder="nuevo_username"
-                className="w-full sm:w-48 bg-background border-2 border-foreground rounded-lg font-bold text-foreground focus-visible:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-              />
-              <div className="flex gap-2">
-                <Button
-                  className="bg-[#BFFF00] text-black border-2 border-foreground hover:bg-[#a6e600] font-black uppercase rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] flex-1"
-                  onClick={handleUpdateUsername}
-                >
-                  Guardar
-                </Button>
-                <Button
-                  className="bg-card text-foreground border-2 border-foreground hover:bg-muted font-black uppercase rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] flex-1"
-                  onClick={() => setEditingUsername(false)}
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              className="bg-card text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-black uppercase rounded-lg w-full sm:w-auto"
-              onClick={() => setEditingUsername(true)}
-            >
-              {myProfile?.username ? "Cambiar" : "Configurar"}
-            </Button>
-          )}
-        </div>
-      </div>
 
       {/* Pending Requests */}
       {pendingRequests.length > 0 && (
@@ -469,7 +403,7 @@ export default function Friends() {
       )}
 
       <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 bg-muted p-1 border-4 border-foreground rounded-xl h-auto">
+        <TabsList className="grid w-full grid-cols-4 bg-muted p-1 border-4 border-foreground rounded-xl h-auto">
           <TabsTrigger
             value="leaderboard"
             className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 rounded-lg text-foreground transition-all text-xs sm:text-sm"
@@ -496,7 +430,83 @@ export default function Friends() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger
+            value="info"
+            className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 rounded-lg text-foreground transition-all text-xs sm:text-sm"
+          >
+            <IdCard className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" strokeWidth={2.5} />
+            Mi Info
+          </TabsTrigger>
         </TabsList>
+
+        {/* TAB: Información del usuario */}
+        <TabsContent value="info" className="space-y-6">
+          {mainTab === "info" && (
+            <UserInfoCard
+              name={myProfile?.nombre || myProfile?.username || "Usuario"}
+              id={String(myProfile?.display_id || "...")}
+            />
+          )}
+          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] px-4 py-2 rounded-xl flex items-center justify-between gap-4">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase text-muted-foreground leading-none">Mi ID</span>
+              <span className="font-black text-lg text-foreground leading-tight">
+                #{myProfile?.display_id || "..."}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 bg-[#BFFF00] text-black border-2 border-foreground rounded-lg hover:bg-[#a6e600]"
+              onClick={copyId}
+            >
+              {copied ? <Check className="w-5 h-5 text-black" strokeWidth={3} /> : <Copy className="w-5 h-5 text-black" strokeWidth={2.5} />}
+            </Button>
+          </div>
+          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex flex-col">
+                <span className="text-xs font-black uppercase text-muted-foreground">Tu username</span>
+                {myProfile?.username ? (
+                  <span className="font-black text-xl text-foreground">@{myProfile.username}</span>
+                ) : (
+                  <span className="font-bold text-muted-foreground/60 italic">No configurado</span>
+                )}
+              </div>
+              {editingUsername ? (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <Input
+                    value={newUsername}
+                    onChange={e => setNewUsername(e.target.value)}
+                    placeholder="nuevo_username"
+                    className="w-full sm:w-48 bg-background border-2 border-foreground rounded-lg font-bold text-foreground focus-visible:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      className="bg-[#BFFF00] text-black border-2 border-foreground hover:bg-[#a6e600] font-black uppercase rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] flex-1"
+                      onClick={handleUpdateUsername}
+                    >
+                      Guardar
+                    </Button>
+                    <Button
+                      className="bg-card text-foreground border-2 border-foreground hover:bg-muted font-black uppercase rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] flex-1"
+                      onClick={() => setEditingUsername(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  className="bg-card text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted font-black uppercase rounded-lg w-full sm:w-auto"
+                  onClick={() => setEditingUsername(true)}
+                >
+                  {myProfile?.username ? "Cambiar" : "Configurar"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </TabsContent>
 
         {/* TAB 1: Leaderboard */}
         <TabsContent value="leaderboard" className="space-y-6">

@@ -22,9 +22,11 @@ import {
   AlertTriangle,
   X,
   BookOpen,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import HoldButton from "@/components/ui/HoldButton";
 
 export default function StudyRoadmapPage() {
   const { user } = useAuth();
@@ -382,15 +384,22 @@ export default function StudyRoadmapPage() {
                 >
                   Cancelar
                 </button>
-                <button
-                  type="button"
+                <HoldButton
+                  size="md"
+                  holdTime={1400}
                   disabled={isDeleting}
-                  onClick={handleConfirmDeleteRoadmap}
-                  className="px-5 py-2 rounded-xl border-2 border-foreground bg-[#FF3366] hover:bg-[#e02454] text-white text-xs font-black uppercase shadow-[3px_3px_0_0_#000] flex items-center gap-1.5 cursor-pointer"
+                  backgroundColor="#FF3366"
+                  fillColor="#b91c1c"
+                  textColor="#ffffff"
+                  fillTextColor="#ffffff"
+                  icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
+                  doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
+                  doneLabel="Eliminada"
+                  onHold={handleConfirmDeleteRoadmap}
+                  className="px-5 py-2 rounded-xl border-2 border-foreground text-xs font-black uppercase shadow-[3px_3px_0_0_#000]"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{isDeleting ? "Eliminando..." : "Eliminar"}</span>
-                </button>
+                  {isDeleting ? "Eliminando..." : "Mantener para Eliminar"}
+                </HoldButton>
               </div>
             </div>
           </div>

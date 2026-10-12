@@ -388,6 +388,20 @@ export function useMarketplace() {
     const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
     const typeLabel = type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : type === "apunte" ? "Apunte" : "Carpeta";
 
+    // Optimistic local state update (instant UI feedback)
+    if (type === "apunte") {
+      setPublicApuntes(prev => prev.filter(a => a.id !== id));
+    } else if (type === "deck") {
+      setPublicDecks(prev => prev.filter(d => d.id !== id));
+      setMyPublicDecks(prev => prev.filter(d => d.id !== id));
+    } else if (type === "file") {
+      setPublicFiles(prev => prev.filter(f => f.id !== id));
+    } else if (type === "folder") {
+      setPublicFolders(prev => prev.filter(f => f.id !== id));
+    } else if (type === "quiz") {
+      setPublicQuizzes(prev => prev.filter(q => q.id !== id));
+    }
+
     const { error } = await supabase
       .from(table as any)
       .update({ is_public: false, is_anonymous: false } as any)
@@ -396,11 +410,14 @@ export function useMarketplace() {
     if (error) {
       console.error(`Error al despublicar ${type}:`, error);
       toast.error(`Error al despublicar ${typeLabel.toLowerCase()}: ${error.message || ""}`);
+      // Restore in background on failure
+      fetchPublicResources();
       return false;
     }
 
     toast.success(`${typeLabel} retirado de la comunidad`);
-    await Promise.all([fetchMyPublicDecks(), fetchPublicResources()]);
+    // Non-blocking background sync
+    fetchMyPublicDecks();
     return true;
   };
 

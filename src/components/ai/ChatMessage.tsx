@@ -147,6 +147,42 @@ export const ChatMessageContent: React.FC<ChatMessageContentProps> = ({ content,
               {children}
             </ol>
           ),
+          // Imágenes embebidas / generadas por la IA con sanitización y calidad Flux
+          img: ({ src, alt, ...props }: any) => {
+            // Asegurar que si es Pollinations tenga siempre nologo=true y model=flux
+            let cleanSrc = src || "";
+            if (cleanSrc.includes("pollinations.ai")) {
+              if (!cleanSrc.includes("nologo=true")) {
+                cleanSrc += (cleanSrc.includes("?") ? "&" : "?") + "nologo=true";
+              }
+              if (!cleanSrc.includes("model=")) {
+                cleanSrc += "&model=flux";
+              }
+            }
+
+            return (
+              <div className="my-3.5 max-w-full overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-md bg-zinc-950/5 group relative">
+                <img
+                  src={cleanSrc}
+                  alt={alt || "Ilustración generada"}
+                  loading="lazy"
+                  className="w-full max-h-[520px] object-contain rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
+                  {...props}
+                />
+                <div className="px-3.5 py-2 flex items-center justify-between gap-2 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xs">
+                  <span className="truncate">{alt || "Ilustración de alta fidelidad (Flux)"}</span>
+                  <a
+                    href={cleanSrc}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors underline font-mono text-[10px]"
+                  >
+                    Abrir HD ↗
+                  </a>
+                </div>
+              </div>
+            );
+          },
           // Enlaces seguros con estilo destacado
           a: ({ href, children }) => (
             <a

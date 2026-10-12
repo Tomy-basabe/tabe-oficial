@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import HoldButton from "@/components/ui/HoldButton";
 
 
 interface Subject {
@@ -602,17 +603,28 @@ export default function Marketplace() {
                       <span className="font-bold text-muted-foreground text-xs uppercase">{resource.type === 'apunte' ? 'Apunte' : resource.type === 'deck' ? 'Mazo' : resource.type === 'quiz' ? 'Cuestionario' : resource.type === 'file' ? 'Archivo' : 'Carpeta'}</span>
                     </div>
                   </div>
-                  <Button 
-                    className="bg-[#FF5C5C] text-black border-2 border-foreground hover:bg-[#e64c4c] hover:shadow-[0_0_0_0_#000] hover:translate-y-[2px] transition-all font-black uppercase rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] w-full sm:w-auto" 
-                    onClick={async () => {
+                  <HoldButton 
+                    size="sm"
+                    holdTime={900}
+                    backgroundColor="#FF5C5C"
+                    fillColor="#b91c1c"
+                    textColor="#000000"
+                    fillTextColor="#ffffff"
+                    icon={<X className="w-4 h-4 shrink-0" strokeWidth={3} />}
+                    doneIcon={<Check className="w-4 h-4 shrink-0 text-white" strokeWidth={3} />}
+                    doneLabel="Retirado"
+                    onHold={async () => {
+                      // Optimistic instant UI update
+                      setMyResources(prev => prev.map(r => r.id === resource.id ? { ...r, is_public: false } : r));
                       const success = await unpublishResource(resource.type as any, resource.id);
-                      if (success) {
-                        window.location.reload();
+                      if (!success) {
+                        setMyResources(prev => prev.map(r => r.id === resource.id ? { ...r, is_public: true } : r));
                       }
                     }}
+                    className="border-2 border-foreground font-black uppercase rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] w-full sm:w-auto px-4 py-2 text-xs"
                   >
-                    <X className="w-4 h-4 mr-2" strokeWidth={3} /> Retirar
-                  </Button>
+                    Mantener para Retirar
+                  </HoldButton>
                 </div>
               ))}
               {myResources.filter(r => r.is_public).length === 0 && <p className="text-center py-10 font-black text-muted-foreground uppercase text-lg">Aún no has compartido publicaciones en la comunidad</p>}

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { 
-  Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X, 
+import {
+  Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X,
   Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2, Radio, Compass,
   MessageSquare, Target, LayoutGrid, Flame, Plus, ChevronDown, Check,
-  Image as ImageIcon, MoreVertical, Volume2, SlidersHorizontal
+  Image as ImageIcon, MoreVertical, Volume2, SlidersHorizontal, Square
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,11 +25,11 @@ import { cleanAIResponse, transcribeAudio } from "@/lib/aiClientService";
 import { AVAILABLE_AI_MODELS, AITask } from "@/config/aiModels";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
-import { PromptInputBox } from "@/components/ui/ai-prompt-box";
+import { AIPromptBar } from "@/components/ai/AIPromptBar";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
-import { AILiveVoiceModal } from "@/components/ai/AILiveVoiceModal";
 import { ChatMessageContent } from "@/components/ai/ChatMessage";
+import { HoldButton } from "@/components/ui/HoldButton";
 import "katex/dist/katex.min.css";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -146,7 +146,7 @@ export default function AIAssistant() {
   const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
   const navigate = useNavigate();
-  
+
   // Use global chat state
   const {
     messages, setMessages,
@@ -191,12 +191,18 @@ export default function AIAssistant() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [showLiveVoice, setShowLiveVoice] = useState(false);
-  const [inputMode, setInputMode] = useState<"modern" | "classic">("modern");
+  const [liveAudioStream, setLiveAudioStream] = useState<MediaStream | null>(null);
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const liveActiveRef = useRef(false);
+  const speechRecognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<any>(null);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (searchParams.get("live") === "true" || searchParams.get("voice") === "true") {
-      setShowLiveVoice(true);
+      startLiveVoiceSession();
     }
   }, [searchParams]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -206,8 +212,154 @@ export default function AIAssistant() {
   const { subjects } = useSubjects();
   const { userStats } = useDashboardStats();
   const [selectedSubject, setSelectedSubject] = useState<string>("Todas las materias");
-  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const isWelcomeScreen =
+    messages.length === 0 ||
+    (messages.length === 1 && Boolean(messages[0]?.id?.startsWith("init")));
+  const showAvatarVideo = showLiveVoice || isWelcomeScreen;
+
+  // ── 3D Avatar Video Controller (Intro, Rebobinado t->0, Loop y Cierre continuo) ──
+  const avatarIntroRef = useRef<HTMLVideoElement>(null);
+  const avatarIntroRevRef = useRef<HTMLVideoElement>(null);
+  const avatarLoopRef = useRef<HTMLVideoElement>(null);
+  const avatarOutroRef = useRef<HTMLVideoElement>(null);
+  const [avatarStage, setAvatarStage] = useState<"idle" | "intro" | "intro-reversing" | "loop" | "closing-from-loop">("idle");
+
+  // Precalentamiento de decodificadores de hardware
+  useEffect(() => {
+    [avatarIntroRef, avatarIntroRevRef, avatarLoopRef, avatarOutroRef].forEach((ref) => {
+      if (ref.current) {
+        ref.current.load();
+      }
+    });
+  }, []);
+
+  // Pausar reproducción cuando el avatar no esté visible para ahorrar GPU/recursos
+  useEffect(() => {
+    if (!showAvatarVideo) {
+      [avatarIntroRef, avatarIntroRevRef, avatarLoopRef, avatarOutroRef].forEach((ref) => {
+        if (ref.current && !ref.current.paused) {
+          ref.current.pause();
+        }
+      });
+    }
+  }, [showAvatarVideo]);
+
+  useEffect(() => {
+    const intro = avatarIntroRef.current;
+    const introRev = avatarIntroRevRef.current;
+    const loop = avatarLoopRef.current;
+    const outro = avatarOutroRef.current;
+
+    if (showLiveVoice) {
+      // Activar voz en vivo: arranca la intro hacia adelante desde 0s
+      if (introRev) introRev.pause();
+      if (loop) loop.pause();
+      if (outro) outro.pause();
+      if (intro) {
+        intro.currentTime = 0;
+        intro.play().then(() => {
+          setAvatarStage("intro");
+        }).catch(() => {
+          setAvatarStage("intro");
+        });
+      }
+    } else {
+      // Cancelar / Finalizar voz en vivo
+      if (avatarStage === "intro") {
+        // CASO 1: Cancelado antes de llegar al bucle (ej: seg 3 -> vuelve de 3 a 0)
+        const t = intro ? intro.currentTime : 0;
+        if (intro) intro.pause();
+        if (t > 0.15 && introRev) {
+          // intro-rev dura 4.04s. Al segundo t le corresponde (4.04 - t)
+          const revStart = Math.min(3.95, Math.max(0, 4.04 - t));
+          introRev.currentTime = revStart;
+          // Esperar a que el fotograma esté pintado (seeked) antes de conmutar para cero saltos
+          const onSeeked = () => {
+            introRev.play().catch(() => {});
+            setAvatarStage("intro-reversing");
+          };
+          introRev.addEventListener("seeked", onSeeked, { once: true });
+        } else {
+          setAvatarStage("idle");
+          if (intro) intro.currentTime = 0;
+        }
+      } else if (avatarStage === "loop") {
+        // CASO 2: Cancelado en el bucle -> continúa desde ese segundo cancelado hasta el final (10s)
+        const loopTime = loop ? loop.currentTime : 0;
+        if (loop) loop.pause();
+        // tabe-voice-pingpong dura ~3.54s: 0 a 1.77s (ida 4.0 a 5.75), 1.77 a 3.54s (vuelta 5.75 a 4.0)
+        let equivTime = 4.0;
+        if (loopTime <= 1.77) {
+          equivTime = 4.0 + loopTime;
+        } else {
+          equivTime = 5.75 - (loopTime - 1.77);
+        }
+        equivTime = Math.min(5.75, Math.max(4.0, equivTime));
+
+        if (outro) {
+          outro.currentTime = equivTime;
+          // Esperar a que el decodificador de GPU tenga el fotograma listo
+          const onSeeked = () => {
+            outro.play().catch(() => {});
+            setAvatarStage("closing-from-loop");
+          };
+          outro.addEventListener("seeked", onSeeked, { once: true });
+        } else {
+          setAvatarStage("idle");
+        }
+      } else if (avatarStage === "intro-reversing" || avatarStage === "closing-from-loop") {
+        // Ya está en animación de salida fluida, dejar que termine
+      } else {
+        setAvatarStage("idle");
+        if (intro) { intro.pause(); intro.currentTime = 0; }
+        if (introRev) introRev.pause();
+        if (loop) loop.pause();
+        if (outro) outro.pause();
+      }
+    }
+  }, [showLiveVoice]);
+
+  const handleIntroEnded = () => {
+    if (showLiveVoice) {
+      const loop = avatarLoopRef.current;
+      if (loop) {
+        loop.currentTime = 0;
+        loop.play().then(() => {
+          setAvatarStage("loop");
+        }).catch(() => {
+          setAvatarStage("loop");
+        });
+      } else {
+        setAvatarStage("loop");
+      }
+    } else {
+      setAvatarStage("idle");
+    }
+  };
+
+  const handleIntroRevEnded = () => {
+    // Al terminar el rebobinado suave de t a 0, queda en reposo
+    setAvatarStage("idle");
+    const intro = avatarIntroRef.current;
+    if (intro) {
+      intro.currentTime = 0;
+      intro.pause();
+    }
+  };
+
+  const handleOutroEnded = () => {
+    // Al terminar de reproducirse hasta el segundo 10 final, queda en reposo
+    setAvatarStage("idle");
+    const intro = avatarIntroRef.current;
+    if (intro) {
+      intro.currentTime = 0;
+      intro.pause();
+    }
+  };
+
+
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -219,7 +371,7 @@ export default function AIAssistant() {
   useEffect(() => {
     if (activePersona) {
       loadSessions(activePersona.id);
-      
+
       // Solo reiniciar mensajes si la persona REALMENTE cambió (el usuario seleccionó otra IA)
       if (prevPersonaIdRef.current && prevPersonaIdRef.current !== activePersona.id) {
         if (!isStreaming) {
@@ -300,11 +452,15 @@ export default function AIAssistant() {
     if (!isStreaming) {
       setCurrentSessionId(null);
       currentSessionRef.current = null;
+      setInputValue("");
+      setAttachedImage(null);
       if (activePersona) {
         getProactiveGreeting(activePersona, user?.id).then(({ message, context }) => {
           setMessages([message]);
           setProactiveContext(context);
         });
+      } else {
+        setMessages([]);
       }
     }
   };
@@ -341,7 +497,7 @@ export default function AIAssistant() {
 
   const handleClearAllSessions = async () => {
     if (!activePersona) return;
-    
+
     const ok = await confirm({
       title: "¿Borrar todo el historial?",
       description: "Esta acción borrará TODAS las sesiones y conversaciones guardadas de esta IA. No se puede deshacer.",
@@ -420,11 +576,10 @@ export default function AIAssistant() {
             const text = await transcribeAudio(audioBlob);
             if (text) {
               const isLongAudio = text.length > 100;
-              const promptSuffix = isLongAudio 
-                ? "\n\n👉 *Por favor generame un resumen estructurado con puntos clave, conceptos y fechas mencionadas.*" 
+              const promptSuffix = isLongAudio
+                ? "\n\n👉 *Por favor generame un resumen estructurado con puntos clave, conceptos y fechas mencionadas.*"
                 : "";
               setInputValue((prev) => prev + (prev ? " " : "") + text + promptSuffix);
-              toast.success("Audio transcripto 🎙️");
             }
           } catch (e: any) {
             toast.error(e.message || "Error al transcribir");
@@ -438,7 +593,6 @@ export default function AIAssistant() {
       recordingTimerRef.current = setInterval(() => {
         setRecordingSeconds((s) => s + 1);
       }, 1000);
-      toast.info("Grabando audio... Haz clic en el micrófono para terminar 🎙️");
     } catch (err) {
       console.warn("MediaRecorder no disponible o permiso denegado, usando fallback WebSpeech:", err);
       startVoiceInputFallback();
@@ -453,6 +607,299 @@ export default function AIAssistant() {
     }
   };
 
+  // Obtener voz natural en español para síntesis de voz en vivo
+  const getNaturalSpanishVoice = useCallback((): SpeechSynthesisVoice | null => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return null;
+    const voices = window.speechSynthesis.getVoices();
+    return (
+      voices.find((v) => v.lang.startsWith("es") && (v.name.includes("Natural") || v.name.includes("Google") || v.name.includes("Online"))) ||
+      voices.find((v) => v.lang.startsWith("es") || v.lang.includes("es")) ||
+      voices[0] ||
+      null
+    );
+  }, []);
+
+  // Streaming TTS para respuesta de voz ultra-rápida (oración por oración en tiempo real)
+  const speechQueueRef = useRef<string[]>([]);
+  const isSpeakingQueueRef = useRef(false);
+
+  const resetSpeechQueue = useCallback(() => {
+    speechQueueRef.current = [];
+    isSpeakingQueueRef.current = false;
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
+
+  const processNextSpeechQueue = useCallback(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis || !liveActiveRef.current) {
+      isSpeakingQueueRef.current = false;
+      setIsAiSpeaking(false);
+      return;
+    }
+
+    if (speechQueueRef.current.length === 0) {
+      isSpeakingQueueRef.current = false;
+      setIsAiSpeaking(false);
+      if (liveActiveRef.current && speechRecognitionRef.current) {
+        try { speechRecognitionRef.current.start(); } catch (_) {}
+      }
+      return;
+    }
+
+    const nextChunk = speechQueueRef.current.shift();
+    if (!nextChunk) {
+      processNextSpeechQueue();
+      return;
+    }
+
+    isSpeakingQueueRef.current = true;
+    setIsAiSpeaking(true);
+    setIsAiThinking(false);
+
+    const utterance = new SpeechSynthesisUtterance(nextChunk);
+    const voice = getNaturalSpanishVoice();
+    if (voice) utterance.voice = voice;
+    utterance.lang = "es-ES";
+    utterance.rate = 1.1; // Ágil y dinámico para mínima latencia
+
+    utterance.onend = () => {
+      processNextSpeechQueue();
+    };
+    utterance.onerror = () => {
+      processNextSpeechQueue();
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }, [getNaturalSpanishVoice]);
+
+  const enqueueAiSpeechChunk = useCallback((chunk: string) => {
+    if (!liveActiveRef.current) return;
+    const clean = chunk.replace(/[*_#`$]/g, "").replace(/\n+/g, " ").trim();
+    if (!clean || clean.length < 2) return;
+
+    speechQueueRef.current.push(clean);
+    if (!isSpeakingQueueRef.current) {
+      processNextSpeechQueue();
+    }
+  }, [processNextSpeechQueue]);
+
+  // Manejar intervención hablada en vivo del usuario y obtener respuesta de la IA al instante
+  const handleLiveUserUtterance = useCallback(async (spokenText: string) => {
+    const text = spokenText.trim();
+    if (!text || !liveActiveRef.current || isStreaming) return;
+
+    setLiveTranscript(text);
+    setIsAiThinking(true);
+    if (speechRecognitionRef.current) {
+      try { speechRecognitionRef.current.stop(); } catch (_) {}
+    }
+
+    const userMessage: DisplayMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: text,
+      timestamp: new Date(),
+    };
+    const currentMsgs = messages.filter((m) => !m.id?.startsWith("init"));
+    const updatedMsgs = [...currentMsgs, userMessage];
+    setMessages(updatedMsgs);
+
+    let sessionId = currentSessionRef.current;
+    if (!sessionId) {
+      const session = await createSession(activePersona.id, `Voz: ${text.slice(0, 30)}`);
+      if (session) {
+        sessionId = session.id;
+        currentSessionRef.current = sessionId;
+        setCurrentSessionId(sessionId);
+      }
+    }
+    if (sessionId) {
+      saveMessage(sessionId, "user", text).catch(() => {});
+    }
+
+    const conversationHistory = updatedMsgs.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    // Inyectar instrucción para que el modelo responda de forma ultra-directa y oral
+    const liveVoiceHistory = [
+      {
+        role: "system",
+        content: "Estás respondiendo por voz en vivo. Responde de forma muy concisa, directa, amigable y conversacional (máximo 1 o 2 oraciones breves). No uses markdown, asteriscos ni listas.",
+      },
+      ...conversationHistory,
+    ];
+
+    const assistantMsgId = (Date.now() + 1).toString();
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date(),
+        modelId: selectedModel.id,
+        modelName: selectedModel.shortName || selectedModel.name,
+      },
+    ]);
+
+    resetSpeechQueue();
+    let fullAiResponse = "";
+    let speechBuffer = "";
+
+    // Modelo ultra-rápido para voz en vivo
+    const liveVoiceModel = AVAILABLE_AI_MODELS.find(m => m.id === "gemini-2.5-flash") || selectedModel;
+
+    streamMessage(
+      liveVoiceHistory,
+      activePersona.id,
+      (delta) => {
+        fullAiResponse += delta;
+        speechBuffer += delta;
+
+        const cleaned = cleanAIResponse(fullAiResponse);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantMsgId ? { ...m, content: cleaned } : m))
+        );
+
+        // Streaming TTS: en cuanto detecta fin de frase (. ? ! : o salto de línea), lo habla de inmediato
+        const match = speechBuffer.match(/^([\s\S]+?[.?!:\n])(\s+[\s\S]*)$/);
+        if (match) {
+          const sentence = match[1].trim();
+          speechBuffer = match[2] || "";
+          if (sentence.length > 2) {
+            enqueueAiSpeechChunk(sentence);
+          }
+        }
+      },
+      (result) => {
+        const finalContent = cleanAIResponse(result.content || fullAiResponse);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantMsgId ? { ...m, content: finalContent } : m))
+        );
+        if (sessionId) {
+          saveMessage(sessionId, "assistant", finalContent).catch(() => {});
+        }
+        // Enviar remanente del buffer si existiera
+        if (speechBuffer.trim()) {
+          enqueueAiSpeechChunk(speechBuffer.trim());
+        } else if (speechQueueRef.current.length === 0 && !isSpeakingQueueRef.current && finalContent) {
+          enqueueAiSpeechChunk(finalContent);
+        }
+      },
+      () => {
+        setIsAiThinking(false);
+        setIsAiSpeaking(false);
+        resetSpeechQueue();
+        toast.error("Error al procesar respuesta de voz");
+      },
+      undefined,
+      liveVoiceModel
+    );
+  }, [messages, isStreaming, activePersona, selectedModel, streamMessage, createSession, saveMessage, enqueueAiSpeechChunk, resetSpeechQueue]);
+
+  const startLiveVoiceSession = async () => {
+    // 1. Abrir conversación nueva limpia
+    handleNewChat();
+    setShowLiveVoice(true);
+    liveActiveRef.current = true;
+    setIsAiSpeaking(false);
+    setIsAiThinking(false);
+    setLiveTranscript("");
+
+    // 2. Conectar stream de micrófono para el visualizador reactivo de ondas
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setLiveAudioStream(stream);
+    } catch (err) {
+      console.warn("No se pudo obtener micrófono para el visualizador:", err);
+    }
+
+    // 3. Iniciar reconocimiento de voz continuo en español
+    try {
+      // @ts-ignore
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = "es-AR";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event: any) => {
+          let interim = "";
+          let final = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              final += event.results[i][0].transcript;
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+          if (interim) setLiveTranscript(interim);
+          if (final) {
+            setLiveTranscript(final);
+            handleLiveUserUtterance(final);
+          } else if (interim) {
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = setTimeout(() => {
+              if (interim.trim() && liveActiveRef.current) {
+                handleLiveUserUtterance(interim);
+              }
+            }, 600); // 600ms de silencio para respuesta rápida inmediata
+          }
+        };
+
+        recognition.onerror = (e: any) => {
+          if (e.error !== "no-speech") {
+            console.warn("Speech recognition error:", e.error);
+          }
+        };
+
+        recognition.onend = () => {
+          if (liveActiveRef.current && !isAiSpeaking) {
+            try { recognition.start(); } catch (_) {}
+          }
+        };
+
+        speechRecognitionRef.current = recognition;
+        recognition.start();
+      } else {
+        startVoiceRecording();
+      }
+    } catch (err) {
+      console.warn("Error al iniciar reconocimiento:", err);
+      startVoiceRecording();
+    }
+  };
+
+  const closeLiveVoiceSession = () => {
+    liveActiveRef.current = false;
+    setShowLiveVoice(false);
+    setIsAiSpeaking(false);
+    setIsAiThinking(false);
+    setLiveTranscript("");
+    resetSpeechQueue();
+
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    if (speechRecognitionRef.current) {
+      try { speechRecognitionRef.current.stop(); } catch (_) {}
+      speechRecognitionRef.current = null;
+    }
+
+    if (liveAudioStream) {
+      liveAudioStream.getTracks().forEach((track) => track.stop());
+      setLiveAudioStream(null);
+    }
+    if (isRecording) stopVoiceRecording();
+  };
+
   const startVoiceInputFallback = () => {
     try {
       // @ts-ignore
@@ -461,10 +908,9 @@ export default function AIAssistant() {
       const recognition = new SpeechRecognition();
       recognition.lang = "es-AR";
       recognition.interimResults = false;
-      toast.info("Escuchando... 🎙️");
       recognition.onresult = (e: any) => {
         const t = e.results[0][0].transcript;
-        if (t) { setInputValue((prev) => prev + (prev ? " " : "") + t); toast.success("Escuchado"); }
+        if (t) { setInputValue((prev) => prev + (prev ? " " : "") + t); }
       };
       recognition.start();
     } catch {
@@ -485,11 +931,10 @@ export default function AIAssistant() {
         const text = await transcribeAudio(file);
         if (text) {
           const isLongAudio = text.length > 100;
-          const promptSuffix = isLongAudio 
+          const promptSuffix = isLongAudio
             ? "\n\n👉 *Por favor generame un resumen estructurado de esta clase con puntos clave, conceptos y fechas mencionadas.*"
             : "";
           setInputValue((prev) => `${prev ? prev + "\n\n" : ""}🎙️ **[Grabación/Audio de clase]:**\n${text}${promptSuffix}`);
-          toast.success("Audio transcripto con éxito 🎧");
         }
       } else if (file.type === "application/pdf") {
         const { extractTextFromPdf } = await import("@/lib/pdf-utils");
@@ -693,6 +1138,13 @@ export default function AIAssistant() {
     } else if (message.startsWith("[Think: ")) {
       const thoughtQuery = message.replace(/^\[Think:\s*/, "").replace(/\]$/, "");
       finalPrompt = `🧠 [Modo Pensamiento Profundo / Razonamiento Académico]: ${thoughtQuery}`;
+    } else if (message.startsWith("[Image: ")) {
+      const imageQuery = message.replace(/^\[Image:\s*/, "").replace(/\]$/, "");
+      const seed = Math.floor(Math.random() * 900000) + 100000;
+      finalPrompt = `🎨 [Modo Imagen / Generación Visual con Flux]: Crea una imagen artística y detallada de nivel profesional sobre "${imageQuery}".
+Obligatorio: Inserta en tu respuesta la imagen en Markdown utilizando el motor Flux sin marca de agua:
+![${imageQuery}](https://image.pollinations.ai/prompt/${encodeURIComponent(imageQuery + ", 8k, photorealistic, highly detailed, clean masterpiece")}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true&enhance=true)
+Y añade una breve explicación o análisis didáctico de la ilustración en español.`;
     } else if (message.startsWith("[Canvas: ")) {
       const canvasQuery = message.replace(/^\[Canvas:\s*/, "").replace(/\]$/, "");
       finalPrompt = `🎨 [Modo Canvas / Esquema Estructurado]: ${canvasQuery}`;
@@ -744,7 +1196,109 @@ export default function AIAssistant() {
   }
 
   return (
-    <div className="flex h-[100dvh] w-full bg-background overflow-hidden relative">
+    <div
+      className="flex h-[100dvh] w-full overflow-hidden relative bg-white"
+      style={{
+        backgroundColor: "#FFFFFF",
+      }}
+    >
+      {/* ── 3D AVATAR BACKGROUND VIDEO CON FONDO BLANCO Y ENCUADRE NÍTIDO ──────────────────────── */}
+      <div
+        className={cn(
+          "fixed inset-0 w-full h-full pointer-events-none z-0 flex items-center justify-center overflow-hidden bg-white transition-opacity duration-300",
+          showAvatarVideo ? "opacity-100" : "opacity-0 invisible pointer-events-none"
+        )}
+        style={{
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <div className="relative w-full max-w-4xl aspect-video flex items-center justify-center">
+          {/* 1. Intro Video (0s a 4.00s) / Reposo en frame 0 */}
+          <video
+            ref={avatarIntroRef}
+            src="/videos/tabe-voice-intro.mp4"
+            muted
+            playsInline
+            preload="auto"
+            controls={false}
+            onEnded={handleIntroEnded}
+            style={{
+              maskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
+              WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
+            }}
+            className={cn(
+              "absolute inset-0 w-full h-full object-contain",
+              avatarStage === "intro" || avatarStage === "idle"
+                ? "opacity-100 z-10"
+                : "opacity-0 pointer-events-none z-0"
+            )}
+          />
+
+          {/* 2. Intro Reverse Video (Rebobinado fluido de t a 0s si cancela en intro) */}
+          <video
+            ref={avatarIntroRevRef}
+            src="/videos/tabe-voice-intro-rev.mp4"
+            muted
+            playsInline
+            preload="auto"
+            controls={false}
+            onEnded={handleIntroRevEnded}
+            style={{
+              maskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
+              WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
+            }}
+            className={cn(
+              "absolute inset-0 w-full h-full object-contain",
+              avatarStage === "intro-reversing"
+                ? "opacity-100 z-10"
+                : "opacity-0 pointer-events-none z-0"
+            )}
+          />
+
+          {/* 3. Bucle Ping-Pong continuo por GPU (00.04 a 00.05 18f simétrico) */}
+          <video
+            ref={avatarLoopRef}
+            src="/videos/tabe-voice-pingpong.mp4"
+            muted
+            playsInline
+            loop
+            preload="auto"
+            controls={false}
+            style={{
+              maskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
+              WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
+            }}
+            className={cn(
+              "absolute inset-0 w-full h-full object-contain",
+              avatarStage === "loop"
+                ? "opacity-100 z-10"
+                : "opacity-0 pointer-events-none z-0"
+            )}
+          />
+
+          {/* 4. Video Completo Outro (continúa desde el frame exacto cancelado en el bucle hasta el final) */}
+          <video
+            ref={avatarOutroRef}
+            src="/videos/tabe-voice-avatar.mp4"
+            muted
+            playsInline
+            preload="auto"
+            controls={false}
+            onEnded={handleOutroEnded}
+            style={{
+              maskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
+              WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
+            }}
+            className={cn(
+              "absolute inset-0 w-full h-full object-contain",
+              avatarStage === "closing-from-loop"
+                ? "opacity-100 z-10"
+                : "opacity-0 pointer-events-none z-0"
+            )}
+          />
+        </div>
+      </div>
+
       <PersonaSidebar
         personas={personas}
         activePersona={activePersona}
@@ -795,7 +1349,7 @@ export default function AIAssistant() {
         onClick={() => setIsSidebarOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div className="flex-1 flex flex-col h-full min-w-0 relative z-10">
 
         {/* ── HEADER ASTRA AI STYLE ──────────────────────── */}
         <header className="shrink-0 px-3 py-2 md:px-6 md:py-2.5 border-b-2 border-foreground bg-card/95 backdrop-blur-md flex items-center justify-between gap-2 z-20">
@@ -891,15 +1445,21 @@ export default function AIAssistant() {
 
             {/* Delete current chat if active */}
             {currentSessionId && (
-              <Button
-                variant="ghost"
+              <HoldButton
                 size="icon"
-                onClick={() => handleDeleteSession(currentSessionId)}
-                className="border-2 border-foreground bg-card rounded-xl text-red-600 hover:bg-[#FF5C5C] hover:!text-white shrink-0 w-8 h-8 shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-transform active:scale-90"
-                title="Eliminar conversación actual"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
+                radius={12}
+                backgroundColor="var(--card, #ffffff)"
+                fillColor="#FF5C5C"
+                textColor="#dc2626"
+                fillTextColor="#ffffff"
+                holdTime={1400}
+                icon={<Trash2 className="w-3.5 h-3.5 text-red-600" />}
+                doneIcon={<Check className="w-3.5 h-3.5 text-white" />}
+                doneLabel=""
+                onHold={() => handleDeleteSession(currentSessionId)}
+                className="border-2 border-foreground rounded-xl shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                title="Mantené presionado para borrar este chat"
+              />
             )}
 
             {/* User Avatar */}
@@ -918,40 +1478,65 @@ export default function AIAssistant() {
         </header>
 
         {/* ── MESSAGES / HERO AREA ───────────────────────────── */}
-        {(() => {
-          const isWelcomeScreen =
-            messages.length === 0 ||
-            (messages.length === 1 && Boolean(messages[0]?.id?.startsWith("init")));
+        <div
+          className={cn(
+            "flex-1 scroll-smooth relative",
+            isWelcomeScreen || showLiveVoice
+              ? "flex flex-col items-center justify-center overflow-hidden px-4"
+              : "overflow-y-auto"
+          )}
+        >
+          {showLiveVoice ? (
+            /* Modo Voz en Vivo: Video limpio de TABE + Controles flotantes en la parte inferior */
+            <div className="absolute inset-0 flex flex-col justify-end items-center z-20 px-4 pb-8 sm:pb-10 pointer-events-none">
+              {/* Subtítulo dinámico / estado de voz discreto flotante en la parte inferior */}
+              <div className="mb-4 text-center max-w-md px-4 pointer-events-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {isAiSpeaking ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-black shadow-md backdrop-blur-md animate-pulse">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span>TABE AI está hablando...</span>
+                  </div>
+                ) : isAiThinking ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 border-2 border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-black shadow-md backdrop-blur-md animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-600 dark:text-amber-400" />
+                    <span>Pensando respuesta...</span>
+                  </div>
+                ) : liveTranscript ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/80 text-white text-xs sm:text-sm font-bold shadow-lg backdrop-blur-md max-w-sm text-center border-2 border-white/20">
+                    <span>"{liveTranscript}"</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 border-2 border-foreground/30 text-foreground text-xs sm:text-sm font-bold shadow-md backdrop-blur-md">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                    <span>Te escucho, habla cuando quieras</span>
+                  </div>
+                )}
+              </div>
 
-          return (
-            <div
-              className={cn(
-                "flex-1 scroll-smooth relative",
-                isWelcomeScreen
-                  ? "flex flex-col items-center justify-center overflow-hidden px-4"
-                  : "overflow-y-auto"
-              )}
-            >
-              {/* Ambient subtle glow in the background */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] bg-gradient-to-tr from-sky-400/10 via-purple-400/5 to-pink-400/5 rounded-full blur-3xl pointer-events-none -z-10" />
-
-              {isWelcomeScreen ? (
-                /* Hero empty state centrado sin necesidad de scroll ni zoom out */
-                <div className="flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500 max-w-xl mx-auto">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground tracking-tight mb-5 sm:mb-6 select-none">
-                    ¡Hola {userName}, bienvenido! 👋
-                  </h1>
-
-                  <button
-                    type="button"
-                    onClick={() => textareaRef.current?.focus()}
-                    className="relative group cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95 focus:outline-none"
-                    title="Escribir a TABE AI"
-                  >
-                    <TabeAIIcon size={96} animate={true} withGlow={true} />
-                  </button>
-                </div>
-              ) : (
+              {/* Botón CUADRADO para finalizar la conversación */}
+              <div className="pointer-events-auto flex flex-col items-center gap-1.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <button
+                  type="button"
+                  onClick={closeLiveVoiceSession}
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#FF4747] hover:bg-red-600 active:scale-95 text-white flex flex-col items-center justify-center gap-1 shadow-[3px_3px_0_0_#000] border-2 border-black transition-all cursor-pointer hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]"
+                  title="Finalizar conversación de voz"
+                >
+                  <Square className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">FIN</span>
+                </button>
+                <span className="text-[11px] font-black text-black uppercase tracking-wider select-none bg-white/70 px-2 py-0.5 rounded-md backdrop-blur-xs">
+                  Finalizar
+                </span>
+              </div>
+            </div>
+          ) : isWelcomeScreen ? (
+            /* Saludo situado bien arriba para despejar completamente el avatar 3D central */
+            <div className="absolute top-3 sm:top-4 md:top-5 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500 w-full max-w-xl px-4 pointer-events-none z-20">
+              <h1 className="text-base sm:text-lg md:text-xl font-black text-zinc-900 tracking-tight select-none backdrop-blur-xs bg-white/50 dark:bg-zinc-900/50 px-4 py-1.5 rounded-xl border border-white/70 dark:border-zinc-800/70 shadow-xs">
+                ¡Hola {userName}, bienvenido! 👋
+              </h1>
+            </div>
+          ) : (
                 <div className="max-w-3xl mx-auto px-3 py-3 md:px-6 md:py-5 space-y-3.5 md:space-y-4">
                   {messages
                     .filter((m) => !m.id?.startsWith("init"))
@@ -1035,325 +1620,84 @@ export default function AIAssistant() {
                 </div>
               )}
             </div>
-          );
-        })()}
 
-        {/* ── ASTRA-INSPIRED FLOATING INPUT BAR ────────────────── */}
-        <div className="shrink-0 px-3 py-2.5 md:px-6 md:py-3 bg-background/85 backdrop-blur-md z-20">
-          <div className="max-w-2xl mx-auto">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden"
-              accept=".pdf,.txt,.md,image/*,audio/*"
-            />
+        {/* ── UNIFIED ALL-IN-ONE PROMPT BAR (se oculta completamente en modo voz en vivo) ────────────────── */}
+        {!showLiveVoice && (
+          <div className="shrink-0 px-3 py-2.5 md:px-6 md:py-3.5 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border-t border-zinc-200/80 dark:border-zinc-800/80 z-20">
+            <div className="max-w-3xl mx-auto">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept=".pdf,.txt,.md,image/*,audio/*"
+              />
 
-            {/* Subject Selector Pill (Centered Above Input) */}
-            <div className="flex justify-center mb-2.5 relative">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
-                  className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-card border-2 border-foreground text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted transition-all cursor-pointer group"
-                  title="Seleccionar materia para contextualizar la IA"
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="truncate max-w-[180px] sm:max-w-[240px]">{selectedSubject}</span>
-                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform text-muted-foreground", showSubjectDropdown && "rotate-180")} />
-                </button>
-
-                {/* Dropdown Menu */}
-                {showSubjectDropdown && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 max-h-56 overflow-y-auto bg-card border-2 border-foreground rounded-2xl p-1.5 shadow-[4px_4px_0_0_hsl(var(--foreground))] z-50 space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedSubject("Todas las materias");
-                        setShowSubjectDropdown(false);
-                      }}
-                      className={cn(
-                        "w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold flex items-center justify-between hover:bg-muted transition-colors cursor-pointer",
-                        selectedSubject === "Todas las materias" ? "bg-[#FFE600] text-black font-black" : "text-foreground"
-                      )}
-                    >
-                      <span>Todas las materias</span>
-                      {selectedSubject === "Todas las materias" && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                    </button>
-                    {subjects &&
-                      subjects
-                        .filter((sub) => sub.status === "regular" || sub.status === "cursable")
-                        .map((sub) => (
-                          <button
-                            key={sub.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedSubject(sub.nombre);
-                              setShowSubjectDropdown(false);
-                            }}
-                            className={cn(
-                              "w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 hover:bg-muted transition-colors cursor-pointer",
-                              selectedSubject === sub.nombre ? "bg-[#FFE600] text-black font-black" : "text-foreground"
-                            )}
-                          >
-                            <span className="truncate">{sub.nombre}</span>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <span
-                                className={cn(
-                                  "text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-foreground/40",
-                                  sub.status === "regular"
-                                    ? "bg-[#FFE600]/80 text-black"
-                                    : "bg-[#00E5FF]/80 text-black"
-                                )}
-                              >
-                                {sub.status === "regular" ? "Regular" : "Cursable"}
-                              </span>
-                              {selectedSubject === sub.nombre && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                            </div>
-                          </button>
-                        ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Sub-toolbar: Mode Switch & Model / Voice controls */}
-            <div className="flex items-center justify-between gap-2 px-1 mb-2">
-              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <div className="min-w-0 max-w-[280px] sm:max-w-[340px]">
-                  <ModelSelector
-                    selectedModel={selectedModel}
-                    onSelectModel={(m) => {
-                      setSelectedModel(m);
-                      toast.success(`${m.shortName || m.name}`);
-                    }}
-                    powerLevel={powerLevel}
-                    onSelectPowerLevel={(p) => {
-                      setPowerLevel(p);
-                      toast.success(`Potencia: ${p.toUpperCase()}`);
-                    }}
-                    disabled={isStreaming}
-                  />
-                </div>
-
-                {/* Switch between Modern AI Prompt Box and Classic Neo-Brutalist Box */}
-                <button
-                  type="button"
-                  onClick={() => setInputMode((prev) => (prev === "modern" ? "classic" : "modern"))}
-                  className="px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-bold border-2 border-foreground bg-card hover:bg-muted text-foreground transition-all shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] shrink-0 cursor-pointer"
-                  title="Cambiar diseño de caja de entrada"
-                >
-                  {inputMode === "modern" ? "✨ AI Box" : "⚡ Clásico"}
-                </button>
-              </div>
-
-              {/* Capsule: Habla con TABE AI */}
-              <button
-                type="button"
-                onClick={() => setShowLiveVoice(true)}
-                className="px-2.5 sm:px-3 py-1 rounded-xl bg-card hover:bg-muted border-2 border-foreground text-foreground font-black text-[10px] md:text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0"
-                title="Modo de Voz en Vivo con TABE AI"
-                disabled={isStreaming}
-              >
-                <Radio className="w-3.5 h-3.5 text-[#00E5FF] animate-pulse stroke-[2.5]" />
-                <span className="hidden sm:inline">Habla con TABE AI</span>
-                <Volume2 className="w-3.5 h-3.5 text-foreground hidden xs:inline" />
-              </button>
-            </div>
-
-            {/* Input Box: Modern AI Prompt Box or Classic */}
-            {inputMode === "modern" ? (
-              <div className="w-full animate-in fade-in zoom-in-95 duration-200">
-                <PromptInputBox
-                  onSend={handlePromptBoxSend}
-                  isLoading={isStreaming}
-                  placeholder="Pregunta a TABE AI, busca en la web, reflexiona o adjunta apuntes..."
-                />
-              </div>
-            ) : (
-              /* Main Rounded Input Box (Classic) */
-              <div className="flex flex-col rounded-2xl sm:rounded-3xl border-2 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-within:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all overflow-hidden">
-                {/* Attached Image Preview */}
-                {attachedImage && (
-                  <div className="p-2 border-b-2 border-foreground/20 bg-muted/50 flex items-center justify-between gap-2 animate-in fade-in slide-in-from-bottom-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <img
-                        src={attachedImage.preview}
-                        alt="Vista previa"
-                        className="w-11 h-11 rounded-xl object-cover border-2 border-foreground shadow-[1px_1px_0_0_#000]"
-                      />
-                      <div className="min-w-0">
-                        <span className="text-[11px] font-black uppercase text-foreground block truncate">
-                          {attachedImage.name}
-                        </span>
-                        <span className="text-[9px] font-bold text-muted-foreground block">
-                          Se analizará con IA multimodal al enviar
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAttachedImage(null)}
-                      className="p-1 rounded-lg border-2 border-foreground bg-card hover:bg-destructive hover:text-white transition-colors"
-                      title="Quitar imagen"
-                    >
-                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Recording Indicator */}
-                {isRecording && (
-                  <div className="p-2 border-b-2 border-destructive/20 bg-destructive/15 flex items-center justify-between gap-2 animate-pulse">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-ping" />
-                      <span className="text-xs font-black uppercase text-destructive tracking-wide">
-                        Grabando audio ({Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, "0")})...
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={stopVoiceRecording}
-                      className="px-2.5 py-1 rounded-lg border-2 border-foreground bg-destructive text-white text-[10px] font-black uppercase shadow-[1px_1px_0_0_#000] hover:scale-95 transition-transform cursor-pointer"
-                    >
-                      Detener y Transcribir ⏹️
-                    </button>
-                  </div>
-                )}
-
-                {/* Textarea */}
-                <textarea
-                  ref={textareaRef}
-                  value={inputValue}
-                  onPaste={handlePaste}
-                  onChange={(e) => {
-                    setInputValue(e.target.value);
-                    e.target.style.height = "auto";
-                    e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  placeholder={
-                    isUploading
-                      ? "Procesando archivo..."
-                      : attachedImage
-                        ? "Escribe tu pregunta sobre la foto..."
-                        : isRecording
-                          ? "Grabando tu voz..."
-                          : "Pregunta, habla o envía un archivo..."
+              <AIPromptBar
+                value={inputValue}
+                onChange={setInputValue}
+                onSend={(msg, files) => {
+                  if (files && files.length > 0) {
+                    handlePromptBoxSend(msg, files);
+                  } else {
+                    executeSendMessage(
+                      msg,
+                      attachedImage
+                        ? { data: attachedImage.base64, mime_type: attachedImage.mimeType }
+                        : undefined,
+                      attachedImage?.preview
+                    );
                   }
-                  className="w-full px-4 pt-3.5 pb-2 bg-transparent border-none focus:outline-none text-xs md:text-sm font-bold placeholder:text-muted-foreground/70 resize-none overflow-y-auto text-foreground"
-                  style={{ minHeight: "44px", maxHeight: "140px" }}
-                  rows={1}
-                  disabled={isStreaming || isUploading}
-                />
+                }}
+                isLoading={isStreaming || isUploading}
+                placeholder={
+                  isUploading
+                    ? "Procesando archivo adjunto..."
+                    : showLiveVoice
+                      ? "Hablando en vivo con TABE AI... (Di algo o escribe)"
+                      : isRecording
+                        ? "Grabando tu voz..."
+                        : "Pregunta a TABE AI, consulta tus apuntes o pega una imagen..."
+                }
+                attachedImage={attachedImage}
+                onRemoveImage={() => setAttachedImage(null)}
+                onAttachClick={() => fileInputRef.current?.click()}
+                selectedModel={selectedModel}
+                powerLevel={powerLevel}
+                onSelectPowerLevel={(level) => {
+                  setPowerLevel(level);
+                  toast.success(`Modo: ${level.toUpperCase()}`);
+                }}
+                onSelectModel={(m) => {
+                  setSelectedModel(m);
+                  toast.success(`${m.shortName || m.name}`);
+                }}
+                selectedSubject={selectedSubject}
+                subjects={subjects}
+                onSelectSubject={(sub) => setSelectedSubject(sub)}
+                onOpenLiveVoice={() => {
+                  if (showLiveVoice) {
+                    closeLiveVoiceSession();
+                  } else {
+                    startLiveVoiceSession();
+                  }
+                }}
+                isLiveVoiceActive={showLiveVoice}
+                isRecordingVoice={isRecording}
+                recordingSeconds={recordingSeconds}
+                onStartVoiceRecording={startVoiceRecording}
+                onStopVoiceRecording={stopVoiceRecording}
+              />
 
-                {/* Action Toolbar */}
-                <div className="flex items-center justify-between px-3 pb-2.5 pt-1 gap-2">
-                  <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95 cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading || isStreaming}
-                      title="Adjuntar Imagen, Audio, PDF o Texto"
-                    >
-                      {isUploading ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                      ) : (
-                        <ImageIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      )}
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 shrink-0 transition-transform active:scale-95 cursor-pointer hidden xs:flex"
-                      onClick={() => {
-                        setInputValue("Explicame en detalle y con ejemplos: ");
-                        textareaRef.current?.focus();
-                      }}
-                      disabled={isStreaming}
-                      title="Explicación detallada de concepto"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" strokeWidth={2.5} />
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className={cn(
-                        "border-2 border-foreground rounded-xl shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] text-foreground hover:bg-muted h-7 w-7 sm:h-8 sm:w-8 transition-transform active:scale-95 cursor-pointer",
-                        isRecording && "bg-destructive text-white border-destructive animate-pulse"
-                      )}
-                      onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-                      title={isRecording ? "Detener grabación" : "Grabar audio / voz con IA"}
-                      disabled={isStreaming}
-                    >
-                      <Mic className="w-3.5 h-3.5" strokeWidth={2.5} />
-                    </Button>
-
-                    {(inputValue.trim() || attachedImage) && (
-                      <Button
-                        onClick={handleSend}
-                        disabled={isStreaming}
-                        className="rounded-xl font-black uppercase text-xs transition-all border-2 border-foreground h-7 sm:h-8 px-2.5 sm:px-3 flex items-center gap-1 shrink-0 bg-[#00E5FF] !text-black hover:bg-[#00cce6] shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[1px] cursor-pointer"
-                      >
-                        <Send className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <p className="text-[9px] text-center font-bold uppercase text-muted-foreground/70 mt-2 px-2">
-              {activePersona?.name || "TABE AI"} puede cometer errores. Verifica información académica sensible.
-            </p>
+              <p className="text-[10px] text-center font-medium text-muted-foreground/60 mt-2 px-2 select-none">
+                {activePersona?.name || "TABE AI"} puede cometer errores. Verifica información académica sensible.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
-
-      {showLiveVoice && (
-        <AILiveVoiceModal
-          isOpen={showLiveVoice}
-          onClose={() => setShowLiveVoice(false)}
-          activePersona={activePersona}
-          selectedModel={selectedModel}
-          powerLevel={powerLevel}
-          onSaveMessage={async (text: string, isUser: boolean, imageUrl?: string) => {
-            let sessionId = currentSessionRef.current;
-            if (!sessionId) {
-              const title = text.slice(0, 40) || "Conversación Live";
-              const session = await createSession(activePersona.id, title);
-              if (session) {
-                sessionId = session.id;
-                currentSessionRef.current = sessionId;
-                setCurrentSessionId(sessionId);
-              }
-            }
-            if (sessionId) {
-              await saveMessage(sessionId, isUser ? "user" : "assistant", text);
-            }
-            if (isUser && selectedModel.provider !== "local") {
-              incrementUsage("ia_daily").catch(() => {});
-            }
-          }}
-          streamMessage={streamMessage}
-          existingMessages={messages}
-          onAddDisplayMessage={(msg: DisplayMessage) => {
-            setMessages((prev) => [...prev.filter((m) => m.id !== "init"), msg]);
-          }}
-        />
-      )}
     </div>
   );
 }
+
