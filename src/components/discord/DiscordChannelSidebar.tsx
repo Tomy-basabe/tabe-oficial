@@ -137,13 +137,13 @@ export function DiscordChannelSidebar({
   // bg-card/30 backdrop-blur-xl border-r border-border
 
   return (
-    <div className="md:w-60 w-full bg-card/30 backdrop-blur-xl md:border-r border-border flex flex-col h-full shrink-0">
+    <div className="md:w-64 w-full bg-card/95 dark:bg-[#0d121d]/95 backdrop-blur-xl md:border-r border-border dark:border-white/10 flex flex-col h-full shrink-0">
       {/* Server Header */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="h-12 px-4 border-b border-border flex items-center justify-between hover:bg-white/5 transition-colors group w-full">
-            <span className="font-bold text-foreground font-orbitron truncate">{server.name}</span>
-            <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <button className="h-16 px-4 border-b border-white/10 flex items-center justify-between hover:bg-white/5 transition-colors group w-full">
+            <div className="min-w-0 text-left"><span className="block text-[10px] uppercase tracking-[.18em] text-cyan-300/70 mb-0.5">Comunidad</span><span className="font-semibold text-white truncate block">{server.name}</span></div>
+            <ChevronDown className="w-4 h-4 text-slate-500 group-hover:text-cyan-300 transition-colors" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56 bg-card border-border text-foreground">
@@ -221,7 +221,7 @@ export function DiscordChannelSidebar({
                   <Plus className="w-4 h-4" />
                 </button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-border text-foreground p-0 gap-0 sm:max-w-md overflow-hidden">
+              <DialogContent className="bg-card dark:bg-[#111827] border-border dark:border-white/10 text-foreground dark:text-slate-100 p-0 gap-0 sm:max-w-md overflow-hidden">
                 <DialogHeader className="p-6 pb-2 bg-muted/20">
                   <DialogTitle className="text-xl font-bold font-orbitron text-primary">Crear Canal de Texto</DialogTitle>
                 </DialogHeader>
@@ -296,7 +296,7 @@ export function DiscordChannelSidebar({
                   <Plus className="w-4 h-4" />
                 </button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-border text-foreground p-0 gap-0 sm:max-w-md overflow-hidden">
+              <DialogContent className="bg-card dark:bg-[#111827] border-border dark:border-white/10 text-foreground dark:text-slate-100 p-0 gap-0 sm:max-w-md overflow-hidden">
                 <DialogHeader className="p-6 pb-2 bg-muted/20">
                   <DialogTitle className="text-xl font-bold font-orbitron text-primary">Crear Canal de Voz</DialogTitle>
                 </DialogHeader>

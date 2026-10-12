@@ -108,7 +108,7 @@ export function DiscordVoiceChannel({
         is_screen_sharing: remoteMediaStates.get(peerId)?.isScreenSharing ?? false,
         is_speaking: speakingUsers.has(peerId),
         joined_at: new Date().toISOString(),
-        profile: { username: "Compañero", nombre: "Compañero" }
+        profile: { username: "Compañero", nombre: "Compañero", avatar_url: null }
       });
     }
   });
@@ -126,7 +126,7 @@ export function DiscordVoiceChannel({
         is_screen_sharing: state.isScreenSharing,
         is_speaking: speakingUsers.has(peerId),
         joined_at: new Date().toISOString(),
-        profile: { username: "Compañero", nombre: "Compañero" }
+        profile: { username: "Compañero", nombre: "Compañero", avatar_url: null }
       });
     }
   });
@@ -159,9 +159,9 @@ export function DiscordVoiceChannel({
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col bg-background relative z-10 h-full select-none overflow-hidden">
+    <div className="flex-1 flex flex-col bg-background dark:bg-[#0b0f18] text-foreground relative z-10 h-full select-none overflow-hidden">
       {/* Comic Header */}
-      <div className="h-14 px-4 flex items-center justify-between border-b-3 border-black bg-card shadow-[0_3px_0px_#000] shrink-0 z-20">
+      <div className="h-14 px-4 flex items-center justify-between border-b border-border bg-card dark:bg-[#0d121d] shrink-0 z-20">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center">
             <Volume2 className="w-4 h-4 text-black stroke-[2.5]" />
@@ -233,7 +233,7 @@ export function DiscordVoiceChannel({
 
       {/* Floating Bottom Controls (Comic / Neobrutalism) */}
       <div className="p-4 flex items-center justify-center shrink-0 z-30">
-        <div className="bg-card border-3 border-black shadow-[6px_6px_0px_#000] rounded-2xl px-5 py-2.5 flex items-center gap-3 backdrop-blur-md">
+        <div className="bg-card dark:bg-[#111827] border border-border dark:border-white/10 shadow-2xl rounded-2xl px-5 py-2.5 flex items-center gap-3 backdrop-blur-md">
           {/* Mic Button */}
           <ComicControlBtn
             icon={isAudioEnabled ? Mic : MicOff}

@@ -1,6 +1,7 @@
 ﻿import { createContext, useContext, ReactNode } from "react";
 import { useDiscord } from "@/hooks/useDiscord";
 import { useRobustDiscord } from "@/hooks/useRobustDiscord";
+import { useLiveKitDiscord } from "@/hooks/useLiveKitDiscord";
 import { DiscordAudioRenderer } from "@/components/discord/DiscordAudioRenderer";
 import { DiscordDebugPanel } from "@/components/discord/DiscordDebugPanel";
 
@@ -12,7 +13,10 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
     // Activate voice based on currentVoiceChannel (persistent) or currentChannel if it's voice
     const activeVoiceChannel = discord.currentVoiceChannel || (discord.currentChannel?.type === 'voice' ? discord.currentChannel : null);
     const voiceChannelId = activeVoiceChannel ? activeVoiceChannel.id : null;
-    const voice = useRobustDiscord({ channelId: voiceChannelId });
+    const liveKitVoice = useLiveKitDiscord({ channelId: voiceChannelId });
+    const liveKitConfigured = liveKitVoice.enabled;
+    const voice = useRobustDiscord({ channelId: liveKitConfigured ? null : voiceChannelId });
+    const mediaVoice = liveKitVoice.enabled ? liveKitVoice : voice;
 
     // Merge: discord provides data (servers, channels, messages, participants)
     //        voice provides media (streams, toggle functions)
@@ -20,26 +24,26 @@ export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
         ...discord,
         currentVoiceChannel: activeVoiceChannel,
         // Override media-related properties with robust hook values
-        localStream: voice.localStream,
-        remoteStreams: voice.remoteStreams,
-        isAudioEnabled: voice.isAudioEnabled,
-        isVideoEnabled: voice.isVideoEnabled,
-        isScreenSharing: voice.isScreenSharing,
-        toggleAudio: voice.toggleAudio,
-        toggleVideo: voice.toggleVideo,
-        startScreenShare: voice.startScreenShare,
-        stopScreenShare: voice.stopScreenShare,
-        screenStream: voice.screenStream,
-        remoteScreenStreams: voice.remoteScreenStreams,
-        peerStates: voice.peerStates,
-        cameras: voice.cameras,
-        selectedCameraId: voice.selectedCameraId,
-        switchCamera: voice.switchCamera,
-        mics: voice.mics,
-        selectedMicId: voice.selectedMicId,
-        switchMic: voice.switchMic,
-        speakingUsers: voice.speakingUsers && voice.speakingUsers.size > 0 ? voice.speakingUsers : discord.speakingUsers,
-        remoteMediaStates: voice.remoteMediaStates,
+        localStream: mediaVoice.localStream,
+        remoteStreams: mediaVoice.remoteStreams,
+        isAudioEnabled: mediaVoice.isAudioEnabled,
+        isVideoEnabled: mediaVoice.isVideoEnabled,
+        isScreenSharing: mediaVoice.isScreenSharing,
+        toggleAudio: mediaVoice.toggleAudio,
+        toggleVideo: mediaVoice.toggleVideo,
+        startScreenShare: mediaVoice.startScreenShare,
+        stopScreenShare: mediaVoice.stopScreenShare,
+        screenStream: mediaVoice.screenStream,
+        remoteScreenStreams: mediaVoice.remoteScreenStreams,
+        peerStates: "peerStates" in mediaVoice ? mediaVoice.peerStates : new Map(),
+        cameras: mediaVoice.cameras,
+        selectedCameraId: mediaVoice.selectedCameraId,
+        switchCamera: mediaVoice.switchCamera,
+        mics: mediaVoice.mics,
+        selectedMicId: mediaVoice.selectedMicId,
+        switchMic: mediaVoice.switchMic,
+        speakingUsers: mediaVoice.speakingUsers && mediaVoice.speakingUsers.size > 0 ? mediaVoice.speakingUsers : discord.speakingUsers,
+        remoteMediaStates: mediaVoice.remoteMediaStates,
     };
 
     return (

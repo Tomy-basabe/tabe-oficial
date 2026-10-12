@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Hash, Users, Send, PlusCircle, Gift, Sticker, Smile, Bell, Pin, Search, HelpCircle } from "lucide-react";
+import { Hash, Users, Send, PlusCircle, Gift, Sticker, Smile, Bell, Pin, Search, HelpCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -88,6 +88,10 @@ export function DiscordTextChannel({
   // Group members by role
   const owners = members.filter(m => m.role === "owner");
   const regularMembers = members.filter(m => m.role !== "owner");
+  const memberGroups: Array<[DiscordServerMember[], string]> = [
+    [owners, `Dueño - ${owners.length}`],
+    [regularMembers, `Miembros - ${regularMembers.length}`],
+  ];
 
   // Typing indicator text
   const typingNames = Array.from(typingUsers.values());
@@ -105,36 +109,40 @@ export function DiscordTextChannel({
   // Input: bg-card border-t border-border p-4
 
   return (
-    <div className="flex-1 flex h-full">
+    <div className="flex-1 flex h-full bg-background dark:bg-[#0b0f18]">
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Header */}
-        <div className="h-12 px-4 flex items-center justify-between border-b border-border bg-background/95 backdrop-blur shrink-0 transition-colors">
+        <div className="min-h-[68px] px-5 flex items-center justify-between border-b border-border dark:border-white/10 bg-background/95 dark:bg-[#0d121d]/95 backdrop-blur-xl shrink-0 transition-colors shadow-[0_8px_30px_rgba(0,0,0,.12)]">
           <div className="flex items-center">
-            <Hash className="w-5 h-5 text-muted-foreground mr-2" />
-            <span className="font-bold text-foreground mr-4">{channel.name}</span>
-            <div className="hidden md:block w-px h-6 bg-border mx-2" />
-            <span className="hidden md:block text-xs text-muted-foreground truncate max-w-[200px]">
-              Tema del canal
-            </span>
+            <div className="w-9 h-9 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center mr-3">
+              <Hash className="w-5 h-5 text-cyan-300" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground dark:text-white tracking-tight">{channel.name}</span>
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-emerald-300"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />En vivo</span>
+              </div>
+              <span className="hidden md:block text-xs text-slate-400 mt-0.5">Conversación del servidor</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-3 text-muted-foreground">
+          <div className="flex items-center gap-2 text-slate-400">
             <Tooltip>
               <TooltipTrigger>
-                <div className="hover:text-foreground cursor-pointer transition-colors"><Bell className="w-5 h-5" /></div>
+                <div className="hover:text-cyan-300 cursor-pointer transition-colors p-2 rounded-lg hover:bg-white/5"><Bell className="w-4 h-4" /></div>
               </TooltipTrigger>
               <TooltipContent>Silenciar canal</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger>
-                <div className="hover:text-foreground cursor-pointer transition-colors"><Pin className="w-5 h-5" /></div>
+                <div className="hover:text-cyan-300 cursor-pointer transition-colors p-2 rounded-lg hover:bg-white/5"><Pin className="w-4 h-4" /></div>
               </TooltipTrigger>
               <TooltipContent>Mensajes fijados</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger>
                 <div
-                  className={cn("hover:text-foreground cursor-pointer transition-colors", showMembersSidebar && "text-foreground")}
+                  className={cn("hover:text-cyan-300 cursor-pointer transition-colors p-2 rounded-lg hover:bg-white/5", showMembersSidebar && "text-cyan-300 bg-white/5")}
                   onClick={() => setShowMembersSidebar(!showMembersSidebar)}
                 >
                   <Users className="w-5 h-5" />
@@ -147,14 +155,14 @@ export function DiscordTextChannel({
               <input
                 type="text"
                 placeholder="Buscar"
-                className="bg-muted/50 text-foreground text-sm rounded px-2 py-1 w-36 focus:w-60 transition-all focus:bg-background focus:ring-1 focus:ring-primary outline-none placeholder:text-muted-foreground/50"
+                className="bg-white/5 border border-white/10 text-white text-xs rounded-lg px-3 py-2 w-28 sm:w-36 focus:w-52 transition-all focus:bg-white/10 focus:ring-1 focus:ring-cyan-300/40 outline-none placeholder:text-slate-500"
               />
               <Search className="w-4 h-4 absolute right-2 top-1.5 text-muted-foreground pointer-events-none" />
             </div>
 
             <Tooltip>
               <TooltipTrigger>
-                <div className="hover:text-foreground cursor-pointer transition-colors"><HelpCircle className="w-5 h-5" /></div>
+                <div className="hover:text-cyan-300 cursor-pointer transition-colors p-2 rounded-lg hover:bg-white/5"><HelpCircle className="w-4 h-4" /></div>
               </TooltipTrigger>
               <TooltipContent>Ayuda</TooltipContent>
             </Tooltip>
@@ -162,14 +170,15 @@ export function DiscordTextChannel({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto discord-scrollbar px-4 pt-4" ref={scrollRef}>
+        <div className="flex-1 overflow-y-auto discord-scrollbar px-4 sm:px-8 pt-5 bg-[radial-gradient(circle_at_top,rgba(34,211,238,.055),transparent_36%)] dark:bg-[radial-gradient(circle_at_top,rgba(34,211,238,.055),transparent_36%)]" ref={scrollRef}>
           {Object.keys(groupedMessages).length === 0 ? (
-            <div className="flex flex-col justify-end h-full pb-8 select-none opacity-50">
-              <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mb-4">
-                <Hash className="w-10 h-10 text-muted-foreground" />
+            <div className="flex flex-col justify-end h-full pb-8 select-none">
+              <div className="w-16 h-16 bg-cyan-300/10 rounded-2xl border border-cyan-300/20 flex items-center justify-center mb-4">
+                <Sparkles className="w-8 h-8 text-cyan-300" />
               </div>
-              <h3 className="text-3xl font-bold font-orbitron text-foreground mb-2">¡Bienvenido a #{channel.name}!</h3>
-              <p className="text-muted-foreground">Este es el comienzo del canal #{channel.name}.</p>
+              <p className="text-xs uppercase tracking-[.22em] text-cyan-300/80 mb-2">Inicio del canal</p>
+              <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-2">Bienvenido a #{channel.name}</h3>
+              <p className="text-slate-400">Este es el comienzo de la conversación. Comparte una idea con tu comunidad.</p>
             </div>
           ) : (
             Object.entries(groupedMessages).map(([date, msgs]) => (
@@ -231,7 +240,7 @@ export function DiscordTextChannel({
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-background/95 backdrop-blur-sm border-t border-border relative z-20">
+        <div className="p-4 sm:px-8 sm:pb-6 bg-background/95 dark:bg-[#0d121d]/95 backdrop-blur-xl border-t border-border dark:border-white/10 relative z-20">
           {typingText && (
             <div className="absolute -top-6 left-4 flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="discord-typing-dots">
@@ -242,7 +251,7 @@ export function DiscordTextChannel({
               <span className="text-xs font-bold text-foreground animate-pulse">{typingText}</span>
             </div>
           )}
-          <div className="bg-muted/50 rounded-lg flex items-center px-4 py-2.5 border border-input focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all shadow-inner">
+          <div className="bg-white/[.045] rounded-2xl flex items-center px-3 sm:px-4 py-2.5 border border-white/10 focus-within:ring-2 focus-within:ring-cyan-300/20 focus-within:border-cyan-300/40 transition-all shadow-[0_10px_30px_rgba(0,0,0,.14)]">
             <button className="text-muted-foreground hover:text-foreground mr-3 transition-colors p-1 hover:bg-background rounded-full">
               <PlusCircle className="w-6 h-6" />
             </button>
@@ -253,7 +262,7 @@ export function DiscordTextChannel({
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder={`Enviar un mensaje a #${channel.name}`}
-                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none"
+                className="w-full bg-transparent text-white placeholder:text-slate-500 outline-none text-sm"
               />
             </div>
             <div className="flex items-center space-x-3 ml-2 text-muted-foreground">
@@ -273,7 +282,7 @@ export function DiscordTextChannel({
       {/* Members Sidebar */}
       {showMembersSidebar && (
         <div className="w-60 bg-card/20 border-l border-border hidden lg:flex flex-col py-3 px-2 overflow-y-auto discord-scrollbar">
-          {[[owners, "Dueño - " + owners.length], [regularMembers, "Miembros - " + regularMembers.length]].map(([group, label]) => (
+          {memberGroups.map(([group, label]) => (
             group.length > 0 && (
               <div key={label} className="mb-6">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase px-2 mb-2 tracking-wider flex items-center gap-1">

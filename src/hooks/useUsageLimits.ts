@@ -12,6 +12,7 @@ export const FREE_LIMITS = {
     flashcard_tarjetas: 500, // por mazo (sin limite practico)
     cuestionarios: 14,      // cuestionarios por mes
     cuestionario_preguntas: 500, // por cuestionario (sin limite practico)
+    discord_canales: 20,     // canales de Tabe Talk por mes
     storage_mb: 500,        // total (500MB)
     ia_daily: 5,            // diario
 } as const;
@@ -181,6 +182,7 @@ export function useUsageLimits() {
             flashcard_tarjetas: "tarjetas por mazo",
             cuestionarios: "cuestionarios",
             cuestionario_preguntas: "preguntas por cuestionario",
+            discord_canales: "canales de Tabe Talk",
             storage_mb: "almacenamiento (500MB)",
             ia_daily: "uso de IA diario (5 créditos)",
         };

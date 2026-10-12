@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { DiscordServerList } from "@/components/discord/DiscordServerList";
 import { DiscordChannelSidebar } from "@/components/discord/DiscordChannelSidebar";
 import { DiscordTextChannel } from "@/components/discord/DiscordTextChannel";
@@ -39,6 +40,7 @@ export default function Tabetalk() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const discord = useDiscordVoice();
+  const { user } = useAuth();
   const [mobileView, setMobileView] = useState<MobileView>("main");
   const [showCreateOrJoinModal, setShowCreateOrJoinModal] = useState(false);
   const [modalDefaultTab, setModalDefaultTab] = useState<"create" | "join">("create");
@@ -153,19 +155,19 @@ export default function Tabetalk() {
   }, [currentServer]);
 
   return (
-    <div className="h-screen w-screen flex flex-col md:flex-row bg-background overflow-hidden relative selection:bg-primary/30 text-foreground font-sans">
+    <div className="tabe-talk-theme h-screen w-screen flex flex-col md:flex-row bg-background text-foreground overflow-hidden relative selection:bg-cyan-300/30 font-sans">
       {/* Background Comic/Gaming Dot Pattern */}
-      <div 
-        className="absolute inset-0 opacity-[0.035] dark:opacity-[0.05] pointer-events-none"
+      <div
+        className="absolute inset-0 opacity-[0.08] pointer-events-none"
         style={{ 
-          backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1.5px, transparent 0)', 
-          backgroundSize: '24px 24px' 
+          backgroundImage: 'linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)',
+          backgroundSize: '32px 32px'
         }}
       />
 
       {/* Ambient Radial Accent */}
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#FFE600]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#00E5FF]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-48 right-[-8rem] w-[32rem] h-[32rem] bg-cyan-400/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-48 left-[-8rem] w-[32rem] h-[32rem] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* === SERVER LIST === */}
       {/* Desktop: barra lateral izquierda siempre visible. 
@@ -212,7 +214,7 @@ export default function Tabetalk() {
             ${mobileView === "channels" ? "block w-full" : "hidden"}
           `}>
             {/* Mobile back button to servers */}
-            <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b-2 border-black bg-card/60">
+            <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b border-border bg-background dark:bg-[#0d121d]">
               <button
                 onClick={() => setMobileView("servers")}
                 className="p-1.5 rounded-lg border-2 border-black bg-[#FFE600] text-black shadow-[2px_2px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all"
@@ -253,11 +255,11 @@ export default function Tabetalk() {
 
           {/* === MAIN CONTENT === */}
           <div className={`
-            flex-1 flex flex-col bg-background relative overflow-hidden
+            flex-1 flex flex-col bg-background dark:bg-[#0b0f18] relative overflow-hidden
             ${mobileView === "main" ? "flex" : "hidden md:flex"}
           `}>
             {/* Mobile header with back button */}
-            <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b-2 border-black bg-card/60 shrink-0">
+            <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b border-border bg-background dark:bg-[#0d121d] shrink-0">
               <button
                 onClick={() => setMobileView("channels")}
                 className="p-1.5 rounded-lg border-2 border-black bg-[#FFE600] text-black shadow-[2px_2px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all"
@@ -280,7 +282,13 @@ export default function Tabetalk() {
               <DiscordTextChannel
                 channel={currentChannel}
                 messages={messages}
-                currentUser={discord.members.find(m => m.user_id === discord.members[0]?.user_id) || { id: "me", role: "member", user_id: "me", server_id: "", joined_at: "" }}
+                currentUser={{
+                  id: user?.id || "me",
+                  role: discord.members.find((member) => member.user_id === user?.id)?.role || "member",
+                  user_id: user?.id || "me",
+                  server_id: currentServer?.id || "",
+                  joined_at: "",
+                }}
                 members={members}
                 onSendMessage={sendMessage}
                 onTyping={sendTypingIndicator}

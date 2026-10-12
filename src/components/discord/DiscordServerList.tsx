@@ -119,7 +119,7 @@ export function DiscordServerList({
   };
 
   return (
-    <div className="md:w-[72px] w-full bg-background/95 backdrop-blur border-b md:border-b-0 md:border-r border-border md:py-3 py-2 flex md:flex-col flex-row items-center md:gap-2 gap-2 overflow-x-auto md:overflow-y-auto md:overflow-x-hidden discord-scrollbar shrink-0 z-50 px-2 sm:px-3 md:px-0">
+    <div className="md:w-[78px] w-full bg-background/95 dark:bg-[#080b12]/95 backdrop-blur-xl border-b md:border-b-0 md:border-r border-border dark:border-white/10 md:py-4 py-2 flex md:flex-col flex-row items-center md:gap-2 gap-2 overflow-x-auto md:overflow-y-auto md:overflow-x-hidden discord-scrollbar shrink-0 z-50 px-2 sm:px-3 md:px-0">
       {/* Botón de Retorno al Dashboard principal */}
       {onGoBack && (
         <div className="relative group mb-1">
@@ -127,7 +127,7 @@ export function DiscordServerList({
             <TooltipTrigger asChild>
               <button
                 onClick={onGoBack}
-                className="w-12 h-12 rounded-[24px] hover:rounded-[16px] transition-all duration-200 flex items-center justify-center mx-3 bg-secondary text-foreground hover:bg-destructive hover:text-white border border-border/50 shadow-lg shadow-black/20"
+                className="w-12 h-12 rounded-2xl hover:bg-rose-500/20 transition-all duration-200 flex items-center justify-center mx-3 bg-white/5 text-slate-300 hover:text-rose-300 border border-white/10 shadow-lg shadow-black/20"
                 aria-label="Volver al Dashboard"
               >
                 <Home className="w-5 h-5 stroke-[2.5]" />
@@ -151,10 +151,10 @@ export function DiscordServerList({
             <button
               onClick={() => onSelectServer(null)}
               className={cn(
-                "w-14 h-14 rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 flex items-center justify-center mx-2 overflow-hidden shadow-xl shadow-black/25 p-1",
+                  "w-14 h-14 rounded-2xl group-hover:rounded-xl transition-all duration-200 flex items-center justify-center mx-2 overflow-hidden shadow-xl shadow-black/25 p-1",
                 !currentServer
-                  ? "bg-primary/20 border-2 border-primary text-primary scale-105"
-                  : "bg-card text-muted-foreground hover:bg-primary/20 hover:text-primary"
+                  ? "bg-cyan-300/10 border border-cyan-300/50 text-cyan-300 scale-105"
+                  : "bg-white/5 text-slate-400 hover:bg-cyan-300/10 hover:text-cyan-300"
               )}
             >
               <img 
@@ -189,16 +189,16 @@ export function DiscordServerList({
                     <button
                       onClick={() => onSelectServer(server)}
                       className={cn(
-                        "w-11 h-11 md:w-12 md:h-12 rounded-[20px] md:rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 overflow-hidden shadow-md shadow-black/20 shrink-0",
-                        currentServer?.id === server.id ? "rounded-[16px] ring-2 ring-primary ring-offset-2 ring-offset-background scale-105" : ""
+                        "w-11 h-11 md:w-12 md:h-12 rounded-2xl group-hover:rounded-xl transition-all duration-200 overflow-hidden shadow-md shadow-black/20 shrink-0",
+                        currentServer?.id === server.id ? "ring-2 ring-cyan-300 ring-offset-2 ring-offset-[#080b12] scale-105" : ""
                       )}
                     >
                       <Avatar className={cn(
                         "w-full h-full transition-colors",
-                        currentServer?.id === server.id ? "bg-primary" : "bg-card group-hover:bg-primary"
+                        currentServer?.id === server.id ? "bg-cyan-300" : "bg-white/5 group-hover:bg-cyan-300"
                       )}>
                         <AvatarImage src={server.icon_url || undefined} className="object-cover" />
-                        <AvatarFallback className="bg-transparent text-xs md:text-sm font-bold text-foreground group-hover:text-primary-foreground">
+                        <AvatarFallback className="bg-transparent text-xs md:text-sm font-bold text-slate-200 group-hover:text-slate-950">
                           {server.name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -265,7 +265,7 @@ export function DiscordServerList({
           <TooltipTrigger asChild>
             <button
               onClick={handleOpenCreate}
-              className="w-11 h-11 md:w-12 md:h-12 rounded-[20px] md:rounded-[24px] bg-card hover:bg-[#FFE600] hover:text-black hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-primary border-2 border-dashed border-primary/50 hover:border-black shadow-sm shrink-0 active:scale-95"
+              className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white/5 hover:bg-cyan-300 hover:text-slate-950 transition-all duration-200 flex items-center justify-center text-cyan-300 border border-dashed border-cyan-300/40 hover:border-cyan-300 shadow-sm shrink-0 active:scale-95"
               aria-label="Crear servidor"
             >
               <Plus className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
@@ -283,7 +283,7 @@ export function DiscordServerList({
           <TooltipTrigger asChild>
             <button
               onClick={handleOpenJoin}
-              className="w-11 h-11 md:w-12 md:h-12 rounded-[20px] md:rounded-[24px] bg-card hover:bg-[#00E5FF] hover:text-black hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-muted-foreground hover:border-black shadow-sm shrink-0 active:scale-95"
+              className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white/5 hover:bg-indigo-300 hover:text-slate-950 transition-all duration-200 flex items-center justify-center text-slate-400 hover:border-indigo-300 shadow-sm shrink-0 active:scale-95"
               aria-label="Unirse a un servidor con código"
             >
               <Compass className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
@@ -297,7 +297,7 @@ export function DiscordServerList({
 
       {/* Modal Unificado: Crear Servidor | Unirse con Código */}
       <Dialog open={isModalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-card border-3 border-black text-foreground w-[94vw] max-w-md max-h-[88vh] overflow-y-auto rounded-2xl p-0 gap-0 shadow-[8px_8px_0px_#000]">
+        <DialogContent className="bg-card dark:bg-[#111827] border border-border dark:border-white/10 text-foreground dark:text-slate-100 w-[94vw] max-w-md max-h-[88vh] overflow-y-auto rounded-2xl p-0 gap-0 shadow-2xl">
           <DialogHeader className="p-5 sm:p-6 pb-4 text-center bg-[#FFE600]/10 border-b-2 border-black">
             <div className="w-12 h-12 rounded-2xl bg-[#FFE600] border-2 border-black flex items-center justify-center mx-auto mb-2 text-black shadow-[3px_3px_0px_#000]">
               <Sparkles className="w-6 h-6 stroke-[2.5]" />

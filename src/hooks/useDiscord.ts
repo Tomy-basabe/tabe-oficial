@@ -106,6 +106,7 @@ export function useDiscord() {
   const screenStreamRef = useRef<MediaStream | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null); // Keep reference for signaling handlers
   const typingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const messagesChannel = useRef<ReturnType<typeof supabase.channel> | null>(null);
   // Buffer for ICE candidates that arrive before remote description
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const typingChannel = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -244,7 +245,7 @@ export function useDiscord() {
 
     const { data, error } = await supabase
       .from("discord_messages")
-      .select("id, channel_id, user_id, content, attachments, created_at")
+      .select("id, channel_id, user_id, content, created_at")
       .eq("channel_id", currentChannel.id)
       .order("created_at", { ascending: true })
       .limit(50);
@@ -338,7 +339,7 @@ export function useDiscord() {
         profile: profiles?.find((pr: any) => pr.user_id === p.user_id) || undefined
       }));
 
-      setAllVoiceParticipants(participantsWithProfiles as DiscordVoiceParticipant[]);
+      setAllVoiceParticipants(participantsWithProfiles as unknown as DiscordVoiceParticipant[]);
     } else {
       setAllVoiceParticipants([]);
     }
@@ -416,7 +417,6 @@ export function useDiscord() {
         icon_url: iconUrl?.trim() || null,
         owner_id: user.id,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       };
 
       setServers(prev => [...prev.filter(s => s.id !== serverId), newServer]);
@@ -824,15 +824,29 @@ export function useDiscord() {
     if (!user || !currentChannel || currentChannel.type !== "text") return;
 
     try {
-      await supabase
+      const { data, error } = await supabase
         .from("discord_messages")
         .insert({
           channel_id: currentChannel.id,
           user_id: user.id,
           content
-        });
+        })
+        .select("id, channel_id, user_id, content, created_at")
+        .single();
+
+      if (error) throw error;
+
+      // Broadcast complements postgres_changes so messages appear immediately
+      // even when the project has not enabled this table in supabase_realtime.
+      await messagesChannel.current?.send({
+        type: "broadcast",
+        event: "message_created",
+        payload: { id: data.id, channel_id: data.channel_id },
+      });
+      await fetchMessages();
     } catch (error) {
       console.error("Error sending message:", error);
+      toast({ title: "No se pudo enviar el mensaje", description: "Comprueba tu conexión e inténtalo nuevamente.", variant: "destructive" });
     }
   };
 
@@ -1530,6 +1544,13 @@ export function useDiscord() {
       const channel = supabase
         .channel(`messages:${currentChannel.id}`)
         .on(
+          "broadcast",
+          { event: "message_created" },
+          () => {
+            fetchMessages();
+          }
+        )
+        .on(
           "postgres_changes",
           {
             event: "INSERT",
@@ -1542,6 +1563,7 @@ export function useDiscord() {
           }
         )
         .subscribe();
+      messagesChannel.current = channel;
 
       // Setup typing indicator channel
       const tCh = supabase.channel(`typing:${currentChannel.id}`);
@@ -1570,6 +1592,7 @@ export function useDiscord() {
 
       return () => {
         supabase.removeChannel(channel);
+        messagesChannel.current = null;
         if (typingChannel.current) {
           supabase.removeChannel(typingChannel.current);
           typingChannel.current = null;
