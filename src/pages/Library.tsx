@@ -1451,15 +1451,57 @@ export default function Library() {
     ? subjects.find(s => s.id === selectedSubjectId)
     : null;
 
+  // Set of known folder IDs to detect orphan files/folders
+  const knownFolderIds = useMemo(() => new Set(folders.map(f => f.id)), [folders]);
+
+  // Helper: Get all descendant folder IDs (including the folder itself)
+  const getFolderFamilyIds = useCallback((folderId: string): Set<string> => {
+    const family = new Set<string>([folderId]);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const f of folders) {
+        if (f.parent_folder_id && family.has(f.parent_folder_id) && !family.has(f.id)) {
+          family.add(f.id);
+          added = true;
+        }
+      }
+    }
+    return family;
+  }, [folders]);
+
+  // Helper: Does a file match the current year/subject filter?
+  const fileMatchesFilter = useCallback((file: LibraryFile): boolean => {
+    if (selectedSubjectId) {
+      return file.subject_id === selectedSubjectId || !file.subject_id;
+    }
+    if (selectedYear) {
+      const targetYear = Number(selectedYear);
+      if (file.subject?.año && Number(file.subject.año) === targetYear) return true;
+      if (file.subject_id) {
+        const sub = subjects.find(s => s.id === file.subject_id);
+        return sub ? Number(sub.año) === targetYear : false;
+      }
+      return true; // Files without assigned subject also pass if in year view
+    }
+    return true;
+  }, [selectedSubjectId, selectedYear, subjects]);
+
   // Filter folders and files based on year/subject
   const getFilteredFolders = () => {
-    let result = folders.filter(f => (f.parent_folder_id || null) === (currentFolderId || null));
+    let result = folders.filter(f => {
+      const parentId = f.parent_folder_id || null;
+      if (currentFolderId === null) {
+        return parentId === null || !knownFolderIds.has(parentId);
+      }
+      return parentId === currentFolderId;
+    });
 
     if (selectedSubjectId) {
       result = result.filter(f => {
         if (f.subject_id === selectedSubjectId || !f.subject_id) return true;
-        // Also show folder if it contains files for this subject
-        return files.some(file => file.folder_id === f.id && file.subject_id === selectedSubjectId);
+        const familyIds = getFolderFamilyIds(f.id);
+        return files.some(file => file.folder_id && familyIds.has(file.folder_id) && file.subject_id === selectedSubjectId);
       });
     } else if (selectedYear) {
       const targetYear = Number(selectedYear);
@@ -1468,8 +1510,9 @@ export default function Library() {
         if (!f.subject_id) return true;
         if (subjectIds.has(f.subject_id)) return true;
         if (f.subject?.año && Number(f.subject.año) === targetYear) return true;
-        // Show folder if it contains any files belonging to this year
-        return files.some(file => file.folder_id === f.id && (
+        // Deep search across all descendants
+        const familyIds = getFolderFamilyIds(f.id);
+        return files.some(file => file.folder_id && familyIds.has(file.folder_id) && (
           (file.subject_id && subjectIds.has(file.subject_id)) ||
           (file.subject?.año && Number(file.subject.año) === targetYear)
         ));
@@ -1479,27 +1522,30 @@ export default function Library() {
     return result;
   };
 
-  const getFilteredFiles = () => {
-    let result = files.filter(f => (f.folder_id || null) === (currentFolderId || null));
-
-    if (selectedSubjectId) {
-      result = result.filter(f => f.subject_id === selectedSubjectId || !f.subject_id);
-    } else if (selectedYear) {
-      const targetYear = Number(selectedYear);
-      const subjectIds = new Set(subjects.filter(s => Number(s.año) === targetYear).map(s => s.id));
-      result = result.filter(f => {
-        if (!f.subject_id) return true;
-        if (subjectIds.has(f.subject_id)) return true;
-        if (f.subject?.año && Number(f.subject.año) === targetYear) return true;
-        return false;
-      });
+  const getFilteredFiles = (filteredFoldersList: LibraryFolder[]) => {
+    // 1. In a specific folder: show matching direct files
+    if (currentFolderId !== null) {
+      return files.filter(f => (f.folder_id || null) === currentFolderId && fileMatchesFilter(f));
     }
 
-    return result;
+    // 2. In root: files with no folder, or files whose folder doesn't exist in folders
+    const directRootFiles = files.filter(f => {
+      const fFolder = f.folder_id || null;
+      const isDirectOrOrphan = fFolder === null || !knownFolderIds.has(fFolder);
+      return isDirectOrOrphan && fileMatchesFilter(f);
+    });
+
+    // 3. Fallback: if no folders are visible in root and directRootFiles is empty,
+    // but there ARE matching files in the library, show all matching files!
+    if (filteredFoldersList.length === 0 && directRootFiles.length === 0) {
+      return files.filter(f => fileMatchesFilter(f));
+    }
+
+    return directRootFiles;
   };
 
   const currentFolders = getFilteredFolders();
-  const currentFiles = getFilteredFiles();
+  const currentFiles = getFilteredFiles(currentFolders);
 
   // Stats
   const totalFilesInFilter = selectedSubjectId
