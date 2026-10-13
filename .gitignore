@@ -58,8 +58,9 @@ Referencia/
 public/Referencia/
 
 # Local video assets
-videos/
-public/videos/
+/videos/
+/public/videos/*
+!/public/videos/tabe-voice-*.mp4
 
 # Raw source assets
 TABE 2.0/
