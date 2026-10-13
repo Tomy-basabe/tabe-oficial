@@ -146,10 +146,10 @@
 .folder-float[data-open] .folder-float__items::before {
   content: '';
   position: absolute;
-  top: calc(-1 * (var(--ff-lift) + 120px));
-  left: calc(-1 * (var(--ff-spread) + 100px));
-  width: calc(2 * var(--ff-spread) + 200px);
-  height: calc(var(--ff-lift) + 120px);
+  top: calc(-1 * (var(--ff-lift) + 50px));
+  left: -30px;
+  width: calc(var(--ff-spread) * 2 + 60px);
+  height: calc(var(--ff-lift) + 70px);
 }
 
 .folder-float__item {
@@ -157,15 +157,17 @@
   top: 0;
   left: 50%;
   margin: 0;
-  padding: 0 14px;
-  height: 34px;
-  border: 0;
-  border-radius: 17px;
+  padding: 0 12px;
+  height: 30px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 15px;
   background: var(--ff-item);
   color: var(--ff-item-ink);
   font: inherit;
+  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   outline: none;
   opacity: 0;
@@ -200,7 +202,10 @@
 
 @media (hover: hover) and (pointer: fine) {
   .folder-float[data-open] .folder-float__item:hover {
-    scale: 1.05;
+    z-index: 60 !important;
+    transform: translate(calc(-50% + var(--x)), calc(var(--y) - 6px)) rotate(0deg) scale(1.08) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3) !important;
+    transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 140ms ease-out !important;
   }
 }
 

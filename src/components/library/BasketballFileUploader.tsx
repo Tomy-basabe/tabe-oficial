@@ -1,15 +1,19 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { animate, motion, useAnimationControls, useMotionValue } from "framer-motion";
 import { FileText, Folder, Check, FolderUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  /** Se llama cuando se encesta un archivo individual */
+  /** Se llama cuando se encesta y se selecciona un archivo individual */
   onFile?: (file: File) => void | Promise<void>;
-  /** Se llama cuando se encesta una lista de archivos (ej. carpeta) */
+  /** Se llama cuando se encestan y seleccionan múltiples archivos */
+  onFiles?: (files: File[]) => void | Promise<void>;
+  /** Se llama cuando se encesta y se selecciona una carpeta */
   onFolderFiles?: (files: FileList | File[]) => void | Promise<void>;
   accept?: string;
   disabled?: boolean;
+  /** Modo inicial: "file" o "folder" */
+  initialMode?: "file" | "folder";
 }
 
 // Coordenadas relativas de reposo de la bola (bottom: 14px -> Y=0, X=0)
@@ -20,16 +24,19 @@ const RIM_TOLERANCE_X = 75; // Tolerancia amplia y amigable para encestar fácil
 
 export default function BasketballFileUploader({
   onFile,
+  onFiles,
   onFolderFiles,
-  accept = ".pdf,image/*",
+  accept = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,image/*",
   disabled,
+  initialMode = "file",
 }: Props) {
-  const [uploadMode, setUploadMode] = useState<"file" | "folder">("file");
-  const [pendingItem, setPendingItem] = useState<{
-    name: string;
-    file?: File;
-    files?: FileList | File[];
-  } | null>(null);
+  const [uploadMode, setUploadMode] = useState<"file" | "folder">(initialMode);
+
+  useEffect(() => {
+    if (initialMode) {
+      setUploadMode(initialMode);
+    }
+  }, [initialMode]);
   const [isOver, setIsOver] = useState(false);
   const [isAiming, setIsAiming] = useState(false);
   const [isShooting, setIsShooting] = useState(false);
@@ -52,49 +59,50 @@ export default function BasketballFileUploader({
   const motionRotate = useMotionValue(0);
   const netControls = useAnimationControls();
 
-  // FÍSICAS ULTRA-RESPONSIVAS:
-  // Con tirar apenas unos píxeles hacia abajo (desde 8px), ya se proyecta y encesta.
+  // FÍSICAS BIDIRECCIONALES Y ULTRA-RESPONSIVAS:
+  // Permite tanto arrastrar hacia el aro (swipe up) como estirar hacia abajo como resorte (slingshot).
   const calculateTrajectory = (dragX: number, dragY: number) => {
-    // Si apenas se movió, no proyectar aún
-    if (dragY < 6) {
+    // Si apenas se movió (< 6px en cualquier dirección), no proyectar aún
+    if (Math.abs(dragY) < 6 && Math.abs(dragX) < 6) {
       return { points: [], apexX: 0, apexY: 0, landingX: 0, landingY: 0, isTarget: false };
     }
 
-    // Progresión sensible: con 15px-35px de arrastre ya tiene la fuerza óptima
-    // Clampeamos el arrastre eficaz entre 10 y 60px
-    const effectivePullY = Math.max(10, Math.min(dragY, 65));
-    
-    // Fuerza vertical que escala rápidamente al aro
-    const pullRatio = effectivePullY / 28; // a ~28px da impulso perfecto (ratio 1.0)
-    const impulseY = RIM_TARGET_Y * Math.min(pullRatio, 1.15);
-    
-    // El desvío lateral se amplifica suavemente para permitir apuntar
-    const impulseX = -dragX * 2.2;
-
     const startX = dragX;
     const startY = dragY;
-
-    // Apogeo elegante de básquetbol por encima del aro
-    const apexY = impulseY - 55;
-    const apexX = startX + impulseX * 0.5;
-
-    // Punto de aterrizaje a la altura del aro
+    let apexX = 0;
+    let apexY = 0;
+    let landingX = 0;
     const landingY = RIM_TARGET_Y;
-    const landingX = startX + impulseX;
 
-    // Generar muestras continuas a lo largo de la curva cuadrática
+    if (dragY < 0) {
+      // 1. TIRO DIRECTO HACIA EL ARO (Swipe Up natural):
+      const pullUp = Math.abs(dragY);
+      apexY = Math.min(-260, -180 - pullUp * 1.6);
+      landingX = dragX * 0.45;
+      apexX = (startX + landingX) / 2;
+    } else {
+      // 2. TIRO ESTILO RESORTE (Slingshot hacia abajo):
+      const effectivePullY = Math.max(10, Math.min(dragY, 65));
+      const pullRatio = effectivePullY / 28;
+      const impulseY = RIM_TARGET_Y * Math.min(pullRatio, 1.15);
+      const impulseX = -dragX * 2.2;
+      apexY = impulseY - 55;
+      apexX = startX + impulseX * 0.5;
+      landingX = startX + impulseX;
+    }
+
     const pts: { x: number; y: number }[] = [];
     const steps = 20;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       const x = Math.pow(1 - t, 2) * startX + 2 * (1 - t) * t * apexX + Math.pow(t, 2) * landingX;
-      const y = Math.pow(1 - t, 2) * startY + 2 * (1 - t) * t * (apexY - 25) + Math.pow(t, 2) * landingY;
+      const y = Math.pow(1 - t, 2) * startY + 2 * (1 - t) * t * (apexY - 20) + Math.pow(t, 2) * landingY;
       pts.push({ x, y });
     }
 
-    // Enceste generoso: si la trayectoria pasa cerca del centro del aro y tuvo mínimo 12px de arrastre
+    // Enceste amigable: casi siempre encesta si apunta razonablemente al aro
     const hitsRimX = Math.abs(landingX - RIM_TARGET_X) <= RIM_TOLERANCE_X;
-    const isTarget = hitsRimX && dragY >= 10;
+    const isTarget = hitsRimX && (Math.abs(dragY) >= 8 || Math.abs(dragX) >= 12);
 
     return { points: pts, apexX, apexY, landingX, landingY, isTarget };
   };
@@ -108,7 +116,7 @@ export default function BasketballFileUploader({
     setIsAimingOnTarget(isTarget);
   };
 
-  // Al soltar el resorte
+  // Al soltar el balón o carpeta
   const handleDragEnd = async (_: any, info: any) => {
     if (isShooting || disabled) return;
     setIsAiming(false);
@@ -117,21 +125,41 @@ export default function BasketballFileUploader({
     const dragX = info.offset.x;
     const dragY = info.offset.y;
 
-    // Click o toque mínimo (< 7px) -> abre explorador de archivos directamente
-    if (Math.hypot(dragX, dragY) < 7) {
-      if (uploadMode === "file") fileInputRef.current?.click();
-      else folderInputRef.current?.click();
+    // Disparador directo síncrono para garantizar que el navegador abra el selector de archivos
+    const openNativePicker = () => {
+      if (uploadMode === "file") {
+        fileInputRef.current?.click();
+      } else {
+        folderInputRef.current?.click();
+      }
+    };
+
+    // Click o toque mínimo (< 10px) -> abre explorador para elegir de inmediato
+    if (Math.hypot(dragX, dragY) < 10) {
+      openNativePicker();
+      animate(motionX, 0, { type: "spring", stiffness: 350, damping: 25 });
+      animate(motionY, 0, { type: "spring", stiffness: 350, damping: 25 });
       return;
     }
 
-    // Con apenas 10px de arrastre hacia abajo -> ejecuta el tiro
-    if (dragY >= 10) {
+    // Tiro válido con movimiento hacia arriba o hacia abajo
+    if (Math.abs(dragY) >= 10 || Math.abs(dragX) >= 14) {
       const { apexX, apexY, landingX, landingY, isTarget } = calculateTrajectory(dragX, dragY);
+      
+      // CRÍTICO PARA NAVEGADORES (Chrome/Firefox/Safari/Edge):
+      // Si el tiro encesta, abrimos el selector de archivos de forma SÍNCRONA dentro del stack
+      // del gesto del usuario (handleDragEnd), mientras la animación de enceste corre en paralelo.
+      // Si se espera a que terminen los awaits de Framer Motion (~0.93s), el navegador pierde
+      // la "transient user activation" y BLOQUEA el click del input.
+      if (isTarget) {
+        openNativePicker();
+      }
+      
       await executeShot(dragX, dragY, apexX, apexY, landingX, landingY, isTarget);
     } else {
       // Regreso instantáneo y elástico
-      animate(motionX, 0, { type: "spring", stiffness: 400, damping: 25 });
-      animate(motionY, 0, { type: "spring", stiffness: 400, damping: 25 });
+      animate(motionX, 0, { type: "spring", stiffness: 350, damping: 25 });
+      animate(motionY, 0, { type: "spring", stiffness: 350, damping: 25 });
     }
   };
 
@@ -148,10 +176,6 @@ export default function BasketballFileUploader({
     setIsShooting(true);
     setBehindRim(false);
     setMissedFeedback(false);
-
-    const currentItem = pendingItem || {
-      name: uploadMode === "file" ? "Archivo" : "Carpeta",
-    };
 
     // Vuelo de básquetbol con aceleración y gravedad
     await Promise.all([
@@ -181,21 +205,11 @@ export default function BasketballFileUploader({
 
       setBurst((b) => b + 1);
 
-      // Notificar al componente padre
-      if (currentItem.file && onFile) {
-        onFile(currentItem.file);
-      } else if (currentItem.files && onFolderFiles) {
-        onFolderFiles(currentItem.files);
-      } else if (!pendingItem) {
-        if (uploadMode === "file") fileInputRef.current?.click();
-        else folderInputRef.current?.click();
-      }
-
-      // Atraviesa la red y cae
+      // Atraviesa la red y cae completamente
       await Promise.all([
-        animate(motionY, landingY + 70, { duration: 0.32, ease: "easeIn" }),
-        animate(motionScale, 0.4, { duration: 0.32 }),
-        animate(motionOpacity, 0, { duration: 0.32, delay: 0.08 }),
+        animate(motionY, landingY + 70, { duration: 0.35, ease: "easeIn" }),
+        animate(motionScale, 0.4, { duration: 0.35 }),
+        animate(motionOpacity, 0, { duration: 0.35, delay: 0.08 }),
       ]);
     } else {
       // --- REBOTE EN EL ARO ---
@@ -223,17 +237,19 @@ export default function BasketballFileUploader({
     motionScale.set(1);
     motionOpacity.set(1);
     motionRotate.set(0);
-    setPendingItem(null);
     setBehindRim(false);
     setIsShooting(false);
     setTimeout(() => setMissedFeedback(false), 900);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setUploadMode("file");
-      setPendingItem({ name: file.name, file });
+    const rawFiles = e.target.files;
+    if (!rawFiles || rawFiles.length === 0) return;
+    const filesArr = Array.from(rawFiles);
+    if (onFiles) {
+      onFiles(filesArr);
+    } else if (onFile && filesArr.length > 0) {
+      onFile(filesArr[0]);
     }
     e.target.value = "";
   };
@@ -241,38 +257,92 @@ export default function BasketballFileUploader({
   const handleFolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      setUploadMode("folder");
-      const folderName = files[0].webkitRelativePath?.split("/")[0] || "Carpeta";
-      setPendingItem({ name: `${folderName} (${files.length} archivos)`, files });
+      if (onFolderFiles) {
+        onFolderFiles(files);
+      }
     }
     e.target.value = "";
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const scanDirectoryEntry = async (entry: any, basePath = ""): Promise<File[]> => {
+    if (!entry) return [];
+    if (entry.isFile) {
+      return new Promise<File[]>((resolve) => {
+        entry.file(
+          (f: File) => {
+            const relPath = basePath ? `${basePath}/${f.name}` : f.name;
+            try {
+              Object.defineProperty(f, "webkitRelativePath", {
+                value: relPath,
+                writable: true,
+                configurable: true,
+              });
+            } catch {}
+            resolve([f]);
+          },
+          () => resolve([])
+        );
+      });
+    }
+    if (entry.isDirectory) {
+      const dirPath = basePath ? `${basePath}/${entry.name}` : entry.name;
+      const reader = entry.createReader();
+      const readAllEntries = async (): Promise<any[]> => {
+        const results: any[] = [];
+        let batch: any[];
+        do {
+          batch = await new Promise<any[]>((resolve) => reader.readEntries(resolve, () => resolve([])));
+          results.push(...batch);
+        } while (batch && batch.length > 0);
+        return results;
+      };
+      const entries = await readAllEntries();
+      const filesNested = await Promise.all(
+        entries.map((child: any) => scanDirectoryEntry(child, dirPath))
+      );
+      return filesNested.flat();
+    }
+    return [];
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsOver(false);
 
-    if (e.dataTransfer.items) {
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       const items = Array.from(e.dataTransfer.items);
-      const isFolder = items.some((item) => {
+      const hasDirectory = items.some((item) => {
         const entry = (item as any).webkitGetAsEntry?.();
         return entry && entry.isDirectory;
       });
 
-      if (isFolder && e.dataTransfer.files) {
+      if (hasDirectory) {
         setUploadMode("folder");
-        setPendingItem({
-          name: `Carpeta (${e.dataTransfer.files.length} archivos)`,
-          files: e.dataTransfer.files,
-        });
-        return;
+        const allFiles: File[] = [];
+        for (const item of items) {
+          const entry = (item as any).webkitGetAsEntry?.();
+          if (entry) {
+            const files = await scanDirectoryEntry(entry);
+            allFiles.push(...files);
+          }
+        }
+        if (allFiles.length > 0) {
+          if (onFolderFiles) {
+            onFolderFiles(allFiles);
+          }
+          return;
+        }
       }
     }
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
+      const filesArr = Array.from(e.dataTransfer.files);
       setUploadMode("file");
-      setPendingItem({ name: file.name, file });
+      if (onFiles) {
+        onFiles(filesArr);
+      } else if (onFile && filesArr.length > 0) {
+        onFile(filesArr[0]);
+      }
     }
   };
 
@@ -295,6 +365,7 @@ export default function BasketballFileUploader({
         ref={fileInputRef}
         type="file"
         accept={accept}
+        multiple
         className="hidden"
         onChange={handleFileChange}
       />
@@ -340,13 +411,9 @@ export default function BasketballFileUploader({
 
         {/* Guía legible */}
         <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground mt-2 text-center">
-          {pendingItem ? (
-            <span className="text-emerald-600 font-extrabold">Listo: {pendingItem.name}</span>
-          ) : uploadMode === "file" ? (
-            "Arrastra un archivo o pulsa abajo para lanzar"
-          ) : (
-            "Arrastra una carpeta o pulsa abajo para lanzar"
-          )}
+          {uploadMode === "file"
+            ? "Tira la pelota al aro · ¡Encesta y selecciona tu archivo!"
+            : "Tira la carpeta al aro · ¡Encesta y selecciona tu carpeta!"}
         </p>
       </div>
 
@@ -459,14 +526,16 @@ export default function BasketballFileUploader({
         </div>
       )}
 
-      {/* ZONA INFERIOR: Archivo o Carpeta abajo del todo */}
-      <div className="relative w-full pb-4 flex flex-col items-center justify-end z-25">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 select-none pointer-events-none">
+      {/* ZONA INFERIOR: Balón (Archivo) o Carpeta lanzable */}
+      <div className="relative w-full pb-3 flex flex-col items-center justify-end z-25">
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 select-none pointer-events-none text-center">
           {isAiming
             ? isAimingOnTarget
-              ? "🎯 ¡Alineado! Suelta para encestar"
-              : "Apunta hacia el centro"
-            : "Tira apenas hacia abajo y suelta · Click para elegir"}
+              ? "🎯 ¡Alineado al aro! Suelta para encestar"
+              : "Apunta hacia el aro"
+            : uploadMode === "file"
+              ? "Arrastra la pelota hacia el aro para encestar"
+              : "Arrastra la carpeta hacia el aro para encestar"}
         </p>
 
         <div className="h-14" />
@@ -474,7 +543,6 @@ export default function BasketballFileUploader({
         {/* OBJETO LANZABLE: Balón (Archivo) o Carpeta */}
         <motion.div
           drag={!isShooting}
-          dragSnapToOrigin
           dragElastic={0.65}
           onDrag={handleDrag}
           onDragEnd={handleDragEnd}
@@ -487,24 +555,18 @@ export default function BasketballFileUploader({
             zIndex: behindRim ? 1 : 25,
           }}
           className={cn(
-            "absolute bottom-3 left-1/2 -ml-7 w-14 h-14 border-[3px] border-foreground flex items-center justify-center cursor-grab active:cursor-grabbing shadow-[3px_3px_0_0_#000] transition-colors select-none",
+            "absolute bottom-2.5 left-1/2 -ml-7 w-14 h-14 border-[3px] border-foreground flex items-center justify-center cursor-grab active:cursor-grabbing shadow-[3px_3px_0_0_#000] transition-colors select-none",
             uploadMode === "file"
               ? "bg-[#fb923c] rounded-full hover:bg-[#f97316]"
               : "bg-[#1475e5] rounded-2xl hover:bg-[#0284c7]",
             isAiming && isAimingOnTarget && "ring-4 ring-emerald-500 scale-105"
           )}
-          title="Arrastra apenas hacia abajo como resorte y suelta para encestar"
+          title={uploadMode === "file" ? "Arrastra la pelota hacia el aro" : "Arrastra la carpeta hacia el aro"}
         >
           {uploadMode === "file" ? (
             <FileText className="w-7 h-7 text-white stroke-[2.5]" />
           ) : (
             <FolderUp className="w-7 h-7 text-white stroke-[2.5]" />
-          )}
-
-          {pendingItem && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-foreground rounded-full flex items-center justify-center text-[8px] text-white font-black">
-              ✓
-            </span>
           )}
         </motion.div>
       </div>

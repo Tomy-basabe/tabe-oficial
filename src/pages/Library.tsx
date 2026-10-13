@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import FolderFloat from "@/components/ui/FolderFloat";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,7 @@ import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 import { validateFileUpload } from "@/lib/security";
 import BasketballFileUploader from "@/components/library/BasketballFileUploader";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 interface LibraryFolder {
   id: string;
@@ -94,6 +95,7 @@ let librarySubjectsCache: Subject[] | null = null;
 
 export default function Library() {
   const { user, isGuest } = useAuth();
+  const { confirm } = useConfirm();
   const { speak, stop, isSpeaking } = useTextToSpeech();
   const [isExtractingText, setIsExtractingText] = useState(false);
   const { canUse, incrementUsage, getUsage, getLimit } = useUsageLimits();
@@ -152,9 +154,17 @@ export default function Library() {
   const [pubDescription, setPubDescription] = useState("");
   const [pubCategory, setPubCategory] = useState("");
   const [pubIsAnonymous, setPubIsAnonymous] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: "folder" | "file";
+    id: string;
+    nombre: string;
+    file?: LibraryFile;
+    folderId?: string;
+  } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const [uploadBasketballMode, setUploadBasketballMode] = useState<"file" | "folder">("file");
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [isDraggingExternal, setIsDraggingExternal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -260,6 +270,10 @@ export default function Library() {
   };
 
   const openUploadModal = () => {
+    if (isGuest) {
+      toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para subir archivos.");
+      return;
+    }
     const subId = getContextSubjectId();
     const year = getContextYear();
     setUploadSubject(subId || "");
@@ -268,6 +282,10 @@ export default function Library() {
   };
 
   const openLinkModal = () => {
+    if (isGuest) {
+      toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para guardar enlaces.");
+      return;
+    }
     const subId = getContextSubjectId();
     const year = getContextYear();
     setUploadSubject(subId || "");
@@ -381,11 +399,11 @@ export default function Library() {
                if (tokenStr) {
                  try { token = JSON.parse(tokenStr).access_token || key; } catch {}
                }
-               fetch(`/rest/v1/study_sessions`, {
+               fetch(`${url}/rest/v1/study_sessions`, {
                  method: 'POST',
                  headers: {
                    'apikey': key,
-                   'Authorization': Bearer ,
+                   'Authorization': `Bearer ${token}`,
                    'Content-Type': 'application/json'
                  },
                  body: JSON.stringify({
@@ -481,7 +499,7 @@ export default function Library() {
 
       const { data, error } = await supabase
         .from("library_folders")
-        .select("id, user_id, subject_id, nombre, color, icon, parent_folder_id, created_at, subjects(nombre, codigo, año)")
+        .select("id, user_id, subject_id, nombre, color, parent_folder_id, created_at, subjects(nombre, codigo, año)")
         .eq("user_id", user.id)
         .order("nombre", { ascending: true });
 
@@ -494,7 +512,7 @@ export default function Library() {
         // Fallback without relation join if PostgREST cache has quirks
         const { data: rawFolders } = await supabase
           .from("library_folders")
-          .select("id, user_id, subject_id, nombre, color, icon, parent_folder_id, created_at")
+          .select("id, user_id, subject_id, nombre, color, parent_folder_id, created_at")
           .eq("user_id", user.id)
           .order("nombre", { ascending: true });
         if (rawFolders) {
@@ -832,6 +850,91 @@ export default function Library() {
     }
   };
 
+  const deleteAllLibrary = async () => {
+    if (files.length === 0 && folders.length === 0) {
+      toast.info("No hay archivos ni carpetas para eliminar");
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: "¿Eliminar toda la biblioteca?",
+      description: "Esta acción eliminará PERMANENTEMENTE todos tus archivos y carpetas tanto de la base de datos como del almacenamiento. Esta acción NO se puede deshacer.",
+      confirmText: "Sí, borrar todo",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    if (isGuest) {
+      setFolders([]);
+      setFiles([]);
+      setSelectedIds(new Set());
+      setCurrentFolderId(null);
+      setFolderPath([]);
+      libraryFoldersCache = [];
+      libraryFilesCache = [];
+      toast.success("Biblioteca vaciada en modo demo");
+      return;
+    }
+
+    if (!user) return;
+
+    setLoading(true);
+    const toastId = toast.loading("Eliminando toda la biblioteca de la base de datos...");
+
+    try {
+      // 1. Obtener todos los paths de almacenamiento para no dejar archivos físicos huérfanos
+      const { data: userFiles } = await supabase
+        .from("library_files")
+        .select("storage_path")
+        .eq("user_id", user.id);
+
+      const storagePaths = (userFiles || [])
+        .map(f => f.storage_path)
+        .filter((p): p is string => !!p);
+
+      // 2. Limpiar archivos físicos de Supabase Storage en lotes
+      if (storagePaths.length > 0) {
+        for (let i = 0; i < storagePaths.length; i += 100) {
+          const chunk = storagePaths.slice(i, i + 100);
+          await supabase.storage.from("library-files").remove(chunk);
+        }
+      }
+
+      // 3. Eliminar de la base de datos (library_files y library_folders)
+      const { error: filesErr } = await supabase
+        .from("library_files")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (filesErr) throw filesErr;
+
+      const { error: foldersErr } = await supabase
+        .from("library_folders")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (foldersErr) throw foldersErr;
+
+      // 4. Limpiar estado local
+      libraryFoldersCache = [];
+      libraryFilesCache = [];
+      setFolders([]);
+      setFiles([]);
+      setSelectedIds(new Set());
+      setCurrentFolderId(null);
+      setFolderPath([]);
+
+      toast.success("¡Toda la biblioteca ha sido eliminada permanentemente!", { id: toastId });
+    } catch (error: any) {
+      console.error("Error deleting all library content:", error);
+      toast.error(error?.message || "Error al eliminar la biblioteca", { id: toastId });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePublish = async () => {
     if (!publishingResource || !pubDescription || !pubCategory) {
       toast.error("Por favor completa todos los campos");
@@ -873,28 +976,7 @@ export default function Library() {
     if (!file) return;
 
     if (isGuest) {
-      const fileCheck = validateFileUpload(file);
-      if (!fileCheck.valid) {
-        toast.error(fileCheck.error || "Archivo no válido");
-        return;
-      }
-
-      let tipo: "pdf" | "imagen" | "otro" = "otro";
-      if (file.type === "application/pdf") tipo = "pdf";
-      else if (file.type.startsWith("image/")) tipo = "imagen";
-
-      setFiles((current) => [...current, {
-        id: `mock-file-${Date.now()}`,
-        nombre: file.name,
-        tipo,
-        url: URL.createObjectURL(file),
-        storage_path: null,
-        tamaño_bytes: file.size,
-        subject_id: uploadSubject || selectedSubjectId || null,
-        folder_id: currentFolderId,
-        created_at: new Date().toISOString(),
-      }]);
-      toast.success("¡Archivo agregado en modo demo!");
+      toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para subir archivos.");
       setShowUploadModal(false);
       setUploadSubject("");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -1026,101 +1108,202 @@ export default function Library() {
       return;
     }
 
-    // Normal single-file upload
-    // Security: validate file type, size, and extension before upload
-    const fileCheck = validateFileUpload(file);
-    if (!fileCheck.valid) {
-      toast.error(fileCheck.error || "Archivo no válido");
-      setUploading(false);
-      return;
-    }
+    await uploadFilesList(event.target.files ? Array.from(event.target.files) : []);
+  };
 
-    if (!canUse("apuntes") || !canUse("storage_mb", file.size)) {
-      toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.");
-      setUploading(false);
-      return;
-    }
+  // Subida de uno o varios archivos (usada por el juego de básquet, drag&drop y el input)
+  const uploadFilesList = async (filesToUpload: File[]) => {
+    {
+      if (!filesToUpload || filesToUpload.length === 0) return;
 
-    setUploading(true);
-    try {
-      let tipo: "pdf" | "imagen" | "otro" = "otro";
-      if (file.type === "application/pdf") tipo = "pdf";
-      else if (file.type.startsWith("image/")) tipo = "imagen";
+      if (isGuest) {
+        toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para subir archivos.");
+        setShowUploadModal(false);
+        setUploadSubject("");
+        return;
+      }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      if (!user) {
+        toast.error("Debes iniciar sesión para subir archivos.");
+        return;
+      }
 
-      const { error: uploadError } = await supabase.storage
-        .from('library-files')
-        .upload(filePath, file, { cacheControl: '31536000', upsert: false });
+      // Filtrar y validar cada archivo
+      const validFiles: File[] = [];
+      for (const f of filesToUpload) {
+        const fileCheck = validateFileUpload(f);
+        if (!fileCheck.valid) {
+          toast.error(`"${f.name}": ${fileCheck.error || "Archivo no válido"}`);
+          continue;
+        }
+        if (!canUse("apuntes") || !canUse("storage_mb", f.size)) {
+          toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.");
+          break;
+        }
+        validFiles.push(f);
+      }
 
-      if (uploadError) throw uploadError;
+      if (validFiles.length === 0) {
+        setUploading(false);
+        return;
+      }
 
-      const signedUrl = await getSignedUrl(filePath);
-      if (!signedUrl) throw new Error("Could not generate signed URL");
+      setUploading(true);
+      const toastId = toast.loading(`Subiendo ${validFiles.length} archivo${validFiles.length > 1 ? "s" : ""}...`);
 
-      const subjectToUse = uploadSubject || selectedSubjectId;
+      try {
+        const mimeMap: Record<string, string> = {
+          pdf: "application/pdf",
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          png: "image/png",
+          gif: "image/gif",
+          webp: "image/webp",
+          doc: "application/msword",
+          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          xls: "application/vnd.ms-excel",
+          xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          ppt: "application/vnd.ms-powerpoint",
+          pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          txt: "text/plain",
+          md: "text/markdown",
+          csv: "text/csv",
+        };
 
-      const { error } = await supabase
-        .from("library_files")
-        .insert({
-          user_id: user.id,
-          subject_id: subjectToUse || null,
-          folder_id: currentFolderId,
-          nombre: file.name,
-          tipo,
-          url: signedUrl,
-          storage_path: filePath,
-          tamaño_bytes: file.size,
-        });
+        const rows: any[] = [];
+        const uploadErrors: string[] = [];
+        const queue = [...validFiles];
+        const subjectToUse = uploadSubject || selectedSubjectId;
 
-      if (error) throw error;
-      await incrementUsage("apuntes");
+        const worker = async () => {
+          while (queue.length > 0) {
+            const file = queue.shift()!;
+            let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
+            if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) tipo = "pdf";
+            else if (file.type.startsWith("image/") || /\.(jpe?g|png|gif|webp|svg|bmp)$/i.test(file.name)) tipo = "imagen";
+            else if (file.type.startsWith("video/") || /\.(mp4|webm|mov|avi)$/i.test(file.name)) tipo = "video";
 
-      toast.success("¡Archivo subido!");
-      fetchFiles();
-      setShowUploadModal(false);
-      setUploadSubject("");
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error("Error al subir el archivo");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+            const fileExt = (file.name.split(".").pop() || "").toLowerCase();
+            const cleanExt = fileExt ? `.${fileExt}` : "";
+            const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}${cleanExt}`;
+            const resolvedMime = mimeMap[fileExt] || (file.type && file.type.length > 3 ? file.type : "application/pdf");
+
+            const { error: uploadError } = await supabase.storage
+              .from("library-files")
+              .upload(filePath, file, {
+                cacheControl: "31536000",
+                upsert: false,
+                contentType: resolvedMime,
+              });
+
+            if (uploadError) {
+              console.error(`Error subiendo ${file.name}:`, uploadError);
+              uploadErrors.push(`${file.name}: ${uploadError.message}`);
+              continue;
+            }
+
+            const fileUrl = supabase.storage.from("library-files").getPublicUrl(filePath).data.publicUrl;
+
+            rows.push({
+              user_id: user.id,
+              subject_id: subjectToUse || null,
+              folder_id: currentFolderId,
+              nombre: file.name,
+              tipo,
+              url: fileUrl,
+              storage_path: filePath,
+              tamaño_bytes: file.size,
+            });
+
+            toast.loading(`Subiendo archivos (${rows.length}/${validFiles.length})...`, { id: toastId });
+          }
+        };
+
+        const concurrency = Math.min(8, validFiles.length);
+        await Promise.all(Array.from({ length: concurrency }, () => worker()));
+
+        if (rows.length > 0) {
+          for (let i = 0; i < rows.length; i += 50) {
+            const chunk = rows.slice(i, i + 50);
+            const { error: insertError } = await supabase.from("library_files").insert(chunk);
+            if (insertError) throw insertError;
+          }
+          await incrementUsage("apuntes");
+        }
+
+        if (rows.length > 0) {
+          if (uploadErrors.length > 0) {
+            toast.warning(`Subidos ${rows.length} archivos (${uploadErrors.length} con error)`, { id: toastId });
+          } else {
+            toast.success(`¡${rows.length} archivo${rows.length > 1 ? "s" : ""} subido${rows.length > 1 ? "s" : ""}!`, { id: toastId });
+          }
+        } else {
+          toast.error(`Error al subir archivos: ${uploadErrors[0] || "Error desconocido"}`, { id: toastId });
+        }
+
+        libraryFilesCache = null;
+        await fetchFiles();
+        setShowUploadModal(false);
+        setUploadSubject("");
+      } catch (error: any) {
+        console.error("Error uploading files:", error);
+        toast.error(error?.message || "Error al subir los archivos", { id: toastId });
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
     }
   };
 
-  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = event.target.files;
-    if (!fileList || fileList.length === 0 || !user) return;
+  const uploadFolderFilesList = async (filesListInput: FileList | File[]) => {
+    const rawFiles = Array.from(filesListInput);
+    if (!rawFiles || rawFiles.length === 0) return;
 
+    if (isGuest) {
+      toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para subir carpetas.");
+      setShowUploadModal(false);
+      return;
+    }
+
+    if (!user) {
+      toast.error("Debes iniciar sesión para subir carpetas.");
+      return;
+    }
+
+    const IGNORED_NAMES = new Set(["desktop.ini", "thumbs.db", ".ds_store", "__macosx"]);
+    const fileList = rawFiles.filter((f) => {
+      const lower = f.name.toLowerCase();
+      return !lower.startsWith(".") && !IGNORED_NAMES.has(lower) && f.size > 0;
+    });
+
+    if (fileList.length === 0) {
+      toast.error("La carpeta no contiene archivos válidos o está vacía.");
+      return;
+    }
+
+    setShowUploadModal(false);
     setUploading(true);
     const toastId = toast.loading(`Subiendo carpeta (0/${fileList.length} archivos)...`);
 
     try {
-      // Build a map of relative folder paths to their created IDs
+      // 1. Construir jerarquía de carpetas
       const folderMap = new Map<string, string>();
-      // The root parent is wherever the user currently is
       folderMap.set("", currentFolderId || "");
 
-      // Collect all unique directory paths from the file list
       const dirPaths = new Set<string>();
-      for (let i = 0; i < fileList.length; i++) {
-        const relPath = fileList[i].webkitRelativePath;
+      for (const file of fileList) {
+        const relPath = file.webkitRelativePath || file.name;
         const parts = relPath.split("/");
-        // All but the last part are directories
         for (let j = 1; j < parts.length; j++) {
           dirPaths.add(parts.slice(0, j).join("/"));
         }
       }
 
-      // Sort paths by depth so parents are created first
       const sortedPaths = Array.from(dirPaths).sort(
         (a, b) => a.split("/").length - b.split("/").length
       );
 
-      // Create folders in order
+      // Crear carpetas en la base de datos
       for (const dirPath of sortedPaths) {
         const parts = dirPath.split("/");
         const folderName = parts[parts.length - 1];
@@ -1139,45 +1322,69 @@ export default function Library() {
           .select("id")
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error creando carpeta:", folderName, error);
+          throw error;
+        }
         folderMap.set(dirPath, data.id);
       }
 
-      // Subida en paralelo (4 a la vez) y un único insert en lote
-      const queue = Array.from(fileList).filter(f => !f.name.startsWith("."));
+      // 2. Subida de archivos concurrentes
+      const queue = [...fileList];
       const rows: any[] = [];
-      let limitHit = false;
-      let usedBytes = 0;
-      const worker = async () => {
-        while (queue.length && !limitHit) {
-          const file = queue.shift()!;
-          if (!canUse("apuntes") || !canUse("storage_mb", usedBytes + file.size)) {
-            limitHit = true;
-            toast.error("Límite de archivos o almacenamiento alcanzado. Hacete Premium para subir más.", { id: toastId });
-            break;
-          }
-          usedBytes += file.size;
+      const uploadErrors: string[] = [];
 
-          const parts = file.webkitRelativePath.split("/");
+      const mimeMap: Record<string, string> = {
+        pdf: "application/pdf",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xls: "application/vnd.ms-excel",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ppt: "application/vnd.ms-powerpoint",
+        pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        txt: "text/plain",
+        md: "text/markdown",
+        csv: "text/csv",
+      };
+
+      const worker = async () => {
+        while (queue.length > 0) {
+          const file = queue.shift()!;
+          const relPath = file.webkitRelativePath || file.name;
+          const parts = relPath.split("/");
           const folderId = folderMap.get(parts.slice(0, -1).join("/")) || currentFolderId;
 
           let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
-          if (file.type === "application/pdf") tipo = "pdf";
-          else if (file.type.startsWith("image/")) tipo = "imagen";
-          else if (file.type.startsWith("video/")) tipo = "video";
+          if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) tipo = "pdf";
+          else if (file.type.startsWith("image/") || /\.(jpe?g|png|gif|webp|svg|bmp)$/i.test(file.name)) tipo = "imagen";
+          else if (file.type.startsWith("video/") || /\.(mp4|webm|mov|avi)$/i.test(file.name)) tipo = "video";
 
-          const fileExt = file.name.split(".").pop();
-          const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const fileExt = (file.name.split(".").pop() || "").toLowerCase();
+          const cleanExt = fileExt ? `.${fileExt}` : "";
+          const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}${cleanExt}`;
+
+          const resolvedMime = mimeMap[fileExt] || (file.type && file.type.length > 3 ? file.type : "application/pdf");
 
           const { error: uploadError } = await supabase.storage
             .from("library-files")
-            .upload(filePath, file, { cacheControl: '31536000', upsert: false });
+            .upload(filePath, file, {
+              cacheControl: "31536000",
+              upsert: false,
+              contentType: resolvedMime,
+            });
+
           if (uploadError) {
             console.error(`Error uploading ${file.name}:`, uploadError);
+            uploadErrors.push(`${file.name}: ${uploadError.message}`);
             continue;
           }
-          const signedUrl = await getSignedUrl(filePath);
-          if (!signedUrl) continue;
+
+          const fileUrl = supabase.storage.from("library-files").getPublicUrl(filePath).data.publicUrl;
 
           rows.push({
             user_id: user.id,
@@ -1185,26 +1392,46 @@ export default function Library() {
             folder_id: (folderId || currentFolderId) || null,
             nombre: file.name,
             tipo,
-            url: signedUrl,
+            url: fileUrl,
             storage_path: filePath,
             tamaño_bytes: file.size,
           });
+
           toast.loading(`Subiendo carpeta (${rows.length}/${fileList.length} archivos)...`, { id: toastId });
         }
       };
-      await Promise.all([worker(), worker(), worker(), worker()]);
 
-      if (rows.length) {
-        const { error: insertError } = await supabase.from("library_files").insert(rows);
-        if (insertError) throw insertError;
+      const folderConcurrency = Math.min(8, fileList.length);
+      await Promise.all(Array.from({ length: folderConcurrency }, () => worker()));
+
+      // 3. Insertar registros en PostgreSQL
+      if (rows.length > 0) {
+        for (let i = 0; i < rows.length; i += 50) {
+          const chunk = rows.slice(i, i + 50);
+          const { error: insertError } = await supabase.from("library_files").insert(chunk);
+          if (insertError) {
+            console.error("Error insertando archivos en base de datos:", insertError);
+            throw insertError;
+          }
+        }
       }
+
       const uploadedCount = rows.length;
 
-      toast.success(`¡Carpeta subida! ${uploadedCount} archivos en ${sortedPaths.length} carpetas.`, { id: toastId });
+      if (uploadedCount > 0) {
+        if (uploadErrors.length > 0) {
+          toast.warning(`¡Subidos ${uploadedCount} archivos! (${uploadErrors.length} no se pudieron subir)`, { id: toastId });
+        } else {
+          toast.success(`¡Carpeta subida! ${uploadedCount} archivo${uploadedCount !== 1 ? "s" : ""} en ${sortedPaths.length} carpeta${sortedPaths.length !== 1 ? "s" : ""}.`, { id: toastId });
+        }
+      } else {
+        const errorDetail = uploadErrors[0] || "No se pudieron subir los archivos a Supabase Storage";
+        toast.error(`Error al subir archivos: ${errorDetail}`, { id: toastId });
+      }
+
       libraryFoldersCache = null;
       libraryFilesCache = null;
-      await fetchFolders();
-      await fetchFiles();
+      await Promise.all([fetchFolders(), fetchFiles()]);
     } catch (error: any) {
       console.error("Error uploading folder:", error);
       toast.error(error?.message || "Error al subir la carpeta", { id: toastId });
@@ -1214,22 +1441,17 @@ export default function Library() {
     }
   };
 
+  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFiles = event.target.files;
+    if (!rawFiles || rawFiles.length === 0) return;
+    await uploadFolderFilesList(rawFiles);
+  };
+
   const addLink = async () => {
     if (!linkUrl.trim() || !linkName.trim()) return;
 
     if (isGuest) {
-      setFiles((current) => [...current, {
-        id: `mock-link-${Date.now()}`,
-        nombre: linkName.trim(),
-        tipo: "link",
-        url: linkUrl.trim(),
-        storage_path: null,
-        tamaño_bytes: null,
-        subject_id: uploadSubject || selectedSubjectId || null,
-        folder_id: currentFolderId,
-        created_at: new Date().toISOString(),
-      }]);
-      toast.success("¡Link agregado en modo demo!");
+      toast.error("El modo demo es de solo lectura. Inicia sesión para guardar enlaces.");
       setShowLinkModal(false);
       setUploadSubject("");
       setLinkUrl("");
@@ -1600,6 +1822,16 @@ export default function Library() {
           </p>
         </div>
         <div className="flex gap-3 flex-wrap items-center mt-2 lg:mt-0 tour-library-upload">
+          {(folders.length > 0 || files.length > 0) && (
+            <button
+              onClick={deleteAllLibrary}
+              title="Borrar toda la biblioteca de la base de datos"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#ef4444] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest text-xs shadow-[3px_3px_0_0_#000] hover:translate-y-0.5 hover:shadow-none transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>BORRAR TODO</span>
+            </button>
+          )}
           <div className="flex gap-1.5 bg-background border-[3px] border-foreground p-1.5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
             <button
               onClick={openFolderModal}
@@ -1620,7 +1852,29 @@ export default function Library() {
             </button>
           </div>
           <button
-            onClick={openUploadModal}
+            onClick={() => {
+              if (isGuest) {
+                toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para subir carpetas.");
+                return;
+              }
+              setUploadBasketballMode("folder");
+              openUploadModal();
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#00d9ff] text-foreground border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
+            title="Subir una carpeta completa de tu computadora"
+          >
+            <FolderUp className="w-5 h-5" />
+            <span>Subir Carpeta</span>
+          </button>
+          <button
+            onClick={() => {
+              if (isGuest) {
+                toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para subir archivos.");
+                return;
+              }
+              setUploadBasketballMode("file");
+              openUploadModal();
+            }}
             className="flex items-center gap-2 px-6 py-2.5 bg-[#805ad5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
           >
             <Upload className="w-5 h-5" />
@@ -1835,49 +2089,7 @@ export default function Library() {
             const droppedFiles = e.dataTransfer.files;
             if (!droppedFiles.length || !user) return;
 
-            setUploading(true);
-            const toastId = toast.loading(`Subiendo ${droppedFiles.length} archivo(s)...`);
-            let uploaded = 0;
-
-            for (let i = 0; i < droppedFiles.length; i++) {
-              const file = droppedFiles[i];
-              if (file.name.startsWith(".")) continue;
-
-              let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
-              if (file.type === "application/pdf") tipo = "pdf";
-              else if (file.type.startsWith("image/")) tipo = "imagen";
-              else if (file.type.startsWith("video/")) tipo = "video";
-
-              const fileExt = file.name.split(".").pop();
-              const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-              const filePath = `${user.id}/${fileName}`;
-
-              const { error: uploadError } = await supabase.storage
-                .from("library-files")
-                .upload(filePath, file, { cacheControl: '31536000', upsert: false });
-
-              if (uploadError) { console.error(uploadError); continue; }
-
-              const signedUrl = await getSignedUrl(filePath);
-              if (!signedUrl) continue;
-
-              await supabase.from("library_files").insert({
-                user_id: user.id,
-                subject_id: selectedSubjectId || null,
-                folder_id: currentFolderId,
-                nombre: file.name,
-                tipo,
-                url: signedUrl,
-                storage_path: filePath,
-                tamaño_bytes: file.size,
-              });
-              uploaded++;
-              toast.loading(`Subiendo (${uploaded}/${droppedFiles.length})...`, { id: toastId });
-            }
-
-            toast.success(`¡${uploaded} archivo(s) subido(s)!`, { id: toastId });
-            setUploading(false);
-            fetchFiles();
+            await uploadFilesList(Array.from(droppedFiles));
           }}
         >
           {/* Folders */}
@@ -1993,12 +2205,14 @@ export default function Library() {
                         const childFolders = folders.filter(f => f.parent_folder_id === folder.id).map(f => ({ label: f.nombre, value: `folder:${f.id}` }));
                         const childFiles = files.filter(f => f.folder_id === folder.id).map(f => ({ label: f.nombre, value: `file:${f.id}` }));
                         return [...childFolders, ...childFiles].slice(0, 4).map((item) => ({
-                          label: item.label.length > 22 ? item.label.slice(0, 21) + "…" : item.label,
+                          label: item.label.length > 18 ? item.label.slice(0, 17) + "…" : item.label,
                           value: item.value,
                         }));
                       })()}
                       label=""
                       sublabel=" "
+                      align="left"
+                      layoutMode="horizontal"
                       closeOnSelect={false}
                       folderColor={folder.color}
                       frontColor={folder.color}
@@ -2006,8 +2220,10 @@ export default function Library() {
                       width={56}
                       height={40}
                       radius={8}
-                      spread={150}
-                      lift={14}
+                      spread={130}
+                      lift={22}
+                      tilt={5}
+                      drift={0.2}
                       onSelect={(val) => {
                         if (typeof val === 'string' && val.startsWith('folder:')) {
                           navigateToFolder(val.replace('folder:', ''));
@@ -2051,21 +2267,22 @@ export default function Library() {
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
                   </button>
-                  <HoldButton
-                    size="icon-sm"
-                    holdTime={1100}
-                    backgroundColor="#ef4444"
-                    fillColor="#991b1b"
-                    textColor="#ffffff"
-                    fillTextColor="#ffffff"
-                    icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
-                    doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
-                    doneLabel=""
-                    onHold={() => deleteFolder(folder.id)}
-                    title="Mantén presionado para borrar carpeta"
-                    aria-label="Borrar carpeta"
-                    className="border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget({
+                        type: "folder",
+                        id: folder.id,
+                        folderId: folder.id,
+                        nombre: folder.nombre,
+                      });
+                    }}
+                    className="p-1.5 bg-[#ef4444] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
+                    title="Eliminar carpeta"
+                    aria-label="Eliminar carpeta"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             );
@@ -2169,21 +2386,22 @@ export default function Library() {
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
-                  <HoldButton
-                    size="icon-sm"
-                    holdTime={1100}
-                    backgroundColor="#ef4444"
-                    fillColor="#991b1b"
-                    textColor="#ffffff"
-                    fillTextColor="#ffffff"
-                    icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
-                    doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
-                    doneLabel=""
-                    onHold={() => deleteFile(file)}
-                    title="Mantén presionado para borrar archivo"
-                    aria-label="Borrar archivo"
-                    className="border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget({
+                        type: "file",
+                        id: file.id,
+                        file,
+                        nombre: file.nombre,
+                      });
+                    }}
+                    className="p-1.5 bg-[#ef4444] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
+                    title="Eliminar archivo"
+                    aria-label="Eliminar archivo"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             );
@@ -2416,13 +2634,15 @@ export default function Library() {
       {/* Upload Modal */}
       <Dialog open={showUploadModal} onOpenChange={(open) => {
         setShowUploadModal(open);
-        if (open) setUploadYear(selectedYear); // Default to current filter
+        if (open) {
+          setUploadYear(selectedYear); // Default to current filter
+        }
       }}>
         <DialogContent className="sm:max-w-xl md:max-w-2xl bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
               <Upload className="w-6 h-6" />
-              SUBIR ARCHIVO
+              {uploadBasketballMode === "folder" ? "SUBIR CARPETA" : "SUBIR ARCHIVOS"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -2474,9 +2694,11 @@ export default function Library() {
             </div>
 
             <BasketballFileUploader
-              disabled={uploading}
-              onFile={(file) => handleFileUpload({ target: { files: [file], value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>)}
-              onFolderFiles={(files) => handleFolderUpload({ target: { files: files as any, value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>)}
+              disabled={uploading || isGuest}
+              initialMode={uploadBasketballMode}
+              onFile={(file) => uploadFilesList([file])}
+              onFiles={(files) => uploadFilesList(files)}
+              onFolderFiles={(files) => uploadFolderFilesList(files)}
             />
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">
               PDF, IMÁGENES O CARPETAS COMPLETAS (MÁX 20MB POR ARCHIVO)
@@ -2615,6 +2837,75 @@ export default function Library() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal con Mantener Presionado */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-6 md:p-8">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl md:text-2xl font-black uppercase tracking-widest text-destructive flex items-center gap-2">
+              <Trash2 className="w-6 h-6 stroke-[2.5]" />
+              {deleteTarget?.type === "folder" ? "ELIMINAR CARPETA" : "ELIMINAR ARCHIVO"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <p className="text-sm font-black uppercase tracking-wide text-foreground">
+              ¿Estás seguro de que deseas eliminar {deleteTarget?.type === "folder" ? "la carpeta" : "el archivo"}{" "}
+              <span className="text-destructive underline decoration-2">{deleteTarget?.nombre}</span>?
+            </p>
+
+            {deleteTarget?.type === "folder" && (
+              <div className="bg-destructive/10 border-2 border-destructive/40 p-3 rounded-xl text-xs font-bold text-destructive space-y-1">
+                <p>⚠️ ADVERTENCIA:</p>
+                <p className="text-muted-foreground font-semibold">
+                  Se eliminarán permanentemente todas las subcarpetas y archivos contenidos dentro de esta carpeta tanto de la biblioteca como del almacenamiento.
+                </p>
+              </div>
+            )}
+
+            <div className="bg-muted/60 border-2 border-foreground/20 p-3 rounded-xl">
+              <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground text-center">
+                Para confirmar la eliminación, mantén presionado el botón rojo hasta que se complete la barra.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="w-full sm:w-auto px-5 py-2.5 bg-muted text-foreground border-2 border-foreground rounded-xl font-black uppercase tracking-wider hover:bg-muted/80 transition-all text-xs"
+            >
+              Cancelar
+            </button>
+
+            <HoldButton
+              size="md"
+              holdTime={1400}
+              backgroundColor="#ef4444"
+              fillColor="#991b1b"
+              textColor="#ffffff"
+              fillTextColor="#ffffff"
+              icon={<Trash2 className="w-4 h-4 mr-2" />}
+              doneIcon={<Check className="w-4 h-4 mr-2" />}
+              doneLabel="¡ELIMINADO!"
+              onHold={async () => {
+                if (!deleteTarget) return;
+                const target = deleteTarget;
+                setDeleteTarget(null);
+                if (target.type === "folder" && target.folderId) {
+                  await deleteFolder(target.folderId);
+                } else if (target.type === "file" && target.file) {
+                  await deleteFile(target.file);
+                }
+              }}
+              className="w-full sm:flex-1 border-2 border-foreground shadow-[3px_3px_0_0_#000] rounded-xl font-black uppercase tracking-wider text-xs py-3 justify-center"
+            >
+              MANTÉN PRESIONADO PARA BORRAR
+            </HoldButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Folder Modal */}
       <Dialog open={showEditFolderModal} onOpenChange={setShowEditFolderModal}>

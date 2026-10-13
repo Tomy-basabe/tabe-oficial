@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { 
   TabeGochiPet, 
   PetSpecies, 
@@ -53,6 +53,21 @@ function createDefaultPet(name: string, species: PetSpecies): TabeGochiPet {
  *   y salud baja drásticamente a nivel crítico (~10-15%, "jodida").
  * - Pasadas las 24 horas (26-28h) sin comida ni cuidado: la salud llega a 0 y la mascota muere (isDead = true).
  */
+/**
+ * Fusiona mascotas locales con las de la nube (misma id):
+ * - Una mascota muerta NUNCA revive (la muerte gana siempre).
+ * - Si ambas están vivas gana la más recientemente modificada (dormir/despertar incluidos).
+ * La lista final es la de la nube (respeta mascotas liberadas desde otro dispositivo).
+ */
+function mergePets(local: TabeGochiPet[], remote: TabeGochiPet[]): TabeGochiPet[] {
+  return remote.map(r => {
+    const l = local.find(p => p.id === r.id);
+    if (!l) return r;
+    if (l.isDead !== r.isDead) return l.isDead ? l : r;
+    return (l.lastUpdated || 0) > (r.lastUpdated || 0) ? l : r;
+  });
+}
+
 function applyRealTimeDailyDecay(pet: TabeGochiPet, now: number): TabeGochiPet {
   if (pet.isDead) return pet;
 
@@ -160,6 +175,7 @@ export function useTabeGochi() {
         const now = Date.now();
 
         const processed = parsed.map(pet => {
+          if (pet.isDead) return pet; // la muerte es permanente
           // Si la mascota sufrió el desgaste rápido anterior, la restauramos a plena salud
           if (!alreadyMigrated) {
             return {
@@ -254,7 +270,7 @@ export function useTabeGochi() {
 
         if (cloud && Array.isArray(cloud.pets) && cloud.pets.length > 0) {
           const now = Date.now();
-          const cloudPetsWithDecay = cloud.pets.map(p => applyRealTimeDailyDecay(p, now));
+          const cloudPetsWithDecay = mergePets(petsRef.current, cloud.pets).map(p => applyRealTimeDailyDecay(p, now));
 
           setPets(cloudPetsWithDecay);
           setActivePetId(cloud.activePetId || cloudPetsWithDecay[0]?.id || "");
@@ -287,7 +303,7 @@ export function useTabeGochi() {
       if (!isMounted || !remoteState) return;
       if (remoteState.updatedAt > lastSaveTimeRef.current) {
         const now = Date.now();
-        const remotePets = remoteState.pets.map(p => applyRealTimeDailyDecay(p, now));
+        const remotePets = mergePets(petsRef.current, remoteState.pets).map(p => applyRealTimeDailyDecay(p, now));
         setPets(remotePets);
         setActivePetId(remoteState.activePetId || remotePets[0]?.id || "");
         setCoins(typeof remoteState.coins === "number" ? remoteState.coins : 50);
@@ -307,12 +323,21 @@ export function useTabeGochi() {
     if (!user?.id) return;
 
     const handleVisibilityOrFocus = async () => {
+      if (document.visibilityState === "hidden") {
+        // Guardado inmediato al ocultar/cerrar: conserva dormir/despertar y muerte
+        if (isInitializedFromCloudRef.current) {
+          const now = Date.now();
+          lastSaveTimeRef.current = now;
+          saveTabeGochiCloud(user.id, { pets: petsRef.current, activePetId, coins, inventory, updatedAt: now });
+        }
+        return;
+      }
       if (document.visibilityState === "visible") {
         try {
           const cloud = await fetchTabeGochiCloud(user.id);
           if (cloud && cloud.updatedAt > lastSaveTimeRef.current) {
             const now = Date.now();
-            const updated = cloud.pets.map(p => applyRealTimeDailyDecay(p, now));
+            const updated = mergePets(petsRef.current, cloud.pets).map(p => applyRealTimeDailyDecay(p, now));
             setPets(updated);
             setActivePetId(cloud.activePetId || updated[0]?.id || "");
             setCoins(typeof cloud.coins === "number" ? cloud.coins : 50);
@@ -330,7 +355,7 @@ export function useTabeGochi() {
       document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
       window.removeEventListener("focus", handleVisibilityOrFocus);
     };
-  }, [user?.id]);
+  }, [user?.id, activePetId, coins, inventory]);
 
   // Guardado debounced hacia Supabase (2000 ms) respetando límites de red
   useEffect(() => {
@@ -368,6 +393,9 @@ export function useTabeGochi() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [user?.id, pets, activePetId, coins, inventory]);
+
+  const petsRef = useRef(pets);
+  petsRef.current = pets;
 
   const activePet = pets.find(p => p.id === activePetId) || pets[0] || null;
 

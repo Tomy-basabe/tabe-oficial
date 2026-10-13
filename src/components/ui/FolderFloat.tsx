@@ -6,10 +6,10 @@ import './FolderFloat.css';
 const { Bodies, Body, Composite, Engine } = Matter;
 
 const DEFAULT_ITEMS = ['Try a warmer palette', 'Tighten the spacing', 'Logo feels small', 'Love the new hero'];
-const PAD = 28;
-const CHAR = 6.8;
-const GAP = 12;
-const ROW = 52;
+const PAD = 24;
+const CHAR = 6.4;
+const GAP = 8;
+const ROW = 38;
 const DRAG_MIN = 4;
 const ZONE_PAD = 8;
 
@@ -18,7 +18,50 @@ const jitter = i => {
   return x - Math.floor(x);
 };
 
-const layout = (list, spread, lift, tilt, sizes) => {
+const layout = (list, spread, lift, tilt, sizes, options = {}) => {
+  const { align = 'center', layoutMode = 'auto', offsetX = 0, offsetY = 0 } = options;
+  const n = list.length;
+  if (n === 0) return [];
+
+  // Modo horizontal (para hasta 4 items en auto, o forzado con layoutMode="horizontal")
+  if (layoutMode === 'horizontal' || (layoutMode === 'auto' && n <= 4)) {
+    const pos = [];
+    if (n === 1) {
+      const x = (align === 'left' ? 24 : align === 'right' ? -24 : 0) + offsetX;
+      pos[0] = { x, y: -lift - offsetY, r: 0 };
+      return pos;
+    }
+
+    // Paso horizontal armónico para que salgan horizontales y estéticos
+    const step = Math.min(76, Math.max(54, (spread * 1.35) / Math.max(1, n - 1)));
+    
+    // Si align es 'left' (las carpetas están pegadas al margen izquierdo de sus tarjetas):
+    // El primer item empieza en un x seguro dentro de la tarjeta (-10px) y los demás se despliegan hacia la derecha.
+    let startX = 0;
+    if (align === 'left') {
+      startX = -10 + offsetX;
+    } else if (align === 'right') {
+      startX = -((n - 1) * step) + 10 + offsetX;
+    } else {
+      startX = -((n - 1) * step) / 2 + offsetX;
+    }
+
+    list.forEach((_, i) => {
+      const progress = (i - (n - 1) / 2) / Math.max(0.5, (n - 1) / 2); // -1 a 1
+      const arcLift = Math.cos(progress * (Math.PI / 2.6)) * 5; // ligero arco hacia arriba
+      const rot = progress * tilt * 0.7;
+
+      pos[i] = {
+        x: startX + i * step,
+        y: -lift - offsetY - arcLift,
+        r: rot
+      };
+    });
+
+    return pos;
+  }
+
+  // Modo multilínea para más de 4 items:
   const rows = [];
   let row = [];
   let width = 0;
@@ -33,13 +76,18 @@ const layout = (list, spread, lift, tilt, sizes) => {
     width += (row.length > 1 ? GAP : 0) + pw;
   });
   if (row.length) rows.push({ items: row, width });
+
   const pos = [];
   rows.forEach((r, ri) => {
-    let x = -r.width / 2;
-    const shift = (ri % 2 ? 1 : -1) * Math.min(16, spread * 0.1);
+    let x = (align === 'left' ? -10 : -r.width / 2) + offsetX;
+    const shift = (ri % 2 ? 1 : -1) * Math.min(12, spread * 0.08);
     r.items.forEach(({ i, pw }) => {
       const j = jitter(i);
-      pos[i] = { x: x + pw / 2 + shift + (j - 0.5) * 6, y: -lift - ri * ROW - j * 6, r: tilt * (j * 2 - 1) };
+      pos[i] = {
+        x: x + pw / 2 + shift + (j - 0.5) * 4,
+        y: -lift - ri * ROW - j * 4 - offsetY,
+        r: tilt * (j * 2 - 1)
+      };
       x += pw + GAP;
     });
   });
@@ -69,6 +117,10 @@ export default function FolderFloat({
   spread = 180,
   lift = 26,
   tilt = 8,
+  align = 'center',
+  layoutMode = 'auto',
+  offsetX = 0,
+  offsetY = 0,
   flapAngle = 34,
   restAngle = 16,
   openDuration = 520,
@@ -100,7 +152,7 @@ export default function FolderFloat({
   const list = items.map(item => (typeof item === 'string' ? { label: item, value: item } : item));
   const n = list.length;
   const sub = sublabel || `${n} ${n === 1 ? 'note' : 'notes'}`;
-  const pos = layout(list, spread, lift, tilt, sizes);
+  const pos = layout(list, spread, lift, tilt, sizes, { align, layoutMode, offsetX, offsetY });
 
   const labelsKey = list.map(item => item.label).join('|');
   useLayoutEffect(() => {
@@ -147,12 +199,17 @@ export default function FolderFloat({
     engine.enableSleeping = false;
     w.engine = engine;
     w.sizes = els.map(el => ({ w: el.offsetWidth, h: el.offsetHeight }));
+    const xs = pos.map(p => p.x);
     const ys = pos.map(p => p.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
     const zone = {
-      left: -spread - ZONE_PAD,
-      right: spread + ZONE_PAD,
-      top: Math.min(...ys) - ZONE_PAD,
-      bottom: -lift + Math.max(...w.sizes.map(s => s.h))
+      left: minX - 35,
+      right: maxX + 35,
+      top: minY - 25,
+      bottom: maxY + Math.max(...w.sizes.map(s => s.h)) + 20
     };
     w.zone = zone;
     w.bodies = els.map((el, i) => {
@@ -372,6 +429,7 @@ export default function FolderFloat({
               }}
               type="button"
               className="folder-float__item"
+              title={item.label}
               tabIndex={open ? 0 : -1}
               aria-hidden={!open}
               data-pop={popped === i ? '' : undefined}
@@ -379,7 +437,8 @@ export default function FolderFloat({
                 '--i': i,
                 '--x': `${p.x.toFixed(1)}px`,
                 '--y': `${p.y.toFixed(1)}px`,
-                '--r': `${p.r.toFixed(2)}deg`
+                '--r': `${p.r.toFixed(2)}deg`,
+                zIndex: 10 + i
               }}
               onPointerDown={e => down(e, i)}
               onPointerMove={e => move(e, i)}
