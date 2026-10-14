@@ -3181,8 +3181,8 @@ export default function Notion() {
                         className={cn(
                           "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
                           modalYear === null
-                            ? "bg-[#FFD700] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                            : "bg-card text-foreground border-foreground/40 hover:border-foreground"
+                            ? "bg-[#FACC15] text-black border-2 border-black shadow-[2px_2px_0px_#000]"
+                            : "bg-white text-zinc-950 border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70"
                         )}
                       >
                         Todos
@@ -3195,8 +3195,8 @@ export default function Notion() {
                           className={cn(
                             "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
                             modalYear === year
-                              ? "bg-[#FFD700] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                              : "bg-card text-foreground border-foreground/40 hover:border-foreground"
+                              ? "bg-[#FACC15] text-black border-2 border-black shadow-[2px_2px_0px_#000]"
+                              : "bg-white text-zinc-950 border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70"
                           )}
                         >
                           {year}° Año
@@ -3210,30 +3210,47 @@ export default function Notion() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
                       {modalSubjects.map((subject) => {
                         const isApproved = subject.status === "aprobada";
+                        const isSelected = newDocSubjectId === subject.id;
                         return (
                           <button
                             key={subject.id}
                             type="button"
                             onClick={() => setNewDocSubjectId(subject.id)}
                             className={cn(
-                              "p-2.5 rounded-xl border-2 text-left transition-all hover:translate-y-[-1px] group",
-                              isApproved
-                                ? "border-emerald-500/60 bg-emerald-500/5 hover:border-emerald-500 hover:shadow-[2px_2px_0_0_#10b981]"
-                                : "border-foreground/50 bg-card hover:border-foreground hover:bg-accent hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                              "p-2.5 rounded-xl border-2 text-left transition-all hover:translate-y-[-1px] group relative",
+                              isSelected
+                                ? "bg-[#FACC15] border-2 border-black shadow-[4px_4px_0px_#000]"
+                                : isApproved
+                                ? "bg-white border-2 border-emerald-500/60 hover:border-black hover:bg-yellow-100/70 hover:shadow-[3px_3px_0px_#000]"
+                                : "bg-white border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70 hover:shadow-[3px_3px_0px_#000]"
                             )}
                           >
                             <div className="flex items-center justify-between gap-1 mb-1">
                               <span className={cn(
-                                "text-[9px] font-black uppercase px-1.5 py-0.5 border rounded",
+                                "text-[9px] font-black uppercase px-1.5 py-0.5 border rounded shrink-0",
                                 isApproved
                                   ? "bg-emerald-500 text-black border-black"
-                                  : "bg-[#00E5FF] text-black border-foreground"
+                                  : isSelected
+                                  ? "bg-black text-[#FACC15] border-black font-black"
+                                  : "bg-[#00E5FF] text-black border-black"
                               )}>
                                 {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
                               </span>
-                              <span className="text-[10px] font-bold text-muted-foreground">Año {subject.año}</span>
+                              <span className={cn(
+                                "text-[10px] transition-colors",
+                                isSelected
+                                  ? "text-zinc-900 font-semibold"
+                                  : "text-zinc-500 group-hover:text-zinc-900 font-semibold"
+                              )}>
+                                Año {subject.año}
+                              </span>
                             </div>
-                            <p className="font-bold text-xs text-foreground truncate group-hover:text-primary transition-colors">
+                            <p className={cn(
+                              "text-xs truncate transition-colors",
+                              isSelected
+                                ? "!text-black font-bold"
+                                : "text-zinc-950 font-bold group-hover:text-black"
+                            )}>
                               {subject.nombre}
                             </p>
                           </button>
@@ -3353,8 +3370,8 @@ export default function Notion() {
                   className={cn(
                     "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
                     modalYear === null
-                      ? "bg-[#FFD700] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                      : "bg-card text-foreground border-foreground/40 hover:border-foreground"
+                      ? "bg-[#FACC15] text-black border-2 border-black shadow-[2px_2px_0px_#000]"
+                      : "bg-white text-zinc-950 border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70"
                   )}
                 >
                   Todos
@@ -3367,8 +3384,8 @@ export default function Notion() {
                     className={cn(
                       "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
                       modalYear === year
-                        ? "bg-[#FFD700] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                        : "bg-card text-foreground border-foreground/40 hover:border-foreground"
+                        ? "bg-[#FACC15] text-black border-2 border-black shadow-[2px_2px_0px_#000]"
+                        : "bg-white text-zinc-950 border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70"
                     )}
                   >
                     {year}° Año
@@ -3382,24 +3399,54 @@ export default function Notion() {
                 Materia Destino
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
-                {modalSubjects.map((subject) => (
-                  <button
-                    key={subject.id}
-                    type="button"
-                    onClick={() => handleChangeSubjectSubmit(subject.id)}
-                    className="p-2.5 rounded-xl border-2 border-foreground/60 bg-card text-foreground text-left transition-all hover:border-foreground hover:bg-accent hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] group"
-                  >
-                    <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 bg-[#00E5FF] text-black border border-foreground rounded">
-                        {subject.codigo || `Año ${subject.año}`}
-                      </span>
-                      <span className="text-[10px] font-bold text-muted-foreground">Año {subject.año}</span>
-                    </div>
-                    <p className="font-bold text-xs text-foreground truncate group-hover:text-primary transition-colors">
-                      {subject.nombre}
-                    </p>
-                  </button>
-                ))}
+                {modalSubjects.map((subject) => {
+                  const isApproved = subject.status === "aprobada";
+                  const isSelected = activeDocument?.subject_id === subject.id;
+                  return (
+                    <button
+                      key={subject.id}
+                      type="button"
+                      onClick={() => handleChangeSubjectSubmit(subject.id)}
+                      className={cn(
+                        "p-2.5 rounded-xl border-2 text-left transition-all hover:translate-y-[-1px] group relative",
+                        isSelected
+                          ? "bg-[#FACC15] border-2 border-black shadow-[4px_4px_0px_#000]"
+                          : isApproved
+                          ? "bg-white border-2 border-emerald-500/60 hover:border-black hover:bg-yellow-100/70 hover:shadow-[3px_3px_0px_#000]"
+                          : "bg-white border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70 hover:shadow-[3px_3px_0px_#000]"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className={cn(
+                          "text-[9px] font-black uppercase px-1.5 py-0.5 border rounded shrink-0",
+                          isApproved
+                            ? "bg-emerald-500 text-black border-black"
+                            : isSelected
+                            ? "bg-black text-[#FACC15] border-black font-black"
+                            : "bg-[#00E5FF] text-black border-black"
+                        )}>
+                          {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
+                        </span>
+                        <span className={cn(
+                          "text-[10px] transition-colors",
+                          isSelected
+                            ? "text-zinc-900 font-semibold"
+                            : "text-zinc-500 group-hover:text-zinc-900 font-semibold"
+                        )}>
+                          Año {subject.año}
+                        </span>
+                      </div>
+                      <p className={cn(
+                        "text-xs truncate transition-colors",
+                        isSelected
+                          ? "!text-black font-bold"
+                          : "text-zinc-950 font-bold group-hover:text-black"
+                      )}>
+                        {subject.nombre}
+                      </p>
+                    </button>
+                  );
+                })}
                 {modalSubjects.length === 0 && (
                   <div className="col-span-full text-center text-xs font-bold text-muted-foreground py-4">
                     No hay materias en este año.
