@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { 
   TabeGochiPet, 
   PetSpecies, 
@@ -20,6 +20,7 @@ const STORAGE_KEY_ACTIVE = "tabe_gochi_active_pet_id_v1";
 const STORAGE_KEY_COINS = "tabe_gochi_coins_v1";
 const STORAGE_KEY_INVENTORY = "tabe_gochi_inventory_v1";
 const STORAGE_KEY_DAILY_FIX = "tabe_gochi_daily_lifecycle_v2";
+const STORAGE_KEY_DISMISSED = "tabe_gochi_dismissed_pet_ids_v1";
 
 function createDefaultPet(name: string, species: PetSpecies): TabeGochiPet {
   const now = Date.now();
@@ -59,13 +60,36 @@ function createDefaultPet(name: string, species: PetSpecies): TabeGochiPet {
  * - Si ambas están vivas gana la más recientemente modificada (dormir/despertar incluidos).
  * La lista final es la de la nube (respeta mascotas liberadas desde otro dispositivo).
  */
-function mergePets(local: TabeGochiPet[], remote: TabeGochiPet[]): TabeGochiPet[] {
-  return remote.map(r => {
-    const l = local.find(p => p.id === r.id);
-    if (!l) return r;
-    if (l.isDead !== r.isDead) return l.isDead ? l : r;
-    return (l.lastUpdated || 0) > (r.lastUpdated || 0) ? l : r;
-  });
+function mergePets(local: TabeGochiPet[], remote: TabeGochiPet[], dismissedIds?: Set<string>): TabeGochiPet[] {
+  const dismissed = dismissedIds || new Set<string>();
+  const validRemote = remote.filter(r => !dismissed.has(r.id));
+  const validLocal = local.filter(l => !dismissed.has(l.id));
+
+  const localMap = new Map(validLocal.map(p => [p.id, p]));
+  const merged: TabeGochiPet[] = [];
+  const processedIds = new Set<string>();
+
+  for (const r of validRemote) {
+    processedIds.add(r.id);
+    const l = localMap.get(r.id);
+    if (!l) {
+      merged.push(r);
+    } else {
+      if (l.isDead !== r.isDead) {
+        merged.push(l.isDead ? l : r);
+      } else {
+        merged.push((l.lastUpdated || 0) > (r.lastUpdated || 0) ? l : r);
+      }
+    }
+  }
+
+  for (const l of validLocal) {
+    if (!processedIds.has(l.id)) {
+      merged.push(l);
+    }
+  }
+
+  return merged;
 }
 
 function applyRealTimeDailyDecay(pet: TabeGochiPet, now: number): TabeGochiPet {
@@ -166,15 +190,29 @@ export function useTabeGochi() {
   const lastSaveTimeRef = useRef<number>(Date.now());
   const isInitializedFromCloudRef = useRef<boolean>(false);
 
+  const [dismissedPetIds, setDismissedPetIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_DISMISSED);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+  const dismissedPetIdsRef = useRef<string[]>(dismissedPetIds);
+  dismissedPetIdsRef.current = dismissedPetIds;
+
   const [pets, setPets] = useState<TabeGochiPet[]>(() => {
     try {
+      const savedDismissed = localStorage.getItem(STORAGE_KEY_DISMISSED);
+      const dismissedSet = new Set<string>(savedDismissed ? JSON.parse(savedDismissed) : []);
+
       const saved = localStorage.getItem(STORAGE_KEY_PETS);
       if (saved) {
         const parsed: TabeGochiPet[] = JSON.parse(saved);
         const alreadyMigrated = localStorage.getItem(STORAGE_KEY_DAILY_FIX) === "1";
         const now = Date.now();
 
-        const processed = parsed.map(pet => {
+        const validParsed = parsed.filter(p => !dismissedSet.has(p.id));
+        const processed = validParsed.map(pet => {
           if (pet.isDead) return pet; // la muerte es permanente
           // Si la mascota sufrió el desgaste rápido anterior, la restauramos a plena salud
           if (!alreadyMigrated) {
@@ -268,9 +306,19 @@ export function useTabeGochi() {
         const cloud = await fetchTabeGochiCloud(user.id);
         if (!isMounted) return;
 
-        if (cloud && Array.isArray(cloud.pets) && cloud.pets.length > 0) {
+        if (cloud && Array.isArray(cloud.pets)) {
           const now = Date.now();
-          const cloudPetsWithDecay = mergePets(petsRef.current, cloud.pets).map(p => applyRealTimeDailyDecay(p, now));
+          const combinedDismissed = Array.from(new Set([...dismissedPetIdsRef.current, ...(cloud.dismissedPetIds || [])]));
+          if (combinedDismissed.length > dismissedPetIdsRef.current.length) {
+            setDismissedPetIds(combinedDismissed);
+            dismissedPetIdsRef.current = combinedDismissed;
+            try {
+              localStorage.setItem(STORAGE_KEY_DISMISSED, JSON.stringify(combinedDismissed));
+            } catch {}
+          }
+          const dismissedSet = new Set(combinedDismissed);
+
+          const cloudPetsWithDecay = mergePets(petsRef.current, cloud.pets, dismissedSet).map(p => applyRealTimeDailyDecay(p, now));
 
           setPets(cloudPetsWithDecay);
           setActivePetId(cloud.activePetId || cloudPetsWithDecay[0]?.id || "");
@@ -287,6 +335,7 @@ export function useTabeGochi() {
               activePetId,
               coins,
               inventory,
+              dismissedPetIds: dismissedPetIdsRef.current,
               updatedAt: Date.now(),
             });
           }
@@ -303,7 +352,17 @@ export function useTabeGochi() {
       if (!isMounted || !remoteState) return;
       if (remoteState.updatedAt > lastSaveTimeRef.current) {
         const now = Date.now();
-        const remotePets = mergePets(petsRef.current, remoteState.pets).map(p => applyRealTimeDailyDecay(p, now));
+        const combinedDismissed = Array.from(new Set([...dismissedPetIdsRef.current, ...(remoteState.dismissedPetIds || [])]));
+        if (combinedDismissed.length > dismissedPetIdsRef.current.length) {
+          setDismissedPetIds(combinedDismissed);
+          dismissedPetIdsRef.current = combinedDismissed;
+          try {
+            localStorage.setItem(STORAGE_KEY_DISMISSED, JSON.stringify(combinedDismissed));
+          } catch {}
+        }
+        const dismissedSet = new Set(combinedDismissed);
+
+        const remotePets = mergePets(petsRef.current, remoteState.pets, dismissedSet).map(p => applyRealTimeDailyDecay(p, now));
         setPets(remotePets);
         setActivePetId(remoteState.activePetId || remotePets[0]?.id || "");
         setCoins(typeof remoteState.coins === "number" ? remoteState.coins : 50);
@@ -324,11 +383,18 @@ export function useTabeGochi() {
 
     const handleVisibilityOrFocus = async () => {
       if (document.visibilityState === "hidden") {
-        // Guardado inmediato al ocultar/cerrar: conserva dormir/despertar y muerte
+        // Guardado inmediato al ocultar/cerrar: conserva dormir/despertar, despido y muerte
         if (isInitializedFromCloudRef.current) {
           const now = Date.now();
           lastSaveTimeRef.current = now;
-          saveTabeGochiCloud(user.id, { pets: petsRef.current, activePetId, coins, inventory, updatedAt: now });
+          saveTabeGochiCloud(user.id, {
+            pets: petsRef.current,
+            activePetId,
+            coins,
+            inventory,
+            dismissedPetIds: dismissedPetIdsRef.current,
+            updatedAt: now
+          });
         }
         return;
       }
@@ -337,7 +403,17 @@ export function useTabeGochi() {
           const cloud = await fetchTabeGochiCloud(user.id);
           if (cloud && cloud.updatedAt > lastSaveTimeRef.current) {
             const now = Date.now();
-            const updated = mergePets(petsRef.current, cloud.pets).map(p => applyRealTimeDailyDecay(p, now));
+            const combinedDismissed = Array.from(new Set([...dismissedPetIdsRef.current, ...(cloud.dismissedPetIds || [])]));
+            if (combinedDismissed.length > dismissedPetIdsRef.current.length) {
+              setDismissedPetIds(combinedDismissed);
+              dismissedPetIdsRef.current = combinedDismissed;
+              try {
+                localStorage.setItem(STORAGE_KEY_DISMISSED, JSON.stringify(combinedDismissed));
+              } catch {}
+            }
+            const dismissedSet = new Set(combinedDismissed);
+
+            const updated = mergePets(petsRef.current, cloud.pets, dismissedSet).map(p => applyRealTimeDailyDecay(p, now));
             setPets(updated);
             setActivePetId(cloud.activePetId || updated[0]?.id || "");
             setCoins(typeof cloud.coins === "number" ? cloud.coins : 50);
@@ -369,6 +445,7 @@ export function useTabeGochi() {
         activePetId,
         coins,
         inventory,
+        dismissedPetIds: dismissedPetIdsRef.current,
         updatedAt: now,
       });
     }, 2000);
@@ -386,6 +463,7 @@ export function useTabeGochi() {
         activePetId,
         coins,
         inventory,
+        dismissedPetIds: dismissedPetIdsRef.current,
         updatedAt: Date.now(),
       });
     };
@@ -659,10 +737,26 @@ export function useTabeGochi() {
   // Action: Adopt new pet
   const adoptPet = (name: string, species: PetSpecies) => {
     const newPet = createDefaultPet(name, species);
-    setPets(prev => [...prev, newPet]);
+    const updatedPets = [...pets, newPet];
+    setPets(updatedPets);
     setActivePetId(newPet.id);
     TabeGochiAudio.playLevelUp();
     toast.success(`🥚 ¡Adoptaste a ${newPet.name}! Cuídalo para verlo crecer.`);
+
+    // Guardado inmediato en la nube al adoptar
+    if (user?.id) {
+      const now = Date.now();
+      lastSaveTimeRef.current = now;
+      saveTabeGochiCloud(user.id, {
+        pets: updatedPets,
+        activePetId: newPet.id,
+        coins,
+        inventory,
+        dismissedPetIds: dismissedPetIdsRef.current,
+        updatedAt: now,
+      });
+    }
+
     return newPet;
   };
 
@@ -678,16 +772,44 @@ export function useTabeGochi() {
     }
   };
 
-  // Action: Release / Abandon pet (permite abandonar incluso la única mascota para adoptar otra)
+  // Action: Release / Abandon pet (permite despedir o abandonar definitivamente a la mascota)
   const releasePet = (petId: string) => {
     const toRemove = pets.find(p => p.id === petId);
     const remaining = pets.filter(p => p.id !== petId);
+
+    // 1. Registrar permanentemente el ID despedido para que nunca reaparezca desde la nube ni de localStorage
+    const nextDismissed = Array.from(new Set([...dismissedPetIdsRef.current, petId]));
+    setDismissedPetIds(nextDismissed);
+    dismissedPetIdsRef.current = nextDismissed;
+    try {
+      localStorage.setItem(STORAGE_KEY_DISMISSED, JSON.stringify(nextDismissed));
+      localStorage.setItem(STORAGE_KEY_PETS, JSON.stringify(remaining));
+    } catch {}
+
+    // 2. Actualizar estado en memoria
     setPets(remaining);
-    if (activePetId === petId) {
-      setActivePetId(remaining.length > 0 ? remaining[0].id : "");
-    }
+    const nextActiveId = remaining.length > 0 ? remaining[0].id : "";
+    setActivePetId(nextActiveId);
+    try {
+      localStorage.setItem(STORAGE_KEY_ACTIVE, nextActiveId);
+    } catch {}
+
     TabeGochiAudio.playClick();
-    toast.info(`Liberaste a ${toRemove?.name || "tu mascota"}. Puedes adoptar una nueva en cualquier momento.`);
+    toast.info(`Despediste a ${toRemove?.name || "tu mascota"}. Puedes adoptar una nueva en cualquier momento.`);
+
+    // 3. Guardado INMEDIATO atómico en Supabase (sin esperar los 2000 ms del timer)
+    if (user?.id) {
+      const now = Date.now();
+      lastSaveTimeRef.current = now;
+      saveTabeGochiCloud(user.id, {
+        pets: remaining,
+        activePetId: nextActiveId,
+        coins,
+        inventory,
+        dismissedPetIds: nextDismissed,
+        updatedAt: now,
+      });
+    }
   };
 
   // Action: Buy item

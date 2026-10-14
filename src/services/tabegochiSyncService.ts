@@ -7,6 +7,7 @@ export interface TabeGochiCloudState {
   coins: number;
   inventory: string[];
   updatedAt: number;
+  dismissedPetIds?: string[];
 }
 
 const INVENTORY_SYNC_ITEM_TYPE = "tabegochi_save";
@@ -28,13 +29,14 @@ export async function fetchTabeGochiCloud(userId: string): Promise<TabeGochiClou
 
     if (!error && data?.state) {
       const stateObj = data.state as any;
-      if (Array.isArray(stateObj?.pets) && stateObj.pets.length > 0) {
+      if (Array.isArray(stateObj?.pets)) {
         return {
           pets: stateObj.pets,
-          activePetId: stateObj.activePetId || stateObj.pets[0].id,
+          activePetId: stateObj.activePetId || (stateObj.pets[0]?.id || ""),
           coins: typeof stateObj.coins === "number" ? stateObj.coins : 50,
           inventory: Array.isArray(stateObj.inventory) ? stateObj.inventory : ["apple", "room"],
           updatedAt: typeof stateObj.updatedAt === "number" ? stateObj.updatedAt : Date.now(),
+          dismissedPetIds: Array.isArray(stateObj.dismissedPetIds) ? stateObj.dismissedPetIds : [],
         };
       }
     }
@@ -53,13 +55,14 @@ export async function fetchTabeGochiCloud(userId: string): Promise<TabeGochiClou
 
     if (!error && data?.item_id) {
       const parsed = JSON.parse(data.item_id);
-      if (parsed && Array.isArray(parsed.pets) && parsed.pets.length > 0) {
+      if (parsed && Array.isArray(parsed.pets)) {
         return {
           pets: parsed.pets,
-          activePetId: parsed.activePetId || parsed.pets[0].id,
+          activePetId: parsed.activePetId || (parsed.pets[0]?.id || ""),
           coins: typeof parsed.coins === "number" ? parsed.coins : (data.quantity || 50),
           inventory: Array.isArray(parsed.inventory) ? parsed.inventory : ["apple", "room"],
           updatedAt: typeof parsed.updatedAt === "number" ? parsed.updatedAt : Date.now(),
+          dismissedPetIds: Array.isArray(parsed.dismissedPetIds) ? parsed.dismissedPetIds : [],
         };
       }
     }
