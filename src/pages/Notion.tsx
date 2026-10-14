@@ -100,6 +100,7 @@ const GalleryCard = ({
   currentUserId,
   onImportFriendDoc,
   onShare,
+  friendsList,
 }: { 
   doc: NotionDocument; 
   userSubjects?: Subject[]; 
@@ -111,10 +112,28 @@ const GalleryCard = ({
   currentUserId?: string;
   onImportFriendDoc?: (doc: NotionDocument) => void;
   onShare?: (doc: NotionDocument) => void;
+  friendsList?: { user_id: string; nombre: string | null; username: string | null; avatar_url: string | null }[];
 }) => {
   const hasCover = !!doc.cover_url;
   
   const isOwner = !currentUserId || doc.user_id === currentUserId;
+
+  const effectiveOwner = useMemo(() => {
+    if (doc.owner && (doc.owner.nombre || doc.owner.username)) {
+      return doc.owner;
+    }
+    if (!isOwner && doc.user_id && friendsList) {
+      const friend = friendsList.find((f) => f.user_id === doc.user_id);
+      if (friend) {
+        return {
+          nombre: friend.nombre,
+          username: friend.username,
+          avatar_url: friend.avatar_url,
+        };
+      }
+    }
+    return doc.owner;
+  }, [doc.owner, doc.user_id, isOwner, friendsList]);
 
   // Resolver materia y año del documento (propio o de amigos)
   const resolvedSubject = useMemo(
@@ -253,25 +272,25 @@ const GalleryCard = ({
         </div>
 
         {/* Owner indicator for friend docs */}
-        {!isOwner && doc.owner && (
+        {!isOwner && (
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 px-2 py-1 bg-muted border-2 border-foreground min-w-0">
-               {doc.owner.avatar_url ? (
-                 <img src={doc.owner.avatar_url} className="w-5 h-5 rounded-full border border-black shrink-0" alt="" />
+               {effectiveOwner?.avatar_url ? (
+                 <img src={effectiveOwner.avatar_url} className="w-5 h-5 rounded-full border border-black shrink-0" alt="" />
                ) : (
                  <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                    {(doc.owner.nombre || doc.owner.username || "A").charAt(0)}
+                    {(effectiveOwner?.nombre || effectiveOwner?.username || "A").charAt(0)}
                  </div>
                )}
                <span className="text-[11px] text-foreground font-black uppercase truncate">
-                  De: {doc.owner.nombre || doc.owner.username || "Amigo"}
+                  De: {effectiveOwner?.nombre || effectiveOwner?.username || "Amigo"}
                </span>
             </div>
             {onImportFriendDoc && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onImportFriendDoc(doc);
+                  onImportFriendDoc({ ...doc, owner: effectiveOwner });
                 }}
                 className="px-2 py-1 bg-[#BFFF00] text-black border-2 border-foreground font-black text-[10px] uppercase shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all shrink-0 flex items-center gap-1"
                 title="Importar a mis apuntes"
@@ -459,6 +478,23 @@ export default function Notion() {
       avatar_url: f.friend.avatar_url,
     }));
   }, [friends]);
+
+  const activeDocOwner = useMemo(() => {
+    if (activeDocument?.owner && (activeDocument.owner.nombre || activeDocument.owner.username)) {
+      return activeDocument.owner;
+    }
+    if (activeDocument && activeDocument.user_id !== user?.id) {
+      const friend = friendsList.find((f) => f.user_id === activeDocument.user_id);
+      if (friend) {
+        return {
+          nombre: friend.nombre,
+          username: friend.username,
+          avatar_url: friend.avatar_url,
+        };
+      }
+    }
+    return activeDocument?.owner;
+  }, [activeDocument, user?.id, friendsList]);
 
   // Editor state
   const [editorContent, setEditorContent] = useState<JSONContent | null>(null);
@@ -2498,7 +2534,7 @@ export default function Notion() {
                             emoji: activeDocument.emoji,
                             subject_id: activeDocument.subject_id,
                             user_id: activeDocument.user_id,
-                            ownerName: activeDocument.owner?.nombre || activeDocument.owner?.username || "tu amigo",
+                            ownerName: activeDocOwner?.nombre || activeDocOwner?.username || "tu amigo",
                             cover_url: activeDocument.cover_url,
                             subject: activeDocument.subject
                           });
@@ -2642,19 +2678,19 @@ export default function Notion() {
                               <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-300">
                                 ★
                               </div>
-                            ) : activeDocument.owner?.avatar_url ? (
-                              <img src={activeDocument.owner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
+                            ) : activeDocOwner?.avatar_url ? (
+                              <img src={activeDocOwner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
                             ) : (
                               <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] font-bold">
-                                {(activeDocument.owner?.nombre || activeDocument.owner?.username || "C").charAt(0)}
+                                {(activeDocOwner?.nombre || activeDocOwner?.username || "C").charAt(0)}
                               </div>
                             )}
                             <span className="text-xs font-black tracking-tight text-foreground">
                               {activeDocument.user_id === user?.id
                                 ? "Tu apunte cooperativo"
                                 : activeDocument.is_collaborator || activeDocument.is_shared
-                                ? `Apunte colaborativo${activeDocument.owner?.nombre ? ` de ${activeDocument.owner.nombre}` : ""}`
-                                : `Apunte de ${activeDocument.owner?.nombre || activeDocument.owner?.username || "un amigo"}`}
+                                ? `Apunte colaborativo${activeDocOwner?.nombre ? ` de ${activeDocOwner.nombre}` : ""}`
+                                : `Apunte de ${activeDocOwner?.nombre || activeDocOwner?.username || "un amigo"}`}
                             </span>
                             <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full ml-1 bg-emerald-500 text-black flex items-center gap-1 shadow-xs">
                               <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
@@ -2673,7 +2709,7 @@ export default function Notion() {
                                   emoji: activeDocument.emoji,
                                   subject_id: activeDocument.subject_id,
                                   user_id: activeDocument.user_id,
-                                  ownerName: activeDocument.owner?.nombre || activeDocument.owner?.username || "tu amigo",
+                                  ownerName: activeDocOwner?.nombre || activeDocOwner?.username || "tu amigo",
                                   cover_url: activeDocument.cover_url,
                                   subject: activeDocument.subject
                                 });
@@ -2995,18 +3031,20 @@ export default function Notion() {
                           setShowDeleteModal(true);
                         }}
                         currentUserId={user?.id}
+                        friendsList={friendsList}
                         onShare={(d) => {
                           setDocToShare(d);
                           setShowShareModal(true);
                         }}
                         onImportFriendDoc={(d) => {
+                          const matchedFriend = friendsList.find(f => f.user_id === d.user_id);
                           setPreselectedFriendNote({
                             id: d.id,
                             titulo: d.titulo,
                             emoji: d.emoji,
                             subject_id: d.subject_id,
                             user_id: d.user_id,
-                            ownerName: d.owner?.nombre || d.owner?.username || "tu amigo",
+                            ownerName: d.owner?.nombre || d.owner?.username || matchedFriend?.nombre || matchedFriend?.username || "tu amigo",
                             cover_url: d.cover_url,
                             subject: d.subject
                           });

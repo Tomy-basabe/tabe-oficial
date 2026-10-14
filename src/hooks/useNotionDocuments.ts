@@ -201,6 +201,55 @@ export function useNotionDocuments() {
           }
         });
 
+        // Resolver perfiles de amigos/colaboradores cuyos datos no llegaron en el join (por RLS de profiles para no-admins)
+        const docsMissingOwner = data.filter(
+          (d: any) => d.user_id && d.user_id !== user?.id && (!d.owner || (!d.owner.nombre && !d.owner.username))
+        );
+
+        if (docsMissingOwner.length > 0) {
+          const missingUserIds = Array.from(new Set(docsMissingOwner.map((d: any) => d.user_id)));
+          try {
+            let fetchedProfiles: any[] = [];
+            const { data: pubData, error: pubErr } = await supabase
+              .from("public_profiles" as any)
+              .select("user_id, id, nombre, username, avatar_url")
+              .in("user_id", missingUserIds);
+
+            if (!pubErr && pubData && pubData.length > 0) {
+              fetchedProfiles = pubData;
+            } else {
+              const { data: rpcData } = await supabase.rpc("get_public_profiles", { target_user_ids: missingUserIds });
+              if (rpcData && rpcData.length > 0) {
+                fetchedProfiles = rpcData;
+              }
+            }
+
+            if (fetchedProfiles && fetchedProfiles.length > 0) {
+              const profileMap = new Map<string, { nombre: string | null; username: string | null; avatar_url: string | null }>();
+              fetchedProfiles.forEach((p: any) => {
+                const info = {
+                  nombre: p.nombre || p.username || null,
+                  username: p.username || null,
+                  avatar_url: p.avatar_url || null,
+                };
+                if (p.user_id) profileMap.set(p.user_id, info);
+                if (p.id) profileMap.set(p.id, info);
+              });
+
+              data.forEach((d: any) => {
+                if (d.user_id && (!d.owner || (!d.owner.nombre && !d.owner.username))) {
+                  const match = profileMap.get(d.user_id);
+                  if (match) {
+                    d.owner = match;
+                  }
+                }
+              });
+            }
+          } catch (profileErr) {
+            console.warn("Could not batch load missing friend profiles:", profileErr);
+          }
+        }
+
         // Purgar de la base de datos elementos de papelera cuya gracia de 30 min expiró
         purgeExpiredTrash(supabase);
 
@@ -215,7 +264,7 @@ export function useNotionDocuments() {
                 year: d.subject.año,
                 año: d.subject.año,
               }
-            : (d.subject_id ? subjectsMap[d.subject_id] : undefined);
+            : (d.subject_id ? subjectsMapRef.current[d.subject_id] : undefined);
 
           return {
             ...d,

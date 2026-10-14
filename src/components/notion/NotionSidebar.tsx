@@ -28,6 +28,12 @@ interface NotionSidebarProps {
     onToggleFavorite: (doc: NotionDocument) => void;
     onHoverDocument?: (doc: NotionDocument) => void;
     currentUserId?: string;
+    friends?: {
+        user_id: string;
+        nombre: string | null;
+        username: string | null;
+        avatar_url: string | null;
+    }[];
 }
 
 export function NotionSidebar({
@@ -43,6 +49,7 @@ export function NotionSidebar({
     onToggleFavorite,
     onHoverDocument,
     currentUserId,
+    friends,
 }: NotionSidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [openSubjects, setOpenSubjects] = useState<Set<string>>(new Set());
@@ -162,8 +169,21 @@ export function NotionSidebar({
             const ownerId = doc.user_id;
             let entry = grouped.get(ownerId);
             if (!entry) {
-                entry = { owner: doc.owner, years: new Map(), unlinked: [], totalDocs: 0 };
+                const friendInfo = friends?.find(f => f.user_id === ownerId);
+                const resolvedOwner = (doc.owner && (doc.owner.nombre || doc.owner.username))
+                    ? doc.owner
+                    : (friendInfo ? { nombre: friendInfo.nombre, username: friendInfo.username, avatar_url: friendInfo.avatar_url } : doc.owner);
+                entry = { owner: resolvedOwner, years: new Map(), unlinked: [], totalDocs: 0 };
                 grouped.set(ownerId, entry);
+            } else if ((!entry.owner || (!entry.owner.nombre && !entry.owner.username))) {
+                if (doc.owner && (doc.owner.nombre || doc.owner.username)) {
+                    entry.owner = doc.owner;
+                } else {
+                    const friendInfo = friends?.find(f => f.user_id === ownerId);
+                    if (friendInfo) {
+                        entry.owner = { nombre: friendInfo.nombre, username: friendInfo.username, avatar_url: friendInfo.avatar_url };
+                    }
+                }
             }
             entry.totalDocs++;
 
@@ -513,20 +533,23 @@ export function NotionSidebar({
                                         <span className="text-xs font-bold tracking-widest text-muted-foreground/80 uppercase">Apuntes de Amigos</span>
                                     </div>
 
-                                    <div className="space-y-6">
-                                        {Array.from(friendsByOwner.entries()).map(([ownerId, { owner, years, unlinked, totalDocs }]) => (
+                                     <div className="space-y-6">
+                                        {Array.from(friendsByOwner.entries()).map(([ownerId, { owner, years, unlinked, totalDocs }]) => {
+                                            const friendInfo = friends?.find(f => f.user_id === ownerId);
+                                            const displayOwner = (owner && (owner.nombre || owner.username)) ? owner : (friendInfo || owner);
+                                            return (
                                             <div key={ownerId} className="relative bg-white/[0.02] border border-border/30 rounded-xl p-2.5">
                                                 {/* Header del amigo */}
                                                 <div className="flex items-center px-1 mb-3">
-                                                    {owner?.avatar_url ? (
-                                                        <img src={owner.avatar_url} className="w-5 h-5 rounded-full mr-2 border border-border/50" alt={owner.nombre || ""} />
+                                                    {displayOwner?.avatar_url ? (
+                                                        <img src={displayOwner.avatar_url} className="w-5 h-5 rounded-full mr-2 border border-border/50" alt={displayOwner.nombre || ""} />
                                                     ) : (
                                                         <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold mr-2 border border-primary/30">
-                                                            {(owner?.nombre || "A").charAt(0)}
+                                                            {(displayOwner?.nombre || displayOwner?.username || "A").charAt(0)}
                                                         </div>
                                                     )}
                                                     <span className="text-xs font-bold text-foreground truncate flex-1">
-                                                        {owner?.nombre || owner?.username || "Amigo"}
+                                                        {displayOwner?.nombre || displayOwner?.username || "Amigo"}
                                                     </span>
                                                     <span className="text-[10px] font-bold bg-background border border-border/50 text-muted-foreground px-1.5 py-0.5 rounded-full">
                                                         {totalDocs}
@@ -607,7 +630,8 @@ export function NotionSidebar({
                                                     )}
                                                 </div>
                                             </div>
-                                        ))}
+                                        );
+                                        })}
                                     </div>
                                 </div>
                             )}

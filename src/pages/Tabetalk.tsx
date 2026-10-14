@@ -308,6 +308,7 @@ export default function Tabetalk() {
                 selectedCameraId={selectedCameraId}
                 onToggleAudio={toggleAudio}
                 onToggleVideo={toggleVideo}
+                onToggleDeafen={toggleDeafen}
                 onToggleScreenShare={isScreenSharing ? stopScreenShare : startScreenShare}
                 onLeaveChannel={leaveVoiceChannel}
                 onSwitchCamera={switchCamera}

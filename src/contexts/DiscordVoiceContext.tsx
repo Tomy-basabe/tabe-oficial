@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import { useDiscord } from "@/hooks/useDiscord";
 import { useRobustDiscord } from "@/hooks/useRobustDiscord";
 import { useLiveKitDiscord } from "@/hooks/useLiveKitDiscord";
@@ -10,32 +10,35 @@ const DiscordVoiceContext = createContext<any>(null);
 export function DiscordVoiceProvider({ children }: { children: ReactNode }) {
     const discord = useDiscord();
 
-    // Activate voice based on currentVoiceChannel (persistent) or currentChannel if it's voice
-    const activeVoiceChannel = discord.currentVoiceChannel || (discord.currentChannel?.type === 'voice' ? discord.currentChannel : null);
+    // Activar voz basado en currentVoiceChannel o canal actual de tipo 'voice'
+    const activeVoiceChannel = discord.currentVoiceChannel || (discord.currentChannel?.type === "voice" ? discord.currentChannel : null);
     const voiceChannelId = activeVoiceChannel ? activeVoiceChannel.id : null;
     const liveKitVoice = useLiveKitDiscord({ channelId: voiceChannelId });
-    const liveKitConfigured = liveKitVoice.enabled;
+    const liveKitConfigured = Boolean((liveKitVoice as any)?.enabled);
     const voice = useRobustDiscord({ channelId: liveKitConfigured ? null : voiceChannelId });
-    const mediaVoice = liveKitVoice.enabled ? liveKitVoice : voice;
+    const mediaVoice = liveKitConfigured ? liveKitVoice : voice;
 
-    // Merge: discord provides data (servers, channels, messages, participants)
-    //        voice provides media (streams, toggle functions)
+    // Merge de datos: servidor/mensajes/miembros + media reactiva de voz y video
     const combinedValue = {
         ...discord,
         currentVoiceChannel: activeVoiceChannel,
-        // Override media-related properties with robust hook values
+        // Override de propiedades de media
         localStream: mediaVoice.localStream,
         remoteStreams: mediaVoice.remoteStreams,
         isAudioEnabled: mediaVoice.isAudioEnabled,
         isVideoEnabled: mediaVoice.isVideoEnabled,
+        isDeafened: "isDeafened" in mediaVoice ? mediaVoice.isDeafened : discord.isDeafened,
+        isMuted: "isMuted" in mediaVoice ? mediaVoice.isMuted : !mediaVoice.isAudioEnabled,
+        isVideoOff: "isVideoOff" in mediaVoice ? mediaVoice.isVideoOff : !mediaVoice.isVideoEnabled,
         isScreenSharing: mediaVoice.isScreenSharing,
         toggleAudio: mediaVoice.toggleAudio,
         toggleVideo: mediaVoice.toggleVideo,
+        toggleDeafen: "toggleDeafen" in mediaVoice ? (mediaVoice as any).toggleDeafen : discord.toggleDeafen,
         startScreenShare: mediaVoice.startScreenShare,
         stopScreenShare: mediaVoice.stopScreenShare,
         screenStream: mediaVoice.screenStream,
         remoteScreenStreams: mediaVoice.remoteScreenStreams,
-        peerStates: "peerStates" in mediaVoice ? mediaVoice.peerStates : new Map(),
+        peerStates: "peerStates" in mediaVoice ? (mediaVoice as any).peerStates : new Map(),
         cameras: mediaVoice.cameras,
         selectedCameraId: mediaVoice.selectedCameraId,
         switchCamera: mediaVoice.switchCamera,
@@ -62,4 +65,3 @@ export function useDiscordVoice() {
     }
     return context;
 }
-
