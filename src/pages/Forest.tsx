@@ -208,17 +208,19 @@ export default function Forest() {
 
       {/* TAB CONTENT VIEWS */}
       {activeTab === "island" && (
-        <ForestIsland
-          plants={plants}
-          studyActivity={studyActivity}
-          onRemoveDeadPlant={removeDeadPlant}
-          selectedIslandId={activeIslandId}
-          onSelectIsland={setActiveIslandId}
-          onPlantNewTree={(islandId) => {
-            if (islandId) setTargetIslandForPlant(islandId as IslandId);
-            setIsPlantModalOpen(true);
-          }}
-        />
+        <div className="tour-forest-tree">
+          <ForestIsland
+            plants={plants}
+            studyActivity={studyActivity}
+            onRemoveDeadPlant={removeDeadPlant}
+            selectedIslandId={activeIslandId}
+            onSelectIsland={setActiveIslandId}
+            onPlantNewTree={(islandId) => {
+              if (islandId) setTargetIslandForPlant(islandId as IslandId);
+              setIsPlantModalOpen(true);
+            }}
+          />
+        </div>
       )}
 
       {activeTab === "active" && (

@@ -182,7 +182,18 @@ export function useNotionDocuments() {
           data = fallbackRes.data;
           error = null;
         } else {
-          console.error("Error fetching documents on fallback:", fallbackRes.error?.message);
+          console.warn("Second fallback without join relationships:", fallbackRes.error?.message);
+          const simpleRes = await supabase
+            .from("notion_documents")
+            .select(`
+              id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at
+            `)
+            .order("updated_at", { ascending: false })
+            .limit(100);
+          if (!simpleRes.error && simpleRes.data) {
+            data = simpleRes.data;
+            error = null;
+          }
         }
       }
 
@@ -288,6 +299,9 @@ export function useNotionDocuments() {
       console.warn("Exception during fetchDocuments:", err);
     } finally {
       // Garantizar SIEMPRE que loading pase a false para nunca dejar la pantalla trabada
+      if (!_notionDocsCache) {
+        _notionDocsCache = [];
+      }
       setLoading(false);
     }
   }, [user, isGuest]);

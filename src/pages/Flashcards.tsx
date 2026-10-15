@@ -1091,45 +1091,47 @@ export default function Flashcards() {
       </div>
 
       {/* Decks Grid */}
-      {loading ? (
-        <LoadingScreen message="Cargando flashcards..." submessage="Preparando tus mazos de estudio y repaso espaciado" />
-      ) : filteredDecks.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-secondary/50 flex items-center justify-center">
-            <Layers className="w-12 h-12 text-muted-foreground opacity-50" />
+      <div className="tour-flashcards-decks">
+        {loading ? (
+          <LoadingScreen message="Cargando flashcards..." submessage="Preparando tus mazos de estudio y repaso espaciado" />
+        ) : filteredDecks.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-secondary/50 flex items-center justify-center">
+              <Layers className="w-12 h-12 text-muted-foreground opacity-50" />
+            </div>
+            <h3 className="font-display text-xl font-bold mb-2">No hay mazos creados</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+              Crea tu primer mazo de flashcards para empezar a estudiar de forma interactiva
+            </p>
+            <button
+              onClick={() => setShowNewDeckModal(true)}
+              className="px-6 py-4 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+            >
+              CREAR PRIMER MAZO
+            </button>
           </div>
-          <h3 className="font-display text-xl font-bold mb-2">No hay mazos creados</h3>
-          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-            Crea tu primer mazo de flashcards para empezar a estudiar de forma interactiva
-          </p>
-          <button
-            onClick={() => setShowNewDeckModal(true)}
-            className="px-6 py-4 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
-          >
-            CREAR PRIMER MAZO
-          </button>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredDecks.map((deck, index) => (
-            <FlashcardDeck
-              key={deck.id}
-              deck={deck}
-              index={index}
-              onStartStudy={startStudying}
-              onAddCard={handleAddCard}
-              onDeleteDeck={handleDeleteDeckClick}
-              onManageCards={handleManageCards}
-              onEditDeck={handleEditDeck}
-              onImportCards={handleImportCards}
-              onPublishDeck={(deck) => {
-                setPublishingDeck(deck);
-                setShowPublishModal(true);
-              }}
-            />
-          ))}
-        </div>
-      )}
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredDecks.map((deck, index) => (
+              <FlashcardDeck
+                key={deck.id}
+                deck={deck}
+                index={index}
+                onStartStudy={startStudying}
+                onAddCard={handleAddCard}
+                onDeleteDeck={handleDeleteDeckClick}
+                onManageCards={handleManageCards}
+                onEditDeck={handleEditDeck}
+                onImportCards={handleImportCards}
+                onPublishDeck={(deck) => {
+                  setPublishingDeck(deck);
+                  setShowPublishModal(true);
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* New Deck Modal */}
       <Dialog open={showNewDeckModal} onOpenChange={setShowNewDeckModal}>

@@ -339,8 +339,15 @@ export function TutorialTour() {
     useEffect(() => {
         if (!user && !isGuest) return;
 
-        // Give UI a tiny moment to render the newly navigated page before triggering tour
+        // Give UI a moment to render the newly navigated page before triggering tour
         const timer = setTimeout(() => {
+            // No iniciar el tour si hay un modal abierto (ej: CareerPlanOnboardingModal)
+            if (document.querySelector('[role="dialog"]')) {
+                setRun(false);
+                setInitialized(true);
+                return;
+            }
+
             const rawTutorials = localStorage.getItem("tabe-tutorials-completed") || "{}";
             let tutorialsCompleted: Record<string, boolean> = {};
 
@@ -354,14 +361,27 @@ export function TutorialTour() {
             const routeSteps = TOUR_STEPS_BY_ROUTE[currentPath];
 
             if (routeSteps && routeSteps.length > 0 && !tutorialsCompleted[currentPath]) {
-                setTourSteps(routeSteps);
-                setRun(true);
+                // Verificar que los elementos objetivo realmente existan en el DOM antes de arrancar Joyride
+                const availableSteps = routeSteps.filter((s) => {
+                    try {
+                        return typeof s.target === 'string' && document.querySelector(s.target) !== null;
+                    } catch {
+                        return false;
+                    }
+                });
+
+                if (availableSteps.length > 0) {
+                    setTourSteps(availableSteps);
+                    setRun(true);
+                } else {
+                    setRun(false);
+                }
             } else {
                 setRun(false);
             }
             setInitialized(true);
 
-        }, 800);
+        }, 1000);
 
         return () => clearTimeout(timer);
     }, [user, isGuest, location.pathname]);
@@ -381,12 +401,13 @@ export function TutorialTour() {
 
     const handleJoyrideCallback = (data: CallBackProps) => {
         const { status, type, step } = data;
-        const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+        const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED, STATUS.ERROR];
 
-        if (finishedStatuses.includes(status)) {
+        // Terminar el tour y liberar pantalla ante finalización, salto o error de target
+        if (finishedStatuses.includes(status) || type === 'error:target_not_found') {
             setRun(false);
 
-            // Mark this specific route as visited
+            // Mark this specific route as visited to never trap or re-freeze the user
             const rawTutorials = localStorage.getItem("tabe-tutorials-completed") || "{}";
             let tutorialsCompleted: Record<string, boolean> = {};
             try {
@@ -395,7 +416,9 @@ export function TutorialTour() {
                 tutorialsCompleted = {};
             }
             tutorialsCompleted[location.pathname] = true;
-            localStorage.setItem("tabe-tutorials-completed", JSON.stringify(tutorialsCompleted));
+            try {
+                localStorage.setItem("tabe-tutorials-completed", JSON.stringify(tutorialsCompleted));
+            } catch {}
         }
 
         // Before step renders, ensure the target is scrolled into the ScrollArea viewport
@@ -435,6 +458,7 @@ export function TutorialTour() {
             scrollToFirstStep
             showProgress
             showSkipButton
+            disableOverlayClose={false}
             steps={tourSteps}
             tooltipComponent={ComicTourTooltip}
             locale={{

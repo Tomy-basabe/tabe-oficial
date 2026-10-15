@@ -147,8 +147,12 @@ export default function OfficeHours() {
   }, [user, isGuest, allSubjects]);
 
   useEffect(() => {
-    if (!subjectsLoading) fetchData();
-  }, [fetchData, subjectsLoading]);
+    fetchData();
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+    return () => clearTimeout(safetyTimer);
+  }, [fetchData]);
 
   // Parse time string to hours+minutes
   const parseTime = (t: string) => {
@@ -387,7 +391,7 @@ export default function OfficeHours() {
     return results;
   };
 
-  if (loading || subjectsLoading) {
+  if (loading && professors.length === 0 && !isGuest) {
     return <LoadingScreen message="Cargando Consultas..." submessage="Obteniendo horarios de profesores..." />;
   }
 

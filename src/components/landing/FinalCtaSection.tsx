@@ -1,6 +1,7 @@
 import { Zap, Sparkles, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { AppShowcaseCarousel } from "./AppShowcaseCarousel";
 
 export function FinalCtaSection() {
     return (
@@ -40,7 +41,7 @@ export function FinalCtaSection() {
                     >
                         <img src="/logo.png" alt="TABE" className="w-full h-full object-contain drop-shadow-md" />
                         <motion.div 
-                            animate={{ rotate: 360 }}
+                            animate={{ rotate: 360 }} 
                             transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
                             className="absolute -top-3.5 -right-3.5 sm:-top-4 sm:-right-4 bg-[#FFD700] rounded-full p-1.5 sm:p-2 border-2 sm:border-3 border-black"
                         >
@@ -87,6 +88,30 @@ export function FinalCtaSection() {
                         </Link>
                     </motion.div>
                 </div>
+
+                {/* Showcase 3D CircularCarousel con las 15 capturas de la plataforma */}
+                <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="mt-14 sm:mt-20 max-w-7xl mx-auto"
+                >
+                    <div className="text-center mb-8 space-y-3">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black text-[#FFE600] font-black text-xs uppercase tracking-widest border-2 border-black shadow-[3px_3px_0_0_#000]">
+                            <Sparkles className="w-4 h-4 text-[#00E5FF]" />
+                            <span>VISTA INTERACTIVA 3D • 15 MÓDULOS EN ACCIÓN</span>
+                        </div>
+                        <h3 className="text-2xl sm:text-4xl md:text-5xl font-black text-black uppercase tracking-tight">
+                            Explorá la plataforma por dentro
+                        </h3>
+                        <p className="text-sm sm:text-lg font-bold text-black/85 max-w-2xl mx-auto">
+                            Arrastrá para girar el carrusel en 3D, hacé click en cualquier pantalla para enfocarla o inspeccioná cada módulo en alta resolución.
+                        </p>
+                    </div>
+
+                    <AppShowcaseCarousel />
+                </motion.div>
             </div>
         </section>
     );

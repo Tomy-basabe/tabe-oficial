@@ -84,7 +84,7 @@ export default function Dashboard() {
           </div>
 
           {/* Bento: Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 tour-dashboard-stats">
             <StatsCard
               title="Aprobadas"
               value={subjectStats.aprobadas}
@@ -186,7 +186,9 @@ export default function Dashboard() {
             bestStreak={userStats?.mejor_racha || 0}
             weekData={weekData}
           />
-          <UpcomingExams exams={upcomingExams} />
+          <div className="tour-dashboard-schedule">
+            <UpcomingExams exams={upcomingExams} />
+          </div>
         </div>
 
       </div>

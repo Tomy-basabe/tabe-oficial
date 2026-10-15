@@ -2919,7 +2919,7 @@ export default function Notion() {
 
                     <button
                       onClick={() => setShowNewDocModal(true)}
-                      className="inline-flex items-center gap-2 px-6 py-2 bg-[#00E5FF] text-black font-black uppercase border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all ml-auto sm:ml-0 rounded-none"
+                      className="inline-flex items-center gap-2 px-6 py-2 bg-[#00E5FF] text-black font-black uppercase border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all ml-auto sm:ml-0 rounded-none tour-notion-create"
                     >
                       + Nueva Página
                     </button>
@@ -2999,7 +2999,7 @@ export default function Notion() {
               </div>
 
               {/* Grid */}
-              <div className="flex-1 overflow-y-auto p-8 md:p-12">
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 tour-notion-list">
                 {documents.filter((d) => !d.parent_id || !docIdSet.has(d.parent_id)).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                     <p>No tienes apuntes todavía. ¡Creá una nueva página para empezar!</p>

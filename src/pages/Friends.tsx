@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Users,
@@ -312,7 +312,7 @@ export default function Friends() {
           {/* Add Friend Button */}
           <Dialog open={addFriendOpen} onOpenChange={setAddFriendOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-[#00E5FF] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all font-black uppercase h-14 px-6 rounded-xl text-lg w-full sm:w-auto">
+              <Button className="bg-[#00E5FF] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all font-black uppercase h-14 px-6 rounded-xl text-lg w-full sm:w-auto tour-friends-add">
                 <UserPlus className="w-6 h-6 mr-2" strokeWidth={3} />
                 Agregar
               </Button>

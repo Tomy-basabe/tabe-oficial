@@ -509,7 +509,7 @@ export default function Marketplace() {
         </div>
       </div>
 
-      <Tabs defaultValue="decks" className="space-y-6">
+      <Tabs defaultValue="decks" className="space-y-6 tour-marketplace-decks">
         <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-none">
           <TabsList className="flex w-max md:w-full bg-muted p-1 border-4 border-foreground rounded-xl h-auto">
             <TabsTrigger value="decks" className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 px-4 rounded-lg text-foreground transition-all flex-1 min-w-[120px]">

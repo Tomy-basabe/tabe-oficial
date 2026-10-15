@@ -1849,49 +1849,51 @@ export default function Quizzes() {
             </div>
 
             {/* Decks Grid */}
-            {loading ? (
-                <LoadingScreen message="Cargando cuestionarios..." submessage="Organizando tus trivias y preguntas de examen" />
-            ) : decks.length === 0 && !selectedYear ? (
-                <Card className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl border-dashed">
-                    <CardContent className="p-12 text-center">
-                        <div className="w-20 h-20 bg-[#ffd21c] border-[3px] border-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-[-5deg] shadow-[4px_4px_0_0_#000]">
-                            <ClipboardList className="w-10 h-10 text-black" />
-                        </div>
-                        <h3 className="text-xl font-black uppercase tracking-widest text-foreground mb-2">Sin cuestionarios</h3>
-                        <p className="text-muted-foreground font-bold mb-6">
-                            Crea tu primer cuestionario o pedile a la IA que genere uno automáticamente
-                        </p>
-                        <button 
-                            onClick={() => setShowCreateDeck(true)}
-                            className="inline-flex items-center px-6 py-3 bg-[#00ffcc] text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
-                        >
-                            <Plus className="w-5 h-5 mr-2" /> Crear Cuestionario
-                        </button>
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 tour-quizzes-decks">
-                    {decks
-                        .filter(d => {
-                            if (selectedYear && d.subject?.año !== selectedYear) return false;
-                            if (selectedSubject && d.subject_id !== selectedSubject) return false;
-                            return true;
-                        })
-                        .map((deck, index) => (
-                            <QuizDeckItem
-                                key={deck.id}
-                                deck={deck}
-                                index={index}
-                                onDelete={(d) => setDeleteDeck(d)}
-                                onManage={(d) => {
-                                    setManageDeck(d);
-                                    fetchQuestions(d.id);
-                                }}
-                                onPractice={(d) => checkStudyOptions(d)}
-                            />
-                        ))}
-                </div>
-            )}
+            <div className="tour-quizzes-decks">
+                {loading ? (
+                    <LoadingScreen message="Cargando cuestionarios..." submessage="Organizando tus trivias y preguntas de examen" />
+                ) : decks.length === 0 && !selectedYear ? (
+                    <Card className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl border-dashed">
+                        <CardContent className="p-12 text-center">
+                            <div className="w-20 h-20 bg-[#ffd21c] border-[3px] border-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-[-5deg] shadow-[4px_4px_0_0_#000]">
+                                <ClipboardList className="w-10 h-10 text-black" />
+                            </div>
+                            <h3 className="text-xl font-black uppercase tracking-widest text-foreground mb-2">Sin cuestionarios</h3>
+                            <p className="text-muted-foreground font-bold mb-6">
+                                Crea tu primer cuestionario o pedile a la IA que genere uno automáticamente
+                            </p>
+                            <button 
+                                onClick={() => setShowCreateDeck(true)}
+                                className="inline-flex items-center px-6 py-3 bg-[#00ffcc] text-foreground font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+                            >
+                                <Plus className="w-5 h-5 mr-2" /> Crear Cuestionario
+                            </button>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {decks
+                            .filter(d => {
+                                if (selectedYear && d.subject?.año !== selectedYear) return false;
+                                if (selectedSubject && d.subject_id !== selectedSubject) return false;
+                                return true;
+                            })
+                            .map((deck, index) => (
+                                <QuizDeckItem
+                                    key={deck.id}
+                                    deck={deck}
+                                    index={index}
+                                    onDelete={(d) => setDeleteDeck(d)}
+                                    onManage={(d) => {
+                                        setManageDeck(d);
+                                        fetchQuestions(d.id);
+                                    }}
+                                    onPractice={(d) => checkStudyOptions(d)}
+                                />
+                            ))}
+                    </div>
+                )}
+            </div>
 
             {/* Create Deck Dialog */}
             <Dialog open={showCreateDeck} onOpenChange={(open) => {
