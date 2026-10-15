@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Mic, MicOff, User, Pin, Monitor } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Mic, MicOff, Pin, Monitor } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MeetVideoTileProps {
@@ -28,27 +28,64 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
   onTogglePin,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasActiveVideo, setHasActiveVideo] = useState(false);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    if (stream) {
+      videoEl.srcObject = stream;
+
+      // CRÍTICO ANTI-ECO:
+      // El stream local DEBE silenciarse de forma imperativa en el DOM para evitar que el navegador
+      // reproduzca el audio del propio micrófono por los altavoces de la computadora.
+      if (isLocal) {
+        videoEl.muted = true;
+        videoEl.volume = 0;
+      } else {
+        videoEl.muted = false;
+        videoEl.volume = 1;
+      }
+
+      // Evaluar presencia y estado de los tracks de video
+      const updateVideoStatus = () => {
+        const videoTracks = stream.getVideoTracks();
+        const hasLiveTrack = videoTracks.some((t) => t.enabled && t.readyState === 'live');
+        setHasActiveVideo(hasLiveTrack && isVideoEnabled);
+      };
+
+      updateVideoStatus();
+
+      const tracks = stream.getVideoTracks();
+      tracks.forEach((track) => {
+        track.addEventListener('mute', updateVideoStatus);
+        track.addEventListener('unmute', updateVideoStatus);
+        track.addEventListener('ended', updateVideoStatus);
+      });
+
+      return () => {
+        tracks.forEach((track) => {
+          track.removeEventListener('mute', updateVideoStatus);
+          track.removeEventListener('unmute', updateVideoStatus);
+          track.removeEventListener('ended', updateVideoStatus);
+        });
+      };
+    } else {
+      videoEl.srcObject = null;
+      setHasActiveVideo(false);
     }
-  }, [stream]);
+  }, [stream, isLocal, isVideoEnabled]);
 
   // Obtener iniciales para el avatar cuando la cámara está apagada
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() || 'U';
-
-  const hasVideoTrack =
-    isVideoEnabled &&
-    stream &&
-    stream.getVideoTracks().length > 0 &&
-    stream.getVideoTracks().some((t) => t.enabled && t.readyState === 'live');
+  const initials =
+    name
+      .split(' ')
+      .map((n) => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'U';
 
   return (
     <div
@@ -58,21 +95,21 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
         isPinned && 'ring-2 ring-primary'
       )}
     >
-      {/* Video Stream */}
+      {/* Elemento de Video */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
-        muted={isLocal} // Siempre silenciar el audio local para evitar eco
+        muted={isLocal}
         className={cn(
           'w-full h-full object-cover transition-opacity duration-300',
-          hasVideoTrack ? 'opacity-100' : 'opacity-0 absolute pointer-events-none',
-          isLocal && !isScreenSharing && 'scale-x-[-1]' // Modo espejo para la cámara propia
+          hasActiveVideo ? 'opacity-100' : 'opacity-0 absolute pointer-events-none',
+          isLocal && !isScreenSharing && 'scale-x-[-1]' // Efecto espejo solo para cámara propia local
         )}
       />
 
       {/* Avatar Placeholder cuando la cámara está apagada */}
-      {!hasVideoTrack && (
+      {!hasActiveVideo && (
         <div className="flex flex-col items-center justify-center p-4 text-center select-none animate-in fade-in duration-300">
           {avatar ? (
             <img

@@ -5,9 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { getSafeMediaStream } from '@/lib/media-utils';
 
 interface MeetLobbyProps {
-  onJoinRoom?: (config: { userName: string; initialAudio: boolean; initialVideo: boolean }) => void;
+  onJoinRoom?: (config: {
+    userName: string;
+    initialAudio: boolean;
+    initialVideo: boolean;
+    stream?: MediaStream | null;
+  }) => void;
 }
 
 export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
@@ -25,6 +31,7 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
   const [copied, setCopied] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Inicializar nombre si el usuario está logueado
   useEffect(() => {
@@ -37,27 +44,44 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
     }
   }, [user]);
 
-  // Si estamos en una sala específica (`/meet/:roomId`), inicializar preview de cámara y micrófono
+  // Si estamos en una sala específica (`/meet/:roomId`), inicializar preview de cámara y micrófono de forma segura
   useEffect(() => {
     if (!paramRoomId) return;
 
-    let activeStream: MediaStream | null = null;
+    let isMounted = true;
 
     async function startPreview() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        const stream = await getSafeMediaStream({
+          video: true,
           audio: true,
         });
-        activeStream = stream;
-        setPreviewStream(stream);
-        setHasCameraError(false);
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+        if (!isMounted) {
+          if (stream) stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        if (stream) {
+          streamRef.current = stream;
+          setPreviewStream(stream);
+
+          const hasVideoTrack = stream.getVideoTracks().length > 0;
+          setHasCameraError(!hasVideoTrack);
+          setIsVideoEnabled(hasVideoTrack);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            // Silenciar preview local imperativamente para evitar eco
+            videoRef.current.muted = true;
+            videoRef.current.volume = 0;
+          }
+        } else {
+          setHasCameraError(true);
+          setIsVideoEnabled(false);
         }
       } catch (err) {
-        console.warn('No se pudo acceder a la cámara en el lobby:', err);
+        console.warn('Error al iniciar preview de medios en lobby:', err);
         setHasCameraError(true);
         setIsVideoEnabled(false);
       }
@@ -66,9 +90,8 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
     startPreview();
 
     return () => {
-      if (activeStream) {
-        activeStream.getTracks().forEach((t) => t.stop());
-      }
+      isMounted = false;
+      // Solo detenemos si no nos unimos a la llamada (para no bloquear el hardware en Windows)
     };
   }, [paramRoomId]);
 
@@ -76,20 +99,40 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
   const toggleAudio = () => {
     const next = !isAudioEnabled;
     setIsAudioEnabled(next);
-    if (previewStream) {
-      previewStream.getAudioTracks().forEach((t) => {
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach((t) => {
         t.enabled = next;
       });
     }
   };
 
-  const toggleVideo = () => {
+  const toggleVideo = async () => {
     const next = !isVideoEnabled;
     setIsVideoEnabled(next);
-    if (previewStream) {
-      previewStream.getVideoTracks().forEach((t) => {
-        t.enabled = next;
-      });
+
+    if (streamRef.current) {
+      const videoTracks = streamRef.current.getVideoTracks();
+      if (videoTracks.length > 0) {
+        videoTracks.forEach((t) => {
+          t.enabled = next;
+        });
+      } else if (next) {
+        // Si no tenía video track activo, intentar solicitarlo
+        try {
+          const vStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const vTrack = vStream.getVideoTracks()[0];
+          streamRef.current.addTrack(vTrack);
+          if (videoRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+            videoRef.current.muted = true;
+            videoRef.current.volume = 0;
+          }
+          setHasCameraError(false);
+        } catch {
+          setHasCameraError(true);
+          setIsVideoEnabled(false);
+        }
+      }
     }
   };
 
@@ -110,7 +153,6 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
     e.preventDefault();
     if (!inputCode.trim()) return;
 
-    // Si pegan un enlace completo como https://.../meet/abc-defg-hij
     let code = inputCode.trim();
     if (code.includes('/meet/')) {
       code = code.split('/meet/')[1].split('?')[0].split('#')[0];
@@ -130,10 +172,14 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
       return;
     }
 
-    // Detener el preview local para que useWebRTCMeet tome control del dispositivo
-    if (previewStream) {
-      previewStream.getTracks().forEach((t) => t.stop());
-      setPreviewStream(null);
+    // Asegurar que el estado de los tracks coincide con la selección antes de entrar
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach((t) => {
+        t.enabled = isAudioEnabled;
+      });
+      streamRef.current.getVideoTracks().forEach((t) => {
+        t.enabled = isVideoEnabled;
+      });
     }
 
     if (onJoinRoom) {
@@ -141,6 +187,7 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
         userName: userName.trim(),
         initialAudio: isAudioEnabled,
         initialVideo: isVideoEnabled,
+        stream: streamRef.current, // Transferimos el stream directamente sin apagar la cámara
       });
     }
   };
@@ -155,6 +202,15 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
 
   // CASO 1: VISTA PREVIA PARA UNIRSE A /meet/:roomId
   if (paramRoomId) {
+    const initials = userName
+      ? userName
+          .split(' ')
+          .map((n) => n[0])
+          .slice(0, 2)
+          .join('')
+          .toUpperCase()
+      : 'U';
+
     return (
       <div className="min-h-screen w-full bg-neutral-950 text-white flex flex-col justify-between p-4 md:p-8">
         {/* Header simple */}
@@ -175,27 +231,29 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
           {/* Columna Izquierda: Vista previa de cámara */}
           <div className="lg:col-span-7 flex flex-col items-center">
             <div className="relative w-full aspect-video bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 shadow-2xl flex items-center justify-center">
-              {isVideoEnabled && !hasCameraError ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover scale-x-[-1]"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center p-6 text-center select-none">
-                  <div className="w-20 h-20 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-2xl font-bold text-neutral-300 mb-2">
-                    {userName ? userName.charAt(0).toUpperCase() : 'U'}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover scale-x-[-1] transition-opacity duration-300 ${
+                  isVideoEnabled && !hasCameraError ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
+                }`}
+              />
+
+              {(!isVideoEnabled || hasCameraError) && (
+                <div className="flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in">
+                  <div className="w-20 h-20 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-2xl font-bold text-primary mb-2 shadow-inner">
+                    {initials}
                   </div>
-                  <span className="text-xs text-neutral-400">
-                    {hasCameraError ? 'Cámara no detectada o sin permisos' : 'La cámara está apagada'}
+                  <span className="text-xs text-neutral-400 font-medium">
+                    {hasCameraError ? 'Cámara no detectada o permisos denegados' : 'La cámara está apagada'}
                   </span>
                 </div>
               )}
 
               {/* Controles de mic y video flotantes sobre el preview */}
-              <div className="absolute bottom-4 flex items-center gap-3 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+              <div className="absolute bottom-4 flex items-center gap-3 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 z-10">
                 <button
                   type="button"
                   onClick={toggleAudio}
@@ -219,7 +277,7 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
               </div>
             </div>
             <p className="text-xs text-neutral-500 mt-3 text-center">
-              Configura tu audio y video antes de entrar a la reunión.
+              Puedes encender o apagar tu micrófono y cámara en cualquier momento durante la llamada.
             </p>
           </div>
 
@@ -276,7 +334,7 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
         </main>
 
         <footer className="text-center text-xs text-neutral-600 py-2">
-          Conexión segura WebRTC P2P • T.A.B.E. Meet
+          Conexión segura WebRTC P2P con cancelación de eco • T.A.B.E. Meet
         </footer>
       </div>
     );
@@ -301,7 +359,6 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
 
       {/* Contenido Principal */}
       <main className="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center my-auto py-10">
-        {/* Columna Izquierda: Presentación y acciones */}
         <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-xs text-neutral-300">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -316,7 +373,6 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
             Inicia una videollamada al instante o únete a una reunión compartiendo solo tu código o enlace directo, con cámara, micrófono, chat en vivo y pantalla compartida.
           </p>
 
-          {/* Acciones principales */}
           <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 max-w-md mx-auto lg:mx-0">
             <Button
               onClick={handleCreateNewMeeting}
@@ -345,7 +401,6 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
             </form>
           </div>
 
-          {/* Ventajas */}
           <div className="pt-6 border-t border-neutral-900 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs text-neutral-400">
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-400" />
@@ -358,7 +413,6 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
           </div>
         </div>
 
-        {/* Columna Derecha: Tarjeta visual preview */}
         <div className="lg:col-span-5 flex justify-center">
           <div className="w-full max-w-md p-6 bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 rounded-3xl shadow-2xl space-y-4">
             <div className="relative aspect-video rounded-2xl bg-neutral-950 border border-neutral-800 overflow-hidden flex items-center justify-center group">
@@ -380,7 +434,6 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="text-center text-xs text-neutral-600 py-3">
         T.A.B.E. Meet • Videoconferencias en tiempo real
       </footer>

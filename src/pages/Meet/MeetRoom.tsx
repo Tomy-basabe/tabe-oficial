@@ -23,6 +23,7 @@ export const MeetRoom: React.FC = () => {
   const [userAvatar, setUserAvatar] = useState<string | undefined>(undefined);
   const [initialAudio, setInitialAudio] = useState(true);
   const [initialVideo, setInitialVideo] = useState(true);
+  const [lobbyStream, setLobbyStream] = useState<MediaStream | null>(null);
 
   // Estados de interfaz
   const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | null>(null);
@@ -65,13 +66,22 @@ export const MeetRoom: React.FC = () => {
     userAvatar,
     initialAudio,
     initialVideo,
+    existingStream: lobbyStream,
   });
 
   // Manejar unión desde el Lobby
-  const handleJoinFromLobby = (config: { userName: string; initialAudio: boolean; initialVideo: boolean }) => {
+  const handleJoinFromLobby = (config: {
+    userName: string;
+    initialAudio: boolean;
+    initialVideo: boolean;
+    stream?: MediaStream | null;
+  }) => {
     setUserName(config.userName);
     setInitialAudio(config.initialAudio);
     setInitialVideo(config.initialVideo);
+    if (config.stream) {
+      setLobbyStream(config.stream);
+    }
     setHasJoined(true);
     setHasLeft(false);
   };
