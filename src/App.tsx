@@ -61,6 +61,7 @@ const Tasks = lazy(() => import("@/pages/Tasks"));
 const TabeGochi = lazy(() => import("@/pages/TabeGochi"));
 const StudyRoadmapPage = lazy(() => import("@/pages/StudyRoadmapPage"));
 const DemoOne = lazy(() => import("@/components/ui/demo"));
+const Meet = lazy(() => import("@/pages/Meet"));
 
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import { TutorialTour } from "@/components/onboarding/TutorialTour";
@@ -171,6 +172,8 @@ const AppRoutes = () => (
     />
     <Route path="/restablecer-contrasena" element={<ResetPassword />} />
     <Route path="/demo/prompt-box" element={<DemoOne />} />
+    <Route path="/meet" element={<Meet />} />
+    <Route path="/meet/:roomId" element={<Meet />} />
     <Route
       element={
         <ProtectedRoute>

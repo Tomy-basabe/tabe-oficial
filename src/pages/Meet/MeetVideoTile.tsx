@@ -1,0 +1,129 @@
+import React, { useEffect, useRef } from 'react';
+import { Mic, MicOff, User, Pin, Monitor } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface MeetVideoTileProps {
+  stream?: MediaStream | null;
+  name: string;
+  avatar?: string;
+  isAudioEnabled: boolean;
+  isVideoEnabled: boolean;
+  isLocal?: boolean;
+  isSpeaking?: boolean;
+  isScreenSharing?: boolean;
+  isPinned?: boolean;
+  onTogglePin?: () => void;
+}
+
+export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
+  stream,
+  name,
+  avatar,
+  isAudioEnabled,
+  isVideoEnabled,
+  isLocal = false,
+  isSpeaking = false,
+  isScreenSharing = false,
+  isPinned = false,
+  onTogglePin,
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  // Obtener iniciales para el avatar cuando la cámara está apagada
+  const initials = name
+    .split(' ')
+    .map((n) => n[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'U';
+
+  const hasVideoTrack =
+    isVideoEnabled &&
+    stream &&
+    stream.getVideoTracks().length > 0 &&
+    stream.getVideoTracks().some((t) => t.enabled && t.readyState === 'live');
+
+  return (
+    <div
+      className={cn(
+        'group relative w-full h-full min-h-[180px] bg-neutral-900 rounded-2xl overflow-hidden shadow-lg border transition-all duration-200 flex items-center justify-center',
+        isSpeaking ? 'border-emerald-500 ring-2 ring-emerald-500/30' : 'border-neutral-800',
+        isPinned && 'ring-2 ring-primary'
+      )}
+    >
+      {/* Video Stream */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isLocal} // Siempre silenciar el audio local para evitar eco
+        className={cn(
+          'w-full h-full object-cover transition-opacity duration-300',
+          hasVideoTrack ? 'opacity-100' : 'opacity-0 absolute pointer-events-none',
+          isLocal && !isScreenSharing && 'scale-x-[-1]' // Modo espejo para la cámara propia
+        )}
+      />
+
+      {/* Avatar Placeholder cuando la cámara está apagada */}
+      {!hasVideoTrack && (
+        <div className="flex flex-col items-center justify-center p-4 text-center select-none animate-in fade-in duration-300">
+          {avatar ? (
+            <img
+              src={avatar}
+              alt={name}
+              className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-2 border-neutral-700 shadow-md"
+            />
+          ) : (
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-tr from-primary to-emerald-600 flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-md">
+              {initials}
+            </div>
+          )}
+          <span className="mt-3 text-sm font-medium text-neutral-300 max-w-[150px] truncate">
+            {name} {isLocal && '(Tú)'}
+          </span>
+        </div>
+      )}
+
+      {/* Etiqueta inferior con el nombre */}
+      <div className="absolute bottom-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-xs font-medium z-10">
+        {isScreenSharing && <Monitor className="w-3.5 h-3.5 text-blue-400" />}
+        <span className="truncate max-w-[130px] md:max-w-[200px]">
+          {name} {isLocal ? '(Tú)' : ''}
+        </span>
+      </div>
+
+      {/* Indicador de estado de Micrófono en la esquina superior derecha */}
+      <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+        {onTogglePin && (
+          <button
+            onClick={onTogglePin}
+            className={cn(
+              'p-1.5 rounded-full bg-black/50 text-white hover:bg-black/80 transition-opacity opacity-0 group-hover:opacity-100',
+              isPinned && 'opacity-100 bg-primary text-white'
+            )}
+            title={isPinned ? 'Desfijar' : 'Fijar video'}
+          >
+            <Pin className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        <div
+          className={cn(
+            'p-1.5 rounded-full backdrop-blur-md flex items-center justify-center text-white text-xs',
+            !isAudioEnabled ? 'bg-red-500/90 text-white' : 'bg-black/50 text-neutral-300'
+          )}
+          title={isAudioEnabled ? 'Micrófono activo' : 'Micrófono silenciado'}
+        >
+          {isAudioEnabled ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+        </div>
+      </div>
+    </div>
+  );
+};
