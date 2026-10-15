@@ -11,6 +11,7 @@ import {
   Info,
   Copy,
   Check,
+  Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -21,12 +22,12 @@ interface MeetControlsProps {
   isScreenSharing: boolean;
   participantsCount: number;
   unreadMessagesCount: number;
-  activeSidePanel: 'chat' | 'participants' | 'info' | null;
+  activeSidePanel: 'chat' | 'participants' | 'info' | 'settings' | null;
   roomId: string;
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
-  onToggleSidePanel: (panel: 'chat' | 'participants' | 'info') => void;
+  onToggleSidePanel: (panel: 'chat' | 'participants' | 'info' | 'settings') => void;
   onLeaveMeeting: () => void;
 }
 
@@ -176,6 +177,20 @@ export const MeetControls: React.FC<MeetControlsProps> = ({
               {unreadMessagesCount}
             </span>
           )}
+        </button>
+
+        {/* Ajustes de Cámara y Micrófono */}
+        <button
+          onClick={() => onToggleSidePanel('settings')}
+          className={cn(
+            'w-10 h-10 rounded-full flex items-center justify-center transition-colors',
+            activeSidePanel === 'settings'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+          )}
+          title="Configuración de cámara y micrófono"
+        >
+          <Settings2 className="w-5 h-5" />
         </button>
       </div>
     </footer>

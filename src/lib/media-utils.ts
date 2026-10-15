@@ -1,8 +1,7 @@
 /**
  * Utilidades seguras para acceso a cámara y micrófono.
- * Diseñadas para funcionar en Windows, Mac, Linux, Android e iOS
- * sin fallos por OverconstrainedError (como facingMode en laptops)
- * y con cancelación de eco obligatoria para evitar retorno de voz.
+ * Soporta selección explícita de dispositivo de cámara y micrófono (deviceId),
+ * cancelación de eco profesional y fallback progresivo sin bloqueos en Windows.
  */
 
 export const SAFE_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
@@ -11,27 +10,45 @@ export const SAFE_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
   autoGainControl: true,
 };
 
-export async function getSafeMediaStream(options: { video: boolean; audio: boolean }): Promise<MediaStream | null> {
-  // Si no se pide nada, retornar null
+interface GetMediaOptions {
+  video: boolean;
+  audio: boolean;
+  videoDeviceId?: string;
+  audioDeviceId?: string;
+}
+
+export async function getSafeMediaStream(options: GetMediaOptions): Promise<MediaStream | null> {
   if (!options.video && !options.audio) return null;
 
-  // Intento 1: Video estándar y Audio con cancelación de eco (sin constraints estrictos de facingMode)
-  if (options.video && options.audio) {
+  const audioConstraints: MediaTrackConstraints | boolean = options.audio
+    ? options.audioDeviceId
+      ? { ...SAFE_AUDIO_CONSTRAINTS, deviceId: { exact: options.audioDeviceId } }
+      : SAFE_AUDIO_CONSTRAINTS
+    : false;
+
+  const videoConstraints: MediaTrackConstraints | boolean = options.video
+    ? options.videoDeviceId
+      ? { deviceId: { exact: options.videoDeviceId } }
+      : true
+    : false;
+
+  // Intento 1: Conjunto completo
+  if (videoConstraints && audioConstraints) {
     try {
       return await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: SAFE_AUDIO_CONSTRAINTS,
+        video: videoConstraints,
+        audio: audioConstraints,
       });
     } catch (err1) {
-      console.warn('Fallo intento 1 (video y audio optimizado):', err1);
-      // Intento 1b: Audio simple + video simple
+      console.warn('Fallo intento 1 (video y audio específico):', err1);
+      // Intento 1b: sin deviceId estricto
       try {
         return await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: true,
+          audio: SAFE_AUDIO_CONSTRAINTS,
         });
       } catch (err1b) {
-        console.warn('Fallo intento 1b (video y audio simple):', err1b);
+        console.warn('Fallo intento 1b:', err1b);
       }
     }
   }
@@ -42,26 +59,32 @@ export async function getSafeMediaStream(options: { video: boolean; audio: boole
 
   if (options.video) {
     try {
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-    } catch (vErr) {
-      console.warn('Cámara no disponible o rechazada:', vErr);
+      videoStream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints,
+      });
+    } catch {
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      } catch (vErr) {
+        console.warn('Cámara no disponible:', vErr);
+      }
     }
   }
 
   if (options.audio) {
     try {
-      audioStream = await navigator.mediaDevices.getUserMedia({ audio: SAFE_AUDIO_CONSTRAINTS });
-    } catch (aErr) {
-      console.warn('Micrófono con cancelación falló, probando micrófono básico:', aErr);
+      audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints,
+      });
+    } catch {
       try {
         audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (aErr2) {
-        console.warn('Micrófono no disponible:', aErr2);
+      } catch (aErr) {
+        console.warn('Micrófono no disponible:', aErr);
       }
     }
   }
 
-  // Combinar los tracks disponibles
   const tracks: MediaStreamTrack[] = [];
   if (videoStream) tracks.push(...videoStream.getVideoTracks());
   if (audioStream) tracks.push(...audioStream.getAudioTracks());

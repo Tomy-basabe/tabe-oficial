@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWebRTCMeet } from '@/hooks/useWebRTCMeet';
+import { useMediaDevices } from '@/hooks/useMediaDevices';
 import { MeetLobby } from './MeetLobby';
 import { MeetVideoTile } from './MeetVideoTile';
 import { MeetControls } from './MeetControls';
@@ -25,8 +26,18 @@ export const MeetRoom: React.FC = () => {
   const [initialVideo, setInitialVideo] = useState(true);
   const [lobbyStream, setLobbyStream] = useState<MediaStream | null>(null);
 
+  // Hook de enumeración de dispositivos (cámaras y micrófonos)
+  const {
+    videoDevices,
+    audioDevices,
+    selectedVideoDeviceId,
+    selectedAudioDeviceId,
+    setSelectedVideoDeviceId,
+    setSelectedAudioDeviceId,
+  } = useMediaDevices();
+
   // Estados de interfaz
-  const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | null>(null);
+  const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | 'settings' | null>(null);
   const [pinnedPeerId, setPinnedPeerId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [readMessagesCount, setReadMessagesCount] = useState(0);
@@ -58,6 +69,8 @@ export const MeetRoom: React.FC = () => {
     toggleAudio,
     toggleVideo,
     toggleScreenShare,
+    switchCamera,
+    switchMicrophone,
     sendMessage,
     leaveMeeting,
   } = useWebRTCMeet({
@@ -67,6 +80,8 @@ export const MeetRoom: React.FC = () => {
     initialAudio,
     initialVideo,
     existingStream: lobbyStream,
+    videoDeviceId: selectedVideoDeviceId || undefined,
+    audioDeviceId: selectedAudioDeviceId || undefined,
   });
 
   // Manejar unión desde el Lobby
@@ -75,12 +90,20 @@ export const MeetRoom: React.FC = () => {
     initialAudio: boolean;
     initialVideo: boolean;
     stream?: MediaStream | null;
+    videoDeviceId?: string;
+    audioDeviceId?: string;
   }) => {
     setUserName(config.userName);
     setInitialAudio(config.initialAudio);
     setInitialVideo(config.initialVideo);
     if (config.stream) {
       setLobbyStream(config.stream);
+    }
+    if (config.videoDeviceId) {
+      setSelectedVideoDeviceId(config.videoDeviceId);
+    }
+    if (config.audioDeviceId) {
+      setSelectedAudioDeviceId(config.audioDeviceId);
     }
     setHasJoined(true);
     setHasLeft(false);
@@ -121,6 +144,18 @@ export const MeetRoom: React.FC = () => {
     setCopiedLink(true);
     toast.success('Enlace de la llamada copiado');
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  // Cambiar cámara desde el panel
+  const handleSwitchCamera = (deviceId: string) => {
+    setSelectedVideoDeviceId(deviceId);
+    switchCamera(deviceId);
+  };
+
+  // Cambiar micrófono desde el panel
+  const handleSwitchMicrophone = (deviceId: string) => {
+    setSelectedAudioDeviceId(deviceId);
+    switchMicrophone(deviceId);
   };
 
   // CASO 1: SALA DE ESPERA (LOBBY)
@@ -170,7 +205,6 @@ export const MeetRoom: React.FC = () => {
   const remoteParticipants = Array.from(participants.values());
   const totalCount = remoteParticipants.length + 1; // remotos + local
 
-  // Determinar clases de grid responsivo para los videos
   const getGridClasses = () => {
     if (pinnedPeerId) return 'flex-1 flex flex-col';
     if (totalCount === 1) return 'grid grid-cols-1 place-items-center max-w-4xl mx-auto h-full';
@@ -182,7 +216,6 @@ export const MeetRoom: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-neutral-950 text-white flex flex-col justify-between overflow-hidden">
-      {/* Aviso de error de permisos si existe */}
       {hasPermissionError && (
         <div className="bg-amber-950/80 border-b border-amber-800 px-4 py-2 text-xs text-amber-200 flex items-center justify-center gap-2 z-40">
           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
@@ -193,7 +226,6 @@ export const MeetRoom: React.FC = () => {
       {/* Área Central: Grid de Videos + Panel Lateral */}
       <div className="flex-1 flex overflow-hidden relative">
         <main className="flex-1 p-3 md:p-6 overflow-y-auto flex flex-col">
-          {/* Si el usuario está solo: Banner informativo con enlace para invitar */}
           {totalCount === 1 && (
             <div className="mb-4 max-w-xl mx-auto w-full bg-neutral-900/90 border border-neutral-800 p-4 rounded-2xl flex items-center justify-between gap-4 animate-in fade-in duration-300">
               <div className="flex items-center gap-3">
@@ -254,7 +286,7 @@ export const MeetRoom: React.FC = () => {
           </div>
         </main>
 
-        {/* Panel lateral desplegable para Chat, Participantes e Info */}
+        {/* Panel lateral desplegable para Chat, Participantes, Info y Ajustes de Dispositivos */}
         {activeSidePanel && (
           <MeetSidePanel
             activePanel={activeSidePanel}
@@ -266,7 +298,13 @@ export const MeetRoom: React.FC = () => {
             isVideoEnabled={isVideoEnabled}
             participants={participants}
             messages={messages}
+            videoDevices={videoDevices}
+            audioDevices={audioDevices}
+            selectedVideoDeviceId={selectedVideoDeviceId}
+            selectedAudioDeviceId={selectedAudioDeviceId}
             onSendMessage={sendMessage}
+            onSwitchCamera={handleSwitchCamera}
+            onSwitchMicrophone={handleSwitchMicrophone}
           />
         )}
       </div>

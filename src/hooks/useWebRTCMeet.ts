@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { ICE_SERVERS, optimizeSdp } from '@/lib/webrtc-config';
-import { getSafeMediaStream } from '@/lib/media-utils';
+import { getSafeMediaStream, SAFE_AUDIO_CONSTRAINTS } from '@/lib/media-utils';
 
 export interface MeetParticipant {
   peerId: string;
@@ -30,6 +30,8 @@ interface UseWebRTCMeetProps {
   initialAudio?: boolean;
   initialVideo?: boolean;
   existingStream?: MediaStream | null;
+  videoDeviceId?: string;
+  audioDeviceId?: string;
 }
 
 export function useWebRTCMeet({
@@ -39,6 +41,8 @@ export function useWebRTCMeet({
   initialAudio = true,
   initialVideo = true,
   existingStream = null,
+  videoDeviceId,
+  audioDeviceId,
 }: UseWebRTCMeetProps) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(existingStream || null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(initialAudio);
@@ -49,7 +53,6 @@ export function useWebRTCMeet({
   const [isConnected, setIsConnected] = useState(false);
   const [hasPermissionError, setHasPermissionError] = useState<string | null>(null);
 
-  // Identificador de peer único para esta sesión de reunión
   const myPeerIdRef = useRef<string>(
     typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID().slice(0, 8)
@@ -65,10 +68,9 @@ export function useWebRTCMeet({
   const screenTrackRef = useRef<MediaStreamTrack | null>(null);
   const cameraTrackRef = useRef<MediaStreamTrack | null>(null);
 
-  // Audio level analyser para saber si el usuario local está hablando
   const [isLocalSpeaking, setIsLocalSpeaking] = useState(false);
 
-  // Sincronizar stream existente si se pasa desde el lobby
+  // Sincronizar stream existente del lobby
   useEffect(() => {
     if (existingStream && !localStreamRef.current) {
       localStreamRef.current = existingStream;
@@ -88,14 +90,13 @@ export function useWebRTCMeet({
     const pc = new RTCPeerConnection(ICE_SERVERS);
     peerConnectionsRef.current.set(targetPeerId, pc);
 
-    // Agregar tracks locales si están disponibles
+    // Agregar tracks locales si existen
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current!);
       });
     }
 
-    // Manejo de candidatos ICE locales hacia el peer remoto
     pc.onicecandidate = (event) => {
       if (event.candidate && channelRef.current) {
         channelRef.current.send({
@@ -111,7 +112,6 @@ export function useWebRTCMeet({
       }
     };
 
-    // Recepción robusta de tracks remotos: acumular en MediaStream persistente por peer
     pc.ontrack = (event) => {
       let stream = remoteStreamsRef.current.get(targetPeerId);
       if (!stream) {
@@ -119,13 +119,11 @@ export function useWebRTCMeet({
         remoteStreamsRef.current.set(targetPeerId, stream);
       }
 
-      // Evitar duplicar el mismo track
       const exists = stream.getTracks().some((t) => t.id === event.track.id);
       if (!exists) {
         stream.addTrack(event.track);
       }
 
-      // Re-emitir nuevo objeto MediaStream para forzar actualización reactiva en UI
       const streamClone = new MediaStream(stream.getTracks());
       remoteStreamsRef.current.set(targetPeerId, streamClone);
 
@@ -151,7 +149,6 @@ export function useWebRTCMeet({
       });
     };
 
-    // Control de estado de la conexión con auto-recuperación ICE
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'failed') {
         try {
@@ -182,6 +179,8 @@ export function useWebRTCMeet({
       const stream = await getSafeMediaStream({
         video: initialVideo,
         audio: initialAudio,
+        videoDeviceId,
+        audioDeviceId,
       });
 
       if (!stream) {
@@ -207,7 +206,233 @@ export function useWebRTCMeet({
       setHasPermissionError('Error al iniciar cámara o micrófono.');
       return null;
     }
-  }, [initialAudio, initialVideo]);
+  }, [initialAudio, initialVideo, videoDeviceId, audioDeviceId]);
+
+  // Cambiar cámara en caliente
+  const switchCamera = useCallback(async (newDeviceId: string) => {
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: newDeviceId } },
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      if (!newVideoTrack) return;
+
+      if (cameraTrackRef.current) {
+        cameraTrackRef.current.stop();
+      }
+      cameraTrackRef.current = newVideoTrack;
+
+      if (localStreamRef.current) {
+        const oldVideoTracks = localStreamRef.current.getVideoTracks();
+        oldVideoTracks.forEach((t) => {
+          localStreamRef.current?.removeTrack(t);
+        });
+        localStreamRef.current.addTrack(newVideoTrack);
+        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+      }
+
+      // Reemplazar el track en todas las conexiones WebRTC
+      peerConnectionsRef.current.forEach((pc) => {
+        const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+        if (videoSender) {
+          videoSender.replaceTrack(newVideoTrack);
+        } else {
+          pc.addTrack(newVideoTrack, localStreamRef.current!);
+        }
+      });
+
+      setIsVideoEnabled(true);
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'peer-status',
+        payload: {
+          peerId: myPeerId,
+          audioEnabled: isAudioEnabled,
+          videoEnabled: true,
+          isScreenSharing,
+        },
+      });
+    } catch (err) {
+      console.error('Error al cambiar de cámara:', err);
+    }
+  }, [myPeerId, isAudioEnabled, isScreenSharing]);
+
+  // Cambiar micrófono en caliente
+  const switchMicrophone = useCallback(async (newDeviceId: string) => {
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: { ...SAFE_AUDIO_CONSTRAINTS, deviceId: { exact: newDeviceId } },
+      });
+      const newAudioTrack = newStream.getAudioTracks()[0];
+      if (!newAudioTrack) return;
+
+      if (localStreamRef.current) {
+        const oldAudioTracks = localStreamRef.current.getAudioTracks();
+        oldAudioTracks.forEach((t) => {
+          t.stop();
+          localStreamRef.current?.removeTrack(t);
+        });
+        localStreamRef.current.addTrack(newAudioTrack);
+        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+      }
+
+      peerConnectionsRef.current.forEach((pc) => {
+        const audioSender = pc.getSenders().find((s) => s.track && s.track.kind === 'audio');
+        if (audioSender) {
+          audioSender.replaceTrack(newAudioTrack);
+        } else {
+          pc.addTrack(newAudioTrack, localStreamRef.current!);
+        }
+      });
+    } catch (err) {
+      console.error('Error al cambiar de micrófono:', err);
+    }
+  }, []);
+
+  // Alternar Micrófono
+  const toggleAudio = useCallback(async () => {
+    if (!localStreamRef.current) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: SAFE_AUDIO_CONSTRAINTS });
+        localStreamRef.current = stream;
+        setLocalStream(stream);
+        setIsAudioEnabled(true);
+        peerConnectionsRef.current.forEach((pc) => {
+          stream.getAudioTracks().forEach((t) => pc.addTrack(t, stream));
+        });
+      } catch {
+        return;
+      }
+    }
+
+    const audioTracks = localStreamRef.current.getAudioTracks();
+    if (audioTracks.length === 0) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: SAFE_AUDIO_CONSTRAINTS });
+        const track = stream.getAudioTracks()[0];
+        localStreamRef.current.addTrack(track);
+        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+        setIsAudioEnabled(true);
+        peerConnectionsRef.current.forEach((pc) => pc.addTrack(track, localStreamRef.current!));
+      } catch {
+        return;
+      }
+    } else {
+      const newStatus = !isAudioEnabled;
+      audioTracks.forEach((t) => {
+        t.enabled = newStatus;
+      });
+      setIsAudioEnabled(newStatus);
+    }
+
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'peer-status',
+        payload: {
+          peerId: myPeerId,
+          audioEnabled: !isAudioEnabled,
+          videoEnabled: isVideoEnabled,
+          isScreenSharing,
+        },
+      });
+    }
+  }, [isAudioEnabled, isVideoEnabled, isScreenSharing, myPeerId]);
+
+  // Alternar Cámara (Arreglo definitivo: si no existe track, lo solicita activamente)
+  const toggleVideo = useCallback(async () => {
+    let stream = localStreamRef.current;
+
+    // 1. Si no hay stream o no hay video tracks, solicitar la cámara activamente
+    const currentVideoTracks = stream ? stream.getVideoTracks() : [];
+    const hasLiveVideoTrack = currentVideoTracks.some((t) => t.readyState === 'live');
+
+    if (!hasLiveVideoTrack) {
+      try {
+        const videoStream = await navigator.mediaDevices.getUserMedia({
+          video: videoDeviceId ? { deviceId: { exact: videoDeviceId } } : true,
+        });
+
+        const newTrack = videoStream.getVideoTracks()[0];
+        if (!newTrack) return;
+
+        cameraTrackRef.current = newTrack;
+
+        if (!stream) {
+          stream = new MediaStream([newTrack]);
+          localStreamRef.current = stream;
+        } else {
+          // Remover tracks finalizados
+          currentVideoTracks.forEach((t) => {
+            t.stop();
+            stream?.removeTrack(t);
+          });
+          stream.addTrack(newTrack);
+        }
+
+        setLocalStream(new MediaStream(stream.getTracks()));
+        setIsVideoEnabled(true);
+
+        // Añadir o reemplazar el track en cada peer connection
+        for (const [peerId, pc] of peerConnectionsRef.current.entries()) {
+          const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            await videoSender.replaceTrack(newTrack);
+          } else {
+            pc.addTrack(newTrack, stream);
+            // Re-negociar oferta si era una pista completamente nueva
+            try {
+              const offer = await pc.createOffer();
+              if (offer.sdp) offer.sdp = optimizeSdp(offer.sdp);
+              await pc.setLocalDescription(offer);
+              channelRef.current?.send({
+                type: 'broadcast',
+                event: 'meet-signal',
+                payload: { to: peerId, from: myPeerId, type: 'offer', sdp: offer },
+              });
+            } catch (negErr) {
+              console.warn('Error en renegociación:', negErr);
+            }
+          }
+        }
+
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'peer-status',
+          payload: {
+            peerId: myPeerId,
+            audioEnabled: isAudioEnabled,
+            videoEnabled: true,
+            isScreenSharing,
+          },
+        });
+        return;
+      } catch (err) {
+        console.warn('No se pudo activar la cámara:', err);
+        return;
+      }
+    }
+
+    // 2. Si ya existía un track vivo, simplemente alternar enabled
+    const newStatus = !isVideoEnabled;
+    currentVideoTracks.forEach((t) => {
+      t.enabled = newStatus;
+    });
+    setIsVideoEnabled(newStatus);
+
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'peer-status',
+        payload: {
+          peerId: myPeerId,
+          audioEnabled: isAudioEnabled,
+          videoEnabled: newStatus,
+          isScreenSharing,
+        },
+      });
+    }
+  }, [isVideoEnabled, isAudioEnabled, isScreenSharing, myPeerId, videoDeviceId]);
 
   // Conectar y unirse a la sala con Supabase Realtime Broadcast
   const joinMeeting = useCallback(async () => {
@@ -218,7 +443,6 @@ export function useWebRTCMeet({
       stream = await initLocalMedia();
     }
 
-    // Configurar canal de Supabase exclusivo para esta sala
     const channelName = `meet-room-${roomId.toLowerCase().trim()}`;
     const channel = supabase.channel(channelName, {
       config: { broadcast: { self: false } },
@@ -226,9 +450,7 @@ export function useWebRTCMeet({
 
     channelRef.current = channel;
 
-    // Escuchar eventos en la sala
     channel
-      // 1. Un nuevo participante se une
       .on('broadcast', { event: 'peer-joined' }, async ({ payload }) => {
         const { peerId: remotePeerId, name, avatar, audioEnabled, videoEnabled } = payload;
         if (!remotePeerId || remotePeerId === myPeerId) return;
@@ -245,7 +467,6 @@ export function useWebRTCMeet({
           return next;
         });
 
-        // Responder con "peer-welcome" para compartir nuestra info
         channel.send({
           type: 'broadcast',
           event: 'peer-welcome',
@@ -259,7 +480,6 @@ export function useWebRTCMeet({
           },
         });
       })
-      // 2. Respuesta de bienvenida recibida por nosotros
       .on('broadcast', { event: 'peer-welcome' }, async ({ payload }) => {
         const { to, peerId: remotePeerId, name, avatar, audioEnabled, videoEnabled } = payload;
         if (to !== myPeerId || remotePeerId === myPeerId) return;
@@ -276,7 +496,6 @@ export function useWebRTCMeet({
           return next;
         });
 
-        // El peer que recién ingresa inicia la oferta hacia los peers existentes
         const pc = createPeerConnection(remotePeerId);
         try {
           const offer = await pc.createOffer();
@@ -298,7 +517,6 @@ export function useWebRTCMeet({
           console.error('Error creando oferta WebRTC:', err);
         }
       })
-      // 3. Señalización WebRTC (offer, answer, ice-candidate)
       .on('broadcast', { event: 'meet-signal' }, async ({ payload }) => {
         const { to, from: remotePeerId, type, sdp, candidate } = payload;
         if (to !== myPeerId || remotePeerId === myPeerId) return;
@@ -313,7 +531,6 @@ export function useWebRTCMeet({
         try {
           if (type === 'offer') {
             await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-            // Aplicar candidatos ICE que hayan llegado antes de la oferta
             const pending = pendingCandidatesRef.current.get(remotePeerId) || [];
             for (const cand of pending) {
               await pc.addIceCandidate(new RTCIceCandidate(cand));
@@ -338,7 +555,6 @@ export function useWebRTCMeet({
             });
           } else if (type === 'answer') {
             await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-            // Aplicar candidatos pendientes
             const pending = pendingCandidatesRef.current.get(remotePeerId) || [];
             for (const cand of pending) {
               await pc.addIceCandidate(new RTCIceCandidate(cand));
@@ -357,7 +573,6 @@ export function useWebRTCMeet({
           console.error('Error procesando señal WebRTC:', err);
         }
       })
-      // 4. Cambios de estado en video/audio/pantalla de otros participantes
       .on('broadcast', { event: 'peer-status' }, ({ payload }) => {
         const { peerId: remotePeerId, audioEnabled, videoEnabled, isScreenSharing: screenOn } = payload;
         if (!remotePeerId || remotePeerId === myPeerId) return;
@@ -376,7 +591,6 @@ export function useWebRTCMeet({
           return next;
         });
       })
-      // 5. Un participante abandona la reunión
       .on('broadcast', { event: 'peer-left' }, ({ payload }) => {
         const { peerId: remotePeerId } = payload;
         if (!remotePeerId) return;
@@ -395,16 +609,13 @@ export function useWebRTCMeet({
           return next;
         });
       })
-      // 6. Mensajes de chat en vivo
       .on('broadcast', { event: 'meet-chat' }, ({ payload }) => {
         setMessages((prev) => [...prev, payload]);
       });
 
-    // Suscripción al canal
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         setIsConnected(true);
-        // Anunciar nuestra llegada a todos en la sala
         channel.send({
           type: 'broadcast',
           event: 'peer-joined',
@@ -429,53 +640,6 @@ export function useWebRTCMeet({
     createPeerConnection,
   ]);
 
-  // Alternar Micrófono
-  const toggleAudio = useCallback(() => {
-    if (!localStreamRef.current) return;
-    const newStatus = !isAudioEnabled;
-    localStreamRef.current.getAudioTracks().forEach((t) => {
-      t.enabled = newStatus;
-    });
-    setIsAudioEnabled(newStatus);
-
-    if (channelRef.current) {
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'peer-status',
-        payload: {
-          peerId: myPeerId,
-          audioEnabled: newStatus,
-          videoEnabled: isVideoEnabled,
-          isScreenSharing,
-        },
-      });
-    }
-  }, [isAudioEnabled, isVideoEnabled, isScreenSharing, myPeerId]);
-
-  // Alternar Cámara
-  const toggleVideo = useCallback(async () => {
-    if (!localStreamRef.current) return;
-    const newStatus = !isVideoEnabled;
-
-    localStreamRef.current.getVideoTracks().forEach((t) => {
-      t.enabled = newStatus;
-    });
-    setIsVideoEnabled(newStatus);
-
-    if (channelRef.current) {
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'peer-status',
-        payload: {
-          peerId: myPeerId,
-          audioEnabled: isAudioEnabled,
-          videoEnabled: newStatus,
-          isScreenSharing,
-        },
-      });
-    }
-  }, [isVideoEnabled, isAudioEnabled, isScreenSharing, myPeerId]);
-
   // Compartir Pantalla
   const toggleScreenShare = useCallback(async () => {
     if (isScreenSharing) {
@@ -495,18 +659,16 @@ export function useWebRTCMeet({
       }
 
       setIsScreenSharing(false);
-      if (channelRef.current) {
-        channelRef.current.send({
-          type: 'broadcast',
-          event: 'peer-status',
-          payload: {
-            peerId: myPeerId,
-            audioEnabled: isAudioEnabled,
-            videoEnabled: isVideoEnabled,
-            isScreenSharing: false,
-          },
-        });
-      }
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'peer-status',
+        payload: {
+          peerId: myPeerId,
+          audioEnabled: isAudioEnabled,
+          videoEnabled: isVideoEnabled,
+          isScreenSharing: false,
+        },
+      });
     } else {
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -526,18 +688,16 @@ export function useWebRTCMeet({
         });
 
         setIsScreenSharing(true);
-        if (channelRef.current) {
-          channelRef.current.send({
-            type: 'broadcast',
-            event: 'peer-status',
-            payload: {
-              peerId: myPeerId,
-              audioEnabled: isAudioEnabled,
-              videoEnabled: isVideoEnabled,
-              isScreenSharing: true,
-            },
-          });
-        }
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'peer-status',
+          payload: {
+            peerId: myPeerId,
+            audioEnabled: isAudioEnabled,
+            videoEnabled: isVideoEnabled,
+            isScreenSharing: true,
+          },
+        });
 
         screenTrack.onended = () => {
           if (cameraTrackRef.current) {
@@ -550,26 +710,24 @@ export function useWebRTCMeet({
             });
           }
           setIsScreenSharing(false);
-          if (channelRef.current) {
-            channelRef.current.send({
-              type: 'broadcast',
-              event: 'peer-status',
-              payload: {
-                peerId: myPeerId,
-                audioEnabled: isAudioEnabled,
-                videoEnabled: isVideoEnabled,
-                isScreenSharing: false,
-              },
-            });
-          }
+          channelRef.current?.send({
+            type: 'broadcast',
+            event: 'peer-status',
+            payload: {
+              peerId: myPeerId,
+              audioEnabled: isAudioEnabled,
+              videoEnabled: isVideoEnabled,
+              isScreenSharing: false,
+            },
+          });
         };
       } catch (err) {
-        console.warn('Compartir pantalla cancelado o no disponible:', err);
+        console.warn('Compartir pantalla cancelado:', err);
       }
     }
   }, [isScreenSharing, isAudioEnabled, isVideoEnabled, myPeerId]);
 
-  // Enviar mensaje de chat a todos los participantes
+  // Enviar mensaje de chat
   const sendMessage = useCallback((text: string) => {
     if (!text.trim() || !channelRef.current) return;
 
@@ -590,7 +748,7 @@ export function useWebRTCMeet({
     setMessages((prev) => [...prev, chatMsg]);
   }, [myPeerId, userName]);
 
-  // Salir de la reunión y liberar recursos
+  // Salir de la reunión
   const leaveMeeting = useCallback(() => {
     if (channelRef.current) {
       channelRef.current.send({
@@ -621,7 +779,7 @@ export function useWebRTCMeet({
     setIsConnected(false);
   }, [myPeerId]);
 
-  // Analizador simple de nivel de voz para indicar si el usuario local está hablando
+  // Nivel de voz local
   useEffect(() => {
     if (!localStream || !isAudioEnabled) {
       setIsLocalSpeaking(false);
@@ -657,9 +815,7 @@ export function useWebRTCMeet({
       };
 
       checkVolume();
-    } catch {
-      // Ignorar si el navegador bloquea audioContext
-    }
+    } catch {}
 
     return () => {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -669,7 +825,6 @@ export function useWebRTCMeet({
     };
   }, [localStream, isAudioEnabled]);
 
-  // Limpieza al desmontar el componente
   useEffect(() => {
     return () => {
       leaveMeeting();
@@ -692,6 +847,8 @@ export function useWebRTCMeet({
     toggleAudio,
     toggleVideo,
     toggleScreenShare,
+    switchCamera,
+    switchMicrophone,
     sendMessage,
     leaveMeeting,
   };
