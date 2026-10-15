@@ -926,8 +926,13 @@ export function useDiscord() {
   }, [currentChannel, user]);
 
   // Join voice channel
-  const joinVoiceChannel = async (channel: DiscordChannel) => {
-    if (!user || channel.type !== "voice") return;
+  const joinVoiceChannel = async (channelOrId: DiscordChannel | string) => {
+    if (!user) return;
+    const channel = typeof channelOrId === "string"
+      ? channels.find((c) => c.id === channelOrId) || ({ id: channelOrId, type: "voice", name: "Voz", server_id: currentServer?.id || "" } as DiscordChannel)
+      : channelOrId;
+
+    if (!channel || channel.type !== "voice") return;
 
     console.log("[Discord][Diag] joinVoiceChannel start", {
       channelId: channel.id,

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ICE_SERVERS, optimizeSdp } from "@/lib/webrtc-config";
+import { toast } from "sonner";
 
 export interface CameraDevice {
   deviceId: string;
@@ -9,6 +10,8 @@ export interface CameraDevice {
 }
 
 export interface RemoteMediaState {
+  displayName?: string;
+  avatarUrl?: string | null;
   isMuted: boolean;
   isVideoOff: boolean;
   isDeafened: boolean;
@@ -91,6 +94,22 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const vadIntervalRef = useRef<any>(null);
 
+  // Identidad local para señalización y Presencia
+  const getLocalIdentity = useCallback(() => {
+    const meta = (user?.user_metadata as any) || {};
+    return {
+      displayName:
+        localStorage.getItem("tabetalk_nickname") ||
+        meta.nombre ||
+        meta.full_name ||
+        meta.username ||
+        user?.email?.split("@")[0] ||
+        "Estudiante",
+      avatarUrl:
+        localStorage.getItem("tabetalk_avatar") || meta.avatar_url || null,
+    };
+  }, [user]);
+
   // --- DISPOSITIVOS Y PERIFÉRICOS ---
   const getDevices = useCallback(async () => {
     try {
@@ -99,118 +118,115 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
       const videoDevs = devices.filter((d) => d.kind === "videoinput");
       const audioDevs = devices.filter((d) => d.kind === "audioinput");
 
-      setCameras(videoDevs.map((d, idx) => ({ deviceId: d.deviceId, label: d.label || `Cámara ${idx + 1}` })));
-      setMics(audioDevs.map((d, idx) => ({ deviceId: d.deviceId, label: d.label || `Micrófono ${idx + 1}` })));
-
-      if (videoDevs.length > 0 && !selectedCameraId) setSelectedCameraId(videoDevs[0].deviceId);
-      if (audioDevs.length > 0 && !selectedMicId) setSelectedMicId(audioDevs[0].deviceId);
-    } catch (err) {
-      console.warn("[WebRTC] Error enumerando dispositivos:", err);
+      setCameras(
+        videoDevs.map((d, i) => ({
+          deviceId: d.deviceId,
+          label: d.label || `Cámara ${i + 1}`,
+        }))
+      );
+      setMics(
+        audioDevs.map((d, i) => ({
+          deviceId: d.deviceId,
+          label: d.label || `Micrófono ${i + 1}`,
+        }))
+      );
+    } catch (e) {
+      console.warn("[WebRTC] Error al enumerar dispositivos:", e);
     }
-  }, [selectedCameraId, selectedMicId]);
+  }, []);
 
-  // --- VOICE ACTIVITY DETECTION (VAD) CON UMBRAL -50 dB ---
-  const emitSpeakingState = useCallback((speaking: boolean) => {
-    if (!channelRef.current || !localUserId) return;
+  // Emisión rápida de detección de voz (VAD)
+  const emitSpeakingState = useCallback(
+    (speaking: boolean) => {
+      if (!channelRef.current || !localUserId) return;
+      channelRef.current.send({
+        type: "broadcast",
+        event: "user-speaking",
+        payload: { userId: localUserId, isSpeaking: speaking },
+      });
+    },
+    [localUserId]
+  );
 
-    channelRef.current.send({
-      type: "broadcast",
-      event: "user-speaking",
-      payload: { userId: localUserId, isSpeaking: speaking },
-    });
+  // Configuración de Analizador de Audio para VAD (Voice Activity Detection)
+  const setupVAD = useCallback(
+    (stream: MediaStream) => {
+      try {
+        if (vadIntervalRef.current) clearInterval(vadIntervalRef.current);
+        if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+          audioContextRef.current.close().catch(() => {});
+        }
 
-    channelRef.current.send({
-      type: "broadcast",
-      event: "user-toggle-media",
-      payload: {
-        userId: localUserId,
-        isMuted: isDeafenedRef.current || !isAudioEnabledRef.current,
-        isVideoOff: !isVideoEnabledRef.current,
-        isDeafened: isDeafenedRef.current,
-        isSpeaking: speaking,
-        isScreenSharing: isScreenSharingRef.current,
-      },
-    });
-  }, [localUserId]);
+        const audioTrack = stream.getAudioTracks().find((t) => t.readyState === "live");
+        if (!audioTrack) return;
 
-  const setupVAD = useCallback((stream: MediaStream) => {
-    if (vadIntervalRef.current) clearInterval(vadIntervalRef.current);
-    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-      audioContextRef.current.close().catch(() => {});
-    }
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const audioCtx = new AudioCtx();
+        audioContextRef.current = audioCtx;
 
-    const audioTrack = stream.getAudioTracks()[0];
-    if (!audioTrack) return;
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.35;
+        analyzerRef.current = analyser;
 
-    try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextClass) return;
-      const audioCtx = new AudioContextClass();
-      audioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
 
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.35;
-      analyzerRef.current = analyser;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Float32Array(bufferLength);
 
-      const source = audioCtx.createMediaStreamSource(stream);
-      source.connect(analyser);
+        vadIntervalRef.current = setInterval(() => {
+          if (!localUserId) return;
 
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Float32Array(bufferLength);
+          // Si está silenciado o ensordecido, silenciar inmediatamente el estado de voz
+          if (!isAudioEnabledRef.current || isDeafenedRef.current) {
+            if (isSpeakingRef.current) {
+              isSpeakingRef.current = false;
+              setIsSpeaking(false);
+              setSpeakingUsers((prev) => {
+                const next = new Set(prev);
+                next.delete(localUserId);
+                return next;
+              });
+              emitSpeakingState(false);
+            }
+            return;
+          }
 
-      vadIntervalRef.current = setInterval(() => {
-        if (!localUserId) return;
+          analyser.getFloatFrequencyData(dataArray);
+          let maxDb = -Infinity;
+          for (let i = 0; i < bufferLength; i++) {
+            if (dataArray[i] > maxDb) {
+              maxDb = dataArray[i];
+            }
+          }
 
-        // Si está silenciado o ensordecido, silenciar inmediatamente el estado de voz
-        if (!isAudioEnabledRef.current || isDeafenedRef.current) {
-          if (isSpeakingRef.current) {
-            isSpeakingRef.current = false;
-            setIsSpeaking(false);
+          const isSpeakingNow = maxDb > -50;
+
+          if (isSpeakingNow !== isSpeakingRef.current) {
+            isSpeakingRef.current = isSpeakingNow;
+            setIsSpeaking(isSpeakingNow);
             setSpeakingUsers((prev) => {
               const next = new Set(prev);
-              next.delete(localUserId);
+              if (isSpeakingNow) next.add(localUserId);
+              else next.delete(localUserId);
               return next;
             });
-            emitSpeakingState(false);
+            emitSpeakingState(isSpeakingNow);
           }
-          return;
-        }
+        }, 100);
+      } catch (e) {
+        console.warn("[WebRTC] Error inicializando VAD:", e);
+      }
+    },
+    [emitSpeakingState, localUserId]
+  );
 
-        // Obtener datos de frecuencia en dB (valores negativos donde 0 dB = full scale)
-        analyser.getFloatFrequencyData(dataArray);
-        let maxDb = -Infinity;
-        for (let i = 0; i < bufferLength; i++) {
-          if (dataArray[i] > maxDb) {
-            maxDb = dataArray[i];
-          }
-        }
-
-        // Umbral de -50 dB solicitado
-        const isSpeakingNow = maxDb > -50;
-
-        if (isSpeakingNow !== isSpeakingRef.current) {
-          isSpeakingRef.current = isSpeakingNow;
-          setIsSpeaking(isSpeakingNow);
-          setSpeakingUsers((prev) => {
-            const next = new Set(prev);
-            if (isSpeakingNow) next.add(localUserId);
-            else next.delete(localUserId);
-            return next;
-          });
-          emitSpeakingState(isSpeakingNow);
-        }
-      }, 100);
-    } catch (e) {
-      console.warn("[WebRTC] Error inicializando VAD:", e);
-    }
-  }, [emitSpeakingState, localUserId]);
-
-  // --- ADQUISICIÓN INICIAL DE PERIFÉRICOS CON FALLBACK Y CONSTRAINTS ADAPTATIVAS ---
+  // --- ADQUISICIÓN INICIAL DE PERIFÉRICOS CON MODO OYENTE RESILIENTE ---
   const initLocalMedia = useCallback(async () => {
     let stream: MediaStream | null = null;
     try {
-      // 1. Audio con optimizaciones para redes inestables (cancelación de eco, ganancia automática, mono a 48kHz)
       const audioConstraints: MediaTrackConstraints = {
         echoCancellation: { ideal: true },
         noiseSuppression: { ideal: true },
@@ -219,7 +235,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
       };
 
       if (selectedMicId && selectedMicId !== "default") {
-        audioConstraints.deviceId = { exact: selectedMicId };
+        audioConstraints.deviceId = { ideal: selectedMicId };
       }
 
       try {
@@ -232,16 +248,16 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         } catch (fallbackErr) {
-          console.warn("[WebRTC] Permisos de micrófono denegados o no disponibles. Modo escucha:", fallbackErr);
+          console.warn("[WebRTC] Micrófono denegado o no disponible. Entrando en modo oyente:", fallbackErr);
           stream = new MediaStream();
           setIsAudioEnabled(false);
+          isAudioEnabledRef.current = false;
         }
       }
 
       setLocalStream(stream);
       localStreamRef.current = stream;
 
-      // Aplicar estado de pistas locales
       stream.getAudioTracks().forEach((track) => {
         track.enabled = isAudioEnabledRef.current && !isDeafenedRef.current;
       });
@@ -252,53 +268,62 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
       await getDevices();
       return stream;
     } catch (err) {
-      console.error("[WebRTC] Error crítico en initLocalMedia:", err);
+      console.error("[WebRTC] Error en initLocalMedia, creando MediaStream vacío:", err);
       const fallbackStream = new MediaStream();
       setLocalStream(fallbackStream);
       localStreamRef.current = fallbackStream;
       setIsAudioEnabled(false);
+      isAudioEnabledRef.current = false;
       return fallbackStream;
     }
   }, [getDevices, selectedMicId, setupVAD]);
 
-  // --- BROADCAST MEDIA STATE ---
+  // --- BROADCAST MEDIA STATE & PRESENCE ---
   const broadcastMediaState = useCallback(
     (customState?: Partial<RemoteMediaState>) => {
       if (!channelRef.current || !localUserId) return;
+      const identity = getLocalIdentity();
 
-      const effectiveIsMuted = customState?.isMuted !== undefined
-        ? customState.isMuted
-        : (isDeafenedRef.current || !isAudioEnabledRef.current);
+      const nextMuted =
+        customState?.isMuted !== undefined
+          ? customState.isMuted
+          : (isDeafenedRef.current || !isAudioEnabledRef.current);
 
-      const effectiveIsVideoOff = customState?.isVideoOff !== undefined
-        ? customState.isVideoOff
-        : !isVideoEnabledRef.current;
+      const nextVideoOff =
+        customState?.isVideoOff !== undefined
+          ? customState.isVideoOff
+          : !isVideoEnabledRef.current;
 
-      const effectiveIsDeafened = customState?.isDeafened !== undefined
-        ? customState.isDeafened
-        : isDeafenedRef.current;
+      const nextDeafened =
+        customState?.isDeafened !== undefined
+          ? customState.isDeafened
+          : isDeafenedRef.current;
 
-      const effectiveIsScreenSharing = customState?.isScreenSharing !== undefined
-        ? customState.isScreenSharing
-        : isScreenSharingRef.current;
+      const nextScreenSharing =
+        customState?.isScreenSharing !== undefined
+          ? customState.isScreenSharing
+          : isScreenSharingRef.current;
 
-      const effectiveIsSpeaking = customState?.isSpeaking !== undefined
-        ? customState.isSpeaking
-        : (isSpeakingRef.current && !effectiveIsMuted);
+      const nextSpeaking =
+        customState?.isSpeaking !== undefined
+          ? customState.isSpeaking
+          : (isSpeakingRef.current && !nextMuted);
 
       const payload = {
         userId: localUserId,
         senderId: localUserId,
-        isMuted: effectiveIsMuted,
-        isVideoOff: effectiveIsVideoOff,
-        isDeafened: effectiveIsDeafened,
-        isSpeaking: effectiveIsSpeaking,
-        isScreenSharing: effectiveIsScreenSharing,
-        isCameraOn: !effectiveIsVideoOff,
-        isAudioEnabled: !effectiveIsMuted,
+        displayName: identity.displayName,
+        avatarUrl: identity.avatarUrl,
+        isMuted: nextMuted,
+        isVideoOff: nextVideoOff,
+        isDeafened: nextDeafened,
+        isSpeaking: nextSpeaking,
+        isScreenSharing: nextScreenSharing,
+        isCameraOn: !nextVideoOff,
+        isAudioEnabled: !nextMuted,
+        onlineAt: new Date().toISOString(),
       };
 
-      // Emitir user-toggle-media (especificado) y media_state (retrocompatibilidad)
       channelRef.current.send({
         type: "broadcast",
         event: "user-toggle-media",
@@ -311,16 +336,10 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         payload,
       });
 
-      // Sincronizar en presence
-      channelRef.current
-        .track({
-          userId: localUserId,
-          ...payload,
-          onlineAt: new Date().toISOString(),
-        })
-        .catch(() => {});
+      // Sincronizar en presence para que los compañeros que entren después reciban el estado
+      channelRef.current.track(payload).catch(() => {});
     },
-    [localUserId]
+    [localUserId, getLocalIdentity]
   );
 
   // Sincronizar DB de participantes de voz
@@ -343,15 +362,13 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     try {
       pc.getTransceivers().forEach((transceiver) => {
         if (!transceiver.sender) return;
-        const kind = transceiver.receiver.track.kind;
+        const kind = transceiver.receiver?.track?.kind;
         const params = transceiver.sender.getParameters();
         if (params && params.encodings && params.encodings.length > 0) {
           if (kind === "audio") {
-            // Prioridad máxima al audio para que nunca se entrecorte
             params.encodings[0].networkPriority = "high";
             transceiver.sender.setParameters(params).catch(() => {});
           } else if (kind === "video") {
-            // Limitar bitrate de video a 850 kbps para no saturar conexiones lentas
             params.encodings[0].networkPriority = "medium";
             params.encodings[0].maxBitrate = 850000;
             transceiver.sender.setParameters(params).catch(() => {});
@@ -361,180 +378,243 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     } catch (_) {}
   };
 
-  // --- GESTIÓN DE PEER CONNECTIONS WEBRTC CON SELF-HEALING Y FEC ---
-  const createPeerConnection = useCallback((targetId: string, isInitiator: boolean) => {
-    if (peerConnections.current.has(targetId)) {
-      const existingPc = peerConnections.current.get(targetId)!;
-      if (existingPc.signalingState !== "closed" && existingPc.connectionState !== "failed") {
-        return existingPc;
-      }
-      existingPc.close();
-    }
+  /**
+   * Renegocia SDP con un peer específico cuando se agrega una pista nueva en caliente.
+   */
+  const renegotiateWithPeer = useCallback(
+    async (peerId: string, pc: RTCPeerConnection) => {
+      if (!localUserId || !channelRef.current) return;
+      try {
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true,
+        });
+        const optimizedOffer: RTCSessionDescriptionInit = {
+          type: offer.type,
+          sdp: optimizeSdp(offer.sdp || ""),
+        };
+        await pc.setLocalDescription(optimizedOffer);
 
-    const pc = new RTCPeerConnection(ICE_SERVERS);
-    peerConnections.current.set(targetId, pc);
+        const identity = getLocalIdentity();
+        const payload = {
+          senderId: localUserId,
+          targetId: peerId,
+          sdp: pc.localDescription,
+          offer: pc.localDescription,
+          mediaState: {
+            isMuted: isDeafenedRef.current || !isAudioEnabledRef.current,
+            isVideoOff: !isVideoEnabledRef.current,
+            isDeafened: isDeafenedRef.current,
+            isSpeaking: isSpeakingRef.current,
+            isScreenSharing: isScreenSharingRef.current,
+            isCameraOn: isVideoEnabledRef.current,
+            isAudioEnabled: isAudioEnabledRef.current && !isDeafenedRef.current,
+          },
+          ...identity,
+        };
 
-    setPeerStates((prev) => {
-      const next = new Map(prev);
-      next.set(targetId, "connecting");
-      return next;
-    });
-
-    // 1. Audio: Añadir pista local de audio o transceptor sendrecv con prioridad alta
-    const audioTrack = localStreamRef.current?.getAudioTracks()[0];
-    if (audioTrack) {
-      pc.addTrack(audioTrack, localStreamRef.current!);
-    } else {
-      pc.addTransceiver("audio", { direction: "sendrecv" });
-    }
-
-    // 2. Video: Transceptor de video en 'sendrecv'
-    const videoTrack = localStreamRef.current?.getVideoTracks()[0];
-    if (videoTrack && isVideoEnabledRef.current) {
-      pc.addTrack(videoTrack, localStreamRef.current!);
-    } else {
-      pc.addTransceiver("video", { direction: "sendrecv" });
-    }
-
-    // 3. Pantalla compartida si existe
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, screenStreamRef.current!);
-      });
-    }
-
-    configureSenderPriorities(pc);
-
-    // 4. ICE Candidates
-    pc.onicecandidate = (event) => {
-      if (event.candidate && channelRef.current && localUserId) {
         channelRef.current.send({
           type: "broadcast",
-          event: "webrtc_ice_candidate",
-          payload: { targetId, senderId: localUserId, candidate: event.candidate },
+          event: "webrtc-offer",
+          payload,
         });
+        channelRef.current.send({
+          type: "broadcast",
+          event: "webrtc_offer",
+          payload,
+        });
+      } catch (err) {
+        console.warn(`[TabeTalk] Error renegociando SDP con ${peerId}:`, err);
       }
-    };
+    },
+    [localUserId, getLocalIdentity]
+  );
 
-    // 5. Recepción de pistas remotas
-    pc.ontrack = (event) => {
-      const track = event.track;
-      const isScreen =
-        track.kind === "video" &&
-        (track.label.toLowerCase().includes("screen") ||
-          track.label.toLowerCase().includes("window") ||
-          track.label.toLowerCase().includes("display") ||
-          track.label.toLowerCase().includes("pantalla") ||
-          remoteMediaStates.get(targetId)?.isScreenSharing);
-
-      if (isScreen) {
-        setRemoteScreenStreams((prev) => {
-          const next = new Map(prev);
-          let stream = next.get(targetId) || new MediaStream();
-          stream.getVideoTracks().forEach((t) => stream.removeTrack(t));
-          stream.addTrack(track);
-          next.set(targetId, stream);
-          return next;
-        });
-      } else {
-        setRemoteStreams((prev) => {
-          const next = new Map(prev);
-          let stream = next.get(targetId) || new MediaStream();
-          const oldTracks = track.kind === "video" ? stream.getVideoTracks() : stream.getAudioTracks();
-          oldTracks.forEach((t) => stream.removeTrack(t));
-          stream.addTrack(track);
-          next.set(targetId, stream);
-          return new Map(next);
-        });
-      }
-    };
-
-    // Auto-recuperación activa de conexión ante caídas o cambio de red (Self-Healing)
-    const handleConnectionFailure = () => {
-      const currentPc = peerConnections.current.get(targetId);
-      if (!currentPc || currentPc !== pc) return;
-
-      console.warn(`[WebRTC] Detectada inestabilidad con ${targetId}. Iniciando auto-recuperación...`);
-      // Intento 1: restartIce nativo
-      if (typeof pc.restartIce === "function") {
-        try {
-          pc.restartIce();
-        } catch (_) {}
+  // --- GESTIÓN DE PEER CONNECTIONS WEBRTC ---
+  const createPeerConnection = useCallback(
+    (targetId: string, isInitiator: boolean) => {
+      if (peerConnections.current.has(targetId)) {
+        const existingPc = peerConnections.current.get(targetId)!;
+        if (existingPc.signalingState !== "closed" && existingPc.connectionState !== "failed") {
+          return existingPc;
+        }
+        existingPc.close();
       }
 
-      // Re-ofertar con iceRestart
-      pc.createOffer({ iceRestart: true })
-        .then((offer) => {
-          const sdp = optimizeSdp(offer.sdp || "");
-          return pc.setLocalDescription({ type: offer.type, sdp });
-        })
-        .then(() => {
-          channelRef.current?.send({
-            type: "broadcast",
-            event: "webrtc_offer",
-            payload: {
-              targetId,
-              senderId: localUserId,
-              offer: pc.localDescription,
-            },
-          });
-        })
-        .catch(() => {
-          // Intento 2 agresivo: Recrear la conexión tras 2 segundos si el peer sigue caído
-          setTimeout(() => {
-            if (peerConnections.current.get(targetId) === pc) {
-              if (pc.iceConnectionState === "failed" || pc.connectionState === "failed") {
-                console.log(`[WebRTC] Recreando peer connection limpia con ${targetId}`);
-                pc.close();
-                peerConnections.current.delete(targetId);
-                createPeerConnection(targetId, true);
-              }
-            }
-          }, 2000);
-        });
-    };
+      const pc = new RTCPeerConnection(ICE_SERVERS);
+      peerConnections.current.set(targetId, pc);
 
-    pc.oniceconnectionstatechange = () => {
-      const state = pc.iceConnectionState;
       setPeerStates((prev) => {
-        const n = new Map(prev);
-        n.set(targetId, state);
-        return n;
+        const next = new Map(prev);
+        next.set(targetId, "connecting");
+        return next;
       });
 
-      if (state === "failed") {
-        handleConnectionFailure();
-      } else if (state === "disconnected") {
-        setTimeout(() => {
-          if (pc.iceConnectionState === "disconnected") {
-            handleConnectionFailure();
-          }
-        }, 1500);
+      // 1. Audio: Añadir pista local de audio o transceptor sendrecv
+      const audioTrack = localStreamRef.current?.getAudioTracks().find((t) => t.readyState === "live");
+      if (audioTrack) {
+        pc.addTrack(audioTrack, localStreamRef.current!);
+      } else {
+        pc.addTransceiver("audio", { direction: "sendrecv" });
       }
-    };
 
-    pc.onconnectionstatechange = () => {
-      const state = pc.connectionState;
-      if (state === "failed") {
-        handleConnectionFailure();
+      // 2. Video: Añadir pista local de video o transceptor sendrecv
+      const videoTrack = localStreamRef.current?.getVideoTracks().find((t) => t.readyState === "live");
+      if (videoTrack && isVideoEnabledRef.current) {
+        pc.addTrack(videoTrack, localStreamRef.current!);
+      } else {
+        pc.addTransceiver("video", { direction: "sendrecv" });
       }
-    };
 
-    // Negociación inicial si somos el iniciador (con SDP optimizado Opus FEC)
-    if (isInitiator) {
-      pc.createOffer()
-        .then((offer) => {
-          const sdp = optimizeSdp(offer.sdp || "");
-          return pc.setLocalDescription({ type: offer.type, sdp });
-        })
-        .then(() => {
-          channelRef.current?.send({
+      // 3. Pantalla compartida si existe
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((track) => {
+          pc.addTrack(track, screenStreamRef.current!);
+        });
+      }
+
+      configureSenderPriorities(pc);
+
+      // 4. ICE Candidates (emitir formatos guion y guion bajo para máxima compatibilidad)
+      pc.onicecandidate = (event) => {
+        if (event.candidate && channelRef.current && localUserId) {
+          const icePayload = { targetId, senderId: localUserId, candidate: event.candidate };
+          channelRef.current.send({
             type: "broadcast",
-            event: "webrtc_offer",
-            payload: {
+            event: "webrtc-ice-candidate",
+            payload: icePayload,
+          });
+          channelRef.current.send({
+            type: "broadcast",
+            event: "webrtc_ice_candidate",
+            payload: icePayload,
+          });
+        }
+      };
+
+      // 5. Recepción de pistas remotas reactivas
+      pc.ontrack = (event) => {
+        const track = event.track;
+        const isScreen =
+          track.kind === "video" &&
+          (track.label.toLowerCase().includes("screen") ||
+            track.label.toLowerCase().includes("window") ||
+            track.label.toLowerCase().includes("display") ||
+            track.label.toLowerCase().includes("pantalla") ||
+            remoteMediaStates.get(targetId)?.isScreenSharing);
+
+        if (isScreen) {
+          setRemoteScreenStreams((prev) => {
+            const next = new Map(prev);
+            let stream = next.get(targetId) || new MediaStream();
+            stream.getVideoTracks().forEach((t) => stream.removeTrack(t));
+            stream.addTrack(track);
+            next.set(targetId, new MediaStream(stream.getTracks()));
+            return next;
+          });
+        } else {
+          setRemoteStreams((prev) => {
+            const next = new Map(prev);
+            let stream = next.get(targetId) || new MediaStream();
+            const oldTracks = track.kind === "video" ? stream.getVideoTracks() : stream.getAudioTracks();
+            oldTracks.forEach((t) => stream.removeTrack(t));
+            stream.addTrack(track);
+            next.set(targetId, new MediaStream(stream.getTracks()));
+            return new Map(next);
+          });
+        }
+      };
+
+      // Auto-recuperación de conexión (Self-Healing)
+      const handleConnectionFailure = () => {
+        const currentPc = peerConnections.current.get(targetId);
+        if (!currentPc || currentPc !== pc) return;
+
+        console.warn(`[WebRTC] Inestabilidad detectada con ${targetId}. Auto-recuperando...`);
+        if (typeof pc.restartIce === "function") {
+          try {
+            pc.restartIce();
+          } catch (_) {}
+        }
+
+        pc.createOffer({ iceRestart: true })
+          .then((offer) => {
+            const sdp = optimizeSdp(offer.sdp || "");
+            return pc.setLocalDescription({ type: offer.type, sdp });
+          })
+          .then(() => {
+            const identity = getLocalIdentity();
+            const payload = {
               targetId,
               senderId: localUserId,
               offer: pc.localDescription,
+              sdp: pc.localDescription,
+              ...identity,
+            };
+            channelRef.current?.send({
+              type: "broadcast",
+              event: "webrtc-offer",
+              payload,
+            });
+            channelRef.current?.send({
+              type: "broadcast",
+              event: "webrtc_offer",
+              payload,
+            });
+          })
+          .catch(() => {
+            setTimeout(() => {
+              if (peerConnections.current.get(targetId) === pc) {
+                if (pc.iceConnectionState === "failed" || pc.connectionState === "failed") {
+                  pc.close();
+                  peerConnections.current.delete(targetId);
+                  createPeerConnection(targetId, true);
+                }
+              }
+            }, 2000);
+          });
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        setPeerStates((prev) => {
+          const n = new Map(prev);
+          n.set(targetId, state);
+          return n;
+        });
+
+        if (state === "failed") {
+          handleConnectionFailure();
+        } else if (state === "disconnected") {
+          setTimeout(() => {
+            if (pc.iceConnectionState === "disconnected") {
+              handleConnectionFailure();
+            }
+          }, 1500);
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState;
+        if (state === "failed") {
+          handleConnectionFailure();
+        }
+      };
+
+      // Negociación inicial si este peer inicia el Offer
+      if (isInitiator) {
+        pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+          .then((offer) => {
+            const sdp = optimizeSdp(offer.sdp || "");
+            return pc.setLocalDescription({ type: offer.type, sdp });
+          })
+          .then(() => {
+            const identity = getLocalIdentity();
+            const payload = {
+              targetId,
+              senderId: localUserId,
+              offer: pc.localDescription,
+              sdp: pc.localDescription,
               mediaState: {
                 isMuted: isDeafenedRef.current || !isAudioEnabledRef.current,
                 isVideoOff: !isVideoEnabledRef.current,
@@ -544,14 +624,26 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                 isCameraOn: isVideoEnabledRef.current,
                 isAudioEnabled: isAudioEnabledRef.current && !isDeafenedRef.current,
               },
-            },
-          });
-        })
-        .catch((e) => console.warn("[WebRTC] Error creando oferta inicial:", e));
-    }
+              ...identity,
+            };
+            channelRef.current?.send({
+              type: "broadcast",
+              event: "webrtc-offer",
+              payload,
+            });
+            channelRef.current?.send({
+              type: "broadcast",
+              event: "webrtc_offer",
+              payload,
+            });
+          })
+          .catch((e) => console.warn("[WebRTC] Error creando oferta inicial:", e));
+      }
 
-    return pc;
-  }, [localUserId, remoteMediaStates]);
+      return pc;
+    },
+    [localUserId, remoteMediaStates, getLocalIdentity]
+  );
 
   // Actualización de estado de participante remoto
   const handleRemoteToggleMedia = useCallback(
@@ -576,10 +668,15 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
       const isDeafened = Boolean(payload.isDeafened);
       const isSpeaking = Boolean(payload.isSpeaking);
       const isScreenSharing = Boolean(payload.isScreenSharing);
+      const displayName = payload.displayName;
+      const avatarUrl = payload.avatarUrl;
 
       setRemoteMediaStates((prev) => {
         const next = new Map(prev);
+        const prevEntry = next.get(peerId);
         next.set(peerId, {
+          displayName: displayName || prevEntry?.displayName || "Estudiante",
+          avatarUrl: avatarUrl !== undefined ? avatarUrl : (prevEntry?.avatarUrl ?? null),
           isMuted,
           isVideoOff,
           isDeafened,
@@ -604,7 +701,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     [localUserId]
   );
 
-  // --- EFECTO PRINCIPAL DE SALA Y SEÑALIZACIÓN ---
+  // --- EFECTO PRINCIPAL DE SALA, PRESENCE Y SEÑALIZACIÓN ---
   useEffect(() => {
     if (!channelId || !localUserId) return;
 
@@ -614,7 +711,7 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
       await initLocalMedia();
       if (!active) return;
 
-      const channel = supabase.channel(`room_${channelId}`, {
+      const channel = supabase.channel(`tabetalk-room-${channelId}`, {
         config: {
           broadcast: { self: false },
           presence: { key: localUserId },
@@ -622,19 +719,21 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
       });
       channelRef.current = channel;
 
+      // 1. Sincronización completa de Presencia
       channel
-        // Presencia
         .on("presence", { event: "sync" }, () => {
           const presenceState = channel.presenceState();
-          setRemoteMediaStates((prev) => {
-            const next = new Map(prev);
-            Object.entries(presenceState).forEach(([userId, presences]: [string, any[]]) => {
-              if (userId === localUserId) return;
-              const latest = presences[presences.length - 1];
-              if (latest) {
-                const isMuted = latest.isMuted !== undefined ? latest.isMuted : !latest.isAudioEnabled;
-                const isVideoOff = latest.isVideoOff !== undefined ? latest.isVideoOff : !latest.isCameraOn;
-                next.set(userId, {
+          Object.entries(presenceState).forEach(([peerId, presences]: [string, any[]]) => {
+            if (peerId === localUserId || !presences || presences.length === 0) return;
+            const latest = presences[presences.length - 1];
+            if (latest) {
+              const isMuted = latest.isMuted !== undefined ? latest.isMuted : !latest.isAudioEnabled;
+              const isVideoOff = latest.isVideoOff !== undefined ? latest.isVideoOff : !latest.isCameraOn;
+              setRemoteMediaStates((prev) => {
+                const next = new Map(prev);
+                next.set(peerId, {
+                  displayName: latest.displayName || "Estudiante",
+                  avatarUrl: latest.avatarUrl || null,
                   isMuted: Boolean(isMuted),
                   isVideoOff: Boolean(isVideoOff),
                   isDeafened: Boolean(latest.isDeafened),
@@ -643,19 +742,42 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
                   isCameraOn: !isVideoOff,
                   isAudioEnabled: !isMuted,
                 });
+                return next;
+              });
 
-                if (!peerConnections.current.has(userId) && localUserId.localeCompare(userId) < 0) {
-                  createPeerConnection(userId, true);
-                }
+              // Desempate determinista para evitar Glare (userId menor envía el Offer)
+              if (!peerConnections.current.has(peerId)) {
+                const shouldInitiateOffer = localUserId.localeCompare(peerId) < 0;
+                createPeerConnection(peerId, shouldInitiateOffer);
               }
-            });
-            return next;
+            }
           });
         })
-        .on("presence", { event: "join" }, ({ key }) => {
+        .on("presence", { event: "join" }, ({ key, newPresences }) => {
           if (key !== localUserId) {
-            if (!peerConnections.current.has(key) && localUserId.localeCompare(key) < 0) {
-              createPeerConnection(key, true);
+            const latest = newPresences?.[newPresences.length - 1];
+            if (latest) {
+              setRemoteMediaStates((prev) => {
+                const next = new Map(prev);
+                const isMuted = latest.isMuted !== undefined ? latest.isMuted : !latest.isAudioEnabled;
+                const isVideoOff = latest.isVideoOff !== undefined ? latest.isVideoOff : !latest.isCameraOn;
+                next.set(key, {
+                  displayName: latest.displayName || "Estudiante",
+                  avatarUrl: latest.avatarUrl || null,
+                  isMuted: Boolean(isMuted),
+                  isVideoOff: Boolean(isVideoOff),
+                  isDeafened: Boolean(latest.isDeafened),
+                  isSpeaking: Boolean(latest.isSpeaking),
+                  isScreenSharing: Boolean(latest.isScreenSharing),
+                  isCameraOn: !isVideoOff,
+                  isAudioEnabled: !isMuted,
+                });
+                return next;
+              });
+            }
+            if (!peerConnections.current.has(key)) {
+              const shouldInitiateOffer = localUserId.localeCompare(key) < 0;
+              createPeerConnection(key, shouldInitiateOffer);
             }
           }
         })
@@ -693,14 +815,17 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
               return next;
             });
           }
-        })
-        // 1. user-joined (especificado) y user_joined (compatibilidad)
+        });
+
+      // 2. Broadcast de usuarios y medios
+      channel
         .on("broadcast", { event: "user-joined" }, ({ payload }) => {
           if (payload?.userId && payload.userId !== localUserId) {
             handleRemoteToggleMedia(payload);
             broadcastMediaState();
-            if (!peerConnections.current.has(payload.userId) && localUserId.localeCompare(payload.userId) < 0) {
-              createPeerConnection(payload.userId, true);
+            if (!peerConnections.current.has(payload.userId)) {
+              const shouldInitiateOffer = localUserId.localeCompare(payload.userId) < 0;
+              createPeerConnection(payload.userId, shouldInitiateOffer);
             }
           }
         })
@@ -708,12 +833,12 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
           if (payload?.userId && payload.userId !== localUserId) {
             handleRemoteToggleMedia(payload);
             broadcastMediaState();
-            if (!peerConnections.current.has(payload.userId) && localUserId.localeCompare(payload.userId) < 0) {
-              createPeerConnection(payload.userId, true);
+            if (!peerConnections.current.has(payload.userId)) {
+              const shouldInitiateOffer = localUserId.localeCompare(payload.userId) < 0;
+              createPeerConnection(payload.userId, shouldInitiateOffer);
             }
           }
         })
-        // 2. user-left (especificado)
         .on("broadcast", { event: "user-left" }, ({ payload }) => {
           const peerId = payload?.userId || payload?.senderId;
           if (peerId && peerId !== localUserId) {
@@ -745,14 +870,12 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             });
           }
         })
-        // 3. user-toggle-media (especificado) y media_state (compatibilidad)
         .on("broadcast", { event: "user-toggle-media" }, ({ payload }) => {
           handleRemoteToggleMedia(payload);
         })
         .on("broadcast", { event: "media_state" }, ({ payload }) => {
           handleRemoteToggleMedia(payload);
         })
-        // 4. user-speaking (VAD)
         .on("broadcast", { event: "user-speaking" }, ({ payload }) => {
           if (!payload?.userId || payload.userId === localUserId) return;
           setSpeakingUsers((prev) => {
@@ -772,97 +895,49 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
             }
             return next;
           });
-        })
-        // 5. Señalización WebRTC (Offer / Answer / ICE con SDP optimizado Opus FEC)
-        .on("broadcast", { event: "webrtc_offer" }, async ({ payload }) => {
-          if (payload.targetId !== localUserId) return;
-          try {
-            let pc = peerConnections.current.get(payload.senderId);
-            if (!pc || pc.signalingState === "closed") {
-              pc = createPeerConnection(payload.senderId, false);
-            }
+        });
 
-            if (payload.mediaState) {
-              handleRemoteToggleMedia({ ...payload.mediaState, userId: payload.senderId });
-            }
+      // 3. Manejadores de Señalización WebRTC (Offer / Answer / ICE)
+      const handleOffer = async ({ payload }: { payload: any }) => {
+        if (payload.targetId !== localUserId) return;
+        try {
+          let pc = peerConnections.current.get(payload.senderId);
+          if (!pc || pc.signalingState === "closed") {
+            pc = createPeerConnection(payload.senderId, false);
+          }
 
-            await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
-
-            const buffered = iceCandidateBuffer.current.get(payload.senderId) || [];
-            for (const c of buffered) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(c));
-              } catch (_) {}
-            }
-            iceCandidateBuffer.current.delete(payload.senderId);
-
-            const rawAnswer = await pc.createAnswer();
-            const optimizedSdp = optimizeSdp(rawAnswer.sdp || "");
-            const answer = { type: rawAnswer.type, sdp: optimizedSdp };
-            await pc.setLocalDescription(answer);
-
-            channel.send({
-              type: "broadcast",
-              event: "webrtc_answer",
-              payload: {
-                targetId: payload.senderId,
-                senderId: localUserId,
-                answer: pc.localDescription,
-                mediaState: {
-                  isMuted: isDeafenedRef.current || !isAudioEnabledRef.current,
-                  isVideoOff: !isVideoEnabledRef.current,
-                  isDeafened: isDeafenedRef.current,
-                  isSpeaking: isSpeakingRef.current,
-                  isScreenSharing: isScreenSharingRef.current,
-                  isCameraOn: isVideoEnabledRef.current,
-                  isAudioEnabled: isAudioEnabledRef.current && !isDeafenedRef.current,
-                },
-              },
+          if (payload.mediaState || payload.displayName) {
+            handleRemoteToggleMedia({
+              ...payload.mediaState,
+              displayName: payload.displayName,
+              avatarUrl: payload.avatarUrl,
+              userId: payload.senderId,
             });
-          } catch (e) {
-            console.warn("[WebRTC] Error procesando oferta:", e);
           }
-        })
-        .on("broadcast", { event: "webrtc_answer" }, async ({ payload }) => {
-          if (payload.targetId !== localUserId) return;
-          const pc = peerConnections.current.get(payload.senderId);
-          if (pc && pc.signalingState !== "closed") {
+
+          const offerDesc = payload.offer || payload.sdp;
+          await pc.setRemoteDescription(new RTCSessionDescription(offerDesc));
+
+          const buffered = iceCandidateBuffer.current.get(payload.senderId) || [];
+          for (const c of buffered) {
             try {
-              if (payload.mediaState) {
-                handleRemoteToggleMedia({ ...payload.mediaState, userId: payload.senderId });
-              }
-              await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
-              const buffered = iceCandidateBuffer.current.get(payload.senderId) || [];
-              for (const c of buffered) {
-                try {
-                  await pc.addIceCandidate(new RTCIceCandidate(c));
-                } catch (_) {}
-              }
-              iceCandidateBuffer.current.delete(payload.senderId);
-            } catch (e) {
-              console.warn("[WebRTC] Error procesando respuesta:", e);
-            }
+              await pc.addIceCandidate(new RTCIceCandidate(c));
+            } catch (_) {}
           }
-        })
-        .on("broadcast", { event: "webrtc_ice_candidate" }, async ({ payload }) => {
-          if (payload.targetId !== localUserId) return;
-          const pc = peerConnections.current.get(payload.senderId);
-          if (pc && pc.signalingState !== "closed" && pc.remoteDescription) {
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-            } catch (e) {
-              console.warn("[WebRTC] Error ICE:", e);
-            }
-          } else {
-            const buf = iceCandidateBuffer.current.get(payload.senderId) || [];
-            buf.push(payload.candidate);
-            iceCandidateBuffer.current.set(payload.senderId, buf);
-          }
-        })
-        .subscribe(async (status) => {
-          if (status === "SUBSCRIBED") {
-            const myState = {
-              userId: localUserId,
+          iceCandidateBuffer.current.delete(payload.senderId);
+
+          const rawAnswer = await pc.createAnswer();
+          const optimizedSdp = optimizeSdp(rawAnswer.sdp || "");
+          const answer = { type: rawAnswer.type, sdp: optimizedSdp };
+          await pc.setLocalDescription(answer);
+
+          const identity = getLocalIdentity();
+          const answerPayload = {
+            targetId: payload.senderId,
+            senderId: localUserId,
+            answer: pc.localDescription,
+            sdp: pc.localDescription,
+            mediaState: {
               isMuted: isDeafenedRef.current || !isAudioEnabledRef.current,
               isVideoOff: !isVideoEnabledRef.current,
               isDeafened: isDeafenedRef.current,
@@ -870,31 +945,124 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
               isScreenSharing: isScreenSharingRef.current,
               isCameraOn: isVideoEnabledRef.current,
               isAudioEnabled: isAudioEnabledRef.current && !isDeafenedRef.current,
-              onlineAt: new Date().toISOString(),
-            };
-            await channel.track(myState);
-            channel.send({
-              type: "broadcast",
-              event: "user-joined",
-              payload: myState,
-            });
-            channel.send({
-              type: "broadcast",
-              event: "user_joined",
-              payload: myState,
-            });
-            broadcastMediaState();
+            },
+            ...identity,
+          };
+
+          channel.send({
+            type: "broadcast",
+            event: "webrtc-answer",
+            payload: answerPayload,
+          });
+          channel.send({
+            type: "broadcast",
+            event: "webrtc_answer",
+            payload: answerPayload,
+          });
+        } catch (e) {
+          console.warn("[WebRTC] Error procesando oferta:", e);
+        }
+      };
+
+      const handleAnswer = async ({ payload }: { payload: any }) => {
+        if (payload.targetId !== localUserId) return;
+        const pc = peerConnections.current.get(payload.senderId);
+        if (pc && pc.signalingState !== "closed") {
+          try {
+            if (payload.mediaState || payload.displayName) {
+              handleRemoteToggleMedia({
+                ...payload.mediaState,
+                displayName: payload.displayName,
+                avatarUrl: payload.avatarUrl,
+                userId: payload.senderId,
+              });
+            }
+            const answerDesc = payload.answer || payload.sdp;
+            await pc.setRemoteDescription(new RTCSessionDescription(answerDesc));
+            const buffered = iceCandidateBuffer.current.get(payload.senderId) || [];
+            for (const c of buffered) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(c));
+              } catch (_) {}
+            }
+            iceCandidateBuffer.current.delete(payload.senderId);
+          } catch (e) {
+            console.warn("[WebRTC] Error procesando respuesta:", e);
           }
-        });
+        }
+      };
+
+      const handleIceCandidate = async ({ payload }: { payload: any }) => {
+        if (payload.targetId !== localUserId) return;
+        const pc = peerConnections.current.get(payload.senderId);
+        if (pc && pc.signalingState !== "closed" && pc.remoteDescription) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+          } catch (e) {
+            console.warn("[WebRTC] Error ICE:", e);
+          }
+        } else {
+          const buf = iceCandidateBuffer.current.get(payload.senderId) || [];
+          buf.push(payload.candidate);
+          iceCandidateBuffer.current.set(payload.senderId, buf);
+        }
+      };
+
+      channel
+        .on("broadcast", { event: "webrtc-offer" }, handleOffer)
+        .on("broadcast", { event: "webrtc_offer" }, handleOffer)
+        .on("broadcast", { event: "webrtc-answer" }, handleAnswer)
+        .on("broadcast", { event: "webrtc_answer" }, handleAnswer)
+        .on("broadcast", { event: "webrtc-ice-candidate" }, handleIceCandidate)
+        .on("broadcast", { event: "webrtc_ice_candidate" }, handleIceCandidate);
+
+      // 4. Suscripción y registro de presencia inicial
+      channel.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          const identity = getLocalIdentity();
+          const hasAudioTrack =
+            (localStreamRef.current?.getAudioTracks().filter((t) => t.readyState === "live").length || 0) > 0;
+          const initialState = {
+            userId: localUserId,
+            senderId: localUserId,
+            displayName: identity.displayName,
+            avatarUrl: identity.avatarUrl,
+            isMuted: !hasAudioTrack || !isAudioEnabledRef.current || isDeafenedRef.current,
+            isVideoOff: !isVideoEnabledRef.current,
+            isDeafened: isDeafenedRef.current,
+            isSpeaking: false,
+            isScreenSharing: isScreenSharingRef.current,
+            isCameraOn: isVideoEnabledRef.current,
+            isAudioEnabled: hasAudioTrack && isAudioEnabledRef.current && !isDeafenedRef.current,
+            onlineAt: new Date().toISOString(),
+          };
+
+          await channel.track(initialState).catch(() => {});
+          channel.send({
+            type: "broadcast",
+            event: "user-joined",
+            payload: initialState,
+          });
+          channel.send({
+            type: "broadcast",
+            event: "user_joined",
+            payload: initialState,
+          });
+          broadcastMediaState();
+        }
+      });
     };
 
     connect();
 
-    // Auto-recuperación cuando el dispositivo recupera conexión a internet
     const handleDeviceOnline = () => {
-      console.log("[WebRTC] Evento 'online' detectado: Verificando y recuperando conexiones congeladas...");
+      console.log("[WebRTC] Reconexión de red detectada: verificando peers...");
       peerConnections.current.forEach((pc, targetId) => {
-        if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed" || pc.connectionState === "failed") {
+        if (
+          pc.iceConnectionState === "disconnected" ||
+          pc.iceConnectionState === "failed" ||
+          pc.connectionState === "failed"
+        ) {
           pc.close();
           peerConnections.current.delete(targetId);
           createPeerConnection(targetId, true);
@@ -908,7 +1076,6 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
       active = false;
       window.removeEventListener("online", handleDeviceOnline);
 
-      // Emitir user-left al canal antes de desconectar
       if (channelRef.current && localUserId) {
         channelRef.current.send({
           type: "broadcast",
@@ -918,7 +1085,6 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         channelRef.current.unsubscribe();
       }
 
-      // Detener y liberar todas las pistas de audio y video
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
       }
@@ -926,18 +1092,15 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         screenStreamRef.current.getTracks().forEach((track) => track.stop());
       }
 
-      // Cerrar AudioContext de VAD
       if (vadIntervalRef.current) clearInterval(vadIntervalRef.current);
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
         audioContextRef.current.close().catch(() => {});
       }
 
-      // Cerrar peer connections y liberar recursos
       peerConnections.current.forEach((pc) => pc.close());
       peerConnections.current.clear();
       iceCandidateBuffer.current.clear();
 
-      // Limpiar fila en la base de datos
       supabase
         .from("discord_voice_participants")
         .delete()
@@ -945,7 +1108,15 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
         .eq("user_id", localUserId)
         .then();
     };
-  }, [channelId, localUserId, initLocalMedia, createPeerConnection, broadcastMediaState, handleRemoteToggleMedia]);
+  }, [
+    channelId,
+    localUserId,
+    initLocalMedia,
+    createPeerConnection,
+    broadcastMediaState,
+    handleRemoteToggleMedia,
+    getLocalIdentity,
+  ]);
 
   // Limpieza en evento beforeunload
   useEffect(() => {
@@ -970,61 +1141,129 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     return () => window.removeEventListener("beforeunload", handleUnload);
   }, [channelId, localUserId]);
 
-  // --- RE-NEGOCIACIÓN SUAVE DE PISTAS (REPLACE TRACK SIN DESCONEXIÓN) ---
-  const updateTrackInPeers = useCallback((track: MediaStreamTrack | null, kind: "audio" | "video") => {
-    peerConnections.current.forEach((pc) => {
-      if (pc.signalingState === "closed") return;
-      const transceiver = pc.getTransceivers().find((t) => t.receiver.track.kind === kind);
-      if (transceiver && transceiver.sender) {
-        transceiver.sender.replaceTrack(track).catch(() => {});
-        if (track && kind === "video") {
-          transceiver.direction = "sendrecv";
-        }
-      } else if (track && localStreamRef.current) {
-        pc.addTrack(track, localStreamRef.current);
-      }
-    });
-  }, []);
-
   // --- MÉTODOS DE TOGGLE Y ACCIÓN DE MEDIA ---
 
-  // 1. Toggle Audio / Micrófono
-  const toggleAudio = useCallback(() => {
-    if (isDeafenedRef.current) {
-      setIsDeafened(false);
-      isDeafenedRef.current = false;
-    }
+  // 1. Toggle Audio / Micrófono con adquisición en caliente
+  const toggleAudio = useCallback(async () => {
+    if (!localUserId) return;
 
-    setIsAudioEnabled((prev) => {
-      const next = !prev;
-      isAudioEnabledRef.current = next;
-
-      if (localStreamRef.current) {
-        localStreamRef.current.getAudioTracks().forEach((track) => {
-          track.enabled = next;
-        });
+    try {
+      let stream = localStreamRef.current;
+      if (!stream) {
+        stream = new MediaStream();
+        localStreamRef.current = stream;
       }
 
-      if (!next && isSpeakingRef.current) {
-        isSpeakingRef.current = false;
-        setIsSpeaking(false);
-        setSpeakingUsers((p) => {
-          const n = new Set(p);
-          if (localUserId) n.delete(localUserId);
-          return n;
-        });
+      let audioTracks = stream.getAudioTracks().filter((t) => t.readyState === "live");
+
+      if (isDeafenedRef.current) {
+        setIsDeafened(false);
+        isDeafenedRef.current = false;
       }
 
-      broadcastMediaState({
-        isMuted: !next,
-        isAudioEnabled: next,
-        isSpeaking: false,
-        isDeafened: false,
+      // Caso 1: No existía pista viva -> solicitar hardware al navegador
+      if (audioTracks.length === 0) {
+        const savedMicId =
+          selectedMicId || localStorage.getItem("tabetalk_audio_input_device") || "default";
+        const echoCancellation =
+          localStorage.getItem("tabetalk_echo_cancellation") !== "false";
+        const noiseSuppression =
+          localStorage.getItem("tabetalk_noise_suppression") !== "false";
+
+        let micStream: MediaStream;
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio:
+              savedMicId && savedMicId !== "default"
+                ? {
+                    deviceId: { ideal: savedMicId },
+                    echoCancellation,
+                    noiseSuppression,
+                    autoGainControl: true,
+                  }
+                : {
+                    echoCancellation,
+                    noiseSuppression,
+                    autoGainControl: true,
+                  },
+          });
+        } catch {
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+
+        const newAudioTrack = micStream.getAudioTracks()[0];
+        if (!newAudioTrack) return;
+        newAudioTrack.enabled = true;
+
+        stream.getAudioTracks().forEach((old) => {
+          old.stop();
+          stream!.removeTrack(old);
+        });
+        stream.addTrack(newAudioTrack);
+
+        const clonedStream = new MediaStream(stream.getTracks());
+        localStreamRef.current = clonedStream;
+        setLocalStream(clonedStream);
+        setIsAudioEnabled(true);
+        isAudioEnabledRef.current = true;
+        setupVAD(clonedStream);
+
+        // Inyectar en conexiones P2P y renegociar si fue agregada
+        for (const [peerId, pc] of peerConnections.current.entries()) {
+          const sender = pc.getSenders().find((s) => s.track?.kind === "audio");
+          if (sender) {
+            await sender.replaceTrack(newAudioTrack);
+          } else {
+            pc.addTrack(newAudioTrack, clonedStream);
+            await renegotiateWithPeer(peerId, pc);
+          }
+        }
+
+        broadcastMediaState({ isMuted: false, isDeafened: false, isAudioEnabled: true });
+        await getDevices();
+        return;
+      }
+
+      // Caso 2: Pista existente -> alternar enabled
+      const nextEnabled = !isAudioEnabledRef.current;
+      audioTracks.forEach((t) => {
+        t.enabled = nextEnabled;
       });
 
-      return next;
-    });
-  }, [broadcastMediaState, localUserId]);
+      if (!nextEnabled) {
+        isSpeakingRef.current = false;
+        setIsSpeaking(false);
+        setSpeakingUsers((prev) => {
+          const next = new Set(prev);
+          next.delete(localUserId);
+          return next;
+        });
+      }
+
+      const clonedStream = new MediaStream(stream.getTracks());
+      localStreamRef.current = clonedStream;
+      setLocalStream(clonedStream);
+      setIsAudioEnabled(nextEnabled);
+      isAudioEnabledRef.current = nextEnabled;
+
+      broadcastMediaState({
+        isMuted: !nextEnabled,
+        isDeafened: false,
+        isAudioEnabled: nextEnabled,
+        isSpeaking: nextEnabled ? isSpeakingRef.current : false,
+      });
+    } catch (err) {
+      console.error("[TabeTalk] Error al alternar micrófono:", err);
+      toast.error("No se pudo acceder al micrófono. Verifica los permisos del navegador.");
+    }
+  }, [
+    localUserId,
+    selectedMicId,
+    setupVAD,
+    renegotiateWithPeer,
+    broadcastMediaState,
+    getDevices,
+  ]);
 
   // 2. Toggle Ensordecer (Deafen)
   const toggleDeafen = useCallback(() => {
@@ -1064,71 +1303,114 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
     });
   }, [broadcastMediaState, localUserId]);
 
-  // 3. Toggle Video / Cámara con resolución adaptativa (720p/24fps con fallback a 480p)
+  // 3. Toggle Video / Cámara con adquisición en caliente y renegociación
   const toggleVideo = useCallback(async () => {
+    if (!localUserId) return;
+
     try {
-      if (!isVideoEnabled) {
-        let newStream: MediaStream;
-        const videoConstraints: MediaTrackConstraints = {
-          width: { ideal: 1280, max: 1280 },
-          height: { ideal: 720, max: 720 },
-          frameRate: { ideal: 24, max: 30 },
-        };
-        if (selectedCameraId && selectedCameraId !== "default") {
-          videoConstraints.deviceId = { exact: selectedCameraId };
-        }
+      let stream = localStreamRef.current;
+      if (!stream) {
+        stream = new MediaStream();
+        localStreamRef.current = stream;
+      }
 
-        try {
-          newStream = await navigator.mediaDevices.getUserMedia({
-            video: videoConstraints,
-            audio: false,
-          });
-        } catch {
-          // Fallback a resolución básica si la cámara o conexión no admiten 720p
-          newStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        }
+      // Si la cámara está encendida -> apagar hardware
+      if (isVideoEnabledRef.current) {
+        stream.getVideoTracks().forEach((t) => {
+          t.enabled = false;
+          t.stop();
+          stream!.removeTrack(t);
+        });
 
-        const videoTrack = newStream.getVideoTracks()[0];
-        if (localStreamRef.current && videoTrack) {
-          const oldTrack = localStreamRef.current.getVideoTracks()[0];
-          if (oldTrack) {
-            localStreamRef.current.removeTrack(oldTrack);
-            oldTrack.stop();
-          }
-          videoTrack.enabled = true;
-          localStreamRef.current.addTrack(videoTrack);
-          setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-        } else if (videoTrack) {
-          videoTrack.enabled = true;
-          const combined = new MediaStream([videoTrack]);
-          localStreamRef.current = combined;
-          setLocalStream(combined);
-        }
-
-        setIsVideoEnabled(true);
-        isVideoEnabledRef.current = true;
-        updateTrackInPeers(videoTrack, "video");
-        broadcastMediaState({ isVideoOff: false, isCameraOn: true });
-        await getDevices();
-      } else {
-        if (localStreamRef.current) {
-          const videoTrack = localStreamRef.current.getVideoTracks()[0];
-          if (videoTrack) {
-            videoTrack.enabled = false;
-            videoTrack.stop();
-            localStreamRef.current.removeTrack(videoTrack);
-            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-          }
-        }
+        const clonedStream = new MediaStream(stream.getTracks());
+        localStreamRef.current = clonedStream;
+        setLocalStream(clonedStream);
         setIsVideoEnabled(false);
         isVideoEnabledRef.current = false;
-        updateTrackInPeers(null, "video");
+
+        for (const [, pc] of peerConnections.current.entries()) {
+          const videoSender = pc.getSenders().find((s) => s.track?.kind === "video");
+          if (videoSender && !isScreenSharingRef.current) {
+            await videoSender.replaceTrack(null).catch(() => {});
+          }
+        }
+
         broadcastMediaState({ isVideoOff: true, isCameraOn: false });
+        return;
       }
-    } catch (e) {
-      console.warn("[WebRTC] Error alternando video:", e);
+
+      // Si la cámara está apagada -> solicitar al hardware
+      const savedCamId =
+        selectedCameraId || localStorage.getItem("tabetalk_video_input_device") || "default";
+
+      let camStream: MediaStream;
+      try {
+        camStream = await navigator.mediaDevices.getUserMedia({
+          video:
+            savedCamId && savedCamId !== "default"
+              ? {
+                  deviceId: { ideal: savedCamId },
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  frameRate: { ideal: 30 },
+                }
+              : {
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  frameRate: { ideal: 30 },
+                },
+        });
+      } catch {
+        camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
+      const newVideoTrack = camStream.getVideoTracks()[0];
+      if (!newVideoTrack) {
+        toast.error("No se detectó ninguna cámara disponible.");
+        return;
+      }
+      newVideoTrack.enabled = true;
+
+      stream.getVideoTracks().forEach((old) => {
+        old.stop();
+        stream!.removeTrack(old);
+      });
+      stream.addTrack(newVideoTrack);
+
+      const clonedStream = new MediaStream(stream.getTracks());
+      localStreamRef.current = clonedStream;
+      setLocalStream(clonedStream);
+      setIsVideoEnabled(true);
+      isVideoEnabledRef.current = true;
+
+      // Inyectar o reemplazar pista y renegociar con peers
+      for (const [peerId, pc] of peerConnections.current.entries()) {
+        const videoSender = pc
+          .getSenders()
+          .find((s) => s.track?.kind === "video" || s.track === null);
+
+        if (videoSender) {
+          await videoSender.replaceTrack(newVideoTrack);
+          await renegotiateWithPeer(peerId, pc);
+        } else {
+          pc.addTrack(newVideoTrack, clonedStream);
+          await renegotiateWithPeer(peerId, pc);
+        }
+      }
+
+      broadcastMediaState({ isVideoOff: false, isCameraOn: true });
+      await getDevices();
+    } catch (err) {
+      console.error("[TabeTalk] Error al encender cámara:", err);
+      toast.error("No se pudo encender la cámara. Revisa que no esté siendo usada por otra aplicación.");
     }
-  }, [broadcastMediaState, getDevices, isVideoEnabled, selectedCameraId, updateTrackInPeers]);
+  }, [
+    localUserId,
+    selectedCameraId,
+    renegotiateWithPeer,
+    broadcastMediaState,
+    getDevices,
+  ]);
 
   // 4. Compartir Pantalla
   const stopScreenShare = useCallback(() => {
@@ -1169,44 +1451,60 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
           stopScreenShare();
         };
 
-        peerConnections.current.forEach((pc) => {
+        for (const [peerId, pc] of peerConnections.current.entries()) {
           pc.addTrack(screenVideoTrack, stream);
-        });
+          await renegotiateWithPeer(peerId, pc);
+        }
       }
 
       broadcastMediaState({ isScreenSharing: true });
     } catch (e) {
       console.warn("[WebRTC] Error iniciando screen share:", e);
     }
-  }, [broadcastMediaState, stopScreenShare]);
+  }, [broadcastMediaState, stopScreenShare, renegotiateWithPeer]);
 
-  // 5. Cambio de dispositivos
+  // 5. Cambio dinámico de periféricos
   const switchCamera = useCallback(
     async (deviceId: string) => {
       setSelectedCameraId(deviceId);
       localStorage.setItem("tabetalk_video_input_device", deviceId);
-      if (isVideoEnabled) {
+      if (isVideoEnabledRef.current) {
         try {
           const newStream = await navigator.mediaDevices.getUserMedia({
             video: deviceId && deviceId !== "default" ? { deviceId: { exact: deviceId } } : true,
           });
           const videoTrack = newStream.getVideoTracks()[0];
-          if (localStreamRef.current && videoTrack) {
-            const oldTrack = localStreamRef.current.getVideoTracks()[0];
-            if (oldTrack) {
-              localStreamRef.current.removeTrack(oldTrack);
-              oldTrack.stop();
+          if (videoTrack) {
+            videoTrack.enabled = true;
+            let stream = localStreamRef.current || new MediaStream();
+            stream.getVideoTracks().forEach((old) => {
+              old.stop();
+              stream.removeTrack(old);
+            });
+            stream.addTrack(videoTrack);
+            const clonedStream = new MediaStream(stream.getTracks());
+            localStreamRef.current = clonedStream;
+            setLocalStream(clonedStream);
+
+            for (const [peerId, pc] of peerConnections.current.entries()) {
+              const videoSender = pc
+                .getSenders()
+                .find((s) => s.track?.kind === "video" || s.track === null);
+              if (videoSender) {
+                await videoSender.replaceTrack(videoTrack);
+                await renegotiateWithPeer(peerId, pc);
+              } else {
+                pc.addTrack(videoTrack, clonedStream);
+                await renegotiateWithPeer(peerId, pc);
+              }
             }
-            localStreamRef.current.addTrack(videoTrack);
-            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-            updateTrackInPeers(videoTrack, "video");
           }
         } catch (e) {
           console.warn("[WebRTC] Error cambiando cámara:", e);
         }
       }
     },
-    [isVideoEnabled, updateTrackInPeers]
+    [renegotiateWithPeer]
   );
 
   const switchMic = useCallback(
@@ -1218,24 +1516,35 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
           audio: deviceId && deviceId !== "default" ? { deviceId: { exact: deviceId } } : true,
         });
         const audioTrack = newStream.getAudioTracks()[0];
-        if (localStreamRef.current && audioTrack) {
-          const oldTrack = localStreamRef.current.getAudioTracks()[0];
-          if (oldTrack) {
-            localStreamRef.current.removeTrack(oldTrack);
-            oldTrack.stop();
-          }
+        if (audioTrack) {
           audioTrack.enabled = isAudioEnabledRef.current && !isDeafenedRef.current;
-          localStreamRef.current.addTrack(audioTrack);
-          setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+          let stream = localStreamRef.current || new MediaStream();
+          stream.getAudioTracks().forEach((old) => {
+            old.stop();
+            stream.removeTrack(old);
+          });
+          stream.addTrack(audioTrack);
+          const clonedStream = new MediaStream(stream.getTracks());
+          localStreamRef.current = clonedStream;
+          setLocalStream(clonedStream);
 
-          setupVAD(localStreamRef.current);
-          updateTrackInPeers(audioTrack, "audio");
+          setupVAD(clonedStream);
+
+          for (const [peerId, pc] of peerConnections.current.entries()) {
+            const audioSender = pc.getSenders().find((s) => s.track?.kind === "audio");
+            if (audioSender) {
+              await audioSender.replaceTrack(audioTrack);
+            } else {
+              pc.addTrack(audioTrack, clonedStream);
+              await renegotiateWithPeer(peerId, pc);
+            }
+          }
         }
       } catch (e) {
         console.warn("[WebRTC] Error cambiando micrófono:", e);
       }
     },
-    [setupVAD, updateTrackInPeers]
+    [setupVAD, renegotiateWithPeer]
   );
 
   return {

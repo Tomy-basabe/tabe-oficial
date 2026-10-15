@@ -136,8 +136,8 @@ export function DiscordVoiceChannel({
 
       map.set(p.user_id, {
         userId: p.user_id,
-        displayName: p.profile?.nombre || p.profile?.username || "Compañero",
-        avatarUrl: p.profile?.avatar_url || null,
+        displayName: (mediaState as any)?.displayName || p.profile?.nombre || p.profile?.username || "Estudiante",
+        avatarUrl: (mediaState as any)?.avatarUrl || p.profile?.avatar_url || null,
         isLocal: false,
         stream: remoteStreams.get(p.user_id) || null,
         isMuted: Boolean(isPeerMuted),
@@ -154,8 +154,8 @@ export function DiscordVoiceChannel({
       const mediaState = remoteMediaStates.get(peerId);
       map.set(peerId, {
         userId: peerId,
-        displayName: "Compañero",
-        avatarUrl: null,
+        displayName: (mediaState as any)?.displayName || "Estudiante",
+        avatarUrl: (mediaState as any)?.avatarUrl || null,
         isLocal: false,
         stream,
         isMuted: mediaState?.isMuted ?? (mediaState?.isAudioEnabled === false),
@@ -171,8 +171,8 @@ export function DiscordVoiceChannel({
       if (peerId === localUserId || map.has(peerId)) return;
       map.set(peerId, {
         userId: peerId,
-        displayName: "Compañero",
-        avatarUrl: null,
+        displayName: (mediaState as any)?.displayName || "Estudiante",
+        avatarUrl: (mediaState as any)?.avatarUrl || null,
         isLocal: false,
         stream: remoteStreams.get(peerId) || null,
         isMuted: mediaState.isMuted,

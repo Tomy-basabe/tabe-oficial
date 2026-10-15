@@ -197,25 +197,26 @@ export function AppShowcaseCarousel() {
           <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
         </button>
 
-        {/* Escenario 3D limpio y ultra amplio */}
-        <div className="relative w-full h-[560px] sm:h-[660px] md:h-[740px] overflow-visible">
+        {/* Escenario 3D limpio y ultra amplio con rotación 360 visible */}
+        <div className="relative w-full h-[580px] sm:h-[660px] md:h-[720px] overflow-visible">
           <CircularCarousel
             ref={carouselRef}
             items={TABE_MODULES}
             preset="cylinder"
             intro="rise"
-            cardWidth={780}
+            cardWidth={560}
             aspectRatio={16 / 9}
-            gap={35}
+            gap={22}
             curve={0}
             fitToFrontCard={true}
-            tilt={-1}
-            speed={10}
+            tilt={-11}
+            speed={3.5}
             pauseOnHover={true}
             focusOnClick={true}
             captions={true}
             fadeColor="#ff9415"
-            depthFade={0.45}
+            depthFade={0.22}
+            innerShade={0.85}
             cornerRadius={18}
             onChange={(idx) => setActiveIndex(idx)}
             onItemClick={(item) => setSelectedItem(item as TabeShowcaseItem)}

@@ -3,7 +3,6 @@ import { LandingBackground } from "@/components/landing/LandingBackground";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
 import { ComicTicker } from "@/components/landing/ComicTicker";
-import { ScrollStoryShowcase } from "@/components/landing/ScrollStoryShowcase";
 import { ComicSuperpowersSection } from "@/components/landing/ComicSuperpowersSection";
 import { ComicInteractiveDemo } from "@/components/landing/ComicInteractiveDemo";
 import { EditorialManifestoSection } from "@/components/landing/EditorialManifestoSection";
@@ -29,7 +28,6 @@ export default function Landing() {
             <HeroSection />
             <FinalCtaSection />
             <ComicTicker />
-            <ScrollStoryShowcase />
             <ComicSuperpowersSection />
             <ComicInteractiveDemo />
             <EditorialManifestoSection />

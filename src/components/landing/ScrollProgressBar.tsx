@@ -12,7 +12,7 @@ interface SectionAnchor {
 
 const SECTIONS: SectionAnchor[] = [
   { id: "hero", label: "Inicio", icon: Sparkles },
-  { id: "story-journey", label: "Recorrido", icon: Compass },
+  { id: "showcase", label: "Módulos", icon: Compass },
   { id: "superpoderes", label: "Poderes", icon: Zap },
   { id: "demo-interactiva", label: "Demo", icon: Brain },
   { id: "metodologia", label: "Método", icon: BookOpen },

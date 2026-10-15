@@ -5,7 +5,7 @@ import { AppShowcaseCarousel } from "./AppShowcaseCarousel";
 
 export function FinalCtaSection() {
     return (
-        <section className="relative py-28 md:py-32 overflow-hidden bg-[#ff9415] border-y-4 sm:border-y-8 border-black select-none">
+        <section id="showcase" className="relative py-28 md:py-32 overflow-hidden bg-[#ff9415] border-y-4 sm:border-y-8 border-black select-none">
             {/* Background elements */}
             <motion.div 
                 animate={{ rotate: 360 }} 

@@ -86,6 +86,7 @@ export default function Tabetalk() {
     speakingUsers,
     typingUsers,
     inVoiceChannel,
+    currentVoiceChannel,
     setCurrentServer,
     createServer,
     deleteServer,
@@ -141,10 +142,18 @@ export default function Tabetalk() {
     }
   };
 
-  // When selecting a channel on mobile, auto-navigate to main content
-  const handleSelectChannel = (channel: any) => {
+  // When selecting a channel on mobile, auto-navigate to main content and auto-connect if voice
+  const handleSelectChannel = async (channel: any) => {
     setCurrentChannel(channel);
-    if (channel) setMobileView("main");
+    if (channel) {
+      setMobileView("main");
+      if (
+        channel.type === "voice" &&
+        (!inVoiceChannel || currentVoiceChannel?.id !== channel.id)
+      ) {
+        await joinVoiceChannel(channel.id);
+      }
+    }
   };
 
   // Al entrar a Tabetalk sin servidor seleccionado, asegurar vista principal activa
@@ -243,6 +252,8 @@ export default function Tabetalk() {
                 isDeafened={isDeafened}
                 isSpeaking={isSpeaking}
                 onToggleAudio={toggleAudio}
+                onToggleVideo={toggleVideo}
+                onToggleScreenShare={isScreenSharing ? stopScreenShare : startScreenShare}
                 onToggleDeafen={toggleDeafen}
                 onLeaveVoice={leaveVoiceChannel}
                 onDeleteServer={deleteServer}

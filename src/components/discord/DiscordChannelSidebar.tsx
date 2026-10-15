@@ -50,6 +50,8 @@ interface DiscordChannelSidebarProps {
   isVideoEnabled: boolean;
   isDeafened: boolean;
   onToggleAudio: () => void;
+  onToggleVideo?: () => void;
+  onToggleScreenShare?: () => void;
   onToggleDeafen: () => void;
   onLeaveVoice: () => void;
   isSpeaking?: boolean;
@@ -77,6 +79,8 @@ export function DiscordChannelSidebar({
   isVideoEnabled,
   isDeafened,
   onToggleAudio,
+  onToggleVideo,
+  onToggleScreenShare,
   onToggleDeafen,
   onLeaveVoice,
   isSpeaking,
@@ -422,10 +426,10 @@ export function DiscordChannelSidebar({
             </span>
           </div>
           <div className="flex justify-between mt-1">
-            <Button size="sm" variant="ghost" className="h-7 w-full text-xs hover:bg-success/20 hover:text-success" onClick={() => {/* Stream logic potentially */ }}>
+            <Button size="sm" variant="ghost" className="h-7 w-full text-xs hover:bg-success/20 hover:text-success" onClick={onToggleVideo}>
               Video
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 w-full text-xs hover:bg-success/20 hover:text-success" onClick={() => {/* Share logic */ }}>
+            <Button size="sm" variant="ghost" className="h-7 w-full text-xs hover:bg-success/20 hover:text-success" onClick={onToggleScreenShare}>
               Pantalla
             </Button>
           </div>

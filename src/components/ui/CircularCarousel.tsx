@@ -499,10 +499,12 @@ export const CircularCarousel = forwardRef<CircularCarouselHandle, CircularCarou
         let minY = Infinity;
         let maxY = -Infinity;
         if (s.fitToFrontCard) {
-          minX = -s.cardW / 2;
-          maxX = s.cardW / 2;
-          minY = -s.cardH / 2;
-          maxY = s.cardH / 2;
+          const tiltRad = Math.abs(s.tilt) * TO_RAD;
+          const tiltRise = s.radius * Math.sin(tiltRad) * 0.7;
+          minX = -s.cardW * 0.75;
+          maxX = s.cardW * 0.75;
+          minY = -s.cardH / 2 - tiltRise * 0.15;
+          maxY = s.cardH / 2 + tiltRise * 0.85;
         } else if (s.layout.inward) {
           minX = -width / 2;
           maxX = width / 2;

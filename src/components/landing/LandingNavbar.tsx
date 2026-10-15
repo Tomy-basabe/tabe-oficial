@@ -19,7 +19,7 @@ export function LandingNavbar() {
     const logo = "/logo.png";
 
     const links = [
-        { to: "/#story-journey", label: "Recorrido", scroll: true },
+        { to: "/#showcase", label: "Módulos", scroll: true },
         { to: "/#superpoderes", label: "Superpoderes", scroll: true },
         { to: "/carreras", label: "Carreras" },
         { to: "/#metodologia", label: "Metodología", scroll: true },
