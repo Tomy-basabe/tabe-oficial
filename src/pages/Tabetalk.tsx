@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { useAuth } from "@/contexts/AuthContext";
