@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Pin, Monitor } from 'lucide-react';
+import { Mic, MicOff, Pin, Monitor, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MeetVideoTileProps {
@@ -29,6 +29,7 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasActiveVideo, setHasActiveVideo] = useState(false);
+  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
 
   useEffect(() => {
     const videoEl = videoRef.current;
@@ -38,8 +39,8 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
       videoEl.srcObject = stream;
 
       // CRÍTICO ANTI-ECO:
-      // El stream local DEBE silenciarse de forma imperativa en el DOM para evitar que el navegador
-      // reproduzca el audio del propio micrófono por los altavoces de la computadora.
+      // El stream local SIEMPRE se silencia en el DOM para no escuchar la propia voz.
+      // Los streams remotos tienen volumen 1.
       if (isLocal) {
         videoEl.muted = true;
         videoEl.volume = 0;
@@ -48,7 +49,22 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
         videoEl.volume = 1;
       }
 
-      // Evaluar presencia y estado de los tracks de video
+      // Intentar reproducción explícita para evitar que Chrome suspenda a los usuarios 3, 4, 5...
+      const playPromise = videoEl.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsAutoplayBlocked(false);
+          })
+          .catch((err) => {
+            console.warn('Autoplay pendiente de interacción del usuario para:', name, err);
+            // Si el navegador bloqueó el autoplay con sonido para este peer remoto
+            if (!isLocal) {
+              setIsAutoplayBlocked(true);
+            }
+          });
+      }
+
       const updateVideoStatus = () => {
         const videoTracks = stream.getVideoTracks();
         const hasLiveTrack = videoTracks.some((t) => t.enabled && t.readyState === 'live');
@@ -75,9 +91,18 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
       videoEl.srcObject = null;
       setHasActiveVideo(false);
     }
-  }, [stream, isLocal, isVideoEnabled]);
+  }, [stream, isLocal, isVideoEnabled, name]);
 
-  // Obtener iniciales para el avatar cuando la cámara está apagada
+  // Desbloquear audio si fue restringido por política de autoplay del navegador
+  const handleUnblockAudio = () => {
+    const videoEl = videoRef.current;
+    if (videoEl) {
+      videoEl.muted = false;
+      videoEl.volume = 1;
+      videoEl.play().then(() => setIsAutoplayBlocked(false)).catch(() => {});
+    }
+  };
+
   const initials =
     name
       .split(' ')
@@ -89,13 +114,15 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
 
   return (
     <div
+      onClick={isAutoplayBlocked ? handleUnblockAudio : undefined}
       className={cn(
         'group relative w-full h-full min-h-[180px] bg-neutral-900 rounded-2xl overflow-hidden shadow-lg border transition-all duration-200 flex items-center justify-center',
         isSpeaking ? 'border-emerald-500 ring-2 ring-emerald-500/30' : 'border-neutral-800',
-        isPinned && 'ring-2 ring-primary'
+        isPinned && 'ring-2 ring-primary',
+        isAutoplayBlocked && 'cursor-pointer'
       )}
     >
-      {/* Elemento de Video */}
+      {/* Elemento de Video con autoPlay explícito */}
       <video
         ref={videoRef}
         autoPlay
@@ -104,7 +131,7 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
         className={cn(
           'w-full h-full object-cover transition-opacity duration-300',
           hasActiveVideo ? 'opacity-100' : 'opacity-0 absolute pointer-events-none',
-          isLocal && !isScreenSharing && 'scale-x-[-1]' // Efecto espejo solo para cámara propia local
+          isLocal && !isScreenSharing && 'scale-x-[-1]'
         )}
       />
 
@@ -124,6 +151,16 @@ export const MeetVideoTile: React.FC<MeetVideoTileProps> = ({
           )}
           <span className="mt-3 text-sm font-medium text-neutral-300 max-w-[150px] truncate">
             {name} {isLocal && '(Tú)'}
+          </span>
+        </div>
+      )}
+
+      {/* Aviso si el navegador pausó el audio por autoplay */}
+      {isAutoplayBlocked && !isLocal && (
+        <div className="absolute inset-x-3 top-3 z-20 bg-amber-500/90 backdrop-blur-md text-black text-xs font-semibold px-3 py-1.5 rounded-xl shadow-lg flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <VolumeX className="w-4 h-4" />
+            <span>Haz clic para activar audio</span>
           </span>
         </div>
       )}
