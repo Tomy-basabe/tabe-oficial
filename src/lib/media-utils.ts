@@ -1,7 +1,7 @@
 /**
  * Utilidades seguras para acceso a cámara y micrófono.
- * Soporta selección explícita de dispositivo de cámara y micrófono (deviceId),
- * cancelación de eco profesional y fallback progresivo sin bloqueos en Windows.
+ * Diseñado con constraints flexibles (evitando exact: deviceId que bloquea en Windows)
+ * y con cancelación de eco activa.
  */
 
 export const SAFE_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
@@ -21,14 +21,14 @@ export async function getSafeMediaStream(options: GetMediaOptions): Promise<Medi
   if (!options.video && !options.audio) return null;
 
   const audioConstraints: MediaTrackConstraints | boolean = options.audio
-    ? options.audioDeviceId
-      ? { ...SAFE_AUDIO_CONSTRAINTS, deviceId: { exact: options.audioDeviceId } }
+    ? options.audioDeviceId && options.audioDeviceId.trim() !== ''
+      ? { ...SAFE_AUDIO_CONSTRAINTS, deviceId: options.audioDeviceId }
       : SAFE_AUDIO_CONSTRAINTS
     : false;
 
   const videoConstraints: MediaTrackConstraints | boolean = options.video
-    ? options.videoDeviceId
-      ? { deviceId: { exact: options.videoDeviceId } }
+    ? options.videoDeviceId && options.videoDeviceId.trim() !== ''
+      ? { deviceId: options.videoDeviceId }
       : true
     : false;
 
@@ -40,15 +40,14 @@ export async function getSafeMediaStream(options: GetMediaOptions): Promise<Medi
         audio: audioConstraints,
       });
     } catch (err1) {
-      console.warn('Fallo intento 1 (video y audio específico):', err1);
-      // Intento 1b: sin deviceId estricto
+      console.warn('Intento con constraints específicos falló, probando genérico:', err1);
       try {
         return await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: SAFE_AUDIO_CONSTRAINTS,
         });
       } catch (err1b) {
-        console.warn('Fallo intento 1b:', err1b);
+        console.warn('Fallo intento genérico con audio y video:', err1b);
       }
     }
   }
