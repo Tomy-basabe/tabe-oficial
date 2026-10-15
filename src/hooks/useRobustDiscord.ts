@@ -384,6 +384,12 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
   const renegotiateWithPeer = useCallback(
     async (peerId: string, pc: RTCPeerConnection) => {
       if (!localUserId || !channelRef.current) return;
+      if (pc.signalingState !== "stable") {
+        console.warn(
+          `[TabeTalk] Omitiendo renegociación SDP con ${peerId} porque signalingState es '${pc.signalingState}'`
+        );
+        return;
+      }
       try {
         const offer = await pc.createOffer({
           offerToReceiveAudio: true,
@@ -1439,7 +1445,17 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
 
   const startScreenShare = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        });
+      } catch (audioErr) {
+        // En muchos navegadores pedir audio al capturar ventana falla; fallback a solo video
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      }
+
       setScreenStream(stream);
       screenStreamRef.current = stream;
       setIsScreenSharing(true);
@@ -1458,8 +1474,11 @@ export function useRobustDiscord({ channelId }: UseRobustDiscordProps) {
       }
 
       broadcastMediaState({ isScreenSharing: true });
-    } catch (e) {
-      console.warn("[WebRTC] Error iniciando screen share:", e);
+    } catch (e: any) {
+      if (e?.name !== "NotAllowedError") {
+        console.warn("[WebRTC] Error iniciando screen share:", e);
+        toast.error("No se pudo iniciar la pantalla compartida.");
+      }
     }
   }, [broadcastMediaState, stopScreenShare, renegotiateWithPeer]);
 

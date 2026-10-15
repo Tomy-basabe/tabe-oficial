@@ -120,6 +120,15 @@ export default function Tabetalk() {
     remoteMediaStates,
   } = discord;
 
+  // Alternar pantalla compartida de forma estable
+  const handleToggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      stopScreenShare();
+    } else {
+      await startScreenShare();
+    }
+  }, [isScreenSharing, stopScreenShare, startScreenShare]);
+
   // Desconexión limpia de llamada WebRTC y retorno al Dashboard
   const handleGoBack = async () => {
     if (inVoiceChannel) {
@@ -253,7 +262,7 @@ export default function Tabetalk() {
                 isSpeaking={isSpeaking}
                 onToggleAudio={toggleAudio}
                 onToggleVideo={toggleVideo}
-                onToggleScreenShare={isScreenSharing ? stopScreenShare : startScreenShare}
+                onToggleScreenShare={handleToggleScreenShare}
                 onToggleDeafen={toggleDeafen}
                 onLeaveVoice={leaveVoiceChannel}
                 onDeleteServer={deleteServer}
@@ -320,7 +329,7 @@ export default function Tabetalk() {
                 onToggleAudio={toggleAudio}
                 onToggleVideo={toggleVideo}
                 onToggleDeafen={toggleDeafen}
-                onToggleScreenShare={isScreenSharing ? stopScreenShare : startScreenShare}
+                onToggleScreenShare={handleToggleScreenShare}
                 onLeaveChannel={leaveVoiceChannel}
                 onSwitchCamera={switchCamera}
                 mics={mics}

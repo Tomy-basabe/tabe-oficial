@@ -280,9 +280,29 @@ function ScreenShareViewport({
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !stream) return;
-    el.srcObject = stream;
-    el.play().catch(() => {});
+    if (!el) return;
+
+    if (stream) {
+      el.srcObject = stream;
+      el.play().catch(() => {});
+    } else {
+      el.srcObject = null;
+    }
+
+    if (!stream) return;
+    const handleTrack = () => {
+      if (el) {
+        el.srcObject = null;
+        el.srcObject = stream;
+        el.play().catch(() => {});
+      }
+    };
+    stream.addEventListener("addtrack", handleTrack);
+    stream.addEventListener("removetrack", handleTrack);
+    return () => {
+      stream.removeEventListener("addtrack", handleTrack);
+      stream.removeEventListener("removetrack", handleTrack);
+    };
   }, [stream]);
 
   return (
@@ -590,15 +610,96 @@ export function TabeTalkRoom({
   const voiceContext = useDiscordVoice();
   const currentUserId = user?.id || "";
 
-  const handleToggleDeafen =
-    onToggleDeafen || voiceContext?.toggleDeafen || (() => {});
-  const handleDisconnect =
-    onDisconnect || onLeaveChannel || voiceContext?.leaveVoiceChannel || (() => {});
-
+  const effectiveLocalStream = localStream || voiceContext?.localStream || null;
   const effectiveIsAudioEnabled =
-    isAudioEnabled !== undefined ? isAudioEnabled : isMuted !== undefined ? !isMuted : true;
+    isAudioEnabled !== undefined
+      ? isAudioEnabled
+      : isMuted !== undefined
+      ? !isMuted
+      : voiceContext?.isAudioEnabled ?? true;
   const effectiveIsVideoEnabled =
-    isVideoEnabled !== undefined ? isVideoEnabled : isVideoOff !== undefined ? !isVideoOff : false;
+    isVideoEnabled !== undefined
+      ? isVideoEnabled
+      : isVideoOff !== undefined
+      ? !isVideoOff
+      : voiceContext?.isVideoEnabled ?? false;
+  const effectiveIsScreenSharing =
+    isScreenSharing !== undefined
+      ? isScreenSharing
+      : voiceContext?.isScreenSharing ?? false;
+  const effectiveIsDeafened =
+    isDeafened !== undefined
+      ? isDeafened
+      : voiceContext?.isDeafened ?? false;
+
+  const effectiveCameras =
+    cameras && cameras.length > 0 ? cameras : voiceContext?.cameras || [];
+  const effectiveMics =
+    mics && mics.length > 0 ? mics : voiceContext?.mics || [];
+  const effectiveSelectedCameraId =
+    selectedCameraId || voiceContext?.selectedCameraId || "";
+  const effectiveSelectedMicId =
+    selectedMicId || voiceContext?.selectedMicId || "";
+
+  const handleToggleAudio = () => {
+    if (onToggleAudio) {
+      onToggleAudio();
+    } else if (voiceContext?.toggleAudio) {
+      voiceContext.toggleAudio();
+    }
+  };
+
+  const handleToggleVideo = () => {
+    if (onToggleVideo) {
+      onToggleVideo();
+    } else if (voiceContext?.toggleVideo) {
+      voiceContext.toggleVideo();
+    }
+  };
+
+  const handleToggleDeafen = () => {
+    if (onToggleDeafen) {
+      onToggleDeafen();
+    } else if (voiceContext?.toggleDeafen) {
+      voiceContext.toggleDeafen();
+    }
+  };
+
+  const handleToggleScreenShare = () => {
+    if (onToggleScreenShare) {
+      onToggleScreenShare();
+    } else if (effectiveIsScreenSharing && voiceContext?.stopScreenShare) {
+      voiceContext.stopScreenShare();
+    } else if (!effectiveIsScreenSharing && voiceContext?.startScreenShare) {
+      voiceContext.startScreenShare();
+    }
+  };
+
+  const handleDisconnect = () => {
+    if (onDisconnect) {
+      onDisconnect();
+    } else if (onLeaveChannel) {
+      onLeaveChannel();
+    } else if (voiceContext?.leaveVoiceChannel) {
+      voiceContext.leaveVoiceChannel();
+    }
+  };
+
+  const handleSwitchCamera = (deviceId: string) => {
+    if (onSwitchCamera) {
+      onSwitchCamera(deviceId);
+    } else if (voiceContext?.switchCamera) {
+      voiceContext.switchCamera(deviceId);
+    }
+  };
+
+  const handleSwitchMic = (deviceId: string) => {
+    if (onSwitchMic) {
+      onSwitchMic(deviceId);
+    } else if (voiceContext?.switchMic) {
+      voiceContext.switchMic(deviceId);
+    }
+  };
 
   const rawParticipants = voiceParticipants || participants || [];
 
@@ -631,22 +732,22 @@ export function TabeTalkRoom({
         meta.avatar_url ||
         null,
       isLocal: true,
-      stream: localStream || found?.stream || null,
-      isMuted: !effectiveIsAudioEnabled || !!isDeafened,
+      stream: effectiveLocalStream || found?.stream || null,
+      isMuted: !effectiveIsAudioEnabled || !!effectiveIsDeafened,
       isVideoOff: !effectiveIsVideoEnabled,
-      isDeafened: !!isDeafened,
-      isScreenSharing: !!isScreenSharing,
+      isDeafened: !!effectiveIsDeafened,
+      isScreenSharing: !!effectiveIsScreenSharing,
       isSpeaking: speakingUsers?.has ? speakingUsers.has(currentUserId) : false,
     };
   }, [
     rawParticipants,
     currentUserId,
     user,
-    localStream,
+    effectiveLocalStream,
     effectiveIsAudioEnabled,
-    isDeafened,
+    effectiveIsDeafened,
     effectiveIsVideoEnabled,
-    isScreenSharing,
+    effectiveIsScreenSharing,
     speakingUsers,
   ]);
 
@@ -871,21 +972,21 @@ export function TabeTalkRoom({
       {/* Barra Inferior de Controles */}
       <div className="pb-6 pt-2 flex items-center justify-center shrink-0 z-30 pointer-events-auto">
         <ControlDock
-          isMuted={!effectiveIsAudioEnabled || !!isDeafened}
+          isMuted={!effectiveIsAudioEnabled || !!effectiveIsDeafened}
           isVideoOff={!effectiveIsVideoEnabled}
-          isDeafened={!!isDeafened}
-          isScreenSharing={!!isScreenSharing}
-          onToggleAudio={onToggleAudio}
-          onToggleVideo={onToggleVideo}
+          isDeafened={!!effectiveIsDeafened}
+          isScreenSharing={!!effectiveIsScreenSharing}
+          onToggleAudio={handleToggleAudio}
+          onToggleVideo={handleToggleVideo}
           onToggleDeafen={handleToggleDeafen}
-          onToggleScreenShare={onToggleScreenShare}
+          onToggleScreenShare={handleToggleScreenShare}
           onDisconnect={handleDisconnect}
-          cameras={cameras}
-          selectedCameraId={selectedCameraId}
-          onSwitchCamera={onSwitchCamera}
-          mics={mics}
-          selectedMicId={selectedMicId}
-          onSwitchMic={onSwitchMic}
+          cameras={effectiveCameras}
+          selectedCameraId={effectiveSelectedCameraId}
+          onSwitchCamera={handleSwitchCamera}
+          mics={effectiveMics}
+          selectedMicId={effectiveSelectedMicId}
+          onSwitchMic={handleSwitchMic}
         />
       </div>
     </div>
