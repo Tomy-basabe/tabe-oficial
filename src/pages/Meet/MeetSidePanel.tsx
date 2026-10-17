@@ -90,7 +90,7 @@ export const MeetSidePanel: React.FC<MeetSidePanelProps> = ({
   ];
 
   return (
-    <aside className="w-full md:w-80 lg:w-96 h-full bg-neutral-900 border-l border-neutral-800 flex flex-col z-20 text-neutral-100 animate-in slide-in-from-right duration-200">
+    <aside className="fixed inset-0 md:static md:inset-auto w-full md:w-80 lg:w-96 h-full bg-neutral-900 border-l border-neutral-800 flex flex-col z-40 text-neutral-100 animate-in slide-in-from-right duration-200">
       {/* Header del Panel */}
       <div className="h-16 px-4 border-b border-neutral-800 flex items-center justify-between">
         <div className="flex items-center gap-2 font-medium">

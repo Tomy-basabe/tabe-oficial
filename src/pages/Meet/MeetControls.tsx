@@ -104,9 +104,15 @@ export const MeetControls: React.FC<MeetControlsProps> = ({
 
         {/* Compartir Pantalla */}
         <button
-          onClick={onToggleScreenShare}
+          onClick={() => {
+            if (!navigator.mediaDevices || !('getDisplayMedia' in navigator.mediaDevices)) {
+              toast.error('Tu navegador o dispositivo móvil no permite compartir pantalla');
+              return;
+            }
+            onToggleScreenShare();
+          }}
           className={cn(
-            'w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm hidden xs:flex',
+            'w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm',
             isScreenSharing
               ? 'bg-blue-600 hover:bg-blue-700 text-white'
               : 'bg-neutral-800 hover:bg-neutral-700 text-white'

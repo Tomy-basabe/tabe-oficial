@@ -40,6 +40,7 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const hasJoinedRoomRef = useRef(false);
 
   // Inicializar nombre si el usuario está logueado
   useEffect(() => {
@@ -97,6 +98,9 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
       });
 
       if (stream) {
+        if (streamRef.current && streamRef.current !== stream) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+        }
         streamRef.current = stream;
 
         // Conectar al video de vista previa
@@ -107,17 +111,23 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
         }
 
         const hasVideo = stream.getVideoTracks().length > 0;
+        const hasAudio = stream.getAudioTracks().length > 0;
         setHasCameraError(!hasVideo);
         setIsVideoEnabled(hasVideo);
+        setIsAudioEnabled(hasAudio);
 
         // Inmediatamente después de obtener permiso, enumerar dispositivos para obtener los nombres reales
         await updateDeviceList();
       } else {
         setHasCameraError(true);
+        setIsVideoEnabled(false);
+        setIsAudioEnabled(false);
       }
     } catch (err) {
       console.warn('Error solicitando permisos de cámara:', err);
       setHasCameraError(true);
+      setIsVideoEnabled(false);
+      setIsAudioEnabled(false);
     }
   };
 
@@ -125,22 +135,55 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
     if (!paramRoomId) return;
     requestMedia();
 
+    const handleDeviceChange = () => {
+      updateDeviceList();
+    };
+
     if (navigator.mediaDevices?.addEventListener) {
-      navigator.mediaDevices.addEventListener('devicechange', updateDeviceList);
-      return () => {
-        navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList);
-      };
+      navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
     }
+
+    return () => {
+      if (navigator.mediaDevices?.removeEventListener) {
+        navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      }
+      // Si el usuario sale del lobby sin entrar a la llamada, apagar su cámara y micrófono
+      if (!hasJoinedRoomRef.current && streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+    };
   }, [paramRoomId]);
 
-  // Alternar audio: solo cambia track.enabled (instantáneo, sin apagar hardware)
-  const toggleAudio = () => {
+  // Alternar audio: cambia track.enabled o solicita micrófono si no existía
+  const toggleAudio = async () => {
     const next = !isAudioEnabled;
-    setIsAudioEnabled(next);
-    if (streamRef.current) {
+
+    if (streamRef.current && streamRef.current.getAudioTracks().length > 0) {
       streamRef.current.getAudioTracks().forEach((t) => {
         t.enabled = next;
       });
+      setIsAudioEnabled(next);
+    } else if (next) {
+      try {
+        const aStream = await navigator.mediaDevices.getUserMedia({
+          audio: selectedAudioDeviceId
+            ? { ...SAFE_AUDIO_CONSTRAINTS, deviceId: selectedAudioDeviceId }
+            : SAFE_AUDIO_CONSTRAINTS,
+        });
+        const aTrack = aStream.getAudioTracks()[0];
+        if (aTrack) {
+          if (!streamRef.current) {
+            streamRef.current = new MediaStream([aTrack]);
+          } else {
+            streamRef.current.addTrack(aTrack);
+          }
+          setIsAudioEnabled(true);
+          await updateDeviceList();
+        }
+      } catch {
+        toast.error('No se pudo acceder al micrófono');
+      }
     }
   };
 
@@ -161,8 +204,12 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
           video: selectedVideoDeviceId ? { deviceId: selectedVideoDeviceId } : true,
         });
         const vTrack = vStream.getVideoTracks()[0];
-        if (vTrack && streamRef.current) {
-          streamRef.current.addTrack(vTrack);
+        if (vTrack) {
+          if (!streamRef.current) {
+            streamRef.current = new MediaStream([vTrack]);
+          } else {
+            streamRef.current.addTrack(vTrack);
+          }
           if (videoRef.current) {
             videoRef.current.srcObject = streamRef.current;
             videoRef.current.muted = true;
@@ -189,22 +236,24 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
       const newTrack = newStream.getVideoTracks()[0];
       if (!newTrack) return;
 
-      if (streamRef.current) {
+      if (!streamRef.current) {
+        streamRef.current = new MediaStream([newTrack]);
+      } else {
         streamRef.current.getVideoTracks().forEach((t) => {
           t.stop();
           streamRef.current?.removeTrack(t);
         });
         streamRef.current.addTrack(newTrack);
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = streamRef.current;
-          videoRef.current.muted = true;
-          videoRef.current.volume = 0;
-        }
-
-        setIsVideoEnabled(true);
-        setHasCameraError(false);
       }
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.muted = true;
+        videoRef.current.volume = 0;
+      }
+
+      setIsVideoEnabled(true);
+      setHasCameraError(false);
     } catch (err) {
       console.warn('Error al cambiar a cámara seleccionada:', err);
       toast.error('No se pudo acceder a la cámara seleccionada');
@@ -223,14 +272,16 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
       const newTrack = newStream.getAudioTracks()[0];
       if (!newTrack) return;
 
-      if (streamRef.current) {
+      if (!streamRef.current) {
+        streamRef.current = new MediaStream([newTrack]);
+      } else {
         streamRef.current.getAudioTracks().forEach((t) => {
           t.stop();
           streamRef.current?.removeTrack(t);
         });
         streamRef.current.addTrack(newTrack);
-        newTrack.enabled = isAudioEnabled;
       }
+      newTrack.enabled = isAudioEnabled;
     } catch (err) {
       console.warn('Error al cambiar a micrófono seleccionado:', err);
     }
@@ -270,6 +321,8 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
       toast.error('Por favor escribe tu nombre antes de unirte');
       return;
     }
+
+    hasJoinedRoomRef.current = true;
 
     if (streamRef.current) {
       streamRef.current.getAudioTracks().forEach((t) => {

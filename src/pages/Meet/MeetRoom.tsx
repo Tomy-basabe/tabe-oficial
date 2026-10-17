@@ -34,10 +34,13 @@ export const MeetRoom: React.FC = () => {
     selectedAudioDeviceId,
     setSelectedVideoDeviceId,
     setSelectedAudioDeviceId,
+    refreshDevices,
   } = useMediaDevices();
 
   // Estados de interfaz
-  const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'participants' | 'info' | 'settings' | null>(null);
+  const [activeSidePanel, setActiveSidePanel] = useState<
+    'chat' | 'participants' | 'info' | 'settings' | null
+  >(null);
   const [pinnedPeerId, setPinnedPeerId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [readMessagesCount, setReadMessagesCount] = useState(0);
@@ -113,8 +116,23 @@ export const MeetRoom: React.FC = () => {
   useEffect(() => {
     if (hasJoined && !hasLeft && roomId) {
       joinMeeting();
+      refreshDevices();
     }
-  }, [hasJoined, hasLeft, roomId, joinMeeting]);
+  }, [hasJoined, hasLeft, roomId, joinMeeting, refreshDevices]);
+
+  // Refrescar lista de dispositivos cuando cambia el stream local o se abre ajustes
+  useEffect(() => {
+    if (localStream || activeSidePanel === 'settings') {
+      refreshDevices();
+    }
+  }, [localStream, activeSidePanel, refreshDevices]);
+
+  // Si el participante fijado se desconecta, limpiar el pin automáticamente
+  useEffect(() => {
+    if (pinnedPeerId && pinnedPeerId !== myPeerId && !participants.has(pinnedPeerId)) {
+      setPinnedPeerId(null);
+    }
+  }, [participants, pinnedPeerId, myPeerId]);
 
   // Actualizar contador de mensajes leídos cuando el panel de chat está abierto
   useEffect(() => {
@@ -128,12 +146,15 @@ export const MeetRoom: React.FC = () => {
   // Manejar colgar llamada
   const handleLeave = () => {
     leaveMeeting();
+    setLobbyStream(null);
+    setPinnedPeerId(null);
     setHasLeft(true);
     setHasJoined(false);
   };
 
   // Reingresar
   const handleRejoin = () => {
+    setLobbyStream(null);
     setHasLeft(false);
     setHasJoined(true);
   };
@@ -203,10 +224,41 @@ export const MeetRoom: React.FC = () => {
 
   // CASO 3: SALA DE VIDEOLLAMADA ACTIVA
   const remoteParticipants = Array.from(participants.values());
-  const totalCount = remoteParticipants.length + 1; // remotos + local
+  const totalCount = remoteParticipants.length + 1;
+
+  // Lista unificada de tiles para soportar tanto vista en grilla como modo Spotlight (fijado / pantalla compartida)
+  const allTiles = [
+    {
+      peerId: myPeerId,
+      stream: localStream,
+      name: userName || 'Tú',
+      avatar: userAvatar,
+      isAudioEnabled,
+      isVideoEnabled,
+      isLocal: true,
+      isSpeaking: isLocalSpeaking,
+      isScreenSharing,
+    },
+    ...remoteParticipants.map((p) => ({
+      peerId: p.peerId,
+      stream: p.stream,
+      name: p.name,
+      avatar: p.avatar,
+      isAudioEnabled: p.audioEnabled,
+      isVideoEnabled: p.videoEnabled,
+      isLocal: false,
+      isSpeaking: p.isSpeaking,
+      isScreenSharing: p.isScreenSharing,
+    })),
+  ];
+
+  // Si alguien está fijado manualmente o compartiendo pantalla, destacarlo en Spotlight
+  const screenSharingTile = allTiles.find((t) => t.isScreenSharing);
+  const activeSpotlightId = pinnedPeerId || (totalCount > 1 && screenSharingTile ? screenSharingTile.peerId : null);
+  const spotlightTile = activeSpotlightId ? allTiles.find((t) => t.peerId === activeSpotlightId) : null;
+  const secondaryTiles = spotlightTile ? allTiles.filter((t) => t.peerId !== spotlightTile.peerId) : [];
 
   const getGridClasses = () => {
-    if (pinnedPeerId) return 'flex-1 flex flex-col';
     if (totalCount === 1) return 'grid grid-cols-1 place-items-center max-w-4xl mx-auto h-full';
     if (totalCount === 2) return 'grid grid-cols-1 md:grid-cols-2 gap-4 h-full items-center';
     if (totalCount <= 4) return 'grid grid-cols-1 sm:grid-cols-2 gap-4 h-full items-center';
@@ -215,75 +267,115 @@ export const MeetRoom: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-neutral-950 text-white flex flex-col justify-between overflow-hidden">
+    <div className="h-[100dvh] w-full bg-neutral-950 text-white flex flex-col justify-between overflow-hidden">
       {hasPermissionError && (
-        <div className="bg-amber-950/80 border-b border-amber-800 px-4 py-2 text-xs text-amber-200 flex items-center justify-center gap-2 z-40">
+        <div className="bg-amber-950/80 border-b border-amber-800 px-4 py-2 text-xs text-amber-200 flex items-center justify-center gap-2 z-30 shrink-0">
           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
           <span>{hasPermissionError}</span>
         </div>
       )}
 
       {/* Área Central: Grid de Videos + Panel Lateral */}
-      <div className="flex-1 flex overflow-hidden relative">
-        <main className="flex-1 p-3 md:p-6 overflow-y-auto flex flex-col">
+      <div className="flex-1 flex overflow-hidden relative min-h-0">
+        <main className="flex-1 p-3 md:p-6 overflow-y-auto flex flex-col min-h-0">
           {totalCount === 1 && (
-            <div className="mb-4 max-w-xl mx-auto w-full bg-neutral-900/90 border border-neutral-800 p-4 rounded-2xl flex items-center justify-between gap-4 animate-in fade-in duration-300">
+            <div className="mb-4 max-w-xl mx-auto w-full bg-neutral-900/90 border border-neutral-800 p-4 rounded-2xl flex items-center justify-between gap-4 animate-in fade-in duration-300 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-neutral-200">Tu reunión está lista</h4>
-                  <p className="text-xs text-neutral-400">Comparte el enlace con quienes desees que se unan.</p>
+                  <p className="text-xs text-neutral-400">
+                    Comparte el enlace con quienes desees que se unan.
+                  </p>
                 </div>
               </div>
               <button
                 onClick={copyRoomLink}
                 className="px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 flex items-center gap-1.5 shrink-0 transition-colors"
               >
-                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedLink ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
                 <span>{copiedLink ? 'Copiado' : 'Copiar enlace'}</span>
               </button>
             </div>
           )}
 
-          {/* Grid de Video Tiles */}
-          <div className={cn('w-full flex-1 transition-all duration-300', getGridClasses())}>
-            {/* Tile Local */}
-            <div className="w-full h-full min-h-[220px] max-h-[75vh]">
-              <MeetVideoTile
-                stream={localStream}
-                name={userName || 'Tú'}
-                avatar={userAvatar}
-                isAudioEnabled={isAudioEnabled}
-                isVideoEnabled={isVideoEnabled}
-                isLocal={true}
-                isSpeaking={isLocalSpeaking}
-                isScreenSharing={isScreenSharing}
-                isPinned={pinnedPeerId === myPeerId}
-                onTogglePin={() => setPinnedPeerId(pinnedPeerId === myPeerId ? null : myPeerId)}
-              />
-            </div>
-
-            {/* Tiles Remotos */}
-            {remoteParticipants.map((participant) => (
-              <div key={participant.peerId} className="w-full h-full min-h-[220px] max-h-[75vh]">
+          {/* MODO SPOTLIGHT (Video fijado o Pantalla compartida) */}
+          {spotlightTile ? (
+            <div className="w-full flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
+              <div className="flex-1 min-h-[240px] h-full">
                 <MeetVideoTile
-                  stream={participant.stream}
-                  name={participant.name}
-                  avatar={participant.avatar}
-                  isAudioEnabled={participant.audioEnabled}
-                  isVideoEnabled={participant.videoEnabled}
-                  isSpeaking={participant.isSpeaking}
-                  isScreenSharing={participant.isScreenSharing}
-                  isPinned={pinnedPeerId === participant.peerId}
+                  stream={spotlightTile.stream}
+                  name={spotlightTile.name}
+                  avatar={spotlightTile.avatar}
+                  isAudioEnabled={spotlightTile.isAudioEnabled}
+                  isVideoEnabled={spotlightTile.isVideoEnabled}
+                  isLocal={spotlightTile.isLocal}
+                  isSpeaking={spotlightTile.isSpeaking}
+                  isScreenSharing={spotlightTile.isScreenSharing}
+                  isPinned={pinnedPeerId === spotlightTile.peerId}
                   onTogglePin={() =>
-                    setPinnedPeerId(pinnedPeerId === participant.peerId ? null : participant.peerId)
+                    setPinnedPeerId(
+                      pinnedPeerId === spotlightTile.peerId ? null : spotlightTile.peerId
+                    )
                   }
                 />
               </div>
-            ))}
-          </div>
+
+              {secondaryTiles.length > 0 && (
+                <div className="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto lg:w-64 xl:w-72 shrink-0 h-36 lg:h-full">
+                  {secondaryTiles.map((tile) => (
+                    <div
+                      key={tile.peerId}
+                      className="w-48 lg:w-full h-full lg:h-40 shrink-0"
+                    >
+                      <MeetVideoTile
+                        stream={tile.stream}
+                        name={tile.name}
+                        avatar={tile.avatar}
+                        isAudioEnabled={tile.isAudioEnabled}
+                        isVideoEnabled={tile.isVideoEnabled}
+                        isLocal={tile.isLocal}
+                        isSpeaking={tile.isSpeaking}
+                        isScreenSharing={tile.isScreenSharing}
+                        isPinned={pinnedPeerId === tile.peerId}
+                        onTogglePin={() =>
+                          setPinnedPeerId(pinnedPeerId === tile.peerId ? null : tile.peerId)
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* MODO GRILLA ESTÁNDAR */
+            <div className={cn('w-full flex-1 transition-all duration-300', getGridClasses())}>
+              {allTiles.map((tile) => (
+                <div key={tile.peerId} className="w-full h-full min-h-[200px] max-h-[75vh]">
+                  <MeetVideoTile
+                    stream={tile.stream}
+                    name={tile.name}
+                    avatar={tile.avatar}
+                    isAudioEnabled={tile.isAudioEnabled}
+                    isVideoEnabled={tile.isVideoEnabled}
+                    isLocal={tile.isLocal}
+                    isSpeaking={tile.isSpeaking}
+                    isScreenSharing={tile.isScreenSharing}
+                    isPinned={pinnedPeerId === tile.peerId}
+                    onTogglePin={() =>
+                      setPinnedPeerId(pinnedPeerId === tile.peerId ? null : tile.peerId)
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </main>
 
         {/* Panel lateral desplegable para Chat, Participantes, Info y Ajustes de Dispositivos */}
