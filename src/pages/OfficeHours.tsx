@@ -131,7 +131,6 @@ export default function OfficeHours() {
       if (profResult.error) throw profResult.error;
       if (hoursResult.error) throw hoursResult.error;
 
-      // Enrich professors with subject names
       const enriched = (profResult.data || []).map((p: any) => {
         const sub = allSubjects?.find(s => s.id === p.subject_id);
         return { ...p, subject_nombre: sub?.nombre || "Sin materia" };
@@ -144,7 +143,7 @@ export default function OfficeHours() {
     } finally {
       setLoading(false);
     }
-  }, [user, isGuest, allSubjects]);
+  }, [user?.id, isGuest]);
 
   useEffect(() => {
     fetchData();

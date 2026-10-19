@@ -270,7 +270,7 @@ export function useForest() {
   }
 
   const [plants, setPlants] = useState<Plant[]>(() => {
-    if (_cachedPlants && _cachedPlants.length === 50) return _cachedPlants;
+    if (_cachedPlants !== null) return _cachedPlants;
     if (isGuest) {
       const mock = getGuestMockPlants();
       _cachedPlants = mock;
@@ -281,7 +281,7 @@ export function useForest() {
   });
 
   const [currentPlant, setCurrentPlant] = useState<Plant | null>(() => {
-    if (_cachedCurrentPlant && _cachedPlants && _cachedPlants.length === 50) return _cachedCurrentPlant;
+    if (_cachedPlants !== null) return _cachedCurrentPlant;
     if (isGuest && _cachedPlants) {
       return _cachedPlants.find(p => p.is_alive && !p.is_completed) || null;
     }
@@ -852,11 +852,11 @@ export function useForest() {
   useEffect(() => {
     let isMounted = true;
     const loadData = async () => {
-      if (!_cachedPlants) setLoading(true);
+      if (_cachedPlants === null) setLoading(true);
       
       const timeoutId = setTimeout(() => {
         if (isMounted) setLoading(false);
-      }, 8000);
+      }, 2000);
 
       try {
         await Promise.all([fetchPlants(), fetchStudyActivity()]);

@@ -230,22 +230,22 @@ export function MainLayout() {
     return ensureTabeAISecond(raw);
   }, [isLegacyOrIncomplete, userConfig]);
 
-  // Sync missing essential items (like /tareas) to local storage if user had an older saved config
+  // Sync normalized sidebar items (removing /tabetalk and ensuring all sections exist) to local storage
   useEffect(() => {
     try {
       const local = localStorage.getItem("tabe-custom-sidebar-config");
       if (local && displayItems && displayItems.length > 0) {
         const parsed = JSON.parse(local);
-        const hasTareas = parsed?.some((i: any) => 
-          (i.path || i.id) === "/tareas" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/tareas"))
-        );
         const hasTabetalk = parsed?.some((i: any) => 
           (i.path || i.id) === "/tabetalk" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/tabetalk"))
         );
         const hasMarketplace = parsed?.some((i: any) => 
           (i.path || i.id) === "/marketplace" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/marketplace"))
         );
-        if (!hasTareas || !hasTabetalk || hasMarketplace) {
+        const hasTabegochi = parsed?.some((i: any) => 
+          (i.path || i.id) === "/tabegochi" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/tabegochi"))
+        );
+        if (hasTabetalk || hasMarketplace || !hasTabegochi) {
           localStorage.setItem("tabe-custom-sidebar-config", JSON.stringify(displayItems));
         }
       }
@@ -418,6 +418,7 @@ export function MainLayout() {
             {(() => {
               const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                 const targetPath = item.path || (item.type === "item" ? item.id : null);
+                if (targetPath === "/tabetalk" || targetPath === "/discord") return null;
                 if (targetPath === "/admin" && !isSuperAdmin(user)) return null;
                 const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
                 
@@ -582,6 +583,7 @@ export function MainLayout() {
               {(() => {
                 const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                   const targetPath = item.path || (item.type === "item" ? item.id : null);
+                  if (targetPath === "/tabetalk" || targetPath === "/discord") return null;
                   if (targetPath === "/admin" && !isSuperAdmin(user)) return null;
                   const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
                   

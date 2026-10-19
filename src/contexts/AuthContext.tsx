@@ -161,7 +161,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Only re-apply if user identity actually changed or on initial resolve
       setSession(session);
-      setUser(newUser);
+      setUser(prev => {
+        if (!newUser) return null;
+        if (prev && prev.id === newUser.id && prev.email === newUser.email) {
+          return prev;
+        }
+        return newUser;
+      });
 
       if (session?.provider_token) {
         setStoredGoogleToken(

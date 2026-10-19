@@ -59,12 +59,12 @@ const FLASHCARDS_CACHE_KEY = "tabe-flashcards-cache";
 const FLASHCARDS_SUBJECTS_CACHE_KEY = "tabe-subjects-cache";
 
 function getCachedFlashcardDecks(): Deck[] {
-  if (flashcardDecksCache && flashcardDecksCache.length > 0) return flashcardDecksCache;
+  if (flashcardDecksCache !== null) return flashcardDecksCache;
   try {
     const stored = localStorage.getItem(FLASHCARDS_CACHE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         flashcardDecksCache = parsed;
         return parsed;
       }
@@ -85,12 +85,12 @@ function setCachedFlashcardDecks(decks: Deck[]) {
 }
 
 function getCachedFlashcardSubjects(): Subject[] {
-  if (flashcardSubjectsCache && flashcardSubjectsCache.length > 0) return flashcardSubjectsCache;
+  if (flashcardSubjectsCache !== null) return flashcardSubjectsCache;
   try {
     const stored = localStorage.getItem(FLASHCARDS_SUBJECTS_CACHE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         flashcardSubjectsCache = parsed;
         return parsed;
       }
@@ -153,7 +153,7 @@ export default function Flashcards() {
   const [newDeckSubject, setNewDeckSubject] = useState<string | null>(null);
   const [newCardQuestion, setNewCardQuestion] = useState("");
   const [newCardAnswer, setNewCardAnswer] = useState("");
-  const [loading, setLoading] = useState(() => getCachedFlashcardDecks().length === 0);
+  const [loading, setLoading] = useState(() => flashcardDecksCache === null);
 
   // Edit Deck State
   const [showEditDeckModal, setShowEditDeckModal] = useState(false);
@@ -223,17 +223,7 @@ export default function Flashcards() {
         query = query.eq("user_id", user.id);
       }
 
-      let { data, error } = await query;
-      if (user && (!data || data.length === 0)) {
-        const fallback = await supabase
-          .from("subjects")
-          .select("id, nombre, codigo, año")
-          .is("user_id", null)
-          .order("año", { ascending: true });
-        if (fallback.data && fallback.data.length > 0) {
-          data = fallback.data;
-        }
-      }
+      const { data, error } = await query;
 
       if (!error && data) {
         setCachedFlashcardSubjects(data);
@@ -251,7 +241,7 @@ export default function Flashcards() {
       setLoading(false);
       return;
     }
-    if (showLoading && getCachedFlashcardDecks().length === 0) {
+    if (showLoading && flashcardDecksCache === null) {
       setLoading(true);
     }
 
@@ -305,7 +295,7 @@ export default function Flashcards() {
       return;
     }
 
-    if (getCachedFlashcardDecks().length === 0) {
+    if (flashcardDecksCache === null) {
       setLoading(true);
     }
 

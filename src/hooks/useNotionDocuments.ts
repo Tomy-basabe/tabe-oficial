@@ -142,9 +142,9 @@ export function useNotionDocuments() {
     }
 
     try {
-      // Timeout de seguridad de 6 segundos para evitar pantallas de carga infinitas
+      // Timeout de seguridad de 2.5 segundos para evitar pantallas de carga infinitas
       const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
-        setTimeout(() => resolve({ data: null, error: { message: "FETCH_DOCUMENTS_TIMEOUT" } }), 6000);
+        setTimeout(() => resolve({ data: null, error: { message: "FETCH_DOCUMENTS_TIMEOUT" } }), 2500);
       });
 
       // @AI-CRITICAL-INSTRUCTION: MANTENER EFICIENCIA DE EGRESS.
@@ -306,10 +306,17 @@ export function useNotionDocuments() {
     }
   }, [user, isGuest]);
 
+  // Safety timeout so loading never stays true infinitely
   useEffect(() => {
-    if (user || isGuest) {
-      fetchDocuments();
-    }
+    if (!loading) return;
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  useEffect(() => {
+    fetchDocuments();
   }, [user, isGuest, fetchDocuments]);
 
   const createDocument = async (

@@ -80,7 +80,7 @@ export default function Pomodoro() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [yearFilter, setYearFilter] = useState<string>("all");
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
@@ -149,42 +149,23 @@ export default function Pomodoro() {
     }
   }, [searchParams, user, setSelectedSubject]);
 
-  // Still fetch subjects locally as that's UI data, not timer logic
+  // Fetch subjects locally in background as fallback if careerSubjects is empty
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (!user && !isGuest) {
       setLoading(false);
-    }, 3000);
-
-    fetchSubjects().finally(() => {
-      clearTimeout(timer);
-      setLoading(false);
-    });
-
-    return () => clearTimeout(timer);
+      return;
+    }
+    fetchSubjects();
   }, [user, isGuest]);
 
   const fetchSubjects = async () => {
+    if (!user || isGuest) return;
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from("subjects")
         .select("id, nombre, codigo, año")
+        .eq("user_id", user.id)
         .order("nombre", { ascending: true });
-
-      if (user) {
-        query = query.eq("user_id", user.id);
-      }
-
-      let { data, error } = await query;
-      if (user && (!data || data.length === 0)) {
-        const fallback = await supabase
-          .from("subjects")
-          .select("id, nombre, codigo, año")
-          .is("user_id", null)
-          .order("nombre", { ascending: true });
-        if (fallback.data && fallback.data.length > 0) {
-          data = fallback.data;
-        }
-      }
 
       if (error) throw error;
       setSubjects((data || []).map((s: any) => ({

@@ -153,7 +153,7 @@ function getStoredDailySubjects(userId: string): DailySubjectCache | null {
     const raw = localStorage.getItem(SUBJECTS_DAILY_CACHE_KEY);
     if (!raw) return null;
     const parsed: DailySubjectCache = JSON.parse(raw);
-    if (parsed && parsed.userId === userId && Array.isArray(parsed.subjects) && parsed.subjects.length > 0) {
+    if (parsed && parsed.userId === userId && Array.isArray(parsed.subjects)) {
       return parsed;
     }
   } catch (e) {}
@@ -185,9 +185,10 @@ export function useSubjects() {
     _cachedUserId = user.id;
   }
 
-  // Check 24-hour persistent cache in localStorage
+  // Check 24-hour persistent cache in localStorage (5 min TTL if empty so new users stay fast)
   const dailyCache = user ? getStoredDailySubjects(user.id) : null;
-  const isDailyCacheFresh = dailyCache !== null && (Date.now() - dailyCache.timestamp < CACHE_TTL_MS);
+  const effectiveTtl = dailyCache && dailyCache.subjects.length === 0 ? 5 * 60 * 1000 : CACHE_TTL_MS;
+  const isDailyCacheFresh = dailyCache !== null && (Date.now() - dailyCache.timestamp < effectiveTtl);
 
   if (!_cachedSubjects && isDailyCacheFresh && dailyCache) {
     _cachedSubjects = dailyCache.subjects;
@@ -198,15 +199,24 @@ export function useSubjects() {
   const [subjects, setSubjects] = useState<Subject[]>(_cachedSubjects || []);
   const [userStatuses, setUserStatuses] = useState<UserSubjectStatus[]>(_cachedUserStatuses || []);
   const [dependencies, setDependencies] = useState<Dependency[]>(_cachedDependencies || []);
-  const [loading, setLoading] = useState(!_cachedSubjects && !isDailyCacheFresh);
-  const isInitialLoad = useRef(!_cachedSubjects && !isDailyCacheFresh);
+  const [loading, setLoading] = useState(_cachedSubjects === null && !isDailyCacheFresh);
+  const isInitialLoad = useRef(_cachedSubjects === null && !isDailyCacheFresh);
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchData = useCallback(async (showLoading = true, retries = 2) => {
+  // Global safety timeout on loading state
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  const fetchData = useCallback(async (showLoading = true, retries = 1) => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     
     try {
-      if (showLoading) setLoading(true);
+      if (showLoading && _cachedSubjects === null) setLoading(true);
 
       // SAFETY TIMEOUT: Ensure loading is cleared even if Supabase hangs
       timeoutId = setTimeout(() => {
@@ -217,7 +227,7 @@ export function useSubjects() {
           }
           return current;
         });
-      }, 8000);
+      }, 2500);
 
       // Run all 3 queries in parallel with strict user filtering
       let subQuery = supabase
@@ -263,13 +273,7 @@ export function useSubjects() {
       _cachedUserId = user ? user.id : null;
 
       if (user) {
-        if (newSubs.length > 0) {
-          setStoredDailySubjects(user.id, newSubs, newStatuses, newDeps);
-        } else {
-          try {
-            localStorage.removeItem(SUBJECTS_DAILY_CACHE_KEY);
-          } catch (e) {}
-        }
+        setStoredDailySubjects(user.id, newSubs, newStatuses, newDeps);
       }
 
       setSubjects(newSubs);
@@ -283,7 +287,7 @@ export function useSubjects() {
       console.error("Error fetching subjects:", error);
       if (retries > 0) {
         console.log(`Retrying fetchData... (${retries} left)`);
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 800));
         return fetchData(false, retries - 1);
       }
       toast.error(`Error al cargar materias: ${error?.message || "Error desconocido"}`);
@@ -377,16 +381,16 @@ export function useSubjects() {
           return;
         }
 
-        // 24-hour Daily Cache: If cached within last 24h, 0 queries to Supabase!
         const daily = getStoredDailySubjects(user.id);
-        const fresh = daily !== null && (Date.now() - daily.timestamp < CACHE_TTL_MS);
+        const ttl = daily && daily.subjects.length === 0 ? 5 * 60 * 1000 : CACHE_TTL_MS;
+        const fresh = daily !== null && (Date.now() - daily.timestamp < ttl);
         if (fresh) {
           setLoading(false);
           isInitialLoad.current = false;
           return;
         }
 
-        fetchData(!_cachedSubjects);
+        fetchData(_cachedSubjects === null);
       } else if (isGuest) {
         // ALWAYS use the template for Guest Mode, ignore localStorage
         import('@/data/sistemas_template.json').then(module => {
@@ -426,6 +430,9 @@ export function useSubjects() {
           setLoading(false);
           isInitialLoad.current = false;
         });
+      } else {
+        setLoading(false);
+        isInitialLoad.current = false;
       }
     };
     initData();

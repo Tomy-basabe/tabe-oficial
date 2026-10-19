@@ -97,7 +97,6 @@ export const ALL_MOBILE_NAV_ITEMS: {
     categoryLabel: "Comunidad & Juegos",
     icon: "🎮",
     items: [
-      { icon: MessageSquare, label: "Tabetalk", path: "/tabetalk", badge: "VOZ", color: "text-[#1475e5]", bgActive: "bg-[#1475e5] text-white" },
       { icon: Sparkles, label: "TabeGochi", path: "/tabegochi", badge: "NUEVO", color: "text-[#EC4899]", bgActive: "bg-[#EC4899] text-white" },
       { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", color: "text-[#10B981]", bgActive: "bg-[#10B981] text-white" },
       { icon: Gamepad2, label: "Juegos", path: "/juegos", badge: "HOT", color: "text-[#F97316]", bgActive: "bg-[#F97316] text-white" },

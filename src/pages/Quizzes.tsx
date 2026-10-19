@@ -63,12 +63,12 @@ const QUIZZES_CACHE_KEY = "tabe-quizzes-cache";
 const QUIZZES_SUBJECTS_CACHE_KEY = "tabe-subjects-cache";
 
 function getCachedQuizzesDecks(): QuizDeck[] {
-    if (quizzesDecksCache && quizzesDecksCache.length > 0) return quizzesDecksCache;
+    if (quizzesDecksCache !== null) return quizzesDecksCache;
     try {
         const stored = localStorage.getItem(QUIZZES_CACHE_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) {
+            if (Array.isArray(parsed)) {
                 quizzesDecksCache = parsed;
                 return parsed;
             }
@@ -89,12 +89,12 @@ function setCachedQuizzesDecks(decks: QuizDeck[]) {
 }
 
 function getCachedSubjects(): Subject[] {
-    if (quizzesSubjectsCache && quizzesSubjectsCache.length > 0) return quizzesSubjectsCache;
+    if (quizzesSubjectsCache !== null) return quizzesSubjectsCache;
     try {
         const stored = localStorage.getItem(QUIZZES_SUBJECTS_CACHE_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) {
+            if (Array.isArray(parsed)) {
                 quizzesSubjectsCache = parsed;
                 return parsed;
             }
@@ -194,7 +194,7 @@ export default function Quizzes() {
     const { canUse, incrementUsage, isPremium } = useUsageLimits();
     const [decks, setDecks] = useState<QuizDeck[]>(() => getCachedQuizzesDecks());
     const [subjects, setSubjects] = useState<Subject[]>(() => getCachedSubjects());
-    const [loading, setLoading] = useState(() => getCachedQuizzesDecks().length === 0);
+    const [loading, setLoading] = useState(() => quizzesDecksCache === null);
 
     // Create deck state
     const [newDeckName, setNewDeckName] = useState("");
@@ -375,8 +375,8 @@ export default function Quizzes() {
             return;
         }
 
-        // Only show spinner if we don't have any cached decks yet
-        if (getCachedQuizzesDecks().length === 0) {
+        // Only show spinner if we haven't fetched decks yet
+        if (quizzesDecksCache === null) {
             setLoading(true);
         }
 
@@ -392,13 +392,7 @@ export default function Quizzes() {
                     if (user) {
                         query = query.eq("user_id", user.id);
                     }
-                    let { data } = await query;
-                    if (user && (!data || data.length === 0)) {
-                        const fallback = await supabase.from("subjects").select("id, nombre, codigo, año").is("user_id", null).order("año");
-                        if (fallback.data && fallback.data.length > 0) {
-                            data = fallback.data;
-                        }
-                    }
+                    const { data } = await query;
                     return (data as unknown as Subject[]) || [];
                 })(),
                 supabase

@@ -21,7 +21,7 @@ import {
   Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare,
-  Search, Compass
+  Search, Compass, Sparkles
 } from "lucide-react";
 import { ApuntesIcon, NotionIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
@@ -50,10 +50,11 @@ export interface CustomSidebarItem {
 export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
-  Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap,
+  Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap, Sparkles,
+  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2, CheckSquare,
   ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Tabetalk: TabetalkIcon,
   Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous,
-  Gamepad2, Arcade: ArcadeIcon, ArcadeIcon,
+  Arcade: ArcadeIcon, ArcadeIcon,
   ComunidadIcon, Comunidad: ComunidadIcon
 };
 
@@ -83,9 +84,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/examenes": "GraduationCap",
   "/juegos": "Arcade",
   "/tabegochi": "Sparkles",
-  "/mapa": "Compass",
-  "/tabetalk": "TabetalkIcon",
-  "/discord": "TabetalkIcon"
+  "/mapa": "Compass"
 };
 
 export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
@@ -133,24 +132,15 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
   },
   {
     id: "cat-comunidad",
-    label: "Comunidad & Juegos",
+    label: "Juegos & Recreación",
     type: "category",
     iconName: "Arcade",
     items: [
-      { id: "item-/amigos", path: "/amigos", label: "Amigos", type: "item", iconName: "Users" },
       { id: "item-/bosque", path: "/bosque", label: "Mi Bosque", type: "item", iconName: "TreeDeciduous" },
       { id: "item-/tabegochi", path: "/tabegochi", label: "TabeGochi", type: "item", iconName: "Sparkles" },
       { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Arcade" },
-      { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" },
-      { id: "item-/comunidad", path: "/comunidad", label: "Comunidad", type: "item", iconName: "ComunidadIcon" }
+      { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" }
     ]
-  },
-  {
-    id: "item-/tabetalk",
-    path: "/tabetalk",
-    label: "Tabetalk",
-    type: "item",
-    iconName: "TabetalkIcon"
   },
   {
     id: "item-/metricas",
@@ -158,6 +148,20 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     label: "Métricas",
     type: "item",
     iconName: "BarChart3"
+  },
+  {
+    id: "item-/amigos",
+    path: "/amigos",
+    label: "Amigos",
+    type: "item",
+    iconName: "Users"
+  },
+  {
+    id: "item-/comunidad",
+    path: "/comunidad",
+    label: "Comunidad",
+    type: "item",
+    iconName: "ComunidadIcon"
   },
   {
     id: "item-/configuracion",
@@ -179,57 +183,119 @@ export const baseNavItems: NavItem[] = [
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
   { icon: ComunidadIcon, label: "Comunidad", path: "/comunidad", tourClass: "tour-sidebar-comunidad" },
   { icon: Library, label: "Biblioteca", path: "/biblioteca", tourClass: "tour-sidebar-biblioteca" },
+  { icon: Compass, label: "Correlatividades", path: "/mapa", tourClass: "tour-sidebar-mapa" },
   { icon: Calendar, label: "Calendario", path: "/calendario", tourClass: "tour-sidebar-calendar" },
   { icon: Repeat2, label: "Rutinas", path: "/rutinas", tourClass: "tour-sidebar-rutinas" },
   { icon: Timer, label: "Pomodoro", path: "/pomodoro", tourClass: "tour-sidebar-pomodoro" },
   { icon: CheckSquare, label: "Tareas", path: "/tareas", tourClass: "tour-sidebar-tareas" },
   { icon: BarChart3, label: "Métricas", path: "/metricas", tourClass: "tour-sidebar-metricas" },
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
+  { icon: Sparkles, label: "TabeGochi", path: "/tabegochi", tourClass: "tour-sidebar-tabegochi" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
   { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
-  { icon: TabetalkIcon, label: "Tabetalk", path: "/tabetalk", tourClass: "tour-sidebar-tabetalk" },
   { icon: ArcadeIcon, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];
 
 export const adminNavItem = { icon: Shield, label: "Admin", path: "/admin" };
 
-export const ALL_AVAILABLE_ITEMS = [
+export const ALL_AVAILABLE_ITEMS: NavItem[] = [
   ...baseNavItems,
-  { icon: GraduationCap, label: "Exámenes", path: "/examenes" },
-  { icon: Gamepad2, label: "Juegos", path: "/juegos" },
-  { icon: Compass, label: "Correlatividades", path: "/mapa" }
 ];
 
 /**
- * Ensures TABE IA is always properly structured, positioned 2nd (after Dashboard),
- * and eliminates any duplicate entries regardless of whether the config was loaded
- * from a user's previous cloud profile or local storage.
+ * Normaliza la estructura del sidebar para todos los usuarios:
+ * - Asegura que TABE IA esté en 2da posición (después de Dashboard)
+ * - Elimina /tabetalk y /discord del menú (accesible solo por enlace directo)
+ * - Migra rutas heredadas (/marketplace -> /comunidad, /notion -> /apuntes, /asistente -> /TABEAI)
+ * - Garantiza que todos los apartados del sistema estén presentes en cualquier cuenta
  */
 export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarItem[] {
   if (!items || !Array.isArray(items) || items.length === 0) {
-    return [...DEFAULT_CATEGORIZED_SIDEBAR];
+    return DEFAULT_CATEGORIZED_SIDEBAR.map(i => (i.items ? { ...i, items: [...i.items] } : { ...i }));
   }
 
-  // Recursive function to remove any TABEAI occurrences from root or categories
-  const removeTabeAI = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
+  // 1. Limpiar ocurrencias de TABEAI, Tabetalk y Discord, y migrar rutas heredadas
+  const sanitizeAndClean = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
     return list
       .filter(item => {
         const p = item.path || item.id;
-        return p !== "/TABEAI" && item.id !== "item-/TABEAI" && item.label?.toLowerCase() !== "tabe ia" && item.label?.toLowerCase() !== "tabeai";
+        const lbl = item.label?.toLowerCase() || "";
+        if (
+          p === "/TABEAI" ||
+          p === "/asistente" ||
+          item.id === "item-/TABEAI" ||
+          lbl === "tabe ia" ||
+          lbl === "tabeai" ||
+          p === "/tabetalk" ||
+          p === "/discord" ||
+          item.id === "item-/tabetalk" ||
+          item.id === "item-/discord" ||
+          lbl === "tabetalk" ||
+          lbl === "discord"
+        ) {
+          return false;
+        }
+        return true;
       })
       .map(item => {
-        if (item.items && item.items.length > 0) {
-          return {
-            ...item,
-            items: removeTabeAI(item.items)
+        let updated: CustomSidebarItem = { ...item };
+
+        if (updated.path === "/notion" || updated.id === "item-/notion") {
+          updated.path = "/apuntes";
+          updated.id = "item-/apuntes";
+          updated.iconName = "ApuntesIcon";
+        }
+
+        if (
+          updated.path === "/marketplace" ||
+          updated.id === "item-/marketplace" ||
+          updated.label?.toLowerCase() === "marketplace" ||
+          updated.iconName === "Store" ||
+          ((updated.path === "/comunidad" || updated.id === "item-/comunidad") && updated.iconName === "Users")
+        ) {
+          updated.path = "/comunidad";
+          updated.id = "item-/comunidad";
+          if (updated.label?.toLowerCase() === "marketplace") updated.label = "Comunidad";
+          if (updated.iconName === "Store" || updated.iconName === "Users") updated.iconName = "ComunidadIcon";
+        }
+
+        if ((updated.path || updated.id) === "/juegos" || updated.id === "item-/juegos") {
+          updated.iconName = "Arcade";
+        }
+
+        if ((updated.path || updated.id) === "/tabegochi" || updated.id === "item-/tabegochi") {
+          updated.iconName = "Sparkles";
+        }
+
+        if (updated.type === "category" && updated.items) {
+          const isGamesCat =
+            updated.id === "cat-comunidad" ||
+            updated.label?.toLowerCase().includes("comunidad") ||
+            updated.label?.toLowerCase().includes("juego");
+          updated = {
+            ...updated,
+            iconName: isGamesCat ? "Arcade" : updated.iconName,
+            items: sanitizeAndClean(updated.items)
           };
         }
-        return item;
+
+        return updated;
       });
   };
 
-  const cleaned = removeTabeAI(items);
+  const cleaned = sanitizeAndClean(items);
+
+  // 2. Asegurar Dashboard primero y TABE IA segundo
+  if (!cleaned.some(i => (i.path || i.id) === "/dashboard" || i.id === "item-/dashboard")) {
+    cleaned.unshift({
+      id: "item-/dashboard",
+      path: "/dashboard",
+      label: "Dashboard",
+      type: "item",
+      iconName: "LayoutDashboard"
+    });
+  }
 
   const tabeAIItem: CustomSidebarItem = {
     id: "item-/TABEAI",
@@ -246,7 +312,6 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
     cleaned.splice(1, 0, tabeAIItem);
   }
 
-  // Ensure /tareas is present in the sidebar
   const hasItemRecursively = (list: CustomSidebarItem[], targetPath: string): boolean => {
     return list.some(item => {
       const p = item.path || item.id;
@@ -256,165 +321,62 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
     });
   };
 
-  if (!hasItemRecursively(cleaned, "/tareas")) {
-    const tareasItem: CustomSidebarItem = {
-      id: "item-/tareas",
-      path: "/tareas",
-      label: "Tareas",
-      type: "item",
-      iconName: "CheckSquare"
-    };
-
-    // Find "Productividad" or "Organización" category (id: "cat-organizacion")
-    const orgCat = cleaned.find(i => 
-      i.type === "category" && 
-      (i.id === "cat-organizacion" || 
-       i.label?.toLowerCase().includes("productividad") || 
-       i.label?.toLowerCase().includes("organiza") ||
-       (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/pomodoro" || (sub.path || sub.id) === "/calendario" || (sub.path || sub.id) === "/rutinas")))
-    );
-
-    if (orgCat && orgCat.items) {
-      const pomodoroIdx = orgCat.items.findIndex((sub: any) => (sub.path || sub.id) === "/pomodoro" || sub.id === "item-/pomodoro");
-      if (pomodoroIdx !== -1) {
-        orgCat.items.splice(pomodoroIdx + 1, 0, tareasItem);
-      } else {
-        orgCat.items.push(tareasItem);
-      }
-    } else {
-      const firstCat = cleaned.find(i => i.type === "category" && i.items);
-      if (firstCat && firstCat.items) {
-        firstCat.items.push(tareasItem);
-      } else {
-        cleaned.push(tareasItem);
-      }
+  // 3. Promover /amigos y /comunidad al nivel raíz si estaban dentro de cat-comunidad
+  cleaned.forEach(item => {
+    if (item.type === "category" && item.items && item.id === "cat-comunidad") {
+      item.items = item.items.filter(sub => {
+        const p = sub.path || sub.id;
+        return p !== "/amigos" && p !== "/comunidad" && sub.id !== "item-/amigos" && sub.id !== "item-/comunidad";
+      });
     }
-  }
+  });
 
-  // Ensure /examenes is present in the sidebar
-  if (!hasItemRecursively(cleaned, "/examenes")) {
-    const examenesItem: CustomSidebarItem = {
-      id: "item-/examenes",
-      path: "/examenes",
-      label: "Exámenes",
-      type: "item",
-      iconName: "GraduationCap"
-    };
+  // 4. Garantizar que todas las categorías y apartados de DEFAULT_CATEGORIZED_SIDEBAR existan
+  for (const defEntry of DEFAULT_CATEGORIZED_SIDEBAR) {
+    if (defEntry.type === "category" && defEntry.items) {
+      let targetCat = cleaned.find(
+        c =>
+          c.type === "category" &&
+          (c.id === defEntry.id ||
+            (defEntry.id === "cat-academico" && (c.label?.toLowerCase().includes("académ") || c.label?.toLowerCase().includes("academ"))) ||
+            (defEntry.id === "cat-organizacion" && (c.label?.toLowerCase().includes("productividad") || c.label?.toLowerCase().includes("organiza"))) ||
+            (defEntry.id === "cat-comunidad" && (c.label?.toLowerCase().includes("juego") || c.label?.toLowerCase().includes("comunidad"))))
+      );
 
-    // Find "Académico" category (id: "cat-academico")
-    const acadCat = cleaned.find(i => 
-      i.type === "category" && 
-      (i.id === "cat-academico" || 
-       i.label?.toLowerCase().includes("académ") || 
-       i.label?.toLowerCase().includes("academ") ||
-       (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/carrera" || (sub.path || sub.id) === "/apuntes")))
-    );
-
-    if (acadCat && acadCat.items) {
-      const carreraIdx = acadCat.items.findIndex((sub: any) => (sub.path || sub.id) === "/carrera" || sub.id === "item-/carrera");
-      if (carreraIdx !== -1) {
-        acadCat.items.splice(carreraIdx + 1, 0, examenesItem);
-      } else {
-        acadCat.items.unshift(examenesItem);
-      }
-    } else {
-      const firstCat = cleaned.find(i => i.type === "category" && i.items);
-      if (firstCat && firstCat.items) {
-        firstCat.items.push(examenesItem);
-      } else {
-        cleaned.push(examenesItem);
-      }
-    }
-  }
-
-  // Replace legacy /discord references with /tabetalk
-  const replaceDiscordWithTabetalk = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
-    return list.map(item => {
-      let updated = { ...item };
-      if (updated.path === "/discord" || updated.id === "item-/discord") {
-        updated.path = "/tabetalk";
-        updated.id = "item-/tabetalk";
-        updated.label = "Tabetalk";
-        updated.iconName = "MessageSquare";
-      }
-      if (updated.items && updated.items.length > 0) {
-        updated.items = replaceDiscordWithTabetalk(updated.items);
-      }
-      return updated;
-    });
-  };
-
-  // Replace legacy /marketplace references with /comunidad and ComunidadIcon
-  const replaceMarketplaceWithComunidad = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
-    return list.map(item => {
-      let updated = { ...item };
-      if (
-        updated.path === "/marketplace" || 
-        updated.id === "item-/marketplace" || 
-        updated.label?.toLowerCase() === "marketplace" ||
-        updated.iconName === "Store" ||
-        ((updated.path === "/comunidad" || updated.id === "item-/comunidad") && updated.iconName === "Users")
-      ) {
-        if (updated.path === "/marketplace") updated.path = "/comunidad";
-        if (updated.id === "item-/marketplace") updated.id = "item-/comunidad";
-        if (updated.label?.toLowerCase() === "marketplace") updated.label = "Comunidad";
-        if (updated.iconName === "Store" || updated.iconName === "Users") updated.iconName = "ComunidadIcon";
-      }
-      if (updated.items && updated.items.length > 0) {
-        updated.items = replaceMarketplaceWithComunidad(updated.items);
-      }
-      return updated;
-    });
-  };
-
-  const migrated = replaceMarketplaceWithComunidad(replaceDiscordWithTabetalk(cleaned));
-
-  // Remove Tabetalk from any category items so it becomes an independent root item
-  const cleanTabetalkFromCategories = (list: CustomSidebarItem[]): CustomSidebarItem[] => {
-    return list.map(item => {
-      if (item.type === "category" && item.items) {
-        return {
-          ...item,
-          iconName: (item.id === "cat-comunidad" || item.label?.toLowerCase().includes("comunidad") || item.label?.toLowerCase().includes("juego")) ? "Arcade" : item.iconName,
-          items: item.items
-            .filter(sub => (sub.path || sub.id) !== "/tabetalk" && sub.id !== "item-/tabetalk")
-            .map(sub => {
-              if ((sub.path || sub.id) === "/juegos" || sub.id === "item-/juegos" || sub.label?.toLowerCase().includes("juego")) {
-                return { ...sub, iconName: "Arcade" };
-              }
-              return sub;
-            })
+      if (!targetCat) {
+        targetCat = {
+          id: defEntry.id,
+          label: defEntry.label,
+          type: "category",
+          iconName: defEntry.iconName,
+          items: []
         };
+        const metricasIdx = cleaned.findIndex(i => (i.path || i.id) === "/metricas" || i.id === "item-/metricas");
+        if (metricasIdx !== -1) {
+          cleaned.splice(metricasIdx, 0, targetCat);
+        } else {
+          cleaned.push(targetCat);
+        }
       }
-      return item;
-    });
-  };
 
-  const rootCleaned = cleanTabetalkFromCategories(migrated);
+      if (!targetCat.items) targetCat.items = [];
 
-  // Ensure /tabetalk is present at the root level of the sidebar
-  if (!rootCleaned.some(i => (i.path || i.id) === "/tabetalk" || i.id === "item-/tabetalk")) {
-    const tabetalkItem: CustomSidebarItem = {
-      id: "item-/tabetalk",
-      path: "/tabetalk",
-      label: "Tabetalk",
-      type: "item",
-      iconName: "TabetalkIcon"
-    };
-
-    // Insert after cat-comunidad if present, else before metricas or at end
-    const comCatIdx = rootCleaned.findIndex(i => i.id === "cat-comunidad" || i.label?.toLowerCase().includes("comunidad") || i.label?.toLowerCase().includes("juego"));
-    if (comCatIdx !== -1) {
-      rootCleaned.splice(comCatIdx + 1, 0, tabetalkItem);
-    } else {
-      const metricasIdx = rootCleaned.findIndex(i => (i.path || i.id) === "/metricas" || i.id === "item-/metricas");
-      if (metricasIdx !== -1) {
-        rootCleaned.splice(metricasIdx, 0, tabetalkItem);
-      } else {
-        rootCleaned.push(tabetalkItem);
+      for (const subItem of defEntry.items) {
+        if (subItem.path && !hasItemRecursively(cleaned, subItem.path)) {
+          targetCat.items.push({ ...subItem });
+        }
+      }
+    } else if (defEntry.type === "item" && defEntry.path) {
+      if (!hasItemRecursively(cleaned, defEntry.path)) {
+        const configIdx = cleaned.findIndex(i => (i.path || i.id) === "/configuracion" || i.id === "item-/configuracion");
+        if (configIdx !== -1 && defEntry.path !== "/configuracion") {
+          cleaned.splice(configIdx, 0, { ...defEntry });
+        } else {
+          cleaned.push({ ...defEntry });
+        }
       }
     }
   }
 
-  return rootCleaned;
+  return cleaned;
 }

@@ -40,19 +40,28 @@ export function useAchievements() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("achievements")
-      .select("*")
-      .order("categoria", { ascending: true })
-      .order("xp_reward", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("achievements")
+        .select("*")
+        .order("categoria", { ascending: true })
+        .order("xp_reward", { ascending: true });
 
-    if (!error && data) {
-      setAchievements(data as Achievement[]);
+      if (!error && data && data.length > 0) {
+        setAchievements(data as Achievement[]);
+      } else {
+        setAchievements(guestMockAchievements as Achievement[]);
+      }
+    } catch {
+      setAchievements(guestMockAchievements as Achievement[]);
     }
   }, [isGuest]);
 
   const fetchUserAchievements = useCallback(async () => {
-    if (!user && !isGuest) return;
+    if (!user && !isGuest) {
+      setLoading(false);
+      return;
+    }
 
     if (isGuest) {
       // Create some mock unlocked achievements by picking random ones from guestMockAchievements
@@ -66,15 +75,20 @@ export function useAchievements() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("user_achievements")
-      .select("*")
-      .eq("user_id", user.id);
+    try {
+      const { data, error } = await supabase
+        .from("user_achievements")
+        .select("*")
+        .eq("user_id", user.id);
 
-    if (!error && data) {
-      setUserAchievements(data);
+      if (!error && data) {
+        setUserAchievements(data);
+      }
+    } catch (e) {
+      console.warn("Error fetching user achievements:", e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user, isGuest]);
 
   // Verificar y desbloquear logros automáticamente

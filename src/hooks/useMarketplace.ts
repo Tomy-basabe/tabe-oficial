@@ -818,6 +818,14 @@ export function useMarketplace() {
   }, [user, fetchInventory]);
 
   useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  useEffect(() => {
     fetchPublicResources();
     fetchMyPublicDecks();
   }, [fetchPublicResources, fetchMyPublicDecks]);

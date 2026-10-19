@@ -81,14 +81,18 @@ export default function Tasks() {
       return;
     }
 
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 1500);
+
     const run = async () => {
-      // Solo mostrar skeleton si no hay datos previos
       if (!_tasksCache) {
         setLoading(true);
       }
       try {
         await loadAllData();
       } finally {
+        clearTimeout(safetyTimer);
         if (isMounted) {
           setLoading(false);
         }
@@ -99,6 +103,7 @@ export default function Tasks() {
 
     return () => {
       isMounted = false;
+      clearTimeout(safetyTimer);
     };
   }, [user, isGuest, authLoading]);
 
@@ -115,15 +120,6 @@ export default function Tasks() {
               .from("subjects")
               .select("id, nombre, codigo, año")
               .eq("user_id", user.id)
-              .order("nombre", { ascending: true });
-            if (data && data.length > 0) subData = data;
-          }
-
-          if (subData.length === 0) {
-            const { data } = await supabase
-              .from("subjects")
-              .select("id, nombre, codigo, año")
-              .is("user_id", null)
               .order("nombre", { ascending: true });
             if (data) subData = data;
           }

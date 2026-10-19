@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import FolderFloat from "@/components/ui/FolderFloat";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -195,18 +195,7 @@ export default function Library() {
         query = query.eq("user_id", user.id);
       }
 
-      let { data, error } = await query;
-      if (user && (!data || data.length === 0)) {
-        const fallback = await supabase
-          .from("subjects")
-          .select("id, nombre, codigo, año")
-          .is("user_id", null)
-          .order("año", { ascending: true })
-          .order("nombre", { ascending: true });
-        if (fallback.data && fallback.data.length > 0) {
-          data = fallback.data;
-        }
-      }
+      const { data, error } = await query;
 
       if (!error && data) {
         librarySubjectsCache = data;
@@ -225,9 +214,13 @@ export default function Library() {
       return;
     }
 
-    if (!libraryFilesCache || libraryFilesCache.length === 0) {
+    if (libraryFilesCache === null) {
       setLoading(true);
     }
+
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
 
     try {
       await Promise.allSettled([
@@ -236,6 +229,7 @@ export default function Library() {
         fetchFiles(false)
       ]);
     } finally {
+      clearTimeout(safetyTimer);
       setLoading(false);
     }
   };
