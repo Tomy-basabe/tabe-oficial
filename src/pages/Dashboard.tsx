@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { BookOpen, CheckCircle2, Clock, GraduationCap, Zap, Loader2 } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ProgressRing } from "@/components/dashboard/ProgressRing";
